@@ -1,0 +1,5 @@
+<project toolsVersion="5.6">
+  <dependency name="kit_sdk" linkPath="../_build/target-deps/kit_sdk">
+    <source path="C:\projects\Graphene" />
+  </dependency>
+</project>

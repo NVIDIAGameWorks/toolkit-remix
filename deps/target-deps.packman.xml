@@ -1,0 +1,6 @@
+<project toolsVersion="5.0">
+  <dependency name="kit_sdk" linkPath="../_build/target-deps/kit_sdk">
+    <package name="kit_sdk" version="2019.1.607-8ecee4d6-${platform}" platforms="windows-x86_64 linux-x86_64 linux-aarch64"/>
+  </dependency>
+
+</project>

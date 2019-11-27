@@ -1,0 +1,4 @@
+#define ICON_PATH "../../../_build/resources/icons/app.ico"
+
+IDI_APPLICATION ICON ICON_PATH
+GLFW_ICON ICON ICON_PATH

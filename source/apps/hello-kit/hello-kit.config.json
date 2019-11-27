@@ -1,0 +1,146 @@
+{
+    "log": {
+        "level": "Info",
+        "outputStreamLevel": "Warning",
+        "debugConsoleLevel": "Warning",
+        "fileLogLevel": "Info",
+        "file": "@data@/omniverse-kit.log",
+        "includeTimeStamp": true,
+        "setElapsedTimeUnits": "milliseconds"
+    },
+    "pluginsLoaded": [
+    	"omni.profiler-cpu.plugin",
+        //"carb.profiler-nvtx.plugin",
+        "carb.profiler-gpu.plugin",
+        "carb.filesystem.plugin",
+        "carb.input.plugin",
+        "carb.windowing-glfw.plugin",
+        "carb.multiprocess.plugin",
+        "carb.imgui.plugin",
+        "carb.svg-nanosvg.plugin",
+        "carb.assets.plugin",
+        "carb.datasource-file.plugin",
+        "carb.imaging.plugin",
+        "carb.tasking.plugin",
+        "carb.typeinfo.plugin",
+        "carb.simpleaudio-xaudio2.plugin",
+        "carb.remotecamera.plugin",
+        "carb.scripting-lua.plugin",
+        "carb.scripting-python.plugin",
+        "carb.scriptmanager.plugin",
+        "carb.ecs.plugin",
+        "carb.fastcache.plugin",
+        "carb.flatcache.plugin",
+        "carb.geometry.plugin",
+        "carb.physics-usd.plugin",
+        "carb.physics.plugin",
+        "carb.interop.plugin",
+        "carb.audio-*.plugin",
+        "carb.shadercompiler-slang.plugin",
+        "carb.shadercompiler-dxc.plugin",
+        "carb.graphics-direct3d.plugin",
+        "carb.graphics-vulkan.plugin",
+        "carb.cudainterop.plugin",
+        "carb.graphicsmux.plugin",
+        "carb.renderer.plugin",
+        "carb.scenerenderer-*",
+        "carb.livestream.plugin",
+        "carb.uitoolkit.plugin",
+        "rtx.*",
+        "carb.events.plugin",
+        "omni.connection.plugin",
+        "omni.computegraph.plugin",
+        "omni.kit.plugin"
+    ],
+    "defaultPlugins": [
+    ],
+    "pluginSearchPaths": [
+        ".",
+        "plugins/",
+        "plugins/usd"
+    ],
+    "omni.connection.plugin": {
+        "logIncomingMessages": true,
+        "logOutgoingMessages": true,
+        "logTickStatistics": false
+    },
+    "omni.kit.plugin": {
+        "dataPath": "@data@",
+        "cachePath": "@cache@",
+        "usdWorkConcurrencyLimit": 0,
+        "usdMuteDiagnosticMessage": true,
+        "createXformForTypelessReference": true,
+        "createExplicitRefForNoneDefaultPrim": true
+    },
+    "app": {
+        "window": {
+            "width": 1440,
+            "height": 900,
+            "title": "Omniverse Kit",
+            "fullscreen": false,
+            "minimalPanelsOnStartup": false,
+            "toolBarHorizontal": false,
+            "displayModeLock": false,
+            "uiStyle": "NvidiaDark"
+        },
+        "scriptFolders": ["scripts", "@documents@/scripts"],
+        "extensions": {
+            "pythonExtensionFolders": ["extensions/extensions-bundled", "extensions/extensions-other", "@documents@/extensions"],
+            "pythonUserEnvPath": "@data@/pip3-envs/default",
+            "scriptsEnabled": [
+                "omni.kit.builtin.init",
+                "omni.kit.builtin.menu",
+                "omni.kit.builtin.file_menu",
+                "omni.kit.builtin.toolbar",
+                "omni.kit.builtin.extensions_manager_window",
+                "omni.kit.builtin.about_window",
+                "omni.kit.builtin.preferences_window",
+                "omni.kit.builtin.provide_feedback_window",
+                "omni.kit.builtin.profiler",
+                "omni.kit.builtin.details_window",
+                "omni.kit.builtin.render_settings_window",
+                "omni.kit.builtin.test_runner",
+                "omni.kit.builtin.material_library",
+                "utils.utilities_menu",
+                "utils.movie_capture",
+                "utils.usd_paths",
+                "utils.collect_tool",
+                "omni.assetimport",
+                "omni.physx"
+            ]
+        },
+        "omniverse": {
+            "defaultServer": "localhost:3009",
+            "defaultUsername": "admin",
+            "showPwdField": false,
+            "showLoginOnStart": true,
+            "autoLoginOnStart": false
+        },
+        "file": {
+            "ignoreUnsavedOnExit": false
+        },
+        "renderer": {
+            "resolution": {
+                "list": [2048, 1080, 1920, 1080, 1280, 720],
+                "multiplierList": [1.0, 0.666666666666, 0.5, 0.333333333333, 0.25]
+            }
+        }
+    },
+    "plugins": {
+        "carb.crashreporter-breakpad.plugin": {
+            "reportName": "omniverse-kit",
+            "reportVersion": "undefined"
+        },
+        "carb.scripting-python.plugin": {
+            "pythonHome": "../../target-deps/python",
+            "pythonPath": "../../target-deps/python/python36.zip",
+            "logScriptErrors": true
+        }
+
+    },
+    "rtx": {
+        "shaderDb":  {
+            "shaderCachePath": "@cache@/shadercache"
+        }
+    }
+}

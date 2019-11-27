@@ -1,0 +1,194 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(Windows) test.unit",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/_build/windows-x86_64/debug/test.unit.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "(Linux) test.unit",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/_build/linux-x86_64/debug/test.unit",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "(Windows) example.helloworld",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/_build/windows-x86_64/debug/example.helloworld.exe",
+            "args": [
+                "--carb/app/window/fullscreen=false",
+                "--carb/log/level='warn'",
+                "--carb/log/file='log.txt'",
+                "--carb/log/enableStandardStreamOutput=false",
+                "--carb/log/enableDebugConsoleOutput=false",
+                "--carb/log/includeFilename=true",
+                "--carb/log/includeLineNumber=true"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "(Linux) example.helloworld",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/_build/linux-x86_64/debug/example.helloworld",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(Linux) example.graphics",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/_build/linux-x86_64/debug/example.graphics",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(Linux) example.simpleaudio",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/_build/linux-x86_64/debug/example.simpleaudio",
+            "args": [
+                "--carb/log/level='info'",
+                "--carb/log/file='log.txt'",
+                "--carb/log/enableDebugConsoleOutput=true",
+                "--carb/log/includeFilename=true",
+                "--carb/log/includeLineNumber=true"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "internalConsoleOptions": "openOnSessionStart",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(Windows) example.simpleaudio",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/_build/windows-x86_64/debug/example.simpleaudio.exe",
+            "args": [
+                "--carb/log/level='info'",
+                "--carb/log/file='log.txt'",
+                "--carb/log/enableStandardStreamOutput=false",
+                "--carb/log/enableDebugConsoleOutput=true",
+                "--carb/log/includeFilename=true",
+                "--carb/log/includeLineNumber=true"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "(Linux) example.audiocapture",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/_build/linux-x86_64/debug/example.audiocapture",
+            "args": [
+                "--carb/log/level='info'",
+                "--carb/log/file='log.txt'",
+                "--carb/log/enableDebugConsoleOutput=true",
+                "--carb/log/includeFilename=true",
+                "--carb/log/includeLineNumber=true"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "internalConsoleOptions": "openOnSessionStart",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(Windows) example.audiocapture",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/_build/windows-x86_64/debug/example.audiocapture.exe",
+            "args": [
+                "--carb/log/level='info'",
+                "--carb/log/file='log.txt'",
+                "--carb/log/enableStandardStreamOutput=false",
+                "--carb/log/enableDebugConsoleOutput=true",
+                "--carb/log/includeFilename=true",
+                "--carb/log/includeLineNumber=true"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "internalConsoleOptions": "openOnSessionStart"
+        }
+    ]
+}

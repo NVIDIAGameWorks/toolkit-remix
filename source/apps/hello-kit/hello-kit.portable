@@ -1,0 +1,3 @@
+// This file is used as a marker to make Kit installation portable.
+// Kit checks if in the executable folder file named after executable, but with extension ".portable" instead exists.
+// It it does Kit runs in portable mode.
