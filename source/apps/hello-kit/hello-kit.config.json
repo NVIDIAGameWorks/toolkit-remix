@@ -56,8 +56,9 @@
     ],
     "pluginSearchPaths": [
         ".",
-        "plugins/",
-        "plugins/usd"
+        "kit_sdk",
+        "kit_sdk/plugins/",
+        "kit_sdk/plugins/usd"
     ],
     "omni.connection.plugin": {
         "logIncomingMessages": true,
@@ -132,14 +133,22 @@
             "reportVersion": "undefined"
         },
         "carb.scripting-python.plugin": {
-            "pythonHome": "../../target-deps/python",
-            "pythonPath": "../../target-deps/python/python36.zip",
+            "pythonHome": "@exec@/kit_sdk_root/_build/target-deps/python",
+            "pythonPath": "@exec@/kit_sdk_root/_build/target-deps/python/python36.zip",
             "logScriptErrors": true
         }
 
     },
+    "renderer": {
+        "mdl": {
+            "searchPaths": {
+                "required" : "@exec@/kit_sdk_shaders/rtx/mdl"
+            }
+        }
+    },
     "rtx": {
         "shaderDb":  {
+            "basepath": "/../kit_sdk_shaders",
             "shaderCachePath": "@cache@/shadercache"
         }
     }

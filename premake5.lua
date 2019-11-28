@@ -226,7 +226,7 @@ workspace "kit-app-example"
         filter {}
     end
 
- project "example.app"
+ project "hello-kit"
         kind "ConsoleApp"
         location (workspaceDir.."/%{prj.name}")
         language "C++"

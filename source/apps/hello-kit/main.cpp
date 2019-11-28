@@ -82,12 +82,12 @@ static std::string getDocumentsPath()
     return "";
 }
 
-static void loadPluginsFromPattern(const char* pluginNamePattern)
+static void loadPluginsFromPattern(const char* pluginNamePattern, const char* searchPath = "kit_sdk/plugins")
 {
     carb::Framework* f = carb::getFramework();
     carb::PluginLoadingDesc desc = carb::PluginLoadingDesc::getDefault();
     const char* plugins[] = { pluginNamePattern };
-    const char* searchPaths[] = { "plugins" };
+    const char* searchPaths[] = { searchPath };
     desc.loadedFileWildcards = plugins;
     desc.loadedFileWildcardCount = CARB_COUNTOF(plugins);
     desc.searchPaths = searchPaths;
@@ -210,6 +210,7 @@ static void startupFramework(carb::Framework* f,
     fs->makeDirectories(documentsPath.c_str());
 
     std::vector<ConfigOverride> overrides;
+    overrides.push_back({ "@exec@", execFolder.getString() });
     overrides.push_back({ "@data@", processDataPath });
     overrides.push_back({ "@cache@", processCachePath });
     overrides.push_back({ "@documents@", documentsPath });
@@ -293,6 +294,8 @@ static void startupFramework(carb::Framework* f,
     // allowing/denying to load profiler plugin.
     carb::profiler::registerProfilerForClient();
     CARB_PROFILE_STARTUP();
+
+    fs->setAppDirectoryPath(execFolder.join("kit_sdk").getStringBuffer());
 }
 
 /**
@@ -400,7 +403,7 @@ static bool parseCommandLineArguments(int argc, char** argv, omni::kit::CommandL
     const char* graphicsPluginName = isVulkan ? "carb.graphics-vulkan.plugin" : "carb.graphics-direct3d.plugin";
 
     framework->setDefaultPluginEx(g_carbClientName, graphicsDesc, graphicsPluginName);
-
+     
     // Must acquire it here to lock our default plugin choice
     carb::graphics::Graphics* graphicsDefault = framework->acquireInterface<carb::graphics::Graphics>();
     carb::PluginDesc pluginDesc = framework->getInterfacePluginDesc(graphicsDefault);
