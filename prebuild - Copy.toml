@@ -1,0 +1,382 @@
+########################################################################################################################
+# Common section:
+########################################################################################################################
+
+copy = [
+    # Carbonite python bindings
+    ["$kit_sdk/_build/$platform/$config/bindings-python/carb/**/*.py", "_build/$platform/$config/plugins/bindings-python/carb"],
+
+    # Extensions bootstrap python code 
+    ["source/extensions/omni.kit.example.cppext/python/*.py", "_build/$platform/$config/extensions/extensions-other/omni/kit/example/cppext"],
+    ["source/extensions/omni.flex/python/*.py", "_build/$platform/$config/extensions/extensions-other/omni/flex"],
+    ["source/extensions/omni.physx/python/*.py", "_build/$platform/$config/extensions/extensions-other/omni/physx"],
+    ["source/extensions/omni.recorder/python/*.py", "_build/$platform/$config/extensions/extensions-other/omni/recorder"],
+    ["source/extensions/omni.physx.cct/python/*.py", "_build/$platform/$config/extensions/extensions-other/omni/physxcct"],
+    ["source/extensions/omni.anim.constraints/python/*.py", "_build/$platform/$config/extensions/extensions-other/omni/anim/constraints"],
+    ["source/extensions/omni.anim.clips/python/*.py", "_build/$platform/$config/extensions/extensions-other/omni/anim/clips"],
+    ["source/extensions/omni.anim.behaviors/python/*.py", "_build/$platform/$config/extensions/extensions-other/omni/anim/behaviors"],
+    ["source/extensions/omni.flowusd/python/*.py", "_build/$platform/$config/extensions/extensions-other/omni/flowusd"],
+
+    # Kit Usd extension 
+    ["source/plugins/omni.kit/usd/**", "_build/$platform/$config/plugins/usd"],
+
+    # Kit config file
+    ["source/omniverse-kit/omniverse-kit.config.json", "_build/$platform/$config"],
+
+    # Enable Kit portable version by default
+    ["source/omniverse-kit/omniverse-kit.portable", "_build/$platform/$config"],
+
+    # Bundled python scripts
+    ["source/python/scripts/**", "_build/$platform/$config/scripts"],
+
+    # Resources
+    ["_build/resources/**", "_build/$platform/$config/resources"],
+
+    # Python examples
+    ["source/examples/example.pythonapp/*" , "_build/$platform/$config"],
+
+    # usd_ext
+    ["_build/target-deps/usd_ext_physics/$config/share/usd/plugins/**", "_build/$platform/$config/plugins/usd/"],
+    ["_build/target-deps/usd_ext_physics/$config/lib/python/PhysicsSchema/**", "_build/$platform/$config/plugins/bindings-python/pxr/PhysicsSchema"],
+    ["_build/target-deps/usd_ext_physics/$config/lib/python/PhysicsSchemaTools/**", "_build/$platform/$config/plugins/bindings-python/pxr/PhysicsSchemaTools"],
+    ["_build/target-deps/usd_ext_physics/$config/lib/python/PhysxSchema/**", "_build/$platform/$config/plugins/bindings-python/pxr/PhysxSchema"],
+    ["_build/target-deps/usd_ext_physics/$config/lib/python/PhysxSchemaTools/**", "_build/$platform/$config/plugins/bindings-python/pxr/PhysxSchemaTools"]
+]
+link = [
+    # Bundled python extensions
+    ["source/python/extensions-bundled", "_build/$platform/$config/extensions/extensions-bundled"],
+
+    # Python examples
+    ["source/examples/example.pythonapp/pythonapps" , "_build/$platform/$config/pythonapps"],
+
+
+    # Extensions folder linked python code
+    ["source/extensions/omni.kit.example.cppext/python/scripts", "_build/$platform/$config/extensions/extensions-other/omni/kit/example/cppext/scripts"],
+    ["source/extensions/omni.flex/python/scripts", "_build/$platform/$config/extensions/extensions-other/omni/flex/scripts"],
+    ["source/extensions/omni.physx/python/scripts", "_build/$platform/$config/extensions/extensions-other/omni/physx/scripts"],
+    ["source/extensions/omni.physx.cct/python/scripts", "_build/$platform/$config/extensions/extensions-other/omni/physxcct/scripts"],
+	["source/extensions/omni.anim.constraints/python/scripts", "_build/$platform/$config/extensions/extensions-other/omni/anim/constraints/scripts"],
+    ["source/extensions/omni.physx.internal/python/scripts", "_build/$platform/$config/extensions/extensions-other/omni/physx/internal"],
+    ["source/extensions/omni.anim.clips/python/scripts", "_build/$platform/$config/extensions/extensions-other/omni/anim/clips/scripts"],
+    ["source/extensions/omni.anim.behaviors/python/scripts", "_build/$platform/$config/extensions/extensions-other/omni/anim/behaviors/scripts"],
+    ["source/extensions/omni.flowusd/python/scripts", "_build/$platform/$config/extensions/extensions-other/omni/flowusd/scripts"],
+    ["source/extensions/omni.depgraph/python", "_build/$platform/$config/extensions/extensions-other/omni/depgraph"]
+]
+
+
+########################################################################################################################
+# Windows platform:
+########################################################################################################################
+
+[windows-x86_64]
+copy = [
+    # Carbonite plugins
+    ["$carb_sdk/_build/$platform/$config/carb.dll", "_build/$platform/$config"],
+    ["$carb_sdk/_build/$platform/$config/carb.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.settings.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.dictionary.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.dictionary.serializer-json.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.dictionary.serializer-toml.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.events.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.crashreporter-breakpad.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.input.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.windowing-glfw.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.ecs.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.tasking.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.typeinfo.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.assets.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.datasource-file.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.imaging.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.scripting-lua.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.scripting-python.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.profiler-nvtx.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.profiler-chrome.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.simpleaudio-xaudio2.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/carb.audio-forge.plugin.dll", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/forge.dll", "_build/$platform/$config/plugins"],
+
+    # python
+    ["_build/target-deps/python/python36.dll", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/python/vcruntime140.dll", "_build/$platform/$config/plugins"],
+
+    # lua
+    ["_build/target-deps/lua/bin/$platform-vc14.1-static_rt/$config/lua.dll", "_build/$platform/$config/plugins"],
+
+    # Usd library (nv_usd) with python bindings
+    ["_build/target-deps/nv_usd/$config/lib/usd/**", "_build/$platform/$config/plugins/usd"],
+    ["_build/target-deps/nv_usd/$config/lib/python/**", "_build/$platform/$config/plugins/bindings-python"],
+
+    # usd_ext
+    ["_build/target-deps/usd_ext/$config/python/omni/aioconnection/**", "_build/$platform/$config/plugins/bindings-python/omni/connection/"],
+    ["_build/target-deps/usd_ext/$config/python/omni/connection_lowlevel/__init__.py", "_build/$platform/$config/plugins/bindings-python/omni/connection_lowlevel/__init__.py"],
+    ["_build/target-deps/usd_ext/$config/lib/omniverse_connection.*", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext/$config/lib/omni_usd_plugin.*", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext/$config/lib/mem_filesys.*", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext/$config/lib/objFileFormat.*", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext/$config/lib/usd/plugins/**", "_build/$platform/$config/plugins/usd/plugins"],
+    ["_build/target-deps/usd_ext/$config/python/omni/connection_lowlevel/_connection.cp36-win_amd64.pyd", "_build/$platform/$config/plugins/bindings-python/omni/connection_lowlevel"],
+    ["_build/target-deps/usd_ext/$config/lib/urdfFileFormat.*", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext/$config/lib/usd/urdfFileFormat/**", "_build/$platform/$config/plugins/usd/urdfFileFormat"],
+
+    # usd_audio_schema
+    ["_build/target-deps/usd_audio_schema/$config/lib/audioSchema.dll", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_audio_schema/$config/share/usd/plugins/**", "_build/$platform/$config/plugins/usd/"],
+
+    # usd_ext_physics
+    ["_build/target-deps/usd_ext_physics/$config/lib/physicsSchema.dll", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext_physics/$config/lib/physicsSchemaTools.dll", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext_physics/$config/lib/physxSchema.dll", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext_physics/$config/lib/physxSchemaTools.dll", "_build/$platform/$config/plugins"],
+
+    # omni_layer
+    ["_build/target-deps/omni_layer/$config/lib/omniverse_layer.dll", "_build/$platform/$config/plugins"],
+
+    # omni.kit.assetimport extension
+    ["_build/target-deps/ext_assetimport_$config/**", "_build/$platform/$config/extensions/extensions-other/"],
+
+    # glew
+    ["_build/target-deps/glew/bin/glew32.dll", "_build/$platform/$config/plugins"],
+
+    # nvTools
+    ["_build/target-deps/nvtx/bin/x64/nvToolsExt64_1.dll", "_build/$platform/$config"],
+
+    # FreeType
+    ["_build/target-deps/freetype/bin/$platform/$config/freetype.dll", "_build/$platform/$config/plugins"],
+]
+link = []
+
+
+[windows-x86_64.release]
+copy = [
+    # VC runtime
+    ["_build/host-deps/msvc/VC/Redist/MSVC/14.16.27012/x64/Microsoft.VC141.CRT/vcruntime140.dll", "_build/$platform/release"],
+    ["_build/host-deps/msvc/VC/Redist/MSVC/14.16.27012/x64/Microsoft.VC141.CRT/msvcp140.dll", "_build/$platform/release"],
+
+    # tbb (for usd)
+    ["_build/target-deps/nv_usd/$config/lib/tbb.*", "_build/$platform/release/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/tbbmalloc.*", "_build/$platform/release/plugins"],
+
+    # Robot?
+    ["_build/target-deps/robotimpsdk/lib/$platform/librobotimp.dll", "_build/$platform/release/plugins/RobotImp_x64.dll"],
+]
+link = []
+
+
+[windows-x86_64.debug]
+copy = [
+    # VC runtime
+    ["_build/host-deps/msvc/VC/Redist/MSVC/14.16.27012/debug_nonredist/x64/Microsoft.VC141.DebugCRT/vcruntime140d.dll", "_build/$platform/debug"],
+    ["_build/host-deps/msvc/VC/Redist/MSVC/14.16.27012/debug_nonredist/x64/Microsoft.VC141.DebugCRT/msvcp140d.dll", "_build/$platform/debug"],
+    ["_build/host-deps/winsdk/bin/x64/ucrt/ucrtbased.dll", "_build/$platform/debug"],
+
+    # tbb (for usd)
+    ["_build/target-deps/nv_usd/$config/lib/tbb_debug.*", "_build/$platform/debug/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/tbbmalloc_debug.*", "_build/$platform/debug/plugins"],
+
+    # Robot?
+    ["_build/target-deps/robotimpsdk/lib/$platform/librobotimpdebug.dll", "_build/$platform/debug/plugins/RobotImpDEBUG_x64.dll"],
+]
+link = []
+
+
+
+########################################################################################################################
+# Linux x86_64 platform:
+########################################################################################################################
+
+[linux-x86_64]
+copy = [
+    # Carbonite plugins
+    ["$carb_sdk/_build/$platform/$config/libcarb.so", "_build/$platform/$config"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.settings.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.dictionary.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.dictionary.serializer-json.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.dictionary.serializer-toml.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.events.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.crashreporter-breakpad.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.input.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.windowing-glfw.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.ecs.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.tasking.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.typeinfo.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.assets.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.datasource-file.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.imaging.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.scripting-lua.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.scripting-python.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.profiler-nvtx.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.profiler-chrome.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.simpleaudio-xaudio2.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libcarb.audio-forge.plugin.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libforge.so", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libHalf-2_3.so*", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libIex-2_3.so*", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libIexMath-2_3.so*", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libIlmImf-2_3.so*", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libIlmImfUtil-2_3.so*", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libIlmThread-2_3.so*", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libImath-2_3.so*", "_build/$platform/$config/plugins"],
+    ["$carb_sdk/_build/$platform/$config/libz.so", "_build/$platform/$config/plugins"],
+
+    # python
+    ["_build/target-deps/python/lib/libpython3.6m.*", "_build/$platform/$config/plugins"],
+
+    # lua
+    [ "_build/target-deps/lua/bin/linux-x86_64-gcc7.3-static_rt/$config/liblua.so", "_build/$platform/$config/plugins"],
+
+    # Usd library (nv_usd) with python bindings
+    ["_build/target-deps/nv_usd/$config/lib/python/**", "_build/$platform/$config/plugins/bindings-python"],
+    ["_build/target-deps/nv_usd/$config/lib/libar.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libarch.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libcameraUtil.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libgarch.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libgf.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libglf.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libhd.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libhdSt.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libhdx.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libhf.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libhgi.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libhgiGL.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libhio.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libjs.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libkind.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libndr.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libpcp.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libplug.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libpxOsd.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libsdf.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libsdr.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libtf.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libtrace.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusd.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusdGeom.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusdHydra.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusdImaging.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusdImagingGL.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusdLux.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusdRi.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusdShade.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusdSkel.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusdSkelImaging.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusdUI.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusdUtils.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusdVol.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libusdVolImaging.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libvt.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libwork.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libboost_python36.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libboost_python36.so.1.68.0", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libboost_system.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libboost_system.so.1.68.0", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libboost_date_time.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libboost_date_time.so.1.68.0", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libboost_filesystem.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libboost_filesystem.so.1.68.0", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libboost_regex.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libboost_regex.so.1.68.0", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libboost_thread.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/libboost_thread.so.1.68.0", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/nv_usd/$config/lib/usd/**", "_build/$platform/$config/plugins/usd"],
+
+    # jemalloc (for USD)
+    ["_build/target-deps/jemalloc/lib/**", "_build/$platform/$config/plugins"],
+
+    # usd_ext
+    ["_build/target-deps/usd_ext/$config/python/omni/aioconnection/**", "_build/$platform/$config/plugins/bindings-python/omni/connection/"],
+    ["_build/target-deps/usd_ext/$config/python/omni/connection_lowlevel/__init__.py", "_build/$platform/$config/plugins/bindings-python/omni/connection_lowlevel/__init__.py"],
+    ["_build/target-deps/usd_ext/$config/lib/libomniverse_connection.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext/$config/lib/libomni_usd_plugin.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext/$config/lib/libmem_filesys.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext/$config/lib/liburdfFileFormat.*", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext/$config/lib/usd/urdfFileFormat/**", "_build/$platform/$config/plugins/usd/urdfFileFormat"],
+    ["_build/target-deps/usd_ext/$config/lib/usd/plugins/**", "_build/$platform/$config/plugins/usd/plugins"],
+    ["_build/target-deps/usd_ext/$config/python/omni/connection_lowlevel/_connection.cpython-36m-x86_64-linux-gnu.so", "_build/$platform/$config/plugins/bindings-python/omni/connection_lowlevel"],
+
+    # usd_audio_schema
+    ["_build/target-deps/usd_audio_schema/$config/lib/libaudioSchema.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_audio_schema/$config/share/usd/plugins/**", "_build/$platform/$config/plugins/usd/"],
+
+    # usd_ext_physics
+    ["_build/target-deps/usd_ext_physics/$config/lib/libphysicsSchema.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext_physics/$config/lib/libphysicsSchemaTools.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext_physics/$config/lib/libphysxSchema.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext_physics/$config/lib/libphysxSchemaTools.so", "_build/$platform/$config/plugins"],
+
+    # usd_ext_isaac
+    ["_build/target-deps/usd_ext_isaac/$config/lib/liburdfFileFormat.*", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/usd_ext_isaac/$config/lib/usd/urdfFileFormat/**", "_build/$platform/$config/plugins/usd/urdfFileFormat"],
+
+    # omni_layer
+    ["_build/target-deps/omni_layer/$config/lib/libomniverse_layer.so", "_build/$platform/$config/plugins"],
+
+    # omni.kit.assetimport extension
+    ["_build/target-deps/ext_assetimport_$config/**", "_build/$platform/$config/extensions/extensions-other/"],
+
+    # hpcx
+    ["_build/target-deps/hpcx/ompi/bin/orterun", "_build/$platform/$config/plugins/hpcx/bin"],
+    ["_build/target-deps/hpcx/ompi/bin/orted", "_build/$platform/$config/plugins/hpcx/bin"],
+    ["_build/target-deps/hpcx/ompi/bin/orte-server", "_build/$platform/$config/plugins/hpcx/bin"],
+    ["_build/target-deps/hpcx/ompi/bin/mpirun", "_build/$platform/$config/plugins/hpcx/bin"],
+    ["_build/target-deps/hpcx/ompi/lib/*.so*", "_build/$platform/$config/plugins/hpcx/lib"],
+    ["_build/target-deps/hpcx/ompi/lib/openmpi/*.so*", "_build/$platform/$config/plugins/hpcx/lib/openmpi"],
+    ["_build/target-deps/hpcx/ompi/lib/pmix/*.so*", "_build/$platform/$config/plugins/hpcx/lib/pmix"],
+    ["_build/target-deps/hpcx/ompi/etc/**", "_build/$platform/$config/plugins/hpcx/etc"],
+    ["_build/target-deps/hpcx/ompi/share/openmpi/**", "_build/$platform/$config/plugins/hpcx/share/openmpi"],
+    ["_build/target-deps/hpcx/hcoll/etc/**", "_build/$platform/$config/plugins/hpcx/etc"],
+    ["_build/target-deps/hpcx/hcoll/lib/*.so*", "_build/$platform/$config/plugins/hpcx/lib"],
+    ["_build/target-deps/hpcx/hcoll/lib/hcoll/*.so*", "_build/$platform/$config/plugins/hpcx/lib/hcoll"],
+    ["_build/target-deps/hpcx/hcoll/share/hcoll/**", "_build/$platform/$config/plugins/hpcx/share/hcoll"],
+    ["_build/target-deps/hpcx/sharp/lib/*.so*", "_build/$platform/$config/plugins/hpcx/lib"],
+    ["_build/target-deps/hpcx/ucx/mt/lib/*.so*", "_build/$platform/$config/plugins/hpcx/lib"],
+    ["_build/target-deps/hpcx/ucx/mt/lib/ucx/*.so*", "_build/$platform/$config/plugins/hpcx/lib/ucx"],
+
+    # glew
+    ["_build/target-deps/glew/lib/libGLEW.*", "_build/$platform/$config/plugins"],
+
+    # OpenSubDiv
+    ["_build/target-deps/opensubdiv/lib/libosd*", "_build/$platform/$config/plugins"],
+
+    # nvTools
+    ["_build/target-deps/nvtx/lib64/libnvToolsExt.*", "_build/$platform/$config"],
+
+    # FreeType
+    ["_build/target-deps/freetype/bin/$platform/$config/libfreetype.so", "_build/$platform/$config/plugins"],
+
+    # misc (?)
+    ["tools/buildscripts/mpirun.sh", "_build/$platform/$config"],
+]
+link = []
+
+
+[linux-x86_64.release]
+copy = [
+    # tbb (for usd)
+    ["_build/target-deps/nv_usd/release/lib/libtbb.so.2", "_build/$platform/release/plugins"],
+
+    # NvFlex
+    ["_build/target-deps/flex/bin/linux-x86_64/$config/libNvFlexReleaseCUDA_x64.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/flex/bin/linux-x86_64/$config/libNvFlexExtReleaseCUDA_x64.so", "_build/$platform/$config/plugins"],
+    
+    # Robot?
+    ["_build/target-deps/robotimpsdk/lib/$platform/librobotimp.so", "_build/$platform/release/plugins/libRobotImp.so"],
+]
+link = []
+
+
+[linux-x86_64.debug]
+copy = [
+    # tbb (for usd)
+    ["_build/target-deps/nv_usd/debug/lib/libtbb_debug.so.2", "_build/$platform/debug/plugins"],
+
+    # NvFlex
+    ["_build/target-deps/flex/bin/linux-x86_64/$config/libNvFlexDebugCUDA_x64.so", "_build/$platform/$config/plugins"],
+    ["_build/target-deps/flex/bin/linux-x86_64/$config/libNvFlexExtDebugCUDA_x64.so", "_build/$platform/$config/plugins"],
+
+    # Robot?
+    ["_build/target-deps/robotimpsdk/lib/$platform/librobotimpdebug.so", "_build/$platform/release/plugins/libRobotImpDebug.so"],
+]
+link = []
+
+

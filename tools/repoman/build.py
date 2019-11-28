@@ -64,8 +64,11 @@ def stage_files(platform_target: str, configs: List[str]):
 
     prebuild_dict = toml.load(repo_folders["prebuild_toml"])
 
+    extra_mapping = {
+        "kit_sdk": os.path.join(repo_folders["target_deps"], "kit_sdk")
+    }
     with omni.repo.man.change_cwd(repo_folders["root"]):
-        omni.repo.fileutils.copy_and_link_using_dict_for_platform(prebuild_dict, platform_target, configs)
+        omni.repo.fileutils.copy_and_link_using_dict_for_platform(prebuild_dict, platform_target, configs, extra_mapping=extra_mapping)
 
 
 def setup_vscode_env(platform_target: str, configs: List[str]):
@@ -74,7 +77,7 @@ def setup_vscode_env(platform_target: str, configs: List[str]):
     repo_folders = omni.repo.man.get_repo_paths()
 
     # Use target python as default python for VSCode
-    packmanapi.link(os.path.join(repo_folders["host_deps"], "python"), os.environ["PM_python_PATH"])
+    # packmanapi.link(os.path.join(repo_folders["host_deps"], "python"), os.environ["PM_python_PATH"])
 
     # Install python packages configured to be used in VSCode project settings
     omni.repo.man.pip_install("flake8", repo_folders["pip_packages"])
@@ -215,7 +218,6 @@ By default host platform is used as target platform.
 
     # Pull all build dependencies
     logger.info("pulling all packman dependencies")
-    packmanapi.pull(repo_folders["assets_xml"], platform=options.platform_target)
     packmanapi.pull(repo_folders["target_deps_xml"], platform=platform_target)
     if subplatform is not None:
         packmanapi.pull(repo_folders["target_deps_xml"], subplatform)

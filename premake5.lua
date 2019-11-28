@@ -27,7 +27,8 @@ end
 
 local hostDepsDir = "_build/host-deps"
 local targetDepsDir = "_build/target-deps"
-local currentAbsPath = get_abs_path(".");
+local kitSdkDir = targetDepsDir.."/kit_sdk"
+-- local currentAbsPath = get_abs_path(".");
 
 -- premake5.lua
 workspace "kit-app-example"
@@ -62,9 +63,17 @@ workspace "kit-app-example"
     flags { "FatalCompileWarnings", "MultiProcessorCompile", "NoPCH", "UndefinedIdentifiers", "NoIncrementalLink" }
     cppdialect "C++14"
 
-    includedirs { targetDepsDir, hostDepsDir, "include", "_build/mirrored" }
+    includedirs { targetDepsDir, hostDepsDir, "include", 
+        kitSdkDir.."/include",
+        kitSdkDir.."/_build/target-deps/carb_sdk_plugins/include",
+        kitSdkDir.."/_build/target-deps/",
+    }
 
-    define_buildinfo()
+    syslibdirs { 
+        kitSdkDir.."/_build/target-deps/carb_sdk_plugins/"..targetDir
+    }
+
+    --define_buildinfo()
 
     filter { "system:windows" }
         platforms { "x86_64" }
@@ -221,12 +230,10 @@ workspace "kit-app-example"
         kind "ConsoleApp"
         location (workspaceDir.."/%{prj.name}")
         language "C++"
-        dependson { "omni.kit.plugin" }
         links { "carb" }
-        includedirs { "source/omniverse-kit", "include" }
-        files { "source/omniverse-kit/main.cpp", "source/omniverse-kit/omniverse-kit.config.json", "source/python/**.py" }
-        filter { "system:windows" }
-            files { "source/omniverse-kit/omniverse-kit.rc" }
+        includedirs { "source/apps/hello-kit", "include" }
+        files { "source/apps/hello-kit/*.cpp" }
+        files { "source/apps/hello-kit/*.h" }
         filter { "system:windows", "configurations:debug" }
             postbuildcommands { "call ..\\..\\..\\build.bat --stage --debug-only" }
         filter { "system:windows", "configurations:release" }
@@ -244,7 +251,7 @@ workspace "kit-app-example"
 
 
 project "example.cppext.plugin"
-        carbonitePlugin { ifaces = "", impl = "source/extensions/omni.kit.example.cppext/plugins" }
+        define_plugin { ifaces = "", impl = "source/extensions/omni.kit.example.cppext/plugins" }
         targetdir (targetDir.."/extensions/extensions-other/omni/kit/example/cppext/bin/"..platform.."/%{cfg.buildcfg}")
         dependson { "carb" }
         location (workspaceDir.."/%{prj.name}")

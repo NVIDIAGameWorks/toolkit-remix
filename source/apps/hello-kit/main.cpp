@@ -37,7 +37,13 @@ void failwith(Args&&...)
 #include <carb/extras/EnvironmentVariableParser.h>
 
 #include <omni/kit/IEditor.h>
+
+#if 0
 #include <omni/kit/Version.h>
+#else
+
+#define BUILDVERSION "123"
+#endif
 
 #include <chrono>
 #include <string>
