@@ -56,9 +56,8 @@
     ],
     "pluginSearchPaths": [
         ".",
-        "kit_sdk",
-        "kit_sdk/plugins/",
-        "kit_sdk/plugins/usd"
+        "plugins",
+        "plugins/usd"
     ],
     "omni.connection.plugin": {
         "logIncomingMessages": true,
@@ -86,7 +85,7 @@
         },
         "scriptFolders": ["scripts", "@documents@/scripts"],
         "extensions": {
-            "pythonExtensionFolders": ["extensions/extensions-bundled", "extensions/extensions-other", "@documents@/extensions"],
+            "pythonExtensionFolders": ["kit_sdk_binary/extensions/extensions-bundled", "kit_sdk_binary/extensions/extensions-other", "@documents@/extensions"],
             "pythonUserEnvPath": "@data@/pip3-envs/default",
             "scriptsEnabled": [
                 "omni.kit.builtin.init",
@@ -133,8 +132,8 @@
             "reportVersion": "undefined"
         },
         "carb.scripting-python.plugin": {
-            "pythonHome": "@exec@/kit_sdk_root/_build/target-deps/python",
-            "pythonPath": "@exec@/kit_sdk_root/_build/target-deps/python/python36.zip",
+            "pythonHome": "@exec@/kit_sdk/_build/target-deps/python",
+            "pythonPath": "@exec@/kit_sdk/_build/target-deps/python/python36.zip",
             "logScriptErrors": true
         }
 
@@ -142,13 +141,13 @@
     "renderer": {
         "mdl": {
             "searchPaths": {
-                "required" : "@exec@/kit_sdk_shaders/rtx/mdl"
+                "required" : "@exec@/kit_sdk/shaders/rtx/mdl"
             }
         }
     },
     "rtx": {
         "shaderDb":  {
-            "basepath": "/../kit_sdk_shaders",
+            "basepath": "/../kit_sdk/shaders",
             "shaderCachePath": "@cache@/shadercache"
         }
     }

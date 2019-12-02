@@ -271,7 +271,7 @@ By default host platform is used as target platform.
     if use_msbuild:
         msbuild_tool = os.path.join(repo_folders["host_deps"], r"msvc\MSBuild\15.0\Bin\MSBuild.exe")
         vs_version = "vs2017"
-        sln = os.path.join(repo_folders["compiler"], rf"{vs_version}\Carbonite.sln")
+        sln = os.path.join(repo_folders["compiler"], rf"{vs_version}\kit-app-example.sln")
         omni.repo.build.build_with_msbuild(
             repo_root=repo_root,
             premake_file=premake_file,

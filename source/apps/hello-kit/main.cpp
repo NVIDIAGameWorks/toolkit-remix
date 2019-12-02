@@ -82,7 +82,7 @@ static std::string getDocumentsPath()
     return "";
 }
 
-static void loadPluginsFromPattern(const char* pluginNamePattern, const char* searchPath = "kit_sdk/plugins")
+static void loadPluginsFromPattern(const char* pluginNamePattern, const char* searchPath = "plugins")
 {
     carb::Framework* f = carb::getFramework();
     carb::PluginLoadingDesc desc = carb::PluginLoadingDesc::getDefault();
@@ -174,7 +174,10 @@ static void startupFramework(carb::Framework* f,
     // set the initial working directory to the executable directory.
     carb::extras::Path execFolder = carb::extras::getPathParent(fs->getExecutablePath());
     fs->setCurrentDirectoryPath(execFolder.getStringBuffer());
-    fs->setAppDirectoryPath(execFolder.getStringBuffer());
+    //fs->setAppDirectoryPath(execFolder.getStringBuffer());
+    // A
+    fs->setAppDirectoryPath(execFolder.join("kit_sdk_binary").getStringBuffer());
+
 
 
     // Initialize new settings system from reading json via dictionary
@@ -294,8 +297,6 @@ static void startupFramework(carb::Framework* f,
     // allowing/denying to load profiler plugin.
     carb::profiler::registerProfilerForClient();
     CARB_PROFILE_STARTUP();
-
-    fs->setAppDirectoryPath(execFolder.join("kit_sdk").getStringBuffer());
 }
 
 /**

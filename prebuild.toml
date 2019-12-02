@@ -3,17 +3,12 @@
 ########################################################################################################################
 
 copy = [
-    # Carbonite python bindings
-    ["$kit_sdk/_build/$platform/$config/bindings-python/carb/**/*.py", "_build/$platform/$config/plugins/bindings-python/carb"],
-
     ["$kit_sdk/_build/$platform/$config/carb.dll", "_build/$platform/$config"],
-
     ["source/apps/hello-kit/hello-kit.config.json", "_build/$platform/$config"],
 ]
 link = [
-    ["$kit_sdk/_build/$platform/$config", "_build/$platform/$config/kit_sdk"],
-    ["$kit_sdk/shaders", "_build/$platform/$config/kit_sdk_shaders"],
-    ["$kit_sdk", "_build/$platform/$config/kit_sdk_root"],
+    ["$kit_sdk/_build/$platform/$config", "_build/$platform/$config/kit_sdk_binary"],
+    ["$kit_sdk", "_build/$platform/$config/kit_sdk"],
 ]
 
 
