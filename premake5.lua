@@ -31,7 +31,7 @@ local kitSdkDir = targetDepsDir.."/kit_sdk"
 -- local currentAbsPath = get_abs_path(".");
 
 -- premake5.lua
-workspace "kit-app-example"
+workspace "kit-examples"
     configurations { "debug", "release" }
     startproject ""
 
@@ -67,10 +67,6 @@ workspace "kit-app-example"
         kitSdkDir.."/include",
         kitSdkDir.."/_build/target-deps/carb_sdk_plugins/include",
         kitSdkDir.."/_build/target-deps/",
-    }
-
-    syslibdirs { 
-        kitSdkDir.."/_build/target-deps/carb_sdk_plugins/"..targetDir
     }
 
     --define_buildinfo()
@@ -226,34 +222,33 @@ workspace "kit-app-example"
         filter {}
     end
 
- project "hello-kit"
-        kind "ConsoleApp"
-        location (workspaceDir.."/%{prj.name}")
-        language "C++"
-        links { "carb" }
-        includedirs { "source/apps/hello-kit", "include" }
-        files { "source/apps/hello-kit/*.cpp" }
-        files { "source/apps/hello-kit/*.h" }
-        filter { "system:windows", "configurations:debug" }
-            postbuildcommands { "call ..\\..\\..\\build.bat --stage --debug-only" }
-        filter { "system:windows", "configurations:release" }
-            postbuildcommands { "call ..\\..\\..\\build.bat --stage --release-only" }
-        filter { "system:linux" }
-            links { "dl", "pthread" }
-            runpathdirs { targetDir,
-                          targetDir.."/plugins",
-                          targetDir.."/plugins/hpcx/lib",
-                          targetDir.."/plugins/hpcx/lib/openmpi",
-                          targetDir.."/plugins/hpcx/lib/pmix",
-                          targetDir.."/plugins/hpcx/lib/ucx",
-                          targetDir.."/plugins/hpcx/lib/hcoll" }
-        filter {}
+group "experiences"
+    project "examples.only"
+        kind "MakeFile"
+        debugcommand (targetDir.."/1.bat")
+
+group "example.python_extension"
+    project "example.python_extension"
+        kind "None"
+        files { "source/extensions/example.python_extension/**.py" }
 
 
-project "example.cppext.plugin"
-        define_plugin { ifaces = "", impl = "source/extensions/omni.kit.example.cppext/plugins" }
-        targetdir (targetDir.."/extensions/extensions-other/omni/kit/example/cppext/bin/"..platform.."/%{cfg.buildcfg}")
-        dependson { "carb" }
-        location (workspaceDir.."/%{prj.name}")
-        language "C++"
+group "example.cpp_extension"
+    project "example.cpp_extension.plugin"
+            define_plugin { ifaces = "", impl = "source/extensions/example.cpp_extension/plugins" }
+            targetdir (targetDir.."/extensions/example/cpp_extension/bin/"..platform.."/%{cfg.buildcfg}")
+            location (workspaceDir.."/%{prj.name}")
 
+group "example.mixed_extension"
+    project "example.mixed_extension.plugin"
+            define_plugin { ifaces = "", impl = "source/extensions/example.mixed_extension/plugins" }
+            targetdir (targetDir.."/extensions/example/mixed_extension/bin/"..platform.."/%{cfg.buildcfg}")
+            location (workspaceDir.."/%{prj.name}")
+
+    project "example.mixed_extension.python"
+            define_bindings_python {
+                name = "_mixed_extension",
+                folder = "source/extensions/example.mixed_extension/bindings",
+                namespace = "omni" }
+            targetdir (targetDir.."/extensions/example/mixed_extension/bindings")
+        
