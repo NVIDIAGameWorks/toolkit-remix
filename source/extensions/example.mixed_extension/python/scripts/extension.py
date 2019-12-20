@@ -1,20 +1,16 @@
 import os
 import omni.kit.extensions
-from ..bindings import _flex
-from .menu import FlexMenu
+from ..bindings import _mixed_extension
 
 
 class Extension:
     def __init__(self):
         ext_folder = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-        lib_path = omni.kit.extensions.build_plugin_path(ext_folder, "omni.flex.plugin")
-        self._flex = _flex.acquire_flex_interface(library_path=lib_path)
-        self._menu = FlexMenu(self._flex)
+        lib_path = omni.kit.extensions.build_plugin_path(ext_folder, "example.mixed_extension.plugin")
+        self._mixed_extension = _mixed_extension.acquire_mixed_extension_interface(library_path=lib_path)
 
     def on_shutdown(self):
-        _flex.release_flex_interface(self._flex)
-        self._menu.shutdown()
-        self._menu = None
+        _mixed_extension.release_mixed_extension_interface(self._mixed_extension)
 
 
 def get_extension():

@@ -19,7 +19,7 @@ class Extension:
 
         # Load plugin from exact library located inside of own extension package. Use provided utility to build correct
         # platform and config dependent relative path, e.g. bin/windows-x86_64/debug/my.dll
-        lib_path = omni.kit.extensions.build_plugin_path(ext_folder, "example.cppext.plugin")
+        lib_path = omni.kit.extensions.build_plugin_path(ext_folder, "example.cpp_extension.plugin")
         self._ext = omni.kit.minimal.acquire_minimal_interface(library_path=lib_path)
 
     def on_shutdown(self):

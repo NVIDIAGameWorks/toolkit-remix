@@ -29,7 +29,7 @@ const struct carb::PluginImplDesc kPluginImpl = { EXTENSION_NAME, "Example of a 
 // plugin using Carbonite. Loading and unloading will give 2 entry points: carbOnPluginStartup()/carbOnPluginShutdown()
 // which is already enough to hook up into Editor and extend it.
 CARB_PLUGIN_IMPL(kPluginImpl, omni::kit::IMinimal)
-CARB_PLUGIN_IMPL_DEPS(omni::kit::IEditor, carb::logging::Logging)
+CARB_PLUGIN_IMPL_DEPS(omni::kit::IEditor)
 
 void fillInterface(omni::kit::IMinimal& iface)
 {

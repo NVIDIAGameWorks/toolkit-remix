@@ -25,9 +25,7 @@ function split(instr, sep)
     return substrings
 end
 
-local hostDepsDir = "_build/host-deps"
-local targetDepsDir = "_build/target-deps"
-local kitSdkDir = targetDepsDir.."/kit_sdk"
+
 -- local currentAbsPath = get_abs_path(".");
 
 -- premake5.lua
@@ -45,6 +43,16 @@ workspace "kit-examples"
     local hostDependencyPlatform = _OPTIONS["platform-host"] or targetDependencyPlatform;
 
     local targetDir = "_build/"..platform.."/%{cfg.buildcfg}"
+
+    local hostDepsDir = "_build/host-deps"
+    local targetDepsDir = "_build/target-deps"
+    local kitSdkDir = targetDepsDir.."/kit_sdk"
+    local kitSdkTargetDepsDir = kitSdkDir.."/"..targetDepsDir
+    
+    local carbSDKPath = kitSdkTargetDepsDir.."/carb_sdk_plugins"
+    local carbSDKInclude = carbSDKPath.."/include"
+    local carbSDKLibs = carbSDKPath.."/"..targetDir
+    
 
     -- defining anything related to the VS or SDK version here because they will most likely be changed in the future..
     local msvcInclude = hostDepsDir.."/msvc/VC/Tools/MSVC/14.16.27023/include"
@@ -200,6 +208,7 @@ workspace "kit-examples"
         vpaths { [''] = folder.."/*.*", ['common'] = "source/bindings/python/*.*" }
         dependson { "carb" }
         links {"carb" }
+        libdirs { carbSDKLibs }
         location (workspaceDir.."/%{prj.name}")
         exceptionhandling "On"
         rtti "On"
@@ -211,12 +220,12 @@ workspace "kit-examples"
             runtime "Debug"
         filter { "system:windows" }
             targetextension(".pyd")
-            libdirs { targetDepsDir.."/python/libs" }
-            includedirs { targetDepsDir.."/python/include" }
+            libdirs { kitSdkTargetDepsDir.."/python/libs" }
+            includedirs { kitSdkTargetDepsDir.."/python/include" }
         filter { "system:linux" }
             targetprefix("")
-            includedirs { targetDepsDir.."/python/include/python3.6m" }
-            links { targetDepsDir.."/python/lib/python3.6m" }
+            includedirs { kitSdkTargetDepsDir.."/python/include/python3.6m" }
+            links { kitSdkTargetDepsDir.."/python/lib/python3.6m" }
             -- show undefined symbols as linker errors
             linkoptions { "-Wl,--no-undefined" }
         filter {}
@@ -225,24 +234,23 @@ workspace "kit-examples"
 group "experiences"
     project "examples.only"
         kind "MakeFile"
-        debugcommand (targetDir.."/1.bat")
+        debugcommand ("_build/target-deps/kit_sdk/_build/"..platform.."/%{cfg.buildcfg}/omniverse-kit.exe" )
 
 group "example.python_extension"
     project "example.python_extension"
         kind "None"
         files { "source/extensions/example.python_extension/**.py" }
 
-
 group "example.cpp_extension"
     project "example.cpp_extension.plugin"
             define_plugin { ifaces = "", impl = "source/extensions/example.cpp_extension/plugins" }
-            targetdir (targetDir.."/extensions/example/cpp_extension/bin/"..platform.."/%{cfg.buildcfg}")
+            targetdir (targetDir.."/extensions/omni/example/cpp_extension/bin/"..platform.."/%{cfg.buildcfg}")
             location (workspaceDir.."/%{prj.name}")
 
 group "example.mixed_extension"
     project "example.mixed_extension.plugin"
-            define_plugin { ifaces = "", impl = "source/extensions/example.mixed_extension/plugins" }
-            targetdir (targetDir.."/extensions/example/mixed_extension/bin/"..platform.."/%{cfg.buildcfg}")
+            define_plugin { ifaces = "include/omni/example", impl = "source/extensions/example.mixed_extension/plugins" }
+            targetdir (targetDir.."/extensions/omni/example/mixed_extension/bin/"..platform.."/%{cfg.buildcfg}")
             location (workspaceDir.."/%{prj.name}")
 
     project "example.mixed_extension.python"
@@ -250,5 +258,5 @@ group "example.mixed_extension"
                 name = "_mixed_extension",
                 folder = "source/extensions/example.mixed_extension/bindings",
                 namespace = "omni" }
-            targetdir (targetDir.."/extensions/example/mixed_extension/bindings")
+            targetdir (targetDir.."/extensions/omni/example/mixed_extension/bindings")
         
