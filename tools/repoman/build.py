@@ -80,7 +80,7 @@ def main():
     settings.vs_version = "vs2017"
 
     # TEMP HACK! REMOVE!
-    os.environ["PM_PYTHON_PATH"] = ""
+    os.environ["PM_PYTHON_PATH"] = os.path.join(root, "_build/target-deps/kit_sdk/_build/target-deps/python")
 
     settings.stage_files_error_if_missing = True
     omni.repo.build.main(root=root, settings=settings)
