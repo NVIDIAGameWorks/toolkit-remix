@@ -3,22 +3,21 @@
 ########################################################################################################################
 
 copy = [
-    # ["$kit_sdk/_build/$platform/$config/carb.dll", "_build/$platform/$config"],
-    # ["source/apps/hello-kit/hello-kit.config.json", "_build/$platform/$config"],
-
     # Extensions bootstrap python code 
     ["source/extensions/example.cpp_extension/python/*.py", "_build/$platform/$config/extensions/omni/example/cpp_extension"],
     ["source/extensions/example.mixed_extension/python/*.py", "_build/$platform/$config/extensions/omni/example/mixed_extension"],
+
+    # Copy app running scripts in target dir
+    ["source/apps/*", "_build/$platform/$config"],
 ]
 link = [
     # Extensions folder linked python code
     ["source/extensions/example.cpp_extension/python/scripts", "_build/$platform/$config/extensions/omni/example/cpp_extension/scripts"],
     ["source/extensions/example.mixed_extension/python/scripts", "_build/$platform/$config/extensions/omni/example/mixed_extension/scripts"],
     ["source/extensions/example.python_extension", "_build/$platform/$config/extensions/omni/example/python_extension"],
-    ["source/apps", "_build/$platform/$config/apps"],
 
-    # ["$kit_sdk/_build/$platform/$config", "_build/$platform/$config/kit_sdk_binary"],
-    # ["$kit_sdk", "_build/$platform/$config/kit_sdk"],
+    # Link app configs in target dir for easier edit
+    ["source/apps/configs", "_build/$platform/$config/apps"],
 ]
 
 
@@ -26,8 +25,15 @@ link = [
 # Windows platform:
 ########################################################################################################################
 
+[windows-x86_64]
+copy = []
+link = []
+
 
 ########################################################################################################################
 # Linux x86_64 platform:
 ########################################################################################################################
 
+[linux-x86_64]
+copy = []
+link = []

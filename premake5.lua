@@ -13,18 +13,8 @@ premake.override(premake.vstudio.vc2010.elements, "clCompile", function(oldfn, c
     return calls
 end)
 
--- Support for /sourcelink for visual studio
-require('sourcelink')
-
-function split(instr, sep)
-    local substrings = {}; i = 1
-    for str in string.gmatch(instr, "([^"..sep.."]+)") do
-        substrings[i] = str
-        i = i + 1
-    end
-    return substrings
-end
-
+-- shared build scripts from repo_build package
+require("omni/repo/build")
 
 -- local currentAbsPath = get_abs_path(".");
 
@@ -62,8 +52,7 @@ workspace "kit-examples"
 
     location (workspaceDir)
     targetdir (targetDir)
-    -- symbolspath ("_build/"..targetName.."/symbols/%{cfg_buildcfg}/%{prj.name}.pdb")
-    objdir ("_build/tmp/%{cfg.system}/%{prj.name}")
+    objdir ("_build/intermediate/"..platform.."/%{prj.name}")
     symbols "On"
     exceptionhandling "Off"
     rtti "Off"

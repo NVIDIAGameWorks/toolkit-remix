@@ -33,133 +33,17 @@ files = []
 
 
 ########################################################################################################################
-# carb_sdk package
+# example_extensions package
 ########################################################################################################################
 
-[carb_sdk]
+[example_extensions]
 files = [
-    ["include/carb/*.h", "include/carb"],
-    ["include/carb/utils/*.h", "include/carb/utils"],
-    ["_build/$platform/$config/${lib_prefix}carb${lib_ext}"],
-    ["_build/$platform/$config/bindings-python/carb/__init__.py"],
-    ["_build/$platform/$config/bindings-python/carb/_carb${bindings_ext}"],
-    ["_build/$platform/$config/bindings-lua/carb/carb.lua${bindings_ext}"],
+    ["_build/$platform/$config/extensions", "extensions"],
 ]
 
-[carb_sdk.windows-x86_64]
-files = [
-    ["_build/$platform/$config/carb.lib"],
-]
+[example_extensions.windows-x86_64]
+files = []
 
+[example_extensions.linux-x86_64]
+files = []
 
-########################################################################################################################
-# carb_sdk+plugins package
-########################################################################################################################
-
-["carb_sdk+plugins"]
-files = [
-    ["include/**/*.h", "include"],
-    ["_build/$platform/$config/bindings-python/**/*.py", "_build/$platform/$config/bindings-python"],
-    ["_build/$platform/$config/bindings-lua/**/*.py", "_build/$platform/$config/bindings-lua"],
-    ["_build/$platform/$config/bindings-python/**/*${bindings_ext}", "_build/$platform/$config/bindings-python"],
-    ["_build/$platform/$config/bindings-python/carb/_carb${bindings_ext}"],
-    ["_build/$platform/$config/bindings-lua/**/*${lib_ext}", "_build/$platform/$config/bindings-lua"],
-    ["_build/$platform/$config/bindings-python/carb/__init__.py"],
-    ["_build/$platform/$config/carb.lib"],
-    ["_build/$platform/$config/${lib_prefix}carb${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.assets.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.audio-forge.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.audiocapture-dsound.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.crashreporter-breakpad.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.datasource-file.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.dictionary.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.dictionary.serializer-json.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.dictionary.serializer-toml.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.ecs.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.events.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.imaging.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.input.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.launcher.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.memory.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.profiler-chrome.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.profiler-nvtx.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.scripting-lua.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.scripting-python.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.settings.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.simpleaudio-xaudio2.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.tasking.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.typeinfo.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}carb.windowing-glfw.plugin${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}forge${lib_ext}"],
-    ["_build/$platform/$config/${lib_prefix}lua${lib_ext}"],
-]
-
-["carb_sdk+plugins.windows-x86_64"]
-files = [
-    ["_build/windows-x86_64/$config/python36.dll"],
-    ["_build/windows-x86_64/$config/ucrtbased.dll"],
-    ["_build/windows-x86_64/$config/nvToolsExt64_1.dll"],
-]
-
-["carb_sdk+plugins.windows-x86_64.release"]
-files = [
-    ["_build/windows-x86_64/release/vcruntime140.dll"],
-    ["_build/windows-x86_64/release/msvcp140.dll"],
-]
-
-["carb_sdk+plugins.windows-x86_64.debug"]
-files = [
-    ["_build/windows-x86_64/debug/vcruntime140d.dll"],
-    ["_build/windows-x86_64/debug/msvcp140d.dll"],
-]
-
-["carb_sdk+plugins.linux"] # both aarch64 and x86_64
-files = [
-    ["_build/$platform/$config/lib*.so", "_build/$platform/$config"],
-    ["_build/$platform/$config/lib*.so.*", "_build/$platform/$config"],
-]
-
-
-########################################################################################################################
-# carb_unittests package
-########################################################################################################################
-
-[carb_unittests]
-files = [
-    ["tools"],
-    ["_build/$platform/$config/test.unit${exe_ext}"],
-    ["_build/assets"],
-    ["_build/target-deps/python"],
-    ["source/tests/python"],
-    ["_build/$platform/$config/OmniverseServer"],
-    ["_build/$platform/$config/*${lib_ext}", "_build/$platform/$config"],
-    ["_build/$platform/$config/bindings-python/**/*.py", "_build/$platform/$config/bindings-python"],
-    ["_build/$platform/$config/bindings-lua/**/*.py", "_build/$platform/$config/bindings-lua"],
-    ["_build/$platform/$config/bindings-python/**/*${bindings_ext}", "_build/$platform/$config/bindings-python"],
-    ["_build/$platform/$config/bindings-python/carb/_carb${bindings_ext}"],
-    ["_build/$platform/$config/bindings-lua/**/*${lib_ext}", "_build/$platform/$config/bindings-lua"],
-    ["_build/$platform/$config/bindings-python/carb/__init__.py"],
-]
-
-["carb_unittests.linux"]
-files = [
-    ["_build/$platform/$config/lib*.so", "_build/$platform/$config"],
-    ["_build/$platform/$config/lib*.so.*", "_build/$platform/$config"],
-]
-
-[carb_unittests.windows]
-files = [
-    ["_build/$platform/$config/carb.lib"],
-]
-
-
-########################################################################################################################
-# windows_symbols package
-########################################################################################################################
-
-[windows_symbols]
-files = [
-    ["_build/windows-x86_64/release/**.pdb", "symbols"],
-    ["tools/packman"],
-    ["tools/teamcity/store_windows_symbols.bat"],
-]
