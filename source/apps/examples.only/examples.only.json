@@ -2,6 +2,7 @@
     "app": {
         "extensions": {
             "folders": ["@app@/../../extensions"],
+            "enabledBuiltin": [],
             "enabled": [ 
                 "omni.example.cpp_extension", 
                 "omni.example.mixed_extension",

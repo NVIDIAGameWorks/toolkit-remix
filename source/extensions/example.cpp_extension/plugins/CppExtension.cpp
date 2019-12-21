@@ -51,7 +51,7 @@ CARB_EXPORT void carbOnPluginStartup()
             s_time += elapsedTime;
             if (s_time > 5.0f)
             {
-                CARB_LOG_INFO("5 seconds passed");
+                s_editor->postToast("5 seconds passed");
                 s_time = 0;
             }
         },
