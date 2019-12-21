@@ -1,7 +1,5 @@
 import sys
 from contextlib import contextmanager
-import omni.kit.pipapi
-import omni.kit.commands
 import omni.kit.ui
 
 
