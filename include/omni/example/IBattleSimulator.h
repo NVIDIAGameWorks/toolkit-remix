@@ -25,9 +25,9 @@ struct WarriorDesc
 };
 
 
-struct IMixedEventsion
+struct IBattleSimulator
 {
-    CARB_PLUGIN_INTERFACE("omni::example::IMixedEventsion", 0, 1)
+    CARB_PLUGIN_INTERFACE("omni::example::IBattleSimulator", 0, 1)
 
     /**
      * Create new warrior.
@@ -47,7 +47,7 @@ struct IMixedEventsion
     void(CARB_ABI* fight)(Warrior*, Warrior*);
 };
 
-inline bool IMixedEventsion::isWarriorDead(Warrior* warrior)
+inline bool IBattleSimulator::isWarriorDead(Warrior* warrior)
 {
     return this->getWarriorHp(warrior) <= 0;
 }

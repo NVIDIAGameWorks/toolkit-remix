@@ -12,18 +12,9 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 
 
-def build_documentation(config_dir: str, input_dir: str, output_dir: str):
-    import sphinx.cmd.build
-    print(f"\n*** Building docs ({output_dir}) ***")
-    args = ['-c', config_dir, '-b', 'html', input_dir, output_dir]
-    exit_code = sphinx.cmd.build.main(args)
-
-    if exit_code:
-        print(f"!!! Error while building docs !!!")
-        sys.exit(exit_code)    
-
-
 def main():
+    """Build manuals with sphinx. From "docs" folder into "_build/docs"""
+
     platform_host = omni.repo.man.get_and_validate_host_platform(["windows-x86_64", "linux-x86_64"])
 
     parser = argparse.ArgumentParser()
@@ -32,13 +23,22 @@ def main():
 
     paths = omni.repo.man.get_repo_paths(ROOT_DIR)
 
+    # Install sphinx and theme
     omni.repo.man.pip_install("sphinx", paths["pip_packages"])
     omni.repo.man.pip_install("sphinx_rtd_theme", paths["pip_packages"])
 
-    #os.environ["PATH"] += f"{ROOT_DIR}/_build/{platform_host}/{options.config}"
-    sys.path.append(f"{ROOT_DIR}/_build/{platform_host}/{options.config}/extensions")
+    # Add extensions folder and pip packages folder (with sphinx) into PYTHONPATH
+    path_to_extensions = f"{ROOT_DIR}/_build/{platform_host}/{options.config}/extensions"
+    os.environ["PYTHONPATH"] += os.pathsep.join([paths["pip_packages"], path_to_extensions])
 
-    build_documentation(paths["docs_src"], paths["docs_src"], paths["docs_dst"])
+    # Run sphinx module. Use kit_sdk python runner, it already has properly PATH and PYTHONPATH set to enable importing of Kit SDK modules
+    config_dir = paths["docs_src"]
+    input_dir = paths["docs_src"]
+    output_dir = paths["docs_dst"]
+    python_args = ["-m", "sphinx", '-c', config_dir, '-b', 'html', input_dir, output_dir]
+    python_exe = "python.bat" if platform_host == "windows-x86_64" else "python.sh"
+    python_path = f"{ROOT_DIR}/_build/target-deps/kit_sdk/_build/{platform_host}/{options.config}/{python_exe}"
+    omni.repo.man.run_process([python_path] + python_args, exit_on_error=True)
 
 
 if __name__ == "__main__":

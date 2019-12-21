@@ -1,5 +1,3 @@
-import sys
-from contextlib import contextmanager
 import omni.kit.ui
 
 

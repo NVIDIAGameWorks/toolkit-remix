@@ -6,11 +6,11 @@
 // distribution of this software and related documentation without an express
 // license agreement from NVIDIA CORPORATION is strictly prohibited.
 //
-#include "omni/example/IMixedExtension.h"
+#include "omni/example/IBattleSimulator.h"
 
 #include <carb/BindingsPythonUtils.h>
 
-CARB_BINDINGS("example.mixed_extension.python")
+CARB_BINDINGS("example.battle_simulator.python")
 
 namespace omni
 {
@@ -27,14 +27,14 @@ struct Warrior
 namespace
 {
 
-PYBIND11_MODULE(_mixed_extension, m)
+PYBIND11_MODULE(_battle_simulator, m)
 {
-    m.doc() = "pybind11 omni.example.IMixedExtensions bindings";
+    m.doc() = "pybind11 omni.example.IBattleSimulator bindings";
 
     using namespace omni::example;
 
-    carb::defineInterfaceClass<IMixedEventsion>(
-        m, "IMixedEventsion", "acquire_mixed_extension_interface", "release_mixed_extension_interface")
-        .def("get_warrior_count", wrapInterfaceFunction(&IMixedEventsion::getWarriorCount));
+    carb::defineInterfaceClass<IBattleSimulator>(
+        m, "IBattleSimulator", "acquire_battle_simulator_interface", "release_battle_simulator_interface")
+        .def("get_warrior_count", wrapInterfaceFunction(&IBattleSimulator::getWarriorCount));
 }
 }

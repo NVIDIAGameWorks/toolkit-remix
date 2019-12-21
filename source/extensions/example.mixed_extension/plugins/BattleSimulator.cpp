@@ -12,7 +12,7 @@
 #include <carb/PluginUtils.h>
 #include <carb/logging/Log.h>
 
-#include <omni/example/IMixedExtension.h>
+#include <omni/example/IBattleSimulator.h>
 #include <omni/kit/IEditor.h>
 
 #include <memory>
@@ -27,7 +27,7 @@ const struct carb::PluginImplDesc kPluginImpl = { EXTENSION_NAME,
                                                   "NVIDIA", carb::PluginHotReload::eEnabled, "dev" };
 
 
-CARB_PLUGIN_IMPL(kPluginImpl, omni::example::IMixedEventsion)
+CARB_PLUGIN_IMPL(kPluginImpl, omni::example::IBattleSimulator)
 CARB_PLUGIN_IMPL_DEPS(omni::kit::IEditor)
 
 
@@ -107,7 +107,7 @@ static void fight(Warrior* warriorA, Warrior* warriorB)
 }
 }
 
-void fillInterface(omni::example::IMixedEventsion& iface)
+void fillInterface(omni::example::IBattleSimulator& iface)
 {
     using namespace omni::example;
     iface = {
