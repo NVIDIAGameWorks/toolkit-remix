@@ -55,7 +55,7 @@ def run_pythontests(root: str, platform_host: str, config: str, extra_args: List
     path_to_extensions = f"{root}/_build/{platform_host}/{config}/extensions"
     os.environ["PYTHONPATH"] += os.pathsep.join([paths["pip_packages"], path_to_extensions])
 
-    kit_bin = f"{root}/_build/target-deps/kit_sdk/_build/{platform_host}/{config}"
+    kit_bin = f"{root}/_build/target-deps/kit_sdk_{config}/_build/{platform_host}/{config}"
 
     tests_folder = os.path.join(paths["root"], "source/tests/python")
     args = ["-m", unittest_module, "discover", "-s", tests_folder] + extra_args

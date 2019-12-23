@@ -37,7 +37,7 @@ def main():
     output_dir = paths["docs_dst"]
     python_args = ["-m", "sphinx", '-c', config_dir, '-b', 'html', input_dir, output_dir]
     python_exe = "python.bat" if platform_host == "windows-x86_64" else "python.sh"
-    python_path = f"{ROOT_DIR}/_build/target-deps/kit_sdk/_build/{platform_host}/{options.config}/{python_exe}"
+    python_path = f"{ROOT_DIR}/_build/target-deps/kit_sdk_{options.config}/_build/{platform_host}/{options.config}/{python_exe}"
     omni.repo.man.run_process([python_path] + python_args, exit_on_error=True)
 
 

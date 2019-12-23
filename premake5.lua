@@ -58,13 +58,19 @@ function add_iface_folder(path)
 end
 
 -- Folder to store solution in. _ACTION is compilation target, e.g.: vs2017, make etc.
-local workspace_dir = "_compiler/".._ACTION
+workspace_dir = "_compiler/".._ACTION
 
 -- Target platform name, e.g. windows-x86_64
-local platform = "%{cfg.system}-%{cfg.platform}"
+platform = "%{cfg.system}-%{cfg.platform}"
+
+-- Target config, e.g. debug, release
+config = "%{cfg.buildcfg}"
 
 -- Target directory
-local target_dir = "_build/"..platform.."/%{cfg.buildcfg}"
+target_dir = "_build/%{platform}/%{config}"
+
+-- Path to kit sdk
+kit_sdk = "_build/target-deps/kit_sdk_%{config}"
 
 -- Common plugins settings
 function define_plugin()
@@ -76,7 +82,7 @@ end
 
 -- Common python bindings settings
 function define_bindings_python(name)
-    local kit_sdk_target_deps = "_build/target-deps/kit_sdk/_build/target-deps"
+    local kit_sdk_target_deps = "%{kit_sdk}/_build/target-deps"
     local python_folder = kit_sdk_target_deps.."/python"
 
     -- Carbonite carb lib
@@ -104,15 +110,15 @@ workspace "kit-examples"
 
     -- Setup include paths. Add kit SDK include paths too.
     includedirs { 
-            "include", 
-            "_build/target-deps", 
-            "_build/target-deps/kit_sdk/include",
-            "_build/target-deps/kit_sdk/_build/target-deps/carb_sdk_plugins/include",
-            "_build/target-deps/kit_sdk/_build/target-deps/",
+        "include", 
+        "_build/target-deps", 
+        "%{kit_sdk}/include",
+        "%{kit_sdk}/_build/target-deps/carb_sdk_plugins/include",
+        "%{kit_sdk}/_build/target-deps/",
     }
     
     -- Location for intermediate  files
-    objdir ("_build/intermediate/"..platform.."/%{prj.name}")
+    objdir ("_build/intermediate/%{platform}/%{prj.name}")
 
     -- Default compilation settings
     symbols "On"
@@ -169,7 +175,7 @@ workspace "kit-examples"
 group "apps"
     project "examples.only"
         kind "MakeFile"
-        debugcommand ("_build/target-deps/kit_sdk/_build/"..platform.."/%{cfg.buildcfg}/omniverse-kit.exe" )
+        debugcommand ("%{kit_sdk}/_build/%{platform}/%{config}/omniverse-kit.exe" )
 
 group "example.python_extension"
     project "example.python_extension"
@@ -180,7 +186,7 @@ group "example.cpp_extension"
     project "example.cpp_extension.plugin"
         define_plugin()
         add_impl_folder ("source/extensions/example.cpp_extension/plugins")
-        targetdir (target_dir.."/extensions/omni/example/cpp_extension/bin/"..platform.."/%{cfg.buildcfg}")
+        targetdir (target_dir.."/extensions/omni/example/cpp_extension/bin/%{platform}/%{config}")
         location (workspace_dir.."/%{prj.name}")
 
 group "example.mixed_extension"
@@ -192,7 +198,7 @@ group "example.mixed_extension"
         define_plugin()
         add_impl_folder("source/extensions/example.mixed_extension/plugins")
         add_iface_folder("include/omni/example")
-        targetdir (target_dir.."/extensions/omni/example/mixed_extension/bin/"..platform.."/%{cfg.buildcfg}")
+        targetdir (target_dir.."/extensions/omni/example/mixed_extension/bin/%{platform}/%{config}")
         location (workspace_dir.."/%{prj.name}")
 
     project "example.battle_simulator.python"

@@ -73,14 +73,17 @@ def main():
     # Setup and call into repo_build tool
     root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..")
     settings = omni.repo.build.Settings()
-    settings.stage_files_extra_mapping = {"kit_sdk": os.path.join(root, "_build/target-deps/kit_sdk")}
+    settings.stage_files_extra_mapping = {
+        "kit_sdk_debug": os.path.join(root, "_build/target-deps/kit_sdk_debug"),
+        "kit_sdk_release": os.path.join(root, "_build/target-deps/kit_sdk_release"),
+    }
     settings.stage_files_error_if_missing = False
     settings.vscode_python_env = VSCODE_PYTHON_ENV
     settings.sln_file = "kit-examples.sln"
     settings.vs_version = "vs2017"
 
     # TEMP HACK! REMOVE!
-    os.environ["PM_PYTHON_PATH"] = os.path.join(root, "_build/target-deps/kit_sdk/_build/target-deps/python")
+    os.environ["PM_PYTHON_PATH"] = os.path.join(root, "_build/target-deps/kit_sdk_debug/_build/target-deps/python")
 
     settings.stage_files_error_if_missing = True
     omni.repo.build.main(root=root, settings=settings)
