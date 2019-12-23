@@ -11,6 +11,14 @@
 #include <carb/Interface.h>
 
 
+namespace carb
+{
+    namespace events
+    {
+        struct EventStream;
+    }
+}
+
 namespace omni
 {
 namespace example
@@ -24,6 +32,12 @@ struct WarriorDesc
     int damage;
 };
 
+enum class WarriorEventType
+{
+    eCreate,
+    eDestroy,
+    eDie
+};
 
 struct IBattleSimulator
 {
@@ -45,6 +59,11 @@ struct IBattleSimulator
     bool isWarriorDead(Warrior*);
 
     void(CARB_ABI* fight)(Warrior*, Warrior*);
+
+    /**
+     * Event stream of WarriorEventType
+     */
+    carb::events::EventStream*(CARB_ABI* getWarriorsEventStream)();
 };
 
 inline bool IBattleSimulator::isWarriorDead(Warrior* warrior)

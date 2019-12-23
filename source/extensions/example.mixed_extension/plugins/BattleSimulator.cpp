@@ -11,6 +11,8 @@
 
 #include <carb/PluginUtils.h>
 #include <carb/logging/Log.h>
+#include <carb/events/IEvents.h>
+#include <carb/events/EventsUtils.h>
 
 #include <omni/example/IBattleSimulator.h>
 #include <omni/kit/IEditor.h>
@@ -18,7 +20,7 @@
 #include <memory>
 #include <set>
 
-#define EXTENSION_NAME "example.mixed_extension.plugin"
+#define EXTENSION_NAME "example.battle_simulator.plugin"
 
 using namespace carb;
 
@@ -28,19 +30,22 @@ const struct carb::PluginImplDesc kPluginImpl = { EXTENSION_NAME,
 
 
 CARB_PLUGIN_IMPL(kPluginImpl, omni::example::IBattleSimulator)
-CARB_PLUGIN_IMPL_DEPS(omni::kit::IEditor)
+CARB_PLUGIN_IMPL_DEPS(carb::events::IEvents)
 
 
-static omni::kit::IEditor* s_editor;
+static carb::events::IEvents* s_events;
+static carb::events::EventStreamTyped<omni::example::WarriorEventType> s_stream;
 
 CARB_EXPORT void carbOnPluginStartup()
 {
     // Get editor interface using Carbonite Framework
-    s_editor = carb::getFramework()->acquireInterface<omni::kit::IEditor>();
+    s_events = carb::getFramework()->acquireInterface<carb::events::IEvents>();
+    s_stream.create();
 }
 
 CARB_EXPORT void carbOnPluginShutdown()
 {
+    s_stream.destroy();
 }
 
 namespace omni
@@ -66,6 +71,9 @@ static Warrior* createWarrior(const WarriorDesc& desc)
     w->damage = desc.damage;
     s_warriors.insert(w);
 
+    s_stream.push(WarriorEventType::eCreate);
+    s_stream.pump();
+
     return w;
 }
 
@@ -73,6 +81,9 @@ static void destroyWarrior(Warrior* warrior)
 {
     s_warriors.erase(warrior);
     delete warrior;
+
+    s_stream.push(WarriorEventType::eDestroy);
+    s_stream.pump();
 }
 
 static size_t getWarriorCount()
@@ -97,11 +108,28 @@ static void fight(Warrior* warriorA, Warrior* warriorB)
     if (hpA >= 0)
     {
         warriorB->hp -= warriorA->damage;
+
+        if (warriorB->hp < 0)
+        {
+            s_stream.push(WarriorEventType::eDie);
+            s_stream.pump();
+        }
     }
     if (hpB >= 0)
     {
         warriorA->hp -= warriorB->damage;
+
+        if (warriorA->hp < 0)
+        {
+            s_stream.push(WarriorEventType::eDie);
+            s_stream.pump();
+        }
     }
+}
+
+static carb::events::EventStream* getWarriorsEventStream()
+{
+    return s_stream.stream;
 }
 
 }
@@ -111,6 +139,6 @@ void fillInterface(omni::example::IBattleSimulator& iface)
 {
     using namespace omni::example;
     iface = {
-        createWarrior, destroyWarrior, getWarriorCount, getWarrior, getWarriorHp, fight,
+        createWarrior, destroyWarrior, getWarriorCount, getWarrior, getWarriorHp, fight, getWarriorsEventStream
     };
 }

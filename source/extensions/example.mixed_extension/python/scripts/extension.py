@@ -1,16 +1,26 @@
 import os
-import omni.kit.extensions
-from ..bindings import _battle_simulator
+
+from .battle import Battle
+from .battlewindow import BattleWindow
+
+# Put object publicly to make it our API.
+battleapi = None
+
+# Enable test for discovery: put them in extension's namespace
+from .test_fight import *
 
 
 class Extension:
     def __init__(self):
-        ext_folder = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-        lib_path = omni.kit.extensions.build_plugin_path(ext_folder, "example.mixed_extension.plugin")
-        self._battle_simulator = _battle_simulator.acquire_battle_simulator_interface(library_path=lib_path)
+        global battleapi
+        battleapi = Battle()
+        self._battlewindow = BattleWindow(battleapi)
 
     def on_shutdown(self):
-        _battle_simulator.release_battle_simulator_interface(self._battle_simulator)
+        global battleapi
+        battleapi.on_shutdown()
+        battleapi = None
+        self._battlewindow.on_shutdown()
 
 
 def get_extension():

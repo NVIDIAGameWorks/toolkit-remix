@@ -237,14 +237,18 @@ group "example.cpp_extension"
             location (workspaceDir.."/%{prj.name}")
 
 group "example.mixed_extension"
-    project "example.mixed_extension.plugin"
+    project "example.mixed_extension"
+        kind "None"
+        files { "source/extensions/example.mixed_extension/python/**.py" }
+
+    project "example.battle_simulator.plugin"
             define_plugin { ifaces = "include/omni/example", impl = "source/extensions/example.mixed_extension/plugins" }
             targetdir (targetDir.."/extensions/omni/example/mixed_extension/bin/"..platform.."/%{cfg.buildcfg}")
             location (workspaceDir.."/%{prj.name}")
 
-    project "example.mixed_extension.python"
+    project "example.battle_simulator.python"
             define_bindings_python {
-                name = "_mixed_extension",
+                name = "_battle_simulator",
                 folder = "source/extensions/example.mixed_extension/bindings",
                 namespace = "omni" }
             targetdir (targetDir.."/extensions/omni/example/mixed_extension/bindings")
