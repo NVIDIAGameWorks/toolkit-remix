@@ -9,6 +9,7 @@ copy = [
 
     # Copy app running scripts in target dir
     ["source/apps/*", "_build/$platform/$config"],
+    ["source/apps/$config/*", "_build/$platform/$config"],
 ]
 link = [
     # Extensions folder linked python code
