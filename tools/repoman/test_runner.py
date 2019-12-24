@@ -1,3 +1,14 @@
+"""RepoMan command to run different test suites.
+
+Example:
+    > tools/test_runner.bat --help
+    > tools/test_runner.sh --suite kittests
+    > tools/test_runner.bat --suite pythontests -c release -e='-p test_battle*.py'
+
+Attributes:
+    TEST_SUITES (Dict): Specifies supported test suites and functions to run them.
+"""
+
 import os
 import logging
 import argparse

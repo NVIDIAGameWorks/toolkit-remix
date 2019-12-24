@@ -2,6 +2,8 @@
 # Memo:
 ########################################################################################################################
 
+# This file is used to configure content of packages.
+
 # Mappings ($ string substitutions). Name and examples:
 # |==========================================================
 # | $platform      | 'windows-x86_64'     | 'linux-x86_64'  | 

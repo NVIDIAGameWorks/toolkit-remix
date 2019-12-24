@@ -1,3 +1,8 @@
+"""RepoMan command to build documentation with sphinx.
+
+    Docs source is in "docs" folder. Results go into "_build/docs". 
+"""
+
 import os
 import sys
 import argparse
@@ -14,8 +19,6 @@ ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 
 
 def main():
-    """Build manuals with sphinx. From "docs" folder into "_build/docs"""
-
     platform_host = omni.repo.man.get_and_validate_host_platform(["windows-x86_64", "linux-x86_64"])
 
     parser = argparse.ArgumentParser()
