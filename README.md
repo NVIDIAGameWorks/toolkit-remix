@@ -2,6 +2,25 @@
 This is where the Omniverse Kit (reference viewer/editor) is being developed. The automatically-published user guide from this repo can be viewed 
 [here](https://carbon.gitlab-master-pages.nvidia.com/Graphene/).
 
+
+```mermaid
+graph TB
+
+  SubGraph1 --> SubGraph1Flow
+  subgraph "SubGraph 1 Flow"
+  SubGraph1Flow(SubNode 1)
+  SubGraph1Flow -- Choice1 --> DoChoice1
+  SubGraph1Flow -- Choice2 --> DoChoice2
+  end
+
+  subgraph "Main Graph"
+  Node1[Node 1] --> Node2[Node 2]
+  Node2 --> SubGraph1[Jump to SubGraph1]
+  SubGraph1 --> FinalThing[Final Thing]
+end
+```
+
+
 ## Prerequisites
 #### Hardware
 - GPU supporting DirectX Raytracing or Vulkan Raytracing (This includes Pascal cards with 6 GB of RAM or more, Volta or Turing GPUs)

@@ -10,9 +10,9 @@
 #define CARB_EXPORTS
 
 #include <carb/PluginUtils.h>
-#include <carb/logging/Log.h>
-#include <carb/events/IEvents.h>
 #include <carb/events/EventsUtils.h>
+#include <carb/events/IEvents.h>
+#include <carb/logging/Log.h>
 
 #include <omni/example/IBattleSimulator.h>
 #include <omni/kit/IEditor.h>
@@ -138,7 +138,5 @@ static carb::events::EventStream* getWarriorsEventStream()
 void fillInterface(omni::example::IBattleSimulator& iface)
 {
     using namespace omni::example;
-    iface = {
-        createWarrior, destroyWarrior, getWarriorCount, getWarrior, getWarriorHp, fight, getWarriorsEventStream
-    };
+    iface = { createWarrior, destroyWarrior, getWarriorCount, getWarrior, getWarriorHp, fight, getWarriorsEventStream };
 }

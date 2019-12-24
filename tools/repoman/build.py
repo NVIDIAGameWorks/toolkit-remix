@@ -24,11 +24,16 @@ VSCODE_PYTHON_ENV = {
         "$repo_deps/repo_package",
         "$repo_deps/repo_licensing",
         "$root/tools/repoman",
-        "$root/_build/$platform/$config/extensions/extensions-bundled",
-        "$root/_build/$platform/$config/extensions/extensions-other",
-        "$root/_build/$platform/$config/plugins/bindings-python",
+        "$root/_build/$platform/$config/extensions",
+        "$root/_build/target-deps/kit_sdk_$config/_build/$platform/$config/extensions/extensions-bundled",
+        "$root/_build/target-deps/kit_sdk_$config/_build/$platform/$config/extensions/extensions-other",
+        "$root/_build/target-deps/kit_sdk_$config/_build/$platform/$config/plugins/bindings-python",
     ],
-    "PATH": ["$${PATH}", "$root/_build/$platform/$config", "$root/_build/$platform/$config/plugins"],
+    "PATH": [
+        "$${PATH}",
+        "$root/_build/target-deps/kit_sdk_$config/_build/$platform/$config",
+        "$root/_build/target-deps/kit_sdk_$config/_build/$platform/$config/plugins",
+    ],
 }
 
 

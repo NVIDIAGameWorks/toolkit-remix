@@ -17,7 +17,9 @@ from omni.example.mixed_extension.bindings import _battle_simulator
 class TestBattleSimulator(unittest.TestCase):
     def setUp(self):
         search_path = os.environ["CARB_APP_PATH"].replace("\\", "/")
-        carb.get_framework().load_plugins(["carb.events.plugin", "carb.dictionary.plugin"], search_paths=[f"{search_path}/plugins"])
+        carb.get_framework().load_plugins(
+            ["carb.events.plugin", "carb.dictionary.plugin"], search_paths=[f"{search_path}/plugins"]
+        )
 
         ext_folder = os.path.normpath(os.path.dirname(os.path.abspath(omni.example.mixed_extension.__file__)))
         lib_path = omni.kit.extensions.build_plugin_path(ext_folder, "example.battle_simulator.plugin", config="debug")
@@ -41,8 +43,10 @@ class TestBattleSimulator(unittest.TestCase):
             nonlocal dead
             self.assertEqual(e.type, int(_battle_simulator.WarriorEventType.DIE))
             dead = dead + 1
-            
-        sub_holder = self._battle_simulator.get_warrior_event_stream().subscribe_to_pop(_battle_simulator.WarriorEventType.DIE, on_die)
+
+        sub_holder = self._battle_simulator.get_warrior_event_stream().subscribe_to_pop(
+            _battle_simulator.WarriorEventType.DIE, on_die
+        )
 
         self.assertEqual(dead, 0)
         self._battle_simulator.fight(w1, w2)

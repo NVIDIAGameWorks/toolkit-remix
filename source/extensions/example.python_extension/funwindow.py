@@ -5,9 +5,10 @@ class FunWindow:
     """
     Window with a button.
     """
+
     def _on_press(self):
         self._x = self._x + 1
-        self._button.text = "( 0 {0} 0 )".format('_' * self._x)
+        self._button.text = "( 0 {0} 0 )".format("_" * self._x)
 
     def __init__(self):
         self._window = omni.kit.ui.Window("Fun Window", 300, 150)

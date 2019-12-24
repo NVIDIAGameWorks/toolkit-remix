@@ -1,22 +1,14 @@
 import os
-import sys
-import glob
-import shutil
 import logging
 import argparse
-import base64
-import hashlib
 from typing import List
 
-import packmanapi
 import repoman
 
 repoman.bootstrap()
 import omni.repo.man
 
 logger = logging.getLogger(os.path.basename(__file__))
-
-ARCHIVE_PATTERN = "_builtpackages/omniverse-kit*.7z"
 
 
 def is_running_under_teamcity():
@@ -25,6 +17,7 @@ def is_running_under_teamcity():
 
 def get_exe_ext(platform: str) -> str:
     return ".exe" if platform == "windows-x86_64" else ""
+
 
 def get_shell_ext(platform: str) -> str:
     return ".bat" if platform == "windows-x86_64" else ".sh"
@@ -38,9 +31,7 @@ def run_unittests(root: str, platform_host: str, config: str, extra_args: List =
         args.append("-r teamcity")
     args.extend(extra_args)
 
-    omni.repo.man.run_process(
-        [f"{root}/_build/{platform_host}/{config}/{executable}"] + args, exit_on_error=True
-    )
+    omni.repo.man.run_process([f"{root}/_build/{platform_host}/{config}/{executable}"] + args, exit_on_error=True)
 
 
 def run_pythontests(root: str, platform_host: str, config: str, extra_args: List = []):
@@ -73,13 +64,7 @@ def run_kittests(root: str, platform_host: str, config: str, extra_args: List = 
     omni.repo.man.run_process([f"{root}/_build/{platform_host}/{config}/{executable}"] + args, exit_on_error=True)
 
 
-
-
-TEST_SUITES = {
-    "unittests": run_unittests,
-    "pythontests": run_pythontests,
-    "kittests": run_kittests
-}
+TEST_SUITES = {"unittests": run_unittests, "pythontests": run_pythontests, "kittests": run_kittests}
 
 
 def main():
@@ -113,7 +98,7 @@ def main():
         action="append",
         dest="extra_args",
         default=[],
-        help="Extra argument to pass. Can be specified multiple times. E.g. -e=\"--help\"",
+        help='Extra argument to pass. Can be specified multiple times. E.g. -e="--help"',
     )
 
     options = parser.parse_args()

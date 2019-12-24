@@ -24,6 +24,5 @@ class Extension:
         self._window.on_shutdown()
 
 
-
 def get_extension():
     return Extension()

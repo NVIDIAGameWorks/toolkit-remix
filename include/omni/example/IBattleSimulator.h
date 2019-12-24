@@ -13,10 +13,10 @@
 
 namespace carb
 {
-    namespace events
-    {
-        struct EventStream;
-    }
+namespace events
+{
+struct EventStream;
+}
 }
 
 namespace omni

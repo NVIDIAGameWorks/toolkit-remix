@@ -4,10 +4,10 @@ import datetime
 import logging
 
 import repoman
+
 repoman.bootstrap()
 import omni.repo.man
 import omni.repo.package
-
 
 
 logger = logging.getLogger(os.path.basename(__file__))
@@ -17,14 +17,20 @@ def package(pkg_desc, platform_target: str):
     omni.repo.package.package(pkg_desc)
 
 
-PACKAGES = {
-    "example_extensions": ("example_extensions", package, ["debug", "release"])
-}
+PACKAGES = {"example_extensions": ("example_extensions", package, ["debug", "release"])}
+
 
 def run_command():
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--platform-target", dest="platform_target", required=False)
-    parser.add_argument("-m", "--mode", dest="mode", choices=PACKAGES.keys(), default=next(iter(PACKAGES)), help="Package to produce. (default: %(default)s)")
+    parser.add_argument(
+        "-m",
+        "--mode",
+        dest="mode",
+        choices=PACKAGES.keys(),
+        default=next(iter(PACKAGES)),
+        help="Package to produce. (default: %(default)s)",
+    )
     parser.add_argument("-n", "--name", dest="name", help="override name of package", required=False)
     options = parser.parse_args()
 
