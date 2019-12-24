@@ -5,4 +5,16 @@
   <dependency name="kit_sdk_release" linkPath="../_build/target-deps/kit_sdk_release">
     <package name="omniverse-kit" version="2019.1.607-8ecee4d6-${platform}-release"/>
   </dependency>
+
+  <!-- TODO: Take from Kit SDK xml file? -->
+  <dependency name="carb_sdk_plugins" linkPath="../_build/target-deps/carb_sdk_plugins">
+    <package name="carb_sdk+plugins" version="2019.3.4658-6c9cb24d-${platform}" />
+  </dependency>
+  <dependency name="pybind11" linkPath="../_build/target-deps/pybind11">
+    <package name="pybind11" version="2.3.dev1-18-e7bb36b5" />
+  </dependency>
+  <dependency name="fmt" linkPath="../_build/target-deps/fmt">
+    <package name="fmt" version="5.2.1-7-9980f06d"/>
+  </dependency>
+
 </project>

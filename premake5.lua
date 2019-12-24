@@ -82,11 +82,10 @@ end
 
 -- Common python bindings settings
 function define_bindings_python(name)
-    local kit_sdk_target_deps = "%{kit_sdk}/_build/target-deps"
-    local python_folder = kit_sdk_target_deps.."/python"
+    local python_folder = "%{kit_sdk}/_build/target-deps/python"
 
     -- Carbonite carb lib
-    libdirs { kit_sdk_target_deps.."/carb_sdk_plugins/"..target_dir }
+    libdirs { "_build/target-deps/carb_sdk_plugins/"..target_dir }
     links {"carb" }
 
     location (workspace_dir.."/%{prj.name}")
@@ -112,8 +111,8 @@ workspace "kit-examples"
     includedirs { 
         "include", 
         "_build/target-deps", 
+        "_build/target-deps/carb_sdk_plugins/include",
         "%{kit_sdk}/include",
-        "%{kit_sdk}/_build/target-deps/carb_sdk_plugins/include",
         "%{kit_sdk}/_build/target-deps/",
     }
     

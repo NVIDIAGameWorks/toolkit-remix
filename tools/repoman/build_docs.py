@@ -1,6 +1,6 @@
 """RepoMan command to build documentation with sphinx.
 
-    Docs source is in "docs" folder. Results go into "_build/docs". 
+    Docs source is in "docs" folder. Results go into "_build/docs".
 """
 
 import os
