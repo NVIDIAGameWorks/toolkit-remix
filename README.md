@@ -18,6 +18,44 @@ The idea is that you fork it, trim down parts you don't need and use it to devel
 
 ### Extensions
 
+
+```mermaid
+graph TD
+
+  subgraph "python"
+  A3(__init__.py + python code)
+  end
+
+  subgraph cpp
+  A1(__init__.py)
+  A1 -- carb::Framework --> B1(example.cpp_extension.plugin.dll)
+  end
+
+  subgraph "mixed"
+  A2(__init__.py + python code)
+  A2 --import _mixed_extension--> B2(example.mixed_extension.python)
+  B2 -- carb::Framework --> C2(example.mixed_extension.plugin.dll)
+  end
+
+
+  
+  Kit[Kit] --> A1
+  Kit[Kit] --> A2
+  Kit[Kit] --> A3
+
+```
+
+Each extension is a folder(or zip archive) in the end. It always starts with minimal python code. You can write user code in python code only, or C++ only, or both. Ultimately extension archive could contain python code, python bindings (pyd/so files) and C++ plugins (dll/so). Each binary file is platform and configuration (debug/release, optionally) specific, one archive can contain binaries for multiple platforms, we put them in separate folders and follow proper naming of python bindings (https://stackoverflow.com/a/37028661).
+
+For more info refer to Kit documentation: http://omnidocs-internal.nvidia.com/py/index.html.
+
+#### example.python_extension
+
+Example of pure python extesion
+
+[source](source/extensions/example.python_extension)
+
+
 #### example.cpp_extension
 
 Example of native (C++ only) extension.
@@ -32,20 +70,13 @@ Example of mixed extension which has both C++ and python code. They interact via
 [source](source/extensions/example.mixed_extension)
 
 
-#### example.python_extension
-
-Example of pure python extesion
-
-[source](source/extensions/example.python_extension)
-
-
 ### Tests
 
 We also provide examples of writing different tests. 
 
 Use `tools/test_runner.bat --help` to run any of them. There are:
 
-* `unittests` - C++ test of particular interface/plugin
+* (TBD) `unittests` - C++ test of particular interface/plugin
 * `pythontests` - python test of bindings (+plugin), which run without running Kit itself
 * `kittests` - python tests of extension inside of running Kit
 
