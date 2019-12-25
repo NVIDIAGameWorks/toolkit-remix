@@ -172,16 +172,21 @@ workspace "kit-examples"
 
 
 group "apps"
-    project "examples.only"
+    -- Application example. Only runs Kit with a config, doesn't build anything. Helper for debugging.
+    project "example.app"
         kind "MakeFile"
-        debugcommand ("%{kit_sdk}/_build/%{platform}/%{config}/omniverse-kit.exe" )
+        debugcommand ("_build/target-deps/kit_sdk_%{config}/_build/%{platform}/%{config}/omniverse-kit.exe")
+        local config_path = repo_build.get_abs_path(target_dir.."/apps/example.app.json")
+        debugargs ("\""..config_path.."\"")
 
 group "example.python_extension"
+    -- Example of python extension. Contains python sources, doesn't build or run.
     project "example.python_extension"
         kind "None"
         add_impl_folder("source/extensions/example.python_extension")
 
 group "example.cpp_extension"
+    -- C++ Carbonite plugin
     project "example.cpp_extension.plugin"
         define_plugin()
         add_impl_folder ("source/extensions/example.cpp_extension/plugins")
@@ -189,10 +194,12 @@ group "example.cpp_extension"
         location (workspace_dir.."/%{prj.name}")
 
 group "example.mixed_extension"
+    -- Python code
     project "example.mixed_extension"
         kind "None"
         add_impl_folder("source/extensions/example.mixed_extension/python")
 
+    -- C++ Carbonite plugin
     project "example.battle_simulator.plugin"
         define_plugin()
         add_impl_folder("source/extensions/example.mixed_extension/plugins")
@@ -200,6 +207,7 @@ group "example.mixed_extension"
         targetdir (target_dir.."/extensions/omni/example/mixed_extension/bin/%{platform}/%{config}")
         location (workspace_dir.."/%{prj.name}")
 
+    -- Python Bindings for Carobnite Plugin
     project "example.battle_simulator.python"
         define_bindings_python("_battle_simulator")
         add_impl_folder("source/extensions/example.mixed_extension/bindings")

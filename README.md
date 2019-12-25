@@ -1,4 +1,5 @@
-# Kit Extensions & Apps Example
+
+# Kit Extensions & Apps Example <i class="fas fa-plug" aria-hidden="true"></i> 
 
 This repo is a golden example of building Kit extensions and applications. 
 
@@ -6,6 +7,9 @@ It downloads Kit SDK via packman ([target-deps.packman.xml](deps/target-deps.pac
 `_build/{platform}/{config}/extensions` folder. Then we just run Kit with custom config which sets to enable those extensions.
 
 The idea is that you fork it, trim down parts you don't need and use it to develop your extensions and applications. Which then can be packaged, shared, reused.
+
+- TOC
+{:toc}
 
 ## Getting started
 
@@ -102,4 +106,12 @@ To use your local build of Kit SDK create a file, deps/target-deps.packman.xml.u
 </project>
 ```
 
-Where `C:/projects/Graphene` is path your Kit SDK folder.
+Where `C:/projects/Graphene` is path to your Kit SDK folder.
+
+## TODO
+
+- C++ unittests example
+- CI (TC project + tools/ci)
+- take dependencies from Kit SDK xml files
+- Finish Linux support
+

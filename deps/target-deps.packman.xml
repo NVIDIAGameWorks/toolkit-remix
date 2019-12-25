@@ -1,9 +1,9 @@
 <project toolsVersion="5.0">
   <dependency name="kit_sdk_debug" linkPath="../_build/target-deps/kit_sdk_debug">
-    <package name="omniverse-kit" version="2019.1.607-8ecee4d6-${platform}-debug"/>
+    <package name="omniverse-kit" version="kit-sdk-1-705d0022-${platform}-debug"/>
   </dependency>
   <dependency name="kit_sdk_release" linkPath="../_build/target-deps/kit_sdk_release">
-    <package name="omniverse-kit" version="2019.1.607-8ecee4d6-${platform}-release"/>
+    <package name="omniverse-kit" version="kit-sdk-1-705d0022-${platform}-debug"/>
   </dependency>
 
   <!-- TODO: Take from Kit SDK xml file? -->
