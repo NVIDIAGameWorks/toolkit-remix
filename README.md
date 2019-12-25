@@ -1,5 +1,4 @@
-
-# Kit Extensions & Apps Example <i class="fas fa-plug" aria-hidden="true"></i> 
+# Kit Extensions & Apps Example :package:
 
 This repo is a golden example of building Kit extensions and applications. 
 
@@ -8,8 +7,6 @@ It downloads Kit SDK via packman ([target-deps.packman.xml](deps/target-deps.pac
 
 The idea is that you fork it, trim down parts you don't need and use it to develop your extensions and applications. Which then can be packaged, shared, reused.
 
-- TOC
-{:toc}
 
 ## Getting started
 
