@@ -1,6 +1,6 @@
 # Kit Extensions & Apps Example :package:
 
-This repo is a golden example of building Kit extensions and applications. 
+This repo is the gold standard for building Kit extensions and applications.
 
 It downloads Kit SDK via packman ([target-deps.packman.xml](deps/target-deps.packman.xml)) or you can use your local build. During build phase extensions are built (native), staged (copied and linked) into
 `_build/{platform}/{config}/extensions` folder. Then we just run Kit with custom config which sets to enable those extensions.
@@ -12,12 +12,11 @@ The idea is that you fork it, trim down parts you don't need and use it to devel
 
 1. run `build.bat`
 2. run `_build\windows-x86_64\debug\example.app.bat`
-3. notice enabled extensions in "Extension Manager Window" of Kit. Also notice that one of them brough its own test in "Test Runner" window.
+3. notice enabled extensions in "Extension Manager Window" of Kit. Also notice that one of them brought its own test in "Test Runner" window.
 
-## What's included?
+## What's included
 
 ### Extensions
-
 
 ```mermaid
 graph TD
@@ -101,18 +100,18 @@ Example of an app which runs only those 3 extensions in Kit (and test_runner for
 All repo tools are based on [RepoMan](https://omniverse.gitlab-master-pages.nvidia.com/repo/repo_man/).
 Each of command can be explored with `--help` flag.
 Commands:
-  * `build.bat` - cleans repo, stage files, generates solutions, setups vscode env, builds binaries.
-  * `format_code.bat` - format C++ and python code.
-  * `tools/build_docs.bat` - build documentation
-  * `tools/package.bat` - prepare final package (use [package.toml](package.toml) to configure)
-  * `tools/test_runner.bat` - run different test suites
+
+* `build.bat` - cleans repo, stage files, generates solutions, setups vscode env, builds binaries.
+* `format_code.bat` - format C++ and python code.
+* `tools/build_docs.bat` - build documentation
+* `tools/package.bat` - prepare final package (use [package.toml](package.toml) to configure)
+* `tools/test_runner.bat` - run different test suites
 
 Config files:
-  * `premake5.lua` - all configuration for generating platform specific build solutions. [premake5 docs](https://github.com/premake/premake-core/wiki).
-  * `prebuild.toml` - lists files to copy and folders to link before building.
-  * `package.toml` - lists file patterns to package
 
-
+* `premake5.lua` - all configuration for generating platform specific build solutions. [premake5 docs](https://github.com/premake/premake-core/wiki).
+* `prebuild.toml` - lists files to copy and folders to link before building.
+* `package.toml` - lists file patterns to package
 
 ### VsCode environment
 
@@ -123,7 +122,7 @@ Install VsCode python extension, close VsCode, run `build.bat` first time (`-s` 
 
 To use your local build of Kit SDK create a file, deps/target-deps.packman.xml.user containing the following lines:
 
-```
+```xml
 <project toolsVersion="5.6">
   <dependency name="kit_sdk_debug" linkPath="../_build/target-deps/kit_sdk_debug">
     <source path="C:/projects/Graphene" />
@@ -138,8 +137,7 @@ Where `C:/projects/Graphene` is path to your Kit SDK folder.
 
 ## TODO
 
-- C++ unittests example
-- CI (TC project + tools/ci)
-- take dependencies from Kit SDK xml files
-- Finish Linux support
-
+* C++ unit tests example
+* CI (TC project + tools/ci)
+* take dependencies from Kit SDK xml files
+* Finish Linux support
