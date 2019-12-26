@@ -27,13 +27,12 @@ def main():
 
     paths = omni.repo.man.get_repo_paths(ROOT_DIR)
 
-    # Install sphinx and theme
-    omni.repo.man.pip_install("sphinx", paths["pip_packages"])
-    omni.repo.man.pip_install("sphinx_rtd_theme", paths["pip_packages"])
+    # Install sphinx
+    sphinx_path = packmanapi.install("sphinx", "2.0.1-py3.5")["sphinx"]
 
-    # Add extensions folder and pip packages folder (with sphinx) into PYTHONPATH
+    # Add extensions folder and sphinx folder (with sphinx) into PYTHONPATH
     path_to_extensions = f"{ROOT_DIR}/_build/{platform_host}/{options.config}/extensions"
-    os.environ["PYTHONPATH"] += os.pathsep.join([paths["pip_packages"], path_to_extensions])
+    os.environ["PYTHONPATH"] += os.pathsep.join([sphinx_path, path_to_extensions])
 
     # Run sphinx module. Use kit_sdk python runner, it already has properly PATH and PYTHONPATH set to enable importing of Kit SDK modules
     config_dir = paths["docs_src"]

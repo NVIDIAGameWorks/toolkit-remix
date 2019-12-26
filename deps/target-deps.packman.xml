@@ -3,7 +3,7 @@
     <package name="omniverse-kit" version="2019.3.1678-a613bde5-${platform}-debug"/>
   </dependency>
   <dependency name="kit_sdk_release" linkPath="../_build/target-deps/kit_sdk_release">
-    <package name="omniverse-kit" version="2019.3.1678-a613bde5-${platform}-debug"/>
+    <package name="omniverse-kit" version="2019.3.1678-a613bde5-${platform}-release"/>
   </dependency>
 
   <!-- TODO: Take from Kit SDK xml file? -->
