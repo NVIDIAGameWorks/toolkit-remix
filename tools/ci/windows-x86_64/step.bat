@@ -14,7 +14,7 @@ if %errorlevel% neq 0 ( exit /b %errorlevel% )
 ::if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: Run python tests
-call "%~dp0..\..\test_runner.bat" --suite pythontests --config release
+call "%~dp0..\..\test_runner.bat" --suite pythontests --config debug
 if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: Run kit tests 
