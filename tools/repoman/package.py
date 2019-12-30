@@ -58,7 +58,7 @@ def run_command():
     pkg_desc = omni.repo.package.PackageDesc()
     pkg_desc.custom_platform = platform_target
     pkg_desc.version = package_version
-    pkg_desc.append_git_hash = False
+    pkg_desc.append_git_hash = True
     pkg_desc.output_folder = "_build/packages"
     pkg_desc.remove_pycache = True
 
