@@ -32,7 +32,7 @@ def main():
     package_version = None
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-p", "--package", dest="package", choices=PACKAGES, default="omniverse-kit", help="Package.")
+    parser.add_argument("-p", "--package", dest="package", choices=PACKAGES, default=PACKAGES[0], help="Package.")
     parser.add_argument("-f", "--force", dest="force", default=False, action="store_true", help="Force publish.")
     parser.add_argument(
         "-c",
@@ -52,6 +52,11 @@ def main():
     options = parser.parse_args()
 
     packages, labels = get_packages_and_labels(options.package, options.config)
+
+    if len(packages) == 0:
+        print("No packages found.")
+    if len(labels) == 0:
+        print("No labels found.")
 
     for package in packages:
         if not package_version:
