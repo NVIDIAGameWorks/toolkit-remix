@@ -147,6 +147,5 @@ Where `C:/projects/Graphene` is path to your Kit SDK folder.
 ## TODO
 
 * C++ unit tests example
-* CI (TC project + tools/ci)
 * take dependencies from Kit SDK xml files
-* Finish Linux support
+* Finish Linux support (+CI)
