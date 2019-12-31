@@ -113,6 +113,15 @@ Config files:
 * `prebuild.toml` - lists files to copy and folders to link before building.
 * `package.toml` - lists file patterns to package
 
+### CI
+
+[Teamcity Project](https://teamcity.nvidia.com/project/Omniverse_KitExtensions_Example?mode=builds) runs on every commit. Builds both platforms, docs, runs tests. Publishing is optional (click "Run" on "publish" configuration).
+
+It can also be easily copied in Teamcity along with forking this project on gitlab.
+
+According to [RepoMan Guidelines](https://omniverse.gitlab-master-pages.nvidia.com/repo/repo_man/manual/overview.html#core-principles) all Teamcity entry points are in [tools/ci](tools/ci) folder.
+
+
 ### VsCode environment
 
 Install VsCode python extension, close VsCode, run `build.bat` first time (`-s` flag is enough), open project again. Python intellisense, linter, formatting should work (we bring our own python).
