@@ -88,6 +88,9 @@ function define_bindings_python(name)
     libdirs { "_build/target-deps/carb_sdk_plugins/"..target_dir }
     links {"carb" }
 
+    -- pybind11 defines macros like PYBIND11_HAS_OPTIONAL for C++17, which are undefined otherwise, ignore warning:
+    removeflags { "UndefinedIdentifiers" }
+
     location (workspace_dir.."/%{prj.name}")
 
     repo_build.define_bindings_python(name, python_folder)
@@ -180,10 +183,12 @@ group "apps"
         debugargs ("\""..config_path.."\"")
 
 group "example.python_extension"
-    -- Example of python extension. Contains python sources, doesn't build or run.
-    project "example.python_extension"
-        kind "None"
-        add_impl_folder("source/extensions/example.python_extension")
+    -- Example of python extension. Contains python sources, doesn't build or run, only for MSVS.
+    if os.target() == "windows" then
+        project "example.python_extension"
+            kind "None"
+            add_impl_folder("source/extensions/example.python_extension")
+    end
 
 group "example.cpp_extension"
     -- C++ Carbonite plugin
@@ -194,10 +199,12 @@ group "example.cpp_extension"
         location (workspace_dir.."/%{prj.name}")
 
 group "example.mixed_extension"
-    -- Python code
-    project "example.mixed_extension"
-        kind "None"
-        add_impl_folder("source/extensions/example.mixed_extension/python")
+    -- Python code. Contains python sources, doesn't build or run, only for MSVS.
+    if os.target() == "windows" then
+        project "example.mixed_extension"
+            kind "None"
+            add_impl_folder("source/extensions/example.mixed_extension/python")
+    end
 
     -- C++ Carbonite plugin
     project "example.battle_simulator.plugin"
