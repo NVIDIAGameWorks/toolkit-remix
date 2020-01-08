@@ -36,8 +36,8 @@ copy = [
     ["source/extensions/example.mixed_extension/python/*.py", "_build/$platform/$config/extensions/omni/example/mixed_extension"],
 
     # Copy app running scripts in target dir
-    ["source/apps/*", "_build/$platform/$config"],
-    ["source/apps/$config/*", "_build/$platform/$config"],
+    ["source/apps/*$shell_ext", "_build/$platform/$config"],
+    ["source/apps/$config/*$shell_ext", "_build/$platform/$config"],
 ]
 link = [
     # Extensions folder linked python code
