@@ -1,14 +1,14 @@
 <project toolsVersion="5.0">
   <dependency name="kit_sdk_debug" linkPath="../_build/target-deps/kit_sdk_debug">
-    <package name="omniverse-kit" version="2019.3.1723.be5270a7-${platform}-debug"/>
+    <package name="omniverse-kit" version="2020.1.1834.c0f4a116-${platform}-debug"/>
   </dependency>
   <dependency name="kit_sdk_release" linkPath="../_build/target-deps/kit_sdk_release">
-    <package name="omniverse-kit" version="2019.3.1723.be5270a7-${platform}-release"/>
+    <package name="omniverse-kit" version="2020.1.1834.c0f4a116-${platform}-release"/>
   </dependency>
 
   <!-- TODO: Take from Kit SDK xml file? -->
   <dependency name="carb_sdk_plugins" linkPath="../_build/target-deps/carb_sdk_plugins">
-    <package name="carb_sdk+plugins" version="2019.3.4658-6c9cb24d-${platform}" />
+    <package name="carb_sdk+plugins" version="2019.3.5030-49dac363-${platform}" />
   </dependency>
   <dependency name="pybind11" linkPath="../_build/target-deps/pybind11">
     <package name="pybind11" version="2.3.dev1-18-e7bb36b5" />

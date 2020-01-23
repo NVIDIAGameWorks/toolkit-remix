@@ -1,10 +1,10 @@
 {
     "app": {
         "extensions": {
-            "folders": ["@app@/../extensions"],
+            "folders": ["${app}/../extensions"],
             "enabledBuiltin": [],
-            "enabled": [ 
-                "omni.example.cpp_extension", 
+            "enabled": [
+                "omni.example.cpp_extension",
                 "omni.example.mixed_extension",
                 "omni.example.python_extension",
                 "omni.kit.builtin.extensions_manager_window",
