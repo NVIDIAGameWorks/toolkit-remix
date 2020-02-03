@@ -34,18 +34,18 @@ CARB_PLUGIN_IMPL_DEPS(carb::events::IEvents)
 
 
 static carb::events::IEvents* s_events;
-static carb::events::EventStreamTyped<omni::example::WarriorEventType> s_stream;
+static carb::events::IEventStreamPtr s_stream;
 
 CARB_EXPORT void carbOnPluginStartup()
 {
     // Get editor interface using Carbonite Framework
     s_events = carb::getFramework()->acquireInterface<carb::events::IEvents>();
-    s_stream.create();
+    s_stream = s_events->createEventStream();
 }
 
 CARB_EXPORT void carbOnPluginShutdown()
 {
-    s_stream.destroy();
+    s_stream = nullptr;
 }
 
 namespace omni
@@ -63,6 +63,12 @@ struct Warrior
 
 static std::set<Warrior*> s_warriors;
 
+static void fireEvent(WarriorEventType type)
+{
+    s_stream->push(static_cast<carb::events::EventType>(type));
+    s_stream->pump();
+}
+
 static Warrior* createWarrior(const WarriorDesc& desc)
 {
     Warrior* w = new Warrior();
@@ -71,8 +77,7 @@ static Warrior* createWarrior(const WarriorDesc& desc)
     w->damage = desc.damage;
     s_warriors.insert(w);
 
-    s_stream.push(WarriorEventType::eCreate);
-    s_stream.pump();
+    fireEvent(WarriorEventType::eCreate);
 
     return w;
 }
@@ -82,8 +87,8 @@ static void destroyWarrior(Warrior* warrior)
     s_warriors.erase(warrior);
     delete warrior;
 
-    s_stream.push(WarriorEventType::eDestroy);
-    s_stream.pump();
+    s_stream->push(static_cast<carb::events::EventType>(WarriorEventType::eDestroy));
+    s_stream->pump();
 }
 
 static size_t getWarriorCount()
@@ -111,8 +116,7 @@ static void fight(Warrior* warriorA, Warrior* warriorB)
 
         if (warriorB->hp < 0)
         {
-            s_stream.push(WarriorEventType::eDie);
-            s_stream.pump();
+            fireEvent(WarriorEventType::eDie);
         }
     }
     if (hpB >= 0)
@@ -121,15 +125,14 @@ static void fight(Warrior* warriorA, Warrior* warriorB)
 
         if (warriorA->hp < 0)
         {
-            s_stream.push(WarriorEventType::eDie);
-            s_stream.pump();
+            fireEvent(WarriorEventType::eDie);
         }
     }
 }
 
-static carb::events::EventStream* getWarriorsEventStream()
+static carb::events::IEventStream* getWarriorsEventStream()
 {
-    return s_stream.stream;
+    return s_stream.get();
 }
 
 }

@@ -47,6 +47,10 @@ link = [
 
     # Link app configs in target dir for easier edit
     ["source/apps/configs", "_build/$platform/$config/apps"],
+
+    # Link python app sources in target dir for easier edit
+    ["source/apps/pythonapps", "_build/$platform/$config/pythonapps"],
+
 ]
 
 

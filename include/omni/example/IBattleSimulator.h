@@ -9,15 +9,7 @@
 #pragma once
 
 #include <carb/Interface.h>
-
-
-namespace carb
-{
-namespace events
-{
-struct EventStream;
-}
-}
+#include <carb/events/IEvents.h>
 
 namespace omni
 {
@@ -32,7 +24,7 @@ struct WarriorDesc
     int damage;
 };
 
-enum class WarriorEventType
+enum class WarriorEventType : uint32_t
 {
     eCreate,
     eDestroy,
@@ -63,7 +55,7 @@ struct IBattleSimulator
     /**
      * Event stream of WarriorEventType
      */
-    carb::events::EventStream*(CARB_ABI* getWarriorsEventStream)();
+    carb::events::IEventStream*(CARB_ABI* getWarriorsEventStream)();
 };
 
 inline bool IBattleSimulator::isWarriorDead(Warrior* warrior)
