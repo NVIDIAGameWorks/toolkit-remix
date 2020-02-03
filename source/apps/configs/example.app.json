@@ -1,8 +1,13 @@
 {
     "app": {
+        "settings": {
+            "persistent": true
+        },
         "extensions": {
             "folders": ["${app}/../extensions"],
-            "enabledBuiltin": [],
+            "enabledBuiltin": [
+                "omni.kit.builtin.editor",
+            ],
             "enabled": [
                 "omni.example.cpp_extension",
                 "omni.example.mixed_extension",

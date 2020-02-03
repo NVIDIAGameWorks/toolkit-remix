@@ -13,15 +13,7 @@
 
 CARB_BINDINGS("example.battle_simulator.python")
 
-namespace carb
-{
-namespace events
-{
-struct EventStream
-{
-};
-}
-}
+DISABLE_PYBIND11_DYNAMIC_CAST(carb::events::IEventStream);
 
 namespace omni
 {

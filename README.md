@@ -14,6 +14,8 @@ The idea is that you fork it, trim down parts you don't need and use it to devel
 2. run `_build\windows-x86_64\debug\example.app.bat`
 3. notice enabled extensions in "Extension Manager Window" of Kit. Also notice that one of them brought its own test in "Test Runner" window.
 
+*. for running from python run `_build\windows-x86_64\debug\example.pythonapp.bat`
+
 ## What's included
 
 ### Extensions
@@ -94,6 +96,19 @@ Document your python code with [Google Docstring](https://sphinxcontrib-napoleon
 ### Apps
 
 Example of an app which runs only those 3 extensions in Kit (and test_runner for tests). All files are in [source/apps](source/apps), they are copied and linked during build (stage phase).
+
+> `_build\windows-x86_64\debug\example.app.bat`
+
+It also includes example of running Kit from python, both default Kit and an app which runs only those 3 extensions in Kit. 
+
+> `_build\windows-x86_64\debug\example.pythonapp.bat`
+
+That runs default python example, to see list of examples:
+
+> `_build\windows-x86_64\debug\example.pythonapp.bat --help`
+
+Pass different one as first argument to run it.
+
 
 ### RepoMan
 
