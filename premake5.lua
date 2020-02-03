@@ -180,7 +180,7 @@ group "apps"
         kind "MakeFile"
         debugcommand ("_build/target-deps/kit_sdk_%{config}/_build/%{platform}/%{config}/omniverse-kit.exe")
         local config_path = repo_build.get_abs_path(target_dir.."/apps/example.app.json")
-        debugargs ("\""..config_path.."\"")
+        debugargs ("--config-path \""..config_path.."\"")
 
 group "example.python_extension"
     -- Example of python extension. Contains python sources, doesn't build or run, only for MSVS.
