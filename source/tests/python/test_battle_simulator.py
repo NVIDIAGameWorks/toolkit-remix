@@ -44,7 +44,7 @@ class TestBattleSimulator(unittest.TestCase):
             self.assertEqual(e.type, int(_battle_simulator.WarriorEventType.DIE))
             dead = dead + 1
 
-        sub_holder = self._battle_simulator.get_warrior_event_stream().subscribe_to_pop(
+        sub_holder = self._battle_simulator.get_warrior_event_stream().create_subscription_to_pop_by_type(
             _battle_simulator.WarriorEventType.DIE, on_die
         )
 
