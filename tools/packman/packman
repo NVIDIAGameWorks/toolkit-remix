@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PM_PACKMAN_VERSION=6.3
+PM_PACKMAN_VERSION=6.4-rc1
 
 # Specify where packman command exists
 export PM_INSTALL_PATH="$(dirname "${BASH_SOURCE}")"

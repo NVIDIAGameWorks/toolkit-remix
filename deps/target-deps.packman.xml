@@ -1,20 +1,13 @@
 <project toolsVersion="5.0">
-  <dependency name="kit_sdk_debug" linkPath="../_build/target-deps/kit_sdk_debug">
-    <package name="omniverse-kit" version="2020.1.1918.199e95bf-${platform}-debug"/>
-  </dependency>
-  <dependency name="kit_sdk_release" linkPath="../_build/target-deps/kit_sdk_release">
-    <package name="omniverse-kit" version="2020.1.1918.199e95bf-${platform}-release"/>
-  </dependency>
+  <!-- Import Kit SDk target-deps xml file to steal some deps from it: -->
+  <import path="../_build/target-deps/kit_sdk_release/deps/target-deps.packman.xml">
+    <filter include="carb_sdk_plugins" />
+    <filter include="pybind11" />
+    <filter include="fmt" />
+  </import>  
 
-  <!-- TODO: Take from Kit SDK xml file? -->
-  <dependency name="carb_sdk_plugins" linkPath="../_build/target-deps/carb_sdk_plugins">
-    <package name="carb_sdk+plugins" version="2019.3.5189-b0a1cc2f-${platform}" />
-  </dependency>
-  <dependency name="pybind11" linkPath="../_build/target-deps/pybind11">
-    <package name="pybind11" version="2.3.dev1-19-9a056c90" />
-  </dependency>
-  <dependency name="fmt" linkPath="../_build/target-deps/fmt">
-    <package name="fmt" version="5.2.1-7-9980f06d"/>
-  </dependency>
-
+  <!-- Pull those deps of the same version as in Kit SDK. Override linkPath to point correctly, other properties can also be override, including version. -->
+  <dependency name="carb_sdk_plugins" linkPath="../_build/target-deps/carb_sdk_plugins" />
+  <dependency name="pybind11" linkPath="../_build/target-deps/pybind11" />
+  <dependency name="fmt" linkPath="../_build/target-deps/fmt" />
 </project>
