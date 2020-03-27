@@ -236,6 +236,7 @@ workspace "kit-examples"
 group "apps"
     -- Application example. Only runs Kit with a config, doesn't build anything. Helper for debugging.
     define_experience("example.app")
+    define_experience("example.app-mini")
 
 -- Example of C++ only extension:
 include ("source/extensions/example.cpp_extension")

@@ -1,0 +1,13 @@
+{
+    "app": {
+        "settings": {
+            "persistent": false
+        },
+        "extensions": {
+            "folders2": ["${kit}/exts", "${app}/../exts"],
+            "enabledBuiltin": [
+                "omni.kit.editor-mini",
+            ],
+        },
+    }
+}
