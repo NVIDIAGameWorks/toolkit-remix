@@ -9,13 +9,12 @@ call "%~dp0..\..\..\build.bat" -x
 if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: Docs
-:: ENABLE after fixing Kit package
 call "%~dp0..\..\build_docs.bat" -c release
 if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
-:: Run python tests
-call "%~dp0..\..\test_runner.bat" --suite pythontests --config debug
-if %errorlevel% neq 0 ( exit /b %errorlevel% )
+:: Run python tests (TODO: fix or remove)
+::call "%~dp0..\..\test_runner.bat" --suite pythontests --config debug
+::if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: Run kit tests 
 :: SKIP THEM for now, that puts a hard requirement on TC agent (to have RTX, driver version, etc.)
