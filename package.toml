@@ -40,7 +40,7 @@ files = []
 
 [example_extensions]
 files = [
-    ["_build/$platform/$config/extensions", "extensions"],
+    ["_build/$platform/$config/exts", "exts"],
 ]
 
 [example_extensions.windows-x86_64]
