@@ -1,5 +1,4 @@
 import os
-import omni.kit.extensions
 from .. import _battle_simulator
 
 

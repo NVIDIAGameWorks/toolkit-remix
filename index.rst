@@ -4,9 +4,11 @@ Kit Sdk: Extensions & Apps Example
 .. toctree::
    :maxdepth: 2
    :caption: Contents
+   :glob:
 
-   manual/overview
-   api/index
+   docs/manual/overview
+   docs/api/index
+   source/extensions/index
 
    
 

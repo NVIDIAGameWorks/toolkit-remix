@@ -4,7 +4,7 @@ name = ""
 "omni.kit.editor" = {}
 
 [python.modules]
-"omni.example.mixed_extension" = { public = true }
+"example.mixed_extension" = { public = true }
 
 [[native.plugins]]
 search_path = "bin/${platform}/${config}/*.plugin"

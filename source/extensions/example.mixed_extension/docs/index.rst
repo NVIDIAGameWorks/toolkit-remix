@@ -1,11 +1,4 @@
-omni.appwindow
+example.mixed_extension
 ###########################
 
-Application window layer.
-
-
-.. automodule:: omni.appwindow
-    :platform: Windows-x86_64, Linux-x86_64
-    :members:
-    :show-inheritance:
-
+Example of Mixed (both python and C++) extension:

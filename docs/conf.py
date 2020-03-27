@@ -15,7 +15,7 @@ import sys
 import platform
 
 
-import omni.example.python_extension
+import example.python_extension
 
 
 # -- Project information -----------------------------------------------------

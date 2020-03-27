@@ -46,7 +46,7 @@ graph TD
 
 ```
 
-Each extension is a folder(or zip archive) in the end. It always starts with minimal python code. You can write user code in python code only, or C++ only, or both. Ultimately extension archive could contain python code, python bindings (pyd/so files) and C++ plugins (dll/so). Each binary file is platform and configuration (debug/release, optionally) specific, one archive can contain binaries for multiple platforms, we put them in separate folders and follow proper naming of python bindings (https://stackoverflow.com/a/37028661).
+Each extension is a folder(or zip archive) in the end. You can write user code in python code only, or C++ only, or both. Ultimately extension archive could contain python code, python bindings (pyd/so files) and C++ plugins (dll/so). Each binary file is platform and configuration (debug/release, optionally) specific, one archive can contain binaries for multiple platforms, we put them in separate folders and follow proper naming of python bindings (https://stackoverflow.com/a/37028661).
 
 For more info refer to Kit documentation: http://omnidocs-internal.nvidia.com/py/index.html.
 
@@ -162,5 +162,4 @@ Where `C:/projects/Graphene` is path to your Kit SDK folder.
 ## TODO
 
 * C++ unit tests example
-* take dependencies from Kit SDK xml files
 * Finish Linux support (+CI)

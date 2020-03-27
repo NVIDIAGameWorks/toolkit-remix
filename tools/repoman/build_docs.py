@@ -6,6 +6,8 @@
 import os
 import sys
 import argparse
+import glob
+
 
 import packmanapi
 import repoman
@@ -31,12 +33,13 @@ def main():
     sphinx_path = packmanapi.install("sphinx", "2.0.1-py3.5")["sphinx"]
 
     # Add extensions folder and sphinx folder (with sphinx) into PYTHONPATH
-    path_to_extensions = f"{ROOT_DIR}/_build/{platform_host}/{options.config}/extensions"
-    os.environ["PYTHONPATH"] += os.pathsep.join([sphinx_path, path_to_extensions])
+    path_to_extensions = f"{ROOT_DIR}/_build/{platform_host}/{options.config}/exts/"
+    all_exts = list(glob.glob(f"{path_to_extensions}/*/"))
+    os.environ["PYTHONPATH"] += os.pathsep.join([sphinx_path] + all_exts)
 
     # Run sphinx module. Use kit_sdk python runner, it already has properly PATH and PYTHONPATH set to enable importing of Kit SDK modules
     config_dir = paths["docs_src"]
-    input_dir = paths["docs_src"]
+    input_dir = ROOT_DIR
     output_dir = paths["docs_dst"]
     python_args = ["-m", "sphinx", "-c", config_dir, "-b", "html", input_dir, output_dir]
     python_exe = "python.bat" if platform_host == "windows-x86_64" else "python.sh"

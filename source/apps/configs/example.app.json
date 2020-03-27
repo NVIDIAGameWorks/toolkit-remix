@@ -1,12 +1,15 @@
 {
     "app": {
+        "settings": {
+            "persistent": false
+        },
         "extensions": {
             "folders2": ["${kit}/exts", "${app}/../exts"],
             "enabledBuiltin": [
                 "omni.kit.editor-full",
-                "omni.example.cpp_extension",
-                "omni.example.mixed_extension",
-                "omni.example.python_extension",
+                "example.cpp_extension",
+                "example.mixed_extension",
+                "example.python_extension",
                 "omni.kit.builtin.extensions_manager_window",
                 "omni.kit.builtin.test_runner",
             ],

@@ -3,7 +3,7 @@ omni.example.python_extension
 
 Example of Python only extension
 
-.. automodule:: omni.example.python_extension
+.. automodule:: example.python_extension
     :platform: Windows-x86_64, Linux-x86_64
     :members:
     :undoc-members:

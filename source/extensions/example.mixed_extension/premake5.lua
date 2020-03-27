@@ -19,11 +19,11 @@ group ("extensions/"..ext_id)
     }
 
     repo_build.prebuild_link {
-        { ext_source.."/python/scripts", ext_folder.."/omni/example/mixed_extension/scripts" },
+        { ext_source.."/python/scripts", ext_folder.."/example/mixed_extension/scripts" },
     }
 
     repo_build.prebuild_copy {
-        { ext_source.."/python/*.py", ext_folder.."/omni/example/mixed_extension" },
+        { ext_source.."/python/*.py", ext_folder.."/example/mixed_extension" },
     }
 
     -- C++ Carbonite plugin
@@ -37,4 +37,4 @@ group ("extensions/"..ext_id)
     project "example.battle_simulator.python"
         define_bindings_python("_battle_simulator")
         add_impl_folder("bindings")
-        targetdir (target_dir.."/exts/"..ext_id.."/omni/example/mixed_extension")
+        targetdir (target_dir.."/exts/"..ext_id.."/example/mixed_extension")
