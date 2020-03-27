@@ -1,0 +1,9 @@
+<project toolsVersion="5.0">
+  <!-- Import Kit SDk target-deps xml file to steal some deps from it: -->
+  <import path="../_build/target-deps/kit_sdk_release/deps/target-deps.packman.xml">
+    <filter include="rtx_plugins" />
+  </import>
+
+  <!-- Pull those deps of the same version as in Kit SDK. Override linkPath to point correctly, other properties can also be override, including version. -->
+  <dependency name="rtx_plugins" linkPath="../_build/target-deps/rtx_plugins" />
+</project>

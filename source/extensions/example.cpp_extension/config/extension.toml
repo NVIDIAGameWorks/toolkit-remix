@@ -1,0 +1,9 @@
+name = ""
+
+[dependencies]
+"omni.kit.editor" = {}
+
+[[native.plugins]]
+search_path = "bin/${platform}/${config}/*.plugin"
+recursive = false
+

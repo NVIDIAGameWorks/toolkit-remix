@@ -64,6 +64,9 @@ def pull_dependencies(repo_folders: Dict, platform_host: str, platform_target: s
     # Pull Kit SDK first, its deps xml files will be used (imported) in following files
     packmanapi.pull(os.path.join(repo_folders["root"], "deps/kit-sdk.packman.xml"), platform=platform_target)
 
+    # Then pull Rtx plugins from Kit sdk
+    packmanapi.pull(os.path.join(repo_folders["root"], "deps/rtx-plugins.packman.xml"), platform=platform_target)
+
     # Now pull everything else (default deps files, like target-deps and host-deps):
     omni.repo.build.pull_dependencies(repo_folders, platform_host, platform_target)
 
@@ -98,6 +101,10 @@ def main():
     settings.sln_file = "kit-examples.sln"
     settings.vs_version = "vs2017"
     settings.stage_files_error_if_missing = True
+    settings.stage_files_prebuild_files = [
+        os.path.join(root, "prebuild.toml"),
+        os.path.join(root, "_build/generated/prebuild.toml"),
+    ]
     omni.repo.build.main(root=root, settings=settings, pull_dependencies_fn=pull_dependencies)
 
 

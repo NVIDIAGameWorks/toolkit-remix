@@ -1,5 +1,7 @@
 import os
 
+import omni.ext
+
 from .battle import Battle
 from .battlewindow import BattleWindow
 
@@ -10,7 +12,7 @@ battleapi = None
 from .test_fight import *
 
 
-class Extension:
+class Extension(omni.ext.IExt):
     def __init__(self):
         global battleapi
         battleapi = Battle()
@@ -21,7 +23,3 @@ class Extension:
         battleapi.on_shutdown()
         battleapi = None
         self._battlewindow.on_shutdown()
-
-
-def get_extension():
-    return Extension()

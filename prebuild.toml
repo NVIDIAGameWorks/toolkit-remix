@@ -31,20 +31,11 @@
 ########################################################################################################################
 
 copy = [
-    # Extensions bootstrap python code 
-    ["source/extensions/example.cpp_extension/python/*.py", "_build/$platform/$config/extensions/omni/example/cpp_extension"],
-    ["source/extensions/example.mixed_extension/python/*.py", "_build/$platform/$config/extensions/omni/example/mixed_extension"],
-
     # Copy app running scripts in target dir
     ["source/apps/*$shell_ext", "_build/$platform/$config"],
     ["source/apps/$config/*$shell_ext", "_build/$platform/$config"],
 ]
 link = [
-    # Extensions folder linked python code
-    ["source/extensions/example.cpp_extension/python/scripts", "_build/$platform/$config/extensions/omni/example/cpp_extension/scripts"],
-    ["source/extensions/example.mixed_extension/python/scripts", "_build/$platform/$config/extensions/omni/example/mixed_extension/scripts"],
-    ["source/extensions/example.python_extension", "_build/$platform/$config/extensions/omni/example/python_extension"],
-
     # Link app configs in target dir for easier edit
     ["source/apps/configs", "_build/$platform/$config/apps"],
 

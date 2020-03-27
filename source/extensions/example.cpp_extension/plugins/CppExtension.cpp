@@ -12,8 +12,8 @@
 #include <carb/PluginUtils.h>
 #include <carb/logging/Log.h>
 
-#include <omni/kit/IEditor.h>
-#include <omni/kit/IMinimal.h>
+#include <omni/kit/IApp.h>
+#include <omni/ext/IExt.h>
 
 #include <memory>
 
@@ -25,41 +25,41 @@ using namespace carb;
 const struct carb::PluginImplDesc kPluginImpl = { EXTENSION_NAME, "Example of a native plugin extension.", "NVIDIA",
                                                   carb::PluginHotReload::eEnabled, "dev" };
 
-// This extension implements minimal (IMinimal) interface. Empty one, just to allow python code to load and unload this
-// plugin using Carbonite. Loading and unloading will give 2 entry points: carbOnPluginStartup()/carbOnPluginShutdown()
-// which is already enough to hook up into Editor and extend it.
-CARB_PLUGIN_IMPL(kPluginImpl, omni::kit::IMinimal)
-CARB_PLUGIN_IMPL_DEPS(omni::kit::IEditor)
+CARB_PLUGIN_IMPL_DEPS(omni::kit::IApp, carb::logging::ILogging)
 
-void fillInterface(omni::kit::IMinimal& iface)
+
+class NativeExtensionExample : public omni::ext::IExt
 {
-    iface = {};
-}
+public:
+    void startup() override
+    {
+        // Get app interface using Carbonite Framework
+        omni::kit::IApp* app = carb::getFramework()->acquireInterface<omni::kit::IApp>();
 
-static omni::kit::IEditor* s_editor;
-static omni::kit::SubscriptionId s_updateSub;
-static float s_time = 0;
+        // Subscribe to update events and count them
+        m_holder =
+            carb::events::createSubscriptionToPop(app->getUpdateEventStream(), [this](carb::events::IEvent* event) {
+                if (m_counter % 100 == 0)
+                {
+                    printf(EXTENSION_NAME ": %d updates passed.\n", m_counter);
+                }
+                m_counter++;
+            });
+    }
 
-CARB_EXPORT void carbOnPluginStartup()
+    void shutdown() override
+    {
+        // That unsubscribes from event stream
+        m_holder = nullptr;
+    }
+
+private:
+    int m_counter = 0;
+    carb::ObjectPtr<carb::events::ISubscription> m_holder;
+};
+
+CARB_PLUGIN_IMPL(kPluginImpl, NativeExtensionExample)
+
+void fillInterface(NativeExtensionExample& iface)
 {
-    // Get editor interface using Carbonite Framework
-    s_editor = carb::getFramework()->acquireInterface<omni::kit::IEditor>();
-
-    // We can now fully use IEditor. Let's subscribe to update events as an example:
-    s_updateSub = s_editor->subscribeToUpdateEvents(
-        [](float elapsedTime, void* userData) {
-            s_time += elapsedTime;
-            if (s_time > 5.0f)
-            {
-                s_editor->postToast("5 seconds passed");
-                s_time = 0;
-            }
-        },
-        nullptr);
-}
-
-CARB_EXPORT void carbOnPluginShutdown()
-{
-    // Plugin is being unloaded, hence unsubscribe from update events
-    s_editor->unsubscribeToUpdateEvents(s_updateSub);
 }

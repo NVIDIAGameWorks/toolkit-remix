@@ -15,7 +15,6 @@
 #include <carb/logging/Log.h>
 
 #include <omni/example/IBattleSimulator.h>
-#include <omni/kit/IEditor.h>
 
 #include <memory>
 #include <set>

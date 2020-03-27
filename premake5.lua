@@ -5,13 +5,16 @@ newoption {
 }
 
 -- Shared build scripts from repo_build package
-local repo_build = require("omni/repo/build")
+repo_build = require("omni/repo/build")
 
 -- Enable /sourcelink flag for VS
 repo_build.enable_vstudio_sourcelink()
 
 -- Remove /JMC parameter for visual studio
 repo_build.remove_vstudio_jmc()
+
+-- Setup where to write generate prebuild.toml file
+repo_build.set_prebuild_file('_build/generated/prebuild.toml')
 
 -- Setup all msvc and winsdk paths. That later can be moved to actual msvc and sdk packages 
 function setup_msvc_toolchain()
@@ -57,8 +60,11 @@ function add_iface_folder(path)
     }
 end
 
+-- Repo root
+root = repo_build.get_abs_path(".")
+
 -- Folder to store solution in. _ACTION is compilation target, e.g.: vs2017, make etc.
-workspace_dir = "_compiler/".._ACTION
+workspace_dir = "%{root}/_compiler/".._ACTION
 
 -- Target platform name, e.g. windows-x86_64
 platform = "%{cfg.system}-%{cfg.platform}"
@@ -66,11 +72,14 @@ platform = "%{cfg.system}-%{cfg.platform}"
 -- Target config, e.g. debug, release
 config = "%{cfg.buildcfg}"
 
+-- Constant with all configurations we build
+ALL_CONFIGS = { "debug", "release" }
+
 -- Target directory
-target_dir = "_build/%{platform}/%{config}"
+target_dir = "%{root}/_build/%{platform}/%{config}"
 
 -- Path to kit sdk
-kit_sdk = "_build/target-deps/kit_sdk_%{config}"
+kit_sdk = "%{root}/_build/target-deps/kit_sdk_%{config}"
 
 -- Common plugins settings
 function define_plugin()
@@ -85,7 +94,7 @@ function define_bindings_python(name)
     local python_folder = "%{kit_sdk}/_build/target-deps/python"
 
     -- Carbonite carb lib
-    libdirs { "_build/target-deps/carb_sdk_plugins/"..target_dir }
+    libdirs { "%{root}/_build/target-deps/carb_sdk_plugins/_build/%{platform}/%{config}" }
     links {"carb" }
 
     -- pybind11 defines macros like PYBIND11_HAS_OPTIONAL for C++17, which are undefined otherwise, ignore warning:
@@ -95,6 +104,56 @@ function define_bindings_python(name)
 
     repo_build.define_bindings_python(name, python_folder)
 end
+
+-- Write experience running .bat/.sh file, like _build\windows-x86_64\release\example.helloext.app.bat
+function create_experience_runner(name, config_path, config, extra_args)
+    if os.target() == "windows" then
+        local bat_file_path = root.."/_build/windows-x86_64/"..config.."/"..name..".bat"
+        f = io.open(bat_file_path, 'w')
+        f:write(string.format([[
+@echo off
+setlocal
+call "%%~dp0..\..\target-deps\kit_sdk_%s\_build\windows-x86_64\%s\omniverse-kit.exe" --config-path %%~dp0%s %s %%*
+        ]], config, config, config_path, extra_args))
+    else
+        local sh_file_path = root.."/_build/linux-x86_64/"..config.."/"..name..".sh"
+        f = io.open(sh_file_path, 'w')
+        f:write(string.format([[
+#!/bin/bash
+set -e
+SCRIPT_DIR=$(dirname ${BASH_SOURCE})
+"$SCRIPT_DIR/../../target-deps/kit_sdk_%s/_build/linux-x86_64/%s/omniverse-kit" --config-path "$SCRIPT_DIR/%s" %s $@
+        ]], config, config, config_path, extra_args))
+        f:close()
+        os.chmod(sh_file_path, 755)
+    end
+end
+
+
+-- Define Kit experience. Different ways to run kit with particular config
+function define_experience(name)
+    local config_path = "/apps/"..name..".json"
+    local extra_args = "--vulkan"
+
+    -- Create a VS project on windows to make debugging and running from VS easier:
+    if os.target() == "windows" then
+        group "apps"
+        project(name)
+            kind "Utility"
+            location ("%{root}/_compiler/".._ACTION.."/%{prj.name}")
+            debugcommand ("%{kit_sdk}/_build/%{platform}/%{config}/omniverse-kit.exe")
+            local config_abs_path = target_dir..config_path
+            debugargs ("--config-path \""..config_abs_path.."\" "..extra_args)
+            files { config_abs_path }
+            vpaths { [""] = "**.json" }
+    end
+
+    -- Write bat and sh files as another way to run them:
+    for _, config in ipairs(ALL_CONFIGS) do
+        create_experience_runner(name, config_path, config, extra_args)
+    end
+end
+
 
 
 -- Starting from here we define a structure of actual solution to be generated. Starting with solution name.
@@ -176,47 +235,15 @@ workspace "kit-examples"
 
 group "apps"
     -- Application example. Only runs Kit with a config, doesn't build anything. Helper for debugging.
-    project "example.app"
-        kind "MakeFile"
-        debugcommand ("_build/target-deps/kit_sdk_%{config}/_build/%{platform}/%{config}/omniverse-kit.exe")
-        local config_path = repo_build.get_abs_path(target_dir.."/apps/example.app.json")
-        debugargs ("--config-path \""..config_path.."\"")
+    define_experience("example.app")
 
-group "example.python_extension"
-    -- Example of python extension. Contains python sources, doesn't build or run, only for MSVS.
-    if os.target() == "windows" then
-        project "example.python_extension"
-            kind "None"
-            add_impl_folder("source/extensions/example.python_extension")
-    end
+-- Example of C++ only extension:
+include ("source/extensions/example.cpp_extension")
 
-group "example.cpp_extension"
-    -- C++ Carbonite plugin
-    project "example.cpp_extension.plugin"
-        define_plugin()
-        add_impl_folder ("source/extensions/example.cpp_extension/plugins")
-        targetdir (target_dir.."/extensions/omni/example/cpp_extension/bin/%{platform}/%{config}")
-        location (workspace_dir.."/%{prj.name}")
+-- Example of Python only extension:
+include ("source/extensions/example.python_extension")
 
-group "example.mixed_extension"
-    -- Python code. Contains python sources, doesn't build or run, only for MSVS.
-    if os.target() == "windows" then
-        project "example.mixed_extension"
-            kind "None"
-            add_impl_folder("source/extensions/example.mixed_extension/python")
-    end
+-- Example of Mixed (both python and C++) extension:
+include ("source/extensions/example.mixed_extension")
 
-    -- C++ Carbonite plugin
-    project "example.battle_simulator.plugin"
-        define_plugin()
-        add_impl_folder("source/extensions/example.mixed_extension/plugins")
-        add_iface_folder("include/omni/example")
-        targetdir (target_dir.."/extensions/omni/example/mixed_extension/bin/%{platform}/%{config}")
-        location (workspace_dir.."/%{prj.name}")
 
-    -- Python Bindings for Carobnite Plugin
-    project "example.battle_simulator.python"
-        define_bindings_python("_battle_simulator")
-        add_impl_folder("source/extensions/example.mixed_extension/bindings")
-        targetdir (target_dir.."/extensions/omni/example/mixed_extension/bindings")
-        
