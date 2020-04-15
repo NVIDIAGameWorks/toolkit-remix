@@ -1,10 +1,10 @@
-name = ""
+display_name = ""
 
 [dependencies]
 "omni.kit.editor" = {}
 
-[python.modules]
-"example.mixed_extension" = { public = true }
+[[python.modules]]
+name = "example.mixed_extension"
 
 [[native.plugins]]
 search_path = "bin/${platform}/${config}/*.plugin"
