@@ -1,4 +1,4 @@
-name = ""
+display_name = ""
 
 [dependencies]
 "omni.kit.editor" = {}
