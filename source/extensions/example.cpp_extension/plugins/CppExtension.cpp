@@ -31,7 +31,7 @@ CARB_PLUGIN_IMPL_DEPS(omni::kit::IApp, carb::logging::ILogging)
 class NativeExtensionExample : public omni::ext::IExt
 {
 public:
-    void startup() override
+    void onStartup() override
     {
         // Get app interface using Carbonite Framework
         omni::kit::IApp* app = carb::getFramework()->acquireInterface<omni::kit::IApp>();
@@ -47,7 +47,7 @@ public:
             });
     }
 
-    void shutdown() override
+    void onShutdown() override
     {
         // That unsubscribes from event stream
         m_holder = nullptr;

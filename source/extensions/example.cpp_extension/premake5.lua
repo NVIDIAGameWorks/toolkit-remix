@@ -2,7 +2,7 @@ local ext_name = "example.cpp_extension"
 local ext_version = ""
 local ext_id = ext_name
 local ext_source = "source/extensions/"..ext_name
-local ext_folder = "_build/$platform/$config/exts/"..ext_id
+local ext_folder = "%{root}/_build/$platform/$config/exts/"..ext_id
 local ext_bin_folder = ext_folder.."/bin/$platform/$config"
 
 group ("extensions/"..ext_id)
@@ -11,10 +11,10 @@ group ("extensions/"..ext_id)
     project "example.cpp_extension.plugin"
         define_plugin()
         add_impl_folder ("plugins")
-        targetdir (target_dir.."/exts/"..ext_id.."/bin/%{platform}/%{cfg.buildcfg}")
+        targetdir (bin_dir.."/exts/"..ext_id.."/bin/%{platform}/%{cfg.buildcfg}")
 
     repo_build.prebuild_link {
-        { ext_source.."/config", ext_folder.."/config" },
+        { "config", ext_folder.."/config" },
     }
 
 

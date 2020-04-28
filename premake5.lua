@@ -76,7 +76,7 @@ config = "%{cfg.buildcfg}"
 ALL_CONFIGS = { "debug", "release" }
 
 -- Target directory
-target_dir = "%{root}/_build/%{platform}/%{config}"
+bin_dir = "%{root}/_build/%{platform}/%{config}"
 
 -- Path to kit sdk
 kit_sdk = "%{root}/_build/target-deps/kit_sdk_%{config}"
@@ -142,7 +142,7 @@ function define_experience(name)
             kind "Utility"
             location ("%{root}/_compiler/".._ACTION.."/%{prj.name}")
             debugcommand ("%{kit_sdk}/_build/%{platform}/%{config}/omniverse-kit.exe")
-            local config_abs_path = target_dir..config_path
+            local config_abs_path = bin_dir..config_path
             debugargs ("--config-path \""..config_abs_path.."\" "..extra_args)
             files { config_abs_path }
             vpaths { [""] = "**.json" }
@@ -167,7 +167,7 @@ workspace "kit-examples"
     location (workspace_dir)
 
     -- Set default target dir, later projects overwrite it
-    targetdir (target_dir)
+    targetdir (bin_dir)
 
     -- Setup include paths. Add kit SDK include paths too.
     includedirs { 

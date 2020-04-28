@@ -1,8 +1,7 @@
 local ext_name = "example.mixed_extension"
 local ext_version = ""
 local ext_id = ext_name
-local ext_source = "source/extensions/"..ext_name
-local ext_folder = "_build/$platform/$config/exts/"..ext_id
+local ext_folder = "%{root}/_build/$platform/$config/exts/"..ext_id
 local ext_bin_folder = ext_folder.."/bin/$platform/$config"
 
 group ("extensions/"..ext_id)
@@ -15,15 +14,15 @@ group ("extensions/"..ext_id)
     end
 
     repo_build.prebuild_link {
-        { ext_source.."/config", ext_folder.."/config" },
+        { "config", ext_folder.."/config" },
     }
 
     repo_build.prebuild_link {
-        { ext_source.."/python/scripts", ext_folder.."/example/mixed_extension/scripts" },
+        { "python/scripts", ext_folder.."/example/mixed_extension/scripts" },
     }
 
     repo_build.prebuild_copy {
-        { ext_source.."/python/*.py", ext_folder.."/example/mixed_extension" },
+        { "python/*.py", ext_folder.."/example/mixed_extension" },
     }
 
     -- C++ Carbonite plugin
@@ -31,10 +30,10 @@ group ("extensions/"..ext_id)
         define_plugin()
         add_impl_folder("plugins")
         add_iface_folder("%{root}/include/omni/example")
-        targetdir (target_dir.."/exts/"..ext_id.."/bin/%{platform}/%{cfg.buildcfg}")
+        targetdir (bin_dir.."/exts/"..ext_id.."/bin/%{platform}/%{cfg.buildcfg}")
 
     -- Python Bindings for Carobnite Plugin
     project "example.battle_simulator.python"
         define_bindings_python("_battle_simulator")
         add_impl_folder("bindings")
-        targetdir (target_dir.."/exts/"..ext_id.."/example/mixed_extension")
+        targetdir (bin_dir.."/exts/"..ext_id.."/example/mixed_extension")

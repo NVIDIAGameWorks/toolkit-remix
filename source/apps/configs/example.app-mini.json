@@ -7,6 +7,8 @@
             "folders2": ["${kit}/exts", "${app}/../exts"],
             "enabledBuiltin": [
                 "omni.kit.editor-mini",
+                "omni.kit.window.console",
+                "example.cpp_extension",
             ],
         },
     }

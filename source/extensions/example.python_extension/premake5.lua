@@ -7,7 +7,7 @@ local ext_source_path = "%{root}/source/extensions/"..ext_name
 group ("extensions/"..ext_id)
 
     repo_build.prebuild_link {
-        { "source/extensions/"..ext_name, "_build/$platform/$config/exts/"..ext_id },
+        { ".", "${root}/_build/$platform/$config/exts/"..ext_id },
     }
 
     -- Example of python extension. Contains python sources, doesn't build or run, only for MSVS.
