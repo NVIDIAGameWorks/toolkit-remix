@@ -1,0 +1,15 @@
+display_name = ""
+
+[dependencies]
+"omni.kit.test" = {}
+
+[[python.modules]]
+name = "example.battle_simulator"
+
+[[python.modules]]
+name = "example.battle_simulator.tests"
+
+[[native.plugins]]
+search_path = "bin/${platform}/${config}/*.plugin"
+recursive = false
+

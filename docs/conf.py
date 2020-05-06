@@ -15,7 +15,7 @@ import sys
 import platform
 
 
-import example.python_extension
+import example.python_ext
 
 
 # -- Project information -----------------------------------------------------

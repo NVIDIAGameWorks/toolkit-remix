@@ -1,8 +1,0 @@
-<project toolsVersion="5.6">
-  <dependency name="kit_sdk_debug" linkPath="../_build/target-deps/kit_sdk_debug">
-    <source path="C:/projects/Graphene/" />
-  </dependency>
-  <dependency name="kit_sdk_release" linkPath="../_build/target-deps/kit_sdk_release">
-    <source path="C:/projects/Graphene/" />
-  </dependency>
-</project>

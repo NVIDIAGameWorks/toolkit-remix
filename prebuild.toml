@@ -38,13 +38,12 @@
 ########################################################################################################################
 
 copy = [
-    # Copy app running scripts in target dir
-    ["source/apps/*$shell_ext", "_build/$platform/$config"],
+    # Copy python app running scripts in target dir
     ["source/apps/$config/*$shell_ext", "_build/$platform/$config"],
 ]
 link = [
     # Link app configs in target dir for easier edit
-    ["source/apps/configs", "_build/$platform/$config/apps"],
+    ["source/experiences", "_build/$platform/$config/experiences"],
 
     # Link python app sources in target dir for easier edit
     ["source/apps/pythonapps", "_build/$platform/$config/pythonapps"],

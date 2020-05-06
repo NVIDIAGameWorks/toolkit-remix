@@ -11,7 +11,7 @@ The idea is that you fork it, trim down parts you don't need and use it to devel
 ## Getting started
 
 1. run `build.bat`
-2. run `_build\windows-x86_64\debug\example.app.bat`
+2. run `_build\windows-x86_64\debug\kit-new-exts.bat`
 3. notice enabled extensions in "Extension Manager Window" of Kit. Also notice that one of them brought its own test in "Test Runner" window.
 
 *. for running from python run `_build\windows-x86_64\debug\example.pythonapp.bat`
@@ -29,13 +29,13 @@ graph TD
 
   subgraph cpp
   A1(__init__.py)
-  A1 -- carb::Framework --> B1(example.cpp_extension.plugin.dll)
+  A1 -- carb::Framework --> B1(omni.ext-example_cpp_ext.plugin.dll)
   end
 
   subgraph "mixed"
   A2(__init__.py + python code)
-  A2 --import _mixed_extension--> B2(example.mixed_extension.python)
-  B2 -- carb::Framework --> C2(example.mixed_extension.plugin.dll)
+  A2 --import _mixed_ext--> B2(example.mixed_ext.python)
+  B2 -- carb::Framework --> C2(example.mixed_ext.plugin.dll)
   end
 
 
@@ -50,25 +50,25 @@ Each extension is a folder(or zip archive) in the end. You can write user code i
 
 For more info refer to Kit documentation: http://omnidocs-internal.nvidia.com/py/index.html.
 
-#### example.python_extension
+#### example.python_ext
 
 Example of pure python extesion
 
-[source](source/extensions/example.python_extension)
+[source](source/extensions/example.python_ext)
 
 
-#### example.cpp_extension
+#### example.cpp_ext
 
 Example of native (C++ only) extension.
 
-[source](source/extensions/example.cpp_extension)
+[source](source/extensions/example.cpp_ext)
 
 
-#### example.mixed_extension
+#### example.mixed_ext
 
 Example of mixed extension which has both C++ and python code. They interact via python bindings built and included with this extension.
 
-[source](source/extensions/example.mixed_extension)
+[source](source/extensions/example.mixed_ext)
 
 
 ### Tests
@@ -78,8 +78,8 @@ We also provide examples of writing different tests.
 Use `tools/test_runner.bat --help` to run any of them. There are:
 
 * (TBD) `unittests` - C++ test of particular interface/plugin
-* `pythontests` - python test of bindings (+plugin), which run without running Kit itself
-* `kittests` - python tests of extension inside of running Kit
+* `startuptests` - start and quit tests for experiences
+* `pythontests` - python tests of extension inside of running Kit
 
 Example:
 
@@ -95,9 +95,10 @@ Document your python code with [Google Docstring](https://sphinxcontrib-napoleon
 
 ### Apps
 
-Example of an app which runs only those 3 extensions in Kit (and test_runner for tests). All files are in [source/apps](source/apps), they are copied and linked during build (stage phase).
+Example of an app which runs only those 3 extensions in Kit (and test_runner for tests). All configs are in [source/experiences](source/experiences), they are linked during build (stage phase).
 
-> `_build\windows-x86_64\debug\example.app.bat`
+> `_build\windows-x86_64\debug\kit-new-exts.bat`
+> `_build\windows-x86_64\debug\kit-new-exts-mini.bat`
 
 It also includes example of running Kit from python, both default Kit and an app which runs only those 3 extensions in Kit. 
 
@@ -149,15 +150,15 @@ To use your local build of Kit SDK create a file, deps/target-deps.packman.xml.u
 ```xml
 <project toolsVersion="5.6">
   <dependency name="kit_sdk_debug" linkPath="../_build/target-deps/kit_sdk_debug">
-    <source path="C:/projects/Graphene" />
+    <source path="C:/projects/kit/kit" />
   </dependency>
   <dependency name="kit_sdk_release" linkPath="../_build/target-deps/kit_sdk_release">
-    <source path="C:/projects/Graphene" />
+    <source path="C:/projects/kit/kit" />
   </dependency>
 </project>
 ```
 
-Where `C:/projects/Graphene` is path to your Kit SDK folder.
+Where `C:/projects/kit/kit` is path to your Kit SDK folder.
 
 ## TODO
 

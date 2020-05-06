@@ -7,11 +7,22 @@ newoption {
 -- Shared build scripts from repo_build package
 repo_build = require("omni/repo/build")
 
--- Enable /sourcelink flag for VS
-repo_build.enable_vstudio_sourcelink()
+-- Repo root
+root = repo_build.get_abs_path(".")
 
--- Remove /JMC parameter for visual studio
-repo_build.remove_vstudio_jmc()
+-- Resolved path to kit SDK (without %{} tokens), for creating experiences
+KIT_SDK_RESOLVED = {
+    ["debug"] = root.."/_build/target-deps/kit_sdk_debug",
+    ["release"] = root.."/_build/target-deps/kit_sdk_release",
+}
+
+-- Path to kit sdk
+kit_sdk = "%{root}/_build/target-deps/kit_sdk_%{config}"
+
+kit_sdk_bin_dir = "%{kit_sdk}/_build/%{platform}/%{config}"
+
+-- Include Kit SDK public premake, it defines few global variables and helper functions. Look inside to get more info.
+include("_build/target-deps/kit_sdk_release/premake5-public.lua")
 
 -- Setup where to write generate prebuild.toml file
 repo_build.set_prebuild_file('_build/generated/prebuild.toml')
@@ -44,118 +55,6 @@ function setup_msvc_toolchain()
         }
 end
 
--- Add folder with source files to solution under impl/ virtual group (helper)
-function add_impl_folder(path)
-    files { path.."/**" }
-    vpaths {
-        ["impl/*"] = path.."/*"
-    }
-end
-
--- Add folder with interface headers to solution under iface/ virtual group (helper)
-function add_iface_folder(path)
-    files { path.."/**" }
-    vpaths {
-        ["iface/*"] = path.."/*"
-    }
-end
-
--- Repo root
-root = repo_build.get_abs_path(".")
-
--- Folder to store solution in. _ACTION is compilation target, e.g.: vs2017, make etc.
-workspace_dir = "%{root}/_compiler/".._ACTION
-
--- Target platform name, e.g. windows-x86_64
-platform = "%{cfg.system}-%{cfg.platform}"
-
--- Target config, e.g. debug, release
-config = "%{cfg.buildcfg}"
-
--- Constant with all configurations we build
-ALL_CONFIGS = { "debug", "release" }
-
--- Target directory
-bin_dir = "%{root}/_build/%{platform}/%{config}"
-
--- Path to kit sdk
-kit_sdk = "%{root}/_build/target-deps/kit_sdk_%{config}"
-
--- Common plugins settings
-function define_plugin()
-    kind "SharedLib"
-    location (workspace_dir.."/%{prj.name}")
-    filter {}
-end
-
-
--- Common python bindings settings
-function define_bindings_python(name)
-    local python_folder = "%{kit_sdk}/_build/target-deps/python"
-
-    -- Carbonite carb lib
-    libdirs { "%{root}/_build/target-deps/carb_sdk_plugins/_build/%{platform}/%{config}" }
-    links {"carb" }
-
-    -- pybind11 defines macros like PYBIND11_HAS_OPTIONAL for C++17, which are undefined otherwise, ignore warning:
-    removeflags { "UndefinedIdentifiers" }
-
-    location (workspace_dir.."/%{prj.name}")
-
-    repo_build.define_bindings_python(name, python_folder)
-end
-
--- Write experience running .bat/.sh file, like _build\windows-x86_64\release\example.helloext.app.bat
-function create_experience_runner(name, config_path, config, extra_args)
-    if os.target() == "windows" then
-        local bat_file_path = root.."/_build/windows-x86_64/"..config.."/"..name..".bat"
-        f = io.open(bat_file_path, 'w')
-        f:write(string.format([[
-@echo off
-setlocal
-call "%%~dp0..\..\target-deps\kit_sdk_%s\_build\windows-x86_64\%s\omniverse-kit.exe" --config-path %%~dp0%s %s %%*
-        ]], config, config, config_path, extra_args))
-    else
-        local sh_file_path = root.."/_build/linux-x86_64/"..config.."/"..name..".sh"
-        f = io.open(sh_file_path, 'w')
-        f:write(string.format([[
-#!/bin/bash
-set -e
-SCRIPT_DIR=$(dirname ${BASH_SOURCE})
-"$SCRIPT_DIR/../../target-deps/kit_sdk_%s/_build/linux-x86_64/%s/omniverse-kit" --config-path "$SCRIPT_DIR/%s" %s $@
-        ]], config, config, config_path, extra_args))
-        f:close()
-        os.chmod(sh_file_path, 755)
-    end
-end
-
-
--- Define Kit experience. Different ways to run kit with particular config
-function define_experience(name)
-    local config_path = "/apps/"..name..".json"
-    local extra_args = "--vulkan"
-
-    -- Create a VS project on windows to make debugging and running from VS easier:
-    if os.target() == "windows" then
-        group "apps"
-        project(name)
-            kind "Utility"
-            location ("%{root}/_compiler/".._ACTION.."/%{prj.name}")
-            debugcommand ("%{kit_sdk}/_build/%{platform}/%{config}/omniverse-kit.exe")
-            local config_abs_path = bin_dir..config_path
-            debugargs ("--config-path \""..config_abs_path.."\" "..extra_args)
-            files { config_abs_path }
-            vpaths { [""] = "**.json" }
-    end
-
-    -- Write bat and sh files as another way to run them:
-    for _, config in ipairs(ALL_CONFIGS) do
-        create_experience_runner(name, config_path, config, extra_args)
-    end
-end
-
-
-
 -- Starting from here we define a structure of actual solution to be generated. Starting with solution name.
 workspace "kit-examples"
     configurations { "debug", "release" }
@@ -178,6 +77,9 @@ workspace "kit-examples"
         "%{kit_sdk}/_build/target-deps/",
     }
     
+    -- Carbonite carb lib
+    libdirs { "%{root}/_build/target-deps/carb_sdk_plugins/_build/%{platform}/%{config}" }
+
     -- Location for intermediate  files
     objdir ("_build/intermediate/%{platform}/%{prj.name}")
 
@@ -233,18 +135,21 @@ workspace "kit-examples"
     filter {}
 
 
-group "apps"
-    -- Application example. Only runs Kit with a config, doesn't build anything. Helper for debugging.
-    define_experience("example.app")
-    define_experience("example.app-mini")
-
 -- Example of C++ only extension:
-include ("source/extensions/example.cpp_extension")
+include ("source/extensions/example.cpp_ext")
 
 -- Example of Python only extension:
-include ("source/extensions/example.python_extension")
+include ("source/extensions/example.python_ext")
 
 -- Example of Mixed (both python and C++) extension:
-include ("source/extensions/example.mixed_extension")
+include ("source/extensions/example.mixed_ext")
 
+
+group "apps"
+    -- Application example. Only runs Kit with a config, doesn't build anything. Helper for debugging.
+    define_experience("kit-new-exts")
+    define_experience("kit-new-exts-mini")
+
+    define_ext_test_experience("example.python_ext")
+    define_ext_test_experience("example.mixed_ext", "example.battle_simulator") -- Notice that python module name is different from extension name.
 

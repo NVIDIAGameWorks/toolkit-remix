@@ -1,7 +1,0 @@
-display_name = "Python Extension Example"
-
-[dependencies]
-"omni.kit.editor" = {}
-
-[[python.modules]]
-name = "example.python_extension"
