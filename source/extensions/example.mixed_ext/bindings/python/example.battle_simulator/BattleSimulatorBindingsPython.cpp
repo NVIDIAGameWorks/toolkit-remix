@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019, NVIDIA CORPORATION.  All rights reserved.
+// Copyright (c) 2018-2020, NVIDIA CORPORATION.  All rights reserved.
 //
 // NVIDIA CORPORATION and its licensors retain all intellectual property
 // and proprietary rights in and to this software, related documentation
@@ -63,7 +63,8 @@ PYBIND11_MODULE(_example_battle_simulator, m)
                  return self->createWarrior({ hp, damage });
              },
              py::arg("hp"), py::arg("damage"), py::return_value_policy::reference)
-        .def("create_warrior", carb::wrapInterfaceFunction(&IBattleSimulator::createWarrior), py::return_value_policy::reference)
+        .def("create_warrior", carb::wrapInterfaceFunction(&IBattleSimulator::createWarrior),
+             py::return_value_policy::reference)
         .def("destroy_warrior", carb::wrapInterfaceFunction(&IBattleSimulator::destroyWarrior))
         .def("get_warrior_hp", carb::wrapInterfaceFunction(&IBattleSimulator::getWarriorHp))
         .def("fight", carb::wrapInterfaceFunction(&IBattleSimulator::fight))
