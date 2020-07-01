@@ -1,9 +1,13 @@
-display_name = ""
+[package]
+version = "0.1.0"
+
+title = "C++ Extension Example"
+
 
 [dependencies]
 "omni.kit.editor" = {}
 
-[[native.plugins]]
-search_path = "bin/${platform}/${config}/*.plugin"
+[[native.plugin]]
+path = "bin/${platform}/${config}/*.plugin"
 recursive = false
 

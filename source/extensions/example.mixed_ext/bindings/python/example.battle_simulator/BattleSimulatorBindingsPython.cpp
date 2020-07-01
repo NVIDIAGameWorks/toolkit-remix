@@ -47,7 +47,7 @@ PYBIND11_MODULE(_example_battle_simulator, m)
 
     carb::defineInterfaceClass<IBattleSimulator>(
         m, "IBattleSimulator", "acquire_battle_simulator_interface", "release_battle_simulator_interface")
-        .def("get_warrior_count", wrapInterfaceFunction(&IBattleSimulator::getWarriorCount))
+        .def("get_warrior_count", carb::wrapInterfaceFunction(&IBattleSimulator::getWarriorCount))
         .def("get_warriors",
              [](IBattleSimulator* self) {
                  std::vector<Warrior*> warriors(self->getWarriorCount());
@@ -63,11 +63,11 @@ PYBIND11_MODULE(_example_battle_simulator, m)
                  return self->createWarrior({ hp, damage });
              },
              py::arg("hp"), py::arg("damage"), py::return_value_policy::reference)
-        .def("create_warrior", wrapInterfaceFunction(&IBattleSimulator::createWarrior), py::return_value_policy::reference)
-        .def("destroy_warrior", wrapInterfaceFunction(&IBattleSimulator::destroyWarrior))
-        .def("get_warrior_hp", wrapInterfaceFunction(&IBattleSimulator::getWarriorHp))
-        .def("fight", wrapInterfaceFunction(&IBattleSimulator::fight))
-        .def("get_warrior_event_stream", wrapInterfaceFunction(&IBattleSimulator::getWarriorsEventStream),
+        .def("create_warrior", carb::wrapInterfaceFunction(&IBattleSimulator::createWarrior), py::return_value_policy::reference)
+        .def("destroy_warrior", carb::wrapInterfaceFunction(&IBattleSimulator::destroyWarrior))
+        .def("get_warrior_hp", carb::wrapInterfaceFunction(&IBattleSimulator::getWarriorHp))
+        .def("fight", carb::wrapInterfaceFunction(&IBattleSimulator::fight))
+        .def("get_warrior_event_stream", carb::wrapInterfaceFunction(&IBattleSimulator::getWarriorsEventStream),
              py::return_value_policy::reference);
 }
 }

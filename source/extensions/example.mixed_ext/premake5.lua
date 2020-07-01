@@ -1,5 +1,4 @@
-local EXT_VERSION = "0.1.0"
-local ext = get_current_extension_info(EXT_VERSION)
+local ext = get_current_extension_info()
 
 project_ext (ext)
 

@@ -13,8 +13,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -e
+if echo $PM_VERBOSITY | grep -i "debug" > /dev/null ; then
+	set -x
+else
+	PM_CURL_SILENT="-s -S"
+	PM_WGET_QUIET="--quiet"
+fi
+PM_PACKMAN_VERSION=6.8.1
 
-PM_PACKMAN_VERSION=6.4-rc1
+# This is necessary for newer macOS
+if [ `uname` == 'Darwin' ]; then
+	export LC_ALL=en_US.UTF-8
+	export LANG=en_US.UTF-8
+fi
 
 # Specify where packman command exists
 export PM_INSTALL_PATH="$(dirname "${BASH_SOURCE}")"
@@ -45,6 +57,63 @@ if [ ! -d "$PM_PACKAGES_ROOT" ]; then
 	mkdir -p "$PM_PACKAGES_ROOT"
 fi
 
+fetch_file_from_s3()
+{
+	SOURCE=$1
+	SOURCE_URL=http://bootstrap.packman.nvidia.com/$SOURCE
+	TARGET=$2
+	echo "Fetching $SOURCE from bootstrap.packman.nvidia.com ..."
+	if command -v wget >/dev/null 2>&1; then
+		wget $PM_WGET_QUIET -O$TARGET $SOURCE_URL
+	else
+		curl -o $TARGET $SOURCE_URL $PM_CURL_SILENT
+	fi
+}
+
+install_python()
+{
+	PLATFORM=`uname`
+	PROCESSOR=`uname -m`
+	PYTHON_VERSION=3.7.2
+
+	if [ $PLATFORM == 'Darwin' ]; then
+		PYTHON_PACKAGE=$PYTHON_VERSION-macos-x86_64
+	elif [ $PLATFORM == 'Linux' ] && [ $PROCESSOR == 'x86_64' ]; then
+		# This is temporary while we haven't built a static 3.7.2 that works on CentOS and Ubuntu
+		PYTHON_PACKAGE=3.6.8-linux-x86_64
+	elif [ $PLATFORM == 'Linux' ] && [ $PROCESSOR == 'aarch64' ]; then
+		PYTHON_PACKAGE=$PYTHON_VERSION-linux-aarch64-static
+	else
+		echo "Operating system not supported"
+		exit 1
+	fi
+
+	PYTHON_INSTALL_FOLDER="$PM_PACKAGES_ROOT/python/$PYTHON_PACKAGE"
+	if [ ! -d "$PYTHON_INSTALL_FOLDER" ]; then
+		mkdir -p "$PYTHON_INSTALL_FOLDER"
+	fi
+
+	export PM_PYTHON="$PYTHON_INSTALL_FOLDER/python"
+
+	if [ ! -f "$PM_PYTHON" ]; then
+		fetch_file_from_s3 "python@$PYTHON_PACKAGE.tar.gz" "/tmp/python@$PYTHON_PACKAGE.tar.gz"
+		if [ "$?" -eq "0" ]; then
+			echo "Unpacking python"
+			tar -xf "/tmp/python@$PYTHON_PACKAGE.tar.gz" -C "$PYTHON_INSTALL_FOLDER"
+		else
+			echo "Failed downloading the Python interpreter"
+			exit $?
+		fi
+	fi
+}
+
+# Ensure python is available:
+if [ -z "$PM_PYTHON_EXT" ]; then
+	install_python
+else
+	PM_PYTHON="$PM_PYTHON_EXT"
+fi
+
 # The packman module may be externally configured
 if [ -z "$PM_MODULE_DIR_EXT" ]; then
 	PM_MODULE_DIR="$PM_PACKAGES_ROOT/packman-common/$PM_PACKMAN_VERSION"
@@ -52,53 +121,6 @@ else
     PM_MODULE_DIR="$PM_MODULE_DIR_EXT"
 fi
 export PM_MODULE="$PM_MODULE_DIR/packman.py"
-
-fetch_file_from_s3()
-{
-	SOURCE=$1
-	SOURCE_URL=http://packman-bootstrap.s3.amazonaws.com/$SOURCE
-	TARGET=$2
-	echo "Fetching $SOURCE from S3 ..."
-	if command -v wget >/dev/null 2>&1; then
-		wget --quiet -O$TARGET $SOURCE_URL
-	else
-		curl -o $TARGET $SOURCE_URL -s -S
-	fi
-}
-
-PLATFORM=`uname`
-PROCESSOR=`uname -m`
-PYTHON_VERSION=3.7.2
-
-if [ $PLATFORM == 'Darwin' ]; then
-	PYTHON_PACKAGE=$PYTHON_VERSION-macos-x86_64
-elif [ $PLATFORM == 'Linux' ] && [ $PROCESSOR == 'x86_64' ]; then
-	# This is temporary while we haven't built a static 3.7.2 that works on CentOS and Ubuntu
-	PYTHON_PACKAGE=3.6.8-linux-x86_64
-elif [ $PLATFORM == 'Linux' ] && [ $PROCESSOR == 'aarch64' ]; then
-	PYTHON_PACKAGE=$PYTHON_VERSION-linux-aarch64-static
-else
-	echo "Operating system not supported"
-	exit 1
-fi
-
-PYTHON_INSTALL_FOLDER="$PM_PACKAGES_ROOT/python/$PYTHON_PACKAGE"
-if [ ! -d "$PYTHON_INSTALL_FOLDER" ]; then
-	mkdir -p "$PYTHON_INSTALL_FOLDER"
-fi
-
-export PM_PYTHON="$PYTHON_INSTALL_FOLDER/python"
-
-if [ ! -f "$PM_PYTHON" ]; then
-	fetch_file_from_s3 "python@$PYTHON_PACKAGE.tar.gz" "/tmp/python@$PYTHON_PACKAGE.tar.gz"
-	if [ "$?" -eq "0" ]; then
-		echo "Unpacking python"
-		tar -xf "/tmp/python@$PYTHON_PACKAGE.tar.gz" -C "$PYTHON_INSTALL_FOLDER"
-	else
-		echo "Error downloading and extracting the python package"
-		exit $?
-	fi
-fi
 
 # Ensure the packman package exists:
 if [ ! -f "$PM_MODULE" ]; then

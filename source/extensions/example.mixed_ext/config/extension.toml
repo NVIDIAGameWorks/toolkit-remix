@@ -1,15 +1,18 @@
-display_name = ""
+[package]
+version = "0.1.0"
+
+title = "C++ & Python (Mixed) Extension Example"
 
 [dependencies]
 "omni.kit.test" = {}
 
-[[python.modules]]
+[[python.module]]
 name = "example.battle_simulator"
 
-[[python.modules]]
+[[python.module]]
 name = "example.battle_simulator.tests"
 
-[[native.plugins]]
-search_path = "bin/${platform}/${config}/*.plugin"
+[[native.plugin]]
+path = "bin/${platform}/${config}/*.plugin"
 recursive = false
 

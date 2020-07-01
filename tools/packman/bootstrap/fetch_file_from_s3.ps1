@@ -18,7 +18,7 @@ param(
 [Parameter(Mandatory=$true)][string]$sourceName=$null,
 [string]$output="out.exe"
 )
-$source = "http://packman-bootstrap.s3.amazonaws.com/" + $sourceName
+$source = "http://bootstrap.packman.nvidia.com/" + $sourceName
 $filename = $output
 
 $triesLeft = 3
@@ -31,7 +31,7 @@ do
 
     try
     {
-        Write-Host "Connecting to S3 ..."
+        Write-Host "Connecting to bootstrap.packman.nvidia.com ..."
         $res = $req.GetResponse()
         if($res.StatusCode -eq "OK") {
           Write-Host "Downloading ..."
@@ -51,13 +51,13 @@ do
                 Write-Progress "Downloading $url" "Saving $total bytes..." -id 0
             }
           } while ($count -gt 0)
-         
+
           $triesLeft = 0
         }
     }
     catch
     {
-        Write-Host "Error connecting to S3!"
+        Write-Host "Error downloading $source!"
         Write-Host $_.Exception|format-list -force
     }
     finally
