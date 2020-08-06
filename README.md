@@ -11,7 +11,7 @@ The idea is that you fork it, trim down parts you don't need and use it to devel
 ## Getting started
 
 1. run `build.bat`
-2. run `_build\windows-x86_64\debug\kit-new-exts.bat`
+2. run `_build\windows-x86_64\debug\kit-new-exts.bat` or `_build\windows-x86_64\debug\kit-new-exts-mini.bat`
 3. notice enabled extensions in "Extension Manager Window" of Kit. Also notice that one of them brought its own test in "Test Runner" window.
 
 *. for running from python run `_build\windows-x86_64\debug\example.pythonapp.bat`
@@ -48,7 +48,7 @@ graph TD
 
 Each extension is a folder(or zip archive) in the end. You can write user code in python code only, or C++ only, or both. Ultimately extension archive could contain python code, python bindings (pyd/so files) and C++ plugins (dll/so). Each binary file is platform and configuration (debug/release, optionally) specific, one archive can contain binaries for multiple platforms, we put them in separate folders and follow proper naming of python bindings (https://stackoverflow.com/a/37028661).
 
-For more info refer to Kit documentation: http://omnidocs-internal.nvidia.com/py/index.html.
+For more info refer to Kit documentation: http://omnidocs-internal.nvidia.com/py/index.html. 
 
 #### example.python_ext
 
@@ -145,7 +145,7 @@ Install VsCode python extension, close VsCode, run `build.bat` first time (`-s` 
 
 ## Using Custom Kit SDK
 
-To use your local build of Kit SDK create a file, deps/target-deps.packman.xml.user containing the following lines:
+To use your local build of Kit SDK create a file: `deps/target-deps.packman.xml.user` containing the following lines:
 
 ```xml
 <project toolsVersion="5.6">
