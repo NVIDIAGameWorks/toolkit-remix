@@ -41,6 +41,7 @@ files = []
 [example_extensions]
 files = [
     ["_build/$platform/$config/exts", "exts"],
+    ["_build/PACKAGE-LICENSES", "PACKAGE-LICENSES"]
 ]
 
 [example_extensions.windows-x86_64]
