@@ -17,4 +17,10 @@ then
     rm _build/PACKAGE-LICENSES/* || true
 fi
 
-"tools/licensing.sh" gather -d "." -p "deps/target-deps.packman.xml" --platform "linux-x86_64" $LICENSING_OPTIONS $@
+source "$SCRIPT_DIR/packman/python.sh" "$SCRIPT_DIR/repoman/licensing.py" \
+    gather \
+    -d "." \
+    -p "deps/target-deps.packman.xml" \
+    --platform "linux-x86_64" \
+    $LICENSING_OPTIONS \
+    $@
