@@ -1,0 +1,28 @@
+[package]
+title = "Omniverse Create Setup Extension"
+description = "This Extension does the final setup of the Kit Create Apps"
+
+authors = ["Damien Fagnou <dfagnou@nvidia.com>"]
+slackids  = ["@UMQS40ZE1"]
+
+repository = "https://gitlab-master.nvidia.com/omniverse/kit-apps/kit-create"
+
+[dependencies]
+"omni.usd" = {}
+"omni.ui" = {}
+"omni.kit.editor" = { tag = "full" }
+
+# Create Core Extensions 
+"omni.kit.search" = {}
+"omni.kit.context_menu" = {}
+"omni.kit.primitive.mesh" = {}
+"omni.kit.selection" = {}
+"omni.kit.stage_templates" = {}
+
+[[python.module]]
+name = "omni.create.app.setup"
+
+# Settings. They are applied on the root of global settings. In case of conflict original settings are kept.
+[settings]
+persistent.exts."omni.create.app".foo = true
+persistent.exts."omni.create.app".bar = true
