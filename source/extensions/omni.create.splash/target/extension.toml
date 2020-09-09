@@ -1,0 +1,10 @@
+[package]
+title = "Kit Create Splash"
+description = "Show up a splash Screen while Create is Loading"
+version = "1.0.0"
+
+[dependencies]
+"omni.kit.editor" = { tag="mini" }
+
+[[python.module]]
+name = "omni.create.splash"

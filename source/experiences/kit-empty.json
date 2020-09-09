@@ -1,8 +1,0 @@
-// This experience is used for testing.
-{
-    "app": {
-        "extensions": {
-            "folders2": ["${kit}/exts", "${app}/../exts"],
-        },
-    }
-}
