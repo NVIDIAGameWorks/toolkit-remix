@@ -56,7 +56,7 @@ function setup_msvc_toolchain()
 end
 
 -- Starting from here we define a structure of actual solution to be generated. Starting with solution name.
-workspace "kit-create"
+workspace "kit-examples"
     configurations { "debug", "release" }
 
     -- Project selected by default to run
@@ -134,7 +134,22 @@ workspace "kit-create"
 
     filter {}
 
+
 -- Example of C++ only extension:
-include ("source/extensions/omni.create.app.setup")
-include ("source/extensions/omni.create.setup_splash")
-include ("source/extensions/omni.create.splash")
+include ("source/extensions/example.cpp_ext")
+
+-- Example of Python only extension:
+include ("source/extensions/example.python_ext")
+
+-- Example of Mixed (both python and C++) extension:
+include ("source/extensions/example.mixed_ext")
+
+
+group "apps"
+    -- Application example. Only runs Kit with a config, doesn't build anything. Helper for debugging.
+    define_experience("kit-new-exts")
+    define_experience("kit-new-exts-mini")
+
+    define_ext_test_experience("example.python_ext")
+    define_ext_test_experience("example.mixed_ext", "example.battle_simulator") -- Notice that python module name is different from extension name.
+

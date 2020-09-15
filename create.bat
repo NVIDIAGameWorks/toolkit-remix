@@ -1,1 +1,0 @@
-call "%~dp0_build\target-deps\kit_sdk_release\_build\windows-x86_64\release\omniverse-kit.exe" %~dp0_build\windows-x86_64\release\experiences\create.kit --/app/extensions/enabledCore=['omni.create.setup_splash'] --ext-folder _build/windows-x86_64/release/exts  %*

@@ -1,0 +1,15 @@
+{
+    "app": {
+        "extensions": {
+            "folders2": ["${kit}/exts", "${app}/../exts"],
+            "enabledBuiltin": [
+                "omni.kit.editor-mini",
+                "omni.kit.window.console",
+                "omni.kit.window.extensions",
+                "example.python_ext",
+                "example.mixed_ext",
+                "example.cpp_ext",
+            ],
+        },
+    }
+}

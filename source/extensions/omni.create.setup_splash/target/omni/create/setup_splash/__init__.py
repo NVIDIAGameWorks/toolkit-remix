@@ -1,1 +1,0 @@
-from .setup_splash import *

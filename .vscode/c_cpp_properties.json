@@ -1,5 +1,5 @@
 {
-    "env": {
+    "env" : {
         "sharedIncludePaths": [
             "${workspaceFolder}/_build/target-deps",
             "${workspaceFolder}/_build/target-deps/python/include",
@@ -67,8 +67,7 @@
                 "databaseFilename": ""
             },
             "cStandard": "c11",
-            "cppStandard": "c++11",
-            "compileCommands": "${workspaceFolder}/_build/target-deps/kit_sdk_release/_build/windows-x86_64/release/exts/omni.blast/omni/blast/bindings/compile_commands.json"
+            "cppStandard": "c++11"
         }
     ],
     "version": 4

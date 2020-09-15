@@ -20,10 +20,10 @@ import example.python_ext
 
 # -- Project information -----------------------------------------------------
 
-project = "Kit Create"
-copyright = "2020, NVIDIA."
+project = "Kit Sdk: Extensions & Apps Example"
+copyright = "2019, NVIDIA."
 author = "NVIDIA"
-version = "1.0"
+version = "0.1"
 release = version
 
 # -- General configuration ---------------------------------------------------
