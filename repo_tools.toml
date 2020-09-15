@@ -1,0 +1,3 @@
+[test_runner]
+command = "test_runner"
+entry_point = "${config_root}/tools/repoman/test_runner.py:setup_repo_tool"

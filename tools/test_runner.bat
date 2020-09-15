@@ -1,2 +1,2 @@
 @echo off
-call "%~dp0..\tools\packman\python" "%~dp0repoman\test_runner.py" %*
+call "%~dp0repo" test_runner %*

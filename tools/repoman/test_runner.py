@@ -20,9 +20,6 @@ from typing import List, Dict
 from string import Template
 
 
-import repoman
-
-repoman.bootstrap()
 import omni.repo.man
 
 logger = logging.getLogger(os.path.basename(__file__))
@@ -208,11 +205,9 @@ def run_pythontests(root: str, platform_host: str, config: str, linbuild_profile
 TEST_SUITES = {"unittests": run_unittests, "pythontests": run_pythontests, "startuptests": run_startuptests}
 
 
-def main():
+def setup_repo_tool(parser, config):
     platform_host = omni.repo.man.get_and_validate_host_platform(["windows-x86_64", "linux-x86_64"])
     repo_folders = omni.repo.man.get_repo_paths()
-
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.name = "Universal Test Runner"
     parser.add_argument(
         "-x",
@@ -250,15 +245,13 @@ def main():
         help="List tests and exit without running them.",
     )
 
-    options = parser.parse_args()
-    global _ONLY_LIST
-    _ONLY_LIST = options.list
+    def run_tool(options, config):
+        global _ONLY_LIST
+        _ONLY_LIST = options.list
 
-    root_folder = repo_folders["root"]
+        root_folder = repo_folders["root"]
 
-    logger.info(f"Running test suite: {options.suite}...")
-    TEST_SUITES[options.suite](root_folder, platform_host, options.config, None, options.extra_args)
+        logger.info(f"Running test suite: {options.suite}...")
+        TEST_SUITES[options.suite](root_folder, platform_host, options.config, None, options.extra_args)
 
-
-if __name__ == "__main__":
-    main()
+    return run_tool
