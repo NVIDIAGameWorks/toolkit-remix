@@ -91,6 +91,19 @@ workspace "kit-examples"
     flags { "FatalCompileWarnings", "MultiProcessorCompile", "NoPCH", "UndefinedIdentifiers", "NoIncrementalLink" }
     cppdialect "C++14"
 
+    -- Generic folder linking and file copy setup:
+    repo_build.prebuild_link {
+        -- Link app configs in target dir for easier edit
+        { "source/experiences", bin_dir.."/experiences" },
+    
+        -- Link python app sources in target dir for easier edit
+        { "source/apps/pythonapps", bin_dir.."/pythonapps" },
+    }
+    repo_build.prebuild_copy {
+        -- Copy python app running scripts in target dir
+        {"source/apps/$config/*$shell_ext", bin_dir},
+    }
+
     -- Windows platform settings
     filter { "system:windows" }
         platforms { "x86_64" }
