@@ -1,2 +1,2 @@
 @echo off
-call "%~dp0repo" test_runner %*
+call "%~dp0..\repo" test_runner %*
