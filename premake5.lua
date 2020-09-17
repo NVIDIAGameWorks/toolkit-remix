@@ -94,14 +94,14 @@ workspace "kit-examples"
     -- Generic folder linking and file copy setup:
     repo_build.prebuild_link {
         -- Link app configs in target dir for easier edit
-        { "source/experiences", bin_dir.."/experiences" },
+        { "source/apps", bin_dir.."/apps" },
     
         -- Link python app sources in target dir for easier edit
-        { "source/apps/pythonapps", bin_dir.."/pythonapps" },
+        { "source/pythonapps/target", bin_dir.."/pythonapps" },
     }
     repo_build.prebuild_copy {
         -- Copy python app running scripts in target dir
-        {"source/apps/$config/*$shell_ext", bin_dir},
+        {"source/pythonapps/runscripts/$config/*$shell_ext", bin_dir},
     }
 
     -- Windows platform settings
@@ -159,9 +159,14 @@ include ("source/extensions/example.mixed_ext")
 
 
 group "apps"
+    -- Direct shortcur to kit executable for convenience:
+    for _, config in ipairs(ALL_CONFIGS) do
+        create_experience_runner("kit", nil, config, "")
+    end
+
     -- Application example. Only runs Kit with a config, doesn't build anything. Helper for debugging.
-    define_experience("kit-new-exts")
-    define_experience("kit-new-exts-mini")
+    define_experience("kit-new-exts", { config_path = "apps/kit-new-exts.json" })
+    define_experience("kit-new-exts-mini", { config_path = "apps/kit-new-exts-mini.json" })
 
     define_ext_test_experience("example.python_ext")
     define_ext_test_experience("example.mixed_ext", "example.battle_simulator") -- Notice that python module name is different from extension name.

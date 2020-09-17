@@ -95,7 +95,7 @@ Document your python code with [Google Docstring](https://sphinxcontrib-napoleon
 
 ### Apps
 
-Example of an app which runs only those 3 extensions in Kit (and test_runner for tests). All configs are in [source/experiences](source/experiences), they are linked during build (stage phase).
+Example of an app which runs only those 3 extensions in Kit (and test_runner for tests). All configs are in [source/apps](source/apps), they are linked during build (stage phase).
 
 > `_build\windows-x86_64\debug\kit-new-exts.bat`
 > `_build\windows-x86_64\debug\kit-new-exts-mini.bat`
