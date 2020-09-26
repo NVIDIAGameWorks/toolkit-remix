@@ -16,6 +16,6 @@ name = "example.battle_simulator"
 name = "example.battle_simulator.tests"
 
 [[native.plugin]]
-path = "bin/${platform}/${config}/*.plugin"
+path = "bin/*.plugin"
 recursive = false
 
