@@ -143,9 +143,21 @@ According to [RepoMan Guidelines](https://omniverse.gitlab-master-pages.nvidia.c
 Install VsCode python extension, close VsCode, run `build.bat` first time (`-s` flag is enough), open project again. Python intellisense, linter, formatting should work (we bring our own python).
 
 
-## Using Custom Kit SDK
+## Using Local Build of Kit SDK
 
-To use your local build of Kit SDK create a file: `deps/target-deps.packman.xml.user` containing the following lines:
+To use your local build of Kit SDK, assuming it is located say at `C:/projects/kit`.
+
+Use `repo_source` tool to link: 
+
+> `repo source link kit_sdk_debug c:/projects/kit/kit`
+
+Specify `kit_sdk_release` for release configuration.
+
+Or use GUI mode to do source linking:
+
+> `repo source gui`
+
+Or you can also do it manually: create a file: `deps/target-deps.packman.xml.user` containing the following lines:
 
 ```xml
 <project toolsVersion="5.6">
@@ -158,7 +170,18 @@ To use your local build of Kit SDK create a file: `deps/target-deps.packman.xml.
 </project>
 ```
 
-Where `C:/projects/kit/kit` is path to your Kit SDK folder.
+To remove source link:
+
+> `repo source unlink kit_sdk_debug`
+
+To remove all source links:
+
+> `repo source clear`
+
+As with any repo tool to get more information on arguments just run:
+
+> `repo source`
+
 
 ## TODO
 
