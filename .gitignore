@@ -74,9 +74,10 @@ CON
 # packman .user config
 *.packman.xml.user
 
-# allow anything in data and docs/images (both under Git LFS management)
+# allow anything in data, docs/images, ext data (under Git LFS management)
 !data/**
 !docs/images/**
+!source/extensions/**/data/**
 
 # ignore the cache
 data/cache

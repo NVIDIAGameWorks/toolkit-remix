@@ -1,4 +1,4 @@
-omni.example.python_ext
+example.python_ext
 ###########################
 
 Example of Python only extension
@@ -7,6 +7,7 @@ Example of Python only extension
 .. toctree::
    :maxdepth: 1
 
+   README
    CHANGELOG
 
 

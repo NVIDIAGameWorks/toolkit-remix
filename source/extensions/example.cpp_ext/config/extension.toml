@@ -1,7 +1,7 @@
 [package]
 version = "0.1.0"
-
 title = "C++ Extension Example"
+category = "Example"
 repository="https://gitlab-master.nvidia.com/omniverse/kit-extensions/example"
 keywords = ["kit", "example"]
 
