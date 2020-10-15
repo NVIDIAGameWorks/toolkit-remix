@@ -20,7 +20,7 @@ else
 	PM_CURL_SILENT="-s -S"
 	PM_WGET_QUIET="--quiet"
 fi
-PM_PACKMAN_VERSION=6.10
+PM_PACKMAN_VERSION=6.16
 
 # This is necessary for newer macOS
 if [ `uname` == 'Darwin' ]; then
@@ -77,7 +77,7 @@ install_python()
 	PYTHON_VERSION=3.7.2
 
 	if [ $PLATFORM == 'Darwin' ]; then
-		PYTHON_PACKAGE=$PYTHON_VERSION-macos-x86_64
+		PYTHON_PACKAGE=$PYTHON_VERSION-71-macos-x86_64
 	elif [ $PLATFORM == 'Linux' ] && [ $PROCESSOR == 'x86_64' ]; then
 		# This is temporary while we haven't built a static 3.7.2 that works on CentOS and Ubuntu
 		PYTHON_PACKAGE=3.6.8-linux-x86_64
