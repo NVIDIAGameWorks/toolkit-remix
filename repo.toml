@@ -3,7 +3,7 @@
 ########################################################################################################################
 
 [repo]
-logging = "warn"
+logging = "info"
 
 
 ########################################################################################################################
@@ -13,10 +13,13 @@ logging = "warn"
 [repo_build]
 
 # List of packman projects to pull (in order)
-fetch.packman_files_to_pull = [
+fetch.packman_host_files_to_pull = [
+    "${root}/deps/host-deps.packman.xml",
+]
+
+fetch.packman_target_files_to_pull = [
     "${root}/deps/kit-sdk.packman.xml",
     "${root}/deps/rtx-plugins.packman.xml",
-    "${root}/deps/host-deps.packman.xml",
     "${root}/deps/target-deps.packman.xml",
     "${root}/deps/assets.packman.xml",
 ]
@@ -41,15 +44,17 @@ vscode.python_env.PYTHONPATH= [
   "$repo_deps/repo_format",
   "$repo_deps/repo_package",
   "$root/tools/repoman",
-  "$root/_build/$platform/$config/extensions",
-  "$root/_build/$platform/$config/exts",
-  "$root/_build/$platform/$config/bindings-python",
+  "$root/_build/$platform/$config/exts/*",
+  "$root/_build/target-deps/kit_sdk_$config/_build/$platform/$config/exts/*"
 ]
 
 vscode.python_env.PATH= ["$$$${PATH}", "$root/_build/$platform/$config",
   "$root/_build/target-deps/kit_sdk_$config/_build/$platform/$config",
   "$root/_build/target-deps/kit_sdk_$config/_build/$platform/$config/plugins",
 ]
+
+vscode.write_python_paths_in_settings_json = true
+vscode.generate_python_env_file = false
 
 
 msbuild.sln_file = "kit-examples.sln"

@@ -1,8 +1,9 @@
 <project toolsVersion="5.0">
   <dependency name="kit_sdk_debug" linkPath="../_build/target-deps/kit_sdk_debug">
-    <package name="omniverse-kit" version="100.1.4435-63857a29-master-${platform}-debug"/>
+    <package name="omniverse-kit" version="100.1.6182-e6fe89a2-master-${platform}-debug"/>
   </dependency>
   <dependency name="kit_sdk_release" linkPath="../_build/target-deps/kit_sdk_release">
-    <package name="omniverse-kit" version="100.1.4435-63857a29-master-${platform}-release"/>
+    <package name="omniverse-kit" version="100.1.6182-e6fe89a2-master-${platform}-release"/>
   </dependency>
 </project>
+  
