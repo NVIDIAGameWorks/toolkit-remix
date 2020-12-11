@@ -1,0 +1,48 @@
+[package]
+title = "Kit New Extensions Demo"
+
+# That makes it browsable in UI with "experience" filter
+keywords = ["app"]
+
+[dependencies]
+# Good old Editor...
+"omni.kit.editor" = { tag = "full" }
+"omni.renderer" = { tag = "rtx" }
+"omni.kit.window.content" = {}
+"omni.kit.window.console" = {}
+"omni.kit.window.details" = {}
+"omni.kit.window.extensions" = {}
+"omni.kit.window.script_editor" = {}
+"omni.kit.menu.file" = {}
+"omni.kit.window.viewport" = {}
+"omni.kit.context_menu" = {}
+"omni.kit.selection" = {}
+"omni.kit.stage_templates" = {}
+"example.python_ext" = {}
+"example.mixed_ext" = {}
+"example.cpp_ext" = {}
+
+
+[settings.app.window]
+title = "Kit New Extensions Demo"
+
+width = 1700
+height = 900
+
+
+[settings]
+# Basic Kit App
+################################
+app.versionFile = "${app}/../VERSION"
+
+# Register extension folder from this repo in kit
+[settings.app.exts]
+folders.'++' = ["${app}/../exts" ]
+
+
+[settings.app.extensions]
+enabledDeprecated = [
+        "omni.kit.builtin.init",
+        "omni.kit.builtin.menu",
+    ]
+

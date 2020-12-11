@@ -1,4 +1,0 @@
-# This repo has custom test_runner tool for repoman. To run tests.
-[test_runner]
-command = "test_runner"
-entry_point = "${config_root}/tools/repoman/test_runner.py:setup_repo_tool"

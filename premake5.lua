@@ -12,48 +12,33 @@ root = repo_build.get_abs_path(".")
 
 -- Resolved path to kit SDK (without %{} tokens), for creating experiences
 KIT_SDK_RESOLVED = {
-    ["debug"] = root.."/_build/target-deps/kit_sdk_debug",
-    ["release"] = root.."/_build/target-deps/kit_sdk_release",
+    ["debug"] = root.."/_build/kit_debug",
+    ["release"] = root.."/_build/kit_release",
 }
 
 -- Path to kit sdk
-kit_sdk = "%{root}/_build/target-deps/kit_sdk_%{config}"
-
-kit_sdk_bin_dir = "%{kit_sdk}/_build/%{platform}/%{config}"
+kit_sdk = "%{root}/_build/kit_%{config}"
+kit_sdk_bin_dir = kit_sdk.."/_build/%{platform}/%{config}"
 
 -- Include Kit SDK public premake, it defines few global variables and helper functions. Look inside to get more info.
-include("_build/target-deps/kit_sdk_release/premake5-public.lua")
+include("_build/kit_release/premake5-public.lua")
 
 -- Setup where to write generate prebuild.toml file
 repo_build.set_prebuild_file('_build/generated/prebuild.toml')
 
--- Setup all msvc and winsdk paths. That later can be moved to actual msvc and sdk packages 
-function setup_msvc_toolchain()
-        systemversion "10.0.17763.0"
-
-        local host_deps = "_build/host-deps"
-
-        -- system include dirs:
-        local msvcInclude = host_deps.."/msvc/VC/Tools/MSVC/14.16.27023/include"
-        local sdkInclude = { 
-            host_deps.."/winsdk/include/winrt", 
-            host_deps.."/winsdk/include/um", 
-            host_deps.."/winsdk/include/ucrt", 
-            host_deps.."/winsdk/include/shared" 
-        }
-        sysincludedirs { msvcInclude, sdkInclude }
-
-        -- system lib dirs:
-        local msvcLibs = host_deps.."/msvc/VC/Tools/MSVC/14.16.27023/lib/onecore/x64"
-        local sdkLibs = { host_deps.."/winsdk/lib/ucrt/x64", host_deps.."/winsdk/lib/um/x64" }
-        syslibdirs { msvcLibs, sdkLibs }
-
-        -- system binary dirs:
-        bindirs { 
-            host_deps.."/msvc/VC/Tools/MSVC/14.16.27023/bin/HostX64/x64", 
-            host_deps.."/msvc/MSBuild/15.0/bin", host_deps.."/winsdk/bin/x64" 
-        }
+--
+function write_version_file(config)
+    local cmd
+    if os.target() == "windows" then
+        local dir = root.."/_build/windows-x86_64/"..config
+        cmd = "repo.bat build_number -o "..dir.."/VERSION"
+    else
+        local dir = root.."/_build/linux-x86_64/"..config
+        cmd = "./repo.sh build_number -o "..dir.."/VERSION"
+    end
+    os.execute(get_current_lua_file_dir().."/"..cmd)
 end
+
 
 -- Starting from here we define a structure of actual solution to be generated. Starting with solution name.
 workspace "kit-examples"
@@ -148,26 +133,46 @@ workspace "kit-examples"
     filter {}
 
 
--- Example of C++ only extension:
-include ("source/extensions/example.cpp_ext")
+-- Temp copy paste from kit to add --ext-folder passing (TODO: remove when kit is udpated)
+function define_ext_test_experience(ext_name, python_module)
+    local python_module = python_module or ext_name
 
--- Example of Python only extension:
-include ("source/extensions/example.python_ext")
+    local script_dir_token = (os.target() == "windows") and "%~dp0" or "$SCRIPT_DIR"
 
--- Example of Mixed (both python and C++) extension:
-include ("source/extensions/example.mixed_ext")
+    local args = {
+        "--empty", -- Start empty kit
+        "--enable omni.kit.test", -- We always need omni.kit.test extension as testing framework
+        "--enable "..ext_name, -- Enable actual extension to test
+        "--/exts/omni.kit.test/runTestsAndQuit=true", -- Run tests and quit
+        "--/exts/omni.kit.test/includeTests/0='"..python_module..".*'", -- Only include tests from the python module
+        "--ext-folder \""..script_dir_token.."/exts\" "
+    }
 
+    define_experience("tests-"..ext_name, {
+        config_path = "",
+        extra_args = table.concat(args, " "),
+        define_project = false
+    })
+end
+
+-- Include all extensions in premake (each has own premake5.lua file)
+for _, ext in ipairs(os.matchdirs("source/extensions/*")) do
+    include (ext)
+end
 
 group "apps"
     -- Direct shortcur to kit executable for convenience:
     for _, config in ipairs(ALL_CONFIGS) do
-        create_experience_runner("kit", nil, config, "")
+        create_experience_runner("kit", "", config, config, "")
+
+        -- Put build version file into build directories
+        write_version_file(config)
     end
 
     -- Application example. Only runs Kit with a config, doesn't build anything. Helper for debugging.
-    define_experience("kit-new-exts", { config_path = "apps/kit-new-exts.json" })
-    define_experience("kit-new-exts-mini", { config_path = "apps/kit-new-exts-mini.json" })
+    define_app("omni.app.new_exts_demo.kit")
+    define_app("omni.app.new_exts_demo_mini.kit")
 
     define_ext_test_experience("example.python_ext")
-    define_ext_test_experience("example.mixed_ext", "example.battle_simulator") -- Notice that python module name is different from extension name.
+    
 

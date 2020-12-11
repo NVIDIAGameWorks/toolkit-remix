@@ -13,6 +13,6 @@ def run():
 
     # Pass experience config:
     example_root = os.environ["EXAMPLE_ROOT"]
-    sys.argv.extend(["--config-path", f"{example_root}/experiences/kit-new-exts.json"])
+    sys.argv.extend(["--config-path", f"{example_root}/apps/kit-new-exts.json"])
 
     return app.run("omniverse-kit", os.environ["CARB_APP_PATH"], sys.argv)

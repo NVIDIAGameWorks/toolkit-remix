@@ -13,11 +13,7 @@ if %errorlevel% neq 0 ( exit /b %errorlevel% )
 ::if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: Run python tests
-call "%~dp0..\..\test_runner.bat" --suite pythontests --config debug
-if %errorlevel% neq 0 ( exit /b %errorlevel% )
-
-:: Run startup tests
-call "%~dp0..\..\test_runner.bat" --suite startuptests --config debug
+call "%~dp0..\..\repo.bat" test --suite alltests --config debug
 if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: Package

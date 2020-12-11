@@ -6,10 +6,7 @@ repository="https://gitlab-master.nvidia.com/omniverse/kit-extensions/example"
 keywords = ["kit", "example"]
 
 
-[dependencies]
-"omni.kit.editor" = {}
-
 [[native.plugin]]
-path = "bin/${platform}/${config}/*.plugin"
+path = "bin/*.plugin"
 recursive = false
 

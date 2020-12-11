@@ -1,6 +1,6 @@
 local ext = get_current_extension_info()
 
-project_ext (ext)
+project_ext (ext, {define_test = false })
 
 -- C++ Carbonite plugin
 project_ext_plugin(ext, "example.battle_simulator.plugin")
@@ -23,3 +23,4 @@ project_ext_bindings {
         { "python/tests", ext.target_dir.."/example/battle_simulator/tests" },
     }
     
+define_ext_test_experience("example.mixed_ext", "example.battle_simulator") -- Notice that python module name is different from extension name.
