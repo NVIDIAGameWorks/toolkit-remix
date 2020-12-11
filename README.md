@@ -11,7 +11,7 @@ The idea is that you fork it, trim down parts you don't need and use it to devel
 ## Getting started
 
 1. run `build.bat`
-2. run `_build\windows-x86_64\debug\kit-new-exts.bat` or `_build\windows-x86_64\debug\kit-new-exts-mini.bat`
+2. run `_build\windows-x86_64\debug\omni.app.new_exts.bat` or `_build\windows-x86_64\debug\omni.app.new_exts_mini.bat`
 3. notice enabled extensions in "Extension Manager Window" of Kit. Also notice that one of them brought its own test in "Test Runner" window.
 
 *. for running from python run `_build\windows-x86_64\debug\example.pythonapp.bat`
@@ -73,17 +73,13 @@ Example of mixed extension which has both C++ and python code. They interact via
 
 ### Tests
 
-We also provide examples of writing different tests. 
+We also provide examples of writing different tests. They all grouped into one test suite and defined in `repo.toml` file.
 
-Use `tools/test_runner.bat --help` to run any of them. There are:
-
-* (TBD) `unittests` - C++ test of particular interface/plugin
-* `startuptests` - start and quit tests for experiences
-* `pythontests` - python tests of extension inside of running Kit
+Use `repo test --help` to run any of them.
 
 Example:
 
-> `tools/test_runner.bat --suite pythontests --config debug`
+> `repo.bat test --config debug`
 
 
 ### Docs
@@ -97,8 +93,8 @@ Document your python code with [Google Docstring](https://sphinxcontrib-napoleon
 
 Example of an app which runs only those 3 extensions in Kit (and test_runner for tests). All configs are in [source/apps](source/apps), they are linked during build (stage phase).
 
-> `_build\windows-x86_64\debug\kit-new-exts.bat`
-> `_build\windows-x86_64\debug\kit-new-exts-mini.bat`
+> `_build\windows-x86_64\debug\omni.app.new_exts.bat`
+> `_build\windows-x86_64\debug\omni.app.new_exts_mini.bat`
 
 It also includes example of running Kit from python, both default Kit and an app which runs only those 3 extensions in Kit. 
 
@@ -117,17 +113,17 @@ All repo tools are based on [RepoMan](https://omniverse.gitlab-master-pages.nvid
 Each of command can be explored with `--help` flag.
 Commands:
 
-* `build.bat` - cleans repo, stage files, generates solutions, setups vscode env, builds binaries.
-* `format_code.bat` - format C++ and python code.
-* `tools/build_docs.bat` - build documentation
-* `tools/package.bat` - prepare final package (use [package.toml](package.toml) to configure)
-* `tools/test_runner.bat` - run different test suites
+* `repo.bat build` or `build.bat` - cleans repo, stage files, generates solutions, setups vscode env, builds binaries.
+* `repo.bat format` or `format_code.bat` - format C++ and python code.
+* `repo.bat build_docs` or `tools/build_docs.bat` - build documentation
+* `repo.bat package` or `tools/package.bat` - prepare final package (use [package.toml](package.toml) to configure)
+* `repo.bat test` - run different test suites
 
 Config files:
 
 * `premake5.lua` - all configuration for generating platform specific build solutions. [premake5 docs](https://github.com/premake/premake-core/wiki).
-* `prebuild.toml` - lists files to copy and folders to link before building.
-* `package.toml` - lists file patterns to package
+* `repo.toml` - configuration of all repo tools (build, package, format etc).
+* `package.toml` - lists file wildcards to innclude in packages
 
 ### CI
 
@@ -161,10 +157,10 @@ Or you can also do it manually: create a file: `deps/target-deps.packman.xml.use
 
 ```xml
 <project toolsVersion="5.6">
-  <dependency name="kit_sdk_debug" linkPath="../_build/target-deps/kit_sdk_debug">
+  <dependency name="kit_sdk_debug" linkPath="../_build/kit_debug">
     <source path="C:/projects/kit/kit" />
   </dependency>
-  <dependency name="kit_sdk_release" linkPath="../_build/target-deps/kit_sdk_release">
+  <dependency name="kit_sdk_release" linkPath="../_build/kit_release">
     <source path="C:/projects/kit/kit" />
   </dependency>
 </project>
@@ -183,7 +179,3 @@ As with any repo tool to get more information on arguments just run:
 > `repo source`
 
 
-## TODO
-
-* C++ unit tests example
-* Finish Linux support (+CI)
