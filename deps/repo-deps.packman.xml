@@ -1,23 +1,23 @@
 <project toolsVersion="5.0">
   <dependency name="repo_man" linkPath="../_repo/deps/repo_man">
-    <package name="repo_man" version="0.3.15" />
+    <package name="repo_man" version="0.3.18" />
   </dependency>
   <dependency name="repo_build" linkPath="../_repo/deps/repo_build">
-    <package name="repo_build" version="0.15.1" />
+    <package name="repo_build" version="0.15.7" />
   </dependency>
   <dependency name="repo_format" linkPath="../_repo/deps/repo_format">
-    <package name="repo_format" version="0.4.2" />
+    <package name="repo_format" version="0.4.4" />
   </dependency>
   <dependency name="repo_package" linkPath="../_repo/deps/repo_package">
-    <package name="repo_package" version="5.2.21" />
+    <package name="repo_package" version="5.2.28" />
   </dependency>
   <dependency name="repo_licensing" linkPath="../_repo/deps/repo_licensing" tags="non-redist">
     <package name="repo_licensing" version="0.3.26" />
   </dependency>
   <dependency name="repo_source" linkPath="../_repo/deps/repo_source" tags="non-redist">
-    <package name="repo_source" version="0.1.0" />
+    <package name="repo_source" version="0.1.1" />
   </dependency>
   <dependency name="repo_test" linkPath="../_repo/deps/repo_test">
-    <package name="repo_test" version="0.1.2-rc.3" />
+    <package name="repo_test" version="0.1.2" />
   </dependency>
 </project>
