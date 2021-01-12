@@ -82,6 +82,9 @@ CON
 # ignore the cache
 data/cache
 
+# vscode settings are copied and filled in from 'settings.json.template'
+.vscode/settings.json
+
 symbols.txt
 /.vs
 
