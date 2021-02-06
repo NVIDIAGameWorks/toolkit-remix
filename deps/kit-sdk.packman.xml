@@ -1,9 +1,5 @@
 <project toolsVersion="5.0">
-  <dependency name="kit_sdk_debug" linkPath="../_build/kit_debug">
-    <package name="omniverse-kit" version="101.0.23080-d480e02c-master-${platform}-debug"/>
-  </dependency>
-  <dependency name="kit_sdk_release" linkPath="../_build/kit_release">
-    <package name="omniverse-kit" version="101.0.23080-d480e02c-master-${platform}-release"/>
+  <dependency name="kit_sdk_${config}" linkPath="../_build/kit_${config}" tags="${config}">
+    <package name="omniverse-kit" version="101.0+master.26482.853d09b5.teamcity.${platform}.${config}"/>
   </dependency>
 </project>
-  

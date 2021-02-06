@@ -142,6 +142,9 @@ omniverse_flow_version_scheme = true
 package_per_config = true
 append_config = true
 
+[repo_package.packages]
+"example.mixed_ext".kit_extension_package = true
+
 
 ########################################################################################################################
 # Package publishing to packman

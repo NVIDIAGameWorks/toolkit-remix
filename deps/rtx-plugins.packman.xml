@@ -1,6 +1,6 @@
 <project toolsVersion="5.0">
   <!-- Import Kit SDk target-deps xml file to steal some deps from it: -->
-  <import path="../_build/kit_release/deps/rtx-target-deps.packman.xml.user">
+  <import path="../_build/kit_${config}/deps/rtx-target-deps.packman.xml.user">
     <filter include="rtx_plugins" />
   </import>
 

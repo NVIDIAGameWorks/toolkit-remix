@@ -16,8 +16,8 @@ if %errorlevel% neq 0 ( exit /b %errorlevel% )
 call "%~dp0..\..\..\repo.bat" test --suite alltests --config debug
 if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
-:: Package
-call "%~dp0..\..\package.bat"
+:: Package all
+call "%~dp0..\..\package.bat" -a
 if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: publish artifacts to teamcity

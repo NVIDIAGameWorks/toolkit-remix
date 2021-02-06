@@ -21,7 +21,7 @@ kit_sdk = "%{root}/_build/kit_%{config}"
 kit_sdk_bin_dir = kit_sdk.."/_build/%{platform}/%{config}"
 
 -- Include Kit SDK public premake, it defines few global variables and helper functions. Look inside to get more info.
-include("_build/kit_release/premake5-public.lua")
+local _ = dofileopt("_build/kit_release/premake5-public.lua") or dofileopt("_build/kit_debug/premake5-public.lua")
 
 -- Setup where to write generate prebuild.toml file
 repo_build.set_prebuild_file('_build/generated/prebuild.toml')
@@ -132,28 +132,6 @@ workspace "kit-examples"
 
     filter {}
 
-
--- Temp copy paste from kit to add --ext-folder passing (TODO: remove when kit is udpated)
-function define_ext_test_experience(ext_name, python_module)
-    local python_module = python_module or ext_name
-
-    local script_dir_token = (os.target() == "windows") and "%~dp0" or "$SCRIPT_DIR"
-
-    local args = {
-        "--empty", -- Start empty kit
-        "--enable omni.kit.test", -- We always need omni.kit.test extension as testing framework
-        "--enable "..ext_name, -- Enable actual extension to test
-        "--/exts/omni.kit.test/runTestsAndQuit=true", -- Run tests and quit
-        "--/exts/omni.kit.test/includeTests/0='"..python_module..".*'", -- Only include tests from the python module
-        "--ext-folder \""..script_dir_token.."/exts\" "
-    }
-
-    define_experience("tests-"..ext_name, {
-        config_path = "",
-        extra_args = table.concat(args, " "),
-        define_project = false
-    })
-end
 
 -- Include all extensions in premake (each has own premake5.lua file)
 for _, ext in ipairs(os.matchdirs("source/extensions/*")) do

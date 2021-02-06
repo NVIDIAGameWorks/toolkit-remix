@@ -23,4 +23,4 @@ project_ext_bindings {
         { "python/tests", ext.target_dir.."/example/battle_simulator/tests" },
     }
     
-define_ext_test_experience("example.mixed_ext", "example.battle_simulator") -- Notice that python module name is different from extension name.
+define_ext_test_experience("example.mixed_ext", { python_module= "example.battle_simulator" }) -- Notice that python module name is different from extension name.
