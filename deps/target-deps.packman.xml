@@ -11,7 +11,7 @@
   </import>
 
   <!-- Pull those deps of the same version as in Kit SDK. Override linkPath to point correctly, other properties can also be override, including version. -->
-  <dependency name="carb_sdk_plugins" linkPath="../_build/target-deps/carb_sdk_plugins" />
+  <dependency name="carb_sdk_plugins" linkPath="../_build/target-deps/carb_sdk_plugins" tags="non-redist" />
   <dependency name="pybind11" linkPath="../_build/target-deps/pybind11" />
   <dependency name="fmt" linkPath="../_build/target-deps/fmt" />
 </project>

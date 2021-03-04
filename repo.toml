@@ -4,6 +4,9 @@
 
 [repo]
 logging = "warn"
+extra_tool_paths = [
+	"${root}/_build/kit_release"
+]
 
 
 ########################################################################################################################
@@ -154,3 +157,30 @@ append_config = true
 enabled = true
 
 packages = ["*"]
+
+
+########################################################################################################################
+# Extensions publisher
+########################################################################################################################
+
+[repo_publish_exts]
+enabled = true
+
+ext_folders = [
+  "$root/_build/$platform/$config/exts"
+]
+
+# Extensions to publish, include and exclude among those discovered by kit. Wildcards are supported.
+exts.include = [
+    "example.mixed_ext"
+]
+exts.exclude = []
+
+# Registries to publish to.
+registries = [
+    { name = "kit/debug", url = "omniverse://kit-extensions.ov.nvidia.com/exts/kit/debug" },
+]
+
+# When running from package, look for package using that path/pattern:
+# archive_pattern = "${root}/_builtpackages/omniverse-kit@*${config}.7z"
+# publish_artifacts = ["${package_root}/_build/**/*.log", "${package_root}/**/*.dmp"]
