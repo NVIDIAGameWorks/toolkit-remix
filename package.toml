@@ -35,19 +35,26 @@ files = []
 
 
 ########################################################################################################################
-# example_extensions package
+# kit-template" package
 ########################################################################################################################
 
-[example_extensions]
+["kit-template"]
 files = [
-    ["_build/$platform/$config/exts", "exts"],
+    ["deps"],
+    ["tools"],
+    ["repo.sh"],
+    ["repo.bat"],
+    ["repo.toml"],
+    ["package.toml"],
+    ["VERSION.md"],
+    ["_build/$platform/$config/"],
     ["_build/PACKAGE-LICENSES", "PACKAGE-LICENSES"]
 ]
 
-[example_extensions.windows-x86_64]
+["kit-template".windows-x86_64]
 files = []
 
-[example_extensions.linux-x86_64]
+["kit-template".linux-x86_64]
 files = []
 
 

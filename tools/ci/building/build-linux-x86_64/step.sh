@@ -5,13 +5,13 @@ set -e
 SCRIPT_DIR="$(dirname "${BASH_SOURCE}")"
 
 # Verify formatting
-"$SCRIPT_DIR/../../../format_code.sh" --verify
+# "$SCRIPT_DIR/../../../format_code.sh" --verify
 
 # Full rebuild
 "$SCRIPT_DIR/../../../build.sh" -x
 
-# Package
-"$SCRIPT_DIR/../../../tools/package.sh"
+# Package all
+"$SCRIPT_DIR/../../../tools/package.sh" -a
 
 # publish artifacts to teamcity
 echo "##teamcity[publishArtifacts '_build/packages']"
