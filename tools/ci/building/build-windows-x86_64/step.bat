@@ -5,15 +5,15 @@
 @REM if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: Full rebuild
-call "%~dp0..\..\..\build.bat" -x
+call "%~dp0..\..\..\..\build.bat" -x
 if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: Docs
-::call "%~dp0..\..\build_docs.bat" -c release
+::call "%~dp0..\..\..\..\build_docs.bat" -c release
 ::if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: Package all
-call "%~dp0..\..\package.bat" -a
+call "%~dp0..\..\..\package.bat" -a
 if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: publish artifacts to teamcity

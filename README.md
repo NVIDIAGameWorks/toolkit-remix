@@ -127,7 +127,7 @@ Config files:
 
 ### CI
 
-[Teamcity Project](https://teamcity.nvidia.com/project/Omniverse_KitExtensions_Example?mode=builds) runs on every commit. Builds both platforms, docs, runs tests. Publishing is optional (click "Run" on "publish" configuration).
+[Teamcity Project](https://teamcity.nvidia.com/project/Omniverse_KitExtensions_KitTemplate?mode=builds) runs on every commit. Builds both platforms, docs, runs tests. Publishing is optional (click "Run" on "publish" configuration).
 
 It can also be easily copied in Teamcity along with forking this project on gitlab.
 
