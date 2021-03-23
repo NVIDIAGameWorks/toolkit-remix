@@ -10,18 +10,8 @@ repo_build = require("omni/repo/build")
 -- Repo root
 root = repo_build.get_abs_path(".")
 
--- Resolved path to kit SDK (without %{} tokens), for creating experiences
-KIT_SDK_RESOLVED = {
-    ["debug"] = root.."/_build/kit_debug",
-    ["release"] = root.."/_build/kit_release",
-}
-
--- Path to kit sdk
-kit_sdk = "%{root}/_build/kit_%{config}"
-kit_sdk_bin_dir = kit_sdk.."/_build/%{platform}/%{config}"
-
 -- Include Kit SDK public premake, it defines few global variables and helper functions. Look inside to get more info.
-local _ = dofileopt("_build/kit_release/premake5-public.lua") or dofileopt("_build/kit_debug/premake5-public.lua")
+local _ = dofileopt("_build/kit/release/dev/premake5-public.lua") or dofileopt("_build/kit/debug/dev/premake5-public.lua")
 
 -- Setup where to write generate prebuild.toml file
 repo_build.set_prebuild_file('_build/generated/prebuild.toml')

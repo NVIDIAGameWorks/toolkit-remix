@@ -43,14 +43,14 @@ vscode.python_env.PYTHONPATH= [
   "$repo_deps/repo_package",
   "$root/tools/repoman",
   "$root/_build/$platform/$config/exts/*",
-  "$root/_build/kit_$config/_build/$platform/$config/exts/*"
+  "$root/_build/kit/$config/_build/$platform/$config/exts/*"
 ]
 
 vscode.python_env.PATH= [
   "$$$${PATH}", 
   "$root/_build/$platform/$config",
-  "$root/_build/kit_$config/_build/$platform/$config",
-  "$root/_build/kit_$config/_build/$platform/$config/plugins",
+  "$root/_build/kit/$config/_build/$platform/$config",
+  "$root/_build/kit/$config/_build/$platform/$config/plugins",
 ]
 
 vscode.write_python_paths_in_settings_json = true
@@ -117,7 +117,7 @@ stdout_fail_patterns.exclude = [
 enabled = true
 
 # Use python from kit sdk
-python_path =  "${root}/_build/kit_${config}/_build/${platform}/${config}/python${shell_ext}"
+python_path =  "${root}/_build/kit/${config}/_build/${platform}/${config}/python${shell_ext}"
 
 # differentiate debug/release docs
 enable_build_config_choice = true
