@@ -5,7 +5,7 @@
 [repo]
 logging = "warn"
 extra_tool_paths = [
-	"${root}/_build/kit/release/dev"
+	"${root}/_build/$platform/release/kit/dev"
 ]
 
 
@@ -177,6 +177,8 @@ packages = ["*"]
 [repo_publish_exts]
 enabled = true
 
+kit_path = "${root}/_build/$platform/$config/kit/kit${exe_ext}"
+
 ext_folders = [
   "${package_root}/exts"
 ]
@@ -194,4 +196,3 @@ registries = [
 
 # When running from package, look for package using that path/pattern:
 archive_pattern = "${root}/_build/packages/kit-template@*${config}.7z"
-#publish_artifacts = ["${package_root}/_build/**/*.log", "${package_root}/**/*.dmp"]
