@@ -8,7 +8,7 @@ SCRIPT_DIR="$(dirname "${BASH_SOURCE}")"
 # "$SCRIPT_DIR/../../../../format_code.sh" --verify
 
 # Full rebuild
-"$SCRIPT_DIR/../../../../build.sh" -x -r
+"$SCRIPT_DIR/../../../../build.sh" -x
 
 # Package all
 "$SCRIPT_DIR/../../../../tools/package.sh" -a -c release

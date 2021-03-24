@@ -10,9 +10,6 @@ repo_build = require("omni/repo/build")
 -- Repo root
 root = repo_build.get_abs_path(".")
 
--- 
-kit_sdk = "%{root}/_build/%{platform}/%{config}/kit"
-
 -- Include Kit SDK public premake, it defines few global variables and helper functions. Look inside to get more info.
 local build_path = "_build/"..os.target().."-x86_64/"
 local _ = dofileopt(build_path.."release/kit/dev/premake5-public.lua") or dofileopt(build_path.."debug/kit/dev/premake5-public.lua")

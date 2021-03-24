@@ -5,7 +5,7 @@
 [repo]
 logging = "warn"
 extra_tool_paths = [
-	"${root}/_build/kit_release"
+	"${root}/_build/kit/release/dev"
 ]
 
 
@@ -106,7 +106,7 @@ stdout_fail_patterns.exclude = [
 	[[repo_test.suites.alltests.group]]
 	# Run app startup ptest
 	include = ["omni.app.new_exts_demo_mini*${shell_ext}"]
-	args = ["--/app/quitAfter=10"]
+	args = ["--/app/quitAfter=60"]
   timeout = 300
 	tc_report_enabled = true
 
@@ -170,7 +170,7 @@ packages = ["*"]
 enabled = true
 
 ext_folders = [
-  "$root/_build/$platform/$config/exts"
+  "${package_root}/exts"
 ]
 
 # Extensions to publish, include and exclude among those discovered by kit. Wildcards are supported.
@@ -185,5 +185,5 @@ registries = [
 ]
 
 # When running from package, look for package using that path/pattern:
-# archive_pattern = "${root}/_builtpackages/omniverse-kit@*${config}.7z"
-# publish_artifacts = ["${package_root}/_build/**/*.log", "${package_root}/**/*.dmp"]
+archive_pattern = "${root}/_build/packages/kit-template@*${config}.7z"
+#publish_artifacts = ["${package_root}/_build/**/*.log", "${package_root}/**/*.dmp"]
