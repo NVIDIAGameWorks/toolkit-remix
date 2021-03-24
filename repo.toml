@@ -191,7 +191,7 @@ exts.exclude = []
 
 # Registries to publish to.
 registries = [
-    { name = "kit/debug", url = "omniverse://kit-extensions.ov.nvidia.com/exts/kit/debug" },
+    { name = "kit/test", url = "omniverse://kit-extensions.ov.nvidia.com/exts/kit/test" },
 ]
 
 # When running from package, look for package using that path/pattern:
