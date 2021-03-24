@@ -14,7 +14,8 @@ root = repo_build.get_abs_path(".")
 kit_sdk = "%{root}/_build/%{platform}/%{config}/kit"
 
 -- Include Kit SDK public premake, it defines few global variables and helper functions. Look inside to get more info.
-local _ = dofileopt("_build/kit/release/dev/premake5-public.lua") or dofileopt("_build/kit/debug/dev/premake5-public.lua")
+local build_path = "_build/"..os.target().."-x86_64/"
+local _ = dofileopt(build_path.."release/kit/dev/premake5-public.lua") or dofileopt(build_path.."debug/kit/dev/premake5-public.lua")
 
 -- Setup where to write generate prebuild.toml file
 repo_build.set_prebuild_file('_build/generated/prebuild.toml')
@@ -73,9 +74,6 @@ workspace "kit-examples"
     repo_build.prebuild_link {
         -- Link app configs in target dir for easier edit
         { "source/apps", bin_dir.."/apps" },
-
-        -- TEMP
-        { "_build/kit/${config}", bin_dir.."/kit" },
 
         -- Link all licenses
         { "_build/PACKAGE-LICENSES", bin_dir.."/PACKAGE-LICENSES" },

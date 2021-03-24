@@ -13,14 +13,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -e
-if echo $PM_VERBOSITY | grep -i "debug" > /dev/null ; then
+SAVED_SETTINGS="$-"
+set -eu
+
+if echo ${PM_VERBOSITY-} | grep -i "debug" > /dev/null ; then
 	set -x
 else
 	PM_CURL_SILENT="-s -S"
 	PM_WGET_QUIET="--quiet"
 fi
-PM_PACKMAN_VERSION=6.30
+PM_PACKMAN_VERSION=6.31
 
 # This is necessary for newer macOS
 if [ `uname` == 'Darwin' ]; then
@@ -107,14 +109,14 @@ install_python()
 }
 
 # Ensure python is available:
-if [ -z "$PM_PYTHON_EXT" ]; then
+if [ -z "${PM_PYTHON_EXT:-}" ]; then
 	install_python
 else
 	PM_PYTHON="$PM_PYTHON_EXT"
 fi
 
 # The packman module may be externally configured
-if [ -z "$PM_MODULE_DIR_EXT" ]; then
+if [ -z "${PM_MODULE_DIR_EXT:-}" ]; then
 	PM_MODULE_DIR="$PM_PACKAGES_ROOT/packman-common/$PM_PACKMAN_VERSION"
 else
     PM_MODULE_DIR="$PM_MODULE_DIR_EXT"
@@ -159,7 +161,7 @@ if [ $# -ne 0 ]
     PM_VAR_PATH_ARG=--var-path="$PM_VAR_PATH"
 fi
 
-"$PM_PYTHON" -S -s -u -E "$PM_MODULE" "$@" $PM_VAR_PATH_ARG
+"$PM_PYTHON" -S -s -u -E "$PM_MODULE" "$@" ${PM_VAR_PATH_ARG:-}
 exit_code=$?
 # Export the variables if the file was used and remove the file:
 if [ -f "$PM_VAR_PATH" ]; then
@@ -176,3 +178,13 @@ fi
 if [ "$exit_code" != 0 ]; then
     exit "$exit_code"
 fi
+
+# avoid leaking -e and -u into the host script if they weren't originally set
+if [[ ! ( "$SAVED_SETTINGS" =~ e ) ]]; then
+    set +e
+fi
+
+if [[ ! ( "$SAVED_SETTINGS" =~ u ) ]]; then
+    set +u
+fi
+
