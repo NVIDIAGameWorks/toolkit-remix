@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     script_dir = os.path.dirname(os.path.realpath(__file__))
     packmanapi.pull(
-        os.path.join(script_dir, "../../deps/kit-sdk.packman.xml"),
+        os.path.join(script_dir, "dev/deps/kit-sdk-override.packman.xml"),
         platform=get_host_platform(),
         include_tags=[options.config],
         tokens={"config": options.config},

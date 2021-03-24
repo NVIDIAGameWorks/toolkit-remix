@@ -77,11 +77,13 @@ licensing.fail_on_missing = true
 # NOTE: To find more info on repo_test settings look into: '_repo/deps/repo_test/repo_tools.toml'
 
 # When running from package, look for package using that path/pattern:
-archive_pattern = "${root}/_build/packages/kit-template*-${config}.7z"
+archive_pattern = "${root}/_build/packages/kit-template*${config}.7z"
+
+archive_post_unpack_cmd = ["${test_root}/pull_kit_sdk${shell_ext}"]
 
 [repo_test.suites.alltests]
 kind = "glob_and_exec"
-path = "${test_root}/_build/${platform}/${config}"
+path = "${test_root}"
 
 # fnmatch module is used, matching is case insensitive. Refer to: https://docs.python.org/3/library/fnmatch.html
 # notice: to escape [ and ] symbols wrap them in [].
@@ -141,6 +143,7 @@ enabled = true
 ########################################################################################################################
 
 [repo_package.packages."kit-template"]
+root = "_build/$${platform}/$${config}"
 omniverse_flow_version_scheme = true
 package_per_config = true
 append_config = true

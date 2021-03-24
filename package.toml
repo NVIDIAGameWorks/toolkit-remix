@@ -40,15 +40,11 @@ files = []
 
 ["kit-template"]
 files = [
-    ["deps"],
-    ["tools"],
-    ["repo.sh"],
-    ["repo.bat"],
-    ["repo.toml"],
-    ["package.toml"],
-    ["VERSION.md"],
-    ["_build/$platform/$config/"],
-    ["_build/PACKAGE-LICENSES", "PACKAGE-LICENSES"]
+    ["**"],
+]
+
+files_exclude = [
+    ["kit/**"]
 ]
 
 ["kit-template".windows-x86_64]

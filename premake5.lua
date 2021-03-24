@@ -10,6 +10,9 @@ repo_build = require("omni/repo/build")
 -- Repo root
 root = repo_build.get_abs_path(".")
 
+-- 
+kit_sdk = "%{root}/_build/%{platform}/%{config}/kit"
+
 -- Include Kit SDK public premake, it defines few global variables and helper functions. Look inside to get more info.
 local _ = dofileopt("_build/kit/release/dev/premake5-public.lua") or dofileopt("_build/kit/debug/dev/premake5-public.lua")
 
@@ -70,7 +73,13 @@ workspace "kit-examples"
     repo_build.prebuild_link {
         -- Link app configs in target dir for easier edit
         { "source/apps", bin_dir.."/apps" },
-    
+
+        -- TEMP
+        { "_build/kit/${config}", bin_dir.."/kit" },
+
+        -- Link all licenses
+        { "_build/PACKAGE-LICENSES", bin_dir.."/PACKAGE-LICENSES" },
+        
         -- Link python app sources in target dir for easier edit
         { "source/pythonapps/target", bin_dir.."/pythonapps" },
     }
@@ -142,5 +151,7 @@ group "apps"
     define_app("omni.app.new_exts_demo_mini.kit")
 
     define_ext_test_experience("example.python_ext")
+
+    dofile("tools/autopull/premake5.lua")
     
 
