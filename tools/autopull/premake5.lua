@@ -7,5 +7,5 @@ repo_build.prebuild_copy {
     { "pull_kit_sdk.py", bin_dir },
     { "./${config}/pull_kit_sdk*", bin_dir },
     { "${root}/deps/kit-sdk.packman.xml", bin_dir.."/dev/deps" },
-    { "kit-sdk-override.packman.xml", bin_dir.."/dev/deps" },
+    { "kit-sdk.packman.override.xml", bin_dir.."/dev/deps" },
 }

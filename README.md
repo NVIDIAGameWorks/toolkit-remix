@@ -145,9 +145,7 @@ To use your local build of Kit SDK, assuming it is located say at `C:/projects/k
 
 Use `repo_source` tool to link: 
 
-> `repo source link kit_sdk_debug c:/projects/kit/kit`
-
-Specify `kit_sdk_release` for release configuration.
+> `repo source link kit-sdk c:/projects/kit/kit/_build/$platform/$config`
 
 Or use GUI mode to do source linking:
 
@@ -157,18 +155,15 @@ Or you can also do it manually: create a file: `deps/target-deps.packman.xml.use
 
 ```xml
 <project toolsVersion="5.6">
-  <dependency name="kit_sdk_debug" linkPath="../_build/kit_debug">
-    <source path="C:/projects/kit/kit" />
-  </dependency>
-  <dependency name="kit_sdk_release" linkPath="../_build/kit_release">
-    <source path="C:/projects/kit/kit" />
-  </dependency>
+	<dependency name="kit_sdk_${config}" linkPath="../_build/${platform}/${config}/kit">
+		<source path="c:/projects/kit/kit/_build/$platform/$config" />
+	</dependency>
 </project>
 ```
 
 To remove source link:
 
-> `repo source unlink kit_sdk_debug`
+> `repo source unlink kit-sdk`
 
 To remove all source links:
 
