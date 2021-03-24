@@ -106,7 +106,15 @@ stdout_fail_patterns.exclude = [
 	[[repo_test.suites.alltests.group]]
 	# Run app startup ptest
 	include = ["omni.app.new_exts_demo_mini*${shell_ext}"]
-	args = ["--/app/quitAfter=60"]
+	args = [
+    "--/app/quitAfter=60",
+    "--/app/asyncRendering=false",
+    "--portable-root", "${root}/_build/_testdata",
+    "--/app/window/width=480",
+    "--/app/window/height=480",
+    "--/log/flushStandardStreamOutput=1", # Prevents mixed up piped stdout
+
+  ]
   timeout = 300
 	tc_report_enabled = true
 
