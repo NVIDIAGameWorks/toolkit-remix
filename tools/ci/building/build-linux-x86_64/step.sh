@@ -13,6 +13,9 @@ SCRIPT_DIR="$(dirname "${BASH_SOURCE}")"
 # Package all
 "$SCRIPT_DIR/../../../../tools/package.sh" -a -c release
 
+# Package all
+"$SCRIPT_DIR/../../../../tools/package.sh" -a -c debug
+
 # publish artifacts to teamcity
 echo "##teamcity[publishArtifacts '_build/packages']"
 

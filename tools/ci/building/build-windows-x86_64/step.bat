@@ -12,8 +12,11 @@ if %errorlevel% neq 0 ( exit /b %errorlevel% )
 ::call "%~dp0..\..\..\..\build_docs.bat" -c release
 ::if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
-:: Package all (only release)
+:: Package all
 call "%~dp0..\..\..\package.bat" -a -c release
+if %errorlevel% neq 0 ( exit /b %errorlevel% )
+
+call "%~dp0..\..\..\package.bat" -a -c debug
 if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: publish artifacts to teamcity
