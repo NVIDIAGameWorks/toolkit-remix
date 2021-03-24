@@ -13,7 +13,7 @@ if %errorlevel% neq 0 ( exit /b %errorlevel% )
 ::if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: Package all
-call "%~dp0..\..\..\package.bat" -a
+call "%~dp0..\..\..\package.bat" -a -c release
 if %errorlevel% neq 0 ( exit /b %errorlevel% )
 
 :: publish artifacts to teamcity
