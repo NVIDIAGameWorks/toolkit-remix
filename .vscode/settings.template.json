@@ -133,7 +133,7 @@
     ],
 
     "python.languageServer": "Pylance",
-    "python.pythonPath": "${workspaceFolder}/_build/kit_release/_build/target-deps/python/python.exe",
+    "python.pythonPath": "${workspaceFolder}/_build/windows-x86_64/release/python/python.exe",
 
     // This enables python language server. Seems to work slightly better than jedi:
     "python.jediEnabled": false, 

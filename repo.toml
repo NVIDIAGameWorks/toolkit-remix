@@ -27,10 +27,10 @@ fetch.packman_target_files_to_pull = [
     "${root}/deps/assets.packman.xml",
 ]
 
-stage_files.extra_mapping.kit_sdk_debug = "${root}/_build/kit_debug"
-stage_files.extra_mapping.kit_sdk_release = "${root}/_build/kit_release"
+stage_files.extra_mapping.kit_sdk_debug = "${root}/_build/$platform/debug/kit"
+stage_files.extra_mapping.kit_sdk_release = "${root}/_build/$platform/release/kit"
 
-vscode.python = "${root}/_build/kit_debug/_build/target-deps/python"
+vscode.python = "${root}/_build/$platform/release/kit/python"
 
 vscode.python_env.PYTHONPATH= [
   "$$$${PYTHONPATH}",
@@ -43,14 +43,13 @@ vscode.python_env.PYTHONPATH= [
   "$repo_deps/repo_package",
   "$root/tools/repoman",
   "$root/_build/$platform/$config/exts/*",
-  "$root/_build/kit/$config/_build/$platform/$config/exts/*"
+  "$root/_build/$platform/$config/kit/exts/*",
+  "$root/_build/$platform/$config/kit/extscore/*",
 ]
 
 vscode.python_env.PATH= [
   "$$$${PATH}", 
   "$root/_build/$platform/$config",
-  "$root/_build/kit/$config/_build/$platform/$config",
-  "$root/_build/kit/$config/_build/$platform/$config/plugins",
 ]
 
 vscode.write_python_paths_in_settings_json = true
