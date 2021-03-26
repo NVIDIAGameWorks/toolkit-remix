@@ -45,6 +45,7 @@ vscode.python_env.PYTHONPATH= [
   "$root/_build/$platform/$config/exts/*",
   "$root/_build/$platform/$config/kit/exts/*",
   "$root/_build/$platform/$config/kit/extscore/*",
+  "$root/_build/$platform/$config/kit/plugins/bindings-python/",
 ]
 
 vscode.python_env.PATH= [
