@@ -194,5 +194,8 @@ registries = [
     { name = "kit/test", url = "omniverse://kit-extensions.ov.nvidia.com/exts/kit/test" },
 ]
 
+# verify before publishing
+publish_verification = true
+
 # When running from package, look for package using that path/pattern:
 archive_pattern = "${root}/_build/packages/kit-template@*${config}.7z"
