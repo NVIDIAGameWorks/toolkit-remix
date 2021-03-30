@@ -76,10 +76,14 @@ licensing.fail_on_missing = true
 
 # NOTE: To find more info on repo_test settings look into: '_repo/deps/repo_test/repo_tools.toml'
 
+test_root = "$root/_build/$platform/$config"
+
 # When running from package, look for package using that path/pattern:
 archive_pattern = "${root}/_build/packages/kit-template*${config}.7z"
-
 archive_post_unpack_cmd = ["${test_root}/pull_kit_sdk${shell_ext}"]
+
+# Default --config argument:
+default_config = "release"
 
 [repo_test.suites.alltests]
 kind = "glob_and_exec"
