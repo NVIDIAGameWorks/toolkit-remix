@@ -5,57 +5,31 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(Windows) test.unit",
+            "name": "Process: Attach (windows-x86_64)",
             "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/_build/windows-x86_64/debug/test.unit.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "internalConsoleOptions": "openOnSessionStart"
+            "request": "attach",
+            "processId": "${command:pickProcess}"
         },
-        {
-            "name": "(Linux) test.unit",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceRoot}/_build/linux-x86_64/debug/test.unit",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": true,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
-        },
-        {
-            "name": "Python: Current File",
+		{
+            "name": "Python: Attach (windows-x86_64/linux-x86_64)",
             "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal"
+            "request": "attach",
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "${workspaceFolder}",
+            "port": 3000,
+            "host": "localhost",
+            "subProcess": true,
+            "runtimeArgs": [
+                "--preserve-symlinks",
+                "--preserve-symlinks-main"
+            ]
         },
         {
-            "name": "(Windows) example.helloworld",
+            "name": "omni.app.new_exts_demo (debug, windows-x86_64)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/_build/windows-x86_64/debug/example.helloworld.exe",
-            "args": [
-                "--carb/app/window/fullscreen=false",
-                "--carb/log/level='warn'",
-                "--carb/log/file='log.txt'",
-                "--carb/log/enableStandardStreamOutput=false",
-                "--carb/log/enableDebugConsoleOutput=false",
-                "--carb/log/includeFilename=true",
-                "--carb/log/includeLineNumber=true"
-            ],
+            "program": "${workspaceFolder}/_build/windows-x86_64/debug/kit/kit.exe",
+            "args": ["${workspaceFolder}/_build/windows-x86_64/debug/apps/omni.app.new_exts_demo.kit"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -63,15 +37,27 @@
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
-            "name": "(Linux) example.helloworld",
-            "type": "cppdbg",
+            "name": "omni.app.new_exts_demo (release, windows-x86_64)",
+            "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/_build/linux-x86_64/debug/example.helloworld",
-            "args": [],
+            "program": "${workspaceFolder}/_build/windows-x86_64/release/kit/kit.exe",
+            "args": ["${workspaceFolder}/_build/windows-x86_64/release/apps/omni.app.new_exts_demo.kit"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "omni.app.new_exts_demo (debug, linux-x86_64)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/_build/linux-x86_64/debug/kit/kit",
+            "args": ["${workspaceFolder}/_build/linux-x86_64/debug/apps/omni.app.new_exts_demo.kit"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
             "MIMode": "gdb",
             "setupCommands": [
                 {
@@ -79,89 +65,69 @@
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
                 }
-            ]
+            ],
+            "sourceFileMap": {
+                "/build/glibc-OTsEL5/glibc-2.27": "/usr/src/glibc/glibc-2.27",
+                "/opt/rh/devtoolset-7/root": "/"
+            },
         },
         {
-            "name": "(Linux) example.graphics",
+            "name": "omni.app.new_exts_demo (release, linux-x86_64)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/_build/linux-x86_64/debug/example.graphics",
-            "args": [],
+            "program": "${workspaceFolder}/_build/linux-x86_64/release/kit/kit",
+            "args": ["${workspaceFolder}/_build/linux-x86_64/release/apps/omni.app.new_exts_demo.kit"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "sourceFileMap": {
+                "/build/glibc-OTsEL5/glibc-2.27": "/usr/src/glibc/glibc-2.27",
+                "/opt/rh/devtoolset-7/root": "/"
+            },
+        },
+        {
+            "name": "omni.app.new_exts_demo_mini (debug, windows-x86_64)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/_build/windows-x86_64/debug/kit/kit.exe",
+            "args": ["${workspaceFolder}/_build/windows-x86_64/debug/apps/omni.app.new_exts_demo_mini.kit"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
-        },
-        {
-            "name": "(Linux) example.simpleaudio",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceRoot}/_build/linux-x86_64/debug/example.simpleaudio",
-            "args": [
-                "--carb/log/level='info'",
-                "--carb/log/file='log.txt'",
-                "--carb/log/enableDebugConsoleOutput=true",
-                "--carb/log/includeFilename=true",
-                "--carb/log/includeLineNumber=true"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": true,
-            "internalConsoleOptions": "openOnSessionStart",
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
-        },
-        {
-            "name": "(Windows) example.simpleaudio",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/_build/windows-x86_64/debug/example.simpleaudio.exe",
-            "args": [
-                "--carb/log/level='info'",
-                "--carb/log/file='log.txt'",
-                "--carb/log/enableStandardStreamOutput=false",
-                "--carb/log/enableDebugConsoleOutput=true",
-                "--carb/log/includeFilename=true",
-                "--carb/log/includeLineNumber=true"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": true,
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
-            "name": "(Linux) example.audiocapture",
+            "name": "omni.app.new_exts_demo_mini (release, windows-x86_64)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/_build/windows-x86_64/release/kit/kit.exe",
+            "args": ["${workspaceFolder}/_build/windows-x86_64/release/apps/omni.app.new_exts_demo_mini.kit"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "omni.app.new_exts_demo_mini (debug, linux-x86_64)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/_build/linux-x86_64/debug/example.audiocapture",
-            "args": [
-                "--carb/log/level='info'",
-                "--carb/log/file='log.txt'",
-                "--carb/log/enableDebugConsoleOutput=true",
-                "--carb/log/includeFilename=true",
-                "--carb/log/includeLineNumber=true"
-            ],
+            "program": "${workspaceFolder}/_build/linux-x86_64/debug/kit/kit",
+            "args": ["${workspaceFolder}/_build/linux-x86_64/debug/apps/omni.app.new_exts_demo_mini.kit"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": true,
-            "internalConsoleOptions": "openOnSessionStart",
             "MIMode": "gdb",
             "setupCommands": [
                 {
@@ -169,26 +135,34 @@
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
                 }
-            ]
+            ],
+            "sourceFileMap": {
+                "/build/glibc-OTsEL5/glibc-2.27": "/usr/src/glibc/glibc-2.27",
+                "/opt/rh/devtoolset-7/root": "/"
+            },
         },
         {
-            "name": "(Windows) example.audiocapture",
-            "type": "cppvsdbg",
+            "name": "omni.app.new_exts_demo_mini (release, linux-x86_64)",
+            "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/_build/windows-x86_64/debug/example.audiocapture.exe",
-            "args": [
-                "--carb/log/level='info'",
-                "--carb/log/file='log.txt'",
-                "--carb/log/enableStandardStreamOutput=false",
-                "--carb/log/enableDebugConsoleOutput=true",
-                "--carb/log/includeFilename=true",
-                "--carb/log/includeLineNumber=true"
-            ],
+            "program": "${workspaceFolder}/_build/linux-x86_64/release/kit/kit",
+            "args": ["${workspaceFolder}/_build/linux-x86_64/release/apps/omni.app.new_exts_demo_mini.kit"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": true,
-            "internalConsoleOptions": "openOnSessionStart"
-        }
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "sourceFileMap": {
+                "/build/glibc-OTsEL5/glibc-2.27": "/usr/src/glibc/glibc-2.27",
+                "/opt/rh/devtoolset-7/root": "/"
+            },
+        },        
     ]
 }

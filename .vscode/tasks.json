@@ -6,15 +6,15 @@
         {
             "label": "build",
             "type": "shell",
-            "command": "./build.sh --debug-only",
+            "command": "./build.sh --release-only",
             "windows": {
-                "command": ".\\build.bat --debug-only"
+                "command": ".\\build.bat --release-only"
             },
             "problemMatcher": {
                 "owner": "cpp",
                 "fileLocation": [
                     "relative",
-                    "${workspaceRoot}/_compiler/vs2017/carb"
+                    "${workspaceRoot}/_compiler/vs2017"
                 ],
                 "pattern": {
                     "regexp": "^(.*):(\\d+): \\s+(warning|error):\\s+(.*)$",
@@ -33,18 +33,6 @@
                 "panel": "dedicated",
                 "clear": true
             }
-        },
-        {
-            "label": "compile shaders",
-            "type": "shell",
-            "windows": {
-                "command": ".\\tools\\shaders\\compile.bat"
-            },
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated"
-            },
-            "problemMatcher": []
         }
     ]
 }
