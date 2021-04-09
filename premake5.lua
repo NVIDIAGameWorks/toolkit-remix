@@ -80,7 +80,7 @@ workspace "kit-examples"
     }
     repo_build.prebuild_copy {
         -- Copy python app running scripts in target dir
-        {"source/pythonapps/runscripts/$config/*$shell_ext", bin_dir},
+        {"source/pythonapps/runscripts/$config/*$shell_ext", bin_dir}
     }
 
     -- Windows platform settings
@@ -144,6 +144,7 @@ group "apps"
     -- Application example. Only runs Kit with a config, doesn't build anything. Helper for debugging.
     define_app("omni.app.new_exts_demo.kit")
     define_app("omni.app.new_exts_demo_mini.kit")
+    define_app("omni.app.precache_exts_demo.kit")
 
     define_ext_test_experience("example.python_ext")
 

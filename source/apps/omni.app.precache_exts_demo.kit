@@ -6,12 +6,9 @@ keywords = ["app"]
 
 [dependencies]
 "omni.app.dev" = {} # Basic set of extensions to get USD viewer running
-"omni.kit.window.console" = {}
-"omni.kit.window.extensions" = {}
-"omni.kit.window.script_editor" = {}
-"example.python_ext" = {}
-"example.mixed_ext" = {}
-"example.cpp_ext" = {}
+
+# Some extensions coming from the registry, will be precached at build-time:
+"omni.kit.tool.asset_importer" = {}
 
 
 [settings.app.window]
@@ -28,7 +25,7 @@ app.versionFile = "${app}/../VERSION"
 
 # Register extension folder from this repo in kit
 [settings.app.exts]
-folders.'++' = ["${app}/../exts" ]
+folders.'++' = ["${app}/../exts", "${app}/../extscache"]
 
 
 [settings.app.extensions]
