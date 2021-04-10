@@ -14,23 +14,24 @@ To get started, you will need to do a few things:
 ## 1. Duplicate the template (kit-template repo)
 
 
-*   Fork [https://gitlab-master.nvidia.com/omniverse/kit-extensions/kit-template](https://gitlab-master.nvidia.com/omniverse/kit-extensions/kit-template) into your own space (i.e https://gitlab-master.nvidia.com/your_username
+* Fork [https://gitlab-master.nvidia.com/omniverse/kit-extensions/kit-template](https://gitlab-master.nvidia.com/omniverse/kit-extensions/kit-template) into your own space (i.e https://gitlab-master.nvidia.com/your_username result should look like below
+
 
 ![alt_text](readme_images/new_repo1.png "new_repository")
 
 
-*   Rename the project and it’s path to be what you want 
+* Rename the project and it’s path to be what you want 
+
 
 ![alt_text](readme_images/new_repo2.png "new_repository")
 
-*   Transfer the project back to the kit-extensions group with it’s new name
+* Transfer the project back to the kit-extensions group with it’s new name
 
 
 ![alt_text](readme_images/transfer_ownership.png "transfer_ownership")
 
 
 Note that if you have permissions problems transferring back, you should ask or another maintainer to give you permissions.
-
 
 Note that the new project still has a fork relationship with kit-template, which means it’s possible to submit and merge MRs across the forks. One disadvantage of this, is that when you submit a new MR, the target branch will be by default in kit-template (maybe it’s possible to change this)
 
@@ -228,7 +229,7 @@ There are additional flags for most tools, all documented in the tool itself via
 repo.sh changelog --help
 ```
 
-**repo build**
+#### repo build
 
 Basic Usage: `repo.bat build` or `build.bat` 
 
@@ -256,7 +257,7 @@ Kit and OV projects in general are set up to use VSCode. You’ll usually find t
 
 to get going, Install VsCode python extension, close VsCode, run `build.bat` first time (`-s` flag is enough), open project again. Python intellisense, linter, formatting should work (we bring our own version of python).
 
-**repo build_doc**
+#### repo build_doc
 
 Basic usage: `repo.bat build_docs` or `tools/build_docs.bat`
 
@@ -267,13 +268,13 @@ With the template project, results will be built in `_build/docs`. Sources are i
 Document your python code with [Google Docstring](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html), more info in: (https://gitlab-master.nvidia.com/carbon/Carbonite/blob/master/docs/Documenting.md)
 
 
-**Repo publish_ext**
+#### Repo publish_ext
 
 This will publish extensions to the test extension repository which is used by ETM to test extensions when kit sdk versions and other apps are updated
 
 _This will normally be called by TC_ rather than locally
 
-**repo package**
+#### repo package
 
 Basic usage: `repo.bat package` or `tools/package.bat`
 
@@ -296,12 +297,12 @@ Creating 7z archive: '/home/eoinm/code/omniverse/kit-extensions/kit-usd/_build/p
 An archive should be self contained, in the sense that if it doesn’t contain everything it needs to run the extensions, it should contain scripts to bootstrap itself or download dependencies(e.g there’s a “pull_kit_sdk.sh” script which downloads kit… this can be added to your build by including: \
 `dofile("tools/autopull/premake5.lua")`..in your main premake5.lua file
 
-**repo publish**
+#### repo publish
 
 This will publish to packman. As above, should not generally be needed for extensions
 
 
-**repo test**
+#### repo test
 
 Very simple entry point for running your tests (startup and unit?) locally, or on TC
 
@@ -324,36 +325,36 @@ Example usage:
 > `repo.bat test --config debug`
 
 
-**repo source**
+#### repo source
 
 This allows you to link to local versions of packman dependencies
 
-**repo format**
+#### repo format
 
 Basic usage: `repo.bat format` or `format_code.bat`
 This will format C++ and Python code according to OV conventions (using black for Python).It can also verify formatting is correct
 
 This is currently optional (ie run manually/locally)
 
-**repo update**
+#### repo update
 
 This updates your dependencies by modifying the deps/*xml files to the latest versions (major/minor constraints can be specified)
 
 This is a local only step
 
-**repo licensing**
+#### repo licensing
 
 Will generate licence files for your extensions… most of this is actually handled at the build stage, so not sure where it's neede
 
-**repo changelog**
+#### repo changelog
 Future work is to update this so it can automatically generate the changelogs for extensions from git commits - currently it works mostly for Kit-based applications
 
-**repo build_number**
+#### repo build_number
 
 Used by TC only
 
 
-## Config files:
+## Config files
 
 * `premake5.lua` - all configuration for generating platform specific build solutions. [premake5 docs](https://github.com/premake/premake-core/wiki).
 * `repo.toml` - configuration of all repo tools (build, package, format etc).
@@ -368,6 +369,9 @@ Used by TC only
 It can also be easily copied in Teamcity along with forking this project on gitlab.
 
 According to [RepoMan Guidelines](https://omniverse.gitlab-master-pages.nvidia.com/repo/repo_man/manual/overview.html#core-principles) all Teamcity entry points are in [tools/ci](tools/ci) folder.
+
+
+
 
 
 
