@@ -133,13 +133,19 @@ for _, ext in ipairs(os.matchdirs("source/extensions/*")) do
 end
 
 group "apps"
-    -- Direct shortcut to kit executable for convenience:
+    -- Direct shortcur to kit executable for convenience:
     for _, config in ipairs(ALL_CONFIGS) do
         create_experience_runner("kit", "", config, config, "")
 
         -- Put build version file into build directories
         write_version_file(config)
     end
+
+    -- Application example. Only runs Kit with a config, doesn't build anything. Helper for debugging.
+    define_app("omni.app.new_exts_demo.kit")
+    define_app("omni.app.new_exts_demo_mini.kit")
+
+    define_ext_test_experience("example.python_ext")
 
     dofile("tools/autopull/premake5.lua")
     
