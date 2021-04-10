@@ -96,6 +96,7 @@ path = "${test_root}"
 stdout_fail_patterns.include = ["*[[]error[]]*", "*[[]fatal[]]*"]
 stdout_fail_patterns.exclude = [
   "*Leaking graphics objects*",  # Exclude grahics leaks until fixed
+	"*leaking memory. Missing call to destroyResourceBindingSignature*",
 ]
 
 
