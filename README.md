@@ -243,7 +243,7 @@ Simply, this will build your project. In more detail, it will:
 6. project generation
 7. toolchain build call (which in the case of pure python is eally just creating some symlinks. This is equivalent to calling ./build.[.sh][.bat] from the root of the repo
 
-***VSCode**
+**VSCode**
 Kit and OV projects in general are set up to use VSCode. You’ll usually find the following in a .vscode folder in your repo (Note: Work out when these files are generated/updated.. At build time?)
 
 *   c_cpp_properties.json
@@ -268,9 +268,9 @@ With the template project, results will be built in `_build/docs`. Sources are i
 Document your python code with [Google Docstring](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html), more info in: (https://gitlab-master.nvidia.com/carbon/Carbonite/blob/master/docs/Documenting.md)
 
 
-#### Repo publish_ext
+#### repo publish_ext
 
-This will publish extensions to the test extension repository which is used by ETM to test extensions when kit sdk versions and other apps are updated
+This will publish extensions to the test extension repository which is used by ETM (Extension Test manager)to test extensions when kit sdk versions and other apps are updated (see ##ct-omni-extensions-testing-matrix
 
 _This will normally be called by TC_ rather than locally
 
@@ -377,7 +377,7 @@ According to [RepoMan Guidelines](https://omniverse.gitlab-master-pages.nvidia.c
 
 # References
 
-See [https://drive.google.com/drive/folders/1XAmdhYQkTQlLwDqHOlxJD7k6waUxYAo7?usp=sharing](https://drive.google.com/drive/folders/1XAmdhYQkTQlLwDqHOlxJD7k6waUxYAo7?usp=sharing) for Anton’s videos about the build system** \
-**
+See [Anton's buildsystem videos](https://drive.google.com/drive/folders/1XAmdhYQkTQlLwDqHOlxJD7k6waUxYAo7?usp=sharing) for Anton’s videos about the build system
+Topics are:
 
 ![alt_text](readme_images/antons_build_vids.png "antons_build vids")
