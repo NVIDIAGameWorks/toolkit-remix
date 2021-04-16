@@ -17,18 +17,18 @@ To get started, you will need to do a few things:
 * Fork [https://gitlab-master.nvidia.com/omniverse/kit-extensions/kit-template](https://gitlab-master.nvidia.com/omniverse/kit-extensions/kit-template) into your own space (i.e https://gitlab-master.nvidia.com/your_username result should look like below
 
 
-![alt_text](readme_images/new_repo1.png "new_repository")
+![alt_text](data/readme_images/new_repo1.png "new_repository")
 
 
 * Rename the project and it’s path to be what you want 
 
 
-![alt_text](readme_images/new_repo2.png "new_repository")
+![alt_text](data/readme_images/new_repo2.png "new_repository")
 
 * Transfer the project back to the kit-extensions group with it’s new name
 
 
-![alt_text](readme_images/transfer_ownership.png "transfer_ownership")
+![alt_text](data/readme_images/transfer_ownership.png "transfer_ownership")
 
 
 Note that if you have permissions problems transferring back, you should ask or another maintainer to give you permissions.
@@ -178,7 +178,7 @@ We publish extensions to an extension repository. There are a number of these. T
  \
 `kit.exe --ext-folder C:\eoin\code\eoin\eoin-kit-extensions --publish omni.jira `
 
-![alt_text](readme_images/extension_registry_publish.png "image_tooltip")
+![alt_text](data/readme_images/extension_registry_publish.png "image_tooltip")
 
 
 There is a validation stage to make sure that you have added the necessary icons, changelog, correct version number etc, and publish will not complete if validation does not pass
@@ -210,7 +210,7 @@ build->package->test->publish
 
 CI: Normally the repo tools are called via a batch file (.bat/.sh) in teamcity. As a general principle, we should be able to run the same thing locally by just calling the batch script.. Below in yellow is an example script. 
 
-![alt_text](readme_images/TC_build_step.png "TC pipeline")
+![alt_text](data/readme_images/TC_build_step.png "TC pipeline")
 
 They live in the ./tools folder of your repo
 
@@ -377,7 +377,7 @@ According to [RepoMan Guidelines](https://omniverse.gitlab-master-pages.nvidia.c
 
 # References
 
-See [Anton's buildsystem videos](https://drive.google.com/drive/folders/1XAmdhYQkTQlLwDqHOlxJD7k6waUxYAo7?usp=sharing) for Anton’s videos about the build system
+See [Anton's buildsystem videos](https://drive.google.com/drive/folders/1XAmdhYQkTQlLwDqHOlxJD7k6waUxYAo7?usp=sharing) for Anton’s videos about the build systems
 Topics are:
 
-![alt_text](readme_images/antons_build_vids.png "antons_build vids")
+![alt_text](data/readme_images/antons_build_vids.png "antons_build vids")
