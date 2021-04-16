@@ -377,7 +377,19 @@ According to [RepoMan Guidelines](https://omniverse.gitlab-master-pages.nvidia.c
 
 # References
 
-See [Anton's buildsystem videos](https://drive.google.com/drive/folders/1XAmdhYQkTQlLwDqHOlxJD7k6waUxYAo7?usp=sharing) for Anton’s videos about the build systems
-Topics are:
++ See [Nathan Cournia's repo tools example](https://gitlab-master.nvidia.com/omniverse/repo/repo_example)
++ See [Anton's buildsystem videos](https://drive.google.com/drive/folders/1XAmdhYQkTQlLwDqHOlxJD7k6waUxYAo7?usp=sharing) for Anton’s videos about the build systems. Topics are: 
 
-![alt_text](data/readme_images/antons_build_vids.png "antons_build vids")
+  1. Intro
+  2. Simple Extension
+  3. Versioning
+  4. Tags
+  5. Settings
+  6. Reloading
+  7. Extensions Window
+  8. Publishing
+  9. .Kit file
+  10. Build System (repo tools)
+  11. Build System (premake)
+  12. Build System (simple extension in premale)
+  13. Build System (Advanced Extension)
