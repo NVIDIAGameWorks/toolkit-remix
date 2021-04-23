@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.kit": "toml",
         "array": "cpp",
         "atomic": "cpp",
         "*.tcc": "cpp",
