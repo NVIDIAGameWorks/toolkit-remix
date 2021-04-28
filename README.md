@@ -1,4 +1,3 @@
-
 # Kit Extensions & Apps Example :package:
 
 This repo is the gold standard for building Kit extensions and applications.
@@ -58,7 +57,7 @@ This is mostly just a question of:
 3. From the _Copy Project_ modal dialog, modify the _VCS Root ID_ in order to match the name of the new project, and save it under another name. \
 As a general rule of thumb, replace every instance of `KitTemplate` with the name of your project, to ensure some kind of uniqueness.
 4. (Optional) You may choose to uncheck the _Copy build configurations' build counters_ option should you wish to start your new TeamCity project builds from `1`.
-5. Click the _Copy_ button of the dialog.
+5. Clicking the _Copy_ button of the dialog.
 
 
 
