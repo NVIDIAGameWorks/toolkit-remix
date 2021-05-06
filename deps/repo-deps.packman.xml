@@ -3,13 +3,13 @@
     <package name="repo_man" version="0.3.45" />
   </dependency>
   <dependency name="repo_build" linkPath="../_repo/deps/repo_build">
-    <package name="repo_build" version="0.17.5" />
+    <package name="repo_build" version="0.17.6" />
   </dependency>
   <dependency name="repo_format" linkPath="../_repo/deps/repo_format">
     <package name="repo_format" version="0.5.2" />
   </dependency>
   <dependency name="repo_package" linkPath="../_repo/deps/repo_package">
-    <package name="repo_package" version="5.2.42" />
+    <package name="repo_package" version="5.2.43" />
   </dependency>
   <dependency name="repo_licensing" linkPath="../_repo/deps/repo_licensing" tags="non-redist">
     <package name="repo_licensing" version="0.4.5" />

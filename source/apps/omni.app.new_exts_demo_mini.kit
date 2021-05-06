@@ -13,7 +13,6 @@ keywords = ["app"]
 "example.python_ext" = {}
 "example.mixed_ext" = {}
 "example.cpp_ext" = {}
-"omni.kit.quicksearch.menu" = {}
 
 
 [settings.app.window]
@@ -32,3 +31,8 @@ app.versionFile = "${app}/../VERSION"
 [settings.app.exts]
 folders.'++' = ["${app}/../exts" ]
 
+[[test]]
+args = [
+	"--/app/window/width=480",
+    "--/app/window/height=480",
+]

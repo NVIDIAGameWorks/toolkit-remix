@@ -25,7 +25,7 @@ app.versionFile = "${app}/../VERSION"
 
 # Register extension folder from this repo in kit
 [settings.app.exts]
-folders.'++' = ["${app}/../exts", "${app}/../extscache"]
+folders.'++' = ["${app}/../exts"]
 
 
 [settings.app.extensions]
@@ -34,3 +34,77 @@ enabledDeprecated = [
         "omni.kit.builtin.menu",
     ]
 
+[[test]]
+args = [
+	"--/app/window/width=480",
+    "--/app/window/height=480",
+    "--/app/extensions/registryEnabled=0", # Make sure we can run without registry and everything is precached
+]
+
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Version lock for all dependencies.
+[settings.persistent.app.exts]
+enabled = [
+	"omni.usd.schema.physics-1.0.0",
+	"omni.app.dev-1.0.0",
+	"omni.command.usd-1.0.1",
+	"omni.iray.settings.core-0.6.2",
+	"omni.kit.widget.path_field-2.0.2",
+	"omni.kit.search_core-1.0.0",
+	"omni.kit.widget.graph-1.1.0",
+	"omni.kit.stage_templates-1.0.3",
+	"omni.kit.widget.filebrowser-2.2.3",
+	"omni.kit.widget.browser_bar-2.0.1",
+	"omni.kit.property.geometry-1.1.0",
+	"omni.kit.selection-0.0.0",
+	"omni.kit.property.transform-1.0.2",
+	"omni.kit.menu.file-1.0.1",
+	"omni.kit.property.layer-1.1.1",
+	"omni.kit.property.audio-1.0.4",
+	"omni.kit.property.bundle-1.2.4",
+	"omni.kit.property.light-1.0.4",
+	"omni.kit.primitive.mesh-1.0.0",
+	"omni.kit.notification_manager-1.0.0",
+	"omni.kit.property.camera-1.0.3",
+	"omni.kit.property.usd-3.9.2",
+	"omni.kit.menu.edit-1.0.1",
+	"omni.kit.property.material-1.6.2",
+	"omni.kit.thumbnails.images-0.1.0",
+	"omni.kit.widget.layers-1.4.4",
+	"omni.kit.widget.live-0.0.0",
+	"omni.kit.widget.prompt-1.0.0",
+	"omni.kit.widget.settings-1.0.0",
+	"omni.kit.widget.stage-2.4.2",
+	"omni.kit.widget.stage_icons-1.0.1",
+	"omni.kit.window.about-1.0.0",
+	"omni.kit.window.console-0.0.0",
+	"omni.kit.window.content_browser-2.2.1",
+	"omni.kit.window.extensions-1.0.2",
+	"omni.kit.window.file-1.2.1",
+	"omni.kit.window.filepicker-2.2.1",
+	"omni.kit.window.stage-2.3.3",
+	"omni.kit.window.title-1.1.0",
+	"omni.kit.window.stats-0.0.0",
+	"omni.kit.window.profiler-1.0.0",
+	"omni.kit.window.status_bar-0.0.0",
+	"omni.kit.window.toolbar-1.1.0",
+	"omni.kit.window.script_editor-1.5.0",
+	"omni.kit.window.tests-0.1.0",
+	"omni.kit.window.property-0.0.0",
+	"omni.kit.window.popup_dialog-1.0.1",
+	"omni.kit.window.preferences-1.1.0",
+	"omni.rtx.window.settings-0.6.0",
+	"omni.services.transport.server.http-1.0.0",
+	"omni.rtx.settings.core-0.5.4",
+	"omni.services.transport.server.base-1.0.0",
+	"omni.kit.asset_converter-1.1.14",
+	"omni.kit.tool.asset_importer-2.3.0",
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################

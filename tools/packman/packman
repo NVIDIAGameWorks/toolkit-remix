@@ -22,7 +22,7 @@ else
 	PM_CURL_SILENT="-s -S"
 	PM_WGET_QUIET="--quiet"
 fi
-PM_PACKMAN_VERSION=6.31
+PM_PACKMAN_VERSION=6.33.2
 
 # This is necessary for newer macOS
 if [ `uname` == 'Darwin' ]; then
@@ -45,7 +45,7 @@ add_packages_root_to_file()
 }
 
 # The packages root may already be configured by the user
-if [ -z "$PM_PACKAGES_ROOT" ]; then
+if [ -z "${PM_PACKAGES_ROOT:-}" ]; then
 	# Set variable permanently using .profile for this user (if exists)
 	add_packages_root_to_file ~/.profile
 	add_packages_root_to_file ~/.bashrc

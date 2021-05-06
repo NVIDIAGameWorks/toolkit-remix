@@ -5,7 +5,8 @@
 [repo]
 logging = "warn"
 extra_tool_paths = [
-	"${root}/_build/$platform/release/kit/dev"
+	"${root}/_build/$platform/release/kit/dev",
+	"${root}/_build/$platform/debug/kit/dev"
 ]
 
 
@@ -91,53 +92,18 @@ default_config = "release"
 kind = "glob_and_exec"
 path = "${test_root}"
 
-# fnmatch module is used, matching is case insensitive. Refer to: https://docs.python.org/3/library/fnmatch.html
-# notice: to escape [ and ] symbols wrap them in [].
-stdout_fail_patterns.include = ["*[[]error[]]*", "*[[]fatal[]]*"]
-stdout_fail_patterns.exclude = [
-  "*Leaking graphics objects*",  # Exclude grahics leaks until fixed
-	"*leaking memory. Missing call to destroyResourceBindingSignature*",
+stdout_fail_patterns.include = []
+stdout_fail_patterns.exclude = []
+
+[[repo_test.suites.alltests.group]]
+# Run all tests experiences (ones that start with "tests-")
+include = ["tests-*${shell_ext}"]
+exclude = [
+  #"tests-omni.anim.*",
 ]
-
-
-	[[repo_test.suites.alltests.group]]
-	# Run all tests experiences (ones that start with "tests-")
-	include = ["tests-*${shell_ext}"]
-	exclude = [
-		#"tests-omni.anim.*",
-	]
-	args = [""]
-  timeout = 300
-	tc_report_enabled = true
-
-	[[repo_test.suites.alltests.group]]
-	# Run app startup ptest
-	include = ["omni.app.new_exts_demo_mini*${shell_ext}"]
-	args = [
-    "--/app/quitAfter=60",
-    "--/app/asyncRendering=false",
-    "--/app/window/width=480",
-    "--/app/window/height=480",
-    "--/log/flushStandardStreamOutput=1", # Prevents mixed up piped stdout
-
-  ]
-  timeout = 300
-	tc_report_enabled = true
-
-	[[repo_test.suites.alltests.group]]
-	# Run app startup ptest
-	include = ["omni.app.precache_exts_demo*${shell_ext}"]
-	args = [
-    "--/app/quitAfter=60",
-    "--/app/asyncRendering=false",
-    "--/app/window/width=480",
-    "--/app/window/height=480",
-    "--/app/extensions/registryEnabled=0", # Make sure we can run without registry and everything is precached
-    "--/log/flushStandardStreamOutput=1", # Prevents mixed up piped stdout
-
-  ]
-  timeout = 300
-	tc_report_enabled = true
+args = [""]
+timeout = 300
+tc_report_enabled = true
 
 
 ########################################################################################################################
@@ -235,7 +201,7 @@ enabled = true
 kit_extra_args = []
 
 # Folder to store cache extensions into
-cache_path = "${root}/_build/${platform}/${config}/extscache"
+cache_path = "${root}/_build/${platform}/${config}/exts"
 
 ext_folders = [
   "${root}/_build/$platform/$config/exts"

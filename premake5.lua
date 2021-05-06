@@ -14,6 +14,9 @@ root = repo_build.get_abs_path(".")
 local build_path = "_build/"..os.target().."-x86_64/"
 local _ = dofileopt(build_path.."release/kit/dev/premake5-public.lua") or dofileopt(build_path.."debug/kit/dev/premake5-public.lua")
 
+-- Make [suite] in `tests-[suite]-omni.foo.bat` empty.
+EXT_TEST_TEST_SUITE_DEFAULT = nil
+
 -- Setup where to write generate prebuild.toml file
 repo_build.set_prebuild_file('_build/generated/prebuild.toml')
 
@@ -142,9 +145,8 @@ group "apps"
     end
 
     -- Application example. Only runs Kit with a config, doesn't build anything. Helper for debugging.
-    define_app("omni.app.new_exts_demo.kit")
-    define_app("omni.app.new_exts_demo_mini.kit")
-    define_app("omni.app.precache_exts_demo.kit")
+    define_app("omni.app.new_exts_demo_mini")
+    define_app("omni.app.precache_exts_demo")
 
     define_ext_test_experience("example.python_ext")
 
