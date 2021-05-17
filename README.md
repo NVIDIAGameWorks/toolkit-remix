@@ -1,5 +1,3 @@
-
-
 # Kit Extensions & Apps Example :package:
 
 This repo is the gold standard for building Kit extensions and applications.
@@ -50,11 +48,16 @@ cp -R build.bat build.sh .clang-format deps/ docs/ .editorconfig format_code.bat
 And then merge… 
 
 
-## 3. Duplicate the Teamcity job
+## 3. Duplicate the TeamCity project
 
-This is mostly just a question of going to [https://teamcity.nvidia.com/project/Omniverse_KitExtensions_KitTemplate?mode=builds](https://teamcity.nvidia.com/project/Omniverse_KitExtensions_KitTemplate?mode=builds) and clicking Edit Configuration, then Actions->Copy Project (all in the top right of the browser window). \
-You’ll need to modify the VCS root and save it under another name.  \
-As a general rule of thumb, everywhere you see “KitTemplate” replace it with the name of your project, which at least ensures some kind of uniqueness
+This is mostly just a question of:
+1. Navigating to [https://teamcity.nvidia.com/project/Omniverse_KitExtensions_KitTemplate?mode=builds](https://teamcity.nvidia.com/project/Omniverse_KitExtensions_KitTemplate?mode=builds)
+2. Clicking _Edit Project..._, then _Actions_ > _Copy project..._ on the upper right-hand corner of the page. \
+**Note:** Should you not see the _Actions_ menu at the top of the page, navigate to [https://dlrequest](https://dlrequest/GroupID/Groups/MyGroups#MyMemberships) and validate that you are a member of the `carbonite-dev` and `omniverse-dev` groups. If not, request access and once it has been granted, wait a few minutes before refreshing the TeamCity page.
+3. From the _Copy Project_ modal dialog, modify the _VCS Root ID_ in order to match the name of the new project, and save it under another name. \
+As a general rule of thumb, replace every instance of `KitTemplate` with the name of your project, to ensure some kind of uniqueness.
+4. (Optional) You may choose to uncheck the _Copy build configurations' build counters_ option should you wish to start your new TeamCity project builds from `1`.
+5. Clicking the _Copy_ button of the dialog.
 
 
 
