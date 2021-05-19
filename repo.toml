@@ -197,6 +197,8 @@ archive_pattern = "${root}/_build/packages/kit-template@*${config}.7z"
 [repo_precache_exts]
 enabled = true
 
+kit_path = "${root}/_build/$platform/$config/kit/kit${exe_ext}"
+
 # Extra args to pass to kit
 kit_extra_args = []
 
