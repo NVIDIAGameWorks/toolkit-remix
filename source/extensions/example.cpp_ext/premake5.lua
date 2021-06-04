@@ -2,6 +2,10 @@
 local ext = get_current_extension_info()
 
 project_ext (ext)
+repo_build.prebuild_link {
+    { "data", ext.target_dir.."/data" },
+    { "docs", ext.target_dir.."/docs" },
+}
 
 -- Build Carbonite plugin to be loaded by extension. This plugin implements omni::ext::IExt interface to be automatically
 -- started by extension system.

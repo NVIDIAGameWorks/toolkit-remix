@@ -4,6 +4,7 @@
 
 [repo]
 logging = "warn"
+
 extra_tool_paths = [
 	"${root}/_build/$platform/release/kit/dev",
 	"${root}/_build/$platform/debug/kit/dev"
@@ -64,7 +65,6 @@ msbuild.vs_version = "vs2017"
 stage_files.error_if_missing = true
 
 licensing.enabled = true
-licensing.packages = ["${root}/deps/rtx-target-deps.packman.xml", "${root}/deps/target-deps.packman.xml"]
 licensing.fail_on_missing = true
 
 post_build.commands = [
@@ -174,13 +174,15 @@ ext_folders = [
 
 # Extensions to publish, include and exclude among those discovered by kit. Wildcards are supported.
 exts.include = [
-    "example.mixed_ext"
+    "example.cpp_ext",
+    "example.mixed_ext",
+    "example.python_ext"
 ]
 exts.exclude = []
 
 # Registries to publish to.
 registries = [
-    { name = "kit/test", url = "omniverse://kit-extensions.ov.nvidia.com/exts/kit/test" },
+    { name = "kit/default", url = "omniverse://kit-extensions.ov.nvidia.com/exts/kit/default" },
 ]
 
 # verify before publishing

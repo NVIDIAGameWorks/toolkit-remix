@@ -151,7 +151,7 @@ To use your local build of Kit SDK, assuming it is located say at `C:/projects/k
 
 Use `repo_source` tool to link: 
 
-> `repo source link kit-sdk c:/projects/kit/kit/_build/$platform/$config`
+> `repo source link kit-sdk c:/projects/kit/kit`
 
 Or use GUI mode to do source linking:
 
@@ -350,6 +350,7 @@ This is a local only step
 Will generate licence files for your extensions… most of this is actually handled at the build stage, so not sure where it's neede
 
 #### repo changelog
+
 Future work is to update this so it can automatically generate the changelogs for extensions from git commits - currently it works mostly for Kit-based applications
 
 #### repo build_number
@@ -361,7 +362,7 @@ Used by TC only
 
 * `premake5.lua` - all configuration for generating platform specific build solutions. [premake5 docs](https://github.com/premake/premake-core/wiki).
 * `repo.toml` - configuration of all repo tools (build, package, format etc).
-* `package.toml` - lists file wildcards to innclude in packages
+* `package.toml` - lists file wildcards to include in packages
 
 
 
