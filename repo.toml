@@ -4,6 +4,7 @@
 
 [repo]
 logging = "warn"
+name = "kit-template"
 
 extra_tool_paths = [
 	"${root}/_build/$platform/release/kit/dev",
@@ -82,7 +83,7 @@ post_build.commands = [
 test_root = "$root/_build/$platform/$config"
 
 # When running from package, look for package using that path/pattern:
-archive_pattern = "${root}/_build/packages/kit-template*${config}.7z"
+archive_pattern = "${root}/_build/packages/${conf:repo.name}*${config}.7z"
 archive_post_unpack_cmd = ["${test_root}/pull_kit_sdk${shell_ext}"]
 
 # Default --config argument:
@@ -189,7 +190,7 @@ registries = [
 publish_verification = true
 
 # When running from package, look for package using that path/pattern:
-archive_pattern = "${root}/_build/packages/kit-template@*${config}.7z"
+archive_pattern = "${root}/_build/packages/${conf:repo.name}@*${config}.7z"
 
 
 ########################################################################################################################
