@@ -1,6 +1,0 @@
-<project toolsVersion="5.6">
-  <import path="kit-sdk.packman.xml">
-    <filter include="kit_sdk_${config}" />
-  </import>
-  <dependency name="kit_sdk_${config}" linkPath="../../kit" />
-</project>
