@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<build-type xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" uuid="62f7ecc1-7a0d-432f-ae0c-97d9cc2b33b3" xsi:noNamespaceSchemaLocation="https://www.jetbrains.com/teamcity/schemas/2021.1/project-config.xsd">
+  <name>build (windows-x86_64)</name>
+  <description />
+  <settings>
+    <options>
+      <option name="buildNumberPattern" value="%dep.Omniverse_KitExtensions_KitTemplate_Master_Building_GenerateBuildNumber.build.number%" />
+      <option name="cleanBuild" value="true" />
+      <option name="executionTimeoutMin" value="30" />
+    </options>
+    <parameters>
+      <param name="env.BUILD_NUMBER" value="%build.number%" />
+    </parameters>
+    <build-runners>
+      <runner id="RUNNER_2481" name="" type="simpleRunner">
+        <parameters>
+          <param name="org.jfrog.artifactory.selectedDeployableServer.downloadSpecSource" value="Job configuration" />
+          <param name="org.jfrog.artifactory.selectedDeployableServer.uploadSpecSource" value="Job configuration" />
+          <param name="org.jfrog.artifactory.selectedDeployableServer.useSpecs" value="false" />
+          <param name="script.content" value="tools/ci/building/build-windows-x86_64/step.bat" />
+          <param name="teamcity.step.mode" value="default" />
+          <param name="use.custom.script" value="true" />
+        </parameters>
+      </runner>
+    </build-runners>
+    <vcs-settings>
+      <vcs-entry-ref root-id="Omniverse_KitExtensions_KitTemplate_GitlabMasterOmniverseKitExtensionsKitTemplate" />
+    </vcs-settings>
+    <requirements>
+      <contains id="RQ_3299" name="teamcity.agent.jvm.os.name" value="Windows" />
+      <not-exists id="RQ_4199" name="system.feature.nvidia.gpu.name" />
+    </requirements>
+    <build-triggers />
+    <dependencies>
+      <depend-on sourceBuildTypeId="Omniverse_KitExtensions_KitTemplate_Master_Building_GenerateBuildNumber">
+        <options>
+          <option name="run-build-if-dependency-failed" value="CANCEL" />
+          <option name="run-build-if-dependency-failed-to-start" value="CANCEL" />
+          <option name="take-started-build-with-same-revisions" value="true" />
+          <option name="take-successful-builds-only" value="true" />
+        </options>
+      </depend-on>
+    </dependencies>
+    <cleanup />
+  </settings>
+</build-type>
+

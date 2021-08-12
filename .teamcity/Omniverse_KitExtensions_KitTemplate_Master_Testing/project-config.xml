@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" parent-id="Omniverse_KitExtensions_KitTemplate_Master" uuid="0170c896-5d92-4073-8d3f-fb25b2a7c341" xsi:noNamespaceSchemaLocation="https://www.jetbrains.com/teamcity/schemas/2021.1/project-config.xsd">
+  <name>testing</name>
+  <parameters />
+  <cleanup />
+</project>
+

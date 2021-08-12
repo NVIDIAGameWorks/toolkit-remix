@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<build-type xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" uuid="249798a5-dcfb-4757-b886-40f6111abafc" xsi:noNamespaceSchemaLocation="https://www.jetbrains.com/teamcity/schemas/2021.1/project-config.xsd">
+  <name>publish extensions (windows-x86_64)</name>
+  <description />
+  <settings>
+    <options>
+      <option name="buildNumberPattern" value="%dep.Omniverse_KitExtensions_KitTemplate_Master_Building_GenerateBuildNumber.build.number%" />
+      <option name="cleanBuild" value="true" />
+      <option name="showDependenciesChanges" value="true" />
+    </options>
+    <parameters />
+    <build-runners>
+      <runner id="RUNNER_4583" name="" type="simpleRunner">
+        <parameters>
+          <param name="org.jfrog.artifactory.selectedDeployableServer.downloadSpecSource" value="Job configuration" />
+          <param name="org.jfrog.artifactory.selectedDeployableServer.uploadSpecSource" value="Job configuration" />
+          <param name="org.jfrog.artifactory.selectedDeployableServer.useSpecs" value="false" />
+          <param name="script.content" value="tools\ci\publishing\publish-extensions-windows-x86_64\step.bat" />
+          <param name="teamcity.step.mode" value="default" />
+          <param name="use.custom.script" value="true" />
+        </parameters>
+      </runner>
+    </build-runners>
+    <vcs-settings>
+      <vcs-entry-ref root-id="Omniverse_KitExtensions_KitTemplate_GitlabMasterOmniverseKitExtensionsKitTemplate" />
+    </vcs-settings>
+    <requirements>
+      <exists id="RQ_4206" name="system.feature.windows.version" />
+      <not-exists id="RQ_4207" name="system.feature.nvidia.gpu.driver.major" />
+    </requirements>
+    <build-triggers />
+    <build-extensions>
+      <extension id="jetbrains.agent.free.space" type="jetbrains.agent.free.space">
+        <parameters>
+          <param name="free-space-work" value="3gb" />
+        </parameters>
+      </extension>
+    </build-extensions>
+    <artifact-dependencies>
+      <dependency id="ARTIFACT_DEPENDENCY_1679" sourceBuildTypeId="Omniverse_KitExtensions_KitTemplate_Master_Building_BuildWindowsX8664" cleanDestination="true">
+        <revisionRule name="sameChainOrLastFinished" revision="latest.sameChainOrLastFinished" />
+        <artifact sourcePath="*.7z =&gt; _build/packages&#xD;&#xA;" />
+      </dependency>
+    </artifact-dependencies>
+    <dependencies>
+      <depend-on sourceBuildTypeId="Omniverse_KitExtensions_KitTemplate_Master_Building_BuildWindowsX8664">
+        <options>
+          <option name="run-build-if-dependency-failed" value="CANCEL" />
+          <option name="run-build-if-dependency-failed-to-start" value="CANCEL" />
+          <option name="take-started-build-with-same-revisions" value="true" />
+          <option name="take-successful-builds-only" value="true" />
+        </options>
+      </depend-on>
+    </dependencies>
+    <cleanup />
+  </settings>
+</build-type>
+
