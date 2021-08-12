@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vcs-root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" uuid="062e47a4-5fd8-432f-8e54-8d89b637b830" type="jetbrains.git" xsi:noNamespaceSchemaLocation="https://www.jetbrains.com/teamcity/schemas/2021.1/project-config.xsd">
+  <name>gitlab-master-omniverse-kit-extensions-kit-template</name>
+  <param name="agentCleanFilesPolicy" value="ALL_UNTRACKED" />
+  <param name="agentCleanPolicy" value="ON_BRANCH_CHANGE" />
+  <param name="authMethod" value="TEAMCITY_SSH_KEY" />
+  <param name="branch" value="refs/heads/master" />
+  <param name="ignoreKnownHosts" value="true" />
+  <param name="secure:password" value="" />
+  <param name="submoduleCheckout" value="CHECKOUT" />
+  <param name="teamcity:branchSpec"><![CDATA[+:refs/heads/WARForTeamCityNotFillingParamsUnlessThereIsABranchSpecDefined
++:refs/(merge-requests*)/head
++:refs/heads/(*)]]></param>
+  <param name="teamcitySshKey" value="TC Omniverse RW key" />
+  <param name="url" value="ssh://git@gitlab-master.nvidia.com:12051/omniverse/kit-extensions/kit-template.git" />
+  <param name="useAlternates" value="USE_MIRRORS" />
+  <param name="username" value="git" />
+  <param name="usernameStyle" value="USERID" />
+</vcs-root>
+
