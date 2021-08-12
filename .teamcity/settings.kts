@@ -3,7 +3,6 @@ import jetbrains.buildServer.configs.kotlin.v2019_2.buildFeatures.freeDiskSpace
 import jetbrains.buildServer.configs.kotlin.v2019_2.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.v2019_2.triggers.finishBuildTrigger
 import jetbrains.buildServer.configs.kotlin.v2019_2.triggers.vcs
-import jetbrains.buildServer.configs.kotlin.v2019_2.vcs.GitVcsRoot
 
 /*
 The settings script is an entry point for defining a TeamCity
@@ -31,31 +30,12 @@ version = "2021.1"
 
 project {
 
-    vcsRoot(GitlabMasterOmniverseKitExtensionsKitTemplate)
-
     params {
         param("env.OV_BRANCH_NAME", "no need")
     }
 
     subProject(Master)
 }
-
-object GitlabMasterOmniverseKitExtensionsKitTemplate : GitVcsRoot({
-    name = "gitlab-master-omniverse-kit-extensions-kit-template"
-    url = "ssh://git@gitlab-master.nvidia.com:12051/omniverse/kit-extensions/kit-template.git"
-    branch = "refs/heads/%omni.branchname%"
-    branchSpec = """
-        +:refs/heads/WARForTeamCityNotFillingParamsUnlessThereIsABranchSpecDefined
-        +:refs/(merge-requests*)/head
-        +:refs/heads/(*)
-    """.trimIndent()
-    checkoutPolicy = GitVcsRoot.AgentCheckoutPolicy.USE_MIRRORS
-    authMethod = uploadedKey {
-        userName = "git"
-        uploadedKey = "TC Omniverse RW key"
-    }
-    param("secure:password", "")
-})
 
 
 object Master : Project({
@@ -80,7 +60,7 @@ object Master_BuildAndValidation : BuildType({
     type = BuildTypeSettings.Type.COMPOSITE
 
     vcs {
-        root(GitlabMasterOmniverseKitExtensionsKitTemplate)
+        root(DslContext.settingsRoot)
 
         showDependenciesChanges = true
     }
@@ -159,7 +139,7 @@ object Master_Building_BuildLinuxAarch64 : BuildType({
     }
 
     vcs {
-        root(GitlabMasterOmniverseKitExtensionsKitTemplate)
+        root(DslContext.settingsRoot)
 
         cleanCheckout = true
     }
@@ -200,7 +180,7 @@ object Master_Building_BuildLinuxX8664 : BuildType({
     }
 
     vcs {
-        root(GitlabMasterOmniverseKitExtensionsKitTemplate)
+        root(DslContext.settingsRoot)
 
         cleanCheckout = true
     }
@@ -241,7 +221,7 @@ object Master_Building_BuildWindowsX8664 : BuildType({
     }
 
     vcs {
-        root(GitlabMasterOmniverseKitExtensionsKitTemplate)
+        root(DslContext.settingsRoot)
 
         cleanCheckout = true
     }
@@ -280,7 +260,7 @@ object Master_Building_GenerateBuildNumber : BuildType({
     }
 
     vcs {
-        root(GitlabMasterOmniverseKitExtensionsKitTemplate)
+        root(DslContext.settingsRoot)
 
         cleanCheckout = true
     }
@@ -315,7 +295,7 @@ object Master_Publish : BuildType({
     buildNumberPattern = "${Master_Building_GenerateBuildNumber.depParamRefs.buildNumber}"
 
     vcs {
-        root(GitlabMasterOmniverseKitExtensionsKitTemplate)
+        root(DslContext.settingsRoot)
     }
 
     steps {
@@ -365,7 +345,7 @@ object Master_Publishing_PublishExtensionsLinuxX8664 : BuildType({
     buildNumberPattern = "${Master_Building_GenerateBuildNumber.depParamRefs.buildNumber}"
 
     vcs {
-        root(GitlabMasterOmniverseKitExtensionsKitTemplate)
+        root(DslContext.settingsRoot)
 
         cleanCheckout = true
         showDependenciesChanges = true
@@ -413,7 +393,7 @@ object Master_Publishing_PublishExtensionsWindowsX8664 : BuildType({
     buildNumberPattern = "${Master_Building_GenerateBuildNumber.depParamRefs.buildNumber}"
 
     vcs {
-        root(GitlabMasterOmniverseKitExtensionsKitTemplate)
+        root(DslContext.settingsRoot)
 
         cleanCheckout = true
         showDependenciesChanges = true
@@ -470,7 +450,7 @@ object Master_Testing_TestLinuxX8664 : BuildType({
     buildNumberPattern = "${Master_Building_GenerateBuildNumber.depParamRefs.buildNumber}"
 
     vcs {
-        root(GitlabMasterOmniverseKitExtensionsKitTemplate)
+        root(DslContext.settingsRoot)
 
         cleanCheckout = true
     }
@@ -510,7 +490,7 @@ object Master_Testing_TestWindowsX8664 : BuildType({
     buildNumberPattern = "${Master_Building_GenerateBuildNumber.depParamRefs.buildNumber}"
 
     vcs {
-        root(GitlabMasterOmniverseKitExtensionsKitTemplate)
+        root(DslContext.settingsRoot)
 
         cleanCheckout = true
     }
