@@ -92,3 +92,5 @@ symbols.txt
 output.txt
 
 # PACKAGE-LICENSES/
+
+PACKAGE-DEPS.yaml
