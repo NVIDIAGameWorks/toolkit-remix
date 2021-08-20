@@ -33,7 +33,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": false,
+            "console": "internalConsole",
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
@@ -45,7 +45,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": false,
+            "console": "internalConsole",
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
@@ -57,7 +57,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": true,
+            "console": "internalConsole",
             "MIMode": "gdb",
             "setupCommands": [
                 {
@@ -80,7 +80,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": true,
+            "console": "internalConsole",
             "MIMode": "gdb",
             "setupCommands": [
                 {
