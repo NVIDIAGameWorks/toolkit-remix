@@ -261,8 +261,8 @@ object Master_Building_BuildWindowsX8664 : BuildType({
 
     dependencies {
         snapshot(Master_Building_GenerateBuildNumber) {
-            onDependencyFailure = FailureAction.CANCEL
-            onDependencyCancel = FailureAction.CANCEL
+            onDependencyFailure = FailureAction.FAIL_TO_START
+            onDependencyCancel = FailureAction.FAIL_TO_START
         }
     }
 
