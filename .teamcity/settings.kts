@@ -104,6 +104,10 @@ object Master_BuildAndValidation : BuildType({
         snapshot(Master_Building_GenerateBuildNumber) {
             onDependencyFailure = FailureAction.CANCEL
         }
+        snapshot(Master_Testing_TestLinuxX8664) {
+        }
+        snapshot(Master_Testing_TestWindowsX8664) {
+        }
     }
 })
 
