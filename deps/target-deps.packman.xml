@@ -3,6 +3,7 @@
   <import path="../_build/${platform}/${config}/kit/dev/deps/target-deps.packman.xml">
     <filter include="pybind11" />
     <filter include="fmt" />
+    <filter include="python" />
   </import>  
 
   <!-- Import Rtx plugins deps -->
@@ -14,4 +15,5 @@
   <dependency name="carb_sdk_plugins" linkPath="../_build/target-deps/carb_sdk_plugins" tags="non-redist" />
   <dependency name="pybind11" linkPath="../_build/target-deps/pybind11" />
   <dependency name="fmt" linkPath="../_build/target-deps/fmt" />
+  <dependency name="python" linkPath="../_build/target-deps/python" />
 </project>

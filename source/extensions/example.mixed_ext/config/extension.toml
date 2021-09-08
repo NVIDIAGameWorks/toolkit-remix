@@ -12,6 +12,11 @@ keywords = ["kit", "example"]
 [[python.module]]
 name = "example.battle_simulator"
 
+# Demonstrate how to add another folder to sys.path. Here we add pip packages installed at build time.
+[[python.module]]
+name = "watchdog"
+path = "pip_prebundle"
+
 [[native.plugin]]
 path = "bin/*.plugin"
 recursive = false

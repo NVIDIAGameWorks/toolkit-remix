@@ -15,6 +15,10 @@ class TestBattle(omni.kit.test.AsyncTestCaseFailOnLogError):
         winner, _ = example.battle_simulator.fight(10, 20, 5, 1)
         self.assertEqual(winner, 1)
 
+    async def test_pip_prebundle(self):
+        import watchdog
+        self.assertIsNotNone(watchdog)
+
     def test_create_warrior(self):
         w = self._iface.create_warrior(hp=100, damage=1)
         warriors = self._iface.get_warriors()

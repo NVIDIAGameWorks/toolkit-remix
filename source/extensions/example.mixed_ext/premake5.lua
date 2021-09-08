@@ -22,5 +22,10 @@ project_ext_bindings {
         { "python/impl", ext.target_dir.."/example/battle_simulator/impl" },
         { "python/tests", ext.target_dir.."/example/battle_simulator/tests" },
     }
+
+-- Include pip packages installed at build time
+repo_build.prebuild_link {
+    { "%{root}/_build/target-deps/pip_prebundle", ext.target_dir.."/pip_prebundle" },
+}
     
 define_ext_test_experience("example.mixed_ext", { python_module= "example.battle_simulator" }) -- Notice that python module name is different from extension name.
