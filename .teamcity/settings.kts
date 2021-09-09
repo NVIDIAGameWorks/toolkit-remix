@@ -307,6 +307,7 @@ object Master_Publishing : Project({
     buildType(Master_Publishing_PublishExtensionsLinuxX8664)
     buildType(Master_Publish)
     buildType(Master_Publishing_PublishExtensionsWindowsX8664)
+    buildType(Master_Publishing_PublishDocs)
 })
 
 object Master_Publish : BuildType({
@@ -456,6 +457,53 @@ object Master_Publishing_PublishExtensionsWindowsX8664 : BuildType({
     }
 })
 
+object Master_Publishing_PublishDocs : BuildType({
+    name = "publish docs"
+
+    buildNumberPattern = "${Master_Building_GenerateBuildNumber.depParamRefs.buildNumber}"
+
+    vcs {
+        root(GitlabMasterOmniverseKitExtensionsKitTemplate)
+
+        cleanCheckout = true
+        showDependenciesChanges = true
+    }
+
+    steps {
+        script {
+            scriptContent = """tools\ci\publishing\publish-docs\step.bat"""
+            param("org.jfrog.artifactory.selectedDeployableServer.downloadSpecSource", "Job configuration")
+            param("org.jfrog.artifactory.selectedDeployableServer.useSpecs", "false")
+            param("org.jfrog.artifactory.selectedDeployableServer.uploadSpecSource", "Job configuration")
+        }
+    }
+
+    features {
+        freeDiskSpace {
+            failBuild = false
+        }
+    }
+
+    dependencies {
+        dependency(Master_Building_BuildWindowsX8664) {
+            snapshot {
+                onDependencyFailure = FailureAction.FAIL_TO_START
+                onDependencyCancel = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                artifactRules = """
+                    docs*.7z!** => .
+                """.trimIndent()
+            }
+        }
+    }
+
+    requirements {
+        doesNotExist("system.feature.nvidia.gpu.driver.major")
+        exists("system.feature.windows.version")
+    }
+})
 
 object Master_Testing : Project({
     name = "testing"

@@ -6,6 +6,10 @@
 // distribution of this software and related documentation without an express
 // license agreement from NVIDIA CORPORATION is strictly prohibited.
 //
+
+//! @file
+//!
+//! @brief Example of Carbonite Interface exposed by C++ extension.
 #pragma once
 
 #include <carb/Interface.h>
