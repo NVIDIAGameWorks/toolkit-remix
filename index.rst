@@ -9,6 +9,7 @@ Kit Sdk: Extensions & Apps Example
    docs/manual/overview
    docs/api/index
    source/extensions/index
+   API <_build/docs/kit-template/latest/kit-template_api.rst>
 
    
 
