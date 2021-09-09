@@ -503,6 +503,11 @@ object Master_Publishing_PublishDocs : BuildType({
         doesNotExist("system.feature.nvidia.gpu.driver.major")
         exists("system.feature.windows.version")
     }
+
+    params {
+        param("env.AWS_ACCESS_KEY_ID", "%omniverse-docs.AWS_ACCESS_KEY_ID%")
+        param("env.AWS_SECRET_ACCESS_KEY", "%omniverse-docs.AWS_SECRET_ACCESS_KEY%")
+    }
 })
 
 object Master_Testing : Project({
