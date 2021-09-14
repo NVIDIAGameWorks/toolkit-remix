@@ -3,7 +3,7 @@
 ########################################################################################################################
 
 [repo]
-logging = "debug"
+logging = "warn"
 
 # Use Kit Template repo configuration as a base. Only override things specific to the repo.
 import_configs = ["${root}/_repo/deps/repo_kit_tools/kit-template/repo.toml"]
@@ -73,6 +73,8 @@ project = "${conf:repo.name}"
 name = "Kit Extension Template"
 copyright_start = 2021
 
+config = "release"
+
 doxygen_input = [
     "include/omni/example/IBattleSimulator.h",
 ]
@@ -94,7 +96,6 @@ sphinx_exclude_patterns = [
     "include",
     "tools",
     "_build",
-    "README.md",
     "VERSION.md",
 ]
 
