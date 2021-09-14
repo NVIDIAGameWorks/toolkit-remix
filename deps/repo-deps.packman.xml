@@ -27,6 +27,6 @@
     <package name="repo_changelog" version="0.2.1" />
   </dependency>
    <dependency name="repo_docs" linkPath="../_repo/deps/repo_docs">
-    <package name="repo_docs" version="0.9.2-rc.3" />
+    <package name="repo_docs" version="0.9.2-rc.5" />
   </dependency>
 </project>

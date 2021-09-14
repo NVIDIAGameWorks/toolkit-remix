@@ -5,4 +5,4 @@ Extensions
    :maxdepth: 2
    :glob:
 
-   **
+   **/index
