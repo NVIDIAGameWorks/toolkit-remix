@@ -469,6 +469,13 @@ object Master_Publishing_PublishDocs : BuildType({
         showDependenciesChanges = true
     }
 
+    triggers {
+        finishBuildTrigger {
+            buildType = "${Master_BuildAndValidation.id}"
+            successfulOnly = true
+        }
+    }
+
     steps {
         script {
             scriptContent = """tools\ci\publishing\publish-docs\step.bat"""

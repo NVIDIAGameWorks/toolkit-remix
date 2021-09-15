@@ -27,31 +27,39 @@ Note that if you have permissions problems transferring back, you should ask or 
 Note that the new project still has a fork relationship with kit-template, which means it’s possible to submit and merge MRs across the forks. One disadvantage of this, is that when you submit a new MR, the target branch will be by default in kit-template (maybe it’s possible to change this)
 
 
-## 2. Modify the build/repo/toolchain configuration files
+## 2. Change project name
 
 In `repo.toml` change project name:
 
 ```toml
 # Reposiory Name.
-name = "kit-template"
+name = "kit-my-funny-project"
 ```
 
 That name is used in many other places, like solution name or package name.
 
-+ if you have a fork, can do a normal MR too, cherry-pick changes etc..
-+ Alternatively just copy them over from kit-template like this: 
+You can build, test and push that change:
 
-```
-cp -R build.bat build.sh .clang-format deps/ docs/ .editorconfig format_code.bat format_code.sh .gitattributes .gitignore package.toml premake5.lua repo.bat repo.sh repo.toml setup.sh tools/ .vscode/ ../kit-usd/
-```
+`> build.bat -r`
+
+`> repo.bat test`
+
 
 ## 3. Duplicate the TeamCity project
 
-This is mostly just a question of:
-1. Navigating to [https://teamcity.nvidia.com/project/Omniverse_KitExtensions_KitTemplate?mode=builds](https://teamcity.nvidia.com/project/Omniverse_KitExtensions_KitTemplate?mode=builds)
-2. Clicking _Edit Project..._, then _Actions_ > _Copy project..._ on the upper right-hand corner of the page.
-**Note:** Should you not see the _Actions_ menu at the top of the page, navigate to [https://dlrequest](https://dlrequest/GroupID/Groups/MyGroups#MyMemberships) and validate that you are a member of the `carbonite-dev` and `omniverse-dev` groups. If not, request access and once it has been granted, wait a few minutes before refreshing the TeamCity page.
-3. From the _Copy Project_ modal dialog, modify the _VCS Root ID_ in order to match the name of the new project, and save it under another name.
-As a general rule of thumb, replace every instance of `KitTemplate` with the name of your project, to ensure some kind of uniqueness.
-4. (Optional) You may choose to uncheck the _Copy build configurations' build counters_ option should you wish to start your new TeamCity project builds from `1`.
-5. Clicking the _Copy_ button of the dialog.
+All TC configs are stored in repo under `.teamcity` folder, so you only need to setup root project with correct VCS url and everything else will show up in TC UI upon first build. But it is easier to just copy this project, change VCS settings and run a build to achieve the same result:
+
+1. Go to [https://teamcity.nvidia.com/project/Omniverse_KitExtensions_KitTemplate?mode=builds](https://teamcity.nvidia.com/project/Omniverse_KitExtensions_KitTemplate?mode=builds)
+
+2. Click _Edit Project..._, -> _Actions_ -> _Copy project..._ on the upper right-hand corner of the page. And perform copy. We recommend that namespace on TC matches one on gitlab. E.g. `Omniverse/kit-extensions/kit-my-funny-project` .
+
+3. Go into the new project settings -> VCS Roots. And click to edit previous `gitlab-master-omniverse-kit-extensions-kit-template`. Here change _VCS root name_ and _Fetch URL_ (replace `kit-template` with your `kit-my-funny-project`).
+
+4. Go into _Build and validation_ job and run to make sure all works as expected.
+
+**Note:** If you don't see the _Actions_ menu at the top of the page, navigate to [https://dlrequest](https://dlrequest/GroupID/Groups/MyGroups#MyMemberships) and validate that you are a member of the `carbon-dev` and `omniverse-dev` groups.
+
+## 4. What's next?
+
+Your new extension project is ready to use. It still builds the same demo extensions that were in `kit-template`. So first step would be to rename or remove them. Create your own extensions and update application kit file to load them, update `[repo_publish_exts]` of `repo.toml` to publish them. 
+
