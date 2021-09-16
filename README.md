@@ -85,6 +85,27 @@ To remove all source links:
 > `repo source clear`
 
 
+## Using a Local Build of another Extension
+
+Other extensions can often come from the registry to be downloaded by kit at run-time or build-time (e.g. `omni.app.precache_exts_demo.kit` example). Developers often want to use local clone of their repo to develop across multiple repo simultaneously.
+
+To do that additional extension search path needs to be passed into kit pointing to the local repo. There are many ways to do it. Recommended is using `deps/user.toml`. You can use that file to override any setting.
+
+Create `deps/user.toml` file in this repo with the search to path to your repo added to `app/exts/folders` setting, e.g.:
+
+```toml
+[app.exts]
+folders."++" = ["c:/projects/extensions/kit-converters/_build/windows-x86_64/release/exts"]
+```
+
+Other options:
+* Pass CLI arg to any app like this: `--ext-folder c:/projects/extensions/kit-converters/_build/windows-x86_64/release/exts`.
+* Use _Extension Manager UI (Gear button)_
+* Use other `user.toml` files, refer to [Kit Documentation: Configuration](http://omnidocs-internal.nvidia.com/py/docs/guide/configuration.html#user-settings).
+
+You can always find out where extension is coming from in _Extension Manager_ by selecting an extension and hovering over open button or in the log (search for e.g. `[ext: omni.kit.tool.asset_importer`).
+
+
 # Other Useful Links
 
 + See [Kit documentation](http://omnidocs-internal.nvidia.com/py/index.html)

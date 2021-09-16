@@ -74,6 +74,9 @@ CON
 # packman .user config
 *.packman.xml.user
 
+# kit user config
+deps/**/user.toml
+
 # allow anything in data, docs/images, ext data (under Git LFS management)
 !data/**
 !docs/images/**
