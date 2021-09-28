@@ -1,0 +1,77 @@
+[package]
+title = "Lightspeed Kit"
+description = "Used for lightspeed remastering."
+version = "1.0.1"
+keywords = ["app", "lightspeed"]
+
+[dependencies]
+# Include basic configuration (that brings most of basic extensions)
+"omni.app.dev" = {}
+
+# # PhysX
+"omni.physx.bundle" = {}
+
+# # Omni Graph
+"omni.graph.core" = {}
+"omni.graph.ui" = {}
+"omni.graph.examples.python" = {}
+
+"omni.kit.window.movie_maker" = {}
+
+# # More Windows and UI elements
+"omni.kit.window.provide_feedback" = {}
+"omni.kit.window.imageviewer" = {}
+"omni.kit.tagging" = { order = -10 } # should be a dependency of below 
+"omni.kit.filebrowser_column.tags" = {}
+"omni.kit.window.stats" = { order = 1000 }
+"omni.kit.window.usd_paths" = {}
+"omni.kit.thumbnails.usd" = {}
+# "omni.kit.thumbnails.images" = {}
+
+# # Misc
+"omni.ansel" = {}
+"omni.kit.window.cursor" = {}
+"omni.kit.search.service" = {}
+
+# # Property Widgets and Window
+"omni.kit.property.tagging" = {}
+
+# # Tools
+# "omni.kit.tool.asset_importer" = {}
+"omni.kit.tool.collect" = {}
+
+[settings]
+app.window.title = "Lightspeed Kit"
+
+[settings.rtx]
+rendermode = "PathTracing"
+multiThreading.enabled = true
+
+[settings.rtx-transient]
+resourcemanager.enableTextureStreaming = true
+
+[settings.rtx.hydra]	
+TBNFrameMode = 3 ## Tangent generation for geometry
+
+[settings.rtx.post]
+tonemap.op = 7
+histogram.enabled = true
+histogram.useExposureClamping = false
+histogram.filterType = 1
+histogram.tau = 10.0
+histogram.whiteScale = 5.0
+
+
+[[test]]
+args = [
+	"--/renderer/debug/validation/enabled=false",
+]
+
+# We can run all extension tests inside of an app. In practice many of them failing and crashing, that requires time
+# investment to fix. Add one extension, to keep pipeline working:
+pythonTests.include = [
+    "omni.kit.window.preferences.*",
+]
+pythonTests.exclude = [
+]
+timeout = 600
