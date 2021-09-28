@@ -42,7 +42,8 @@ files = [
 exts.include = [
     "example.cpp_ext",
     "example.mixed_ext",
-    "example.python_ext"
+    "example.python_ext",
+    "lightspeed.export"
 ]
 exts.exclude = []
 
