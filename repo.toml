@@ -9,7 +9,7 @@ logging = "warn"
 import_configs = ["${root}/_repo/deps/repo_kit_tools/kit-template/repo.toml"]
 
 # Reposiory Name. It is used for solution name and final package name
-name = "kit-template"
+name = "lightspeed-kit"
 
 
 ########################################################################################################################
