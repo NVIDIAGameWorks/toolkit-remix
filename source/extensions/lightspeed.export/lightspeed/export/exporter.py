@@ -1,8 +1,13 @@
 import os
 import omni
 import carb
+import time
 import asyncio
 import weakref
+import numpy as np
+from pxr import Gf
+from pxr import UsdGeom
+
 from omni import ui
 import omni.ext
 import omni.kit.window.content_browser as content
@@ -58,14 +63,6 @@ class LightspeedExporterExtension(omni.ext.IExt):
         )
 
         self._window.flags = self._window.flags | ui.WINDOW_FLAGS_MODAL
-
-        def _build_option_checkbox(text, default_value):
-            with ui.HStack(height=0, width=0):
-                checkbox = ui.CheckBox(width=20, style={"font_size": 16})
-                checkbox.model.set_value(default_value)
-                label = ui.Label(text, alignment=ui.Alignment.LEFT)
-
-            return checkbox
 
         style = {
             "Rectangle::hovering": {"background_color": 0x0, "border_radius": 2, "margin": 0, "padding": 0},
@@ -182,6 +179,14 @@ class LightspeedExporterExtension(omni.ext.IExt):
         def finish_callback():
             self._progress_popup.hide()
             self._refresh_current_directory()
+            # now process/optimize geo for game
+            file_path = export_folder
+            if not file_path.endswith("/"):
+                file_path += "/"
+            file_path += os.path.basename(usd_path)
+            self._process_exported_usd(file_path)
+            #reopen original stage
+            omni.usd.get_context().open_stage(usd_path)
 
         asyncio.ensure_future(collector.collect(progress_callback, finish_callback))
 
@@ -194,3 +199,49 @@ class LightspeedExporterExtension(omni.ext.IExt):
     def _refresh_current_directory(self):
         content_window = content.get_content_window()
         content_window.refresh_current_directory()
+
+    def _process_geometry(self, prim):
+        # get the primvars API of the prim
+        gp_pv = UsdGeom.PrimvarsAPI(prim)
+        # get the mesh from the Prim
+        mesh = UsdGeom.Mesh(prim)
+        # get vertex counts (by face) attribute
+        face_vertex_count = mesh.GetFaceVertexCountsAttr()
+        # get the value of the vertex counts attribute
+        face_vertex_count_value = face_vertex_count.Get()
+        # get the vertex indices attribute
+        face_vertex_indices = mesh.GetFaceVertexIndicesAttr()
+        # get the value of the vertex indices attribute
+        face_vertex_indices_value = face_vertex_indices.Get()
+        # get the primvars attribute of the UVs
+        st_prim_var = gp_pv.GetPrimvar("st")
+        # Get interpolation
+        inter_st_prim_var = st_prim_var.GetInterpolation()
+        # get the indices attribute of st_prim_var
+        st_indices_prim_var = st_prim_var.GetIndicesAttr()
+        # get the value (position) of the UVs
+        st_value = st_prim_var.Get()
+        # get the indices value of the UVs
+        st_indices_value = st_indices_prim_var.Get()
+
+        # get rid of pesky indexed UVs
+        st_prim_var.Set(st_prim_var.ComputeFlattened())
+        st_indices_prim_var.ClearDefault()
+
+        #TODO: Triangulate non-3 faceCounts
+        #TODO: Expand vertex data to "Vertex" interpolation
+
+    def _process_exported_usd(self, file_path):
+        carb.log_info("Processing: " + file_path)
+
+        success = omni.usd.get_context().open_stage(file_path)
+        if not success:
+            return
+
+        stage = omni.usd.get_context().get_stage()
+
+        all_geos = [prim_ref for prim_ref in stage.Traverse() if UsdGeom.Mesh(prim_ref)]
+        for geo_prim in all_geos:
+            self._process_geometry(geo_prim)
+
+        omni.usd.get_context().save_stage()
