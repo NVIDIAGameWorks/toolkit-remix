@@ -14,7 +14,7 @@ def bootstrap():
 
     Pull with packman from repo.packman.xml and add them all to python sys.path to enable importing.
     """
-    #with contextlib.redirect_stdout(io.StringIO()):
+    # with contextlib.redirect_stdout(io.StringIO()):
     deps = packmanapi.pull(REPO_DEPS_FILE)
     for dep_path in deps.values():
         if dep_path not in sys.path:

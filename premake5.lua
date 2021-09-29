@@ -17,7 +17,4 @@ repo_build.prebuild_copy {
     {"source/pythonapps/runscripts/$config/*$shell_ext", bin_dir}
 }
 
--- Application example. Only runs Kit with a config, doesn't build anything. Helper for debugging.
-define_app("omni.app.new_exts_demo_mini")
-define_app("omni.app.precache_exts_demo")
 define_app("omni.app.lightspeed")

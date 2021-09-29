@@ -17,6 +17,7 @@ class TestBattle(omni.kit.test.AsyncTestCaseFailOnLogError):
 
     async def test_pip_prebundle(self):
         import watchdog
+
         self.assertIsNotNone(watchdog)
 
     def test_create_warrior(self):

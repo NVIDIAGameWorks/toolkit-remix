@@ -37,8 +37,10 @@ public:
         omni::kit::IApp* app = carb::getFramework()->acquireInterface<omni::kit::IApp>();
 
         // Subscribe to update events and count them
-        m_holder =
-            carb::events::createSubscriptionToPop(app->getUpdateEventStream(), [this](carb::events::IEvent* event) {
+        m_holder = carb::events::createSubscriptionToPop(
+            app->getUpdateEventStream(),
+            [this](carb::events::IEvent* event)
+            {
                 if (m_counter % 1000 == 0)
                 {
                     printf(EXTENSION_NAME ": %d updates passed.\n", m_counter);

@@ -49,7 +49,8 @@ PYBIND11_MODULE(_example_battle_simulator, m)
         m, "IBattleSimulator", "acquire_battle_simulator_interface", "release_battle_simulator_interface")
         .def("get_warrior_count", carb::wrapInterfaceFunction(&IBattleSimulator::getWarriorCount))
         .def("get_warriors",
-             [](IBattleSimulator* self) {
+             [](IBattleSimulator* self)
+             {
                  std::vector<Warrior*> warriors(self->getWarriorCount());
                  for (size_t i = 0; i < warriors.size(); i++)
                  {

@@ -34,6 +34,7 @@ icon = "data/icon.png"
 [dependencies]
 "omni.kit.test" = {}
 "omni.kit.tool.collect" = {}
+"omni.kit.menu.utils" = {}
 
 [[python.module]]
 name = "lightspeed.export"
