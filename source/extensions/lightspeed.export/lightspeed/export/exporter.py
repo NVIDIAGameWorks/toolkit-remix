@@ -226,7 +226,7 @@ class LightspeedExporterExtension(omni.ext.IExt):
 
         # get rid of pesky indexed UVs
         st_prim_var.Set(st_prim_var.ComputeFlattened())
-        st_indices_prim_var.ClearDefault()
+        prim.RemoveProperty(st_indices_prim_var.GetName())
 
         #TODO: Triangulate non-3 faceCounts
         #TODO: Expand vertex data to "Vertex" interpolation
