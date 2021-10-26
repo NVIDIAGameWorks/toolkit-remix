@@ -33,10 +33,23 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
     def on_shutdown(self):
         pass
 
+    _texturesToUpscale = dict()
+
+    def gather_textures(self, texture):
+        if texture.lower().endswith(".dds"):
+            originalTextureName = os.path.splitext(os.path.basename(texture))[0]
+            originalTexturePath = os.path.dirname(os.path.abspath(texture))
+            upscaledDDSTexturePath = os.path.join(originalTexturePath, originalTextureName + "_upscaled4x.dds")
+            self._texturesToUpscale[texture] = upscaledDDSTexturePath
+        return texture
+
+    def apply_upscaled_textures(self, texture):
+        if texture in self._texturesToUpscale:
+            return self._texturesToUpscale[texture]
+        return texture  
+
     # todo: this should be async job!
-    def perform_upscale(self, texture):
-        if not path.lower().endswith(".dds"):
-            return path
+    def perform_upscale(self, texture, outputTexture):
         # setup script paths
         script_path = os.path.dirname(os.path.abspath( __file__ ))
         nvttPath = script_path+".\\tools\\nvtt\\nvtt_export.exe"
@@ -44,7 +57,7 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
         # create temp dir and get texture name/path
         originalTextureName = os.path.splitext(os.path.basename(texture))[0]
         originalTexturePath = os.path.dirname(os.path.abspath(texture))
-        tempDir = tempfile.TemporaryDirectory(dir = "C:/temp")
+        tempDir = tempfile.TemporaryDirectory()
         # begin real work
         print("Upscaling: " + texture)
         # convert to png
@@ -60,26 +73,33 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
         upscaleProcess = subprocess.Popen(command.split())
         upscaleProcess.wait()
         # convert to DDS, and generate mips (note dont use the temp dir for this)
-        upscaledDDSTexturePath = os.path.join(originalTexturePath, originalTextureName + "_upscaled4x.dds")
-        print("  - compressing and generating mips, out: " + upscaledDDSTexturePath)
-        command = nvttPath + " " + upscaledTexturePath + " --format bc7 --output " + upscaledDDSTexturePath
+        print("  - compressing and generating mips, out: " + outputTexture)
+        command = nvttPath + " " + upscaledTexturePath + " --format bc7 --output " + outputTexture
         compressMipProcess = subprocess.Popen(command.split())
         compressMipProcess.wait()
         # destroy temp dir
         tempDir.cleanup()
-        return upscaledDDSTexturePath
+
 
     def __clicked(self):
+        # reset the upscale list
+        self._texturesToUpscale.clear()
+
+        # get/setup layer
         stage = omni.usd.get_context().get_stage()
+        sublayer = Sdf.Layer.Find("replacements.usda")
+        if sublayer is None:
+            sublayer = Sdf.Layer.CreateNew("replacements.usda")
+            omni.kit.commands.execute(
+                "CreateSublayer",
+                layer_identifier=stage.GetRootLayer().identifier,
+                sublayer_position=0,
+                new_layer_path=sublayer.identifier,
+                transfer_root_content=False,
+                create_or_insert=True,
+            )
 
-        # get the replacements layer (or create if not exist)
-        replacementsLayer = Sdf.Layer.Find("replacements.usda")
-        if replacementsLayer is None:
-            replacementsLayer = Sdf.Layer.CreateNew("replacements.usda")
-
-        # insert overs in the replacements layer for all textures returned in 'gather'
-        stage.SetEditTarget(replacementsLayer)
-
+        # populate the texture list
         for stage_layer in [stage.GetRootLayer(), stage.GetSessionLayer()]:
             (all_layers, all_assets, unresolved_paths) = UsdUtils.ComputeAllDependencies(
                 stage_layer.identifier
@@ -88,7 +108,25 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
                 all_layers = stage.GetLayerStack()
 
             for layer in all_layers:
-                UsdUtils.ModifyAssetPaths(layer, perform_upscale)
+                UsdUtils.ModifyAssetPaths(layer, self.gather_textures)
+
+        # perform upscale
+        for originalTex, outputTex in self._texturesToUpscale.items():
+            self.perform_upscale(originalTex, outputTex)
+
+        # modify stuff in the new layer?
+        omni.kit.commands.execute("SetEditTarget", layer_identifier=sublayer.identifier)
+
+        # populate the texture list
+        for stage_layer in [stage.GetRootLayer(), stage.GetSessionLayer()]:
+            (all_layers, all_assets, unresolved_paths) = UsdUtils.ComputeAllDependencies(
+                stage_layer.identifier
+            )
+            if not all_layers:
+                all_layers = stage.GetLayerStack()
+
+            for layer in all_layers:
+                UsdUtils.ModifyAssetPaths(layer, self.apply_upscaled_textures)
 
         # revert to the original layer again when done
-        stage.SetEditTarget(stage.GetRootLayer())
+        omni.kit.commands.execute("SetEditTarget", layer_identifier=stage.GetRootLayer().identifier)
