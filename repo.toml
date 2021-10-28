@@ -43,6 +43,7 @@ exts.include = [
     "example.cpp_ext",
     "example.mixed_ext",
     "example.python_ext",
+    "lightspeed.upscale",
     "lightspeed.export"
 ]
 exts.exclude = []
