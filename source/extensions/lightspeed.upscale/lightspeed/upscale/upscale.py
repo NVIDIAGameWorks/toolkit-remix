@@ -37,7 +37,7 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
     _currentLayer = None
 
     def gather_textures(self, texture):
-        if texture.lower().endswith(".dds"):
+        if texture.lower().endswith(".dds") or texture.lower().endswith(".png"):
             absolute_tex_path = PathUtils.compute_absolute_path(self._currentLayer.identifier, texture)
             originalTextureName = os.path.splitext(os.path.basename(absolute_tex_path))[0]
             originalTexturePath = os.path.dirname(os.path.abspath(absolute_tex_path))
@@ -64,11 +64,14 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
         # begin real work
         print("Upscaling: " + texture)
         # convert to png
-        pngTexturePath = os.path.join(tempDir.name, originalTextureName + ".png")
-        print("  - converting to png, out: " + pngTexturePath)
-        command = nvttPath + " " + texture + " --output " + pngTexturePath
-        convertPngProcess = subprocess.Popen(command.split())
-        convertPngProcess.wait()
+        if texture.lower().endswith(".dds"):
+            pngTexturePath = os.path.join(tempDir.name, originalTextureName + ".png")
+            print("  - converting to png, out: " + pngTexturePath)
+            command = nvttPath + " " + texture + " --output " + pngTexturePath
+            convertPngProcess = subprocess.Popen(command.split())
+            convertPngProcess.wait()
+        else:
+            pngTexturePath = texture
         # perform upscale
         upscaledTexturePath = os.path.join(tempDir.name, originalTextureName + "_upscaled4x.png")
         print("  - running neural networks, out: " + upscaledTexturePath)
@@ -84,9 +87,9 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
         tempDir.cleanup()
 
 
-    def __clicked(self):
+    def __clicked(self): 
         # reset the upscale list
-        self._texturesToUpscale.clear()
+        self._texturesToUpscale.clear() 
 
         # get/setup layer
         stage = omni.usd.get_context().get_stage()
