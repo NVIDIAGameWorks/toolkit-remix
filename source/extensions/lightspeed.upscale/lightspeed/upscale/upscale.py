@@ -8,13 +8,13 @@ from pxr import Gf
 from pxr import UsdGeom
 from pxr import UsdUtils
 from pxr import Sdf
-import omni.usd
+import omni.usd 
 import tempfile
 
 from omni import ui
 import omni.ext
 import omni.kit.menu.utils as omni_utils
-
+from omni.kit.widget.layers.path_utils import PathUtils
 from omni.kit.menu.utils import MenuItemDescription
 
 
@@ -34,18 +34,21 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
         pass
 
     _texturesToUpscale = dict()
+    _currentLayer = None
 
     def gather_textures(self, texture):
         if texture.lower().endswith(".dds"):
-            originalTextureName = os.path.splitext(os.path.basename(texture))[0]
-            originalTexturePath = os.path.dirname(os.path.abspath(texture))
+            absolute_tex_path = PathUtils.compute_absolute_path(self._currentLayer.identifier, texture)
+            originalTextureName = os.path.splitext(os.path.basename(absolute_tex_path))[0]
+            originalTexturePath = os.path.dirname(os.path.abspath(absolute_tex_path))
             upscaledDDSTexturePath = os.path.join(originalTexturePath, originalTextureName + "_upscaled4x.dds")
-            self._texturesToUpscale[texture] = upscaledDDSTexturePath
+            self._texturesToUpscale[absolute_tex_path] = upscaledDDSTexturePath
         return texture
 
     def apply_upscaled_textures(self, texture):
-        if texture in self._texturesToUpscale:
-            return self._texturesToUpscale[texture]
+        absolute_tex_path = PathUtils.compute_absolute_path(self._currentLayer.identifier, texture)
+        if absolute_tex_path in self._texturesToUpscale:
+            return self._texturesToUpscale[absolute_tex_path]
         return texture  
 
     # todo: this should be async job!
@@ -108,7 +111,10 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
                 all_layers = stage.GetLayerStack()
 
             for layer in all_layers:
+                self._currentLayer = layer
                 UsdUtils.ModifyAssetPaths(layer, self.gather_textures)
+
+        self._currentLayer = None
 
         # perform upscale
         for originalTex, outputTex in self._texturesToUpscale.items():
@@ -126,6 +132,7 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
                 all_layers = stage.GetLayerStack()
 
             for layer in all_layers:
+                self._currentLayer = layer
                 UsdUtils.ModifyAssetPaths(layer, self.apply_upscaled_textures)
 
         # revert to the original layer again when done
