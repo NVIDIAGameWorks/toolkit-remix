@@ -36,6 +36,7 @@ icon = "data/icon.png"
 "omni.kit.test" = {}
 "omni.kit.tool.collect" = {}
 "omni.kit.menu.utils" = {}
+"omni.kit.widget.layers" = {}
 
 # Main python module this extension provides, it will be publicly available as "import omni.example.hello".
 [[python.module]]
