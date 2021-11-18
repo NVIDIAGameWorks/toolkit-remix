@@ -17,6 +17,9 @@ import omni.kit.menu.utils as omni_utils
 from omni.kit.widget.layers.path_utils import PathUtils
 from omni.kit.menu.utils import MenuItemDescription
 
+from PIL import Image
+import os.path
+
 
 class LightspeedUpscalerExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
@@ -62,28 +65,46 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
         originalTexturePath = os.path.dirname(os.path.abspath(texture))
         tempDir = tempfile.TemporaryDirectory()
         # begin real work
-        print("Upscaling: " + texture)
+        carb.log_info("Upscaling: " + texture)
         # convert to png
         if texture.lower().endswith(".dds"):
             pngTexturePath = os.path.join(tempDir.name, originalTextureName + ".png")
-            print("  - converting to png, out: " + pngTexturePath)
-            command = nvttPath + " " + texture + " --output " + pngTexturePath
-            convertPngProcess = subprocess.Popen(command.split())
+            carb.log_info("  - converting to png, out: " + pngTexturePath)
+            convertPngProcess = subprocess.Popen([nvttPath, texture,"--output" , pngTexturePath])
             convertPngProcess.wait()
+            if not os.path.exists(pngTexturePath):
+                try:
+                    with Image.open(texture) as im:
+                        im.save(pngTexturePath,"PNG")
+                except NotImplementedError as e:
+                    pass
         else:
             pngTexturePath = texture
         # perform upscale
-        upscaledTexturePath = os.path.join(tempDir.name, originalTextureName + "_upscaled4x.png")
-        print("  - running neural networks, out: " + upscaledTexturePath)
-        command = esrganToolPath + " -i " + pngTexturePath + " -o " + upscaledTexturePath
-        upscaleProcess = subprocess.Popen(command.split())
+        upscaledTexturePath = os.path.join(originalTexturePath, originalTextureName + "_upscaled4x.png")
+        carb.log_info("  - running neural networks, out: " + upscaledTexturePath)
+        upscaleProcess = subprocess.Popen([esrganToolPath, "-i", pngTexturePath, "-o", upscaledTexturePath])
         upscaleProcess.wait()
+        # check for alpha channel
+        try:
+            with Image.open(pngTexturePath) as memoryImage:
+                if memoryImage.mode == "RGBA":
+                    alphaPath = os.path.join(tempDir.name, originalTextureName + "_alpha.png")
+                    upscaledAlphaPath = os.path.join(tempDir.name, originalTextureName + "_upscaled4x_alpha.png")
+                    memoryImage.split()[-1].save(alphaPath)
+                    upscaleProcess = subprocess.Popen([esrganToolPath, "-i", alphaPath, "-o", upscaledAlphaPath])
+                    upscaleProcess.wait()
+                    with Image.open(upscaledAlphaPath).convert("L") as upscaledAlphaImage:
+                        with Image.open(upscaledTexturePath) as upscaledMemoryImage:   
+                            upscaledMemoryImage.putalpha(upscaledAlphaImage)
+                            upscaledMemoryImage.save(upscaledTexturePath,"PNG")
+        except FileNotFoundError as e:
+            carb.log_info("File not found error!")
+            pass
         # convert to DDS, and generate mips (note dont use the temp dir for this)
-        print("  - compressing and generating mips, out: " + outputTexture)
-        command = nvttPath + " " + upscaledTexturePath + " --format bc7 --output " + outputTexture
-        compressMipProcess = subprocess.Popen(command.split())
+        carb.log_info("  - compressing and generating mips, out: " + outputTexture)
+        compressMipProcess = subprocess.Popen([nvttPath, upscaledTexturePath, "--format", "bc7", "--output", outputTexture])
         compressMipProcess.wait()
-        # destroy temp dir
         tempDir.cleanup()
 
 
