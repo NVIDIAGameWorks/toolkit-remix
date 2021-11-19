@@ -25,11 +25,11 @@
             ]
         },
         {
-            "name": "omni.app.new_exts_demo (debug, windows-x86_64)",
+            "name": "omni.app.lightspeed (debug, windows-x86_64)",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/_build/windows-x86_64/debug/kit/kit.exe",
-            "args": ["${workspaceFolder}/_build/windows-x86_64/debug/apps/omni.app.new_exts_demo.kit"],
+            "args": ["${workspaceFolder}/_build/windows-x86_64/debug/apps/omni.app.lightspeed.kit"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -37,11 +37,11 @@
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
-            "name": "omni.app.new_exts_demo (release, windows-x86_64)",
+            "name": "omni.app.lightspeed (release, windows-x86_64)",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/_build/windows-x86_64/release/kit/kit.exe",
-            "args": ["${workspaceFolder}/_build/windows-x86_64/release/apps/omni.app.new_exts_demo.kit"],
+            "args": ["${workspaceFolder}/_build/windows-x86_64/release/apps/omni.app.lightspeed.kit"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -49,11 +49,11 @@
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
-            "name": "omni.app.new_exts_demo (debug, linux-x86_64)",
+            "name": "omni.app.lightspeed (debug, linux-x86_64)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/_build/linux-x86_64/debug/kit/kit",
-            "args": ["${workspaceFolder}/_build/linux-x86_64/debug/apps/omni.app.new_exts_demo.kit"],
+            "args": ["${workspaceFolder}/_build/linux-x86_64/debug/apps/omni.app.lightspeed.kit"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -72,11 +72,11 @@
             },
         },
         {
-            "name": "omni.app.new_exts_demo (release, linux-x86_64)",
+            "name": "omni.app.lightspeed (release, linux-x86_64)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/_build/linux-x86_64/release/kit/kit",
-            "args": ["${workspaceFolder}/_build/linux-x86_64/release/apps/omni.app.new_exts_demo.kit"],
+            "args": ["${workspaceFolder}/_build/linux-x86_64/release/apps/omni.app.lightspeed.kit"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

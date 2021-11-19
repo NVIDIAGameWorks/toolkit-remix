@@ -5,8 +5,7 @@ import time
 import asyncio
 import weakref
 import numpy as np
-from pxr import Gf
-from pxr import UsdGeom
+from pxr import Gf, Sdf, UsdGeom
 
 from omni import ui
 import omni.ext
@@ -40,6 +39,9 @@ class LightspeedExporterExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
         self.__create_save_menu()
         self.set_export_fn(self._start_exporting)
+
+    def on_shutdown(self):
+        omni_utils.remove_menu_items(self._tools_manager_menus, "File")
 
     def __create_save_menu(self):
         """Create the menu to Save scenario"""
@@ -200,36 +202,85 @@ class LightspeedExporterExtension(omni.ext.IExt):
         content_window = content.get_content_window()
         content_window.refresh_current_directory()
 
-    def _process_geometry(self, prim):
+    def _remove_extra_attr(self, prim):
+        used_attrs = {
+            "normals",
+            "points",
+            "doubleSided",
+            "orientation",
+            "invertedUvs"
+            "material:binding",
+            # below values are kept for kit compatibility, but not needed by dxvk_rt
+            "faceVertexCounts",
+            "faceVertexIndices",
+            "primvars:st",
+            "primvars:st:indices"}
+        
+        attr_to_remove = []
+        for attr in prim.GetAttributes():
+            if not attr.GetName() in used_attrs:
+                attr_to_remove.append(attr.GetName())
+
+        for attr in attr_to_remove:
+            carb.log_warn("Warning: Lightspeed Export doesn't support attribute: '" + attr + "' found on " + prim.GetPath().pathString)
+            prim.RemoveProperty(attr)
+
+    def _process_uvs(self, prim):
         # get the primvars API of the prim
         gp_pv = UsdGeom.PrimvarsAPI(prim)
-        # get the mesh from the Prim
-        mesh = UsdGeom.Mesh(prim)
-        # get vertex counts (by face) attribute
-        face_vertex_count = mesh.GetFaceVertexCountsAttr()
-        # get the value of the vertex counts attribute
-        face_vertex_count_value = face_vertex_count.Get()
-        # get the vertex indices attribute
-        face_vertex_indices = mesh.GetFaceVertexIndicesAttr()
-        # get the value of the vertex indices attribute
-        face_vertex_indices_value = face_vertex_indices.Get()
         # get the primvars attribute of the UVs
         st_prim_var = gp_pv.GetPrimvar("st")
-        # Get interpolation
-        inter_st_prim_var = st_prim_var.GetInterpolation()
-        # get the indices attribute of st_prim_var
-        st_indices_prim_var = st_prim_var.GetIndicesAttr()
-        # get the value (position) of the UVs
-        st_value = st_prim_var.Get()
-        # get the indices value of the UVs
-        st_indices_value = st_indices_prim_var.Get()
 
-        # get rid of pesky indexed UVs
-        st_prim_var.Set(st_prim_var.ComputeFlattened())
-        prim.RemoveProperty(st_indices_prim_var.GetName())
+        #[AJAUS] Because USD and Directx8/9 assume different texture coordinate origins, invert the vertical texture coordinate
+        flattened_uvs = st_prim_var.ComputeFlattened()
+        inverted_uvs = []
+        for uv in flattened_uvs:
+            inverted_uvs.append(Gf.Vec2f(uv[0], -uv[1]))
+        
+        prim.CreateAttribute("invertedUvs", Sdf.ValueTypeNames.Float2Array, False).Set(inverted_uvs)
+    
+    def _process_geometry(self, mesh):
+        face_vertex_indices = mesh.GetFaceVertexIndicesAttr().Get()
+        points = mesh.GetPointsAttr().Get()
+        fixed_indices = range(0, len(face_vertex_indices))
+        fixed_points = []
+        for i in fixed_indices:
+            fixed_points.append(points[face_vertex_indices[i]])
+
+        mesh.GetFaceVertexIndicesAttr().Set(fixed_indices)
+        mesh.GetPointsAttr().Set(fixed_points)
+
+    def _process_subsets(self, mesh):
+        subsets = UsdGeom.Subset.GetGeomSubsets(mesh)
+        for subset in subsets:
+            face_indices = UsdGeom.Subset(subset).GetIndicesAttr().Get()
+            vert_indices = []
+            for face_index in face_indices:
+                vert_indices.append(face_index * 3 + 0)
+                vert_indices.append(face_index * 3 + 1)
+                vert_indices.append(face_index * 3 + 2)
+            subset.GetPrim().CreateAttribute("triangleIndices", Sdf.ValueTypeNames.IntArray).Set(vert_indices)
+
+    def _process_mesh_prim(self, prim):
+        # strip out  attributes that the runtime doesn't support
+        self._remove_extra_attr(prim)
 
         #TODO: Triangulate non-3 faceCounts
-        #TODO: Expand vertex data to "Vertex" interpolation
+        #TODO: bake transformations to verts & normals so that all prims have identity transform
+
+        # Make a new attribute for dxvk_rt compatible uvs:
+        # 3 uvs per triangle, in the same order as the positions, with the uv.y coordinate inverted.
+        self._process_uvs(prim)
+        
+        # get the mesh from the Prim
+        mesh = UsdGeom.Mesh(prim)
+
+        # Expand point and index data to match faceVarying primvars
+        self._process_geometry(mesh)
+
+        # subsets store face indices, but dxvk_rt needs triangle indices.
+        self._process_subsets(mesh)
+
 
     def _process_exported_usd(self, file_path):
         carb.log_info("Processing: " + file_path)
@@ -242,6 +293,6 @@ class LightspeedExporterExtension(omni.ext.IExt):
 
         all_geos = [prim_ref for prim_ref in stage.Traverse() if UsdGeom.Mesh(prim_ref)]
         for geo_prim in all_geos:
-            self._process_geometry(geo_prim)
+            self._process_mesh_prim(geo_prim)
 
         omni.usd.get_context().save_stage()
