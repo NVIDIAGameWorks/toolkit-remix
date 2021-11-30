@@ -6,8 +6,10 @@ import asyncio
 import subprocess
 from pxr import Gf
 from pxr import UsdGeom
+from pxr import UsdShade
 from pxr import UsdUtils
 from pxr import Sdf
+from pxr import Usd
 import omni.usd 
 import tempfile
 
@@ -114,17 +116,6 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
 
         # get/setup layer
         stage = omni.usd.get_context().get_stage()
-        sublayer = Sdf.Layer.Find("replacements.usda")
-        if sublayer is None:
-            sublayer = Sdf.Layer.CreateNew("replacements.usda")
-            omni.kit.commands.execute(
-                "CreateSublayer",
-                layer_identifier=stage.GetRootLayer().identifier,
-                sublayer_position=0,
-                new_layer_path=sublayer.identifier,
-                transfer_root_content=False,
-                create_or_insert=True,
-            )
 
         # populate the texture list
         for stage_layer in [stage.GetRootLayer(), stage.GetSessionLayer()]:
@@ -144,20 +135,34 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
         for originalTex, outputTex in self._texturesToUpscale.items():
             self.perform_upscale(originalTex, outputTex)
 
-        # modify stuff in the new layer?
-        omni.kit.commands.execute("SetEditTarget", layer_identifier=sublayer.identifier)
+        autoUpscaleStagePath = os.path.join(os.path.dirname(omni.usd.get_context().get_stage_url()), 'autoupscale.usda')
+        try:
+            autoStage = Usd.Stage.Open(autoUpscaleStagePath)
+        except:
+            autoStage = Usd.Stage.CreateNew(autoUpscaleStagePath)
+        autoStage.DefinePrim('/RootNode')
+        autoStage.DefinePrim('/RootNode/Looks','Scope')
 
-        # populate the texture list
-        for stage_layer in [stage.GetRootLayer(), stage.GetSessionLayer()]:
-            (all_layers, all_assets, unresolved_paths) = UsdUtils.ComputeAllDependencies(
-                stage_layer.identifier
-            )
-            if not all_layers:
-                all_layers = stage.GetLayerStack()
+        for prim in stage.GetPrimAtPath('/RootNode/Looks').GetChildren():
+            UsdShade.Material.Define(autoStage, prim.GetPath())
+            originShader = prim.GetChild('Shader')
+            shader = UsdShade.Shader.Define(autoStage, originShader.GetPath())
+            Usd.ModelAPI(shader).SetKind('Material')
+            shaderPrim = shader.GetPrim()
+            attr = shaderPrim.CreateAttribute('inputs:diffuse_texture', Sdf.ValueTypeNames.Asset)
+            attrOrigin = originShader.GetAttribute('inputs:diffuse_texture')
+            pathOrigin = attrOrigin.Get().path
+            attr.Set(pathOrigin.replace(os.path.splitext(pathOrigin)[1], '_upscaled4x.dds'))
+            attr.SetColorSpace('auto')
 
-            for layer in all_layers:
-                self._currentLayer = layer
-                UsdUtils.ModifyAssetPaths(layer, self.apply_upscaled_textures)
+        autoStage.GetRootLayer().Save()
 
-        # revert to the original layer again when done
-        omni.kit.commands.execute("SetEditTarget", layer_identifier=stage.GetRootLayer().identifier)
+        combinedStagePath = os.path.join(os.path.dirname(omni.usd.get_context().get_stage_url()), 'combined.usda')
+        try:
+            combinedStage = Usd.Stage.Open(combinedStagePath)
+        except:
+            combinedStage = Usd.Stage.CreateNew(combinedStagePath)
+
+        # this property is supposed to be read-only, but the setter in the C++ lib are missing in the python lib
+        combinedStage.GetRootLayer().subLayerPaths = [os.path.basename(autoUpscaleStagePath), os.path.basename(omni.usd.get_context().get_stage_url())]
+        combinedStage.GetRootLayer().Save()
