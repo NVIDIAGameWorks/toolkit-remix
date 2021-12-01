@@ -1,4 +1,4 @@
-<project toolsVersion="5.0">
+<project toolsVersion="5.6">
   <!-- Import Kit SDk target-deps xml file to steal some deps from it: -->
   <import path="../_build/${platform}/${config}/kit/dev/deps/target-deps.packman.xml">
     <filter include="pybind11" />
