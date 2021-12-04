@@ -16,13 +16,13 @@ keywords = ["app", "lightspeed"]
 "omni.graph.ui" = {}
 "omni.graph.examples.python" = {}
 
-# Disabling for now, since the dependency isn't resolving successfuly. 
+# Disabling for now, since the dependency isn't resolving successfuly.
 "omni.kit.window.movie_capture" = {}
 
 # # More Windows and UI elements
 "omni.kit.window.provide_feedback" = {}
 "omni.kit.window.imageviewer" = {}
-"omni.kit.tagging" = { order = -10 } # should be a dependency of below 
+"omni.kit.tagging" = { order = -10 } # should be a dependency of below
 "omni.kit.filebrowser_column.tags" = {}
 "omni.kit.window.stats" = { order = 1000 }
 "omni.kit.window.usd_paths" = {}
@@ -41,8 +41,10 @@ keywords = ["app", "lightspeed"]
 "omni.kit.tool.asset_importer" = {}
 "omni.kit.tool.collect" = {}
 
+"lightspeed.event.save_recent" = {}
 "lightspeed.export" = {}
 "lightspeed.upscale" = {}
+"lightspeed.window.welcome" = {}
 
 [settings]
 app.window.title = "Lightspeed Kit"
@@ -54,7 +56,7 @@ multiThreading.enabled = true
 [settings.rtx-transient]
 resourcemanager.enableTextureStreaming = true
 
-[settings.rtx.hydra]	
+[settings.rtx.hydra]
 TBNFrameMode = 3 ## Tangent generation for geometry
 
 [settings.rtx.post]

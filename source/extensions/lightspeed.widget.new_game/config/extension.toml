@@ -1,0 +1,28 @@
+[package]
+version = "0.1.0"
+authors = ["dbataille@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/autosimulator/drivesim-ov"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["new", "widget", "game"]
+title = "Lightspeed New Game Widget"
+description = "Lightspeed New Game Widget let the user creates a new game category"
+icon = "data/icon.png"
+category = "other"
+
+[ui]
+name = "Lightspeed New Game Widget"
+
+[dependencies]
+"omni.client" = {}
+"omni.kit.window.popup_dialog" = {}
+"omni.kit.widget.filebrowser" = {}
+"omni.kit.window.filepicker" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.widget.new_game"
+
+[[python.module]]
+name = "pydantic"

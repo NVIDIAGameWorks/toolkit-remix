@@ -1,0 +1,25 @@
+[package]
+version = "0.1.0"
+authors = ["dbataille@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/autosimulator/drivesim-ov"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["viewer", "widget", "workspace"]
+title = "Lightspeed Widget New Workspace"
+description = "Let the user create a new game workspace"
+icon = "data/icon.png"
+category = "other"
+
+[ui]
+name = "Lightspeed Widget New Workspace"
+
+[dependencies]
+"omni.client" = {}
+"lightspeed.layer_manager" = {}
+"lightspeed.widget.content_viewer" = {}
+"omni.kit.widget.filebrowser" = {}
+"omni.kit.window.filepicker" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.widget.new_workspace"

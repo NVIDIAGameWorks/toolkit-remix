@@ -187,7 +187,7 @@ class LightspeedExporterExtension(omni.ext.IExt):
                 file_path += "/"
             file_path += os.path.basename(usd_path)
             self._process_exported_usd(file_path)
-            #reopen original stage
+            # reopen original stage
             omni.usd.get_context().open_stage(usd_path)
 
         asyncio.ensure_future(collector.collect(progress_callback, finish_callback))
@@ -208,21 +208,26 @@ class LightspeedExporterExtension(omni.ext.IExt):
             "points",
             "doubleSided",
             "orientation",
-            "invertedUvs"
-            "material:binding",
+            "invertedUvs" "material:binding",
             # below values are kept for kit compatibility, but not needed by dxvk_rt
             "faceVertexCounts",
             "faceVertexIndices",
             "primvars:st",
-            "primvars:st:indices"}
-        
+            "primvars:st:indices",
+        }
+
         attr_to_remove = []
         for attr in prim.GetAttributes():
             if not attr.GetName() in used_attrs:
                 attr_to_remove.append(attr.GetName())
 
         for attr in attr_to_remove:
-            carb.log_warn("Warning: Lightspeed Export doesn't support attribute: '" + attr + "' found on " + prim.GetPath().pathString)
+            carb.log_warn(
+                "Warning: Lightspeed Export doesn't support attribute: '"
+                + attr
+                + "' found on "
+                + prim.GetPath().pathString
+            )
             prim.RemoveProperty(attr)
 
     def _process_uvs(self, prim):
@@ -231,14 +236,14 @@ class LightspeedExporterExtension(omni.ext.IExt):
         # get the primvars attribute of the UVs
         st_prim_var = gp_pv.GetPrimvar("st")
 
-        #[AJAUS] Because USD and Directx8/9 assume different texture coordinate origins, invert the vertical texture coordinate
+        # [AJAUS] Because USD and Directx8/9 assume different texture coordinate origins, invert the vertical texture coordinate
         flattened_uvs = st_prim_var.ComputeFlattened()
         inverted_uvs = []
         for uv in flattened_uvs:
             inverted_uvs.append(Gf.Vec2f(uv[0], -uv[1]))
-        
+
         prim.CreateAttribute("invertedUvs", Sdf.ValueTypeNames.Float2Array, False).Set(inverted_uvs)
-    
+
     def _process_geometry(self, mesh):
         face_vertex_indices = mesh.GetFaceVertexIndicesAttr().Get()
         points = mesh.GetPointsAttr().Get()
@@ -265,13 +270,13 @@ class LightspeedExporterExtension(omni.ext.IExt):
         # strip out  attributes that the runtime doesn't support
         self._remove_extra_attr(prim)
 
-        #TODO: Triangulate non-3 faceCounts
-        #TODO: bake transformations to verts & normals so that all prims have identity transform
+        # TODO: Triangulate non-3 faceCounts
+        # TODO: bake transformations to verts & normals so that all prims have identity transform
 
         # Make a new attribute for dxvk_rt compatible uvs:
         # 3 uvs per triangle, in the same order as the positions, with the uv.y coordinate inverted.
         self._process_uvs(prim)
-        
+
         # get the mesh from the Prim
         mesh = UsdGeom.Mesh(prim)
 
@@ -280,7 +285,6 @@ class LightspeedExporterExtension(omni.ext.IExt):
 
         # subsets store face indices, but dxvk_rt needs triangle indices.
         self._process_subsets(mesh)
-
 
     def _process_exported_usd(self, file_path):
         carb.log_info("Processing: " + file_path)

@@ -1,0 +1,22 @@
+[package]
+version = "0.1.0"
+authors = ["dbataille@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/autosimulator/drivesim-ov"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["event", "save", "manager", "recent"]
+title = "Lightspeed Event Save recent"
+description = "Extension that update the recent saved file"
+icon = "data/icon.png"
+category = "other"
+
+[ui]
+name = "Lightspeed Event Save recent"
+
+[dependencies]
+"lightspeed.events_manager" = {}
+"lightspeed.layer_manager" = {}
+"omni.client" = {}
+
+[[python.module]]
+name = "lightspeed.event.save_recent"
