@@ -60,7 +60,12 @@ class LayerManagerCore:
                 # add customData
                 custom_layer_data = layer.customLayerData
                 custom_layer_data.update({LayerTypeKeys.layer_type.value: layer_type.value})
+                layer_inst = self.get_layer_instance(layer_type)
+                custom_data_layer_inst = layer_inst.get_custom_layer_data()
+                if custom_data_layer_inst:
+                    custom_layer_data.update(custom_data_layer_inst)
                 layer.customLayerData = custom_layer_data
+                layer.Save()  # because of new customLayerData
                 if set_as_edit_target:
                     self.set_edit_target_layer(layer_type, force_layer_identifier=layer.identifier)
 
