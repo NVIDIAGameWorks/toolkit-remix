@@ -13,12 +13,11 @@ import carb
 import omni.client
 import omni.kit.commands
 import omni.usd
-import omni.client
 from omni.kit.widget.layers.layer_utils import LayerUtils
 from pxr import Sdf
 
 from .layer_types import LayerType, LayerTypeKeys
-from .layers import capture, replacement, i_layer
+from .layers import capture, i_layer, replacement
 
 
 class LayerManagerCore:

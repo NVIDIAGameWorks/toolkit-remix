@@ -13,7 +13,6 @@ from typing import Dict
 import omni.kit.commands
 import omni.usd
 import six
-from pxr import Sdf
 
 from ..layer_types import LayerType, LayerTypeKeys
 

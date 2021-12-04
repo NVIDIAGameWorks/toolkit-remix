@@ -7,13 +7,14 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import omni.client
 import os
 import re
 from typing import List
 
+import omni.client
 
-class AssetDetailCore(object):
+
+class AssetDetailCore:
 
     THUMBNAILS_DIR = "custom_thumbnails"
 
@@ -51,7 +52,7 @@ class AssetDetailCore(object):
         custom_thumbnails_dir = omni.client.normalize_url(f"{dir_path}/{self.THUMBNAILS_DIR}")
         entries = self.list_entries_custom_thumbnails_dir(custom_thumbnails_dir)
         for entry in entries:
-            regex = f"^{os.path.basename(path)}.[^primary_thumb]\S+.png$"
+            regex = f"^{os.path.basename(path)}.[^primary_thumb]\S+.png$"  # noqa W605
             if re.match(regex, entry.relative_path):
                 result.append(f"{custom_thumbnails_dir}/{entry.relative_path}")
 

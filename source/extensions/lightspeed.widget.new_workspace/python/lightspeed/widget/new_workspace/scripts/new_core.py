@@ -9,17 +9,14 @@
 """
 
 import functools
+import typing
 
 import carb.settings
 import omni.kit.commands
 import omni.kit.viewport
 import omni.usd
-from pathlib import Path
-
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
 from lightspeed.layer_manager.scripts.layers.replacement import LSS_LAYER_GAME_NAME
-
-import typing
 
 if typing.TYPE_CHECKING:
     from lightspeed.widget.content_viewer.scripts.core import ContentData

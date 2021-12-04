@@ -7,15 +7,13 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import json
+import typing
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import carb
 import carb.tokens
 import omni.client
-import typing
-from typing import List
 
 if typing.TYPE_CHECKING:
     from lightspeed.widget.content_viewer.scripts.core import ContentData

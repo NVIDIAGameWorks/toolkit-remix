@@ -1,26 +1,18 @@
+import contextlib
 import os
-import omni
-import carb
-import time
-import asyncio
+import os.path
 import subprocess
-from pxr import Gf
-from pxr import UsdGeom
-from pxr import UsdShade
-from pxr import UsdUtils
-from pxr import Sdf
-from pxr import Usd
-import omni.usd
 import tempfile
 
-from omni import ui
+import carb
+import omni
 import omni.ext
 import omni.kit.menu.utils as omni_utils
-from omni.kit.widget.layers.path_utils import PathUtils
+import omni.usd
 from omni.kit.menu.utils import MenuItemDescription
-
+from omni.kit.widget.layers.path_utils import PathUtils
 from PIL import Image
-import os.path
+from pxr import Sdf, Usd, UsdShade, UsdUtils
 
 
 class LightspeedUpscalerExtension(omni.ext.IExt):
@@ -36,82 +28,80 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
     def on_shutdown(self):
         pass
 
-    _texturesToUpscale = dict()
-    _currentLayer = None
+    _textures_to_upscale = {}
+    _current_layer = None
 
     def gather_textures(self, texture):
         if texture.lower().endswith(".dds") or texture.lower().endswith(".png"):
-            absolute_tex_path = PathUtils.compute_absolute_path(self._currentLayer.identifier, texture)
-            originalTextureName = os.path.splitext(os.path.basename(absolute_tex_path))[0]
-            originalTexturePath = os.path.dirname(os.path.abspath(absolute_tex_path))
-            upscaledDDSTexturePath = os.path.join(originalTexturePath, originalTextureName + "_upscaled4x.dds")
-            self._texturesToUpscale[absolute_tex_path] = upscaledDDSTexturePath
+            absolute_tex_path = PathUtils.compute_absolute_path(self._current_layer.identifier, texture)
+            original_texture_name = os.path.splitext(os.path.basename(absolute_tex_path))[0]
+            original_texture_path = os.path.dirname(os.path.abspath(absolute_tex_path))
+            upscaled_dds_texture_path = os.path.join(original_texture_path, original_texture_name + "_upscaled4x.dds")
+            self._textures_to_upscale[absolute_tex_path] = upscaled_dds_texture_path
         return texture
 
     def apply_upscaled_textures(self, texture):
-        absolute_tex_path = PathUtils.compute_absolute_path(self._currentLayer.identifier, texture)
-        if absolute_tex_path in self._texturesToUpscale:
-            return self._texturesToUpscale[absolute_tex_path]
+        absolute_tex_path = PathUtils.compute_absolute_path(self._current_layer.identifier, texture)
+        if absolute_tex_path in self._textures_to_upscale:
+            return self._textures_to_upscale[absolute_tex_path]
         return texture
 
     # todo: this should be async job!
-    def perform_upscale(self, texture, outputTexture):
+    def perform_upscale(self, texture, output_texture):
         # setup script paths
         script_path = os.path.dirname(os.path.abspath(__file__))
-        nvttPath = script_path + ".\\tools\\nvtt\\nvtt_export.exe"
-        esrganToolPath = script_path + ".\\tools\\realesrgan-ncnn-vulkan-20210901-windows\\realesrgan-ncnn-vulkan.exe"
+        nvtt_path = script_path + ".\\tools\\nvtt\\nvtt_export.exe"
+        esrgan_tool_path = script_path + ".\\tools\\realesrgan-ncnn-vulkan-20210901-windows\\realesrgan-ncnn-vulkan.exe"
         # create temp dir and get texture name/path
-        originalTextureName = os.path.splitext(os.path.basename(texture))[0]
-        originalTexturePath = os.path.dirname(os.path.abspath(texture))
-        tempDir = tempfile.TemporaryDirectory()
+        original_texture_name = os.path.splitext(os.path.basename(texture))[0]
+        original_texture_path = os.path.dirname(os.path.abspath(texture))
+        temp_dir = tempfile.TemporaryDirectory()
         # begin real work
         carb.log_info("Upscaling: " + texture)
         # convert to png
         if texture.lower().endswith(".dds"):
-            pngTexturePath = os.path.join(tempDir.name, originalTextureName + ".png")
-            carb.log_info("  - converting to png, out: " + pngTexturePath)
-            convertPngProcess = subprocess.Popen([nvttPath, texture, "--output", pngTexturePath])
-            convertPngProcess.wait()
-            if not os.path.exists(pngTexturePath):
-                try:
+            png_texture_path = os.path.join(temp_dir.name, original_texture_name + ".png")
+            carb.log_info("  - converting to png, out: " + png_texture_path)
+            convert_png_process = subprocess.Popen([nvtt_path, texture, "--output", png_texture_path])
+            convert_png_process.wait()
+            if not os.path.exists(png_texture_path):
+                with contextlib.suppress(NotImplementedError):
                     with Image.open(texture) as im:
-                        im.save(pngTexturePath, "PNG")
-                except NotImplementedError as e:
-                    pass
+                        im.save(png_texture_path, "PNG")
         else:
-            pngTexturePath = texture
+            png_texture_path = texture
         # perform upscale
-        upscaledTexturePath = os.path.join(originalTexturePath, originalTextureName + "_upscaled4x.png")
-        carb.log_info("  - running neural networks, out: " + upscaledTexturePath)
-        upscaleProcess = subprocess.Popen([esrganToolPath, "-i", pngTexturePath, "-o", upscaledTexturePath])
-        upscaleProcess.wait()
+        upscaled_texture_path = os.path.join(original_texture_path, original_texture_name + "_upscaled4x.png")
+        carb.log_info("  - running neural networks, out: " + upscaled_texture_path)
+        upscale_process = subprocess.Popen([esrgan_tool_path, "-i", png_texture_path, "-o", upscaled_texture_path])
+        upscale_process.wait()
         # check for alpha channel
         try:
-            with Image.open(pngTexturePath) as memoryImage:
-                if memoryImage.mode == "RGBA":
-                    alphaPath = os.path.join(tempDir.name, originalTextureName + "_alpha.png")
-                    upscaledAlphaPath = os.path.join(tempDir.name, originalTextureName + "_upscaled4x_alpha.png")
-                    memoryImage.split()[-1].save(alphaPath)
-                    upscaleProcess = subprocess.Popen([esrganToolPath, "-i", alphaPath, "-o", upscaledAlphaPath])
-                    upscaleProcess.wait()
-                    with Image.open(upscaledAlphaPath).convert("L") as upscaledAlphaImage:
-                        with Image.open(upscaledTexturePath) as upscaledMemoryImage:
-                            upscaledMemoryImage.putalpha(upscaledAlphaImage)
-                            upscaledMemoryImage.save(upscaledTexturePath, "PNG")
-        except FileNotFoundError as e:
+            with Image.open(png_texture_path) as memory_image:
+                if memory_image.mode == "RGBA":
+                    alpha_path = os.path.join(temp_dir.name, original_texture_name + "_alpha.png")
+                    upscaled_alpha_path = os.path.join(temp_dir.name, original_texture_name + "_upscaled4x_alpha.png")
+                    memory_image.split()[-1].save(alpha_path)
+                    upscale_process = subprocess.Popen([esrgan_tool_path, "-i", alpha_path, "-o", upscaled_alpha_path])
+                    upscale_process.wait()
+                    with Image.open(upscaled_alpha_path).convert("L") as upscaled_alpha_image:
+                        with Image.open(upscaled_texture_path) as upscaled_memory_image:
+                            upscaled_memory_image.putalpha(upscaled_alpha_image)
+                            upscaled_memory_image.save(upscaled_texture_path, "PNG")
+        except FileNotFoundError:
             carb.log_info("File not found error!")
             pass
         # convert to DDS, and generate mips (note dont use the temp dir for this)
-        carb.log_info("  - compressing and generating mips, out: " + outputTexture)
-        compressMipProcess = subprocess.Popen(
-            [nvttPath, upscaledTexturePath, "--format", "bc7", "--output", outputTexture]
+        carb.log_info("  - compressing and generating mips, out: " + output_texture)
+        compress_mip_process = subprocess.Popen(
+            [nvtt_path, upscaled_texture_path, "--format", "bc7", "--output", output_texture]
         )
-        compressMipProcess.wait()
-        tempDir.cleanup()
+        compress_mip_process.wait()
+        temp_dir.cleanup()
 
     def __clicked(self):
         # reset the upscale list
-        self._texturesToUpscale.clear()
+        self._textures_to_upscale.clear()
 
         # get/setup layer
         stage = omni.usd.get_context().get_stage()
@@ -123,46 +113,48 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
                 all_layers = stage.GetLayerStack()
 
             for layer in all_layers:
-                self._currentLayer = layer
+                self._current_layer = layer
                 UsdUtils.ModifyAssetPaths(layer, self.gather_textures)
 
-        self._currentLayer = None
+        self._current_layer = None
 
         # perform upscale
-        for originalTex, outputTex in self._texturesToUpscale.items():
-            self.perform_upscale(originalTex, outputTex)
+        for original_tex, output_tex in self._textures_to_upscale.items():
+            self.perform_upscale(original_tex, output_tex)
 
-        autoUpscaleStagePath = os.path.join(os.path.dirname(omni.usd.get_context().get_stage_url()), "autoupscale.usda")
+        auto_upscale_stage_path = os.path.join(
+            os.path.dirname(omni.usd.get_context().get_stage_url()), "autoupscale.usda"
+        )
         try:
-            autoStage = Usd.Stage.Open(autoUpscaleStagePath)
-        except:
-            autoStage = Usd.Stage.CreateNew(autoUpscaleStagePath)
-        autoStage.DefinePrim("/RootNode")
-        autoStage.DefinePrim("/RootNode/Looks", "Scope")
+            auto_stage = Usd.Stage.Open(auto_upscale_stage_path)
+        except:  # noqa B001, E722
+            auto_stage = Usd.Stage.CreateNew(auto_upscale_stage_path)
+        auto_stage.DefinePrim("/RootNode")
+        auto_stage.DefinePrim("/RootNode/Looks", "Scope")
 
         for prim in stage.GetPrimAtPath("/RootNode/Looks").GetChildren():
-            UsdShade.Material.Define(autoStage, prim.GetPath())
-            originShader = prim.GetChild("Shader")
-            shader = UsdShade.Shader.Define(autoStage, originShader.GetPath())
+            UsdShade.Material.Define(auto_stage, prim.GetPath())
+            origin_shader = prim.GetChild("Shader")
+            shader = UsdShade.Shader.Define(auto_stage, origin_shader.GetPath())
             Usd.ModelAPI(shader).SetKind("Material")
-            shaderPrim = shader.GetPrim()
-            attr = shaderPrim.CreateAttribute("inputs:diffuse_texture", Sdf.ValueTypeNames.Asset)
-            attrOrigin = originShader.GetAttribute("inputs:diffuse_texture")
-            pathOrigin = attrOrigin.Get().path
-            attr.Set(pathOrigin.replace(os.path.splitext(pathOrigin)[1], "_upscaled4x.dds"))
+            shader_prim = shader.GetPrim()
+            attr = shader_prim.CreateAttribute("inputs:diffuse_texture", Sdf.ValueTypeNames.Asset)
+            attr_origin = origin_shader.GetAttribute("inputs:diffuse_texture")
+            path_origin = attr_origin.Get().path
+            attr.Set(path_origin.replace(os.path.splitext(path_origin)[1], "_upscaled4x.dds"))
             attr.SetColorSpace("auto")
 
-        autoStage.GetRootLayer().Save()
+        auto_stage.GetRootLayer().Save()
 
-        combinedStagePath = os.path.join(os.path.dirname(omni.usd.get_context().get_stage_url()), "combined.usda")
+        combined_stage_path = os.path.join(os.path.dirname(omni.usd.get_context().get_stage_url()), "combined.usda")
         try:
-            combinedStage = Usd.Stage.Open(combinedStagePath)
-        except:
-            combinedStage = Usd.Stage.CreateNew(combinedStagePath)
+            combined_stage = Usd.Stage.Open(combined_stage_path)
+        except:  # noqa E722, B001
+            combined_stage = Usd.Stage.CreateNew(combined_stage_path)
 
         # this property is supposed to be read-only, but the setter in the C++ lib are missing in the python lib
-        combinedStage.GetRootLayer().subLayerPaths = [
-            os.path.basename(autoUpscaleStagePath),
+        combined_stage.GetRootLayer().subLayerPaths = [
+            os.path.basename(auto_upscale_stage_path),
             os.path.basename(omni.usd.get_context().get_stage_url()),
         ]
-        combinedStage.GetRootLayer().Save()
+        combined_stage.GetRootLayer().Save()

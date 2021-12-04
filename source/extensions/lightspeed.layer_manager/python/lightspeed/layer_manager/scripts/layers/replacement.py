@@ -7,10 +7,11 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+from typing import Dict
+
+from ..constants import LAYER_ATTRIBUTE_PREFIX
 from ..layer_types import LayerType
 from .i_layer import ILayer
-from ..constants import LAYER_ATTRIBUTE_PREFIX
-from typing import Dict
 
 LSS_LAYER_GAME_NAME = f"{LAYER_ATTRIBUTE_PREFIX}game_name"
 

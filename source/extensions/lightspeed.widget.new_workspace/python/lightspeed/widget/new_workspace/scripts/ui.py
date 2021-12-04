@@ -109,7 +109,9 @@ class GameWorkspaceViewer(ContentViewer):
                                                 with ui.HStack(height=row_height):
                                                     ui.Label(
                                                         "Use existing enhancements layer",
-                                                        tooltip="If true, you can import an existing enhancements layer.",
+                                                        tooltip=(
+                                                            "If true, you can import an existing " "enhancements layer."
+                                                        ),
                                                     )
                                                     self._use_existing_layer = ui.RadioCollection(width=36)
                                                     ui.RadioButton(radio_collection=self._use_existing_layer, text="No")

@@ -7,7 +7,6 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import carb
 import omni.ui as ui
 
 HEADER_DICT = {0: "Image", 1: "Tags"}
@@ -82,3 +81,4 @@ class AssetDetailTagsModel(ui.AbstractItemModel):
             return item.image_path_model
         elif column_id == 1:
             return item.tags_model
+        return None

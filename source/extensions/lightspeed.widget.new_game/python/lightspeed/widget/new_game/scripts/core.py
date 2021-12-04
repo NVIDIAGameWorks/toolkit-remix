@@ -7,12 +7,10 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-from pathlib import Path
-
 from typing import Optional
+
 import carb
 import carb.settings
-import json
 from lightspeed.widget.content_viewer.scripts.core import ContentData, ContentDataAdd, ContentViewerCore
 from pydantic import ValidationError
 
@@ -66,8 +64,8 @@ class GameCore(ContentViewerCore):
         self.__current_game = None
         self.__on_current_game_changed = self._Event()
 
-    def set_filter(self, filter: str):
-        self._filter = filter
+    def set_filter(self, _filter: str):
+        self._filter = _filter
 
     def set_current_game(self, data: Optional[ContentData]):
         self.__current_game = data

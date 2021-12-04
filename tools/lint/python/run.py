@@ -20,7 +20,7 @@ import packmanapi
 REPO_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../..")
 REPO_DEPS_FILE = os.path.join(REPO_ROOT, "deps/repo-deps.packman.xml")
 EXCLUDES = [".vscode", "_build", "_compiler", "_repo", ".git", ".eggs", ".venv", "tools"]
-FORCE_INCLUDE = ["lint", "py_drivesim2"]  # folder that are in excludes but we want to force
+FORCE_INCLUDE = ["lint"]  # folder that are in excludes but we want to force
 
 
 def bootstrap():

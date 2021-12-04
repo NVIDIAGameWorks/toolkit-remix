@@ -8,12 +8,13 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import carb
-from lightspeed.events_manager.scripts.i_ds_event import ILSSEvent
-import omni.usd
 import omni.client
-from .recent_saved_file_utils import RecentSavedFile
+import omni.usd
+from lightspeed.events_manager.scripts.i_ds_event import ILSSEvent
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
 from lightspeed.layer_manager.scripts.layers.replacement import LSS_LAYER_GAME_NAME
+
+from .recent_saved_file_utils import RecentSavedFile
 
 
 class EventSaveRecentCore(ILSSEvent):

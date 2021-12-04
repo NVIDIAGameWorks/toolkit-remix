@@ -8,12 +8,12 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 from pathlib import Path
+from typing import Optional
 
 import carb
 import carb.settings
 from lightspeed.widget.content_viewer.scripts.core import ContentData, ContentViewerCore
 from pydantic import ValidationError
-from typing import Optional
 
 from .utils import get_captures
 

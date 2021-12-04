@@ -1,24 +1,21 @@
-import os
-import omni
-import carb
-import time
 import asyncio
+import os
 import weakref
-import numpy as np
-from pxr import Gf, Sdf, UsdGeom
 
-from omni import ui
+import carb
+import omni
 import omni.ext
-import omni.kit.window.content_browser as content
 import omni.kit.menu.utils as omni_utils
-
-from omni.kit.tool.collect.collector import Collector
-from omni.kit.tool.collect.icons import Icons
-from omni.kit.tool.collect.filebrowser import FileBrowserSelectionType, FileBrowserMode
-from omni.kit.tool.collect.file_picker import FilePicker
-from omni.kit.tool.collect.progress_popup import ProgressPopup
+import omni.kit.window.content_browser as content
+from omni import ui
 from omni.kit.menu.utils import MenuItemDescription
+from omni.kit.tool.collect.collector import Collector
+from omni.kit.tool.collect.file_picker import FilePicker
+from omni.kit.tool.collect.filebrowser import FileBrowserMode, FileBrowserSelectionType
+from omni.kit.tool.collect.icons import Icons
+from omni.kit.tool.collect.progress_popup import ProgressPopup
 from omni.kit.window.file import DialogOptions
+from pxr import Gf, Sdf, UsdGeom
 
 
 class LightspeedExporterExtension(omni.ext.IExt):
@@ -208,7 +205,8 @@ class LightspeedExporterExtension(omni.ext.IExt):
             "points",
             "doubleSided",
             "orientation",
-            "invertedUvs" "material:binding",
+            "invertedUvs",
+            "material:binding",
             # below values are kept for kit compatibility, but not needed by dxvk_rt
             "faceVertexCounts",
             "faceVertexIndices",
@@ -218,7 +216,7 @@ class LightspeedExporterExtension(omni.ext.IExt):
 
         attr_to_remove = []
         for attr in prim.GetAttributes():
-            if not attr.GetName() in used_attrs:
+            if attr.GetName() not in used_attrs:
                 attr_to_remove.append(attr.GetName())
 
         for attr in attr_to_remove:
@@ -236,7 +234,8 @@ class LightspeedExporterExtension(omni.ext.IExt):
         # get the primvars attribute of the UVs
         st_prim_var = gp_pv.GetPrimvar("st")
 
-        # [AJAUS] Because USD and Directx8/9 assume different texture coordinate origins, invert the vertical texture coordinate
+        # [AJAUS] Because USD and Directx8/9 assume different texture coordinate origins,
+        # invert the vertical texture coordinate
         flattened_uvs = st_prim_var.ComputeFlattened()
         inverted_uvs = []
         for uv in flattened_uvs:

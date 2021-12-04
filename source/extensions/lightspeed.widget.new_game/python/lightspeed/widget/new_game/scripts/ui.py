@@ -11,12 +11,11 @@ import typing
 from typing import List
 
 import carb.settings
-from lightspeed.widget.content_viewer.scripts.ui import ContentItem, ContentViewer
 from lightspeed.widget.content_viewer.scripts.core import ContentData, ContentDataAdd
+from lightspeed.widget.content_viewer.scripts.ui import ContentItem, ContentViewer
 
 if typing.TYPE_CHECKING:
     from .core import GameCore
-
 
 from pathlib import Path
 

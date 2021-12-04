@@ -7,11 +7,11 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import carb
 import os
 from typing import Callable
-import omni.client
 
+import carb
+import omni.client
 from omni.kit.widget.filebrowser import FileBrowserItem
 from omni.kit.window.filepicker import FilePickerDialog
 

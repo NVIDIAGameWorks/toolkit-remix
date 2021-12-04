@@ -21,7 +21,7 @@ from .delegate_detail_poup import AssetDetailTagsDelegate
 from .model_detail_popup import AssetDetailTagsModel
 
 
-class AssetDetailWindow(object):
+class AssetDetailWindow:
 
     WINDOW_NAME = "Asset details"
     WINDOW_IMAGE_BIGGER_NAME = "Image bigger"
@@ -79,7 +79,7 @@ class AssetDetailWindow(object):
     @property
     def current_extension_path(self):
         current_path = Path(__file__).parent
-        for i in range(5):
+        for _ in range(5):
             current_path = current_path.parent
         return current_path
 
