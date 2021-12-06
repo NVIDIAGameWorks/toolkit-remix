@@ -13,7 +13,7 @@ name = "lightspeed-kit"
 
 
 ########################################################################################################################
-# Packaging 
+# Packaging
 ########################################################################################################################
 
 # package content
@@ -43,8 +43,15 @@ exts.include = [
     "example.cpp_ext",
     "example.mixed_ext",
     "example.python_ext",
+    "lightspeed.export",
+    "lightspeed.events_manager",
+    "lightspeed.event.save_recent",
+    "lightspeed.layer_manager",
     "lightspeed.upscale",
-    "lightspeed.export"
+    "lightspeed.widget.content_viewer",
+    "lightspeed.widget.new_game",
+    "lightspeed.widget.new_workspace",
+    "lightspeed.window.welcome"
 ]
 exts.exclude = []
 

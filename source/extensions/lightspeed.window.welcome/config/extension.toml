@@ -1,0 +1,28 @@
+[package]
+version = "0.1.0"
+authors = ["dbataille@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/autosimulator/drivesim-ov"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["welcome", "window"]
+title = "lightspeed Welcome Window"
+description = "lightspeed Welcome window that let the user create/open a new game workspace"
+icon = "data/icon.png"
+category = "other"
+
+[ui]
+name = "lightspeed Welcome Window"
+
+[dependencies]
+"omni.client" = {}
+"lightspeed.event.save_recent" = {}
+"lightspeed.widget.new_game" = {}
+"lightspeed.widget.new_workspace" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.window.welcome"
+
+[python.pipapi]
+use_online_index = true
+requirements = ["Pillow"]

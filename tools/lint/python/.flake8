@@ -1,0 +1,31 @@
+[flake8]
+max-line-length = 120
+docstring-convention = google
+select =
+    # pycodestyle
+    E,W,
+    # flake8-docstrings
+    D3,
+    # pyflakes
+    F,
+    # pep8-naming
+    N,
+    # pycodestyle
+    A,
+    # flake8-bugbear
+    B,
+    # flake8-comprehensions
+    C,
+    # flake8-return
+    R,
+    # flake8-pep3101
+    S001,
+    # flake8-simplify
+    SIM,
+
+ignore =
+    F403, F405, W503,
+    # ignore multiple with statements (for omni.ui)
+    SIM117,
+    # ignore whitespace before ':', Black takes care of it
+    E203
