@@ -10,9 +10,8 @@ import omni.ext
 import omni.kit.menu.utils as omni_utils
 import omni.usd
 from omni.kit.menu.utils import MenuItemDescription
-from omni.kit.widget.layers.path_utils import PathUtils
 from PIL import Image
-from pxr import Sdf, Usd, UsdShade, UsdUtils
+from pxr import Sdf, Tf, Usd, UsdShade, UsdUtils
 
 
 class LightspeedUpscalerExtension(omni.ext.IExt):
@@ -33,28 +32,23 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
 
     def gather_textures(self, texture):
         if texture.lower().endswith(".dds") or texture.lower().endswith(".png"):
-            absolute_tex_path = PathUtils.compute_absolute_path(self._current_layer.identifier, texture)
-            original_texture_name = os.path.splitext(os.path.basename(absolute_tex_path))[0]
-            original_texture_path = os.path.dirname(os.path.abspath(absolute_tex_path))
-            upscaled_dds_texture_path = os.path.join(original_texture_path, original_texture_name + "_upscaled4x.dds")
-            self._textures_to_upscale[absolute_tex_path] = upscaled_dds_texture_path
-        return texture
-
-    def apply_upscaled_textures(self, texture):
-        absolute_tex_path = PathUtils.compute_absolute_path(self._current_layer.identifier, texture)
-        if absolute_tex_path in self._textures_to_upscale:
-            return self._textures_to_upscale[absolute_tex_path]
+            upscaled_dds_texture_path = texture.replace(os.path.splitext(texture)[1], "_upscaled4x.dds")
+            self._textures_to_upscale[texture] = upscaled_dds_texture_path
         return texture
 
     # todo: this should be async job!
     def perform_upscale(self, texture, output_texture):
-        # setup script paths
+        # setup script paths'
+        if os.path.exists(output_texture):
+            carb.log_info("Skipping " + texture + " since " + output_texture + " already exists.")
+            return
         script_path = os.path.dirname(os.path.abspath(__file__))
         nvtt_path = script_path + ".\\tools\\nvtt\\nvtt_export.exe"
         esrgan_tool_path = script_path + ".\\tools\\realesrgan-ncnn-vulkan-20210901-windows\\realesrgan-ncnn-vulkan.exe"
         # create temp dir and get texture name/path
         original_texture_name = os.path.splitext(os.path.basename(texture))[0]
-        original_texture_path = os.path.dirname(os.path.abspath(texture))
+        output_texture_name = os.path.splitext(os.path.basename(output_texture))[0]
+        output_texture_path = os.path.dirname(os.path.abspath(output_texture))
         temp_dir = tempfile.TemporaryDirectory()
         # begin real work
         carb.log_info("Upscaling: " + texture)
@@ -64,6 +58,7 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
             carb.log_info("  - converting to png, out: " + png_texture_path)
             convert_png_process = subprocess.Popen([nvtt_path, texture, "--output", png_texture_path])
             convert_png_process.wait()
+            # use PILLOW as a fallback if nvtt fails
             if not os.path.exists(png_texture_path):
                 with contextlib.suppress(NotImplementedError):
                     with Image.open(texture) as im:
@@ -71,11 +66,12 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
         else:
             png_texture_path = texture
         # perform upscale
-        upscaled_texture_path = os.path.join(original_texture_path, original_texture_name + "_upscaled4x.png")
+        os.makedirs(os.path.dirname(output_texture), exist_ok=True)
+        upscaled_texture_path = os.path.join(output_texture_path, output_texture_name + ".png")
         carb.log_info("  - running neural networks, out: " + upscaled_texture_path)
         upscale_process = subprocess.Popen([esrgan_tool_path, "-i", png_texture_path, "-o", upscaled_texture_path])
         upscale_process.wait()
-        # check for alpha channel
+        # check for alpha channel and upscale it if it exists
         try:
             with Image.open(png_texture_path) as memory_image:
                 if memory_image.mode == "RGBA":
@@ -120,14 +116,22 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
 
         # perform upscale
         for original_tex, output_tex in self._textures_to_upscale.items():
-            self.perform_upscale(original_tex, output_tex)
+            if not os.path.isabs(original_tex):
+                # place the output textures next to the enhancements layer location
+                output_tex_path = os.path.join(os.path.dirname(stage.GetRootLayer().subLayerPaths[0]), output_tex)
+                capture_usd_directory = os.path.dirname(stage.GetRootLayer().subLayerPaths[-1])
+                original_texture_path = os.path.join(capture_usd_directory, original_tex)
+            else:
+                output_tex_path = output_tex
+                original_texture_path = original_tex
+            self.perform_upscale(original_texture_path, output_tex_path)
 
-        auto_upscale_stage_path = os.path.join(
-            os.path.dirname(omni.usd.get_context().get_stage_url()), "autoupscale.usda"
-        )
+        # create/open and populate auto-upscale layer, placing it next to the enhancements layer
+        enhancement_usd_dir = os.path.dirname(stage.GetRootLayer().subLayerPaths[0])
+        auto_upscale_stage_path = os.path.join(enhancement_usd_dir, "autoupscale.usda")
         try:
             auto_stage = Usd.Stage.Open(auto_upscale_stage_path)
-        except:  # noqa B001, E722
+        except Tf.ErrorException:
             auto_stage = Usd.Stage.CreateNew(auto_upscale_stage_path)
         auto_stage.DefinePrim("/RootNode")
         auto_stage.DefinePrim("/RootNode/Looks", "Scope")
@@ -146,15 +150,8 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
 
         auto_stage.GetRootLayer().Save()
 
-        combined_stage_path = os.path.join(os.path.dirname(omni.usd.get_context().get_stage_url()), "combined.usda")
-        try:
-            combined_stage = Usd.Stage.Open(combined_stage_path)
-        except:  # noqa E722, B001
-            combined_stage = Usd.Stage.CreateNew(combined_stage_path)
-
+        # add the auto-upscale layer to the workspace layer just above the capture layer
         # this property is supposed to be read-only, but the setter in the C++ lib are missing in the python lib
-        combined_stage.GetRootLayer().subLayerPaths = [
-            os.path.basename(auto_upscale_stage_path),
-            os.path.basename(omni.usd.get_context().get_stage_url()),
-        ]
-        combined_stage.GetRootLayer().Save()
+        if auto_upscale_stage_path not in stage.GetRootLayer().subLayerPaths:
+            index_above_capture_usd = len(stage.GetRootLayer().subLayerPaths) - 1
+            stage.GetRootLayer().subLayerPaths.insert(index_above_capture_usd, auto_upscale_stage_path)
