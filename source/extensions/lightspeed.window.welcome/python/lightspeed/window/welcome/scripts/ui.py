@@ -459,7 +459,12 @@ class WelcomeWindow:
     def __create_menu(self):
         """Create the menu in Create"""
         self._menus = [
-            MenuItemDescription(name="New Game Workspace", onclick_fn=self.__new_game_workspace_menu, glyph="none.svg")
+            MenuItemDescription(
+                name="New Game Workspace",
+                onclick_fn=self.__new_game_workspace_menu,
+                glyph="none.svg",
+                appear_after="New",
+            )
         ]
         omni.kit.menu.utils.add_menu_items(self._menus, "File")
 

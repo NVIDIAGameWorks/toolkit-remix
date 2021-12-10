@@ -43,6 +43,18 @@ class ILayer:
     def get_custom_layer_data(self):
         return self.__custom_layer_data
 
+    def flatten_sublayers(self, delete_sublayer_files: bool = True):
+        usd_context = omni.usd.get_context()
+        stage = usd_context.get_stage()
+        root_layer = stage.GetRootLayer()
+        layers = stage.GetLayerStack()
+        omni.kit.commands.execute("FlattenLayers")
+        if delete_sublayer_files:
+            for layer in layers:
+                if layer.realPath == root_layer.realPath or not layer.realPath:
+                    continue
+                omni.client.delete(layer.realPath)
+
     def create_sublayer(self, path: str = None):
         need_new_layer = self._core.get_layer(self.layer_type)
         if need_new_layer is not None:
