@@ -9,11 +9,13 @@
 """
 import os
 
+import carb
 import omni
 import omni.client
 import omni.ext
 import omni.kit.menu.utils as omni_utils
 import omni.kit.window.content_browser as content
+from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
 from omni import ui
 from omni.kit.menu.utils import MenuItemDescription
 from omni.kit.tool.collect.file_picker import FilePicker
@@ -33,6 +35,7 @@ class LightspeedExporterUI:
             "_progress_popup": None,
             "_exportion_path_field": None,
             "_core": None,
+            "_layer_manager": None,
             "_subscription_progress_changed": None,
             "_subscription_progress_text_changed": None,
             "_subscription_finish_export": None,
@@ -40,6 +43,7 @@ class LightspeedExporterUI:
         for attr, value in self.__default_attr.items():
             setattr(self, attr, value)
 
+        self._layer_manager = LayerManagerCore()
         self._core = LightspeedExporterCore()
         self._subscription_progress_changed = self._core.subscribe_progress_changed(self._on_progress_changed)
         self._subscription_progress_text_changed = self._core.subscribe_progress_text_changed(
@@ -76,6 +80,12 @@ class LightspeedExporterUI:
         omni_utils.add_menu_items(self._tools_manager_menus, "File")
 
     def __clicked(self):
+
+        reaplacement_layer = self._layer_manager.get_layer(LayerType.replacement)
+        if reaplacement_layer is None:
+            carb.log_error("Can't find the replacement layer in the stage")
+            return
+
         self._window = omni.ui.Window(
             "Export Options", visible=True, height=0, dockPreference=ui.DockPreference.DISABLED
         )
@@ -98,6 +108,7 @@ class LightspeedExporterUI:
             "Button::folder:checked": {"background_color": 0x0, "margin": 0},
             "Button::folder:pressed": {"background_color": 0x0, "margin": 0},
             "Button::folder:hovered": {"background_color": 0x0, "margin": 0},
+            "Label::ExportWarningLayer": {"color": 0xFF00B4F5},
         }
 
         with self._window.frame:
@@ -122,6 +133,11 @@ class LightspeedExporterUI:
                     ui.Spacer(width=2)
                     ui.Spacer(width=40)
                 ui.Spacer(height=10)
+                ui.Label(
+                    f'Only data from the layer "{os.path.basename(reaplacement_layer.realPath)}" will be exported',
+                    alignment=ui.Alignment.CENTER,
+                    name="ExportWarningLayer",
+                )
                 ui.Spacer(height=10)
                 with ui.HStack(height=0):
                     ui.Spacer()
