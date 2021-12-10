@@ -32,9 +32,11 @@ preview_image = "data/preview.png"
 icon = "data/icon.png"
 
 [dependencies]
+"omni.client" = {}
 "omni.kit.test" = {}
 "omni.kit.tool.collect" = {}
 "omni.kit.menu.utils" = {}
+"lightspeed.layer_manager" = {}
 
 [[python.module]]
 name = "lightspeed.export"
