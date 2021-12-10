@@ -37,6 +37,7 @@ icon = "data/icon.png"
 "omni.kit.tool.collect" = {}
 "omni.kit.menu.utils" = {}
 "omni.kit.widget.layers" = {}
+"lightspeed.layer_manager" = {}
 
 [python.pipapi]
 requirements = ["Pillow"]

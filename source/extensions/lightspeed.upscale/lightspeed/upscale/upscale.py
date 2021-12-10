@@ -9,6 +9,7 @@ import omni
 import omni.ext
 import omni.kit.menu.utils as omni_utils
 import omni.usd
+from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
 from omni.kit.menu.utils import MenuItemDescription
 from PIL import Image
 from pxr import Sdf, Tf, Usd, UsdShade, UsdUtils
@@ -28,7 +29,6 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
         pass
 
     _textures_to_upscale = {}
-    _current_layer = None
 
     def gather_textures(self, texture):
         if texture.lower().endswith(".dds") or texture.lower().endswith(".png"):
@@ -98,36 +98,26 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
     def __clicked(self):
         # reset the upscale list
         self._textures_to_upscale.clear()
+        layer_manager = LayerManagerCore()
 
         # get/setup layer
         stage = omni.usd.get_context().get_stage()
 
-        # populate the texture list
-        for stage_layer in [stage.GetRootLayer(), stage.GetSessionLayer()]:
-            (all_layers, all_assets, unresolved_paths) = UsdUtils.ComputeAllDependencies(stage_layer.identifier)
-            if not all_layers:
-                all_layers = stage.GetLayerStack()
+        replacement_layer = layer_manager.get_layer(LayerType.replacement)
+        capture_layer = layer_manager.get_layer(LayerType.capture)
 
-            for layer in all_layers:
-                self._current_layer = layer
-                UsdUtils.ModifyAssetPaths(layer, self.gather_textures)
-
-        self._current_layer = None
+        UsdUtils.ModifyAssetPaths(capture_layer, self.gather_textures)
 
         # perform upscale
         for original_tex, output_tex in self._textures_to_upscale.items():
-            if not os.path.isabs(original_tex):
-                # place the output textures next to the enhancements layer location
-                output_tex_path = os.path.join(os.path.dirname(stage.GetRootLayer().subLayerPaths[0]), output_tex)
-                capture_usd_directory = os.path.dirname(stage.GetRootLayer().subLayerPaths[-1])
-                original_texture_path = os.path.join(capture_usd_directory, original_tex)
-            else:
-                output_tex_path = output_tex
-                original_texture_path = original_tex
+            # place the output textures next to the enhancements layer location
+            output_tex_path = os.path.join(os.path.dirname(replacement_layer.realPath), output_tex)
+            capture_usd_directory = os.path.dirname(capture_layer.realPath)
+            original_texture_path = os.path.join(capture_usd_directory, original_tex)
             self.perform_upscale(original_texture_path, output_tex_path)
 
         # create/open and populate auto-upscale layer, placing it next to the enhancements layer
-        enhancement_usd_dir = os.path.dirname(stage.GetRootLayer().subLayerPaths[0])
+        enhancement_usd_dir = os.path.dirname(replacement_layer.realPath)
         auto_upscale_stage_path = os.path.join(enhancement_usd_dir, "autoupscale.usda")
         try:
             auto_stage = Usd.Stage.Open(auto_upscale_stage_path)
@@ -150,8 +140,8 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
 
         auto_stage.GetRootLayer().Save()
 
-        # add the auto-upscale layer to the workspace layer just above the capture layer
+        # add the auto-upscale layer to the replacement layer as a sublayer
         # this property is supposed to be read-only, but the setter in the C++ lib are missing in the python lib
-        if auto_upscale_stage_path not in stage.GetRootLayer().subLayerPaths:
-            index_above_capture_usd = len(stage.GetRootLayer().subLayerPaths) - 1
-            stage.GetRootLayer().subLayerPaths.insert(index_above_capture_usd, auto_upscale_stage_path)
+        if auto_upscale_stage_path not in replacement_layer.subLayerPaths:
+            index_above_capture_usd = max(0, len(replacement_layer.subLayerPaths) - 1)
+            replacement_layer.subLayerPaths.insert(index_above_capture_usd, auto_upscale_stage_path)
