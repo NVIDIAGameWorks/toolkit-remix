@@ -367,10 +367,9 @@ object Master_BuildAndPackagingPublishing_PublishLauncherPackages : BuildType({
             enabled = true
             triggerRules = "+:VERSION.md"
             branchFilter = """
-                +:main
+                +:master
                 +:release/*
                 +:daily
-                +:daily-rtx
             """.trimIndent()
         }
     }
