@@ -25,12 +25,6 @@ files_exclude = [
     ["kit/**"]
 ]
 
-[repo_package.packages."platform:windows-x86_64".docs]
-omniverse_flow_version_scheme = true
-files = [
-    ["_build/docs"]
-]
-
 
 ########################################################################################################################
 # Extensions publisher

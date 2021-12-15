@@ -7,14 +7,4 @@ root = repo_build.get_abs_path(".")
 -- Insert kit template premake configuration, it creates solution, finds extensions.. Look inside for more details.
 dofile("_repo/deps/repo_kit_tools/kit-template/premake5.lua")
 
--- Extra folder linking and file copy setup:
-repo_build.prebuild_link {
-    -- Link python app sources in target dir for easier edit
-    { "source/pythonapps/target", bin_dir.."/pythonapps" },
-}
-repo_build.prebuild_copy {
-    -- Copy python app running scripts in target dir
-    {"source/pythonapps/runscripts/$config/*$shell_ext", bin_dir}
-}
-
 define_app("omni.app.lightspeed")

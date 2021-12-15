@@ -1,0 +1,45 @@
+name = "TRex"
+#displayed application name in smaller card and library view
+shortName = "TRex"
+version = "${version}"
+#boolean for if this version is the latest version
+latest = true
+#unique identifier for component, all lower case, persists between versions
+slug = "trex"
+
+#displayed before application name in launcher
+productArea = "Omniverse"
+#category of content
+category = "Apps"
+#values for filtering content, not implemented yet
+tags = [
+  "Media & Entertainment",
+  "Manufacturing",
+  "Product Design",
+  "Scene Composition",
+  "Visualization",
+  "Rendering"
+]
+
+#enum of "app", "connector" and "experience" for now
+kind = "app"
+#string array, each line is a new line, keep lines under 256 char and keep lines under 4
+description = [
+  "Omniverse TRex."
+]
+
+#array of links for more info on product
+
+[[links]]
+title = "Release Notes"
+url = "https://gitlab-master.nvidia.com/omniverse/kit-apps/code/-/blob/main/CHANGELOG.md"
+[[links]]
+title = "Documentation"
+url = "https://docs.omniverse.nvidia.com/app_create/app_create/overview.html"
+[[links]]
+title = "Tutorials"
+url = "http://omniverse.nvidia.com/tutorials"
+[[links]]
+title = "Forums"
+url = "https://forums.developer.nvidia.com/c/omniverse/300"
+
