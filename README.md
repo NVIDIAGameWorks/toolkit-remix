@@ -31,7 +31,7 @@ graph TD
   end
 
 
-  
+
   Kit[Kit] --> A1
   Kit[Kit] --> A2
   Kit[Kit] --> A3
@@ -46,15 +46,13 @@ graph TD
 
 To run tests: `repo.bat test`
 
-To run from python: `_build\windows-x86_64\release\example.pythonapp.bat`
-
 ## Using a Local Build of Kit SDK
 
-By default packman downloads Kit SDK ([target-deps.packman.xml](deps/target-deps.packman.xml)). For developing purposes local build of Kit SDK can be used. 
+By default packman downloads Kit SDK ([target-deps.packman.xml](deps/target-deps.packman.xml)). For developing purposes local build of Kit SDK can be used.
 
 To use your local build of Kit SDK, assuming it is located say at `C:/projects/kit`.
 
-Use `repo_source` tool to link: 
+Use `repo_source` tool to link:
 
 > `repo source link kit-sdk c:/projects/kit/kit`
 

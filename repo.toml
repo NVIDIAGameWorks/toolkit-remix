@@ -40,9 +40,6 @@ files = [
 
 # Extensions to publish, include and exclude among those discovered by kit. Wildcards are supported.
 exts.include = [
-    "example.cpp_ext",
-    "example.mixed_ext",
-    "example.python_ext",
     "lightspeed.export",
     "lightspeed.events_manager",
     "lightspeed.event.save_recent",
@@ -66,7 +63,7 @@ publish_verification = true
 [repo_precache_exts]
 # Apps to run and precache
 apps = [
-    "${root}/_build/$platform/$config/apps/omni.app.precache_exts_demo.kit"
+    "${root}/_build/$platform/$config/apps/omni.app.lightspeed.kit"
 ]
 
 
@@ -98,7 +95,6 @@ extra_sys_paths = [
     "${root}/_build/${platform_target}/release/kit",
     "${root}/_build/${platform_target}/release/kit/plugins",
     "${root}/_build/${platform_target}/release/kit/plugins/bindings-python",
-    "${root}/_build/${platform_target}/release/exts/example.python_ext",
 ]
 
 sphinx_exclude_patterns = [
@@ -118,3 +114,12 @@ deps = [
 protocol = "s3"
 bucket_name = "omniverse-docs"
 bucket_dir = "${project}/${version}"
+
+
+########################################################################################################################
+# Launcher publish and deploy
+########################################################################################################################
+
+[repo_deploy_launcher]
+enabled = true
+git_url = "https://oauth2:${env:TREX_PIPELINE_TOKEN}@gitlab-master.nvidia.com/omniverse/trex-release-pipeline.git"

@@ -1,6 +1,6 @@
-Package : kit-template
-Description : 
-Maintainers : 
+Package : lightspeed-kit
+Description :
+Maintainers :
 SWIPAT NvBug :
-Repository : https://gitlab-master.nvidia.com/omniverse/kit-extensions/kit-template
+Repository : https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit
 License Type : NVIDIA
