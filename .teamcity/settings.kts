@@ -384,7 +384,7 @@ object Master_BuildAndPackagingPublishing_PublishLauncherPackages : BuildType({
             artifacts {
                 cleanDestination = true
                 artifactRules = """
-                    code-launcher*.signed.zip => _build/packages
+                    trex-launcher*.signed.zip => _build/packages
                 """.trimIndent()
             }
         }
@@ -396,7 +396,7 @@ object Master_BuildAndPackagingPublishing_PublishLauncherPackages : BuildType({
 
             artifacts {
                 cleanDestination = true
-                artifactRules = "code-launcher* => _build/packages"
+                artifactRules = "trex-launcher* => _build/packages"
             }
         }
         snapshot(Master_Testing_LinuxX8664) {
@@ -511,7 +511,7 @@ object Master_BuildAndPackagingPublishing_SignWindowsBinaries : BuildType({
 
             artifacts {
                 cleanDestination = true
-                artifactRules = "code-launcher@*.release.zip => _unsignedpackages"
+                artifactRules = "trex-launcher@*.release.zip => _unsignedpackages"
             }
         }
     }
