@@ -11,6 +11,22 @@ import_configs = ["${root}/_repo/deps/repo_kit_tools/kit-template/repo.toml"]
 # Reposiory Name. It is used for solution name and final package name
 name = "lightspeed-kit"
 
+########################################################################################################################
+# Test Runner
+########################################################################################################################
+
+[repo_test.suites.alltests]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.alltests.group]]
+# Run app test
+include = ["tests-omni.app.lightspeed${shell_ext}"]
+exclude = []
+args = [
+    "--/app/extensions/registryEnabled=0" # It should start ok without a registry enabled (everything prebundled)
+]
+timeout = 1800
 
 ########################################################################################################################
 # Packaging
@@ -18,11 +34,24 @@ name = "lightspeed-kit"
 
 # package content
 [repo_package.packages.main_package]
+ziponly = true
+replace_authors_in_kit_extensions = true
+strip_package_infos = true
+
+# package content
 files = [
     ["**"],
 ]
 files_exclude = [
-    ["kit/**"]
+    ["**/*.pdb"],
+    ["**/*.exp"],
+    ["kit/**"],
+    ["apps/kit.portable"],
+]
+"linux-x86_64".files_strip = [
+    ["**/*.so"],
+]
+"linux-x86_64".files_strip_exclude = [
 ]
 
 
