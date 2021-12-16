@@ -55,7 +55,7 @@ class ILayer:
                     continue
                 omni.client.delete(layer.realPath)
 
-    def create_sublayer(self, path: str = None):
+    def create_sublayer(self, path: str = None, sublayer_create_position=0):
         need_new_layer = self._core.get_layer(self.layer_type)
         if need_new_layer is not None:
             self._core.remove_layer(self.layer_type)
@@ -66,7 +66,7 @@ class ILayer:
         omni.kit.commands.execute(
             "CreateSublayer",
             layer_identifier=root_layer.identifier,
-            sublayer_position=0,
+            sublayer_position=sublayer_create_position,
             new_layer_path=path if path else "",
             transfer_root_content=False,
             create_or_insert=True,

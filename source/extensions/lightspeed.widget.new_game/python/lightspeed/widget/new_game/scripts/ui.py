@@ -109,6 +109,9 @@ class GameViewer(ContentViewer):
                                                     ui.Spacer(width=sub_width)
                                                     ui.Label("Game executable", width=sub_label_width)
                                                     self._game_executable_field = ui.StringField()
+                                                    self._game_executable_field.model.add_end_edit_fn(
+                                                        self._on_game_executable_edit
+                                                    )
                                                     ui.Image(
                                                         str(
                                                             self._get_icon_path(
@@ -127,6 +130,7 @@ class GameViewer(ContentViewer):
                                                     ui.Spacer(width=sub_width)
                                                     ui.Label("Name", width=sub_label_width)
                                                     self._game_name_field = ui.StringField()
+                                                    self._game_name_field.model.add_end_edit_fn(self._on_game_name_edit)
                                             ui.Spacer(width=8)
                                         ui.Spacer(height=8)
 
@@ -142,6 +146,30 @@ class GameViewer(ContentViewer):
 
         with self.get_top_frame():
             self._label_game = ui.Label("", name="vehicle")
+
+    def _on_game_name_edit(self, model):
+        value = model.get_value_as_string()
+        if not value.strip():
+            carb.log_error("Please add a game name!")
+            return
+        game_path = self._game_executable_field.model.get_value_as_string()
+        if game_path.strip() and Path(game_path).exists():
+            data = ContentDataAdd(title=value, path=game_path)
+            self._core.set_current_game(data)
+        else:
+            self._core.set_current_game(None)
+
+    def _on_game_executable_edit(self, model):
+        value = model.get_value_as_string()
+        if not value.strip() or not Path(value).exists():
+            carb.log_error("Please set a good game executable!")
+            return
+        game_name = self._game_name_field.model.get_value_as_string()
+        if game_name.strip():
+            data = ContentDataAdd(title=game_name, path=value)
+            self._core.set_current_game(data)
+        else:
+            self._core.set_current_game(None)
 
     def _on_game_executable(self, b, m):
         if b != 0:

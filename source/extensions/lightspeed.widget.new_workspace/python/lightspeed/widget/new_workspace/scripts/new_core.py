@@ -21,6 +21,8 @@ from lightspeed.layer_manager.scripts.layers.replacement import LSS_LAYER_GAME_N
 if typing.TYPE_CHECKING:
     from lightspeed.widget.content_viewer.scripts.core import ContentData
 
+from pxr import Usd, UsdGeom
+
 
 class NewGameWorkspaceCore:
     def __init__(self):
@@ -72,21 +74,33 @@ class NewGameWorkspaceCore:
             self.__fns_to_execute_on_event.append(callback)
         self._setup_stage_event()
         carb.log_info("Create game workspace")
-        # first we add the capture layer
+
+        # copy over layer-meta-data from capture layer
+        stage = omni.usd.get_context().get_stage()
+        capture_stage = Usd.Stage.Open(capture_data.path)
+        UsdGeom.SetStageUpAxis(stage, UsdGeom.GetStageUpAxis(capture_stage))
+        UsdGeom.SetStageMetersPerUnit(stage, UsdGeom.GetStageMetersPerUnit(capture_stage))
+        stage.SetTimeCodesPerSecond(capture_stage.GetTimeCodesPerSecond())
+        capture_stage = None
+
+        # add the capture layer
         self._layer_manager.insert_sublayer(capture_data.path, LayerType.capture)
         self._layer_manager.lock_layer(LayerType.capture)
 
         # add the replacement layer if exist
-
         layer_instance = self._layer_manager.get_layer_instance(LayerType.replacement)
         if layer_instance is None:
             carb.log_error(f"Can't find a layer schema type {LayerType.ego_configuration.value}")
             return
         layer_instance.set_custom_layer_data({LSS_LAYER_GAME_NAME: game.title})
         if use_existing_layer:
-            self._layer_manager.insert_sublayer(enhancement_layer_path, LayerType.replacement)
+            self._layer_manager.insert_sublayer(
+                enhancement_layer_path, LayerType.replacement, sublayer_insert_position=0
+            )
         else:  # if not, we create it
-            self._layer_manager.create_new_sublayer(LayerType.replacement, path=enhancement_layer_path)
+            self._layer_manager.create_new_sublayer(
+                LayerType.replacement, path=enhancement_layer_path, sublayer_create_position=0
+            )
 
     def _setup_stage_event(self):
         """We listen to stage event when we are running but turn it off otherwise"""
