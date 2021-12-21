@@ -23,7 +23,7 @@ def get_captures(data: "ContentData") -> List[str]:
     return [
         str(file)
         for file in Path(data.path).parent.joinpath("lss", "capture").iterdir()
-        if file.is_file() and file.stem.startswith("export_") and file.suffix in [".usd", ".usda", ".usdc"]
+        if file.is_file() and file.suffix in [".usd", ".usda", ".usdc"]
     ]
 
 

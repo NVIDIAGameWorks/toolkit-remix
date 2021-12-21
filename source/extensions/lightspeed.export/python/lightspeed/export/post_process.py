@@ -38,12 +38,6 @@ class LightspeedPosProcessExporter:
                 attr_to_remove.append(attr.GetName())
 
         for attr in attr_to_remove:
-            carb.log_warn(
-                "Warning: Lightspeed Export doesn't support attribute: '"
-                + attr
-                + "' found on "
-                + prim.GetPath().pathString
-            )
             prim.RemoveProperty(attr)
 
     def _process_uvs(self, prim):
@@ -123,6 +117,7 @@ class LightspeedPosProcessExporter:
         # process meshes
         # TraverseAll because we want to grab overrides
         all_geos = [prim_ref for prim_ref in stage.TraverseAll() if UsdGeom.Mesh(prim_ref)]
+        # TODO a crash in one geo shouldn't prevent processing the rest of the geometry
         for geo_prim in all_geos:
             self._process_mesh_prim(geo_prim)
 
