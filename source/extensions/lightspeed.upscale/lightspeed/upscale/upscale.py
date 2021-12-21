@@ -26,7 +26,7 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
         omni_utils.add_menu_items(self._tools_manager_menus, "LSS")
 
     def on_shutdown(self):
-        pass
+        omni_utils.remove_menu_items(self._tools_manager_menus, "LSS")
 
     _textures_to_upscale = {}
 
