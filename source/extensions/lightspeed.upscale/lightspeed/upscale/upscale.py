@@ -114,7 +114,10 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
             ):
                 continue
             absolute_asset_path = (
-                prim.GetChild(constants.SHADER).GetAttribute(constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE).Get().resolvedPath
+                prim.GetChild(constants.SHADER)
+                .GetAttribute(constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE)
+                .Get()
+                .resolvedPath
             )
             if absolute_asset_path.lower().endswith(".dds") or absolute_asset_path.lower().endswith(".png"):
                 # manipulate paths

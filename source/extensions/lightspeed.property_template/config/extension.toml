@@ -1,0 +1,23 @@
+[package]
+version = "0.1.0"
+authors = ["markh@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["property", "template", "properties"]
+title = "Lightspeed Property template"
+description = "Alterations to the property window for Lightspeed content."
+category = "other"
+
+[ui]
+name = "Lightspeed Property template"
+
+[dependencies]
+"omni.client" = {}
+"omni.kit.window.property" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+"lightspeed.common" = {}
+
+[[python.module]]
+name = "lightspeed.property_template"
