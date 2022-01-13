@@ -67,6 +67,7 @@ exts.include = [
     "lightspeed.events_manager",
     "lightspeed.event.save_recent",
     "lightspeed.layer_manager",
+    "lightspeed.property_template",
     "lightspeed.upscale",
     "lightspeed.widget.content_viewer",
     "lightspeed.widget.new_game",

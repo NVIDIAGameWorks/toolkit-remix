@@ -1,7 +1,7 @@
 [package]
 version = "0.1.0"
 authors = ["dbataille@nvidia.com"]
-repository = "https://gitlab-master.nvidia.com/autosimulator/drivesim-ov"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
 keywords = ["events", "register", "manager"]
