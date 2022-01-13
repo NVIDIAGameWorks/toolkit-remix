@@ -79,8 +79,8 @@ class NewGameWorkspaceCore:
         capture_stage = Usd.Stage.Open(capture_data.path)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.GetStageUpAxis(capture_stage))
         UsdGeom.SetStageMetersPerUnit(stage, UsdGeom.GetStageMetersPerUnit(capture_stage))
-        timeCodes = capture_stage.GetTimeCodesPerSecond()
-        stage.SetTimeCodesPerSecond(timeCodes)
+        time_codes = capture_stage.GetTimeCodesPerSecond()
+        stage.SetTimeCodesPerSecond(time_codes)
         capture_stage = None
 
         # add the capture layer
@@ -101,10 +101,10 @@ class NewGameWorkspaceCore:
             layer = self._layer_manager.create_new_sublayer(
                 LayerType.replacement, path=enhancement_layer_path, sublayer_create_position=0
             )
-            # replacement layer needs to have the same TimeCodesPerSecond as the capture layer 
+            # replacement layer needs to have the same TimeCodesPerSecond as the capture layer
             # for reference deletion to work. See OM-42663 for more info.
             replacement_stage = Usd.Stage.Open(layer.realPath)
-            replacement_stage.SetTimeCodesPerSecond(timeCodes)
+            replacement_stage.SetTimeCodesPerSecond(time_codes)
             replacement_stage.Save()
             replacement_stage = None
 

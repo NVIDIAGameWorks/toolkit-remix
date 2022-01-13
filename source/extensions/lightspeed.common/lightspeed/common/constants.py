@@ -1,0 +1,7 @@
+MATERIAL_INPUTS_DIFFUSE_TEXTURE = "inputs:diffuse_texture"
+ROOTNODE = "/RootNode"
+ROOTNODE_LOOKS = "/RootNode/Looks"
+SHADER = "Shader"
+MATERIAL = "Material"
+SCOPE = "Scope"
+AUTO = "auto"

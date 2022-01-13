@@ -9,10 +9,11 @@ import omni
 import omni.ext
 import omni.kit.menu.utils as omni_utils
 import omni.usd
+from lightspeed.common import constants
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
 from omni.kit.menu.utils import MenuItemDescription
 from PIL import Image
-from pxr import Sdf, Tf, Usd, UsdShade, UsdUtils
+from pxr import Sdf, Tf, Usd, UsdShade
 
 
 class LightspeedUpscalerExtension(omni.ext.IExt):
@@ -27,14 +28,6 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
 
     def on_shutdown(self):
         omni_utils.remove_menu_items(self._tools_manager_menus, "LSS")
-
-    _textures_to_upscale = {}
-
-    def gather_textures(self, texture):
-        if texture.lower().endswith(".dds") or texture.lower().endswith(".png"):
-            upscaled_dds_texture_path = texture.replace(os.path.splitext(texture)[1], "_upscaled4x.dds")
-            self._textures_to_upscale[texture] = upscaled_dds_texture_path
-        return texture
 
     # todo: this should be async job!
     def perform_upscale(self, texture, output_texture):
@@ -96,25 +89,12 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
         temp_dir.cleanup()
 
     def __clicked(self):
-        # reset the upscale list
-        self._textures_to_upscale.clear()
         layer_manager = LayerManagerCore()
 
-        # get/setup layer
-        stage = omni.usd.get_context().get_stage()
-
+        # get/setup layers
         replacement_layer = layer_manager.get_layer(LayerType.replacement)
         capture_layer = layer_manager.get_layer(LayerType.capture)
-
-        UsdUtils.ModifyAssetPaths(capture_layer, self.gather_textures)
-
-        # perform upscale
-        for original_tex, output_tex in self._textures_to_upscale.items():
-            # place the output textures next to the enhancements layer location
-            output_tex_path = os.path.join(os.path.dirname(replacement_layer.realPath), output_tex)
-            capture_usd_directory = os.path.dirname(capture_layer.realPath)
-            original_texture_path = os.path.join(capture_usd_directory, original_tex)
-            self.perform_upscale(original_texture_path, output_tex_path)
+        capture_stage = Usd.Stage.Open(capture_layer.realPath)
 
         # create/open and populate auto-upscale layer, placing it next to the enhancements layer
         enhancement_usd_dir = os.path.dirname(replacement_layer.realPath)
@@ -123,20 +103,36 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
             auto_stage = Usd.Stage.Open(auto_upscale_stage_path)
         except Tf.ErrorException:
             auto_stage = Usd.Stage.CreateNew(auto_upscale_stage_path)
-        auto_stage.DefinePrim("/RootNode")
-        auto_stage.DefinePrim("/RootNode/Looks", "Scope")
+        auto_stage.DefinePrim(constants.ROOTNODE)
+        auto_stage.DefinePrim(constants.ROOTNODE_LOOKS, constants.SCOPE)
 
-        for prim in stage.GetPrimAtPath("/RootNode/Looks").GetChildren():
-            UsdShade.Material.Define(auto_stage, prim.GetPath())
-            origin_shader = prim.GetChild("Shader")
-            shader = UsdShade.Shader.Define(auto_stage, origin_shader.GetPath())
-            Usd.ModelAPI(shader).SetKind("Material")
-            shader_prim = shader.GetPrim()
-            attr = shader_prim.CreateAttribute("inputs:diffuse_texture", Sdf.ValueTypeNames.Asset)
-            attr_origin = origin_shader.GetAttribute("inputs:diffuse_texture")
-            path_origin = attr_origin.Get().path
-            attr.Set(path_origin.replace(os.path.splitext(path_origin)[1], "_upscaled4x.dds"))
-            attr.SetColorSpace("auto")
+        for prim in capture_stage.GetPrimAtPath(constants.ROOTNODE_LOOKS).GetChildren():
+            if (
+                not prim.GetChild(constants.SHADER)
+                or not prim.GetChild(constants.SHADER).GetAttribute(constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE)
+                or not prim.GetChild(constants.SHADER).GetAttribute(constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE).Get()
+            ):
+                continue
+            absolute_asset_path = (
+                prim.GetChild(constants.SHADER).GetAttribute(constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE).Get().resolvedPath
+            )
+            if absolute_asset_path.lower().endswith(".dds") or absolute_asset_path.lower().endswith(".png"):
+                # manipulate paths
+                rel_path = os.path.relpath(absolute_asset_path, os.path.dirname(capture_layer.realPath))
+                upscale_rel_path = rel_path.replace(os.path.splitext(rel_path)[1], "_upscaled4x.dds")
+                output_tex_path = os.path.join(os.path.dirname(replacement_layer.realPath), upscale_rel_path)
+                capture_usd_directory = os.path.dirname(capture_layer.realPath)
+                original_texture_path = os.path.join(capture_usd_directory, rel_path)
+                # perform upscale and place the output textures next to the enhancements layer location
+                self.perform_upscale(original_texture_path, output_tex_path)
+                UsdShade.Material.Define(auto_stage, prim.GetPath())
+                origin_shader = prim.GetChild(constants.SHADER)
+                shader = UsdShade.Shader.Define(auto_stage, origin_shader.GetPath())
+                Usd.ModelAPI(shader).SetKind(constants.MATERIAL)
+                shader_prim = shader.GetPrim()
+                attr = shader_prim.CreateAttribute(constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE, Sdf.ValueTypeNames.Asset)
+                attr.Set(upscale_rel_path)
+                attr.SetColorSpace(constants.AUTO)
 
         auto_stage.GetRootLayer().Save()
 
