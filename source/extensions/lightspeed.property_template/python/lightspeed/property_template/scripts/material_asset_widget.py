@@ -22,26 +22,6 @@ from lightspeed.common import constants
 class MaterialAssetWidget(UsdMaterialAttributeWidget):
     def __init__(self, title: str):
         super().__init__(title=title, schema=UsdShade.Material, include_names=[], exclude_names=[])
-        self._useful_attrs = {
-            "inputs:anisotropy",
-            "inputs:diffuse_color_constant",
-            "inputs:diffuse_texture",
-            "inputs:emissive_color",
-            "inputs:emissive_color_constant",
-            "inputs:emissive_intensity",
-            "inputs:emissive_mask_texture",
-            "inputs:enable_emission",
-            "inputs:ior_constant",
-            "inputs:metallic_constant",
-            "inputs:metallic_texture",
-            "inputs:normalmap_texture",
-            "inputs:opacity_constant",
-            "inputs:reflection_roughness_constant",
-            "inputs:reflectionroughness_texture",
-            "inputs:tangent_texture",
-            "inputs:transmittance_color",
-            "inputs:transmittance_measurement_distance",
-        }
 
     def on_new_payload(self, payload):
         if len(payload) == 0:
@@ -79,8 +59,7 @@ class MaterialAssetWidget(UsdMaterialAttributeWidget):
         return True
 
     def _customize_props_layout(self, attrs):
-        all_attrs = super()._customize_props_layout(attrs)
-        return [attr for attr in all_attrs if attr.attr_name in self._useful_attrs]
+        return super()._customize_props_layout(attrs)
 
     def build_items(self):
         ui.Label(
