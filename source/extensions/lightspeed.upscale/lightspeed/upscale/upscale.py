@@ -8,6 +8,7 @@ import carb
 import omni
 import omni.ext
 import omni.kit.menu.utils as omni_utils
+import omni.kit.window.content_browser
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
@@ -18,16 +19,38 @@ from pxr import Sdf, Tf, Usd, UsdShade
 
 class LightspeedUpscalerExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
+        self.layer_manager = LayerManagerCore()
         self.__create_save_menu()
+        win = omni.kit.window.content_browser.get_content_window()
+        win.add_context_menu(
+            "Upscale Texture",
+            glyph="none.svg",
+            click_fn=self.context_menu_on_click_upscale,
+            show_fn=self.context_menu_can_show_menu_upscale,
+            index=0,
+        )
 
     def __create_save_menu(self):
         self._tools_manager_menus = [
-            MenuItemDescription(name="Upscale Game Textures", onclick_fn=self.__clicked, glyph="none.svg")
+            MenuItemDescription(
+                name="Batch Upscale All Game Capture Textures", onclick_fn=self.__clicked, glyph="none.svg"
+            )
         ]
-        omni_utils.add_menu_items(self._tools_manager_menus, "LSS")
+        omni_utils.add_menu_items(self._tools_manager_menus, "Batch Tools")
 
     def on_shutdown(self):
-        omni_utils.remove_menu_items(self._tools_manager_menus, "LSS")
+        omni_utils.remove_menu_items(self._tools_manager_menus, "Batch Tools")
+        win = omni.kit.window.content_browser.get_content_window()
+        win.delete_context_menu("Upscale Texture")
+
+    def context_menu_on_click_upscale(self, menu, value):
+        upscale_path = value.replace(os.path.splitext(value)[1], "_upscaled4x.dds")
+        self.perform_upscale(value, upscale_path)
+
+    def context_menu_can_show_menu_upscale(self, path):
+        if path.lower().endswith(".dds") or path.lower().endswith(".png"):
+            return True
+        return False
 
     # todo: this should be async job!
     def perform_upscale(self, texture, output_texture):
@@ -89,11 +112,10 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
         temp_dir.cleanup()
 
     def __clicked(self):
-        layer_manager = LayerManagerCore()
 
         # get/setup layers
-        replacement_layer = layer_manager.get_layer(LayerType.replacement)
-        capture_layer = layer_manager.get_layer(LayerType.capture)
+        replacement_layer = self.layer_manager.get_layer(LayerType.replacement)
+        capture_layer = self.layer_manager.get_layer(LayerType.capture)
         capture_stage = Usd.Stage.Open(capture_layer.realPath)
 
         # create/open and populate auto-upscale layer, placing it next to the enhancements layer
