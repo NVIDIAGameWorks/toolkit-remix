@@ -1,43 +1,141 @@
 [package]
 title = "Lightspeed Kit"
 description = "Used for lightspeed remastering."
-version = "2022.1.0-alpha.1"
+version = "2022.1.0-alpha.5"
 keywords = ["app", "lightspeed"]
 
 [dependencies]
-# Include basic configuration (that brings most of basic extensions)
-"omni.app.dev" = {}
+# The Main UI App
+"omni.kit.uiapp" = {}
+"omni.kit.renderer.core" = {}
 
-# # PhysX
-"omni.physx.bundle" = {}
+# Status Bar
+"omni.kit.window.status_bar" = {}
 
-# # Omni Graph
-"omni.graph.core" = {}
-"omni.graph.ui" = {}
-"omni.graph.examples.python" = {}
+# TODO: Need to create a splash app to display a splash screen
+#"omni.kit.splash" = { order = -5000}
 
-# Disabling for now, since the dependency isn't resolving successfuly.
+"omni.stats" = {}
+
+"omni.kit.telemetry" = {}
+
+"omni.kit.menu.utils" = {}
+"omni.kit.menu.file" = {}
+"omni.kit.menu.edit" = {}
+"omni.kit.menu.create" = {}
+"omni.kit.menu.common" = {}
+
+"omni.kit.window.file" = {}
+"omni.kit.context_menu" = {}
+
+"omni.kit.activity.progress.bundle" = {}
+
+"omni.kit.selection" = {}
+"omni.kit.stage_templates" = {}
+
+"omni.kit.search.service" = {}
+"omni.kit.primitive.mesh" = {}
+
+# Create Windows
+"omni.kit.window.title" = {}
+"omni.kit.widget.live" = {}
+"omni.kit.window.stage" = {}
+"omni.kit.widget.layers" = {}
+"omni.kit.window.cursor" = {}
+
+"omni.kit.window.toolbar" = {}
+
+# Viewport and Renderer
+"omni.kit.window.viewport" = {}
+"omni.renderer" = { tag = "rtx" }
+"omni.hydra.rtx" = {}
+
+"omni.rtx.settings.core" = {}
+
 "omni.kit.window.movie_capture" = {}
 
-# # More Windows and UI elements
+"omni.kit.profiler.window" = {} # useful for dev
+
+"omni.kit.stage_column.variant" = {}
+"omni.kit.stage_column.payload" = {}
+
+# Viewport Widgets and Collaboration
+"omni.kit.viewport_widgets_manager" = {}
+"omni.kit.collaboration.channel_manager" = {}
+"omni.kit.collaboration.viewport.camera" = {}
+
+# utils window
+"omni.kit.window.about" = {}
+"omni.kit.window.privacy" = {}
 "omni.kit.window.provide_feedback" = {}
+
+"omni.kit.material.library" = {}
+
 "omni.kit.window.imageviewer" = {}
-"omni.kit.tagging" = { order = -10 } # should be a dependency of below
-"omni.kit.filebrowser_column.tags" = {}
+
+"omni.kit.widget.filebrowser" = {}
+"omni.kit.window.filepicker" = {}
+"omni.kit.window.content_browser" = {}
+
 "omni.kit.window.stats" = { order = 1000 }
+
+"omni.kit.window.script_editor" = {}
+"omni.kit.window.console" = {}
+
+"omni.kit.window.extensions" = {}
+
 "omni.kit.window.usd_paths" = {}
+"omni.kit.window.preferences" = { order = 1000 } # so the menu is in the correct place
+
+"omni.kit.renderer.capture" = {}
 "omni.kit.thumbnails.usd" = {}
-# "omni.kit.thumbnails.images" = {}
+"omni.kit.thumbnails.images" = {}
 
-# # Misc
-"omni.ansel" = {}
-"omni.kit.window.cursor" = {}
-"omni.kit.search.service" = {}
+# bring all the property Widgets and Window
+"omni.kit.window.property" = {}
+"omni.kit.property.bundle" = {}
+"omni.kit.property.layer" = {}
 
-# # Property Widgets and Window
-"omni.kit.property.tagging" = {}
-"omni.kit.property.material" = {}
-"omni.kit.property.usd" = {}
+# tool
+"omni.kit.asset_converter" = {}
+"omni.kit.tool.asset_importer" = {}
+"omni.kit.tool.asset_exporter" = {}
+"omni.kit.tool.collect" = {}
+
+# All QuickSearch
+"omni.kit.window.quicksearch" = { version = "2.0.4"}
+
+"omni.kit.quicksearch.actions" = {}
+"omni.kit.quicksearch.settings" = {}
+
+# "omni.kit.quicksearch.extensions" = {}
+"omni.kit.quicksearch.select" = {}
+"omni.kit.quicksearch.commands" = {}
+"omni.kit.quicksearch.menu" = {}
+"omni.kit.quicksearch.material" = {}
+"omni.kit.quicksearch.deeptag" = {}
+"omni.kit.quicksearch.hdri" = {}
+"omni.kit.quicksearch.props" = {}
+
+# there is a bug on new stage that mean that need to be upgraded before going live
+#"omni.kit.quicksearch.stage" = {}
+
+"omni.kit.search.files" = {}
+
+# registry
+# "omni.services.registry" = {}
+
+# Compatibility Checker
+"omni.kit.compatibility_checker" = {}
+
+# VERSIONING
+"omni.kit.widget.versioning" = {}
+
+# Windows only extensions. For all of them set exact=true to not be included into generated version lock.
+# That will break linux otherwise, as version lock is platform agnostic currently.
+[dependencies."filter:platform"."windows-x86_64"]
+# sequencer schema
+"omni.kit.window.modifier.titlebar" = { version = "103.0.1", exact = true }
 
 # # Tools
 "omni.kit.tool.asset_importer" = {}
@@ -49,8 +147,20 @@ keywords = ["app", "lightspeed"]
 "lightspeed.window.welcome" = {}
 "lightspeed.property_template" = {}
 
+
+[settings.app.settings]
+persistent = true
+
 [settings]
-app.window.title = "Lightspeed Kit"
+exts."omni.kit.window.file".useNewFilePicker = true
+exts."omni.kit.tool.asset_importer".useNewFilePicker = true
+exts."omni.kit.tool.collect".useNewFilePicker = true
+exts."omni.kit.widget.layers".useNewFilePicker = true
+exts."omni.kit.renderer.core".imgui.enableMips = true
+exts."omni.kit.browser.material".enabled = false
+exts."omni.kit.window.material".load_after_startup = true
+app.content.emptyStageOnStart = false
+renderer.enabled='rtx'
 
 [settings.rtx]
 rendermode = "PathTracing"
@@ -74,161 +184,159 @@ histogram.whiteScale = 5.0
 [settings.app.exts]
 folders.'++' = ["${app}/../exts", "${app}/../extscache"]
 
-[[test]]
-args = [
-	"--/renderer/debug/validation/enabled=false",
+[settings.app.window]
+title = "TREX"
+width = 1700
+height = 800
+x = -1
+y = -1
+iconPath = "${lightspeed.window.welcome}/data/trex.ico"
+
+# Fonts
+[setting.app.font]
+file = "${fonts}/OpenSans-SemiBold.ttf"
+size = 16
+
+[settings.exts.'omni.kit.window.extensions']
+featuredExts = [
+    "omni.kit.usda_edit",
+    "omni.kit.window.stageviewer",
+    "omni.kit.window.collection",
+    "omni.kit.browser.texture",
 ]
 
-# We can run all extension tests inside of an app. In practice many of them failing and crashing, that requires time
-# investment to fix. Add one extension, to keep pipeline working:
+# Basic Kit App
+################################
+app.name = "TREX"
+persistent.app.window.uiStyle = "NvidiaDark"
+
+# Privacy
+################################
+privacy.externalBuild = false
+structuredLog.enable = true
+
+
+# Splash Setup
+################################
+#exts."omni.kit.window.splash".imagePath = "${omni.create.app.resources}/data/create_splash_screen_daily@1x.png"
+#exts.'omni.kit.splash'.splash_app = "${omni.create.app.setup}/apps/omni.create.app.splash.kit"
+
+# hide NonToggleable Exts
+exts."omni.kit.window.extensions".hideNonToggleableExts = true
+exts."omni.kit.window.extensions".showFeatureOnly = false
+
+# Hang Detector
+################################
+app.hangDetector.enabled = true
+app.hangDetector.timeout = 120
+
+# Misc Settings
+###############################
+persistent.app.viewport.snapToSurface = false
+persistent.app.stage.movePrimInPlace = false
+persistent.app.file.recentFiles = []
+# Disable Frame Rate and Resoltion by default
+persistent.app.viewport.displayOptions = 3574
+persistent.app.transform.gizmoUseSRT = true
+
+# Make Detail panel visible by default
+persistent.app.omniverse.content_browser.options_menu.show_details = true
+persistent.app.omniverse.filepicker.options_menu.show_details = true
+persistent.app.stage.instanceableOnCreatingReference = false
+persistent.app.viewport.previewOnPeek = false
+
+# Browsers
+exts."omni.kit.browser.material".folders = [
+	# TODO: Provide sample material library?
+]
+
+exts."omni.kit.browser.asset".folders = [
+	# TODO: Provide sample asset library?
+]
+
+exts."omni.kit.browser.texture".folders = [
+	# TODO: Provide sample texture library?
+]
+
+# Content Browser
+###############################
+[settings.exts."omni.kit.window.content_browser"]
+enable_thumbnail_generation_images = true
+
+[settings.exts."omni.kit.window.modifier.titlebar"]
+titleFormatString = " TREX  {verKey:/app/version,font_color=0x909090,font_size=16} {separator} {file, board=true}"
+showFileFullPath = true
+icon.file = "${lightspeed.window.welcome}/data/trex.ico" # TODO: Change before shipping
+icon.size = 72
+defaultFont.name = "Arial"
+defaultFont.size = 16
+defaultFont.color = 0xD0D0D0
+separator.color = 0x00B976
+separator.width = 1
+windowBorder.color = 0x0F0F0F
+windowBorder.width = 0
+colors.caption = 0x0F0F0F
+colors.client = 0x0F0F0F
+
+[settings.crashreporter.data]
+experience = "TREX"
+
+[settings.exts."omni.kit.compatibility_checker"]
+supportedGpus = [
+    "*GeForce RTX ????*",
+    "*Quadro RTX ????*",
+    "*RTX ?????*",
+    "*RTX????*",
+    "*TITAN RTX*"
+]
+
+"windows-x86_64".minOsVersion = 0 #19042
+"windows-x86_64".driverBlacklistRanges = [
+    ["0.0", "456.39", "The minimum RTX requirement"],
+    ["460.0", "461.92", "Driver crashes or image artifacts"],
+]
+"linux-x86_64".minOsVersion = 0
+"linux-x86_64".driverBlacklistRanges = [
+    ["0.0", "450.57", "The minimum RTX requirement"],
+    ["455.23", "455.24", "NVIDIA OptiX bug"],
+    ["460.0", "460.62", "Driver crashes or image artifacts"],
+]
+"linux-aarch64".minOsVersion = 0
+"linux-aarch64".driverBlacklistRanges = [
+    ["0.0", "450.57", "The minimum RTX requirement"]
+]
+
+[[test]]
+dependencies = [
+	"omni.kit.testing.services"
+]
 pythonTests.include = [
-    # "omni.kit.window.preferences.*",
+	"omni.kit.tests.usd_stress.*",
+	"omni.kit.tests.basic_validation.*"
 ]
-pythonTests.exclude = [
+args = [
+    "--/app/window/width=1600",
+    "--/app/window/height=900",
+    "--/app/window/dpiScaleOverride=1.0",
+    "--/app/window/scaleToMonitor=false",
+    "--/app/file/ignoreUnsavedOnExit=true",
+    "--/app/testMode=1",
+    "--/exts/omni.kit.window.viewport/blockingGetViewportDrawable=1"
 ]
-timeout = 600
+stdoutFailPatterns.exclude = [
+    "*extension object is still alive*",
+    "*Error *Animation_Camera_Animation* creating menu*",
+    "*audio device is misconfigured or broken*",
+    "*weakly-referenced object no longer exists*",
+]
+timeout = 1200
+
+
 
 
 ########################################################################################################################
 # BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
 ########################################################################################################################
-
-# Date:   12/15/21 01:57:20 (UTC)
-# Kit SDK Version: 103.0+master.67795.87b5cd86.teamcity
-# Kit SDK dependencies:
-# 	carb.audio-0.1.0
-# 	carb.windowing.plugins-1.0.0
-# 	omni.ansel-0.2.0
-# 	omni.app.dev-1.0.0
-# 	omni.appwindow-1.0.0
-# 	omni.assets.plugins-0.0.0
-# 	omni.client-0.1.0
-# 	omni.command.usd-1.0.1
-# 	omni.convexdecomposition-1.4.0
-# 	omni.debugdraw-0.1.0
-# 	omni.gpu_foundation-0.0.0
-# 	omni.graph-1.4.0
-# 	omni.graph.action-1.3.0
-# 	omni.graph.core-2.2.0
-# 	omni.graph.examples.python-1.0.0
-# 	omni.graph.tools-1.1.1
-# 	omni.graph.ui-1.0.2
-# 	omni.hydra.iray-0.1.0
-# 	omni.hydra.pxr-1.1.0
-# 	omni.hydra.pxr.settings-1.0.0
-# 	omni.hydra.rtx-0.1.0
-# 	omni.hydra.scene_delegate-0.1.0
-# 	omni.iray.settings.core-0.6.2
-# 	omni.kit.async_engine-0.0.0
-# 	omni.kit.audiodeviceenum-1.0.0
-# 	omni.kit.capture-0.4.9
-# 	omni.kit.commands-0.0.0
-# 	omni.kit.context_menu-1.3.5
-# 	omni.kit.filebrowser_column.tags-1.0.0
-# 	omni.kit.loop-default-0.1.0
-# 	omni.kit.mainwindow-0.0.0
-# 	omni.kit.material.library-1.3.2
-# 	omni.kit.menu.common-1.0.0
-# 	omni.kit.menu.create-1.0.2
-# 	omni.kit.menu.edit-1.0.5
-# 	omni.kit.menu.file-1.0.6
-# 	omni.kit.menu.utils-1.1.4
-# 	omni.kit.multinode-0.1.0
-# 	omni.kit.notification_manager-1.0.0
-# 	omni.kit.pip_archive-0.0.0
-# 	omni.kit.pipapi-0.0.0
-# 	omni.kit.primitive.mesh-1.0.0
-# 	omni.kit.property.audio-1.0.5
-# 	omni.kit.property.bundle-1.2.4
-# 	omni.kit.property.camera-1.0.3
-# 	omni.kit.property.geometry-1.2.0
-# 	omni.kit.property.layer-1.1.2
-# 	omni.kit.property.light-1.0.4
-# 	omni.kit.property.material-1.7.5
-# 	omni.kit.property.physx-0.1.0
-# 	omni.kit.property.render-1.0.0
-# 	omni.kit.property.skel-1.0.0
-# 	omni.kit.property.tagging-1.0.3
-# 	omni.kit.property.transform-1.0.2
-# 	omni.kit.property.usd-3.12.5
-# 	omni.kit.renderer.capture-0.0.0
-# 	omni.kit.renderer.core-0.0.0
-# 	omni.kit.renderer.init-0.0.0
-# 	omni.kit.search.service-0.1.0
-# 	omni.kit.search_core-1.0.0
-# 	omni.kit.selection-0.1.0
-# 	omni.kit.stage_templates-1.1.1
-# 	omni.kit.tagging-0.1.1
-# 	omni.kit.telemetry-0.1.0
-# 	omni.kit.test-0.0.0
-# 	omni.kit.thumbnails.usd-0.5.0
-# 	omni.kit.tool.collect-2.0.8
-# 	omni.kit.uiapp-0.0.0
-# 	omni.kit.usd_undo-0.1.0
-# 	omni.kit.widget.browser_bar-2.0.2
-# 	omni.kit.widget.fast_search-0.3.0
-# 	omni.kit.widget.filebrowser-2.2.19
-# 	omni.kit.widget.graph-1.2.1
-# 	omni.kit.widget.imageview-1.0.1
-# 	omni.kit.widget.layers-1.5.13
-# 	omni.kit.widget.live-0.1.0
-# 	omni.kit.widget.path_field-2.0.3
-# 	omni.kit.widget.prompt-1.0.0
-# 	omni.kit.widget.settings-1.0.0
-# 	omni.kit.widget.stage-2.6.9
-# 	omni.kit.widget.stage_icons-1.0.2
-# 	omni.kit.widget.versioning-1.3.5
-# 	omni.kit.window.about-1.0.1
-# 	omni.kit.window.console-0.1.0
-# 	omni.kit.window.content_browser-2.4.9
-# 	omni.kit.window.cursor-1.0.1
-# 	omni.kit.window.drop_support-1.0.0
-# 	omni.kit.window.extensions-1.0.2
-# 	omni.kit.window.file-1.3.6
-# 	omni.kit.window.filepicker-2.4.14
-# 	omni.kit.window.imageviewer-1.0.5
-# 	omni.kit.window.popup_dialog-2.0.4
-# 	omni.kit.window.preferences-1.1.5
-# 	omni.kit.window.privacy-0.1.0
-# 	omni.kit.window.property-1.6.2
-# 	omni.kit.window.provide_feedback-1.0.1
-# 	omni.kit.window.script_editor-1.5.1
-# 	omni.kit.window.stage-2.3.5
-# 	omni.kit.window.stats-0.1.1
-# 	omni.kit.window.status_bar-0.1.0
-# 	omni.kit.window.tests-0.1.0
-# 	omni.kit.window.title-1.1.0
-# 	omni.kit.window.toolbar-1.2.1
-# 	omni.kit.window.usd_paths-1.0.3
-# 	omni.kit.window.viewport-0.0.0
-# 	omni.kvdb-0.0.0
-# 	omni.localcache-0.0.0
-# 	omni.physx-1.4.0-5.1
-# 	omni.physx.bundle-1.4.0-5.1
-# 	omni.physx.cct-1.4.0-5.1
-# 	omni.physx.commands-1.4.0-5.1
-# 	omni.physx.demos-1.4.0-5.1
-# 	omni.physx.tests-1.4.0-5.1
-# 	omni.physx.ui-1.4.0-5.1
-# 	omni.physx.vehicle-1.4.0-5.1
-# 	omni.renderer-rtx-0.0.0
-# 	omni.rtx.settings.core-0.5.4
-# 	omni.rtx.tests-0.1.0
-# 	omni.rtx.window.settings-0.6.0
-# 	omni.stats-0.0.0
-# 	omni.timeline-1.0.2
-# 	omni.ui-2.5.5
-# 	omni.uiaudio-1.0.0
-# 	omni.usd-1.4.7
-# 	omni.usd.config-1.0.0
-# 	omni.usd.libs-1.0.0
-# 	omni.usd.schema.anim-0.0.0
-# 	omni.usd.schema.audio-0.0.0
-# 	omni.usd.schema.physics-1.0.0
-# 	omni.usd.schema.physx-0.0.0
-# 	omni.usd.schema.semantics-0.0.0
-# 	omni.usdphysics-1.4.0
-# 	omni.videoencoding-0.1.0
 
 # Version lock for all dependencies:
 [settings.app.exts]
