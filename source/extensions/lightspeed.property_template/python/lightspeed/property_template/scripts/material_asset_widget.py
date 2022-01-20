@@ -58,9 +58,6 @@ class MaterialAssetWidget(UsdMaterialAttributeWidget):
 
         return True
 
-    def _customize_props_layout(self, attrs):
-        return super()._customize_props_layout(attrs)
-
     def build_items(self):
         ui.Label(
             "Modifying this material will affect all meshes using it.", name="label", alignment=ui.Alignment.LEFT_TOP
