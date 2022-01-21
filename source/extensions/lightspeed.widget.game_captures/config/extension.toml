@@ -1,0 +1,22 @@
+[package]
+version = "0.1.0"
+authors = ["dbataille@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["viewer", "widget", "capture"]
+title = "Lightspeed Widget Game Captures"
+description = "Let the user view game capture(s) for a game"
+icon = "data/icon.png"
+category = "other"
+
+[ui]
+name = "Lightspeed Widget Game Captures"
+
+[dependencies]
+"omni.client" = {}
+"lightspeed.widget.content_viewer" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.widget.game_captures"

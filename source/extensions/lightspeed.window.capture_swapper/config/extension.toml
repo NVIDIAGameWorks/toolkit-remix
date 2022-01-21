@@ -4,23 +4,21 @@ authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
-keywords = ["viewer", "widget", "workspace"]
-title = "Lightspeed Widget New Workspace"
-description = "Let the user create a new game workspace"
+keywords = ["capture", "window", "swapper"]
+title = "Lightspeed Capture Swapper Window"
+description = "Lightspeed Capture Swapper Window that let the user to swap between captures"
 icon = "data/icon.png"
 category = "other"
 
 [ui]
-name = "Lightspeed Widget New Workspace"
+name = "Lightspeed Capture Swapper Window"
 
 [dependencies]
-"omni.client" = {}
 "lightspeed.layer_manager" = {}
 "lightspeed.widget.content_viewer" = {}
 "lightspeed.widget.game_captures" = {}
-"omni.kit.widget.filebrowser" = {}
-"omni.kit.window.filepicker" = {}
+"omni.kit.widget.layers" = {}
 "omni.ui" = {}
 
 [[python.module]]
-name = "lightspeed.widget.new_workspace"
+name = "lightspeed.window.capture_swapper"

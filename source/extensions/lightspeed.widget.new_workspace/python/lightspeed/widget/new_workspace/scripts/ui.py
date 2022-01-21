@@ -7,49 +7,26 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import typing
-from typing import List
-
-import carb.settings
-from lightspeed.widget.content_viewer.scripts.ui import ContentItem, ContentViewer
-
-if typing.TYPE_CHECKING:
-    from .core import GameWorkspaceCore
-    from lightspeed.widget.content_viewer.scripts.core import ContentData
-
 from pathlib import Path
 
 import omni.ui as ui  # TODO: menu, switch to the new method when Kit switched
+from lightspeed.widget.game_captures.scripts.ui import GameCapturesViewer
+from lightspeed.widget.game_captures.scripts.utils import get_captures_directory
 
-from .usd_file_picker import open_file_picker
-
-DEFAULT_CUSTOM_SENSOR_ENABLED = "/exts/omni.drivesim.scenario.tool.content_type_sensor/default_custom_sensor_enabled"
-DEFAULT_CUSTOM_SENSOR_USD = "/exts/omni.drivesim.scenario.tool.content_type_sensor/default_custom_sensor_usd"
-DEFAULT_CUSTOM_SENSOR_USD_PRIM = "/exts/omni.drivesim.scenario.tool.content_type_sensor/default_custom_sensor_usd_prim"
+from .usd_file_picker import ReplacementPathUtils, open_file_picker
 
 
-class ContentItemRig(ContentItem):
-    MULTI_SELECTION = False
-
-
-class GameWorkspaceViewer(ContentViewer):
-
-    GRID_COLUMN_WIDTH = 165
-    GRID_ROW_HEIGHT = 165
-    CONTENT_ITEM_TYPE = ContentItemRig
-
-    def __init__(self, core: "GameWorkspaceCore", extension_path: str):
-        """Window to list all maps"""
-        super(GameWorkspaceViewer, self).__init__(core, extension_path)
-        self._settings = carb.settings.get_settings()
-        self._subcription_current_game_changed = self._core.subscribe_current_game_changed(
-            self._on_current_game_changed
-        )
-
+class GameWorkspaceViewer(GameCapturesViewer):
     @property
     def default_attr(self):
         result = super(GameWorkspaceViewer, self).default_attr
-        result.update({"_label_game": None, "_use_existing_layer": None, "_replacement_layer_usd_field": None})
+        result.update(
+            {
+                "_use_existing_layer": None,
+                "_replacement_layer_usd_field": None,
+                "_enhancement_layer_usd_path_label": None,
+            }
+        )
         return result
 
     @property
@@ -57,14 +34,8 @@ class GameWorkspaceViewer(ContentViewer):
         style = super(GameWorkspaceViewer, self).style
         style.update(
             {
-                "Label::vehicle": {"font_size": 22},
                 "Image::SavePath": {"color": 0x90FFFFFF},
                 "Image::SavePath:hovered": {"color": 0xFFFFFFFF},
-                "Rectangle::SubBackground0": {
-                    "background_color": 0x60333333,
-                    "border_width": 1.0,
-                    "border_color": 0x20FFFFFF,
-                },
                 "Rectangle::SubBackground1": {
                     "background_color": 0x00333333,
                     "border_width": 1.0,
@@ -74,21 +45,11 @@ class GameWorkspaceViewer(ContentViewer):
         )
         return style
 
-    def _on_selection_changed(self, contents_data: List["ContentData"]):
-        super()._on_selection_changed(contents_data)
-        if not contents_data:
-            self._core.set_current_capture(None)
-            return
-        self._core.set_current_capture(contents_data[0])
-
-    def _on_current_game_changed(self, data):
-        self._label_game.text = f"{data.title} game capture(s):"
-
     def create_ui(self):
         """Create the main UI"""
         with ui.Frame(style=self.style):
             with ui.VStack():
-                self._create_ui()
+                super(GameWorkspaceViewer, self).create_ui()
                 with ui.ZStack(height=0):
                     ui.Rectangle(name="SubBackground0")
                     with ui.VStack():
@@ -125,7 +86,9 @@ class GameWorkspaceViewer(ContentViewer):
                                                 with ui.VStack(spacing=8):
                                                     with ui.HStack(height=row_height, spacing=8):
                                                         ui.Spacer(width=sub_width)
-                                                        ui.Label("USD Path", width=sub_label_width)
+                                                        self._enhancement_layer_usd_path_label = ui.Label(
+                                                            "USD Path to create", width=sub_label_width
+                                                        )
                                                         self._replacement_layer_usd_field = ui.StringField()
                                                         self._replacement_layer_usd_field.model.add_value_changed_fn(
                                                             self.__update_replacement_layer_usd_field
@@ -149,23 +112,39 @@ class GameWorkspaceViewer(ContentViewer):
                             ui.Spacer(width=8)
                         ui.Spacer(height=8)
 
-        with self.get_top_frame():
-            with ui.HStack():
-                self._label_game = ui.Label("", name="vehicle")
-
     def __update_use_existing_layer(self, value_model):
         value = self._use_existing_layer.model.get_value_as_bool()
         self._core.set_current_use_existing_layer(value)
+        self._enhancement_layer_usd_path_label.text = "USD Path to read" if value else "USD Path to create"
 
     def __update_replacement_layer_usd_field(self, value_model):
         value = self._replacement_layer_usd_field.model.get_value_as_string()
         self._core.set_current_replacement_layer_usd_path(value if value else None)
+        current_game = self._core.get_current_game()
+        replacement_path_utils = ReplacementPathUtils()
+        replacement_path_utils.append_path_to_recent_file(value, current_game.title)
 
     def _on_existing_layer_usd_file(self, b, m):
         if b != 0:
             return
 
-        open_file_picker(self._set_existing_layer_usd_str_field, lambda *args: None)
+        current_game = self._core.get_current_game()
+        captures_dir = get_captures_directory(current_game)
+        replacement_path_utils = ReplacementPathUtils()
+        data = replacement_path_utils.get_recent_file_data()
+        if current_game.title in data:
+            current_directory = str(Path(data[current_game.title]["last_path"]).resolve().parent)
+        else:
+            current_directory = captures_dir
+
+        bookmarks = {current_game.title: str(Path(current_game.path).resolve().parent)}
+
+        open_file_picker(
+            self._set_existing_layer_usd_str_field,
+            lambda *args: None,
+            current_directory=current_directory,
+            bookmarks=bookmarks,
+        )
 
     def _set_existing_layer_usd_str_field(self, path):
         if not path:
