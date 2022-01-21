@@ -15,7 +15,7 @@ import carb.settings
 import omni.kit.commands
 import omni.usd
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
-from lightspeed.layer_manager.scripts.layers.replacement import LSS_LAYER_GAME_NAME
+from lightspeed.layer_manager.scripts.layers.replacement import LSS_LAYER_GAME_NAME, LSS_LAYER_GAME_PATH
 
 if typing.TYPE_CHECKING:
     from lightspeed.widget.content_viewer.scripts.core import ContentData
@@ -92,7 +92,7 @@ class NewGameWorkspaceCore:
         if layer_instance is None:
             carb.log_error(f"Can't find a layer schema type {LayerType.ego_configuration.value}")
             return
-        layer_instance.set_custom_layer_data({LSS_LAYER_GAME_NAME: game.title})
+        layer_instance.set_custom_layer_data({LSS_LAYER_GAME_NAME: game.title, LSS_LAYER_GAME_PATH: game.path})
         if use_existing_layer:
             self._layer_manager.insert_sublayer(
                 enhancement_layer_path, LayerType.replacement, sublayer_insert_position=0

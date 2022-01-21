@@ -7,7 +7,7 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-from typing import Optional
+from typing import Dict, Optional
 
 import carb
 import omni.client
@@ -116,6 +116,10 @@ class LayerManagerCore:
             if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
                 return layer
         return None
+
+    @staticmethod
+    def get_custom_data(layer: Sdf.Layer) -> Dict[str, str]:
+        return layer.customLayerData
 
     @staticmethod
     def set_edit_target_layer(layer_type: LayerType, force_layer_identifier: str = None):

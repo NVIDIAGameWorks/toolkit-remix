@@ -7,13 +7,72 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import json
 import os
-from typing import Callable
+from pathlib import Path
+from typing import Callable, Dict
 
 import carb
+import carb.tokens
 import omni.client
 from omni.kit.widget.filebrowser import FileBrowserItem
 from omni.kit.window.filepicker import FilePickerDialog
+
+
+class ReplacementPathUtils:
+    def __get_recent_dir(self) -> str:
+        """Return the file"""
+        token = carb.tokens.get_tokens_interface()
+        directory = token.resolve("${app_documents}")
+        # FilePickerDialog needs the capital drive. In case it's linux, the
+        # first letter will be / and it's still OK.
+        return str(Path(directory[:1].upper() + directory[1:]).resolve())
+
+    def __get_recent_file(self) -> str:
+        """Return the file"""
+        directory = self.__get_recent_dir()
+        return f"{directory}/recent_replacement_paths.json"
+
+    def save_recent_file(self, data):
+        """Save the recent scenarios to the file"""
+        file_path = self.__get_recent_file()
+        with open(file_path, "w") as json_file:
+            json.dump(data, json_file, indent=2)
+
+        carb.log_info(f"Recent replacement paths file tracker saved to {file_path}")
+
+    def append_path_to_recent_file(self, last_path: str, game: str, save: bool = True):
+        """Append a scenario path to file"""
+        current_data = self.get_recent_file_data()
+
+        if game in current_data:
+            del current_data[game]
+        current_data[game] = {"last_path": last_path}
+        current_data_max = list(current_data.keys())[:40]
+
+        result = {}
+        for current_path, current_data in current_data.items():
+            if current_path in current_data_max:
+                result[current_path] = current_data
+        if save:
+            self.save_recent_file(result)
+        return result
+
+    def is_recent_file_exist(self):
+        file_path = self.__get_recent_file()
+        if not Path(file_path).exists():
+            carb.log_info(f"Recent replacement paths file tracker doesn't exist: {file_path}")
+            return False
+        return True
+
+    def get_recent_file_data(self):
+        """Load the recent scenarios from the file"""
+        if not self.is_recent_file_exist():
+            return {}
+        file_path = self.__get_recent_file()
+        carb.log_info(f"Get recent replacement paths file(s) from {file_path}")
+        with open(file_path) as json_file:
+            return json.load(json_file)
 
 
 def on_filter_item(dialog: FilePickerDialog, item: FileBrowserItem, show_folder_only=False) -> bool:
@@ -89,7 +148,13 @@ def on_click_cancel(dialog: FilePickerDialog, filename: str, dirname: str, callb
         callback(omni.client.normalize_url(fullpath))
 
 
-def open_file_picker(callback: Callable, callback_cancel: Callable, show_folder_only=False):
+def open_file_picker(
+    callback: Callable,
+    callback_cancel: Callable,
+    show_folder_only=False,
+    current_directory: str = None,
+    bookmarks: Dict = None,
+):
     item_filter_options = None if show_folder_only else ["USD Files (*.usd, *.usda, *.usdc)", "All Files (*)"]
 
     dialog = FilePickerDialog(
@@ -103,4 +168,8 @@ def open_file_picker(callback: Callable, callback_cancel: Callable, show_folder_
         ),
         item_filter_options=item_filter_options,
         item_filter_fn=lambda item: on_filter_item(dialog, item, show_folder_only=show_folder_only),
+        current_directory=current_directory,
     )
+    if bookmarks:
+        for k, v in bookmarks.items():
+            dialog.toggle_bookmark_from_path(k, v, True)

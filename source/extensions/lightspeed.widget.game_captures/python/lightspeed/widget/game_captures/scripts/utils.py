@@ -27,6 +27,10 @@ def get_captures(data: "ContentData") -> List[str]:
     ]
 
 
+def get_captures_directory(data: "ContentData") -> str:
+    return str(Path(data.path).parent.joinpath("lss", "capture"))
+
+
 def read_file(file_path) -> Optional[bytes]:
     """Read a file on the disk"""
     result, version, content = omni.client.read_file(file_path)
