@@ -69,6 +69,7 @@ exts.include = [
     "lightspeed.layer_manager",
     "lightspeed.property_template",
     "lightspeed.upscale",
+    "lightspeed.window.capture_swapper",
     "lightspeed.widget.content_viewer",
     "lightspeed.widget.new_game",
     "lightspeed.widget.new_workspace",

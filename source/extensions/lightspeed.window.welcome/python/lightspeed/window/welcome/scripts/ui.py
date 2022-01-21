@@ -9,11 +9,14 @@
 """
 import asyncio
 import functools
+import os
+import re
 from pathlib import Path
 from typing import Optional
 
 import carb
 import omni.appwindow
+import omni.client
 import omni.kit.menu.utils
 import omni.ui as ui
 from lightspeed.event.save_recent.scripts.recent_saved_file_utils import get_instance
@@ -35,7 +38,6 @@ class WelcomeWindow:
 
     WINDOW_NAME = "Lightspeed Welcome"
     WINDOW_LOADING_NAME = "Loading"
-    MENU_PATH = "Window/Lightspeed/Welcome"
 
     def __init__(self, extension_path):
         """Window to list all entities"""
@@ -418,11 +420,43 @@ class WelcomeWindow:
         replacement_layer_path = self._game_workspace_core.get_current_replacement_layer_usd_path()
         if not replacement_layer_path:
             if self._game_workspace_core.get_current_use_existing_layer():
-                carb.log_warn("Please select an existing replacement layer")
+                carb.log_error("Please select an existing replacement layer")
             else:
-                carb.log_warn("Please set a path of where to create the usd replacement layer")
+                carb.log_error("Please set a path of where to create the usd replacement layer")
             return
-
+        else:
+            print(replacement_layer_path)
+            directory = os.path.dirname(replacement_layer_path)
+            if not directory:
+                carb.log_error("Replacement layer path is wrong, please set a full path")
+                return
+            result, entry = omni.client.stat(directory)
+            if result == omni.client.Result.OK and entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN:
+                valid_ext = False
+                for ext in [".usd", ".usda", ".usdc"]:
+                    if replacement_layer_path.endswith(ext):
+                        valid_ext = True
+                        break
+                if not valid_ext:
+                    carb.log_error(
+                        "Wrong replacement layer path extension. Your path should end with "
+                        "'.usd' or '.usda' or '.usdc'"
+                    )
+                    return
+                pat = re.compile(r"[A-Za-z.0-9\s_-]*")
+                if not re.fullmatch(pat, os.path.basename(replacement_layer_path.strip())):
+                    carb.log_error("Special character are forbidden for the replacement layer path")
+                    return
+                if self._game_workspace_core.get_current_use_existing_layer():
+                    # check if this is writable
+                    result, entry = omni.client.stat(replacement_layer_path)
+                    if (
+                        result != omni.client.Result.OK
+                        or not entry.flags & omni.client.ItemFlags.WRITEABLE_FILE
+                        or not entry.flags & omni.client.ItemFlags.READABLE_FILE
+                    ):
+                        carb.log_error("Can't override the existing replacement layer. File is not writeable.")
+                        return
         self.close()
         # self._window_loading.visible = True  # disable for now
 

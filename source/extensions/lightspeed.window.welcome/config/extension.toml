@@ -22,7 +22,3 @@ name = "lightspeed Welcome Window"
 
 [[python.module]]
 name = "lightspeed.window.welcome"
-
-[python.pipapi]
-use_online_index = true
-requirements = ["Pillow"]
