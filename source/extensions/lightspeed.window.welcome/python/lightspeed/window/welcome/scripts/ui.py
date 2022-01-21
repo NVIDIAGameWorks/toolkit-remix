@@ -425,7 +425,6 @@ class WelcomeWindow:
                 carb.log_error("Please set a path of where to create the usd replacement layer")
             return
         else:
-            print(replacement_layer_path)
             directory = os.path.dirname(replacement_layer_path)
             if not directory:
                 carb.log_error("Replacement layer path is wrong, please set a full path")
