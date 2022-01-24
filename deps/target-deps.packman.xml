@@ -18,6 +18,6 @@
   <dependency name="fmt" linkPath="../_build/target-deps/fmt" />
   <dependency name="python" linkPath="../_build/target-deps/python" />
   <dependency name="omni_core_materials" linkPath="../_build/${platform}/${config}/kit/mdl/core">
-    <package name="omni_core_materials" version="7f45e1ef2440ce22d73ee0c271a630d8ccf21753"/>
+    <package name="omni_core_materials" version="0f811fd8fc38b00a17f6c59b74fa04197b9e89a2"/>
   </dependency>
 </project>
