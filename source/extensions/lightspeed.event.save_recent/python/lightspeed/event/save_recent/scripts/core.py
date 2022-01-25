@@ -54,7 +54,8 @@ class EventSaveRecentCore(ILSSEvent):
             if not layer_replacement:
                 carb.log_verbose("Can't find the replacement layer in the current stage")
                 return
-            if layer_replacement.anonymous or layer_capture.anonymous:
+            stage = self._context.get_stage()
+            if layer_replacement.anonymous or layer_capture.anonymous or (stage and stage.GetRootLayer().anonymous):
                 carb.log_verbose("Anonymous layer(s) can't be in the recent list")
                 return
             path = self._context.get_stage_url()

@@ -18,6 +18,7 @@ name = "lightspeed Welcome Window"
 "lightspeed.event.save_recent" = {}
 "lightspeed.widget.new_game" = {}
 "lightspeed.widget.new_workspace" = {}
+"lightspeed.workspace" = {}
 "omni.ui" = {}
 
 [[python.module]]

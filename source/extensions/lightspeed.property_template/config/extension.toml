@@ -14,6 +14,8 @@ name = "Lightspeed Property template"
 
 [dependencies]
 "omni.client" = {}
+"omni.kit.property.material" = {}
+"omni.kit.property.usd" = {}
 "omni.kit.window.property" = {}
 "omni.ui" = {}
 "omni.usd" = {}
