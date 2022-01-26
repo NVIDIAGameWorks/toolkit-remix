@@ -25,6 +25,7 @@ from lightspeed.widget.new_game.scripts.ui import GameViewer
 from lightspeed.widget.new_workspace.scripts.core import GameWorkspaceCore
 from lightspeed.widget.new_workspace.scripts.new_core import NewGameWorkspaceCore
 from lightspeed.widget.new_workspace.scripts.ui import GameWorkspaceViewer
+from lightspeed.workspace import get_instance as lightspeed_workspace_instance
 from omni.kit.menu.utils import MenuItemDescription
 from omni.usd import handle_exception
 from PIL import Image
@@ -103,6 +104,10 @@ class WelcomeWindow:
         self.__create_loading_ui()
         self.__create_menu()
 
+        self.__subcription_workspace_changed = lightspeed_workspace_instance().subscribe_workspace_restored(
+            self._on_workspace_restored
+        )
+
     def _on_tree_selection_changed(self, items):
         if items:
             self._preview_saved_usd_file(items[0].path)
@@ -151,6 +156,9 @@ class WelcomeWindow:
         self._window.height = height
         self._window.position_x = window_width / 2 - self._window.width / 2
         self._window.position_y = window_height / 2 - self._window.height / 2
+
+    def _on_workspace_restored(self):
+        self.center_window()
 
     def __create_loading_ui(self):
         """Create the main UI"""
@@ -524,6 +532,7 @@ class WelcomeWindow:
             self._window.visible = not self._window.visible
 
     def destroy(self):
+        self.__subcription_workspace_changed = None
         omni.kit.menu.utils.remove_menu_items(self._menus, "File")
         for attr, value in self.__default_attr.items():
             m_attr = getattr(self, attr)

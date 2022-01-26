@@ -4,7 +4,7 @@
     <filter include="pybind11" />
     <filter include="fmt" />
     <filter include="python" />
-  </import>  
+  </import>
 
   <!-- Import Rtx plugins deps -->
   <import path="../_build/target-deps/rtx_plugins/deps/target-deps.packman.xml">

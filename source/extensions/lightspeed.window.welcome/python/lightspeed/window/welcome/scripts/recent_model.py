@@ -7,6 +7,8 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+
+import omni.client
 import omni.ui as ui
 from lightspeed.event.save_recent.scripts.recent_saved_file_utils import get_instance
 
@@ -20,6 +22,10 @@ class RecentItem(ui.AbstractItem):
         super(RecentItem, self).__init__()
         self.path = path
         self.path_model = ui.SimpleStringModel(self.path)
+
+        _, stat_entry = omni.client.stat(path)
+        self.readable = stat_entry.flags & omni.client.ItemFlags.READABLE_FILE
+        self.modified_time = stat_entry.modified_time
 
     def __repr__(self):
         return f'"{self.path}"'
@@ -41,7 +47,8 @@ class RecentModel(ui.AbstractItemModel):
         """Refresh the list"""
         data = get_instance().get_recent_file_data()
         file_paths = list(data.keys())
-        self.__items = [RecentItem(path) for path in reversed(file_paths)]
+        self.__items = [RecentItem(path) for path in file_paths]
+        self.__items.sort(key=lambda item: item.modified_time, reverse=True)
         self._item_changed(None)
 
     def get_item_children(self, item):
@@ -64,6 +71,7 @@ class RecentModel(ui.AbstractItemModel):
             return self.root
         if column_id == 0:  # noqa R503
             return item.name_model
+        return None
 
     def destroy(self):
         self.__items = []
