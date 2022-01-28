@@ -1,23 +1,68 @@
-# # NOTE:
-# #   omni.kit.test - std python's unittest module with additional wrapping to add suport for async/await tests
-# #   For most things refer to unittest docs: https://docs.python.org/3/library/unittest.html
-# import omni.kit.test
+"""
+* Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+*
+* NVIDIA CORPORATION and its licensors retain all intellectual property
+* and proprietary rights in and to this software, related documentation
+* and any modifications thereto.  Any use, reproduction, disclosure or
+* distribution of this software and related documentation without an express
+* license agreement from NVIDIA CORPORATION is strictly prohibited.
+"""
 
-# # Import extension python module we are testing with absolute import path, as if we are external user (other extension)
-# import example.python_ext
+import os.path
+import pathlib
+import tempfile
+
+import carb
+import carb.tokens
+import omni.kit.test
+import omni.usd
+from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
+
+from ..upscale_core import LightspeedUpscalerCore
 
 
-# # Having a test class dervived from omni.kit.test.AsyncTestCase declared on the root of module will make it auto-discoverable by omni.kit.test
-# class Test(omni.kit.test.AsyncTestCaseFailOnLogError):
-#     # Before running each test
-#     async def setUp(self):
-#         pass
+class Test(omni.kit.test.AsyncTestCaseFailOnLogError):
+    async def setUp(self):
+        pass
 
-#     # After running each test
-#     async def tearDown(self):
-#         pass
+    async def tearDown(self):
+        pass
 
-#     # Actual test, notice it is "async" function, so "await" can be used if needed
-#     async def test_hello_public_function(self):
-#         result = example.python_ext.some_public_function(4)
-#         self.assertEqual(result, 256)
+    async def test_batch_upscale_function(self):
+        """Test the batch upscale functionality of the lightspeed.upscale extension.
+
+        Takes a simplified capture scene from a game with a single model and material, and runs the batch upscale
+        processed. Then this test confirms that the replacement layer is generated, includes an autoupscale sublayer
+        and has generated an upscaled .dds texture.
+        """
+        extension_path = carb.tokens.get_tokens_interface().resolve("${lightspeed.upscale}")
+        test_file_path = str(
+            pathlib.Path(extension_path)
+            .joinpath("data")
+            .joinpath("lss")
+            .joinpath("capture")
+            .joinpath("portal-gun-test-stage.usda")
+            .absolute()
+        )
+        temp_dir = tempfile.TemporaryDirectory()
+        replacement_path = os.path.join(temp_dir.name, "replacements.usda")
+        autoupscale_path = os.path.join(temp_dir.name, "autoupscale.usda")
+        layer_manager = LayerManagerCore()
+        layer_manager.insert_sublayer(test_file_path, LayerType.capture, False)
+        layer_manager.lock_layer(LayerType.capture)
+        replacement_layer = layer_manager.create_new_sublayer(
+            LayerType.replacement, path=replacement_path, sublayer_create_position=0
+        )
+        LightspeedUpscalerCore.batch_upscale_capture_layer()
+        replacement_exists = os.path.exists(replacement_path)
+        upscale_texture_exists = os.path.exists(temp_dir.name + "/textures/F5CE656D9F82F196_upscaled4x.dds")
+        autoupscale_usda_exits = os.path.exists(autoupscale_path)
+        autoupscale_is_sublayer_of_replacement = False
+        for sublayerpath in replacement_layer.subLayerPaths:
+            if os.path.basename(sublayerpath) == "autoupscale.usda":
+                autoupscale_is_sublayer_of_replacement = True
+        temp_dir.cleanup()
+        result = all(
+            [replacement_exists, upscale_texture_exists, autoupscale_usda_exits, autoupscale_is_sublayer_of_replacement]
+        )
+        self.assertTrue(result)
