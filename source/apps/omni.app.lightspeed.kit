@@ -206,7 +206,7 @@ featuredExts = [
     "omni.kit.usda_edit",
     "omni.kit.window.stageviewer",
     "omni.kit.window.collection",
-    "omni.kit.browser.texture",
+    "omni.kit.browser.texture"
 ]
 
 # Basic Kit App
@@ -315,7 +315,8 @@ dependencies = [
 ]
 pythonTests.include = [
 	"omni.kit.tests.usd_stress.*",
-	"omni.kit.tests.basic_validation.*"
+	"omni.kit.tests.basic_validation.*",
+	"lightspeed.upscale.*"
 ]
 args = [
     "--/app/window/width=1600",
@@ -324,7 +325,8 @@ args = [
     "--/app/window/scaleToMonitor=false",
     "--/app/file/ignoreUnsavedOnExit=true",
     "--/app/testMode=1",
-    "--/exts/omni.kit.window.viewport/blockingGetViewportDrawable=1"
+    "--/exts/omni.kit.window.viewport/blockingGetViewportDrawable=1",
+    "--no-window"
 ]
 stdoutFailPatterns.exclude = [
     "*extension object is still alive*",

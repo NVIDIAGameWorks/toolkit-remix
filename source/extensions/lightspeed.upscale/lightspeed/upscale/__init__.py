@@ -1,1 +1,1 @@
-from .upscale import *
+from .upscale import *  # noqa: F401
