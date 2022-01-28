@@ -19,6 +19,7 @@ class AssetDelegate(PropertySchemeDelegate):
         if self._should_enable_delegate(payload):
             widgets_to_build.append("path")
             widgets_to_build.append("lss_mesh_asset")
+            widgets_to_build.append("material_binding")
             widgets_to_build.append("lss_material_asset")
             widgets_to_build.append("attribute")
         return widgets_to_build
@@ -38,7 +39,6 @@ class AssetDelegate(PropertySchemeDelegate):
                 "kind",
                 "light",
                 "material",
-                "material_binding",
                 "media",
                 "metadata",
                 "nodegraph",
