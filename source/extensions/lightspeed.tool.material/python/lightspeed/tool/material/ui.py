@@ -85,7 +85,7 @@ class MaterialButtonGroup(WidgetGroup):
             for material in material_objects:
                 material_prims.append(material.GetPrim())
             LightspeedUpscalerCore.batch_upscale_capture_layer(material_prims)
-            
+
         self._opaque_button = ui.ToolButton(
             name="opaqueMaterial",
             tooltip="Convert to Opaque Material",
@@ -101,7 +101,7 @@ class MaterialButtonGroup(WidgetGroup):
             height=default_size,
             mouse_pressed_fn=on_translucent_clicked,
         )
-        
+
         self._upscale_button = ui.ToolButton(
             name="upscaleMaterial",
             tooltip="Upscale textures associated with the selected material(s) in the capture layer",
@@ -109,7 +109,11 @@ class MaterialButtonGroup(WidgetGroup):
             height=default_size,
             mouse_pressed_fn=on_upscale_clicked,
         )
-        return {"opaqueMaterial": self._opaque_button, "translucentMaterial": self._translucent_button, "upscaleMaterial": self._upscale_button}
+        return {
+            "opaqueMaterial": self._opaque_button,
+            "translucentMaterial": self._translucent_button,
+            "upscaleMaterial": self._upscale_button,
+        }
 
     def get_style(self):
         """

@@ -102,7 +102,7 @@ class LightspeedUpscalerCore:
         auto_stage.DefinePrim(constants.ROOTNODE_LOOKS, constants.SCOPE)
 
         # if no specific prims are defined, then use the entire capture layer
-        if(specific_prims is None):
+        if specific_prims is None:
             specific_prims = capture_stage.GetPrimAtPath(constants.ROOTNODE_LOOKS).GetChildren()
 
         for prim in specific_prims:
