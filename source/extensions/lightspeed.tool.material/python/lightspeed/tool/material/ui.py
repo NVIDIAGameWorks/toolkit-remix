@@ -1,12 +1,12 @@
 import carb
 import omni.ui as ui
 import omni.usd
+from lightspeed.upscale import LightspeedUpscalerCore
 from omni.kit.window.toolbar.widget_group import WidgetGroup
 from pxr import UsdShade
 
 from .core import ToolMaterialCore
 
-from lightspeed.upscale import LightspeedUpscalerCore
 
 class MaterialButtonGroup(WidgetGroup):
     def __init__(self, _data_path):
