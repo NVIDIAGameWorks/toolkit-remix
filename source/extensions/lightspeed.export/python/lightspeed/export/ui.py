@@ -121,6 +121,7 @@ class LightspeedExporterUI:
                     with ui.VStack(height=0):
                         ui.Spacer(height=4)
                         self._exportion_path_field = ui.StringField(height=20, width=ui.Fraction(1))
+                        self._exportion_path_field.model.set_value(self._core.get_default_export_path())
                         ui.Spacer(height=4)
                     with ui.VStack(height=0, width=0):
                         ui.Spacer(height=4)
@@ -150,6 +151,8 @@ class LightspeedExporterUI:
 
     def _on_export_button_clicked(self):
         export_dir = self._exportion_path_field.model.get_value_as_string()
+        if not self._core.check_export_path(export_dir):
+            return
         self._show_progress_popup()
         self._core.export(export_dir)
 

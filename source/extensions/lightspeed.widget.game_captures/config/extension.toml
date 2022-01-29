@@ -15,6 +15,7 @@ name = "Lightspeed Widget Game Captures"
 
 [dependencies]
 "omni.client" = {}
+"lightspeed.common" = {}
 "lightspeed.widget.content_viewer" = {}
 "omni.ui" = {}
 
