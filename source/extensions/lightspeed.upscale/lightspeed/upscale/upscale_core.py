@@ -83,7 +83,7 @@ class LightspeedUpscalerCore:
         temp_dir.cleanup()
 
     @staticmethod
-    def batch_upscale_capture_layer():
+    def batch_upscale_capture_layer(specific_prims=None):
         layer_manager = LayerManagerCore()
         # get/setup layers
         replacement_layer = layer_manager.get_layer(LayerType.replacement)
@@ -101,7 +101,11 @@ class LightspeedUpscalerCore:
         auto_stage.DefinePrim(constants.ROOTNODE)
         auto_stage.DefinePrim(constants.ROOTNODE_LOOKS, constants.SCOPE)
 
-        for prim in capture_stage.GetPrimAtPath(constants.ROOTNODE_LOOKS).GetChildren():
+        # if no specific prims are defined, then use the entire capture layer
+        if(specific_prims is None):
+            specific_prims = capture_stage.GetPrimAtPath(constants.ROOTNODE_LOOKS).GetChildren()
+
+        for prim in specific_prims:
             if (
                 not prim.GetChild(constants.SHADER)
                 or not prim.GetChild(constants.SHADER).GetAttribute(constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE)
