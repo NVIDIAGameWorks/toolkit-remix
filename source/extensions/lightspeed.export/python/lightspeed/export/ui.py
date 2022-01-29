@@ -181,11 +181,8 @@ class LightspeedExporterUI:
             self._file_picker.set_cancel_fn(self._cancel_picked_folder_callback)
 
         path = self._exportion_path_field.model.get_value_as_string()
-        if path.endswith("/"):
-            path = path[:-1]
         dir_name = os.path.dirname(path)
-        folder_name = os.path.basename(path)
-        self._file_picker.show(dir_name, folder_name)
+        self._file_picker.show(dir_name, None)
 
     def _show_progress_popup(self):
         if not self._progress_popup:
