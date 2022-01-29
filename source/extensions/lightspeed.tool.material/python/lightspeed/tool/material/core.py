@@ -17,7 +17,7 @@ from pxr import Sdf, Usd, UsdShade
 
 class ToolMaterialCore:
     @staticmethod
-    def _get_shader_from_material(material: Usd.Prim):
+    def get_shader_from_material(material: Usd.Prim):
         shader, _, _ = material.ComputeSurfaceSource()
         if not shader:
             # Although the schema is new, there can still be old parameter overrides if the MDL is referenced into the
@@ -47,7 +47,7 @@ class ToolMaterialCore:
                     if material:
                         material_prims.append(material)
                 elif prim.IsA(UsdShade.Material):
-                    material_prims.append(prim)
+                    material_prims.append(UsdShade.Material(prim))
         return material_prims
 
     @staticmethod

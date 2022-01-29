@@ -35,7 +35,7 @@ class MaterialButtonGroup(WidgetGroup):
             stage = usd_context.get_stage()
 
             material_prims = self._core.get_materials_from_prim_paths(select_prim_paths)
-            shaders = [self._core._get_shader_from_material(material_prim) for material_prim in material_prims]
+            shaders = [self._core.get_shader_from_material(material_prim) for material_prim in material_prims]
             # check shaders in the current selection
             for select_prim_path in select_prim_paths:
                 prim = stage.GetPrimAtPath(select_prim_path)
@@ -55,7 +55,7 @@ class MaterialButtonGroup(WidgetGroup):
             stage = usd_context.get_stage()
 
             material_prims = self._core.get_materials_from_prim_paths(select_prim_paths)
-            shaders = [self._core._get_shader_from_material(material_prim) for material_prim in material_prims]
+            shaders = [self._core.get_shader_from_material(material_prim) for material_prim in material_prims]
             # check shaders in the current selection
             for select_prim_path in select_prim_paths:
                 prim = stage.GetPrimAtPath(select_prim_path)
