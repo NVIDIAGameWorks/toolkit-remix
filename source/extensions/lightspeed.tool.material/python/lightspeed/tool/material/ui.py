@@ -84,7 +84,8 @@ class MaterialButtonGroup(WidgetGroup):
             material_prims = []
             for material in material_objects:
                 material_prims.append(material.GetPrim())
-            LightspeedUpscalerCore.batch_upscale_capture_layer(material_prims)
+            
+            LightspeedUpscalerCore.batch_upscale_capture_layer(specific_prims=material_prims)
 
         self._opaque_button = ui.ToolButton(
             name="opaqueMaterial",
