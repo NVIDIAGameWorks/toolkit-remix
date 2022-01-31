@@ -36,6 +36,7 @@ icon = "data/icon.png"
 "omni.kit.test" = {}
 "omni.kit.tool.collect" = {}
 "omni.kit.menu.utils" = {}
+"lightspeed.common" = {}
 "lightspeed.layer_manager" = {}
 
 [[python.module]]

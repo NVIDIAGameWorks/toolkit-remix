@@ -14,6 +14,7 @@ from typing import List, Optional
 import carb
 import carb.tokens
 import omni.client
+from lightspeed.common.constants import CAPTURE_FOLDER, LSS_FOLDER
 
 if typing.TYPE_CHECKING:
     from lightspeed.widget.content_viewer.scripts.core import ContentData
@@ -22,13 +23,13 @@ if typing.TYPE_CHECKING:
 def get_captures(data: "ContentData") -> List[str]:
     return [
         str(file)
-        for file in Path(data.path).parent.joinpath("lss", "capture").iterdir()
+        for file in Path(data.path).parent.joinpath(LSS_FOLDER, CAPTURE_FOLDER).iterdir()
         if file.is_file() and file.suffix in [".usd", ".usda", ".usdc"]
     ]
 
 
 def get_captures_directory(data: "ContentData") -> str:
-    return str(Path(data.path).parent.joinpath("lss", "capture"))
+    return str(Path(data.path).parent.joinpath(LSS_FOLDER, CAPTURE_FOLDER))
 
 
 def read_file(file_path) -> Optional[bytes]:

@@ -121,6 +121,7 @@ class LightspeedExporterUI:
                     with ui.VStack(height=0):
                         ui.Spacer(height=4)
                         self._exportion_path_field = ui.StringField(height=20, width=ui.Fraction(1))
+                        self._exportion_path_field.model.set_value(self._core.get_default_export_path())
                         ui.Spacer(height=4)
                     with ui.VStack(height=0, width=0):
                         ui.Spacer(height=4)
@@ -150,6 +151,8 @@ class LightspeedExporterUI:
 
     def _on_export_button_clicked(self):
         export_dir = self._exportion_path_field.model.get_value_as_string()
+        if not self._core.check_export_path(export_dir):
+            return
         self._show_progress_popup()
         self._core.export(export_dir)
 
@@ -178,11 +181,8 @@ class LightspeedExporterUI:
             self._file_picker.set_cancel_fn(self._cancel_picked_folder_callback)
 
         path = self._exportion_path_field.model.get_value_as_string()
-        if path.endswith("/"):
-            path = path[:-1]
         dir_name = os.path.dirname(path)
-        folder_name = os.path.basename(path)
-        self._file_picker.show(dir_name, folder_name)
+        self._file_picker.show(dir_name, None)
 
     def _show_progress_popup(self):
         if not self._progress_popup:
