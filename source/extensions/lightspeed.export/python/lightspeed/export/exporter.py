@@ -148,6 +148,8 @@ class LightspeedExporterCore:
 
     def get_default_export_path(self):
         current_game = self._game_current_game_from_replacement_layer()
+        if not current_game:
+            return ""
         return str(Path(current_game.path).parent.joinpath(LSS_FOLDER, GAME_READY_ASSETS_FOLDER)) + os.sep
 
     def check_export_path(self, path) -> bool:
