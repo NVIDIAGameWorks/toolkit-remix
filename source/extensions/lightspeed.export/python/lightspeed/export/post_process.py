@@ -7,14 +7,20 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import os
+import subprocess
+
 import carb
 import omni.usd
+from lightspeed.common import ReferenceEdit, constants
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
-from pxr import Gf, Sdf, UsdGeom
+from pxr import Gf, Sdf, UsdGeom, UsdShade
 
 
 class LightspeedPosProcessExporter:
     def __init__(self):
+        script_path = os.path.dirname(os.path.abspath(__file__))
+        self._nvtt_path = script_path + ".\\tools\\nvtt\\nvtt_export.exe"
         self.__layer_manager = LayerManagerCore()
 
     def _remove_extra_attr(self, prim):
@@ -97,6 +103,27 @@ class LightspeedPosProcessExporter:
         # subsets store face indices, but dxvk_rt needs triangle indices.
         self._process_subsets(mesh)
 
+    def _process_shader_prim(self, prim):
+        # compress png textures to dds
+        for attr_name, bc_mode in constants.TEXTURE_COMPRESSION_LEVELS.items():
+            attr = prim.GetAttribute(attr_name)
+            if attr and attr.Get():
+                abs_path = attr.Get().resolvedPath
+                rel_path = attr.Get().path
+                if not abs_path.lower().endswith(".dds"):
+                    dds_path = abs_path.replace(os.path.splitext(abs_path)[1], ".dds")
+                    rel_dds_path = rel_path.replace(os.path.splitext(rel_path)[1], ".dds")
+                    # only create the dds if it doesn't already exist
+                    if not os.path.exists(dds_path):
+                        compress_mip_process = subprocess.Popen(
+                            [self._nvtt_path, abs_path, "--format", bc_mode, "--output", dds_path]
+                        )
+                        compress_mip_process.wait()
+
+                    attr.Set(rel_dds_path)
+                    # delete the original png:
+                    os.remove(abs_path)
+
     def process(self, file_path):
         carb.log_info("Processing: " + file_path)
 
@@ -113,12 +140,22 @@ class LightspeedPosProcessExporter:
             carb.log_error("Can't find the replacement layer")
             return
         layer_instance.flatten_sublayers()
-
         # process meshes
         # TraverseAll because we want to grab overrides
         all_geos = [prim_ref for prim_ref in stage.TraverseAll() if UsdGeom.Mesh(prim_ref)]
         # TODO a crash in one geo shouldn't prevent processing the rest of the geometry
         for geo_prim in all_geos:
-            self._process_mesh_prim(geo_prim)
+            # apply edits to the geo prim in it's source usd, not in the top level replacements.usd
+            with ReferenceEdit(geo_prim):
+                self._process_mesh_prim(geo_prim)
+
+        # process materials
+        # TraverseAll because we want to grab overrides
+        all_shaders = [prim_ref for prim_ref in stage.TraverseAll() if prim_ref.IsA(UsdShade.Shader)]
+        # TODO a crash in one shader shouldn't prevent processing the rest of the materials
+        for shader_prim in all_shaders:
+            # apply edits to the shader prim in it's source usd, not in the top level replacements.usd
+            with ReferenceEdit(shader_prim):
+                self._process_shader_prim(shader_prim)
 
         omni.usd.get_context().save_stage()

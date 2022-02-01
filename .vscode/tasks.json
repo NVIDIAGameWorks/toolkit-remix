@@ -33,6 +33,36 @@
                 "panel": "dedicated",
                 "clear": true
             }
+        },
+        {
+            "label": "clean",
+            "type": "shell",
+            "command": "./build.sh --clean",
+            "windows": {
+                "command": ".\\build.bat --clean"
+            },
+            "problemMatcher": {
+                "owner": "cpp",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceRoot}/_compiler/vs2017"
+                ],
+                "pattern": {
+                    "regexp": "^(.*):(\\d+): \\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "severity": 3,
+                    "message": 4
+                }
+            },
+            "group": {
+                "kind": "build"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            }
         }
     ]
 }
