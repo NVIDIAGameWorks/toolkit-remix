@@ -12,10 +12,11 @@ import subprocess
 
 import carb
 import omni.usd
+import traceback
 from lightspeed.common import ReferenceEdit, constants
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
 from pxr import Gf, Sdf, UsdGeom, UsdShade
-
+from omni.kit.window.popup_dialog import MessageDialog
 
 class LightspeedPosProcessExporter:
     def __init__(self):
@@ -168,22 +169,57 @@ class LightspeedPosProcessExporter:
             carb.log_error("Can't find the replacement layer")
             return
         layer_instance.flatten_sublayers()
+        
         # process meshes
         # TraverseAll because we want to grab overrides
         all_geos = [prim_ref for prim_ref in stage.TraverseAll() if UsdGeom.Mesh(prim_ref)]
+        failed_processes = []
         # TODO a crash in one geo shouldn't prevent processing the rest of the geometry
         for geo_prim in all_geos:
-            # apply edits to the geo prim in it's source usd, not in the top level replacements.usd
-            with ReferenceEdit(geo_prim):
-                self._process_mesh_prim(geo_prim)
+            try:
+                # apply edits to the geo prim in it's source usd, not in the top level replacements.usd
+                with ReferenceEdit(geo_prim):
+                    self._process_mesh_prim(geo_prim)
+            except Exception as e:
+                failed_processes.append(str(geo_prim.GetPath()))
+                carb.log_error(f"Exception when post-processing mesh: " + str(geo_prim.GetPath()))
+                carb.log_error(f"{e}")
+                carb.log_error(f"{traceback.format_exc()}")
+
 
         # process materials
         # TraverseAll because we want to grab overrides
         all_shaders = [prim_ref for prim_ref in stage.TraverseAll() if prim_ref.IsA(UsdShade.Shader)]
         # TODO a crash in one shader shouldn't prevent processing the rest of the materials
         for shader_prim in all_shaders:
-            # apply edits to the shader prim in it's source usd, not in the top level replacements.usd
-            with ReferenceEdit(shader_prim):
-                self._process_shader_prim(shader_prim)
+            try:
+                # apply edits to the shader prim in it's source usd, not in the top level replacements.usd
+                with ReferenceEdit(shader_prim):
+                    self._process_shader_prim(shader_prim)
+            except Exception as e:
+                failed_processes.append(str(shader_prim.GetPath()))
+                carb.log_error(f"Exception when post-processing shader: " + str(shader_prim.GetPath()))
+                carb.log_error(f"{e}")
+                carb.log_error(f"{traceback.format_exc()}")
 
         omni.usd.get_context().save_stage()
+
+        if failed_processes:
+            def on_okay_clicked(dialog: MessageDialog):
+                dialog.hide()
+
+            message = (
+                "Prims failed to export properly.  The contents of gameReadyAssets are probably invalid."
+                "\nError details have been printed to the console."
+                "\n\nFailing prims: \n  " + ",\n  ".join(failed_processes)
+            )
+
+            dialog = MessageDialog(
+                width=600,
+                message=message,
+                ok_handler=lambda dialog: on_okay_clicked(dialog),
+                ok_label="Okay",
+                disable_cancel_button=True
+            )
+            dialog.show()
+        
