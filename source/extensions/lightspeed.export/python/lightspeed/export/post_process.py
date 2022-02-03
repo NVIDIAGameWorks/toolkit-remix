@@ -61,6 +61,32 @@ class LightspeedPosProcessExporter:
 
         prim.CreateAttribute("invertedUvs", Sdf.ValueTypeNames.Float2Array, False).Set(inverted_uvs)
 
+    def _triangulate_mesh(self, mesh: UsdGeom.Mesh):
+        # indices and faces converted to triangles
+        indices = mesh.GetFaceVertexIndicesAttr().Get()
+        faces = mesh.GetFaceVertexCountsAttr().Get()
+
+        triangles = []
+        if not indices or not faces:
+            return triangles
+
+        indices_offset = 0
+        new_face_counts = []
+
+        for face_count in faces:
+            start_index = indices[indices_offset]
+            for face_index in range(face_count - 2):
+                new_face_counts.append(3)
+                index1 = indices_offset + face_index + 1
+                index2 = indices_offset + face_index + 2
+                triangles.append(start_index)
+                triangles.append(indices[index1])
+                triangles.append(indices[index2])
+            indices_offset += face_count
+
+        mesh.GetFaceVertexIndicesAttr().Set(triangles)
+        mesh.GetFaceVertexCountsAttr().Set(new_face_counts)
+
     def _process_geometry(self, mesh):
         face_vertex_indices = mesh.GetFaceVertexIndicesAttr().Get()
         points = mesh.GetPointsAttr().Get()
@@ -71,6 +97,8 @@ class LightspeedPosProcessExporter:
 
         mesh.GetFaceVertexIndicesAttr().Set(fixed_indices)
         mesh.GetPointsAttr().Set(fixed_points)
+
+        self._triangulate_mesh(mesh)
 
     def _process_subsets(self, mesh):
         subsets = UsdGeom.Subset.GetGeomSubsets(mesh)
