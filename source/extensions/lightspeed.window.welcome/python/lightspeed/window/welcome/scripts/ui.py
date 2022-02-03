@@ -10,7 +10,7 @@
 import asyncio
 import functools
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import carb
 import omni.appwindow
@@ -18,6 +18,7 @@ import omni.client
 import omni.kit.menu.utils
 import omni.ui as ui
 from lightspeed.event.save_recent.scripts.recent_saved_file_utils import get_instance
+from lightspeed.widget.content_viewer.scripts.core import ContentData, ContentDataAdd
 from lightspeed.widget.new_game.scripts.core import GameCore
 from lightspeed.widget.new_game.scripts.ui import GameViewer
 from lightspeed.widget.new_workspace.scripts.core import GameWorkspaceCore
@@ -43,6 +44,7 @@ class WelcomeWindow:
         self._extension_path = extension_path
         self._style = {
             "Button::new": {"background_color": 0xFF23211F, "border_color": 0xFF606060, "border_width": 1},
+            "Button::newDisabled": {"background_color": 0xFF606060, "border_color": 0xFF606060, "border_width": 1},
             "Button::new:hovered": {"background_color": 0xFF664B0C, "border_color": 0xFFBF8C15, "border_width": 1},
             "Image::new:hovered": {"color": 0xFFBF8C15},
             "Image::close": {"color": 0xFF909090, "margin": 5},
@@ -84,6 +86,8 @@ class WelcomeWindow:
             "_game_workspace_core": None,
             "_new_game_workspace_core": None,
             "_game_workspace_viewer": None,
+            "_select_this_game_button": None,
+            "_delete_this_game_button": None,
         }
         for attr, value in self.__default_attr.items():
             setattr(self, attr, value)
@@ -101,6 +105,14 @@ class WelcomeWindow:
         self.__create_ui()
         self.__create_loading_ui()
         self.__create_menu()
+
+        self.__subcription_current_game_capture_folder_changed = self._game_core.subscribe_current_game_capture_folder_changed(  # noqa E501
+            self._on_current_game_capture_folder_changed
+        )
+
+        self.__subcription_game_selection_changed = self._game_core.subscribe_selection_changed(
+            self._on_game_selection_changed
+        )
 
         self.__subcription_workspace_changed = lightspeed_workspace_instance().subscribe_workspace_restored(
             self._on_workspace_restored
@@ -264,7 +276,13 @@ class WelcomeWindow:
                                     str(icon), name="new", width=20, mouse_released_fn=self.___arrow_initialize_welcome
                                 )
                                 ui.Spacer()
-                                ui.Button(
+                                self._delete_this_game_button = ui.Button(
+                                    "Delete selected game(s)",
+                                    name="new",
+                                    width=ui.Percent(20),
+                                    clicked_fn=self._on_delete_selected_game,
+                                )
+                                self._select_this_game_button = ui.Button(
                                     "Select this game",
                                     name="new",
                                     width=ui.Percent(20),
@@ -365,6 +383,7 @@ class WelcomeWindow:
         self.show_frame_new_game_workspace(False)
         self.show_frame_new_game(True)
         self._game_core.refresh_content()
+        self._game_core.set_selection(None)
 
     def _on_open_game_workspace(self):
         open_file_picker(functools.partial(self._on_load_this_game_workspace), lambda *args: None)
@@ -403,17 +422,62 @@ class WelcomeWindow:
     async def __deferred_load_window_loading(self, value):
         self._window_loading.visible = value
 
-    def _on_select_this_game(self):
-        current_game = self._game_core.get_current_game()
-        if not current_game:
-            carb.log_warn("Please select a game or add a new one")
+    def _on_delete_selected_game(self):
+        self._game_core.delete_selected_game()
+        self._game_core.set_selection(None)
+        self._game_core.refresh_content()
+
+    def _on_game_selection_changed(self, contents_data: List["ContentData"]):
+        if contents_data and isinstance(contents_data[0], ContentDataAdd):
+            self._delete_this_game_button.enabled = False
+            self._delete_this_game_button.name = "newDisabled"
+        else:
+            self._delete_this_game_button.enabled = True
+            self._delete_this_game_button.name = "new"
+
+    def _on_current_game_capture_folder_changed(self, current_game_capture_folder: "ContentData"):
+        if not current_game_capture_folder or (
+            isinstance(current_game_capture_folder, ContentData) and not current_game_capture_folder.is_path_valid
+        ):
+            self._select_this_game_button.enabled = False
+            self._select_this_game_button.name = "newDisabled"
             return
+        if current_game_capture_folder and isinstance(current_game_capture_folder, ContentDataAdd):
+            all_content = self._game_core.get_current_content()
+            if current_game_capture_folder.title is None or current_game_capture_folder.path is None:
+                self._select_this_game_button.enabled = False
+                self._select_this_game_button.name = "newDisabled"
+                return
+            for item in all_content:
+                if item.title == current_game_capture_folder.title:
+                    self._select_this_game_button.enabled = False
+                    self._select_this_game_button.name = "newDisabled"
+                    carb.log_error("This game name already exist")
+                    return
+        self._select_this_game_button.name = "new"
+        self._select_this_game_button.enabled = True
+
+    def _on_select_this_game(self):
+        current_game_capture_folder = self._game_core.get_current_game_capture_folder()
+        if not current_game_capture_folder:
+            carb.log_error("Please select a valid game capture folder or add a new one")
+            return
+        if isinstance(current_game_capture_folder, ContentData) and not current_game_capture_folder.is_path_valid:
+            carb.log_error("Can't add a invalid game")
+            return
+        all_content = self._game_core.get_current_content()
+        for item in all_content:
+            if item.title == current_game_capture_folder.title and isinstance(
+                current_game_capture_folder, ContentDataAdd
+            ):
+                carb.log_error("This game name already exist")
+                return
         self.show_frame_first(False)
         self.show_frame_new_game(False)
         self.show_frame_new_game_workspace(True)
-        self._game_workspace_core.set_current_game(current_game)
+        self._game_workspace_core.set_current_game_capture_folder(current_game_capture_folder)
         self._game_workspace_core.refresh_content()
-        self._game_core.save_current_game_in_json()
+        self._game_core.save_current_game_capture_folder_in_json()
         current_selection_workspace = self._game_workspace_core.get_selection()
         if current_selection_workspace:
             self._game_workspace_core.set_selection(current_selection_workspace[0])
@@ -437,7 +501,7 @@ class WelcomeWindow:
         current_capture = self._game_workspace_core.get_current_capture()
         use_existing_layer = self._game_workspace_core.get_current_use_existing_layer()
         replacement_layer_path = self._game_workspace_core.get_current_replacement_layer_usd_path()
-        game = self._game_workspace_core.get_current_game()
+        game = self._game_workspace_core.get_current_game_capture_folder()
 
         self._new_game_workspace_core.create_game_workspace(
             current_capture,
@@ -494,6 +558,8 @@ class WelcomeWindow:
 
     def destroy(self):
         self.__subcription_workspace_changed = None
+        self.__subcription_game_selection_changed = None
+        self.__subcription_current_game_capture_folder_changed = None
         omni.kit.menu.utils.remove_menu_items(self._menus, "File")
         for attr, value in self.__default_attr.items():
             m_attr = getattr(self, attr)

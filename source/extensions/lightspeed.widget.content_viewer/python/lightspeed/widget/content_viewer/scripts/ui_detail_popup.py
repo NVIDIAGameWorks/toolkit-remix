@@ -9,6 +9,7 @@
 """
 import asyncio
 import functools
+import typing
 from pathlib import Path
 
 import carb
@@ -19,6 +20,9 @@ import omni.ui as ui
 from .core_detail_popup import AssetDetailCore
 from .delegate_detail_poup import AssetDetailTagsDelegate
 from .model_detail_popup import AssetDetailTagsModel
+
+if typing.TYPE_CHECKING:
+    from .core import ContentData
 
 
 class AssetDetailWindow:
@@ -79,7 +83,7 @@ class AssetDetailWindow:
     @property
     def current_extension_path(self):
         current_path = Path(__file__).parent
-        for _ in range(5):
+        for _ in range(4):
             current_path = current_path.parent
         return current_path
 
@@ -195,8 +199,8 @@ class AssetDetailWindow:
     def __create_bigger_image_ui(self):
         self._window_bigger_image = ui.Window(
             self.WINDOW_IMAGE_BIGGER_NAME,
-            width=400,
-            height=400,
+            width=600,
+            height=600,
             visible=False,
             flags=ui.WINDOW_FLAGS_POPUP | ui.WINDOW_FLAGS_NO_TITLE_BAR | ui.WINDOW_FLAGS_NO_RESIZE,
         )
@@ -242,23 +246,27 @@ class AssetDetailWindow:
         self.__action_search_attr.model.set_value("")
         self._filter_content()
 
-    def _refresh(self, title: str, path: str):
+    def _refresh(self, data: "ContentData"):
         self.__model.refresh_list()
-        primary_thumbnail = self._core.get_primary_thumbnails(path)
-        self.__primary_thumnail.source_url = primary_thumbnail
+        if data.image_primary_detail_fn is not None:
+            primary_thumbnail = data.image_primary_detail_fn()
+        else:
+            primary_thumbnail = self._core.get_primary_thumbnails(data.path)
+        if primary_thumbnail:
+            self.__primary_thumnail.source_url = primary_thumbnail
         self.__string_field_custom_tags.model.set_value("To do, to do")  # TODO: add tags
-        self.__string_field_file_path.model.set_value(path)
-        self.__string_field_name.model.set_value(title)
+        self.__string_field_file_path.model.set_value(data.path)
+        self.__string_field_name.model.set_value(data.title)
 
-    def show(self, title: str, path: str):
+    def show(self, data: "ContentData"):
         if self.__show_window_task:
             self.__show_window_task.cancel()
-        self.__show_window_task = asyncio.ensure_future(self.__deferred_show(title, path))
+        self.__show_window_task = asyncio.ensure_future(self.__deferred_show(data))
 
-    async def __deferred_show(self, title: str, path: str):
+    async def __deferred_show(self, data: "ContentData"):
         await omni.kit.app.get_app().next_update_async()  # wait 1 frame to appear after the dockspace mouse click
-        self._refresh(title, path)
-        self.__model.refresh_image_paths(path)
+        self._refresh(data)
+        self.__model.refresh_image_paths(data.path)
         x, y = self.get_current_mouse_coords()
         self._window.position_x = x
         self._window.position_y = y

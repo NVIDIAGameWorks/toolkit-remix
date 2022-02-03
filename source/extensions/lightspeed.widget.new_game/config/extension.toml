@@ -14,6 +14,8 @@ category = "other"
 name = "Lightspeed New Game Widget"
 
 [dependencies]
+"lightspeed.common" = {}
+"lightspeed.upscale" = {}
 "omni.client" = {}
 "omni.kit.window.popup_dialog" = {}
 "omni.kit.widget.filebrowser" = {}
@@ -24,3 +26,5 @@ name = "Lightspeed New Game Widget"
 [[python.module]]
 name = "lightspeed.widget.new_game"
 
+[python.pipapi]
+requirements = ["Pillow"]

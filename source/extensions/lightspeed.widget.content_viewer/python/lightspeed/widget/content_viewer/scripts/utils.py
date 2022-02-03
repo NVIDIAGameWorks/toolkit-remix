@@ -13,6 +13,6 @@ import omni.client
 def is_path_readable(path: str):
     """Check is a path is readable"""
     _, entry = omni.client.stat(path)
-    if entry.flags & omni.client.ItemFlags.READABLE_FILE:
+    if (entry.flags & omni.client.ItemFlags.READABLE_FILE) or (entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN):
         return True
     return False

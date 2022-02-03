@@ -7,14 +7,26 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import functools
+from pathlib import Path
 from typing import Optional
 
 import carb
 import carb.settings
+from lightspeed.common.constants import CAPTURE_FOLDER
 from lightspeed.widget.content_viewer.scripts.core import ContentData, ContentDataAdd, ContentViewerCore
+from lightspeed.widget.content_viewer.scripts.utils import is_path_readable
 from pydantic import ValidationError
 
 from .utils import get_instance as get_game_json_instance
+from .utils import get_upscaled_game_icon_from_capture_folder
+
+
+class GameContentData(ContentData):
+    @property
+    def is_path_valid(self):
+        """Check is the USD path exist"""
+        return is_path_readable(self.path) and str(Path(self.path).name) == CAPTURE_FOLDER
 
 
 class GameCore(ContentViewerCore):
@@ -61,32 +73,38 @@ class GameCore(ContentViewerCore):
         self._settings = carb.settings.get_settings()
         self._filter = None
 
-        self.__current_game = None
-        self.__on_current_game_changed = self._Event()
+        self.__current_game_capture_folder = None
+        self.__on_current_game_capture_folder_changed = self._Event()
 
     def set_filter(self, _filter: str):
         self._filter = _filter
 
-    def set_current_game(self, data: Optional[ContentData]):
-        self.__current_game = data
-        self._current_game_changed()
+    def set_current_game_capture_folder(self, data: Optional[GameContentData]):
+        self.__current_game_capture_folder = data
+        self._current_game_capture_folder_changed()
 
-    def get_current_game(self) -> ContentData:
-        return self.__current_game
+    def get_current_game_capture_folder(self) -> GameContentData:
+        return self.__current_game_capture_folder
 
-    def _current_game_changed(self):
+    def _current_game_capture_folder_changed(self):
         """Call the event object that has the list of functions"""
-        self.__on_current_game_changed(self.__current_game)
+        self.__on_current_game_capture_folder_changed(self.__current_game_capture_folder)
 
-    def subscribe_current_game_changed(self, fn):
+    def subscribe_current_game_capture_folder_changed(self, fn):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
-        return self._EventSubscription(self.__on_current_game_changed, fn)
+        return self._EventSubscription(self.__on_current_game_capture_folder_changed, fn)
 
-    def save_current_game_in_json(self):
-        if isinstance(self.__current_game, ContentDataAdd):
-            get_game_json_instance().append_path_to_file(self.__current_game.path, self.__current_game.title)
+    def save_current_game_capture_folder_in_json(self):
+        if isinstance(self.__current_game_capture_folder, ContentDataAdd):
+            get_game_json_instance().append_path_to_file(
+                self.__current_game_capture_folder.path, self.__current_game_capture_folder.title
+            )
+
+    def delete_selected_game(self):
+        selection = self.get_selection()
+        get_game_json_instance().delete_names([item.title for item in selection])
 
     @property
     def default_attr(self):
@@ -94,12 +112,24 @@ class GameCore(ContentViewerCore):
         result.update({})
         return result
 
+    def _get_game_icon(self, capture_folder_path: str) -> Optional[str]:
+        return get_upscaled_game_icon_from_capture_folder(capture_folder_path)
+
+    def _get_primary_detail_image(self, capture_folder_path: str) -> Optional[str]:
+        return None
+
     def _get_content_data(self):
         json_data = get_game_json_instance().get_file_data()
         result = []
         for title, data in json_data.items():
             try:
-                result.append(ContentData(title=title, path=data.get("path")))
+                result.append(
+                    GameContentData(
+                        title=title,
+                        path=data.get("path"),
+                        image_path_fn=functools.partial(self._get_game_icon, str(Path(data.get("path")).resolve())),
+                    )
+                )
             except ValidationError as e:
                 carb.log_error(e.json())
         return result

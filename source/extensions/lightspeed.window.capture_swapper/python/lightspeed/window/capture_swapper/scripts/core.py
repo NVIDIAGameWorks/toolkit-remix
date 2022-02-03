@@ -9,9 +9,7 @@
 """
 import typing
 
-import carb
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
-from lightspeed.layer_manager.scripts.layers.replacement import LSS_LAYER_GAME_NAME, LSS_LAYER_GAME_PATH
 from lightspeed.widget.content_viewer.scripts.core import ContentData
 
 if typing.TYPE_CHECKING:
@@ -35,22 +33,11 @@ class CaptureSwapperCore:
         if capture_layer == self._layer_manager.get_layer(LayerType.capture):
             self._layer_manager.remove_layer(LayerType.capture)
         # add the new one
-        self._layer_manager.insert_sublayer(new_layer.path, LayerType.capture, set_as_edit_target=False)
+        self._layer_manager.insert_sublayer(
+            new_layer.path, LayerType.capture, set_as_edit_target=False, add_custom_layer_data=False
+        )
         self._layer_manager.lock_layer(LayerType.capture)
 
-    def game_current_game_from_replacement_layer(self) -> Optional["ContentData"]:
-        """Returns true if the layer is already watched"""
-        layer_replacement = self._layer_manager.get_layer(LayerType.replacement)
-        # we only save stage that have a replacement layer
-        if not layer_replacement:
-            carb.log_error("Can't find the replacement layer in the current stage")
-            return None
-        title = layer_replacement.customLayerData.get(LSS_LAYER_GAME_NAME)
-        if not title:
-            carb.log_error("Can't find the game title from the replacement layer")
-            return None
-        path = layer_replacement.customLayerData.get(LSS_LAYER_GAME_PATH)
-        if not path:
-            carb.log_error("Can't find the game path from the replacement layer")
-            return None
-        return ContentData(title=title, path=path)
+    def game_current_game_capture_folder(self) -> Optional["ContentData"]:
+        """Get the current capture folder from the current capture layer"""
+        return self._layer_manager.game_current_game_capture_folder()

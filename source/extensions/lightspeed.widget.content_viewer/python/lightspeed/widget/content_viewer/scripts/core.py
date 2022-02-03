@@ -26,6 +26,8 @@ class ContentData(BaseModel):
     title: str
     path: str
     image_path_fn: Optional[Callable[[], str]] = None  # function that return an image path
+    # function that return an image path for the detail window
+    image_primary_detail_fn: Optional[Callable[[], str]] = None
     checkpoint_version: Optional[int] = None
     original_path: Optional[str] = None  # dont set it
 
@@ -112,12 +114,6 @@ class ContentViewerCore:
         self.__on_selection_changed = self._Event()
         self.__on_primary_thumbnail_loaded = self._Event()
 
-    def _get_primary_thumbnail(self, path: str) -> str:
-        """Get the primary thumbnail of the asset"""
-        if self.__ignore_thumbnails:
-            return ""
-        return self.__asset_detail_core.get_primary_thumbnails(path)
-
     @property
     def default_attr(self):
         return {"_content": [], "_selection": [], "_item_was_clicked": False}
@@ -173,6 +169,9 @@ class ContentViewerCore:
             self._selection = []
         else:
             if append:
+                if self._selection and isinstance(self._selection[0], ContentDataAdd):
+                    # we cant have a multi selection with a ContentDataAdd
+                    return
                 if content_data in self._selection:
                     self._selection.remove(content_data)
                 else:
@@ -181,6 +180,9 @@ class ContentViewerCore:
                 if not self._selection:
                     self._selection = [content_data]
                 else:
+                    if self._selection and isinstance(self._selection[0], ContentDataAdd):
+                        # we cant have a multi selection with a ContentDataAdd
+                        return
                     idx_clicked = self._content.index(content_data)
                     ix_last_selected = self._content.index(self._selection[-1])
                     start_idx = ix_last_selected + 1 if idx_clicked - ix_last_selected > 0 else idx_clicked

@@ -9,20 +9,15 @@
 """
 from typing import Dict
 
-from ..constants import LAYER_ATTRIBUTE_PREFIX
+from ..constants import LSS_LAYER_GAME_NAME
 from ..layer_types import LayerType
 from .i_layer import ILayer
-
-LSS_LAYER_GAME_NAME = f"{LAYER_ATTRIBUTE_PREFIX}game_name"
-LSS_LAYER_GAME_PATH = f"{LAYER_ATTRIBUTE_PREFIX}game_path"
 
 
 class ReplacementLayer(ILayer):
     def set_custom_layer_data(self, value: Dict[str, str]):
         if LSS_LAYER_GAME_NAME not in value:
             raise ValueError(f"{LSS_LAYER_GAME_NAME} need to be set")
-        if LSS_LAYER_GAME_PATH not in value:
-            raise ValueError(f"{LSS_LAYER_GAME_PATH} need to be set")
 
         super().set_custom_layer_data(value)
 

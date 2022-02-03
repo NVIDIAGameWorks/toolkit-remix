@@ -13,13 +13,11 @@ from pathlib import Path
 from typing import Optional
 
 import carb
-import omni
 import omni.client
 import omni.ext
-from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER, LSS_FOLDER
+import omni.usd
+from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
-from lightspeed.layer_manager.scripts.layers.replacement import LSS_LAYER_GAME_NAME, LSS_LAYER_GAME_PATH
-from lightspeed.widget.content_viewer.scripts.core import ContentData
 from omni.kit.tool.collect.collector import Collector
 
 from .post_process import LightspeedPosProcessExporter
@@ -129,30 +127,17 @@ class LightspeedExporterCore:
         if self._collector:
             self._collector.cancel()
 
-    def _game_current_game_from_replacement_layer(self) -> Optional["ContentData"]:
-        """Returns true if the layer is already watched"""
-        layer_replacement = self._layer_manager.get_layer(LayerType.replacement)
-        # we only save stage that have a replacement layer
-        if not layer_replacement:
-            carb.log_error("Can't find the replacement layer in the current stage")
+    def get_default_export_path(self) -> Optional[str]:
+        current_game_capture_folder = self._layer_manager.game_current_game_capture_folder()
+        if not current_game_capture_folder:
             return None
-        title = layer_replacement.customLayerData.get(LSS_LAYER_GAME_NAME)
-        if not title:
-            carb.log_error("Can't find the game title from the replacement layer")
-            return None
-        path = layer_replacement.customLayerData.get(LSS_LAYER_GAME_PATH)
-        if not path:
-            carb.log_error("Can't find the game path from the replacement layer")
-            return None
-        return ContentData(title=title, path=path)
-
-    def get_default_export_path(self):
-        current_game = self._game_current_game_from_replacement_layer()
-        if not current_game:
-            return ""
-        return str(Path(current_game.path).parent.joinpath(LSS_FOLDER, GAME_READY_ASSETS_FOLDER)) + os.sep
+        return str(Path(current_game_capture_folder.path).parent.joinpath(GAME_READY_ASSETS_FOLDER)) + os.sep
 
     def check_export_path(self, path) -> bool:
+        stage = omni.usd.get_context().get_stage()
+        if stage.GetRootLayer().anonymous:
+            carb.log_error("Please save your stage first")
+            return False
         if not path:
             carb.log_error("Please set a folder for the export")
             return False
@@ -161,6 +146,11 @@ class LightspeedExporterCore:
             if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN:
                 carb.log_error("The export path should be an existing folder")
                 return False
+        # detect when a user tries to export into gameReadyAssets while using gameReadyAsset/replacements.usda
+        replacement_layer = self._layer_manager.get_layer(LayerType.replacement)
+        if str(Path(replacement_layer.realPath).parent.resolve()) == str(Path(path).resolve()):
+            carb.log_error('Can\'t export from the same folder than the "replacement/enhancement" layer is')
+            return False
         return True
 
     def _start_exporting(self, export_folder):

@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 import carb
-from lightspeed.common.constants import CAPTURE_FOLDER
+from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER
 from omni.kit.widget.filebrowser import FileBrowserItem
 from omni.kit.window.filepicker import FilePickerDialog
 
@@ -29,8 +29,8 @@ def on_click_open(dialog: FilePickerDialog, filename: str, dirname: str, callbac
     are the filename and directory name. Together they form the fullpath to the selected
     file.
     """
-    if not dirname or not Path(dirname).exists() or str(Path(dirname).stem) != CAPTURE_FOLDER:
-        carb.log_error(f'Please select a folder named "{CAPTURE_FOLDER}"')
+    if not dirname or not Path(dirname).exists() or str(Path(dirname).stem) != GAME_READY_ASSETS_FOLDER:
+        carb.log_error(f'Please select a folder named "{GAME_READY_ASSETS_FOLDER}"')
         return
     # Normally, you'd want to hide the dialog
     dialog.hide()
@@ -43,11 +43,12 @@ def on_click_cancel(dialog: FilePickerDialog, filename: str, dirname: str, callb
     callback(dirname)
 
 
-def open_file_picker(callback: Callable, callback_cancel: Callable):
+def open_file_picker(callback: Callable, callback_cancel: Callable, current_directory: str = None):
     dialog = FilePickerDialog(
         "Directory picker",
         apply_button_label="Select",
         click_apply_handler=lambda filename, dirname: on_click_open(dialog, filename, dirname, callback),
         click_cancel_handler=lambda filename, dirname: on_click_cancel(dialog, filename, dirname, callback_cancel),
         item_filter_fn=lambda item: on_filter_item(dialog, item),
+        current_directory=current_directory,
     )

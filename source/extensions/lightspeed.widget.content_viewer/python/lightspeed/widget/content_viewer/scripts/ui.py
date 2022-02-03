@@ -194,7 +194,27 @@ class ContentItem:
         self._core = core
         self._asset_detail_windows = asset_detail_windows
         self._is_usd_path_valid = False
-        self._style = {
+        self._style = {}
+        self.__background_image = None
+        self.__checkpoint_zstack = None
+        self.__checkpoint_combobox = None
+        self.__overlay_wide_rectangle = None
+        self.__overlay_highlight_rectangle = None
+        self.__no_image_frame = None
+        self.__no_usd_path_frame = None
+        self.__title_frame = None
+        self.__image_frame = None
+        self.__label_message_no_image = None
+
+        self.__create_ui()
+
+        self._primary_thumbnail_loaded_subscription = self._core.subscribe_primary_thumbnail_loaded(
+            self._on_primary_thumbnail_loaded
+        )
+
+    @property
+    def style(self):
+        return {
             "Label::Title": {"color": 0xFF9C9C9C, "font_size": self.TITLE_FONT_SIZE},
             "Label::NoImage": {"font_size": self.NO_FONT_SIZE, "margin": 5},
             "Label::NoUSDPath": {"font_size": self.NO_FONT_SIZE, "color": 0xDB0000FF},
@@ -215,22 +235,6 @@ class ContentItem:
                 "background_color": 0x400000FF,
             },
         }
-        self.__background_image = None
-        self.__checkpoint_zstack = None
-        self.__checkpoint_combobox = None
-        self.__overlay_wide_rectangle = None
-        self.__overlay_highlight_rectangle = None
-        self.__no_image_frame = None
-        self.__no_usd_path_frame = None
-        self.__title_frame = None
-        self.__image_frame = None
-        self.__label_message_no_image = None
-
-        self.__create_ui()
-
-        self._primary_thumbnail_loaded_subscription = self._core.subscribe_primary_thumbnail_loaded(
-            self._on_primary_thumbnail_loaded
-        )
 
     @property
     def default_attr(self):
@@ -250,16 +254,17 @@ class ContentItem:
     @handle_exception
     async def __deferred_update_ui(self):
         def do_update_ui():
-            result = is_path_readable(self.content_data.path)
+            result = self.is_usd_path_valid
             if not result:
                 self.__no_usd_path_frame.clear()
                 with self.__no_usd_path_frame:
-                    ui.Label(
-                        "USD path not found on disk", alignment=ui.Alignment.CENTER, word_wrap=True, name="NoUSDPath"
-                    )
+                    ui.Label("Path not found on disk", alignment=ui.Alignment.CENTER, word_wrap=True, name="NoUSDPath")
             self.__no_usd_path_frame.visible = not result
             style_type_name_override = "Rectangle.Overlay_NoUSDPath" if not result else "Rectangle.Overlay"
             self.__overlay_highlight_rectangle.style_type_name_override = style_type_name_override
+            with self.__no_image_frame:
+                alignment = ui.Alignment.CENTER_BOTTOM if self.__no_usd_path_frame.visible else ui.Alignment.CENTER
+                ui.Label(self.__label_message_no_image, alignment=alignment, name="NoImage")
 
         wrapped_fn = async_wrap(do_update_ui)
         await wrapped_fn()
@@ -273,7 +278,7 @@ class ContentItem:
             self.__image_frame.visible = True
             with self.__image_frame:
                 self.__background_image = ui.Image(
-                    thumbnail_path, fill_policy=ui.FillPolicy.PRESERVE_ASPECT_FIT, visible=True
+                    thumbnail_path, fill_policy=ui.FillPolicy.PRESERVE_ASPECT_FIT, visible=True, name="Background"
                 )
         else:
             self.__label_message_no_image = "No image"
@@ -292,7 +297,7 @@ class ContentItem:
         old_range = old_max - old_min
         new_range = new_max - new_min
         new_value = (((grid_size - old_min) * new_range) / old_range) + new_min
-        self._style.update(
+        self.style.update(
             {
                 "Label::NoImage": {"font_size": (grid_size / 100) * self.NO_FONT_SIZE},
                 "Label::NoUSDPath": {"font_size": (grid_size / 100) * self.NO_FONT_SIZE, "color": 0xDB0000FF},
@@ -305,18 +310,18 @@ class ContentItem:
         """Create all 'no' labels (no image, no usd...)"""
         if self.__no_image_frame is not None:
             self.__no_image_frame.clear()
-            self.__no_image_frame.style = self._style
+            self.__no_image_frame.style = self.style
             with self.__no_image_frame:
                 alignment = ui.Alignment.CENTER_BOTTOM if self.__no_usd_path_frame.visible else ui.Alignment.CENTER
                 ui.Label(self.__label_message_no_image, alignment=alignment, name="NoImage")
         if self.__no_usd_path_frame is not None:
             self.__no_usd_path_frame.clear()
-            self.__no_usd_path_frame.style = self._style
+            self.__no_usd_path_frame.style = self.style
             with self.__no_usd_path_frame:
-                ui.Label("USD path not found on disk", alignment=ui.Alignment.CENTER, word_wrap=True, name="NoUSDPath")
+                ui.Label("Path not found on disk", alignment=ui.Alignment.CENTER, word_wrap=True, name="NoUSDPath")
         if self.__title_frame is not None:
             self.__title_frame.clear()
-            self.__title_frame.style = self._style
+            self.__title_frame.style = self.style
             with self.__title_frame:
                 ui.Label(
                     self.content_data.title, alignment=ui.Alignment.CENTER, name="Title", height=0, elided_text=True
@@ -324,7 +329,7 @@ class ContentItem:
 
     def __create_ui(self):
         """Create the UI"""
-        with ui.ZStack(style=self._style):
+        with ui.ZStack(style=self.style):
             with ui.HStack():
                 ui.Spacer(width=ui.Fraction(1))
                 with ui.VStack(width=ui.Fraction(30)):
@@ -469,7 +474,7 @@ class ContentItem:
             return
         if b == 1:
             if self._asset_detail_windows is not None:
-                self._asset_detail_windows.show(self.content_data.title, self.content_data.path)
+                self._asset_detail_windows.show(self.content_data)
         elif b == 0 and self._asset_detail_windows is not None:
             self._asset_detail_windows.hide()
         self._core.set_item_was_clicked(True)

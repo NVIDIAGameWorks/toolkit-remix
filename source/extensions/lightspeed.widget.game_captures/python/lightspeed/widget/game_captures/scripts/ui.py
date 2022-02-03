@@ -34,7 +34,7 @@ class GameCapturesViewer(ContentViewer):
     def __init__(self, core: "GameCapturesCore", extension_path: str):
         """Window to list all maps"""
         super(GameCapturesViewer, self).__init__(core, extension_path)
-        self._subcription_current_game_changed = self._core.subscribe_current_game_changed(
+        self._subcription_current_game_changed = self._core.subscribe_current_game_capture_folder_changed(
             self._on_current_game_changed
         )
 
