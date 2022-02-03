@@ -21,11 +21,21 @@ if typing.TYPE_CHECKING:
 
 
 def get_captures(data: "ContentData") -> List[str]:
-    return [
-        str(file)
-        for file in Path(data.path).parent.joinpath(LSS_FOLDER, CAPTURE_FOLDER).iterdir()
-        if file.is_file() and file.suffix in [".usd", ".usda", ".usdc"]
-    ]
+    return sorted(
+        [
+            str(file)
+            for file in Path(data.path).iterdir()
+            if file.is_file()
+            and file.suffix in [".usd", ".usda", ".usdc"]
+            and str(file.stem).startswith(f"{CAPTURE_FOLDER}_")
+        ],
+        reverse=True,
+    )
+
+
+def get_capture_image(usd_path: str) -> Optional[str]:
+    image_path = Path(usd_path).parent.joinpath(".thumbs", f"{Path(usd_path).name}.dds")
+    return str(image_path) if image_path.exists() else None
 
 
 def get_captures_directory(data: "ContentData") -> str:

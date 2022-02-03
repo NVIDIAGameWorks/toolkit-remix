@@ -120,7 +120,7 @@ class GameWorkspaceViewer(GameCapturesViewer):
     def __update_replacement_layer_usd_field(self, value_model):
         value = self._replacement_layer_usd_field.model.get_value_as_string()
         self._core.set_current_replacement_layer_usd_path(value if value else None)
-        current_game = self._core.get_current_game()
+        current_game = self._core.get_current_game_capture_folder()
         replacement_path_utils = ReplacementPathUtils()
         replacement_path_utils.append_path_to_recent_file(value, current_game.title)
 
@@ -128,7 +128,7 @@ class GameWorkspaceViewer(GameCapturesViewer):
         if b != 0:
             return
 
-        current_game = self._core.get_current_game()
+        current_game = self._core.get_current_game_capture_folder()
         captures_dir = get_captures_directory(current_game)
         replacement_path_utils = ReplacementPathUtils()
         data = replacement_path_utils.get_recent_file_data()

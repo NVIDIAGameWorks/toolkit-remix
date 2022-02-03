@@ -7,17 +7,21 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+from pathlib import Path
 from typing import Dict, Optional
 
 import carb
 import omni.client
 import omni.kit.commands
 import omni.usd
+from lightspeed.common.constants import CAPTURE_FOLDER
+from lightspeed.widget.content_viewer.scripts.core import ContentData
 from omni.kit.widget.layers.layer_utils import LayerUtils
 from pxr import Sdf
 
 from .layer_types import LayerType, LayerTypeKeys
 from .layers import capture, i_layer, replacement
+from .constants import LSS_LAYER_GAME_NAME
 
 
 class LayerManagerCore:
@@ -46,7 +50,12 @@ class LayerManagerCore:
                 return layer
 
     def insert_sublayer(
-        self, path, layer_type: LayerType, set_as_edit_target: bool = True, sublayer_insert_position=-1
+        self,
+        path,
+        layer_type: LayerType,
+        set_as_edit_target: bool = True,
+        sublayer_insert_position=-1,
+        add_custom_layer_data=True,
     ):
         stage = omni.usd.get_context().get_stage()
         root_layer = stage.GetRootLayer()
@@ -62,14 +71,15 @@ class LayerManagerCore:
         for layer in stage.GetLayerStack():
             if omni.client.normalize_url(layer.realPath) == omni.client.normalize_url(path):
                 # add customData
-                custom_layer_data = layer.customLayerData
-                custom_layer_data.update({LayerTypeKeys.layer_type.value: layer_type.value})
-                layer_inst = self.get_layer_instance(layer_type)
-                custom_data_layer_inst = layer_inst.get_custom_layer_data()
-                if custom_data_layer_inst:
-                    custom_layer_data.update(custom_data_layer_inst)
-                layer.customLayerData = custom_layer_data
-                layer.Save()  # because of new customLayerData
+                if add_custom_layer_data:
+                    custom_layer_data = layer.customLayerData
+                    custom_layer_data.update({LayerTypeKeys.layer_type.value: layer_type.value})
+                    layer_inst = self.get_layer_instance(layer_type)
+                    custom_data_layer_inst = layer_inst.get_custom_layer_data()
+                    if custom_data_layer_inst:
+                        custom_layer_data.update(custom_data_layer_inst)
+                    layer.customLayerData = custom_layer_data
+                    layer.Save()  # because of new customLayerData
                 if set_as_edit_target:
                     self.set_edit_target_layer(layer_type, force_layer_identifier=layer.identifier)
 
@@ -155,6 +165,20 @@ class LayerManagerCore:
                     "RemoveSublayer", layer_identifier=root_layer.identifier, sublayer_position=position
                 )
                 carb.log_info(f"Layer {layer} removed")
+
+    def game_current_game_capture_folder(self) -> Optional["ContentData"]:
+        """Get the current capture folder from the current capture layer"""
+        layer = self.get_layer(LayerType.capture)
+        # we only save stage that have a replacement layer
+        if not layer:
+            carb.log_error("Can't find the capture layer in the current stage")
+            return None
+        capture_folder = Path(layer.realPath)
+        if capture_folder.parent.name != CAPTURE_FOLDER:
+            carb.log_error(f'Can\'t find the "{CAPTURE_FOLDER}" folder from the {LayerType.capture} layer')
+            return None
+        game_name = layer.customLayerData.get(LSS_LAYER_GAME_NAME, "MyGame")
+        return ContentData(title=game_name, path=str(capture_folder.parent))
 
     def destroy(self):
         for attr, value in self.__default_attr.items():

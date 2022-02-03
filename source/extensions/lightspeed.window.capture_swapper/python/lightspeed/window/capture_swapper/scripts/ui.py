@@ -68,7 +68,7 @@ class CaptureSwapperWindow:
                         layers.ContextMenu.is_not_authoring_layer,
                         self._core.is_capture_layer,
                     ],
-                    "onclick_fn": self.show_for_game,
+                    "onclick_fn": self.show_for_game_capture_folder,
                 },
             ]
         )
@@ -170,11 +170,11 @@ class CaptureSwapperWindow:
     def close(self):
         self._window.visible = False
 
-    def show_for_game(self, objects):
+    def show_for_game_capture_folder(self, objects):
         """Find the current game using the current replacement layer"""
-        current_game = self._core.game_current_game_from_replacement_layer()
-        if current_game:
-            self._game_capture_core.set_current_game(current_game)
+        current_game_capture_folder = self._core.game_current_game_capture_folder()
+        if current_game_capture_folder:
+            self._game_capture_core.set_current_game_capture_folder(current_game_capture_folder)
             self._game_capture_core.refresh_content()
 
             item = objects["item"]

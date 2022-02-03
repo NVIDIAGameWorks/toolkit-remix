@@ -7,6 +7,7 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import functools
 from pathlib import Path
 from typing import Optional
 
@@ -14,7 +15,7 @@ import carb
 from lightspeed.widget.content_viewer.scripts.core import ContentData, ContentViewerCore
 from pydantic import ValidationError
 
-from .utils import get_captures
+from .utils import get_capture_image, get_captures
 
 
 class GameCapturesCore(ContentViewerCore):
@@ -58,9 +59,9 @@ class GameCapturesCore(ContentViewerCore):
 
     def __init__(self):
         super(GameCapturesCore, self).__init__()
-        self.__current_game = None
+        self.__current_game_capture_folder = None
         self.__current_capture = None
-        self.__on_current_game_changed = self._Event()
+        self.__on_current_game_capture_folder_changed = self._Event()
         self.__on_current_capture_changed = self._Event()
 
     @property
@@ -69,22 +70,22 @@ class GameCapturesCore(ContentViewerCore):
         result.update({})
         return result
 
-    def set_current_game(self, data: Optional[ContentData]):
-        self.__current_game = data
-        self._current_game_changed()
+    def set_current_game_capture_folder(self, data: Optional[ContentData]):
+        self.__current_game_capture_folder = data
+        self._current_game_capture_folder_changed()
 
-    def get_current_game(self) -> Optional[ContentData]:
-        return self.__current_game
+    def get_current_game_capture_folder(self) -> Optional[ContentData]:
+        return self.__current_game_capture_folder
 
-    def _current_game_changed(self):
+    def _current_game_capture_folder_changed(self):
         """Call the event object that has the list of functions"""
-        self.__on_current_game_changed(self.__current_game)
+        self.__on_current_game_capture_folder_changed(self.__current_game_capture_folder)
 
-    def subscribe_current_game_changed(self, fn):
+    def subscribe_current_game_capture_folder_changed(self, fn):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
-        return self._EventSubscription(self.__on_current_game_changed, fn)
+        return self._EventSubscription(self.__on_current_game_capture_folder_changed, fn)
 
     def set_current_capture(self, data: Optional[ContentData]):
         self.__current_capture = data
@@ -103,14 +104,24 @@ class GameCapturesCore(ContentViewerCore):
         """
         return self._EventSubscription(self.__on_current_capture_changed, fn)
 
+    def _get_capture_image(self, capture_usd_path: str) -> Optional[str]:
+        return get_capture_image(capture_usd_path)
+
     def _get_content_data(self):
-        files = get_captures(self.__current_game)
+        files = get_captures(self.__current_game_capture_folder)
 
         result = []
         for path in files:
             try:
                 p_obj = Path(path)
-                result.append(ContentData(title=p_obj.stem.capitalize(), path=path))
+                result.append(
+                    ContentData(
+                        title=p_obj.stem.capitalize(),
+                        path=path,
+                        image_path_fn=functools.partial(self._get_capture_image, path),
+                        image_primary_detail_fn=functools.partial(self._get_capture_image, path),
+                    )
+                )
             except ValidationError as e:
                 carb.log_error(e.json())
 

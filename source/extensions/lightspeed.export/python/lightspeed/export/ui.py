@@ -18,19 +18,17 @@ import omni.kit.window.content_browser as content
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
 from omni import ui
 from omni.kit.menu.utils import MenuItemDescription
-from omni.kit.tool.collect.file_picker import FilePicker
-from omni.kit.tool.collect.filebrowser import FileBrowserMode, FileBrowserSelectionType
 from omni.kit.tool.collect.icons import Icons
 from omni.kit.tool.collect.progress_popup import ProgressPopup
 
 from .exporter import LightspeedExporterCore
+from .usd_file_picker import open_file_picker
 
 
 class LightspeedExporterUI:
     def __init__(self):
         self.__default_attr = {
             "_window": None,
-            "_file_picker": None,
             "_folder_exsit_popup": None,
             "_progress_popup": None,
             "_exportion_path_field": None,
@@ -52,7 +50,6 @@ class LightspeedExporterUI:
         self._subscription_finish_export = self._core.subscribe_finish_export(self._on_finish_export)
 
         self._window = None
-        self._file_picker = None
         self._folder_exsit_popup = None
         self._exportion_path_field = None
         self._progress_popup = None
@@ -81,8 +78,8 @@ class LightspeedExporterUI:
 
     def __clicked(self):
 
-        reaplacement_layer = self._layer_manager.get_layer(LayerType.replacement)
-        if reaplacement_layer is None:
+        replacement_layer = self._layer_manager.get_layer(LayerType.replacement)
+        if replacement_layer is None:
             carb.log_error("Can't find the replacement layer in the stage")
             return
 
@@ -121,7 +118,9 @@ class LightspeedExporterUI:
                     with ui.VStack(height=0):
                         ui.Spacer(height=4)
                         self._exportion_path_field = ui.StringField(height=20, width=ui.Fraction(1))
-                        self._exportion_path_field.model.set_value(self._core.get_default_export_path())
+                        default_path = self._core.get_default_export_path()
+                        if default_path:
+                            self._exportion_path_field.model.set_value(default_path)
                         ui.Spacer(height=4)
                     with ui.VStack(height=0, width=0):
                         ui.Spacer(height=4)
@@ -135,7 +134,7 @@ class LightspeedExporterUI:
                     ui.Spacer(width=40)
                 ui.Spacer(height=10)
                 ui.Label(
-                    f'Only data from the layer "{os.path.basename(reaplacement_layer.realPath)}" will be exported',
+                    f'Only data from the layer "{os.path.basename(replacement_layer.realPath)}" will be exported',
                     alignment=ui.Alignment.CENTER,
                     name="ExportWarningLayer",
                 )
@@ -170,19 +169,9 @@ class LightspeedExporterUI:
 
     def _show_file_picker(self):
         self._window.visible = False
-        if not self._file_picker:
-            mode = FileBrowserMode.SAVE
-            file_type = FileBrowserSelectionType.DIRECTORY_ONLY
-            filters = [(".*", "All Files (*.*)")]
-            self._file_picker = FilePicker(
-                "Select export Destination", mode=mode, file_type=file_type, filter_options=filters
-            )
-            self._file_picker.set_file_selected_fn(self._select_picked_folder_callback)
-            self._file_picker.set_cancel_fn(self._cancel_picked_folder_callback)
-
         path = self._exportion_path_field.model.get_value_as_string()
-        dir_name = os.path.dirname(path)
-        self._file_picker.show(dir_name, None)
+        current_directory = path if path else None
+        open_file_picker(self._select_picked_folder_callback, lambda *args: None, current_directory=current_directory)
 
     def _show_progress_popup(self):
         if not self._progress_popup:

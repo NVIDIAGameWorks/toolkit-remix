@@ -16,6 +16,7 @@ name = "lightspeed Welcome Window"
 [dependencies]
 "omni.client" = {}
 "lightspeed.event.save_recent" = {}
+"lightspeed.widget.content_viewer" = {}
 "lightspeed.widget.new_game" = {}
 "lightspeed.widget.new_workspace" = {}
 "lightspeed.workspace" = {}

@@ -75,16 +75,13 @@ class MaterialButtonGroup(WidgetGroup):
 
             select_prim_paths = omni.usd.get_context().get_selection().get_selected_prim_paths()
 
-            usd_context = omni.usd.get_context()
-            stage = usd_context.get_stage()
-
             material_objects = self._core.get_materials_from_prim_paths(select_prim_paths)
             carb.log_info("Upscale textures on selected materials")
 
             material_prims = []
             for material in material_objects:
                 material_prims.append(material.GetPrim())
-            
+
             LightspeedUpscalerCore.batch_upscale_capture_layer(specific_prims=material_prims)
 
         self._opaque_button = ui.ToolButton(

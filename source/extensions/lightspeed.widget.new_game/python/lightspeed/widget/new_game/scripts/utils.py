@@ -14,9 +14,11 @@ from typing import Optional
 import carb
 import carb.tokens
 import omni.client
+from lightspeed.upscale.upscale_core import LightspeedUpscalerCore
+from PIL import Image
 
 
-class GameJson:
+class GameCaptureFolderJson:
     def __get_dir(self) -> str:
         """Return the file"""
         token = carb.tokens.get_tokens_interface()
@@ -41,6 +43,16 @@ class GameJson:
             write_file(self.__get_file(), json.dumps(current_data, indent=4, sort_keys=True).encode("utf8"))
         return current_data
 
+    def delete_names(self, names):
+        current_data = self.get_file_data()
+        for name in names:
+            if name in current_data:
+                del current_data[name]
+        write_file(self.__get_file(), json.dumps(current_data, indent=4, sort_keys=True).encode("utf8"))
+
+    def override_data_with(self, data):
+        write_file(self.__get_file(), json.dumps(data, indent=4, sort_keys=True).encode("utf8"))
+
     def does_file_exist(self):
         file_path = self.__get_file()
         result, entry = omni.client.stat(file_path)
@@ -63,10 +75,34 @@ class GameJson:
 _INSTANCE = None
 
 
+def get_game_icon_from_capture_folder(capture_folder_path: str) -> Optional[str]:
+    icons = list(Path(capture_folder_path).parent.glob("*_icon.bmp"))
+    return str(icons[0]) if icons else None
+
+
+def get_upscaled_game_icon_from_capture_folder(capture_folder_path: str) -> Optional[str]:
+    default_icon = get_game_icon_from_capture_folder(capture_folder_path)
+    if not default_icon:
+        return None
+    # look for the upscaled icon
+    upscaled = default_icon.replace("_icon.bmp", "_upscaled_icon.png")
+    upscaled_path = Path(upscaled)
+    if not upscaled_path.exists():
+        # first we convert the bmp to png without alpha
+        png_file = default_icon.replace("_icon.bmp", "_icon.png")
+        im1 = Image.open(default_icon)
+        im1 = im1.convert("RGB")
+        im1.save(png_file)
+        im1.close()
+        # we upscale
+        LightspeedUpscalerCore().perform_upscale(png_file, str(upscaled_path))
+    return str(upscaled_path)
+
+
 def get_instance():
     global _INSTANCE
     if _INSTANCE is None:
-        _INSTANCE = GameJson()
+        _INSTANCE = GameCaptureFolderJson()
     return _INSTANCE  # noqa R504
 
 

@@ -45,6 +45,8 @@ class AssetDetailTagsModel(ui.AbstractItemModel):
 
     def refresh_image_paths(self, path):
         """Refresh images paths to use"""
+        if not path:
+            return
         self.__image_paths = self._core.get_additional_thumbnail(path)
         self.refresh_list()
 
