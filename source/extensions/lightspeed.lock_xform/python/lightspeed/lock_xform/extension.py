@@ -22,3 +22,5 @@ class LightspeedLockXform(omni.ext.IExt):
         
     def on_shutdown(self):
         carb.log_info("[lightspeed.lock_xform] Lightspeed Lock Transform shutdown")
+        # There's a weird race condition with stage closure if we don't explicitly do this before Core dtor
+        self._core.unsubscribe_from_events()

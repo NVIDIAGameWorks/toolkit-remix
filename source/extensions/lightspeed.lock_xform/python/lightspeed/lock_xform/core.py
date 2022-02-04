@@ -29,6 +29,9 @@ class LockXformCore:
         # Retrieve prim filter setting
         self._prim_filter = carb.settings.get_settings().get_as_string("/exts/lightspeed.lock_xform/prim_filter")
 
+    def unsubscribe_from_events(self):
+        self._stage_event.unsubscribe()
+
     def _on_stage_event(self, event):
         usd_context = omni.usd.get_context()
         if event.type == int(omni.usd.StageEventType.OPENED):
