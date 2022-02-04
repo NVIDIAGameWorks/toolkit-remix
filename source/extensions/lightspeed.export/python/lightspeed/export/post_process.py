@@ -155,11 +155,7 @@ class LightspeedPosProcessExporter:
                     # delete the original png:
                     os.remove(abs_path)
 
-    def process(self, file_path):
-        asyncio.ensure_future(self._deferred_process(file_path))
-
-    async def _deferred_process(self, file_path):
-
+    async def process(self, file_path):
         carb.log_info("Processing: " + file_path)
 
         # TODO: waiting OM-42168
@@ -210,7 +206,7 @@ class LightspeedPosProcessExporter:
                 carb.log_error(f"{e}")
                 carb.log_error(f"{traceback.format_exc()}")
 
-        omni.usd.get_context().save_stage()
+        await omni.usd.get_context().save_stage_async()
 
         if failed_processes:
             def on_okay_clicked(dialog: MessageDialog):
