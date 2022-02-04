@@ -99,7 +99,6 @@ class MaterialButtonGroup(WidgetGroup):
             material_prim_paths = []
             for material in material_objects:
                 material_prim_paths.append(material.GetPrim().GetPath())
-
             asyncio.ensure_future(self._run_material_upscale(material_prim_paths))
 
         self._opaque_button = ui.ToolButton(
