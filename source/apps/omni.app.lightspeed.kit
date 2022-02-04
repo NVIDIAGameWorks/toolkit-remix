@@ -143,13 +143,13 @@ keywords = ["app", "lightspeed"]
 
 "lightspeed.event.save_recent" = {}
 "lightspeed.export" = {}
+"lightspeed.lock_xform" = {}
 "lightspeed.property_template" = {}
 "lightspeed.tool.material" = {}
 "lightspeed.upscale" = {}
 "lightspeed.window.capture_swapper" = {}
 "lightspeed.window.welcome" = {}
 "lightspeed.workspace" = { order = 1000 } # fails to set layout unless at the end
-
 
 [settings.app.settings]
 persistent = true
@@ -162,6 +162,8 @@ exts."omni.kit.widget.layers".useNewFilePicker = true
 exts."omni.kit.renderer.core".imgui.enableMips = true
 exts."omni.kit.browser.material".enabled = false
 exts."omni.kit.window.material".load_after_startup = true
+exts."lightspeed.lock_xform".reason_for_lock = "These transforms are controlled by the original game; we don't recommend making changes here."
+exts."lightspeed.lock_xform".prim_filter = "instances/inst_"
 renderer.enabled='rtx'
 renderer.multiGpu.maxGpuCount = 1
 app.content.emptyStageOnStart = true
