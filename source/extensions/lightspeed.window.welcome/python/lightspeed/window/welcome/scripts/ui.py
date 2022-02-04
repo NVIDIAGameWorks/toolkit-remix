@@ -137,7 +137,7 @@ class WelcomeWindow:
                     for title, value in data.items():
                         with ui.HStack():
                             ui.Label(title, name="RecentDetailTitle", width=ui.Percent(34))
-                            ui.Label(value, word_wrap=len(value) > 24)
+                            ui.Label(value or "Error", word_wrap=len(value) > 24 if value is not None else False)
                         ui.Spacer(height=5)
                 ui.Spacer()
                 ui.Button(
