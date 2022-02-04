@@ -63,6 +63,14 @@
                 "panel": "dedicated",
                 "clear": true
             }
-        }
+        },
+        {
+            "label": "tests",
+            "type": "shell",
+            "command": "./_build/windows-x86_64/release/tests-omni.app.lightspeed.sh",
+            "windows": {
+                "command": ".\\_build\\windows-x86_64\\release\\tests-omni.app.lightspeed.bat"
+            },
+        },
     ]
 }
