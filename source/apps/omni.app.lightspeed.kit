@@ -13,6 +13,7 @@ keywords = ["app", "lightspeed"]
 "omni.kit.window.status_bar" = {}
 
 # TODO: Need to create a splash app to display a splash screen
+"omni.create.app.resources" = {}
 #"omni.kit.splash" = { order = -5000}
 
 "omni.stats" = {}
@@ -50,7 +51,7 @@ keywords = ["app", "lightspeed"]
 "omni.renderer" = { tag = "rtx" }
 "omni.hydra.rtx" = {}
 
-"omni.rtx.settings.core" = {}
+"omni.rtx.settings.core" = {} # this is the new Render Settings 2.0
 
 "omni.kit.window.movie_capture" = {}
 
@@ -131,6 +132,12 @@ keywords = ["app", "lightspeed"]
 # VERSIONING
 "omni.kit.widget.versioning" = {}
 
+# Paint Default now.
+"omni.kit.tool.paint.bundle" = {}
+
+# Destruction schema
+"omni.usd.schema.destruction" = {}
+
 # Windows only extensions. For all of them set exact=true to not be included into generated version lock.
 # That will break linux otherwise, as version lock is platform agnostic currently.
 [dependencies."filter:platform"."windows-x86_64"]
@@ -167,6 +174,9 @@ exts."lightspeed.lock_xform".prim_filter = "instances/inst_"
 renderer.enabled='rtx'
 renderer.multiGpu.maxGpuCount = 1
 app.content.emptyStageOnStart = true
+
+# Setting the port for the embedded http server
+exts."omni.services.transport.server.http".port = 8111
 
 [settings.rtx]
 rendermode = "PathTracing"
@@ -216,6 +226,7 @@ featuredExts = [
 ################################
 app.name = "TREX"
 persistent.app.window.uiStyle = "NvidiaDark"
+app.menu.legacy_mode = false
 
 # Privacy
 ################################

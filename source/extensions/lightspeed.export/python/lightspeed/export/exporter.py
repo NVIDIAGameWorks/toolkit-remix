@@ -174,17 +174,25 @@ class LightspeedExporterCore:
             else:
                 self._progress_changed(0.0)
 
-        def finish_callback():
+        async def _deferred_finish_callback():
             # now process/optimize geo for game
             file_path = export_folder
             if not file_path.endswith("/"):
                 file_path += "/"
             file_path += os.path.basename(usd_path)
             stage_path = omni.usd.get_context().get_stage_url()
-            self._post_exporter.process(omni.client.normalize_url(file_path))
+            await self._post_exporter.process(omni.client.normalize_url(file_path))
             # reopen original stage
-            omni.usd.get_context().open_stage(stage_path)
+            # Crash, use async function
+            # omni.usd.get_context().open_stage(stage_path)
+
+            context = omni.usd.get_context()
+            await context.open_stage_async(stage_path)
             self._finish_export()
+
+        def finish_callback():
+            loop = asyncio.get_event_loop()
+            asyncio.ensure_future(_deferred_finish_callback(), loop=loop)
 
         asyncio.ensure_future(self._collector.collect(progress_callback, finish_callback))
 

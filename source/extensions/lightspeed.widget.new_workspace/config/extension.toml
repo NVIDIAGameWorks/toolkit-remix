@@ -18,6 +18,7 @@ name = "Lightspeed Widget New Workspace"
 "lightspeed.layer_manager" = {}
 "lightspeed.widget.content_viewer" = {}
 "lightspeed.widget.game_captures" = {}
+"omni.kit.window.file" = {}
 "omni.kit.widget.filebrowser" = {}
 "omni.kit.window.filepicker" = {}
 "omni.ui" = {}
