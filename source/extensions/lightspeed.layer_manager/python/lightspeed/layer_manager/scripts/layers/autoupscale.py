@@ -7,14 +7,11 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-from enum import Enum
+from ..layer_types import LayerType
+from .i_layer import ILayer
 
 
-class LayerType(Enum):
-    capture = "capture"
-    replacement = "replacement"
-    autoupscale = "autoupscale"
-
-
-class LayerTypeKeys(Enum):
-    layer_type = "lightspeed_layer_type"
+class AutoUpscaleLayer(ILayer):
+    @property
+    def layer_type(self) -> LayerType:
+        return LayerType.autoupscale

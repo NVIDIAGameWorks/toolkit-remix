@@ -151,7 +151,8 @@ class LightspeedUpscalerCore:
     @staticmethod
     async def async_batch_perform_upscale(asset_absolute_paths, output_asset_absolute_paths, progress_callback=None):
         loop = asyncio.get_event_loop()
-        assert len(asset_absolute_paths) == len(output_asset_absolute_paths)
+        if len(asset_absolute_paths) != len(output_asset_absolute_paths):
+            raise RuntimeError("List length mismatch.")
         total = len(asset_absolute_paths)
         for i in range(len(asset_absolute_paths)):
             # perform upscale and place the output textures next to the enhancements layer location
@@ -163,7 +164,8 @@ class LightspeedUpscalerCore:
 
     @staticmethod
     def blocking_batch_perform_upscale(asset_absolute_paths, output_asset_absolute_paths):
-        assert len(asset_absolute_paths) == len(output_asset_absolute_paths)
+        if len(asset_absolute_paths) != len(output_asset_absolute_paths):
+            raise RuntimeError("List length mismatch.")
         for i in range(len(asset_absolute_paths)):
             # perform upscale and place the output textures next to the enhancements layer location
             LightspeedUpscalerCore.perform_upscale(asset_absolute_paths[i], output_asset_absolute_paths[i])
@@ -176,7 +178,6 @@ class LightspeedUpscalerCore:
         # create/open and populate auto-upscale layer, placing it next to the enhancements layer
         enhancement_usd_dir = os.path.dirname(replacement_layer.realPath)
         auto_upscale_stage_filename = "autoupscale.usda"
-        auto_upscale_stage_relative_path = os.path.join(".", auto_upscale_stage_filename)
         auto_upscale_stage_absolute_path = os.path.join(enhancement_usd_dir, auto_upscale_stage_filename)
         try:
             auto_stage = Usd.Stage.Open(auto_upscale_stage_absolute_path)
@@ -187,12 +188,12 @@ class LightspeedUpscalerCore:
 
         # add the auto-upscale layer to the replacement layer as a sublayer
         # this property is supposed to be read-only, but the setter in the C++ lib are missing in the python lib
-        if auto_upscale_stage_relative_path not in replacement_layer.subLayerPaths:
-            index_above_capture_usd = max(0, len(replacement_layer.subLayerPaths) - 1)
-            replacement_layer.subLayerPaths.insert(index_above_capture_usd, auto_upscale_stage_relative_path)
-            replacement_layer.Save()
+        layer_manager.insert_sublayer(
+            auto_upscale_stage_absolute_path, LayerType.autoupscale, False, -1, True, replacement_layer
+        )
 
-        assert len(prim_paths) == len(output_asset_relative_paths)
+        if len(prim_paths) != len(output_asset_relative_paths):
+            raise RuntimeError("List length mismatch.")
         for index in range(len(prim_paths)):
             prim_path = prim_paths[index]
             output_asset_relative_path = output_asset_relative_paths[index]
@@ -206,11 +207,10 @@ class LightspeedUpscalerCore:
         auto_stage.GetRootLayer().Save()
 
     @staticmethod
-    def _filter_lists_for_file_existence(prim_paths, output_asset_absolute_paths, output_asset_relative_paths):
+    def lss_filter_lists_for_file_existence(prim_paths, output_asset_absolute_paths, output_asset_relative_paths):
         return_prim_paths, return_output_asset_relative_paths = [], []
-        assert len(prim_paths) == len(output_asset_absolute_paths) and len(prim_paths) == len(
-            output_asset_relative_paths
-        )
+        if len(prim_paths) != len(output_asset_absolute_paths) or len(prim_paths) != len(output_asset_relative_paths):
+            raise RuntimeError("List length mismatch.")
         for i in range(len(prim_paths)):
             if os.path.exists(output_asset_absolute_paths[i]):
                 return_prim_paths.append(prim_paths[i])
@@ -218,34 +218,30 @@ class LightspeedUpscalerCore:
         return return_prim_paths, return_output_asset_relative_paths
 
     @staticmethod
-    async def _lss_async_batch_capture_layer(prim_paths, abs_paths, rel_paths, progress_callback=None):
+    async def lss_async_batch_capture_layer(prim_paths, abs_paths, rel_paths, progress_callback=None):
         replacement_layer_path = LayerManagerCore().get_layer(LayerType.replacement).realPath
         out_rel_paths = [path.replace(os.path.splitext(path)[1], "_upscaled4x.dds") for path in rel_paths]
         out_abs_paths = [
             os.path.join(os.path.dirname(replacement_layer_path), out_rel_path) for out_rel_path in out_rel_paths
         ]
         await LightspeedUpscalerCore.async_batch_perform_upscale(abs_paths, out_abs_paths, progress_callback)
-        prim_paths, out_rel_paths = LightspeedUpscalerCore._filter_lists_for_file_existence(
+        prim_paths, out_rel_paths = LightspeedUpscalerCore.lss_filter_lists_for_file_existence(
             prim_paths, out_abs_paths, out_rel_paths
         )
         LightspeedUpscalerCore.lss_generate_populate_and_child_autoupscale_layer(prim_paths, out_rel_paths)
 
     @staticmethod
     async def lss_async_batch_upscale_entire_capture_layer(progress_callback=None):
-        LightspeedUpscalerCore.workaround_lss_disassociate_autoupscale_layer()
+        LightspeedUpscalerCore.lss_workaround_gpu_crash()
         prim_paths, abs_paths, rel_paths = LightspeedUpscalerCore.lss_collect_capture_diffuse_textures()
-        await LightspeedUpscalerCore._lss_async_batch_capture_layer(prim_paths, abs_paths, rel_paths, progress_callback)
+        await LightspeedUpscalerCore.lss_async_batch_capture_layer(prim_paths, abs_paths, rel_paths, progress_callback)
 
     @staticmethod
     async def lss_async_batch_upscale_capture_layer_by_prim_paths(prim_paths, progress_callback=None):
-        LightspeedUpscalerCore.workaround_lss_disassociate_autoupscale_layer()
+        LightspeedUpscalerCore.lss_workaround_gpu_crash()
         abs_paths, rel_paths = LightspeedUpscalerCore.lss_get_capture_diffuse_textures_by_prim_paths(prim_paths)
-        await LightspeedUpscalerCore._lss_async_batch_capture_layer(prim_paths, abs_paths, rel_paths, progress_callback)
+        await LightspeedUpscalerCore.lss_async_batch_capture_layer(prim_paths, abs_paths, rel_paths, progress_callback)
 
     @staticmethod
-    def workaround_lss_disassociate_autoupscale_layer():
-        layer_manager = LayerManagerCore()
-        replacement_layer = layer_manager.get_layer(LayerType.replacement)
-        auto_upscale_stage_filename = "autoupscale.usda"
-        auto_upscale_stage_relative_path = os.path.join(".", auto_upscale_stage_filename)
-        replacement_layer.subLayerPaths.remove(auto_upscale_stage_relative_path)
+    def lss_workaround_gpu_crash():
+        LayerManagerCore().remove_layer(layer_type=LayerType.autoupscale)

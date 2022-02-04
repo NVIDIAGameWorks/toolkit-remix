@@ -11,7 +11,6 @@
 import asyncio
 import os
 import os.path
-from threading import Thread
 
 import omni
 import omni.ext
@@ -25,7 +24,6 @@ from .upscale_core import LightspeedUpscalerCore
 
 class LightspeedUpscalerExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
-        self._batch_upscale_thread = None
         self.__create_save_menu()
         win = omni.kit.window.content_browser.get_content_window()
         win.add_context_menu(
@@ -52,7 +50,7 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
 
     def context_menu_on_click_upscale(self, menu, value):
         upscale_path = value.replace(os.path.splitext(value)[1], "_upscaled4x.dds")
-        Thread(target=LightspeedUpscalerCore.perform_upscale, args=(value, upscale_path)).start()
+        asyncio.ensure_future(LightspeedUpscalerCore.async_batch_perform_upscale([value], [upscale_path], None))
 
     def context_menu_can_show_menu_upscale(self, path):
         if path.lower().endswith(".dds") or path.lower().endswith(".png"):

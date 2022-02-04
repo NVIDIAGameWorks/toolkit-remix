@@ -7,19 +7,16 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import carb
 import weakref
-from pxr import Usd, Sdf, UsdShade
+from typing import Union
+
+import omni.client
 import omni.ui as ui
 import omni.usd
-import omni.client
-from omni.kit.property.usd.custom_layout_helper import CustomLayoutFrame, CustomLayoutGroup, CustomLayoutProperty
-from omni.kit.property.usd.usd_attribute_widget import UsdPropertiesWidget
-from omni.kit.property.usd.references_widget import PayloadReferenceWidget, DEFAULT_PRIM_TAG
-from omni.kit.property.usd.prim_selection_payload import PrimSelectionPayload
-from omni.kit.property.material.scripts.usd_attribute_widget import UsdMaterialAttributeWidget
 from lightspeed.common import constants
-from typing import Union
+from omni.kit.property.usd.prim_selection_payload import PrimSelectionPayload
+from omni.kit.property.usd.references_widget import DEFAULT_PRIM_TAG, PayloadReferenceWidget
+from pxr import Sdf, Usd
 
 
 class MeshAssetWidget(PayloadReferenceWidget):
@@ -46,9 +43,8 @@ class MeshAssetWidget(PayloadReferenceWidget):
 
         # Get the mesh asset(s) for all selected instances
         for prim in instance_prims:
-            references = prim.GetReferences()
             refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
-            for (ref, layer) in refs_and_layers:
+            for (ref, _) in refs_and_layers:
                 if not ref.assetPath:
                     mesh_paths.append(ref.primPath)
 
@@ -65,9 +61,13 @@ class MeshAssetWidget(PayloadReferenceWidget):
         )
         super().build_items()
 
-        
     def _on_payload_reference_edited(
-        self, model_or_item, stage: Usd.Stage, prim_path: Sdf.Path, payref: Union[Sdf.Reference, Sdf.Payload], intro_layer: Sdf.Layer
+        self,
+        model_or_item,
+        stage: Usd.Stage,
+        prim_path: Sdf.Path,
+        payref: Union[Sdf.Reference, Sdf.Payload],
+        intro_layer: Sdf.Layer,
     ):
         if self._correcting_prim_path:
             return
@@ -81,4 +81,3 @@ class MeshAssetWidget(PayloadReferenceWidget):
             self._correcting_prim_path = False
 
         super()._on_payload_reference_edited(model_or_item, stage, prim_path, payref, intro_layer)
-
