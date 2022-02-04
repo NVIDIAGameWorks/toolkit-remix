@@ -8,9 +8,10 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 
+import asyncio
 import os
 import os.path
-import asyncio
+from threading import Thread
 
 import omni
 import omni.ext
@@ -51,7 +52,7 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
 
     def context_menu_on_click_upscale(self, menu, value):
         upscale_path = value.replace(os.path.splitext(value)[1], "_upscaled4x.dds")
-        LightspeedUpscalerCore.perform_upscale(value, upscale_path)
+        Thread(target=LightspeedUpscalerCore.perform_upscale, args=(value, upscale_path)).start()
 
     def context_menu_can_show_menu_upscale(self, path):
         if path.lower().endswith(".dds") or path.lower().endswith(".png"):
@@ -66,7 +67,9 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
             self._progress_bar = ProgressPopup(title="Upscaling")
         self._progress_bar.set_progress(0)
         self._progress_bar.show()
-        await LightspeedUpscalerCore.lss_async_batch_upscale_capture_layer(progress_callback=self._batch_upscale_set_progress)
+        await LightspeedUpscalerCore.lss_async_batch_upscale_entire_capture_layer(
+            progress_callback=self._batch_upscale_set_progress
+        )
         self._progress_bar.hide()
         self._progress_bar = None
 
