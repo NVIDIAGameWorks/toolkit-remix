@@ -66,7 +66,7 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
             self._progress_bar = ProgressPopup(title="Upscaling")
         self._progress_bar.set_progress(0)
         self._progress_bar.show()
-        await LightspeedUpscalerCore.batch_upscale_capture_layer(progress_callback=self._batch_upscale_set_progress)
+        await LightspeedUpscalerCore.lss_async_batch_upscale_capture_layer(progress_callback=self._batch_upscale_set_progress)
         self._progress_bar.hide()
         self._progress_bar = None
 
