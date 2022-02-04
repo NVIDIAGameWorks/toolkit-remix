@@ -12,6 +12,7 @@ import weakref
 from pxr import Usd, Sdf, UsdShade
 import omni.ui as ui
 import omni.usd
+import omni.client
 from omni.kit.property.usd.custom_layout_helper import CustomLayoutFrame, CustomLayoutGroup, CustomLayoutProperty
 from omni.kit.property.usd.usd_attribute_widget import UsdPropertiesWidget
 from omni.kit.property.usd.references_widget import PayloadReferenceWidget, DEFAULT_PRIM_TAG
@@ -73,7 +74,8 @@ class MeshAssetWidget(PayloadReferenceWidget):
 
         new_asset_path = self._ref_dict[payref].asset_path_field.model.get_value_as_string()
 
-        if str(payref.assetPath) != new_asset_path:
+        # if the asset path is changing, reset the default prim
+        if omni.client.normalize_url(str(payref.assetPath)) != omni.client.normalize_url(new_asset_path):
             self._correcting_prim_path = True
             self._ref_dict[payref].prim_path_field.model.set_value(DEFAULT_PRIM_TAG)
             self._correcting_prim_path = False
