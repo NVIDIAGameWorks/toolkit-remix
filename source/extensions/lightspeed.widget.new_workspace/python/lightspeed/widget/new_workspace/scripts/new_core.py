@@ -14,6 +14,7 @@ import typing
 import carb.settings
 import omni.kit.commands
 import omni.usd
+import omni.kit.window.file
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
 from lightspeed.layer_manager.scripts.constants import LSS_LAYER_GAME_NAME
 
@@ -40,8 +41,10 @@ class NewGameWorkspaceCore:
     def __load_game_workspace(self, path, result: bool, error: str, callback=None):
         if callback:
             self.__fns_to_execute_on_event.append(callback)
-        context = omni.usd.get_context()
-        context.open_stage(path)
+        # Crash, use omni.kit.window.file.open_stage
+        # context = omni.usd.get_context()
+        # context.open_stage(path)
+        omni.kit.window.file.open_stage(path)
         self._layer_manager.set_edit_target_layer(LayerType.replacement)
 
     def create_game_workspace(

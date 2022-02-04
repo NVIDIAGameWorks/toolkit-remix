@@ -153,6 +153,11 @@ class LightspeedExporterCore:
             return False
         return True
 
+    async def __open_and_finish_export(self, stage_path):
+        context = omni.usd.get_context()
+        await context.open_stage_async(stage_path)
+        self._finish_export()
+
     def _start_exporting(self, export_folder):
         # Save the current stage
         omni.usd.get_context().save_stage()
@@ -183,8 +188,10 @@ class LightspeedExporterCore:
             stage_path = omni.usd.get_context().get_stage_url()
             self._post_exporter.process(omni.client.normalize_url(file_path))
             # reopen original stage
-            omni.usd.get_context().open_stage(stage_path)
-            self._finish_export()
+            # Crash, use async function
+            # omni.usd.get_context().open_stage(stage_path)
+
+            asyncio.ensure_future(self.__open_and_finish_export(stage_path))
 
         asyncio.ensure_future(self._collector.collect(progress_callback, finish_callback))
 

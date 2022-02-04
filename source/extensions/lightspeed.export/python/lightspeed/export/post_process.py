@@ -7,6 +7,7 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import asyncio
 import os
 import subprocess
 
@@ -17,6 +18,7 @@ from lightspeed.common import ReferenceEdit, constants
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
 from pxr import Gf, Sdf, UsdGeom, UsdShade
 from omni.kit.window.popup_dialog import MessageDialog
+
 
 class LightspeedPosProcessExporter:
     def __init__(self):
@@ -154,11 +156,17 @@ class LightspeedPosProcessExporter:
                     os.remove(abs_path)
 
     def process(self, file_path):
+        asyncio.ensure_future(self._deferred_process(file_path))
+
+    async def _deferred_process(self, file_path):
+
         carb.log_info("Processing: " + file_path)
 
         # TODO: waiting OM-42168
-        success = omni.usd.get_context().open_stage(file_path)
-        if not success:
+        # Crash, use async function
+        # success = omni.usd.get_context().open_stage(file_path)
+        result, err = await omni.usd.get_context().open_stage_async(file_path)
+        if not result:
             return
 
         stage = omni.usd.get_context().get_stage()
@@ -169,7 +177,7 @@ class LightspeedPosProcessExporter:
             carb.log_error("Can't find the replacement layer")
             return
         layer_instance.flatten_sublayers()
-        
+
         # process meshes
         # TraverseAll because we want to grab overrides
         all_geos = [prim_ref for prim_ref in stage.TraverseAll() if UsdGeom.Mesh(prim_ref)]
@@ -222,4 +230,3 @@ class LightspeedPosProcessExporter:
                 disable_cancel_button=True
             )
             dialog.show()
-        
