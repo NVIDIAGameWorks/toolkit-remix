@@ -19,7 +19,7 @@ import carb
 from lightspeed.common import constants
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
 from PIL import Image
-from pxr import Sdf, Tf, Usd, UsdShade
+from pxr import Sdf, Usd, UsdShade
 
 
 class LightspeedUpscalerCore:
@@ -177,20 +177,21 @@ class LightspeedUpscalerCore:
         replacement_layer = layer_manager.get_layer(LayerType.replacement)
         # create/open and populate auto-upscale layer, placing it next to the enhancements layer
         enhancement_usd_dir = os.path.dirname(replacement_layer.realPath)
-        auto_upscale_stage_filename = "autoupscale.usda"
-        auto_upscale_stage_absolute_path = os.path.join(enhancement_usd_dir, auto_upscale_stage_filename)
-        try:
-            auto_stage = Usd.Stage.Open(auto_upscale_stage_absolute_path)
-        except Tf.ErrorException:
-            auto_stage = Usd.Stage.CreateNew(auto_upscale_stage_absolute_path)
+        auto_upscale_stage_absolute_path = os.path.join(enhancement_usd_dir, constants.AUTOUPSCALE_LAYER_FILENAME)
+        if os.path.exists(auto_upscale_stage_absolute_path):
+            layer_manager.insert_sublayer(
+                auto_upscale_stage_absolute_path, LayerType.autoupscale, False, -1, True, replacement_layer
+            )
+        else:
+            layer_manager.create_new_sublayer(
+                layer_type=LayerType.autoupscale,
+                path=auto_upscale_stage_absolute_path,
+                set_as_edit_target=False,
+                parent_layer=replacement_layer,
+            )
+        auto_stage = Usd.Stage.Open(auto_upscale_stage_absolute_path)
         auto_stage.DefinePrim(constants.ROOTNODE)
         auto_stage.DefinePrim(constants.ROOTNODE_LOOKS, constants.SCOPE)
-
-        # add the auto-upscale layer to the replacement layer as a sublayer
-        # this property is supposed to be read-only, but the setter in the C++ lib are missing in the python lib
-        layer_manager.insert_sublayer(
-            auto_upscale_stage_absolute_path, LayerType.autoupscale, False, -1, True, replacement_layer
-        )
 
         if len(prim_paths) != len(output_asset_relative_paths):
             raise RuntimeError("List length mismatch.")

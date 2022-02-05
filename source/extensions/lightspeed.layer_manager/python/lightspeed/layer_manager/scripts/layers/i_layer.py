@@ -55,17 +55,18 @@ class ILayer:
                     continue
                 omni.client.delete(layer.realPath)
 
-    def create_sublayer(self, path: str = None, sublayer_create_position=0):
+    def create_sublayer(self, path: str = None, sublayer_create_position=0, parent_layer=None):
         need_new_layer = self._core.get_layer(self.layer_type)
         if need_new_layer is not None:
             self._core.remove_layer(self.layer_type)
         usd_context = omni.usd.get_context()
         stage = usd_context.get_stage()
-        root_layer = stage.GetRootLayer()
+        if not parent_layer:
+            parent_layer = stage.GetRootLayer()
         current_layers = stage.GetLayerStack()
         omni.kit.commands.execute(
             "CreateSublayer",
-            layer_identifier=root_layer.identifier,
+            layer_identifier=parent_layer.identifier,
             sublayer_position=sublayer_create_position,
             new_layer_path=path if path else "",
             transfer_root_content=False,

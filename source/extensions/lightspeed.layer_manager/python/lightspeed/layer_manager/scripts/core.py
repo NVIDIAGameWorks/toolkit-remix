@@ -41,11 +41,18 @@ class LayerManagerCore:
         return None
 
     def create_new_sublayer(
-        self, layer_type: LayerType, path: str = None, set_as_edit_target: bool = True, sublayer_create_position=0
+        self,
+        layer_type: LayerType,
+        path: str = None,
+        set_as_edit_target: bool = True,
+        sublayer_create_position=0,
+        parent_layer=None,
     ):
         for layer_obj in self.__layers:  # noqa R503
             if layer_obj.layer_type == layer_type:
-                layer = layer_obj.create_sublayer(path=path, sublayer_create_position=sublayer_create_position)
+                layer = layer_obj.create_sublayer(
+                    path=path, sublayer_create_position=sublayer_create_position, parent_layer=parent_layer
+                )
                 if set_as_edit_target:
                     self.set_edit_target_layer(layer_obj.layer_type, force_layer_identifier=layer.identifier)
                 return layer
@@ -160,17 +167,13 @@ class LayerManagerCore:
     def remove_layer(layer_type: LayerType):
         usd_context = omni.usd.get_context()
         stage = usd_context.get_stage()
-        found_layer = None
         for layer in stage.GetLayerStack():
-            if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
-                found_layer = layer
-                break
-        if not found_layer:
-            return
-        for layer in stage.GetLayerStack():
-            for sublayer in layer.subLayerPaths:
-                if layer.ComputeAbsolutePath(sublayer) == found_layer.identifier:
-                    position = LayerUtils.get_sublayer_position_in_parent(layer.identifier, found_layer.identifier)
+            for sublayerpath in layer.subLayerPaths:
+                sublayer = Sdf.Layer.FindOrOpen(layer.ComputeAbsolutePath(sublayerpath))
+                if not sublayer:
+                    continue
+                if sublayer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
+                    position = LayerUtils.get_sublayer_position_in_parent(layer.identifier, sublayer.identifier)
                     omni.kit.commands.execute(
                         "RemoveSublayer", layer_identifier=layer.identifier, sublayer_position=position
                     )
