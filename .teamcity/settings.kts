@@ -286,7 +286,6 @@ object Master_BuildAndPackaging_LauncherPackageWindowsX8664 : BuildType({
     }
 
     requirements {
-        contains("system.agent.name", "WIN10-2021", "RQ_3299")
         moreThan("system.feature.agent.maxFreeDisksizeMb", "30000")
         doesNotExist("system.feature.nvidia.gpu.count")
         contains("teamcity.agent.jvm.os.name", "Windows")
@@ -340,7 +339,6 @@ object Master_BuildAndPackagingPublishing_PublishExtensionsWindowsX8664 : BuildT
 
     requirements {
         contains("teamcity.agent.jvm.os.name", "Windows")
-        contains("system.agent.name", "WIN10-2021")
     }
 })
 
@@ -411,7 +409,6 @@ object Master_BuildAndPackagingPublishing_PublishLauncherPackages : BuildType({
 
     requirements {
         contains("teamcity.agent.jvm.os.name", "Windows")
-        contains("system.agent.name", "WIN10-2021", "RQ_2107")
         doesNotExist("system.feature.nvidia.gpu.count")
         doesNotContain("system.agent.name", "signer")
     }
