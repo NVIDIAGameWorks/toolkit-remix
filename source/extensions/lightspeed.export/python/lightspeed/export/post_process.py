@@ -88,7 +88,7 @@ class LightspeedPosProcessExporter:
 
         mesh.GetFaceVertexIndicesAttr().Set(triangles)
         mesh.GetFaceVertexCountsAttr().Set(new_face_counts)
-        return None
+        return triangles
 
     def _process_geometry(self, mesh):
         face_vertex_indices = mesh.GetFaceVertexIndicesAttr().Get()

@@ -7,9 +7,9 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+from lightspeed.common import constants
 from omni.kit.window.property.property_scheme_delegate import PropertySchemeDelegate
 from pxr import UsdShade
-from lightspeed.common import constants
 
 
 # noinspection PyMethodMayBeStatic
@@ -19,7 +19,6 @@ class AssetDelegate(PropertySchemeDelegate):
         if self._should_enable_delegate(payload):
             widgets_to_build.append("path")
             widgets_to_build.append("lss_mesh_asset")
-            widgets_to_build.append("material_binding")
             widgets_to_build.append("lss_material_asset")
             widgets_to_build.append("attribute")
         return widgets_to_build
@@ -39,6 +38,7 @@ class AssetDelegate(PropertySchemeDelegate):
                 "kind",
                 "light",
                 "material",
+                "material_binding",
                 "media",
                 "metadata",
                 "nodegraph",
@@ -61,7 +61,7 @@ class AssetDelegate(PropertySchemeDelegate):
                 "transform",
                 "variants",
             ]
-        return unwanted_widgets_to_build
+        return unwanted_widgets_to_build  # noqa R504
 
     def _should_enable_delegate(self, payload):
         stage = payload.get_stage()
@@ -74,9 +74,7 @@ class AssetDelegate(PropertySchemeDelegate):
         return False
 
     def _should_enable_for_prim(self, prim):
-        strPath = str(prim.GetPath())
-        return (
-            strPath.startswith(constants.INSTANCE_PATH)
-            or strPath.startswith(constants.MESH_PATH)
-            or prim.IsA(UsdShade.Material)
+        str_path = str(prim.GetPath())
+        return (str_path.startswith(constants.INSTANCE_PATH) or str_path.startswith(constants.MESH_PATH)) and not (
+            prim.IsA(UsdShade.Material) or prim.IsA(UsdShade.Shader)
         )
