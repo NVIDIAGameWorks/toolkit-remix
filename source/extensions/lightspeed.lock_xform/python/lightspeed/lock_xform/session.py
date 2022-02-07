@@ -7,23 +7,21 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-
-import carb
-import omni.usd
 import omni.kit.usd_undo
 import omni.kit.window.popup_dialog.message_dialog
-
-import pxr.Usd
+import omni.usd
 import pxr.Tf
+import pxr.Usd
 
 prim_filter_setting_path = "/exts/lightspeed.lock_xform/prim_filter"
+
 
 class LockXformSession:
     """A "session" (associated with a stage). Keeps track of an individual stage's prims + disabling the lock"""
 
-    def __init__(self, id, stage, display_dialog_callback):
+    def __init__(self, identifier, stage, display_dialog_callback):
         self._enabled = True
-        self._id = id # id isn't really used, but leaving it here for debug and convenience
+        self._id = identifier  # id isn't really used, but leaving it here for debug and convenience
         self._prim_xformOp_cache = set()
         # Register USD Notifer/Listener whenever UsdObjects are changed
         self._listener = pxr.Tf.Notice.RegisterGlobally(pxr.Usd.Notice.ObjectsChanged, self._undo_xform_deltas)
@@ -61,4 +59,3 @@ class LockXformSession:
                 # Display dialog only once
                 self._display_dialog = False
                 self._display_dialog_callback()
-            

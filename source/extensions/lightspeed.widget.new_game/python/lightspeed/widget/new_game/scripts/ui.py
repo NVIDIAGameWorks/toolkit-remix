@@ -183,7 +183,7 @@ class GameViewer(ContentViewer):
                                                         self._relinker_game_capture_folder_replace_field = (
                                                             ui.StringField()
                                                         )
-                                                        self._relinker_game_capture_folder_replace_field.model.set_value( # noqa E501
+                                                        self._relinker_game_capture_folder_replace_field.model.set_value(  # noqa E501
                                                             str(game_capture_path)
                                                         )
                                                         ui.Image(
@@ -194,7 +194,7 @@ class GameViewer(ContentViewer):
                                                             ),
                                                             width=row_height,
                                                             name="SavePath",
-                                                            mouse_released_fn=lambda x, y, b, m: self._on_relink_game_capture_folder( # noqa E501
+                                                            mouse_released_fn=lambda x, y, b, m: self._on_relink_game_capture_folder(  # noqa E501
                                                                 # noqa E501
                                                                 b,
                                                                 m,
@@ -249,7 +249,7 @@ class GameViewer(ContentViewer):
                                                         ),
                                                         width=row_height,
                                                         name="SavePath",
-                                                        mouse_released_fn=lambda x, y, b, m: self._on_game_capture_folder( # noqa E501
+                                                        mouse_released_fn=lambda x, y, b, m: self._on_game_capture_folder(  # noqa E501
                                                             # noqa E501
                                                             b,
                                                             m,

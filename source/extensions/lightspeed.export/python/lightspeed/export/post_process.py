@@ -7,17 +7,16 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import asyncio
 import os
 import subprocess
+import traceback
 
 import carb
 import omni.usd
-import traceback
 from lightspeed.common import ReferenceEdit, constants
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
-from pxr import Gf, Sdf, UsdGeom, UsdShade
 from omni.kit.window.popup_dialog import MessageDialog
+from pxr import Gf, Sdf, UsdGeom, UsdShade
 
 
 class LightspeedPosProcessExporter:
@@ -89,6 +88,7 @@ class LightspeedPosProcessExporter:
 
         mesh.GetFaceVertexIndicesAttr().Set(triangles)
         mesh.GetFaceVertexCountsAttr().Set(new_face_counts)
+        return None
 
     def _process_geometry(self, mesh):
         face_vertex_indices = mesh.GetFaceVertexIndicesAttr().Get()
@@ -186,10 +186,9 @@ class LightspeedPosProcessExporter:
                     self._process_mesh_prim(geo_prim)
             except Exception as e:
                 failed_processes.append(str(geo_prim.GetPath()))
-                carb.log_error(f"Exception when post-processing mesh: " + str(geo_prim.GetPath()))
+                carb.log_error("Exception when post-processing mesh: " + str(geo_prim.GetPath()))
                 carb.log_error(f"{e}")
                 carb.log_error(f"{traceback.format_exc()}")
-
 
         # process materials
         # TraverseAll because we want to grab overrides
@@ -202,13 +201,14 @@ class LightspeedPosProcessExporter:
                     self._process_shader_prim(shader_prim)
             except Exception as e:
                 failed_processes.append(str(shader_prim.GetPath()))
-                carb.log_error(f"Exception when post-processing shader: " + str(shader_prim.GetPath()))
+                carb.log_error("Exception when post-processing shader: " + str(shader_prim.GetPath()))
                 carb.log_error(f"{e}")
                 carb.log_error(f"{traceback.format_exc()}")
 
         await omni.usd.get_context().save_stage_async()
 
         if failed_processes:
+
             def on_okay_clicked(dialog: MessageDialog):
                 dialog.hide()
 
@@ -223,6 +223,6 @@ class LightspeedPosProcessExporter:
                 message=message,
                 ok_handler=lambda dialog: on_okay_clicked(dialog),
                 ok_label="Okay",
-                disable_cancel_button=True
+                disable_cancel_button=True,
             )
             dialog.show()

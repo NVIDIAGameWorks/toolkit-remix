@@ -53,7 +53,7 @@ class Test(omni.kit.test.AsyncTestCaseFailOnLogError):
         replacement_layer = layer_manager.create_new_sublayer(
             LayerType.replacement, path=replacement_path, sublayer_create_position=0
         )
-        LightspeedUpscalerCore.batch_upscale_capture_layer()
+        await LightspeedUpscalerCore.lss_async_batch_upscale_entire_capture_layer()
         replacement_exists = os.path.exists(replacement_path)
         upscale_texture_exists = os.path.exists(temp_dir.name + "/textures/F5CE656D9F82F196_upscaled4x.dds")
         autoupscale_usda_exits = os.path.exists(autoupscale_path)
