@@ -83,6 +83,16 @@ class ILayer:
         layer.Save()
         return layer
 
+    def get_sdf_layer(self):
+        usd_context = omni.usd.get_context()
+        stage = usd_context.get_stage()
+        if stage is None:
+            return None
+        for layer in stage.GetLayerStack():
+            if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == self.layer_type.value:
+                return layer
+        return None
+
     def destroy(self):
         self._core = None
         for attr, value in self._default_attr.items():

@@ -92,6 +92,8 @@ class LayerManagerCore:
                     layer.Save()  # because of new customLayerData
                 if set_as_edit_target:
                     self.set_edit_target_layer(layer_type, force_layer_identifier=layer.identifier)
+                return layer
+        return None
 
     @staticmethod
     def create_new_anonymous_layer():
