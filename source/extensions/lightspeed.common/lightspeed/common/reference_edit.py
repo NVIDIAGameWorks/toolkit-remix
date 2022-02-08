@@ -31,11 +31,10 @@ class ReferenceEdit:
         self._refNode = None
 
     def __enter__(self):
-        if (self._prim.GetPrimIndex().rootNode.children):
+        if self._prim.GetPrimIndex().rootNode.children:
             self._refNode = self._prim.GetPrimIndex().rootNode.children[0]
 
-            self._stage.SetEditTarget(
-                Usd.EditTarget(self._refNode.layerStack.layers[0], self._refNode))
+            self._stage.SetEditTarget(Usd.EditTarget(self._refNode.layerStack.layers[0], self._refNode))
         else:
             self._stage.SetEditTarget(self._default_edit_target)
 

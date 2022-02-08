@@ -10,14 +10,14 @@
 import asyncio
 import os
 import subprocess
+import traceback
 
 import carb
 import omni.usd
-import traceback
 from lightspeed.common import ReferenceEdit, constants
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
-from pxr import Gf, Sdf, UsdGeom, UsdShade
 from omni.kit.window.popup_dialog import MessageDialog
+from pxr import Gf, Sdf, UsdGeom, UsdShade
 
 
 class LightspeedPosProcessExporter:
@@ -190,7 +190,6 @@ class LightspeedPosProcessExporter:
                 carb.log_error(f"{e}")
                 carb.log_error(f"{traceback.format_exc()}")
 
-
         # process materials
         # TraverseAll because we want to grab overrides
         all_shaders = [prim_ref for prim_ref in stage.TraverseAll() if prim_ref.IsA(UsdShade.Shader)]
@@ -209,6 +208,7 @@ class LightspeedPosProcessExporter:
         await omni.usd.get_context().save_stage_async()
 
         if failed_processes:
+
             def on_okay_clicked(dialog: MessageDialog):
                 dialog.hide()
 
@@ -223,6 +223,6 @@ class LightspeedPosProcessExporter:
                 message=message,
                 ok_handler=lambda dialog: on_okay_clicked(dialog),
                 ok_label="Okay",
-                disable_cancel_button=True
+                disable_cancel_button=True,
             )
             dialog.show()
