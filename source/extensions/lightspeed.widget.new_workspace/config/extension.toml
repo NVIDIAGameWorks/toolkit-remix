@@ -22,6 +22,7 @@ name = "Lightspeed Widget New Workspace"
 "omni.kit.widget.filebrowser" = {}
 "omni.kit.window.filepicker" = {}
 "omni.ui" = {}
+"omni.kit.widget.layers" = {}
 
 [[python.module]]
 name = "lightspeed.widget.new_workspace"

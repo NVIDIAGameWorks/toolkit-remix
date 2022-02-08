@@ -8,20 +8,23 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 
+import asyncio
 import functools
 import typing
 
 import carb.settings
 import omni.kit.commands
-import omni.usd
 import omni.kit.window.file
-from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
+import omni.usd
 from lightspeed.layer_manager.scripts.constants import LSS_LAYER_GAME_NAME
+from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
+from omni.kit.widget.layers import LayerUtils
+from omni.usd import handle_exception
 
 if typing.TYPE_CHECKING:
     from lightspeed.widget.content_viewer.scripts.core import ContentData
 
-from pxr import Usd, UsdGeom
+from pxr import Sdf, Usd, UsdGeom
 
 
 class NewGameWorkspaceCore:
@@ -33,6 +36,29 @@ class NewGameWorkspaceCore:
         self._layer_manager = LayerManagerCore()
 
         self.__fns_to_execute_on_event = []
+
+    @handle_exception
+    async def ___deferred_setup_persepctive_camera(self):
+        await omni.kit.app.get_app().next_update_async()
+
+        # setup the session camera to match the capture camera
+        stage = omni.usd.get_context().get_stage()
+        capture_layer = self._layer_manager.get_layer(LayerType.capture)
+        if capture_layer is None:
+            carb.log_warn(f"Can't find a capture layer, won't be setting up the default camera to match game")
+            return
+        session_layer = stage.GetSessionLayer()
+        current_edit_layer = Sdf.Find(LayerUtils.get_edit_target(stage))
+        swap_edit_targets = current_edit_layer != session_layer
+        try:
+            if swap_edit_targets:
+                LayerUtils.set_edit_target(stage, session_layer.identifier)
+
+            carb.log_info(f"Setting up perspective camera from capture")
+            Sdf.CopySpec(capture_layer, "/RootNode/Camera", session_layer, "/OmniverseKit_Persp")
+        finally:
+            if swap_edit_targets:
+                LayerUtils.set_edit_target(stage, current_edit_layer.identifier)
 
     def load_game_workspace(self, path, callback=None):
         context = omni.usd.get_context()
@@ -46,6 +72,7 @@ class NewGameWorkspaceCore:
         # context.open_stage(path)
         omni.kit.window.file.open_stage(path)
         self._layer_manager.set_edit_target_layer(LayerType.replacement)
+        asyncio.ensure_future(self.___deferred_setup_persepctive_camera())
 
     def create_game_workspace(
         self, capture_data, use_existing_layer, existing_enhancement_layer_path, game, callback=None
@@ -89,6 +116,7 @@ class NewGameWorkspaceCore:
         # add the capture layer
         self._layer_manager.insert_sublayer(capture_data.path, LayerType.capture, add_custom_layer_data=False)
         self._layer_manager.lock_layer(LayerType.capture)
+        asyncio.ensure_future(self.___deferred_setup_persepctive_camera())
 
         # add the replacement layer if exist
         layer_instance = self._layer_manager.get_layer_instance(LayerType.replacement)
