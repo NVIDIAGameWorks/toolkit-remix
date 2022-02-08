@@ -19,9 +19,9 @@ from lightspeed.widget.content_viewer.scripts.core import ContentData
 from omni.kit.widget.layers.layer_utils import LayerUtils
 from pxr import Sdf
 
-from .layer_types import LayerType, LayerTypeKeys
-from .layers import capture, i_layer, replacement
 from .constants import LSS_LAYER_GAME_NAME
+from .layer_types import LayerType, LayerTypeKeys
+from .layers import autoupscale, capture, i_layer, replacement
 
 
 class LayerManagerCore:
@@ -31,7 +31,8 @@ class LayerManagerCore:
             setattr(self, attr, value)
         self.__capture_layer = capture.CaptureLayer(self)
         self.__replacement_layer = replacement.ReplacementLayer(self)
-        self.__layers = [self.__capture_layer, self.__replacement_layer]
+        self.__autoupscale_layer = autoupscale.AutoUpscaleLayer(self)
+        self.__layers = [self.__capture_layer, self.__replacement_layer, self.__autoupscale_layer]
 
     def get_layer_instance(self, layer_type: LayerType) -> Optional[i_layer.ILayer]:
         for layer_obj in self.__layers:
@@ -40,11 +41,18 @@ class LayerManagerCore:
         return None
 
     def create_new_sublayer(
-        self, layer_type: LayerType, path: str = None, set_as_edit_target: bool = True, sublayer_create_position=0
+        self,
+        layer_type: LayerType,
+        path: str = None,
+        set_as_edit_target: bool = True,
+        sublayer_create_position=0,
+        parent_layer=None,
     ):
         for layer_obj in self.__layers:  # noqa R503
             if layer_obj.layer_type == layer_type:
-                layer = layer_obj.create_sublayer(path=path, sublayer_create_position=sublayer_create_position)
+                layer = layer_obj.create_sublayer(
+                    path=path, sublayer_create_position=sublayer_create_position, parent_layer=parent_layer
+                )
                 if set_as_edit_target:
                     self.set_edit_target_layer(layer_obj.layer_type, force_layer_identifier=layer.identifier)
                 return layer
@@ -56,12 +64,14 @@ class LayerManagerCore:
         set_as_edit_target: bool = True,
         sublayer_insert_position=-1,
         add_custom_layer_data=True,
+        parent_layer=None,
     ):
         stage = omni.usd.get_context().get_stage()
-        root_layer = stage.GetRootLayer()
+        if parent_layer is None:
+            parent_layer = stage.GetRootLayer()
         omni.kit.commands.execute(
             "CreateSublayer",
-            layer_identifier=root_layer.identifier,
+            layer_identifier=parent_layer.identifier,
             sublayer_position=sublayer_insert_position,
             new_layer_path=path,
             transfer_root_content=False,
@@ -82,6 +92,8 @@ class LayerManagerCore:
                     layer.Save()  # because of new customLayerData
                 if set_as_edit_target:
                     self.set_edit_target_layer(layer_type, force_layer_identifier=layer.identifier)
+                return layer
+        return None
 
     @staticmethod
     def create_new_anonymous_layer():
@@ -157,14 +169,17 @@ class LayerManagerCore:
     def remove_layer(layer_type: LayerType):
         usd_context = omni.usd.get_context()
         stage = usd_context.get_stage()
-        root_layer = stage.GetRootLayer()
         for layer in stage.GetLayerStack():
-            if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
-                position = LayerUtils.get_sublayer_position_in_parent(root_layer.identifier, layer.identifier)
-                omni.kit.commands.execute(
-                    "RemoveSublayer", layer_identifier=root_layer.identifier, sublayer_position=position
-                )
-                carb.log_info(f"Layer {layer} removed")
+            for sublayerpath in layer.subLayerPaths:
+                sublayer = Sdf.Layer.FindOrOpen(layer.ComputeAbsolutePath(sublayerpath))
+                if not sublayer:
+                    continue
+                if sublayer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
+                    position = LayerUtils.get_sublayer_position_in_parent(layer.identifier, sublayer.identifier)
+                    omni.kit.commands.execute(
+                        "RemoveSublayer", layer_identifier=layer.identifier, sublayer_position=position
+                    )
+                    carb.log_info(f"Layer {layer} removed")
 
     def game_current_game_capture_folder(self) -> Optional["ContentData"]:
         """Get the current capture folder from the current capture layer"""

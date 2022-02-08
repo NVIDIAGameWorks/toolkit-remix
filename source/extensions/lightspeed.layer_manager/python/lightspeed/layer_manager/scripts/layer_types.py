@@ -13,6 +13,7 @@ from enum import Enum
 class LayerType(Enum):
     capture = "capture"
     replacement = "replacement"
+    autoupscale = "autoupscale"
 
 
 class LayerTypeKeys(Enum):

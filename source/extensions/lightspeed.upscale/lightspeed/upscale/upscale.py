@@ -8,6 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 
+import asyncio
 import os
 import os.path
 
@@ -16,13 +17,13 @@ import omni.ext
 import omni.kit.menu.utils as omni_utils
 import omni.kit.window.content_browser
 from omni.kit.menu.utils import MenuItemDescription
+from omni.kit.tool.collect.progress_popup import ProgressPopup
 
 from .upscale_core import LightspeedUpscalerCore
 
 
 class LightspeedUpscalerExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
-        # self.layer_manager = LayerManagerCore()
         self.__create_save_menu()
         win = omni.kit.window.content_browser.get_content_window()
         win.add_context_menu(
@@ -32,6 +33,7 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
             show_fn=self.context_menu_can_show_menu_upscale,
             index=0,
         )
+        self._progress_bar = None
 
     def __create_save_menu(self):
         self._tools_manager_menus = [
@@ -48,12 +50,26 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
 
     def context_menu_on_click_upscale(self, menu, value):
         upscale_path = value.replace(os.path.splitext(value)[1], "_upscaled4x.dds")
-        LightspeedUpscalerCore.perform_upscale(value, upscale_path)
+        asyncio.ensure_future(LightspeedUpscalerCore.async_batch_perform_upscale([value], [upscale_path], None))
 
     def context_menu_can_show_menu_upscale(self, path):
         if path.lower().endswith(".dds") or path.lower().endswith(".png"):
             return True
         return False
 
+    def _batch_upscale_set_progress(self, progress):
+        self._progress_bar.set_progress(progress)
+
+    async def _run_batch_upscale(self):
+        if not self._progress_bar:
+            self._progress_bar = ProgressPopup(title="Upscaling")
+        self._progress_bar.set_progress(0)
+        self._progress_bar.show()
+        await LightspeedUpscalerCore.lss_async_batch_upscale_entire_capture_layer(
+            progress_callback=self._batch_upscale_set_progress
+        )
+        self._progress_bar.hide()
+        self._progress_bar = None
+
     def __clicked(self):
-        LightspeedUpscalerCore.batch_upscale_capture_layer()
+        asyncio.ensure_future(self._run_batch_upscale())

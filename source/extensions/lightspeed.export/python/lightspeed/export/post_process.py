@@ -7,7 +7,6 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import asyncio
 import os
 import subprocess
 import traceback
@@ -89,6 +88,7 @@ class LightspeedPosProcessExporter:
 
         mesh.GetFaceVertexIndicesAttr().Set(triangles)
         mesh.GetFaceVertexCountsAttr().Set(new_face_counts)
+        return triangles
 
     def _process_geometry(self, mesh):
         face_vertex_indices = mesh.GetFaceVertexIndicesAttr().Get()
@@ -186,7 +186,7 @@ class LightspeedPosProcessExporter:
                     self._process_mesh_prim(geo_prim)
             except Exception as e:
                 failed_processes.append(str(geo_prim.GetPath()))
-                carb.log_error(f"Exception when post-processing mesh: " + str(geo_prim.GetPath()))
+                carb.log_error("Exception when post-processing mesh: " + str(geo_prim.GetPath()))
                 carb.log_error(f"{e}")
                 carb.log_error(f"{traceback.format_exc()}")
 
@@ -201,7 +201,7 @@ class LightspeedPosProcessExporter:
                     self._process_shader_prim(shader_prim)
             except Exception as e:
                 failed_processes.append(str(shader_prim.GetPath()))
-                carb.log_error(f"Exception when post-processing shader: " + str(shader_prim.GetPath()))
+                carb.log_error("Exception when post-processing shader: " + str(shader_prim.GetPath()))
                 carb.log_error(f"{e}")
                 carb.log_error(f"{traceback.format_exc()}")
 

@@ -127,11 +127,14 @@ class LightspeedExporterCore:
         if self._collector:
             self._collector.cancel()
 
-    def get_default_export_path(self) -> Optional[str]:
+    def get_default_export_path(self, create_if_not_exist: bool = False) -> Optional[str]:
         current_game_capture_folder = self._layer_manager.game_current_game_capture_folder()
         if not current_game_capture_folder:
             return None
-        return str(Path(current_game_capture_folder.path).parent.joinpath(GAME_READY_ASSETS_FOLDER)) + os.sep
+        path = str(Path(current_game_capture_folder.path).parent.joinpath(GAME_READY_ASSETS_FOLDER)) + os.sep
+        if create_if_not_exist:
+            Path(path).mkdir(parents=True, exist_ok=True)
+        return path
 
     def check_export_path(self, path) -> bool:
         stage = omni.usd.get_context().get_stage()

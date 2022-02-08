@@ -11,9 +11,10 @@ import carb
 import omni.ext
 import omni.kit.app
 import omni.kit.window.property
+
+from .asset_delegate import AssetDelegate
 from .material_asset_widget import MaterialAssetWidget
 from .mesh_asset_widget import MeshAssetWidget
-from .asset_delegate import AssetDelegate
 
 
 class PropertyTemplateExtension(omni.ext.IExt):
@@ -25,10 +26,13 @@ class PropertyTemplateExtension(omni.ext.IExt):
 
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.property_template] Lightspeed Property Template startup")
+        self._extension_path = omni.kit.app.get_app().get_extension_manager().get_extension_path(ext_id)
         property_window = omni.kit.window.property.get_window()
         if property_window:
             property_window.register_widget("prim", "lss_mesh_asset", MeshAssetWidget("Shared Mesh"))
-            property_window.register_widget("prim", "lss_material_asset", MaterialAssetWidget("Shared Material"))
+            property_window.register_widget(
+                "prim", "lss_material_asset", MaterialAssetWidget("Shared Material", self._extension_path)
+            )
             property_window.register_scheme_delegate("prim", "lss", AssetDelegate())
             property_window.set_scheme_delegate_layout("prim", ["path_prim", "lss"])
             self._registered = True

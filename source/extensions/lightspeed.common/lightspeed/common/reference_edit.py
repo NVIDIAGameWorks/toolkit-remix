@@ -13,7 +13,6 @@ from pxr import Usd
 
 class ReferenceEdit:
     """Utility class to allow editing the source USD of a referenced object.
-    
     The source USD will be saved when the `with` block exits.
 
     Args:

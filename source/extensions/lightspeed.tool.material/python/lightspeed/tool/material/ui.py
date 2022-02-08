@@ -1,7 +1,10 @@
+import asyncio
+
 import carb
 import omni.ui as ui
 import omni.usd
 from lightspeed.upscale import LightspeedUpscalerCore
+from omni.kit.tool.collect.progress_popup import ProgressPopup
 from omni.kit.window.toolbar.widget_group import WidgetGroup
 from pxr import UsdShade
 
@@ -21,12 +24,27 @@ class MaterialButtonGroup(WidgetGroup):
         self._translucent_button = None
         self._upscale_button = None
         self._core = ToolMaterialCore()
+        self._upscale_progress_bar = None
 
     def clean(self):
         super().clean()
         self._opaque_button = None
         self._translucent_button = None
         self._upscale_button = None
+
+    def _material_upscale_set_progress(self, progress):
+        self._upscale_progress_bar.set_progress(progress)
+
+    async def _run_material_upscale(self, material_prim_paths):
+        if not self._upscale_progress_bar:
+            self._upscale_progress_bar = ProgressPopup(title="Upscaling")
+        self._upscale_progress_bar.set_progress(0)
+        self._upscale_progress_bar.show()
+        await LightspeedUpscalerCore.lss_async_batch_upscale_capture_layer_by_prim_paths(
+            material_prim_paths, progress_callback=self._material_upscale_set_progress
+        )
+        self._upscale_progress_bar.hide()
+        self._upscale_progress_bar = None
 
     def create(self, default_size):
         def on_opaque_clicked(*_):
@@ -78,11 +96,10 @@ class MaterialButtonGroup(WidgetGroup):
             material_objects = self._core.get_materials_from_prim_paths(select_prim_paths)
             carb.log_info("Upscale textures on selected materials")
 
-            material_prims = []
+            material_prim_paths = []
             for material in material_objects:
-                material_prims.append(material.GetPrim())
-
-            LightspeedUpscalerCore.batch_upscale_capture_layer(specific_prims=material_prims)
+                material_prim_paths.append(material.GetPrim().GetPath())
+            asyncio.ensure_future(self._run_material_upscale(material_prim_paths))
 
         self._opaque_button = ui.ToolButton(
             name="opaqueMaterial",

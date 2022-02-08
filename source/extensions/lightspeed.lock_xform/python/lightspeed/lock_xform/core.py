@@ -48,7 +48,8 @@ class LockXformCore:
             )
         elif event.type == int(omni.usd.StageEventType.CLOSED):
             # On stage close, delete session
-            del self._sessions[usd_context.get_stage_id()]
+            if usd_context.get_stage_id() in self._sessions:
+                del self._sessions[usd_context.get_stage_id()]
         elif event.type == int(omni.usd.StageEventType.SELECTION_CHANGED):
             # On prim selection, cache the transform attributes that we want to lock
             stage = usd_context.get_stage()
@@ -78,7 +79,7 @@ class LockXformCore:
 
     def _toggle_enablement(self):
         self._enabled = not self._enabled
-        for id, session in self._sessions.items():
+        for _, session in self._sessions.items():
             session.set_enablement(self._enabled)
 
     def _ticked_menu_eval(self):
