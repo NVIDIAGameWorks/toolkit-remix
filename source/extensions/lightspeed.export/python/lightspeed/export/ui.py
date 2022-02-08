@@ -118,7 +118,7 @@ class LightspeedExporterUI:
                     with ui.VStack(height=0):
                         ui.Spacer(height=4)
                         self._exportion_path_field = ui.StringField(height=20, width=ui.Fraction(1))
-                        default_path = self._core.get_default_export_path()
+                        default_path = self._core.get_default_export_path(create_if_not_exist=True)
                         if default_path:
                             self._exportion_path_field.model.set_value(default_path)
                         ui.Spacer(height=4)
