@@ -16,7 +16,7 @@ import omni.usd
 from lightspeed.common import ReferenceEdit, constants
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
 from omni.kit.window.popup_dialog import MessageDialog
-from pxr import Gf, Sdf, UsdGeom, UsdShade
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
 
 class LightspeedPosProcessExporter:
@@ -75,6 +75,23 @@ class LightspeedPosProcessExporter:
         indices_offset = 0
         new_face_counts = []
 
+        subsets = []
+
+        # need to update geom subset face lists
+        display_predicate = Usd.TraverseInstanceProxies(Usd.PrimAllPrimsPredicate)
+        children_iterator = iter(Usd.PrimRange(mesh.GetPrim(), display_predicate))
+        for child_prim in children_iterator:
+            if child_prim.IsA(UsdGeom.Subset):
+                subset = UsdGeom.Subset.Get(omni.usd.get_context().get_stage(), child_prim.GetPath())
+                subsets.append(
+                    {
+                        "subset": subset,
+                        "old_faces": set(subset.GetIndicesAttr().Get()),  # set of old face indices in this subset
+                        "new_faces": [],  # the new face index list
+                    }
+                )
+
+        old_face_index = 0
         for face_count in faces:
             start_index = indices[indices_offset]
             for face_index in range(face_count - 2):
@@ -84,7 +101,14 @@ class LightspeedPosProcessExporter:
                 triangles.append(start_index)
                 triangles.append(indices[index1])
                 triangles.append(indices[index2])
+                for subset in subsets:
+                    if old_face_index in subset["old_faces"]:
+                        subset["new_faces"].append(len(new_face_counts) - 1)
+            old_face_index += 1
             indices_offset += face_count
+
+        for subset in subsets:
+            subset["subset"].GetIndicesAttr().Set(subset["new_faces"])
 
         mesh.GetFaceVertexIndicesAttr().Set(triangles)
         mesh.GetFaceVertexCountsAttr().Set(new_face_counts)
@@ -103,16 +127,19 @@ class LightspeedPosProcessExporter:
 
         self._triangulate_mesh(mesh)
 
-    def _process_subsets(self, mesh):
-        subsets = UsdGeom.Subset.GetGeomSubsets(mesh)
-        for subset in subsets:
-            face_indices = UsdGeom.Subset(subset).GetIndicesAttr().Get()
-            vert_indices = []
-            for face_index in face_indices:
-                vert_indices.append(face_index * 3 + 0)
-                vert_indices.append(face_index * 3 + 1)
-                vert_indices.append(face_index * 3 + 2)
-            subset.GetPrim().CreateAttribute("triangleIndices", Sdf.ValueTypeNames.IntArray).Set(vert_indices)
+    def _process_subsets(self, prim):
+        display_predicate = Usd.TraverseInstanceProxies(Usd.PrimAllPrimsPredicate)
+        children_iterator = iter(Usd.PrimRange(prim, display_predicate))
+        for child_prim in children_iterator:
+            if child_prim.IsA(UsdGeom.Subset):
+                subset = UsdGeom.Subset.Get(omni.usd.get_context().get_stage(), child_prim.GetPath())
+                face_indices = subset.GetIndicesAttr().Get()
+                vert_indices = []
+                for face_index in face_indices:
+                    vert_indices.append(face_index * 3 + 0)
+                    vert_indices.append(face_index * 3 + 1)
+                    vert_indices.append(face_index * 3 + 2)
+                child_prim.CreateAttribute("triangleIndices", Sdf.ValueTypeNames.IntArray).Set(vert_indices)
 
     def _process_mesh_prim(self, prim):
         # strip out  attributes that the runtime doesn't support
@@ -132,7 +159,7 @@ class LightspeedPosProcessExporter:
         self._process_geometry(mesh)
 
         # subsets store face indices, but dxvk_rt needs triangle indices.
-        self._process_subsets(mesh)
+        self._process_subsets(prim)
 
     def _process_shader_prim(self, prim):
         # compress png textures to dds
