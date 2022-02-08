@@ -7,8 +7,6 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-
-import carb
 import omni.kit.usd_undo
 import omni.kit.window.popup_dialog.message_dialog
 import omni.usd

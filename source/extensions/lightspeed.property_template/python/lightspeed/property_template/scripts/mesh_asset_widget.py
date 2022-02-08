@@ -10,7 +10,6 @@
 import weakref
 from typing import Union
 
-import carb
 import omni.client
 import omni.ui as ui
 import omni.usd
