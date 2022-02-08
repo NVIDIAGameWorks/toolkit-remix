@@ -53,6 +53,11 @@ class MeshAssetWidget(PayloadReferenceWidget):
             return False
         return True
 
+    def _select_prototype(self):
+        paths = [str(p) for p in self._payload]
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(paths, True)
+
     def build_items(self):
         ui.Label(
             "Replacing this reference will affect all instances using this mesh.",
@@ -60,6 +65,11 @@ class MeshAssetWidget(PayloadReferenceWidget):
             alignment=ui.Alignment.LEFT_TOP,
         )
         super().build_items()
+        ui.Button(
+            "Select prototype",
+            clicked_fn=self._select_prototype,
+            tooltip="Select the parent for the scenegraph shared by its associated instance prims",
+        )
 
     def _on_payload_reference_edited(
         self,
