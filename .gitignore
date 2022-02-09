@@ -3,6 +3,7 @@ _*/
 # exclude local website repo, used for publishing
 website/
 
+.history
 .lastrun
 .lastformat
 .lastverify
