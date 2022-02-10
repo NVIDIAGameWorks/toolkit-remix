@@ -151,8 +151,12 @@ class LightspeedExporterCore:
                 return False
         # detect when a user tries to export into gameReadyAssets while using gameReadyAsset/replacements.usda
         replacement_layer = self._layer_manager.get_layer(LayerType.replacement)
-        if str(Path(replacement_layer.realPath).parent.resolve()) == str(Path(path).resolve()):
-            carb.log_error('Can\'t export from the same folder than the "replacement/enhancement" layer is')
+        replacement_layer_dir_path = Path(replacement_layer.realPath).parent.resolve()
+        if str(replacement_layer_dir_path) == str(Path(path).resolve()):
+            carb.log_error(
+                "Cannot export to the same folder in which the source replacements layer resides: "
+                + str(replacement_layer_dir_path)
+            )
             return False
         return True
 
@@ -178,19 +182,26 @@ class LightspeedExporterCore:
                 self._progress_changed(0.0)
 
         async def _deferred_finish_callback():
-            # now process/optimize geo for game
-            file_path = export_folder
-            if not file_path.endswith("/"):
-                file_path += "/"
-            file_path += os.path.basename(usd_path)
-            stage_path = omni.usd.get_context().get_stage_url()
-            await self._post_exporter.process(omni.client.normalize_url(file_path))
-            # reopen original stage
-            # Crash, use async function
-            # omni.usd.get_context().open_stage(stage_path)
-
             context = omni.usd.get_context()
-            await context.open_stage_async(stage_path)
+
+            # cache workspace stage path, which is currently open
+            workspace_stage_path = context.get_stage_url()
+            workspace_stage_path_norm = omni.client.normalize_url(workspace_stage_path)
+
+            export_file_path = export_folder
+            if not export_file_path.endswith("/"):
+                export_file_path += "/"
+            export_file_path += os.path.basename(usd_path)
+            export_file_path_norm = omni.client.normalize_url(export_file_path)
+
+            # now process/optimize geo for game
+            await self._post_exporter.process(export_file_path_norm)
+
+            # reopen original stage
+            # TODO: Crash, use async function instead, waiting OM-42168
+            # omni.usd.get_context().open_stage(workspace_stage_path)
+            await context.open_stage_async(workspace_stage_path_norm)
+
             self._finish_export()
 
         def finish_callback():
