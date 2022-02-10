@@ -10,6 +10,7 @@
 import os
 import subprocess
 import traceback
+from tokenize import String
 
 import carb
 import omni.usd
@@ -25,8 +26,8 @@ class LightspeedPosProcessExporter:
         self._nvtt_path = script_path + ".\\tools\\nvtt\\nvtt_export.exe"
         self.__layer_manager = LayerManagerCore()
 
-    def _remove_extra_attr(self, prim):
-        used_attrs = {
+    def _remove_extra_attr(self, prim: Usd.Prim):
+        white_list = {
             "normals",
             "points",
             "doubleSided",
@@ -42,13 +43,13 @@ class LightspeedPosProcessExporter:
 
         attr_to_remove = []
         for attr in prim.GetAttributes():
-            if attr.GetName() not in used_attrs:
+            if attr.GetName() not in white_list:
                 attr_to_remove.append(attr.GetName())
 
         for attr in attr_to_remove:
             prim.RemoveProperty(attr)
 
-    def _process_uvs(self, prim):
+    def _process_uvs(self, prim: Usd.Prim):
         # get the primvars API of the prim
         gp_pv = UsdGeom.PrimvarsAPI(prim)
         # get the primvars attribute of the UVs
@@ -114,20 +115,23 @@ class LightspeedPosProcessExporter:
         mesh.GetFaceVertexCountsAttr().Set(new_face_counts)
         return triangles
 
-    def _process_geometry(self, mesh):
-        face_vertex_indices = mesh.GetFaceVertexIndicesAttr().Get()
-        points = mesh.GetPointsAttr().Get()
+    def _process_geometry(self, prim: Usd.Prim):
+        # get the mesh schema API from the Prim
+        mesh_schema = UsdGeom.Mesh(prim)
+
+        face_vertex_indices = mesh_schema.GetFaceVertexIndicesAttr().Get()
+        points = mesh_schema.GetPointsAttr().Get()
         fixed_indices = range(0, len(face_vertex_indices))
         fixed_points = []
         for i in fixed_indices:
             fixed_points.append(points[face_vertex_indices[i]])
 
-        mesh.GetFaceVertexIndicesAttr().Set(fixed_indices)
-        mesh.GetPointsAttr().Set(fixed_points)
+        mesh_schema.GetFaceVertexIndicesAttr().Set(fixed_indices)
+        mesh_schema.GetPointsAttr().Set(fixed_points)
 
-        self._triangulate_mesh(mesh)
+        self._triangulate_mesh(mesh_schema)
 
-    def _process_subsets(self, prim):
+    def _process_subsets(self, prim: Usd.Prim):
         display_predicate = Usd.TraverseInstanceProxies(Usd.PrimAllPrimsPredicate)
         children_iterator = iter(Usd.PrimRange(prim, display_predicate))
         for child_prim in children_iterator:
@@ -141,7 +145,51 @@ class LightspeedPosProcessExporter:
                     vert_indices.append(face_index * 3 + 2)
                 child_prim.CreateAttribute("triangleIndices", Sdf.ValueTypeNames.IntArray).Set(vert_indices)
 
-    def _process_mesh_prim(self, prim):
+    def _bake_geom_prim_xforms_in_mesh(self, prim: Usd.Prim):
+        parent_prim = prim
+        while (parent_prim.GetParent().GetPath() != Sdf.Path("/RootNode/meshes")) and parent_prim.IsValid():
+            parent_prim = parent_prim.GetParent()
+        if not parent_prim.IsValid():
+            prim_path_str = str(prim.GetPath())
+            carb.log_error("Could not resolve mesh Xform parent for: " + prim_path_str)
+
+            class MeshXformParentUnresolveable(Exception):
+                pass
+
+            raise MeshXformParentUnresolveable()
+        xform = UsdGeom.XformCache().ComputeRelativeTransform(prim, parent_prim)[0]
+
+        # get the mesh schema API from the Prim
+        mesh_schema = UsdGeom.Mesh(prim)
+
+        # Points/Vertices
+        points_attr = mesh_schema.GetPointsAttr()
+        points_arr = points_attr.Get()
+        new_points_arr = []
+        for tri in points_arr:
+            new_tri = xform.TransformAffine(tri)
+            new_points_arr.append(new_tri)
+        points_attr.Set(new_points_arr)
+
+        # Normals
+        normals_attr = mesh_schema.GetNormalsAttr()
+        normals_arr = normals_attr.Get()
+        new_normals_arr = []
+        for normal in normals_arr:
+            new_normal = xform.GetInverse().GetTranspose().TransformAffine(normal)
+            new_normals_arr.append(new_normal)
+        normals_attr.Set(new_normals_arr)
+
+    def _process_mesh_prim(self, prim: Usd.Prim):
+        # Expand point and index data to match faceVarying primvars
+        self._process_geometry(prim)
+
+        # runtime does not support transforms on prims/meshes, as they are wasteful
+        #   so we bake them into vertices and normals
+        # IMPORTANT: this must be run before _remove_extra_attr, or  else the relevant
+        #   xform info will be stripped
+        self._bake_geom_prim_xforms_in_mesh(prim)
+
         # strip out  attributes that the runtime doesn't support
         self._remove_extra_attr(prim)
 
@@ -151,12 +199,6 @@ class LightspeedPosProcessExporter:
         # Make a new attribute for dxvk_rt compatible uvs:
         # 3 uvs per triangle, in the same order as the positions, with the uv.y coordinate inverted.
         self._process_uvs(prim)
-
-        # get the mesh from the Prim
-        mesh = UsdGeom.Mesh(prim)
-
-        # Expand point and index data to match faceVarying primvars
-        self._process_geometry(mesh)
 
         # subsets store face indices, but dxvk_rt needs triangle indices.
         self._process_subsets(prim)
@@ -182,28 +224,29 @@ class LightspeedPosProcessExporter:
                     # delete the original png:
                     os.remove(abs_path)
 
-    async def process(self, file_path):
-        carb.log_info("Processing: " + file_path)
+    async def process(self, export_file_path):
+        carb.log_info("Processing: " + export_file_path)
 
-        # TODO: waiting OM-42168
-        # Crash, use async function
-        # success = omni.usd.get_context().open_stage(file_path)
-        result, err = await omni.usd.get_context().open_stage_async(file_path)
+        context = omni.usd.get_context()
+
+        # TODO: Crash, use async function instead, waiting OM-42168
+        # success = context.open_stage(export_file_path)
+        result, err = await context.open_stage_async(export_file_path)
         if not result:
             return
 
-        stage = omni.usd.get_context().get_stage()
+        export_stage = context.get_stage()
 
         # flatten all layers
-        layer_instance = self.__layer_manager.get_layer_instance(LayerType.replacement)
-        if layer_instance is None:
+        export_replacement_layer = self.__layer_manager.get_layer_instance(LayerType.replacement)
+        if export_replacement_layer is None:
             carb.log_error("Can't find the replacement layer")
             return
-        layer_instance.flatten_sublayers()
+        export_replacement_layer.flatten_sublayers()
 
         # process meshes
         # TraverseAll because we want to grab overrides
-        all_geos = [prim_ref for prim_ref in stage.TraverseAll() if UsdGeom.Mesh(prim_ref)]
+        all_geos = [prim_ref for prim_ref in export_stage.TraverseAll() if UsdGeom.Mesh(prim_ref)]
         failed_processes = []
         # TODO a crash in one geo shouldn't prevent processing the rest of the geometry
         for geo_prim in all_geos:
@@ -219,7 +262,7 @@ class LightspeedPosProcessExporter:
 
         # process materials
         # TraverseAll because we want to grab overrides
-        all_shaders = [prim_ref for prim_ref in stage.TraverseAll() if prim_ref.IsA(UsdShade.Shader)]
+        all_shaders = [prim_ref for prim_ref in export_stage.TraverseAll() if prim_ref.IsA(UsdShade.Shader)]
         # TODO a crash in one shader shouldn't prevent processing the rest of the materials
         for shader_prim in all_shaders:
             try:
@@ -232,7 +275,7 @@ class LightspeedPosProcessExporter:
                 carb.log_error(f"{e}")
                 carb.log_error(f"{traceback.format_exc()}")
 
-        await omni.usd.get_context().save_stage_async()
+        await context.save_stage_async()
 
         if failed_processes:
 
