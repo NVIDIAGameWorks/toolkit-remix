@@ -120,30 +120,26 @@ class LightspeedPosProcessExporter:
         face_vertex_indices = mesh_schema.GetFaceVertexIndicesAttr().Get()
         points = mesh_schema.GetPointsAttr().Get()
 
-        primvars = []
         primvar_api = UsdGeom.PrimvarsAPI(prim)
-        for primvar in primvar_api.GetPrimvars():
-            interpolation = primvar.GetInterpolation()
-            if (
-                interpolation == UsdGeom.Tokens.faceVarying
-                or interpolation == UsdGeom.Tokens.varying
-                or interpolation == UsdGeom.Tokens.vertex
-            ):
-                primvars.append(
-                    {
-                        "primvar": primvar,
-                        "values": primvar.ComputeFlattened(),
-                        "fixed_values": [],
-                        "interpolation": interpolation,
-                    }
-                )
+        geom_tokens = [UsdGeom.Tokens.faceVarying, UsdGeom.Tokens.varying, UsdGeom.Tokens.vertex]
+        primvars = [
+            {
+                "primvar": primvar,
+                "values": primvar.ComputeFlattened(),
+                "fixed_values": [],
+                "interpolation": primvar.GetInterpolation(),
+            }
+            for primvar in primvar_api.GetPrimvars()
+            if primvar.GetInterpolation() in geom_tokens
+        ]
+
 
         fixed_indices = range(0, len(face_vertex_indices))
         fixed_points = []
         for i in fixed_indices:
             fixed_points.append(points[face_vertex_indices[i]])
             for primvar in primvars:
-                if interpolation == UsdGeom.Tokens.vertex:
+                if primvar["interpolation"] == UsdGeom.Tokens.vertex:
                     primvar["fixed_values"].append(primvar["values"][face_vertex_indices[i]])
 
         # TODO normals are set to faceVarying, so they're probably broken.
@@ -152,7 +148,7 @@ class LightspeedPosProcessExporter:
         mesh_schema.GetFaceVertexIndicesAttr().Set(fixed_indices)
         mesh_schema.GetPointsAttr().Set(fixed_points)
         for primvar in primvars:
-            if interpolation == UsdGeom.Tokens.vertex:
+            if primvar["interpolation"] == UsdGeom.Tokens.vertex:
                 primvar["values"] = primvar["fixed_values"]
             primvar["primvar"].Set(primvar["values"])
             primvar["primvar"].BlockIndices()
