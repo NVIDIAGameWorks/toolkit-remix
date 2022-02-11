@@ -10,7 +10,6 @@
 import os
 import subprocess
 import traceback
-from tokenize import String
 
 import carb
 import omni.usd
@@ -93,8 +92,7 @@ class LightspeedPosProcessExporter:
                     }
                 )
 
-        old_face_index = 0
-        for face_count in faces:
+        for old_face_index, face_count in enumerate(faces):
             start_index = indices[indices_offset]
             for face_index in range(face_count - 2):
                 for subset in subsets:
@@ -106,7 +104,6 @@ class LightspeedPosProcessExporter:
                 triangles.append(start_index)
                 triangles.append(indices[index1])
                 triangles.append(indices[index2])
-            old_face_index += 1
             indices_offset += face_count
 
         for subset in subsets:
@@ -127,13 +124,19 @@ class LightspeedPosProcessExporter:
         primvar_api = UsdGeom.PrimvarsAPI(prim)
         for primvar in primvar_api.GetPrimvars():
             interpolation = primvar.GetInterpolation()
-            if interpolation == UsdGeom.Tokens.faceVarying or interpolation == UsdGeom.Tokens.varying or interpolation == UsdGeom.Tokens.vertex:
-                primvars.append({
-                    "primvar": primvar,
-                    "values": primvar.ComputeFlattened(),
-                    "fixed_values": [],
-                    "interpolation": interpolation,
-                })
+            if (
+                interpolation == UsdGeom.Tokens.faceVarying
+                or interpolation == UsdGeom.Tokens.varying
+                or interpolation == UsdGeom.Tokens.vertex
+            ):
+                primvars.append(
+                    {
+                        "primvar": primvar,
+                        "values": primvar.ComputeFlattened(),
+                        "fixed_values": [],
+                        "interpolation": interpolation,
+                    }
+                )
 
         fixed_indices = range(0, len(face_vertex_indices))
         fixed_points = []
@@ -143,7 +146,8 @@ class LightspeedPosProcessExporter:
                 if interpolation == UsdGeom.Tokens.vertex:
                     primvar["fixed_values"].append(primvar["values"][face_vertex_indices[i]])
 
-        # TODO normals are set to faceVarying, so they're probably broken.  need to fix them up here too, so that triangulation doesn't break them.
+        # TODO normals are set to faceVarying, so they're probably broken.
+        #   need to fix them up here too, so that triangulation doesn't break them.
 
         mesh_schema.GetFaceVertexIndicesAttr().Set(fixed_indices)
         mesh_schema.GetPointsAttr().Set(fixed_points)
@@ -178,10 +182,10 @@ class LightspeedPosProcessExporter:
             prim_path_str = str(prim.GetPath())
             carb.log_error("Could not resolve mesh Xform parent for: " + prim_path_str)
 
-            class MeshXformParentUnresolveable(Exception):
+            class MeshXformParentUnresolveableError(Exception):
                 pass
 
-            raise MeshXformParentUnresolveable()
+            raise MeshXformParentUnresolveableError()
         xform = UsdGeom.XformCache().ComputeRelativeTransform(prim, parent_prim)[0]
 
         # get the mesh schema API from the Prim
