@@ -10,7 +10,6 @@
 import os
 import subprocess
 import traceback
-from tokenize import String
 
 import carb
 import omni.usd
@@ -64,8 +63,9 @@ class LightspeedPosProcessExporter:
 
         prim.CreateAttribute("invertedUvs", Sdf.ValueTypeNames.Float2Array, False).Set(inverted_uvs)
 
-    def _triangulate_mesh(self, mesh: UsdGeom.Mesh):
+    def _triangulate_mesh(self, prim: Usd.Prim):
         # indices and faces converted to triangles
+        mesh = UsdGeom.Mesh(prim)
         indices = mesh.GetFaceVertexIndicesAttr().Get()
         faces = mesh.GetFaceVertexCountsAttr().Get()
 
@@ -92,20 +92,18 @@ class LightspeedPosProcessExporter:
                     }
                 )
 
-        old_face_index = 0
-        for face_count in faces:
+        for old_face_index, face_count in enumerate(faces):
             start_index = indices[indices_offset]
             for face_index in range(face_count - 2):
+                for subset in subsets:
+                    if old_face_index in subset["old_faces"]:
+                        subset["new_faces"].append(len(new_face_counts))
                 new_face_counts.append(3)
                 index1 = indices_offset + face_index + 1
                 index2 = indices_offset + face_index + 2
                 triangles.append(start_index)
                 triangles.append(indices[index1])
                 triangles.append(indices[index2])
-                for subset in subsets:
-                    if old_face_index in subset["old_faces"]:
-                        subset["new_faces"].append(len(new_face_counts) - 1)
-            old_face_index += 1
             indices_offset += face_count
 
         for subset in subsets:
@@ -115,23 +113,49 @@ class LightspeedPosProcessExporter:
         mesh.GetFaceVertexCountsAttr().Set(new_face_counts)
         return triangles
 
-    def _process_geometry(self, prim: Usd.Prim):
+    def _align_vertex_data(self, prim: Usd.Prim):
         # get the mesh schema API from the Prim
         mesh_schema = UsdGeom.Mesh(prim)
 
         face_vertex_indices = mesh_schema.GetFaceVertexIndicesAttr().Get()
         points = mesh_schema.GetPointsAttr().Get()
+
+        primvar_api = UsdGeom.PrimvarsAPI(prim)
+        geom_tokens = [UsdGeom.Tokens.faceVarying, UsdGeom.Tokens.varying, UsdGeom.Tokens.vertex]
+        primvars = [
+            {
+                "primvar": primvar,
+                "values": primvar.ComputeFlattened(),
+                "fixed_values": [],
+                "interpolation": primvar.GetInterpolation(),
+            }
+            for primvar in primvar_api.GetPrimvars()
+            if primvar.GetInterpolation() in geom_tokens
+        ]
+
         fixed_indices = range(0, len(face_vertex_indices))
         fixed_points = []
         for i in fixed_indices:
             fixed_points.append(points[face_vertex_indices[i]])
+            for primvar in primvars:
+                if primvar["interpolation"] == UsdGeom.Tokens.vertex:
+                    primvar["fixed_values"].append(primvar["values"][face_vertex_indices[i]])
+
+        # TODO normals are set to faceVarying, so they're probably broken.
+        #   need to fix them up here too, so that triangulation doesn't break them.
 
         mesh_schema.GetFaceVertexIndicesAttr().Set(fixed_indices)
         mesh_schema.GetPointsAttr().Set(fixed_points)
-
-        self._triangulate_mesh(mesh_schema)
+        for primvar in primvars:
+            if primvar["interpolation"] == UsdGeom.Tokens.vertex:
+                primvar["values"] = primvar["fixed_values"]
+            primvar["primvar"].Set(primvar["values"])
+            primvar["primvar"].BlockIndices()
+            primvar["primvar"].SetInterpolation(UsdGeom.Tokens.vertex)
 
     def _process_subsets(self, prim: Usd.Prim):
+        mesh_schema = UsdGeom.Mesh(prim)
+        face_vertex_indices = mesh_schema.GetFaceVertexIndicesAttr().Get()
         display_predicate = Usd.TraverseInstanceProxies(Usd.PrimAllPrimsPredicate)
         children_iterator = iter(Usd.PrimRange(prim, display_predicate))
         for child_prim in children_iterator:
@@ -140,9 +164,9 @@ class LightspeedPosProcessExporter:
                 face_indices = subset.GetIndicesAttr().Get()
                 vert_indices = []
                 for face_index in face_indices:
-                    vert_indices.append(face_index * 3 + 0)
-                    vert_indices.append(face_index * 3 + 1)
-                    vert_indices.append(face_index * 3 + 2)
+                    vert_indices.append(face_vertex_indices[face_index * 3 + 0])
+                    vert_indices.append(face_vertex_indices[face_index * 3 + 1])
+                    vert_indices.append(face_vertex_indices[face_index * 3 + 2])
                 child_prim.CreateAttribute("triangleIndices", Sdf.ValueTypeNames.IntArray).Set(vert_indices)
 
     def _bake_geom_prim_xforms_in_mesh(self, prim: Usd.Prim):
@@ -153,10 +177,10 @@ class LightspeedPosProcessExporter:
             prim_path_str = str(prim.GetPath())
             carb.log_error("Could not resolve mesh Xform parent for: " + prim_path_str)
 
-            class MeshXformParentUnresolveable(Exception):
+            class MeshXformParentUnresolveableError(Exception):
                 pass
 
-            raise MeshXformParentUnresolveable()
+            raise MeshXformParentUnresolveableError()
         xform = UsdGeom.XformCache().ComputeRelativeTransform(prim, parent_prim)[0]
 
         # get the mesh schema API from the Prim
@@ -181,9 +205,21 @@ class LightspeedPosProcessExporter:
         normals_attr.Set(new_normals_arr)
 
     def _process_mesh_prim(self, prim: Usd.Prim):
-        # Expand point and index data to match faceVarying primvars
-        self._process_geometry(prim)
+        # processing steps:
+        # * Freeze transforms
+        # * Strip unused attributes
+        # * Align all per vertex data
+        #   * computeFlattened for all primvars
+        #   * split all faces to have their own vertices
+        #     * faceVertexIndices should become 0,1,...,n
+        #     * all primvars should get index arrays matchign faceVertexIndices
+        # * triangulate any faces with > 3 vertices
+        #   * triangles that came from the same face will share verts
+        #   * geom subsets will be updated to point to the correct faces
+        # * create inverted UVs
+        # * add triangleIndices for geom subsets
 
+        # Freeze Transforms:
         # runtime does not support transforms on prims/meshes, as they are wasteful
         #   so we bake them into vertices and normals
         # IMPORTANT: this must be run before _remove_extra_attr, or  else the relevant
@@ -193,8 +229,15 @@ class LightspeedPosProcessExporter:
         # strip out  attributes that the runtime doesn't support
         self._remove_extra_attr(prim)
 
-        # TODO: Triangulate non-3 faceCounts
-        # TODO: bake transformations to verts & normals so that all prims have identity transform
+        # Runtime only supports a single array of verts, with each vertex having position, normal, uv, etc.
+        # Thus, we need to make all of the per-vertex data arrays the same length and ordering. As FaceVarying
+        # primvars can have the most information (3 points of data per triangle), all data arrays have to be expanded
+        # to match that.
+        self._align_vertex_data(prim)
+
+        # split any non-triangle faces into triangles (updates indices of all indexed data)
+        # As this introduces new faces, this must also update any geom subsets.
+        self._triangulate_mesh(prim)
 
         # Make a new attribute for dxvk_rt compatible uvs:
         # 3 uvs per triangle, in the same order as the positions, with the uv.y coordinate inverted.
