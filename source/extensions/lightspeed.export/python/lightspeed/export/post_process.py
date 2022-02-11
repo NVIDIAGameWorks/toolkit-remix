@@ -133,7 +133,6 @@ class LightspeedPosProcessExporter:
             if primvar.GetInterpolation() in geom_tokens
         ]
 
-
         fixed_indices = range(0, len(face_vertex_indices))
         fixed_points = []
         for i in fixed_indices:
