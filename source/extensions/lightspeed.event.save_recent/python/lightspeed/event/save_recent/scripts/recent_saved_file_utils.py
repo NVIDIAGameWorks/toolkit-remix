@@ -9,6 +9,7 @@
 """
 import json
 import math
+import shutil
 from pathlib import Path
 from typing import Dict
 
@@ -70,8 +71,14 @@ class RecentSavedFile:
             return {}
         file_path = self.__get_recent_file()
         carb.log_info(f"Get recent saved file(s) from {file_path}")
-        with open(file_path) as json_file:
-            return json.load(json_file)
+        try:
+            with open(file_path) as json_file:
+                return json.load(json_file)
+        except json.JSONDecodeError:
+            carb.log_warn(f"{file_path} is corrupted! Deleting it.")
+            shutil.copyfile(file_path, f"{file_path}.bak")
+            Path(file_path).unlink()
+        return {}
 
     def get_path_detail(self, path) -> Dict[str, str]:
         """Get details from the given path"""
