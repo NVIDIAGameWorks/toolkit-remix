@@ -15,10 +15,9 @@ from .nickname_delegate import NicknameStageColumnDelegate
 
 class StageNicknameWidgetExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
-        print("booting up!")
-        self._variant_column_sub = StageColumnDelegateRegistry().register_column_delegate(
+        self._nickname_column_sub = StageColumnDelegateRegistry().register_column_delegate(
             "Nickname", NicknameStageColumnDelegate
         )
 
     def on_shutdown(self):
-        print("Shutting Down!")
+        self._nickname_column_sub = None
