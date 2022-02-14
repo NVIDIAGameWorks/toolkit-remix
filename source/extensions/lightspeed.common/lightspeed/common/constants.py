@@ -15,6 +15,7 @@ MATERIAL = "Material"
 SCOPE = "Scope"
 AUTO = "auto"
 LSS_FOLDER = "lss"
+LSS_NICKNAME = "nickname"
 GAME_READY_ASSETS_FOLDER = "gameReadyAssets"
 CAPTURE_FOLDER = "capture"
 
