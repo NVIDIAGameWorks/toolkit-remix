@@ -38,6 +38,7 @@ class LightspeedPosProcessExporter:
             "faceVertexIndices",
             "primvars:st",
             "primvars:st:indices",
+            "subdivisionScheme",  # needed for smooth normals when using vertex interpolation
         }
 
         attr_to_remove = []
@@ -137,12 +138,24 @@ class LightspeedPosProcessExporter:
         fixed_points = []
         for i in fixed_indices:
             fixed_points.append(points[face_vertex_indices[i]])
-            for primvar in primvars:
-                if primvar["interpolation"] == UsdGeom.Tokens.vertex:
+
+        for primvar in primvars:
+            if primvar["interpolation"] == UsdGeom.Tokens.vertex:
+                for i in fixed_indices:
                     primvar["fixed_values"].append(primvar["values"][face_vertex_indices[i]])
 
-        # TODO normals are set to faceVarying, so they're probably broken.
-        #   need to fix them up here too, so that triangulation doesn't break them.
+        fixed_normals = []
+        normals_interp = mesh_schema.GetNormalsInterpolation()
+        normals = mesh_schema.GetNormalsAttr().Get()
+        if normals_interp == UsdGeom.Tokens.vertex:
+            # Normals are currently in the (old) vertex order.  need to expand them to be 1 normal per vertex per face
+            for i in fixed_indices:
+                fixed_normals.append(normals[face_vertex_indices[i]])
+            mesh_schema.GetNormalsAttr.Set(normals)
+        else:
+            # Normals are already in 1 normal per vertex per face, need to set it to vertex so that triangulation
+            # doesn't break it.
+            mesh_schema.SetNormalsInterpolation(UsdGeom.Tokens.vertex)
 
         mesh_schema.GetFaceVertexIndicesAttr().Set(fixed_indices)
         mesh_schema.GetPointsAttr().Set(fixed_points)
@@ -253,7 +266,7 @@ class LightspeedPosProcessExporter:
             if attr and attr.Get():
                 abs_path = attr.Get().resolvedPath
                 rel_path = attr.Get().path
-                if not abs_path.lower().endswith(".dds"):
+                if abs_path and not abs_path.lower().endswith(".dds"):
                     dds_path = abs_path.replace(os.path.splitext(abs_path)[1], ".dds")
                     rel_dds_path = rel_path.replace(os.path.splitext(rel_path)[1], ".dds")
                     # only create the dds if it doesn't already exist
@@ -264,8 +277,9 @@ class LightspeedPosProcessExporter:
                         compress_mip_process.wait()
 
                     attr.Set(rel_dds_path)
-                    # delete the original png:
-                    os.remove(abs_path)
+                    # NOTE: not safe to delete the original png here, as any other prims re-using the texture will fail
+                    # to resolve the absolute path if the file no longer exists.
+                    # os.remove(abs_path)
 
     async def process(self, export_file_path):
         carb.log_info("Processing: " + export_file_path)

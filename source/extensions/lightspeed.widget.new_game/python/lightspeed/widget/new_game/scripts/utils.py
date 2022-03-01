@@ -76,7 +76,7 @@ _INSTANCE = None
 
 
 def get_game_icon_from_capture_folder(capture_folder_path: str) -> Optional[str]:
-    icons = list(Path(capture_folder_path).parent.glob("*_icon.bmp"))
+    icons = list(Path(capture_folder_path).glob("*_icon.bmp"))
     return str(icons[0]) if icons else None
 
 
