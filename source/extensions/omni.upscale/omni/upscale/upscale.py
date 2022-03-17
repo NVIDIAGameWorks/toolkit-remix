@@ -1,5 +1,5 @@
 """
-* Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+* Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
 *
 * NVIDIA CORPORATION and its licensors retain all intellectual property
 * and proprietary rights in and to this software, related documentation
@@ -8,4 +8,17 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 
-from .texture_process import *  # noqa F401
+import omni.ext
+
+from .upscale_core import UpscalerCore
+
+
+class UpscalerExtension(omni.ext.IExt):
+    def on_startup(self, ext_id):
+        pass
+
+    def on_shutdown(self):
+        pass
+
+    def upscale(self, source_path, dest_path):
+        UpscalerCore.perform_upscale(source_path, dest_path)
