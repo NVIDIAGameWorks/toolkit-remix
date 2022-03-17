@@ -8,6 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 
+import asyncio
 import contextlib
 import os
 import os.path
@@ -92,3 +93,7 @@ class UpscalerCore:
         if not keep_png and output_texture.replace("\\", "/") != upscaled_texture_path.replace("\\", "/"):
             os.remove(upscaled_texture_path)
         temp_dir.cleanup()
+
+    async def async_perform_upscale(texture, output_texture, keep_png=False):
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, UpscalerCore.perform_upscale, texture, output_texture, keep_png)

@@ -9,13 +9,10 @@
 """
 
 import asyncio
-import os
-import os.path
 
 import omni
 import omni.ext
 import omni.kit.menu.utils as omni_utils
-import omni.kit.window.content_browser
 from lightspeed.common import constants
 from lightspeed.layer_manager import LightspeedTextureProcessingCore
 from omni.kit.menu.utils import MenuItemDescription
@@ -37,14 +34,6 @@ processing_config = (
 class LightspeedUpscalerExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
         self.__create_save_menu()
-        win = omni.kit.window.content_browser.get_content_window()
-        win.add_context_menu(
-            "Upscale Texture",
-            glyph="none.svg",
-            click_fn=self.context_menu_on_click_upscale,
-            show_fn=self.context_menu_can_show_menu_upscale,
-            index=0,
-        )
         self._progress_bar = None
 
     def __create_save_menu(self):
@@ -57,21 +46,6 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
 
     def on_shutdown(self):
         omni_utils.remove_menu_items(self._tools_manager_menus, "Batch Tools")
-        win = omni.kit.window.content_browser.get_content_window()
-        win.delete_context_menu("Upscale Texture")
-
-    def context_menu_on_click_upscale(self, menu, value):
-        upscale_path = value.replace(os.path.splitext(value)[1], "_upscaled4x" + os.path.splitext(value)[1])
-        asyncio.ensure_future(
-            LightspeedTextureProcessingCore.async_batch_texture_process(
-                UpscalerCore.perform_upscale, [value], [upscale_path], None
-            )
-        )
-
-    def context_menu_can_show_menu_upscale(self, path):
-        if path.lower().endswith(".dds") or path.lower().endswith(".png"):
-            return True
-        return False
 
     def _batch_upscale_set_progress(self, progress):
         self._progress_bar.set_progress(progress)
