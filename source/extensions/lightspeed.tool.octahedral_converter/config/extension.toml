@@ -3,22 +3,23 @@
 version = "0.1.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
-authors = ["Alex Dunn <adunn@nvidia.com>"]
+authors = ["Mark Henderson <markh@nvidia.com>"]
 
-title = "Lightspeed Game Exporter"
-description="Collects all referenced assets, converts to Lightspeed runtime ready format, and stores to disk."
+# The title and description fields are primarly for displaying extension info in UI
+title = "Lightspeed Normal Map Octahedral Converter"
+description="Converts a normal map from tangent space encoding to octahedral encoding."
 
 # Path (relative to the root) or content of readme markdown file for UI.
 readme  = "docs/README.md"
 
 # URL of the extension source repository.
-repository="https://gitlab-master.nvidia.com/omniverse/kit-extensions/example"
+repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.tool.octahedral_converter"
 
 # One of categories for UI.
-category = "Export"
+category = "Utility"
 
 # Keywords for the extension
-keywords = ["kit", "exporter"]
+keywords = ["octahedral", "normal", "texture", "converter"]
 
 # Location of change log file in target (final) folder of extension, relative to the root.
 # More info on writing changelog: https://keepachangelog.com/en/1.0.0/
@@ -32,13 +33,9 @@ preview_image = "data/preview.png"
 icon = "data/icon.png"
 
 [dependencies]
-"lightspeed.common" = {}
-"lightspeed.layer_manager" = {}
-"lightspeed.tool.octahedral_converter" = {}
-"omni.client" = {}
 "omni.kit.test" = {}
-"omni.kit.tool.collect" = {}
-"omni.kit.menu.utils" = {}
+"lightspeed.common" = {}
 
+# Main python module this extension provides, it will be publicly available as "import omni.example.hello".
 [[python.module]]
-name = "lightspeed.export"
+name = "lightspeed.tool.octahedral_converter"
