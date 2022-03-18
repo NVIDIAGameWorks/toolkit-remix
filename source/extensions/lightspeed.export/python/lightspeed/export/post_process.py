@@ -7,7 +7,7 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import os
+from pathlib import Path
 import subprocess
 import traceback
 
@@ -15,14 +15,15 @@ import carb
 import omni.usd
 from lightspeed.common import ReferenceEdit, constants
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
+from lightspeed.tool.octahedral_converter import LightspeedOctahedralConverter
 from omni.kit.window.popup_dialog import MessageDialog
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
 
 class LightspeedPosProcessExporter:
     def __init__(self):
-        script_path = os.path.dirname(os.path.abspath(__file__))
-        self._nvtt_path = script_path + ".\\tools\\nvtt\\nvtt_export.exe"
+        script_path = Path(__file__).resolve().parent
+        self._nvtt_path = script_path / "tools" / "nvtt" / "nvtt_export.exe"
         self.__layer_manager = LayerManagerCore()
 
     def _remove_extra_attr(self, prim: Usd.Prim):
@@ -151,7 +152,7 @@ class LightspeedPosProcessExporter:
             # Normals are currently in the (old) vertex order.  need to expand them to be 1 normal per vertex per face
             for i in fixed_indices:
                 fixed_normals.append(normals[face_vertex_indices[i]])
-            mesh_schema.GetNormalsAttr.Set(normals)
+            mesh_schema.GetNormalsAttr().Set(normals)
         else:
             # Normals are already in 1 normal per vertex per face, need to set it to vertex so that triangulation
             # doesn't break it.
@@ -184,7 +185,11 @@ class LightspeedPosProcessExporter:
 
     def _bake_geom_prim_xforms_in_mesh(self, prim: Usd.Prim):
         parent_prim = prim
-        while (parent_prim.GetParent().GetPath() != Sdf.Path("/RootNode/meshes")) and parent_prim.IsValid():
+        while (
+            parent_prim.IsValid()
+            and parent_prim.GetParent().IsValid()
+            and (parent_prim.GetParent().GetPath() != Sdf.Path("/RootNode/meshes"))
+        ):
             parent_prim = parent_prim.GetParent()
         if not parent_prim.IsValid():
             prim_path_str = str(prim.GetPath())
@@ -260,23 +265,46 @@ class LightspeedPosProcessExporter:
         self._process_subsets(prim)
 
     def _process_shader_prim(self, prim):
+        # convert tangent space normal maps to octahedral
+        normal_map_encoding_attr = prim.GetAttribute(constants.MATERIAL_INPUTS_NORMALMAP_ENCODING)
+        normal_map_attr = prim.GetAttribute(constants.MATERIAL_INPUTS_NORMALMAP_TEXTURE)
+        if (
+            normal_map_attr
+            and normal_map_encoding_attr
+            and normal_map_encoding_attr.HasValue()
+            and normal_map_attr.HasValue
+        ):
+            encoding = normal_map_encoding_attr.Get()
+            if encoding != constants.NormalMapEncodings.OCTAHEDRAL.value:
+                # need to re-encode normal map
+                abs_path = Path(normal_map_attr.Get().resolvedPath)
+                rel_path = Path(normal_map_attr.Get().path)
+                new_abs_path = abs_path.with_name(abs_path.stem + "_OTH" + abs_path.suffix)
+                new_rel_path = rel_path.with_name(rel_path.stem + "_OTH" + rel_path.suffix)
+                if encoding == constants.NormalMapEncodings.TANGENT_SPACE_DX.value:
+                    LightspeedOctahedralConverter.convert_dx_file_to_octahedral(str(abs_path), str(new_abs_path))
+                elif encoding == constants.NormalMapEncodings.TANGENT_SPACE_OGL.value:
+                    LightspeedOctahedralConverter.convert_ogl_file_to_octahedral(str(abs_path), str(new_abs_path))
+                normal_map_attr.Set(str(new_rel_path))
+                normal_map_encoding_attr.Set(constants.NormalMapEncodings.OCTAHEDRAL.value)
+
         # compress png textures to dds
         for attr_name, bc_mode in constants.TEXTURE_COMPRESSION_LEVELS.items():
             attr = prim.GetAttribute(attr_name)
             if attr and attr.Get():
-                abs_path = attr.Get().resolvedPath
-                rel_path = attr.Get().path
-                if abs_path and not abs_path.lower().endswith(".dds"):
-                    dds_path = abs_path.replace(os.path.splitext(abs_path)[1], ".dds")
-                    rel_dds_path = rel_path.replace(os.path.splitext(rel_path)[1], ".dds")
+                abs_path = Path(attr.Get().resolvedPath)
+                rel_path = Path(attr.Get().path)
+                if abs_path and not abs_path.suffix.lower() == ".dds":
+                    dds_path = abs_path.with_suffix(".dds")
+                    rel_dds_path = rel_path.with_suffix(".dds")
                     # only create the dds if it doesn't already exist
-                    if not os.path.exists(dds_path):
+                    if not dds_path.exists():
                         compress_mip_process = subprocess.Popen(
-                            [self._nvtt_path, abs_path, "--format", bc_mode, "--output", dds_path]
+                            [str(self._nvtt_path), str(abs_path), "--format", bc_mode, "--output", str(dds_path)]
                         )
                         compress_mip_process.wait()
 
-                    attr.Set(rel_dds_path)
+                    attr.Set(str(rel_dds_path))
                     # NOTE: not safe to delete the original png here, as any other prims re-using the texture will fail
                     # to resolve the absolute path if the file no longer exists.
                     # os.remove(abs_path)

@@ -1,5 +1,8 @@
+from enum import IntEnum
+
 MATERIAL_INPUTS_DIFFUSE_TEXTURE = "inputs:diffuse_texture"
 MATERIAL_INPUTS_NORMALMAP_TEXTURE = "inputs:normalmap_texture"
+MATERIAL_INPUTS_NORMALMAP_ENCODING = "inputs:encoding"
 MATERIAL_INPUTS_TANGENT_TEXTURE = "inputs:tangent_texture"
 MATERIAL_INPUTS_REFLECTIONROUGHNESS_TEXTURE = "inputs:reflectionroughness_texture"
 MATERIAL_INPUTS_EMISSIVE_MASK_TEXTURE = "inputs:emissive_mask_texture"
@@ -30,3 +33,10 @@ TEXTURE_COMPRESSION_LEVELS = {
 }
 
 AUTOUPSCALE_LAYER_FILENAME = "autoupscale.usda"
+
+
+# This should match the `normalmap_encoding` in AperturePBR_normal.mdl
+class NormalMapEncodings(IntEnum):
+    OCTAHEDRAL = 0
+    TANGENT_SPACE_OGL = 1
+    TANGENT_SPACE_DX = 2
