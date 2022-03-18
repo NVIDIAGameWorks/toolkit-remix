@@ -49,8 +49,8 @@ class MaterialAssetWidget(UsdMaterialAttributeWidget):
         for p in payload:
             prim = stage.GetPrimAtPath(p)
             if prim.IsValid():
-                if str(p).startswith(constants.INSTANCE_PATH):
-                    refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
+                refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
+                if str(p).startswith(constants.INSTANCE_PATH) and refs_and_layers:
                     for (ref, _layer) in refs_and_layers:
                         if ref.primPath:  # original mesh
                             # we grab all children
@@ -60,13 +60,13 @@ class MaterialAssetWidget(UsdMaterialAttributeWidget):
                                 children_iterator = iter(Usd.PrimRange(prim_mesh, display_predicate))
                                 for child_prim in children_iterator:
                                     get_mat_from_geo(child_prim)
-                elif str(p).startswith(constants.MESH_PATH):
+                elif prim.IsA(UsdShade.Material):
+                    self._material_paths.append(p)
+                else:
                     display_predicate = Usd.TraverseInstanceProxies(Usd.PrimDefaultPredicate)
                     children_iterator = iter(Usd.PrimRange(prim, display_predicate))
                     for child in children_iterator:
                         get_mat_from_geo(child)
-                elif prim.IsA(UsdShade.Material):
-                    self._material_paths.append(p)
 
         if not self._material_paths:
             return False

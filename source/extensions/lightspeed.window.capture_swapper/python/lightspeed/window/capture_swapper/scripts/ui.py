@@ -65,7 +65,6 @@ class CaptureSwapperWindow:
                         layers.ContextMenu.is_layer_item,
                         layers.ContextMenu.is_not_missing_layer,
                         layers.ContextMenu.is_layer_and_parent_unmuted,
-                        layers.ContextMenu.is_not_authoring_layer,
                         self._core.is_capture_layer,
                     ],
                     "onclick_fn": self.show_for_game_capture_folder,

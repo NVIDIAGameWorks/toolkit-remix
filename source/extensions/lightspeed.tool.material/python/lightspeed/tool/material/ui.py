@@ -97,7 +97,6 @@ class MaterialButtonGroup(WidgetGroup):
 
         def on_upscale_clicked(*_):
             self._acquire_toolbar_context()
-            self._upscale_button.checked = False
 
             select_prim_paths = omni.usd.get_context().get_selection().get_selected_prim_paths()
 
@@ -109,7 +108,7 @@ class MaterialButtonGroup(WidgetGroup):
                 material_prim_paths.append(material.GetPrim().GetPath())
             asyncio.ensure_future(self._run_material_upscale(material_prim_paths))
 
-        self._opaque_button = ui.ToolButton(
+        self._opaque_button = ui.Button(
             name="opaqueMaterial",
             tooltip="Convert to Opaque Material",
             width=default_size,
@@ -117,7 +116,7 @@ class MaterialButtonGroup(WidgetGroup):
             mouse_pressed_fn=on_opaque_clicked,
         )
 
-        self._translucent_button = ui.ToolButton(
+        self._translucent_button = ui.Button(
             name="translucentMaterial",
             tooltip="Convert to Translucent Material",
             width=default_size,
@@ -125,7 +124,7 @@ class MaterialButtonGroup(WidgetGroup):
             mouse_pressed_fn=on_translucent_clicked,
         )
 
-        self._upscale_button = ui.ToolButton(
+        self._upscale_button = ui.Button(
             name="upscaleMaterial",
             tooltip="Upscale textures associated with the selected material(s) in the capture layer",
             width=default_size,
