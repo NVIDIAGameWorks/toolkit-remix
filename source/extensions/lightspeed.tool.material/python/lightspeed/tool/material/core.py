@@ -33,8 +33,8 @@ class ToolMaterialCore:
         for prim_path in prim_paths:
             prim = stage.GetPrimAtPath(prim_path)
             if prim.IsValid():
-                if str(prim_path).startswith(constants.INSTANCE_PATH):
-                    refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
+                refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
+                if str(prim_path).startswith(constants.INSTANCE_PATH) and refs_and_layers:
                     for (ref, _) in refs_and_layers:
                         if not ref.assetPath:
                             material, relationship = UsdShade.MaterialBindingAPI(
@@ -42,12 +42,12 @@ class ToolMaterialCore:
                             ).ComputeBoundMaterial()
                             if material:
                                 material_prims.append(material)
-                elif str(prim_path).startswith(constants.MESH_PATH):
+                elif prim.IsA(UsdShade.Material):
+                    material_prims.append(UsdShade.Material(prim))
+                else:
                     material, relationship = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
                     if material:
                         material_prims.append(material)
-                elif prim.IsA(UsdShade.Material):
-                    material_prims.append(UsdShade.Material(prim))
         return material_prims
 
     @staticmethod
