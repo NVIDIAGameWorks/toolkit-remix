@@ -3,9 +3,11 @@ import asyncio
 import carb
 import omni.ui as ui
 import omni.usd
-from lightspeed.upscale import LightspeedUpscalerCore
+from lightspeed.common import constants
+from lightspeed.layer_manager import LightspeedTextureProcessingCore
 from omni.kit.tool.collect.progress_popup import ProgressPopup
 from omni.kit.window.toolbar.widget_group import WidgetGroup
+from omni.upscale import UpscalerCore
 from pxr import UsdShade
 
 from .core import ToolMaterialCore
@@ -40,8 +42,14 @@ class MaterialButtonGroup(WidgetGroup):
             self._upscale_progress_bar = ProgressPopup(title="Upscaling")
         self._upscale_progress_bar.set_progress(0)
         self._upscale_progress_bar.show()
-        await LightspeedUpscalerCore.lss_async_batch_upscale_capture_layer_by_prim_paths(
-            material_prim_paths, progress_callback=self._material_upscale_set_progress
+        processing_config = (
+            UpscalerCore.perform_upscale,
+            constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
+            constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
+            "_upscaled4x.dds",
+        )
+        await LightspeedTextureProcessingCore.lss_async_batch_process_capture_layer_by_prim_paths(
+            processing_config, material_prim_paths, progress_callback=self._material_upscale_set_progress
         )
         self._upscale_progress_bar.hide()
         self._upscale_progress_bar = None

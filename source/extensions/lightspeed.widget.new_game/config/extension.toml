@@ -16,6 +16,7 @@ name = "Lightspeed New Game Widget"
 [dependencies]
 "lightspeed.common" = {}
 "lightspeed.upscale" = {}
+"omni.upscale" = {}
 "omni.client" = {}
 "omni.kit.window.popup_dialog" = {}
 "omni.kit.widget.filebrowser" = {}

@@ -9,30 +9,31 @@
 """
 
 import asyncio
-import os
-import os.path
 
 import omni
 import omni.ext
 import omni.kit.menu.utils as omni_utils
-import omni.kit.window.content_browser
+from lightspeed.common import constants
+from lightspeed.layer_manager import LightspeedTextureProcessingCore
 from omni.kit.menu.utils import MenuItemDescription
 from omni.kit.tool.collect.progress_popup import ProgressPopup
+from omni.upscale import UpscalerCore
 
-from .upscale_core import LightspeedUpscalerCore
+# processing_method = UpscalerCore.perform_upscale
+# input_texture_type = constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE
+# output_texture_type = constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE
+# output_suffix = "_upscaled4x.dds"
+processing_config = (
+    UpscalerCore.perform_upscale,
+    constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
+    constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
+    "_upscaled4x.dds",
+)
 
 
 class LightspeedUpscalerExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
         self.__create_save_menu()
-        win = omni.kit.window.content_browser.get_content_window()
-        win.add_context_menu(
-            "Upscale Texture",
-            glyph="none.svg",
-            click_fn=self.context_menu_on_click_upscale,
-            show_fn=self.context_menu_can_show_menu_upscale,
-            index=0,
-        )
         self._progress_bar = None
 
     def __create_save_menu(self):
@@ -45,17 +46,6 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
 
     def on_shutdown(self):
         omni_utils.remove_menu_items(self._tools_manager_menus, "Batch Tools")
-        win = omni.kit.window.content_browser.get_content_window()
-        win.delete_context_menu("Upscale Texture")
-
-    def context_menu_on_click_upscale(self, menu, value):
-        upscale_path = value.replace(os.path.splitext(value)[1], "_upscaled4x.dds")
-        asyncio.ensure_future(LightspeedUpscalerCore.async_batch_perform_upscale([value], [upscale_path], None))
-
-    def context_menu_can_show_menu_upscale(self, path):
-        if path.lower().endswith(".dds") or path.lower().endswith(".png"):
-            return True
-        return False
 
     def _batch_upscale_set_progress(self, progress):
         self._progress_bar.set_progress(progress)
@@ -65,8 +55,8 @@ class LightspeedUpscalerExtension(omni.ext.IExt):
             self._progress_bar = ProgressPopup(title="Upscaling")
         self._progress_bar.set_progress(0)
         self._progress_bar.show()
-        await LightspeedUpscalerCore.lss_async_batch_upscale_entire_capture_layer(
-            progress_callback=self._batch_upscale_set_progress
+        await LightspeedTextureProcessingCore.lss_async_batch_process_entire_capture_layer(
+            processing_config, progress_callback=self._batch_upscale_set_progress
         )
         self._progress_bar.hide()
         self._progress_bar = None

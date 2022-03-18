@@ -19,7 +19,7 @@ class AutoUpscaleLayer(ILayer):
     def layer_type(self) -> LayerType:
         return LayerType.autoupscale
 
-    def set_diffuse_map_attributes(self, prim_paths, output_asset_relative_paths):
+    def set_texture_attributes(self, texture_attribute, prim_paths, output_asset_relative_paths):
         layer = self.get_sdf_layer()
         auto_stage = Usd.Stage.Open(layer.realPath)
         auto_stage.DefinePrim(constants.ROOTNODE)
@@ -34,7 +34,7 @@ class AutoUpscaleLayer(ILayer):
             shader = UsdShade.Shader.Define(auto_stage, str(prim_path) + "/" + constants.SHADER)
             Usd.ModelAPI(shader).SetKind(constants.MATERIAL)
             shader_prim = shader.GetPrim()
-            attr = shader_prim.CreateAttribute(constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE, Sdf.ValueTypeNames.Asset)
+            attr = shader_prim.CreateAttribute(texture_attribute, Sdf.ValueTypeNames.Asset)
             attr.Set(output_asset_relative_path)
             attr.SetColorSpace(constants.AUTO)
         auto_stage.GetRootLayer().Save()
