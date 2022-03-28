@@ -1,0 +1,10 @@
+[package]
+title = "App Style"
+description = "Global Style for the App"
+
+[dependencies]
+"lightspeed_example.app.resources" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed_example.style"

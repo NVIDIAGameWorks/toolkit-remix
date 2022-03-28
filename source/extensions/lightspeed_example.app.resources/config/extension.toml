@@ -1,0 +1,5 @@
+[package]
+title = "Resources extension"
+description = "This Extension contains resources (images, icons) used by the app and splash screen."
+
+authors = ["Damien Bataille <dbataille@nvidia.com>"]

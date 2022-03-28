@@ -1,0 +1,11 @@
+[package]
+title = "Extension example to create the ui widget"
+description = "This is the widget example"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+
+[dependencies]
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed_example.my_name.widget"

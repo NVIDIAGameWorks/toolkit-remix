@@ -1,0 +1,11 @@
+[package]
+title = "Extension example to create the menu"
+description = "This is the menu example"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+
+[dependencies]
+"omni.kit.menu.utils" = {}
+
+[[python.module]]
+name = "lightspeed_example.my_name.menu"

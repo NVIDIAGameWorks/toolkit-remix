@@ -1,0 +1,8 @@
+[package]
+title = "Extension example to create the core"
+description = "This is the core example"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+
+[[python.module]]
+name = "lightspeed_example.my_name.core"

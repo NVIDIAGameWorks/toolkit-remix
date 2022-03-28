@@ -76,7 +76,14 @@ exts.include = [
     "lightspeed.widget.new_game",
     "lightspeed.widget.new_workspace",
     "lightspeed.window.welcome",
-    "lightspeed.workspace"
+    "lightspeed.workspace",
+    "lightspeed_example.app.resources",
+    "lightspeed_example.my_name.core",
+    "lightspeed_example.my_name.menu",
+    "lightspeed_example.my_name",
+    "lightspeed_example.style",
+    "lightspeed_example.my_name.widget",
+    "lightspeed_example.my_name.window",
 ]
 exts.exclude = []
 
