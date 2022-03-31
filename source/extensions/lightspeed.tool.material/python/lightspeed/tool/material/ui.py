@@ -16,9 +16,9 @@ from .core import ToolMaterialCore
 class MaterialButtonGroup(WidgetGroup):
     def __init__(self, _data_path):
         """Add new tools in the toolbar:
-            - Convert to Opaque Material
-            - Convert to Translucent Material
-            - Upscale all textures on selected materials
+        - Convert to Opaque Material
+        - Convert to Translucent Material
+        - Upscale all textures on selected materials
         """
         super().__init__()
         self.__data_path = _data_path

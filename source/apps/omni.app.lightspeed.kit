@@ -313,7 +313,7 @@ app.menu.legacy_mode = false
 
 # Privacy
 ################################
-privacy.externalBuild = true
+privacy.externalBuild = false
 structuredLog.enable = true
 
 
@@ -377,7 +377,7 @@ enable_thumbnail_generation_images = true
 ###############################
 [settings.app.extensions]
 skipPublishVerification = false
-registryEnabled = false
+registryEnabled = true
 
 enabledDeprecated = [
     ]
@@ -459,8 +459,13 @@ stdoutFailPatterns.exclude = [
     "*omni.kit.search.service*Connection error*",
 	"*Failed to read texture file http://*",
 	"*Failed to load texture http://*",
-	"*Cannot use omni.hydra.pxr without OpenGL interop*"
+	"*Cannot use omni.hydra.pxr without OpenGL interop*",
+    "*was never awaited*",
+    "*TF_PYTHON_EXCEPTION*",
+    "*HydraRenderer failed to render this frame*",
+    "*Cannot use omni.hydra.pxr without OpenGL interop*",
 ]
+
 timeout = 3600
 
 

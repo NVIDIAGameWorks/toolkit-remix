@@ -106,8 +106,10 @@ class WelcomeWindow:
         self.__create_loading_ui()
         self.__create_menu()
 
-        self.__subcription_current_game_capture_folder_changed = self._game_core.subscribe_current_game_capture_folder_changed(  # noqa E501
-            self._on_current_game_capture_folder_changed
+        self.__subcription_current_game_capture_folder_changed = (
+            self._game_core.subscribe_current_game_capture_folder_changed(  # noqa E501
+                self._on_current_game_capture_folder_changed
+            )
         )
 
         self.__subcription_game_selection_changed = self._game_core.subscribe_selection_changed(

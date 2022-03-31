@@ -151,6 +151,11 @@ bucket_name = "omniverse-docs"
 bucket_dir = "${project}/${version}"
 
 
+[repo_format]
+# move up to a newer version of black since the older version used by repo_format by defualt is currently broken.
+black_version="22.3.0"
+
+
 ########################################################################################################################
 # Launcher publish and deploy
 ########################################################################################################################

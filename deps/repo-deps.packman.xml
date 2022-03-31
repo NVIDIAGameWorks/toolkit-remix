@@ -6,7 +6,7 @@
     <package name="repo_build" version="0.19.4" />
   </dependency>
   <dependency name="repo_format" linkPath="../_repo/deps/repo_format">
-    <package name="repo_format" version="0.6.5" />
+    <package name="repo_format" version="1.2.1" />
   </dependency>
   <dependency name="repo_package" linkPath="../_repo/deps/repo_package">
     <package name="repo_package" version="5.5.1" />

@@ -30,7 +30,8 @@ class UpscalerExtension(omni.ext.IExt):
 
     def on_shutdown(self):
         win = omni.kit.window.content_browser.get_content_window()
-        win.delete_context_menu("Upscale Texture")
+        if win is not None:
+            win.delete_context_menu("Upscale Texture")
 
     def upscale(self, source_path, dest_path):
         UpscalerCore.perform_upscale(source_path, dest_path)
