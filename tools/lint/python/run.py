@@ -42,7 +42,7 @@ def setup_argument_parser(parser: argparse.ArgumentParser):
 
 
 def get_default_argument_parser() -> argparse.ArgumentParser:
-    """Default argument parser for format tool """
+    """Default argument parser for format tool"""
 
     parser = argparse.ArgumentParser()
     setup_argument_parser(parser)
