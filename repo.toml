@@ -63,27 +63,27 @@ files_exclude = [
 
 # Extensions to publish, include and exclude among those discovered by kit. Wildcards are supported.
 exts.include = [
-    "lightspeed.export",
-    "lightspeed.events_manager",
     "lightspeed.event.save_recent",
+    "lightspeed.events_manager",
+    "lightspeed.export",
     "lightspeed.layer_manager",
     "lightspeed.property_template",
     "lightspeed.tool.material",
     "lightspeed.tool.octahedral_converter",
     "lightspeed.upscale",
-    "lightspeed.window.capture_swapper",
     "lightspeed.widget.content_viewer",
     "lightspeed.widget.new_game",
     "lightspeed.widget.new_workspace",
+    "lightspeed.window.capture_swapper",
     "lightspeed.window.welcome",
     "lightspeed.workspace",
     "lightspeed_example.app.resources",
+    "lightspeed_example.my_name.controller",
     "lightspeed_example.my_name.core",
     "lightspeed_example.my_name.menu",
-    "lightspeed_example.my_name",
-    "lightspeed_example.style",
     "lightspeed_example.my_name.widget",
     "lightspeed_example.my_name.window",
+    "lightspeed_example.style",
 ]
 exts.exclude = []
 

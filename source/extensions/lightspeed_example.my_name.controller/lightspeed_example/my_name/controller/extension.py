@@ -37,7 +37,6 @@ class MyNameExtension(omni.ext.IExt):
     def on_shutdown(self):
         global _INSTANCE
         carb.log_info("[lightspeed_example.my_name] shutdown")
-        _INSTANCE = None
         for attr, value in self.default_attr.items():
             m_attr = getattr(self, attr)
             if isinstance(m_attr, list):
@@ -50,3 +49,5 @@ class MyNameExtension(omni.ext.IExt):
                     destroy()
                 del m_attr
                 setattr(self, attr, value)
+        _INSTANCE.destroy()
+        _INSTANCE = None
