@@ -14,4 +14,4 @@ category = "other"
 "lightspeed_example.my_name.window" = {}
 
 [[python.module]]
-name = "lightspeed_example.my_name"
+name = "lightspeed_example.my_name.controller"
