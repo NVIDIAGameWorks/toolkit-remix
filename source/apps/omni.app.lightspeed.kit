@@ -196,14 +196,16 @@ keywords = ["app", "lightspeed"]
 "omni.kit.tool.asset_importer" = {}
 "omni.kit.tool.collect" = {}
 
-"omni.upscale" = {}
-
 "lightspeed.event.save_recent" = {}
 "lightspeed.export" = {}
 "lightspeed.lock_xform" = {}
 "lightspeed.property_template" = {}
 "lightspeed.tool.material" = {}
-"lightspeed.upscale" = {}
+"lightspeed.color_to_normal.menu" = {}
+"lightspeed.color_to_normal.core" = {}
+"lightspeed.upscale.menu" = {}
+"lightspeed.upscale.core" = {}
+"lightspeed.upscale.content_browser.menu" = {}
 "lightspeed.window.capture_swapper" = {}
 "lightspeed.window.welcome" = {}
 "lightspeed.workspace" = { order = 1000 } # fails to set layout unless at the end
@@ -469,11 +471,16 @@ stdoutFailPatterns.exclude = [
 timeout = 3600
 
 
+
+
+
+
+
 ########################################################################################################################
 # BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
 ########################################################################################################################
 
-# Kit SDK Version: 103.1+release.5608.21db7dd6.tc
+# Kit SDK Version: 103.1+release.6806.08d54dfd.tc
 # Kit SDK dependencies:
 # 	carb.audio-0.1.0
 # 	carb.windowing.plugins-1.0.0
@@ -481,14 +488,14 @@ timeout = 3600
 # 	omni.assets.plugins-0.0.0
 # 	omni.client-0.1.0
 # 	omni.command.usd-1.0.1
-# 	omni.convexdecomposition-1.4.2
+# 	omni.convexdecomposition-1.4.3
 # 	omni.debugdraw-0.1.0
 # 	omni.gpu_foundation-0.0.0
-# 	omni.graph-1.17.1
-# 	omni.graph.core-2.23.5
+# 	omni.graph-1.18.1
+# 	omni.graph.core-2.24.1
 # 	omni.graph.examples.cpp-1.0.0
 # 	omni.graph.expression-1.0.0
-# 	omni.graph.tools-1.3.1
+# 	omni.graph.tools-1.3.2
 # 	omni.hydra.engine.stats-1.0.0
 # 	omni.hydra.pxr-1.1.0
 # 	omni.hydra.pxr.settings-1.0.2
@@ -545,7 +552,7 @@ timeout = 3600
 # 	omni.kit.viewport_widgets_manager-1.0.4
 # 	omni.kit.widget.browser_bar-2.0.3
 # 	omni.kit.widget.filebrowser-2.2.24
-# 	omni.kit.widget.graph-1.3.6
+# 	omni.kit.widget.graph-1.3.8
 # 	omni.kit.widget.imageview-1.0.1
 # 	omni.kit.widget.layers-1.5.16
 # 	omni.kit.widget.live-0.1.0
@@ -557,14 +564,14 @@ timeout = 3600
 # 	omni.kit.widget.versioning-1.3.6
 # 	omni.kit.window.about-1.0.1
 # 	omni.kit.window.console-0.1.0
-# 	omni.kit.window.content_browser-2.4.15
+# 	omni.kit.window.content_browser-2.4.17
 # 	omni.kit.window.cursor-1.0.1
 # 	omni.kit.window.drop_support-1.0.0
 # 	omni.kit.window.extensions-1.0.2
-# 	omni.kit.window.file-1.3.11
+# 	omni.kit.window.file-1.3.13
 # 	omni.kit.window.file_exporter-1.0.2
 # 	omni.kit.window.file_importer-1.0.2
-# 	omni.kit.window.filepicker-2.4.20
+# 	omni.kit.window.filepicker-2.4.21
 # 	omni.kit.window.imageviewer-1.0.5
 # 	omni.kit.window.popup_dialog-2.0.5
 # 	omni.kit.window.preferences-1.2.1
@@ -581,23 +588,23 @@ timeout = 3600
 # 	omni.kit.window.viewport-0.0.0
 # 	omni.kvdb-0.0.0
 # 	omni.localcache-0.0.0
-# 	omni.physx-1.4.2-5.1
-# 	omni.physx.bundle-1.4.2-5.1
-# 	omni.physx.camera-1.4.2-5.1
-# 	omni.physx.cct-1.4.2-5.1
-# 	omni.physx.commands-1.4.2-5.1
-# 	omni.physx.demos-1.4.2-5.1
-# 	omni.physx.tests-1.4.2-5.1
-# 	omni.physx.ui-1.4.2-5.1
-# 	omni.physx.vehicle-1.4.2-5.1
-# 	omni.physx.zerogravity-1.4.2-5.1
+# 	omni.physx-1.4.3-5.1
+# 	omni.physx.bundle-1.4.3-5.1
+# 	omni.physx.camera-1.4.3-5.1
+# 	omni.physx.cct-1.4.3-5.1
+# 	omni.physx.commands-1.4.3-5.1
+# 	omni.physx.demos-1.4.3-5.1
+# 	omni.physx.tests-1.4.3-5.1
+# 	omni.physx.ui-1.4.3-5.1
+# 	omni.physx.vehicle-1.4.3-5.1
+# 	omni.physx.zerogravity-1.4.3-5.1
 # 	omni.renderer-rtx-0.0.0
 # 	omni.rtx.settings.core-0.5.5
 # 	omni.rtx.window.settings-0.6.1
 # 	omni.stats-0.0.0
 # 	omni.timeline-1.0.2
-# 	omni.ui-2.7.4
-# 	omni.ui.scene-1.4.3
+# 	omni.ui-2.7.8
+# 	omni.ui.scene-1.4.4
 # 	omni.uiaudio-1.0.0
 # 	omni.usd-1.5.2
 # 	omni.usd.config-1.0.0
@@ -608,7 +615,7 @@ timeout = 3600
 # 	omni.usd.schema.physics-1.0.0
 # 	omni.usd.schema.physx-0.0.0
 # 	omni.usd.schema.semantics-0.0.0
-# 	omni.usdphysics-1.4.2
+# 	omni.usdphysics-1.4.3
 # 	omni.videoencoding-0.1.0
 
 # Exact Version dependencies:
@@ -617,17 +624,22 @@ timeout = 3600
 # Version lock for all dependencies:
 [settings.app.exts]
 enabled = [
+	"lightspeed.color_to_normal.core-0.1.0",
+	"lightspeed.color_to_normal.menu-0.1.0",
 	"lightspeed.common-0.1.0",
 	"lightspeed.event.save_recent-0.1.0",
 	"lightspeed.events_manager-0.1.0",
 	"lightspeed.export-0.1.0",
+	"lightspeed.layer_helpers-0.1.0",
 	"lightspeed.layer_manager-0.1.0",
 	"lightspeed.lock_xform-0.1.0",
 	"lightspeed.property_template-0.1.0",
 	"lightspeed.stage_column_nickname-0.1.0",
 	"lightspeed.tool.material-0.1.0",
 	"lightspeed.tool.octahedral_converter-0.1.0",
-	"lightspeed.upscale-0.1.0",
+	"lightspeed.upscale.content_browser.menu-0.1.0",
+	"lightspeed.upscale.core-0.1.0",
+	"lightspeed.upscale.menu-0.1.0",
 	"lightspeed.widget.content_viewer-0.1.0",
 	"lightspeed.widget.game_captures-0.1.0",
 	"lightspeed.widget.new_game-0.1.0",
@@ -636,55 +648,56 @@ enabled = [
 	"lightspeed.window.welcome-0.1.0",
 	"lightspeed.workspace-0.1.0",
 	"omni.create.app.resources-2022.1.0",
-	"omni.kit.activity.model.cache_status-1.0.3",
-	"omni.kit.activity.model.file_status-1.0.2",
-	"omni.kit.activity.model.usd_status-1.0.2",
-	"omni.kit.activity.progress.bundle-1.0.1",
-	"omni.kit.activity.widget.monitor-1.0.3",
-	"omni.kit.asset_converter-1.2.19",
-	"omni.kit.browser.asset_provider.actorcore-1.0.0",
-	"omni.kit.capture.viewport-1.1.1",
-	"omni.kit.manipulator.prim-1.2.1",
-	"omni.kit.manipulator.transform-1.3.10",
+	"omni.kit.activity.model.cache_status-1.0.4",
+	"omni.kit.activity.model.file_status-1.0.5",
+	"omni.kit.activity.model.usd_status-1.0.5",
+	"omni.kit.activity.progress.bundle-1.0.2",
+	"omni.kit.activity.widget.monitor-1.0.4",
+	"omni.kit.asset_converter-1.2.22",
+	"omni.kit.browser.asset_provider.actorcore-1.0.3",
+	"omni.kit.capture.viewport-1.1.3",
+	"omni.kit.manipulator.prim-1.4.0",
+	"omni.kit.manipulator.transform-1.3.11",
 	"omni.kit.manipulator.viewport-1.0.3",
-	"omni.kit.mesh.raycast-103.7.0",
+	"omni.kit.mesh.raycast-103.7.2",
 	"omni.kit.painter_link-101.1.1",
-	"omni.kit.profiler.window-1.3.5",
+	"omni.kit.profiler.window-1.4.2",
 	"omni.kit.property.collection-0.1.6",
 	"omni.kit.property.sbsar-0.7.7",
-	"omni.kit.quicksearch.actions-0.8.9",
+	"omni.kit.quicksearch.actions-0.8.10",
 	"omni.kit.quicksearch.commands-1.1.3",
-	"omni.kit.quicksearch.deeptag-0.8.2",
-	"omni.kit.quicksearch.hdri-0.8.7",
-	"omni.kit.quicksearch.material-0.8.5",
-	"omni.kit.quicksearch.menu-0.8.5",
-	"omni.kit.quicksearch.props-0.8.4",
+	"omni.kit.quicksearch.deeptag-0.8.3",
+	"omni.kit.quicksearch.hdri-0.8.8",
+	"omni.kit.quicksearch.material-0.8.6",
+	"omni.kit.quicksearch.menu-0.8.6",
+	"omni.kit.quicksearch.props-0.8.5",
 	"omni.kit.quicksearch.select-0.8.3",
-	"omni.kit.quicksearch.settings-0.8.3",
-	"omni.kit.search.files-1.0.1",
+	"omni.kit.quicksearch.settings-0.8.4",
+	"omni.kit.search.files-1.0.3",
 	"omni.kit.stage_column.payload-1.0.5",
 	"omni.kit.stage_column.variant-1.0.2",
-	"omni.kit.thumbnails.images-0.2.0",
-	"omni.kit.thumbnails.mdl-1.0.10",
-	"omni.kit.tool.asset_exporter-1.1.5",
-	"omni.kit.tool.asset_importer-2.3.18",
+	"omni.kit.thumbnails.images-0.2.1",
+	"omni.kit.thumbnails.mdl-1.0.11",
+	"omni.kit.tool.asset_exporter-1.1.6",
+	"omni.kit.tool.asset_importer-2.3.20",
+	"omni.kit.viewport.registry-1.0.2",
 	"omni.kit.widget.calendar-1.0.4",
 	"omni.kit.widget.collection-0.1.7",
-	"omni.kit.widget.extended_searchfield-1.0.3",
+	"omni.kit.widget.extended_searchfield-1.0.8",
 	"omni.kit.widget.searchfield-1.0.5",
 	"omni.kit.widgets.custom-0.6.4",
 	"omni.kit.window.collection-0.1.7",
-	"omni.kit.window.movie_capture-1.2.4",
-	"omni.kit.window.quicksearch-2.3.0",
-	"omni.paint.brush.attribute-103.3.1",
-	"omni.paint.brush.modify-103.1.3",
-	"omni.paint.brush.scatter-103.1.5",
-	"omni.paint.brush.scripting-103.6.1",
-	"omni.paint.brush.select-103.1.0",
-	"omni.paint.system.bundle-103.3.0",
-	"omni.paint.system.core-103.2.0",
-	"omni.paint.system.ui-103.4.0",
-	"omni.services.browser.asset-1.2.5",
+	"omni.kit.window.movie_capture-1.2.7",
+	"omni.kit.window.quicksearch-2.3.1",
+	"omni.paint.brush.attribute-103.3.2",
+	"omni.paint.brush.modify-103.1.4",
+	"omni.paint.brush.scatter-103.1.8",
+	"omni.paint.brush.scripting-103.6.4",
+	"omni.paint.brush.select-103.1.1",
+	"omni.paint.system.bundle-103.3.7",
+	"omni.paint.system.core-103.2.3",
+	"omni.paint.system.ui-103.4.2",
+	"omni.services.browser.asset-1.2.6",
 	"omni.services.client-0.2.3",
 	"omni.services.core-1.2.0",
 	"omni.services.facilities.base-1.0.2",
@@ -695,9 +708,8 @@ enabled = [
 	"omni.services.transport.client.base-1.1.0",
 	"omni.services.transport.client.http_async-1.1.2",
 	"omni.services.transport.client.idl_http_async-0.1.3",
-	"omni.services.transport.server.base-1.0.1",
+	"omni.services.transport.server.base-1.0.2",
 	"omni.services.transport.server.http-1.1.1",
-	"omni.upscale-0.1.0",
 	"omni.usd.fileformat.sbsar-0.7.4",
 	"omni.usd.schema.destruction-0.2.1",
 ]
