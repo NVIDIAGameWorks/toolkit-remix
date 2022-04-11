@@ -37,8 +37,10 @@ icon = "data/icon.png"
 "omni.usd" = {}
 "omni.kit.window.toolbar" = {}
 "lightspeed.common" = {}
+"lightspeed.layer_helpers" = {}
 "lightspeed.layer_manager" = {}
-"omni.upscale" = {}
+"lightspeed.upscale.core" = {}
+"lightspeed.progress_popup.window" = {}
 
 # Main python module this extension provides, it will be publicly available as "import omni.example.hello".
 [[python.module]]

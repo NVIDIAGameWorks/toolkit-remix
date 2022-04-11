@@ -14,7 +14,7 @@ from typing import Optional
 import carb
 import carb.tokens
 import omni.client
-from omni.upscale.upscale_core import UpscalerCore
+from lightspeed.upscale.core import UpscalerCore
 from PIL import Image
 
 

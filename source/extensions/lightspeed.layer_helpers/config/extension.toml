@@ -1,0 +1,16 @@
+[package]
+version = "0.1.0"
+authors = ["ajaus@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+keywords = ["lss", "lightspeed", "layer", "helper", "helpers"]
+title = "LightSpeed Layer Helpers"
+description = "Contains helper functions for lightspeed capture, export, and replacement layers."
+category = "other"
+
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.layer_manager" = {}
+
+[[python.module]]
+name = "lightspeed.layer_helpers"

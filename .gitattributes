@@ -21,3 +21,4 @@ vcomp140.dll filter=lfs diff=lfs merge=lfs -text
 realesrnet-x4plus.bin filter=lfs diff=lfs merge=lfs -text
 realesrgan-x4plus.bin filter=lfs diff=lfs merge=lfs -text
 realesrgan-x4plus-anime.bin filter=lfs diff=lfs merge=lfs -text
+*.pth filter=lfs diff=lfs merge=lfs -text

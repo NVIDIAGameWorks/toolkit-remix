@@ -1,4 +1,5 @@
 from enum import IntEnum
+from pathlib import Path
 
 MATERIAL_INPUTS_DIFFUSE_TEXTURE = "inputs:diffuse_texture"
 MATERIAL_INPUTS_NORMALMAP_TEXTURE = "inputs:normalmap_texture"
@@ -21,7 +22,11 @@ LSS_FOLDER = "lss"
 LSS_NICKNAME = "nickname"
 GAME_READY_ASSETS_FOLDER = "gameReadyAssets"
 CAPTURE_FOLDER = "capture"
-
+NVTT_PATH = str(Path(__file__).parent.joinpath("tools", "nvtt", "nvtt_export.exe"))
+PIX2PIX_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "pytorch-CycleGAN-and-pix2pix"))
+PIX2PIX_TEST_SCRIPT_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("test.py"))
+PIX2PIX_CHECKPOINTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("checkpoints"))
+PIX2PIX_RESULTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("results"))
 
 TEXTURE_COMPRESSION_LEVELS = {
     MATERIAL_INPUTS_DIFFUSE_TEXTURE: "bc7",

@@ -4,10 +4,10 @@ import carb
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
-from lightspeed.layer_manager import LightspeedTextureProcessingCore
-from omni.kit.tool.collect.progress_popup import ProgressPopup
+from lightspeed.layer_helpers import LightspeedTextureProcessingCore
+from lightspeed.progress_popup.window import ProgressPopup
+from lightspeed.upscale.core import UpscalerCore
 from omni.kit.window.toolbar.widget_group import WidgetGroup
-from omni.upscale import UpscalerCore
 from pxr import UsdShade
 
 from .core import ToolMaterialCore
