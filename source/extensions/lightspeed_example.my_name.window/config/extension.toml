@@ -6,6 +6,10 @@ keywords = ["window"]
 title = "Window"
 description = "Window example"
 category = "other"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+icon = "data/icon.png"
+preview_image = "data/preview.png"
 
 
 [dependencies]

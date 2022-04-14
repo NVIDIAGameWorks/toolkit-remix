@@ -4,5 +4,6 @@ project_ext (ext)
 
 repo_build.prebuild_link {
     {"python/lightspeed/", ext.target_dir.."/lightspeed"},
-    { "docs", ext.target_dir.."/docs" }
+    { "data", ext.target_dir.."/data" },
+    { "docs", ext.target_dir.."/docs" },
 }

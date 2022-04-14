@@ -6,6 +6,10 @@ keywords = ["my_name"]
 title = "My Name"
 description = "My name is a cool extension"
 category = "other"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+icon = "data/icon.png"
+preview_image = "data/preview.png"
 
 
 [dependencies]

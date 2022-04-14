@@ -9,6 +9,7 @@ title = "lightspeed Welcome Window"
 description = "lightspeed Welcome window that let the user create/open a new game workspace"
 icon = "data/icon.png"
 category = "other"
+preview_image = "data/preview.png"
 
 [ui]
 name = "lightspeed Welcome Window"
