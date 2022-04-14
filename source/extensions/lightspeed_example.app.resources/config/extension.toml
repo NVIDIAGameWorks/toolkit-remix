@@ -1,5 +1,9 @@
 [package]
 title = "Resources extension"
 description = "This Extension contains resources (images, icons) used by the app and splash screen."
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+icon = "data/icon.png"
+preview_image = "data/preview.png"
 
 authors = ["Damien Bataille <dbataille@nvidia.com>"]

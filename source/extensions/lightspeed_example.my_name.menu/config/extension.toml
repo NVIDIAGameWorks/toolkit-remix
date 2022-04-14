@@ -3,6 +3,8 @@ title = "Extension example to create the menu"
 description = "This is the menu example"
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
+icon = "data/icon.png"
+preview_image = "data/preview.png"
 
 [dependencies]
 "omni.kit.menu.utils" = {}

@@ -8,6 +8,8 @@ keywords = ["property", "template", "properties"]
 title = "Lightspeed Property template"
 description = "Alterations to the property window for Lightspeed content."
 category = "other"
+icon = "icon/find.png"
+preview_image = "data/preview.png"
 
 [ui]
 name = "Lightspeed Property template"
