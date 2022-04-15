@@ -25,6 +25,9 @@ keywords = ["kit", "upscale"]
 # More info on writing changelog: https://keepachangelog.com/en/1.0.0/
 changelog="docs/CHANGELOG.md"
 
+icon = "data/icon.png"
+preview_image = "data/preview.png"
+
 [dependencies]
 "lightspeed.upscale.core" = {}
 "omni.kit.window.content_browser" = {}
