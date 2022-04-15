@@ -1,7 +1,7 @@
-example.python_ext
+lightspeed.tool.octahedral_converter
 ###########################
 
-Example of Python only extension
+This is a simple utility to convert 3 channel tangent space normal map textures into 2 channel octahedral encoded textures.
 
 
 .. toctree::
@@ -11,7 +11,7 @@ Example of Python only extension
    CHANGELOG
 
 
-.. automodule:: example.python_ext
+.. automodule:: lightspeed.tool.octahedral_converter
     :platform: Windows-x86_64, Linux-x86_64
     :members:
     :undoc-members:
