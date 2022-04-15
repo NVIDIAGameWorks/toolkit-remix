@@ -172,4 +172,4 @@ black_version="22.3.0"
 
 [repo_deploy_launcher]
 enabled = true
-git_url = "https://oauth2:${env:TREX_PIPELINE_TOKEN}@gitlab-master.nvidia.com/omniverse/trex-release-pipeline.git"
+git_url = "https://oauth2:${env:GITLAB_AUTH_TOKEN}@gitlab-master.nvidia.com/omniverse/trex-release-pipeline.git"
