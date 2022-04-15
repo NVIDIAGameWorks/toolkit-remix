@@ -29,6 +29,8 @@ changelog="docs/CHANGELOG.md"
 # Preview image is shown in "Overview" of Extensions window. Screenshot of an extension might be a good preview image.
 preview_image = "data/preview.png"
 
+icon = "data/icon.png"
+
 [dependencies]
 "omni.kit.widget.stage" = {}
 "lightspeed.layer_manager" = {}
