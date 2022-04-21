@@ -22,3 +22,5 @@ realesrnet-x4plus.bin filter=lfs diff=lfs merge=lfs -text
 realesrgan-x4plus.bin filter=lfs diff=lfs merge=lfs -text
 realesrgan-x4plus-anime.bin filter=lfs diff=lfs merge=lfs -text
 *.pth filter=lfs diff=lfs merge=lfs -text
+source/extensions/lightspeed.color_to_roughness.core/lightspeed/color_to_roughness/core/tools/Color_Roughness/latest_net_G.pth filter=lfs diff=lfs merge=lfs -text
+source/extensions/lightspeed.color_to_roughness.core/lightspeed/color_to_roughness/core/tools/Color_Roughness/latest_net_D.pth filter=lfs diff=lfs merge=lfs -text

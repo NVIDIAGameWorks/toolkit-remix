@@ -20,13 +20,12 @@ from pathlib import Path
 
 import carb
 import carb.tokens
-import numpy as np
 import omni.usd
 from lightspeed.common import constants
-from PIL import Image
+from PIL import Image, ImageOps
 
 
-class ColorToNormalCore:
+class ColorToRoughnessCore:
     @staticmethod
     def perform_conversion(texture, output_texture):
         # Get the paths to the nvtt process for format conversion and pix2pix for access to the nueral net driver
@@ -40,12 +39,12 @@ class ColorToNormalCore:
         converter_path = Path(constants.PIX2PIX_TEST_SCRIPT_PATH)
         converter_dir = Path(constants.PIX2PIX_ROOT_PATH)
         # Copy the neural net data files over to the driver if they don't already exist
-        neural_net_data_path = Path(constants.PIX2PIX_CHECKPOINTS_PATH).joinpath("Color_NormalDX")
+        neural_net_data_path = Path(constants.PIX2PIX_CHECKPOINTS_PATH).joinpath("Color_Roughness")
         if not neural_net_data_path.exists():
-            shutil.copytree(str(Path(__file__).parent.joinpath("tools", "Color_NormalDX")), neural_net_data_path)
+            shutil.copytree(str(Path(__file__).parent.joinpath("tools", "Color_Roughness")), neural_net_data_path)
         # Set up the path to where the neural net driver leaves the results of the conversion
         result_path = Path(constants.PIX2PIX_RESULTS_PATH).joinpath(
-            "Color_NormalDX", "test_latest", "images", "texture_fake_B.png"
+            "Color_Roughness", "test_latest", "images", "texture_fake_B.png"
         )
         # Create temp dir and set up texture name/path
         original_texture_name = Path(texture).stem
@@ -93,13 +92,17 @@ class ColorToNormalCore:
                 "--dataroot",
                 temp_dir,
                 "--name",
-                "Color_NormalDX",
+                "Color_Roughness",
                 "--model",
                 "pix2pix",
                 "--num_test",
                 "1",
                 "--gpu_ids",
                 "-1",
+                "--preprocess",
+                "scale_width",
+                "--load_size",
+                "1024",
             ],
             cwd=str(converter_dir),
             stdout=subprocess.DEVNULL,
@@ -107,18 +110,11 @@ class ColorToNormalCore:
             env=new_env,
         )
         conversion_process.wait()
-        # The resulting normal map isn't guarenteed to have perfectly normal vector values, so we need to normalize it
+        # Reduce the 3 channel output to a single channgel image
         with Image.open(str(result_path)) as im:
-            normal_map_array = (np.asarray(im) / 255)[:, :, 0:3]
-            normal_map_array = (normal_map_array * 2) - 1
-            squared_array = np.square(normal_map_array)
-            summed_array = np.sum(squared_array, axis=2)
-            sqrted_array = np.sqrt(summed_array)
-            repeated_array = np.repeat(sqrted_array[:, :, np.newaxis], 3, axis=2)
-            normalized_array = normal_map_array / repeated_array
-            rescaled_array = ((normalized_array + 1) / 2) * 255
-            rounded_array = np.round(rescaled_array)
-            Image.fromarray(np.uint8(rounded_array)).save(str(result_path))
+            grey_im = ImageOps.grayscale(im)
+            print(grey_im.mode)
+            grey_im.save(str(result_path))
         # Convert to DDS if necessary, and generate mips (note dont use the temp dir for this)
         if output_texture.lower().endswith(".dds"):
             compress_mip_process = subprocess.Popen(
@@ -134,4 +130,4 @@ class ColorToNormalCore:
     @omni.usd.handle_exception
     async def async_perform_upscale(texture, output_texture):
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, ColorToNormalCore.perform_upscale, texture, output_texture)
+        await loop.run_in_executor(None, ColorToRoughnessCore.perform_upscale, texture, output_texture)

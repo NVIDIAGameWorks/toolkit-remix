@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.1.0"
+version = "0.1.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alexander Jaus <ajaus@nvidia.com>"]
@@ -36,13 +36,7 @@ icon = "data/icon.png"
 "lightspeed.common" = {}
 
 [python.pipapi]
-requirements = ["Pillow", 
-    "torch>=1.4.0",
-    "torchvision>=0.5.0",
-    "dominate>=2.4.0",
-    "wandb"
-]
-use_online_index = true
+requirements = ["Pillow", "numpy"]
 
 # Main python module this extension provides, it will be publicly available as "import omni.example.hello".
 [[python.module]]

@@ -1,25 +1,25 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.1.1"
+version = "0.1.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alexander Jaus <ajaus@nvidia.com>"]
 
 # The title and description fields are primarly for displaying extension info in UI
-title = "Lightspeed Game Export Common Extension"
-description="Stores values to be shared across Lightspeed Extensions"
+title = "Lightspeed Game Export Color Texture To Normal Map"
+description="A menu that can invoke an color to roughness texture converter on the textures in the loaded USD."
 
 # Path (relative to the root) or content of readme markdown file for UI.
 readme  = "docs/README.md"
 
 # URL of the extension source repository.
-repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.common"
+repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.color_to_roughness.menu"
 
 # One of categories for UI.
 category = "Export"
 
 # Keywords for the extension
-keywords = ["kit", "lightspeed", "common", "constants"]
+keywords = ["kit", "color", "roughness", "texture", "exporter","menu"]
 
 # Location of change log file in target (final) folder of extension, relative to the root.
 # More info on writing changelog: https://keepachangelog.com/en/1.0.0/
@@ -33,18 +33,14 @@ preview_image = "data/preview.png"
 icon = "data/icon.png"
 
 [dependencies]
-"omni.kit.test" = {}
-"omni.ui" = {}
-
-[python.pipapi]
-requirements = ["Pillow", 
-    "torch>=1.4.0",
-    "torchvision>=0.5.0",
-    "dominate>=2.4.0",
-    "wandb"
-]
-use_online_index = true
+"omni.kit.menu.utils" = {}
+"omni.kit.widget.layers" = {}
+"lightspeed.layer_helpers" = {}
+"lightspeed.layer_manager" = {}
+"lightspeed.common" = {}
+"lightspeed.color_to_roughness.core" = {}
+"lightspeed.progress_popup.window" = {}
 
 # Main python module this extension provides, it will be publicly available as "import omni.example.hello".
 [[python.module]]
-name = "lightspeed.common"
+name = "lightspeed.color_to_roughness.menu"

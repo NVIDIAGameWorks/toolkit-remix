@@ -65,6 +65,8 @@ files_exclude = [
 exts.include = [
     "lightspeed.color_to_normal.core",
     "lightspeed.color_to_normal.menu",
+    "lightspeed.color_to_roughness.core",
+    "lightspeed.color_to_roughness.menu",
     "lightspeed.common",
     "lightspeed.export",
     "lightspeed.events_manager",
