@@ -20,9 +20,11 @@ from pathlib import Path
 
 import carb
 import carb.tokens
+
+# import numpy as np
 import omni.usd
 from lightspeed.common import constants
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps  # , ImageFilter
 
 
 class ColorToRoughnessCore:
@@ -70,10 +72,13 @@ class ColorToRoughnessCore:
             png_texture_path = texture
         # Double the width of the input image so that the neural net driver thinks there's a known result for comparison
         # This can be just empty since it's not used in any way, but is the required input format
-        with Image.open(texture) as im:
-            width, height = im.size
-            im = im.crop((0, 0, width * 2, height))
-            im.save(test_path, "PNG")
+        try:
+            with Image.open(texture) as im:
+                width, height = im.size
+                im = im.crop((0, 0, width * 2, height))
+                im.save(test_path, "PNG")
+        except NotImplementedError:
+            return
         # Create the dirtectory for the output and delete the results directory if it exists
         Path(output_texture).parent.mkdir(parents=True, exist_ok=True)
         if result_path.exists():
@@ -111,14 +116,23 @@ class ColorToRoughnessCore:
         )
         conversion_process.wait()
         # Reduce the 3 channel output to a single channgel image
-        with Image.open(str(result_path)) as im:
-            grey_im = ImageOps.grayscale(im)
-            print(grey_im.mode)
-            grey_im.save(str(result_path))
+        try:
+            with Image.open(str(result_path)) as im:
+                grey_im = ImageOps.grayscale(im)
+                grey_im.save(str(result_path))
+        except NotImplementedError:
+            return
         # Convert to DDS if necessary, and generate mips (note dont use the temp dir for this)
         if output_texture.lower().endswith(".dds"):
             compress_mip_process = subprocess.Popen(
-                [str(nvtt_path), str(result_path), "--format", "bc7", "--output", output_texture],
+                [
+                    str(nvtt_path),
+                    str(result_path),
+                    "--format",
+                    constants.TEXTURE_COMPRESSION_LEVELS[constants.MATERIAL_INPUTS_REFLECTIONROUGHNESS_TEXTURE],
+                    "--output",
+                    output_texture,
+                ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT,
             )

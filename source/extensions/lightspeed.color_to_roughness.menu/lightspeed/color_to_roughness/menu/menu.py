@@ -27,7 +27,7 @@ from omni.kit.menu.utils import MenuItemDescription
 processing_config = (
     ColorToRoughnessCore.perform_conversion,
     constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
-    constants.MATERIAL_INPUTS_NORMALMAP_TEXTURE,
+    constants.MATERIAL_INPUTS_REFLECTIONROUGHNESS_TEXTURE,
     "_color2roughness.dds",
 )
 

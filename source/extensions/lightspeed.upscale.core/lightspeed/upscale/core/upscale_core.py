@@ -91,12 +91,23 @@ class UpscalerCore:
         # convert to DDS, and generate mips (note dont use the temp dir for this)
         if output_texture.lower().endswith(".dds"):
             compress_mip_process = subprocess.Popen(
-                [nvtt_path, upscaled_texture_path, "--format", "bc7", "--output", output_texture],
+                [
+                    nvtt_path,
+                    upscaled_texture_path,
+                    "--format",
+                    constants.TEXTURE_COMPRESSION_LEVELS[constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE],
+                    "--output",
+                    output_texture,
+                ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT,
             )
             compress_mip_process.wait()
-        if not keep_png and output_texture.replace("\\", "/") != upscaled_texture_path.replace("\\", "/"):
+        if (
+            not keep_png
+            and output_texture.replace("\\", "/") != upscaled_texture_path.replace("\\", "/")
+            and os.path.exists(upscaled_texture_path)
+        ):
             os.remove(upscaled_texture_path)
         temp_dir.cleanup()
 

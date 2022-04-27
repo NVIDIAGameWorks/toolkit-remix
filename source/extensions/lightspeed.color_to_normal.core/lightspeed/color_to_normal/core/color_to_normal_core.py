@@ -71,10 +71,13 @@ class ColorToNormalCore:
             png_texture_path = texture
         # Double the width of the input image so that the neural net driver thinks there's a known result for comparison
         # This can be just empty since it's not used in any way, but is the required input format
-        with Image.open(texture) as im:
-            width, height = im.size
-            im = im.crop((0, 0, width * 2, height))
-            im.save(test_path, "PNG")
+        try:
+            with Image.open(texture) as im:
+                width, height = im.size
+                im = im.crop((0, 0, width * 2, height))
+                im.save(test_path, "PNG")
+        except NotImplementedError:
+            return
         # Create the dirtectory for the output and delete the results directory if it exists
         Path(output_texture).parent.mkdir(parents=True, exist_ok=True)
         if result_path.exists():
@@ -100,6 +103,10 @@ class ColorToNormalCore:
                 "1",
                 "--gpu_ids",
                 "-1",
+                "--preprocess",
+                "scale_width",
+                "--load_size",
+                "1024",
             ],
             cwd=str(converter_dir),
             stdout=subprocess.DEVNULL,
@@ -108,6 +115,7 @@ class ColorToNormalCore:
         )
         conversion_process.wait()
         # The resulting normal map isn't guarenteed to have perfectly normal vector values, so we need to normalize it
+        # Then convert to octohedral encoding
         with Image.open(str(result_path)) as im:
             normal_map_array = (np.asarray(im) / 255)[:, :, 0:3]
             normal_map_array = (normal_map_array * 2) - 1
@@ -118,11 +126,50 @@ class ColorToNormalCore:
             normalized_array = normal_map_array / repeated_array
             rescaled_array = ((normalized_array + 1) / 2) * 255
             rounded_array = np.round(rescaled_array)
-            Image.fromarray(np.uint8(rounded_array)).save(str(result_path))
+            # Image.fromarray(np.uint8(rounded_array)).save(str(result_path))
+            hemi_sphere_array = 2 * ((np.asarray(rounded_array) / 255)[:, :, 0:3]) - 1
+            hemi_mag = np.sqrt(
+                np.square(hemi_sphere_array[:, :, 0][:, :, np.newaxis])
+                + np.square(hemi_sphere_array[:, :, 1][:, :, np.newaxis])
+                + np.square(hemi_sphere_array[:, :, 2][:, :, np.newaxis])
+            )
+            hemi_sphere_array = hemi_sphere_array / np.repeat(hemi_mag, 3, axis=2)
+            p = hemi_sphere_array[:, :, (0, 1)] * (
+                1
+                / (
+                    np.absolute(hemi_sphere_array[:, :, 0][:, :, np.newaxis])
+                    + np.absolute(hemi_sphere_array[:, :, 1][:, :, np.newaxis])
+                    + hemi_sphere_array[:, :, 2][:, :, np.newaxis]
+                )
+            )
+            unorm_oct_array = (
+                np.clip(
+                    np.dstack(
+                        (
+                            p[:, :, 0][:, :, np.newaxis] + p[:, :, 1][:, :, np.newaxis],
+                            p[:, :, 0][:, :, np.newaxis] - p[:, :, 1][:, :, np.newaxis],
+                        )
+                    ),
+                    -1,
+                    1,
+                )
+                * 0.5
+                + 0.5
+            )
+            unorm_oct_array = np.insert(unorm_oct_array, 2, 0, axis=2)
+            out_im = Image.fromarray(np.uint8((unorm_oct_array * 255).round()))
+            out_im.save(str(result_path))
         # Convert to DDS if necessary, and generate mips (note dont use the temp dir for this)
         if output_texture.lower().endswith(".dds"):
             compress_mip_process = subprocess.Popen(
-                [str(nvtt_path), str(result_path), "--format", "bc7", "--output", output_texture],
+                [
+                    str(nvtt_path),
+                    str(result_path),
+                    "--format",
+                    constants.TEXTURE_COMPRESSION_LEVELS[constants.MATERIAL_INPUTS_NORMALMAP_TEXTURE],
+                    "--output",
+                    output_texture,
+                ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT,
             )

@@ -36,5 +36,8 @@ class AutoUpscaleLayer(ILayer):
             shader_prim = shader.GetPrim()
             attr = shader_prim.CreateAttribute(texture_attribute, Sdf.ValueTypeNames.Asset)
             attr.Set(output_asset_relative_path)
-            attr.SetColorSpace(constants.AUTO)
+            if texture_attribute == constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE:
+                attr.SetColorSpace(constants.SRGB)
+            else:
+                attr.SetColorSpace(constants.RAW)
         auto_stage.GetRootLayer().Save()
