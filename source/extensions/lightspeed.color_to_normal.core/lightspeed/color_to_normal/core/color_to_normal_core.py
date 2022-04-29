@@ -124,9 +124,10 @@ class ColorToNormalCore:
             sqrted_array = np.sqrt(summed_array)
             repeated_array = np.repeat(sqrted_array[:, :, np.newaxis], 3, axis=2)
             normalized_array = normal_map_array / repeated_array
+            # Invert Red!
+            normalized_array[:, :, 0] = -1 * normalized_array[:, :, 0]
             rescaled_array = ((normalized_array + 1) / 2) * 255
             rounded_array = np.round(rescaled_array)
-            # Image.fromarray(np.uint8(rounded_array)).save(str(result_path))
             hemi_sphere_array = 2 * ((np.asarray(rounded_array) / 255)[:, :, 0:3]) - 1
             hemi_mag = np.sqrt(
                 np.square(hemi_sphere_array[:, :, 0][:, :, np.newaxis])

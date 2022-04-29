@@ -24,7 +24,7 @@ import carb.tokens
 # import numpy as np
 import omni.usd
 from lightspeed.common import constants
-from PIL import Image, ImageOps  # , ImageFilter
+from PIL import Image, ImageOps
 
 
 class ColorToRoughnessCore:
@@ -119,6 +119,8 @@ class ColorToRoughnessCore:
         try:
             with Image.open(str(result_path)) as im:
                 grey_im = ImageOps.grayscale(im)
+                # Convert Smoothness to roughness
+                grey_im = ImageOps.invert(grey_im)
                 grey_im.save(str(result_path))
         except NotImplementedError:
             return
