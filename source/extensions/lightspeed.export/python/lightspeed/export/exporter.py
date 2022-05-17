@@ -9,6 +9,7 @@
 """
 import asyncio
 import os
+import uuid
 from pathlib import Path
 from typing import Optional
 
@@ -16,11 +17,12 @@ import carb
 import omni.client
 import omni.ext
 import omni.usd
-from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER
+from lightspeed.common import constants
 from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
 from omni.kit.tool.collect.collector import Collector
 
 from .post_process import LightspeedPosProcessExporter
+from .pre_process import preprocess
 
 
 class LightspeedExporterCore:
@@ -131,7 +133,7 @@ class LightspeedExporterCore:
         current_game_capture_folder = self._layer_manager.game_current_game_capture_folder()
         if not current_game_capture_folder:
             return None
-        path = str(Path(current_game_capture_folder.path).parent.joinpath(GAME_READY_ASSETS_FOLDER)) + os.sep
+        path = str(Path(current_game_capture_folder.path).parent.joinpath(constants.GAME_READY_ASSETS_FOLDER)) + os.sep
         if create_if_not_exist:
             Path(path).mkdir(parents=True, exist_ok=True)
         return path
@@ -161,8 +163,12 @@ class LightspeedExporterCore:
         return True
 
     def _start_exporting(self, export_folder):
+        context = omni.usd.get_context()
         # Save the current stage
-        omni.usd.get_context().save_stage()
+        context.save_stage()
+        # cache workspace stage path, which is currently open
+        workspace_stage_path = context.get_stage_url()
+        workspace_stage_path_norm = omni.client.normalize_url(workspace_stage_path)
 
         # Get current stage path
         layer = self._layer_manager.get_layer(LayerType.replacement)
@@ -170,9 +176,16 @@ class LightspeedExporterCore:
             carb.log_error("Can't find the replacement layer")
             return
 
+        preprocess(self._layer_manager)
+
         usd_path = layer.realPath
+        # Make a temporary copy of the replacement layer with the preprocessing applied.  This is needed for the
+        # exporter to pick up any changed dependencies.
+        temp_file_path = os.path.join(os.path.dirname(usd_path), f"pre_processed_replacement_{str(uuid.uuid4())}.usda")
+        layer.Export(temp_file_path)
+
         self._progress_text_changed(f"Analyzing USD {os.path.basename(usd_path)}...")
-        self._collector = Collector(usd_path, export_folder, False, True, False)
+        self._collector = Collector(temp_file_path, export_folder, False, True, False)
 
         def progress_callback(step, total):
             self._progress_text_changed(f"Collecting USD {os.path.basename(usd_path)}...")
@@ -182,25 +195,25 @@ class LightspeedExporterCore:
                 self._progress_changed(0.0)
 
         async def _deferred_finish_callback():
-            context = omni.usd.get_context()
-
-            # cache workspace stage path, which is currently open
-            workspace_stage_path = context.get_stage_url()
-            workspace_stage_path_norm = omni.client.normalize_url(workspace_stage_path)
-
             export_file_path = export_folder
             if not export_file_path.endswith("/"):
                 export_file_path += "/"
-            export_file_path += os.path.basename(usd_path)
-            export_file_path_norm = omni.client.normalize_url(export_file_path)
+            # The collector makes a copy of the temporary replacement layer, so rename that to the intended destination.
+            export_file_path_norm = omni.client.normalize_url(export_file_path + os.path.basename(temp_file_path))
+            dest_file_path_norm = omni.client.normalize_url(export_file_path + os.path.basename(usd_path))
+            os.replace(export_file_path_norm, dest_file_path_norm)
 
+            self._progress_text_changed(f"Post Processing USD {os.path.basename(usd_path)}...")
             # now process/optimize geo for game
-            await self._post_exporter.process(export_file_path_norm)
+            await self._post_exporter.process(dest_file_path_norm)
 
             # reopen original stage
             # TODO: Crash, use async function instead, waiting OM-42168
             # omni.usd.get_context().open_stage(workspace_stage_path)
             await context.open_stage_async(workspace_stage_path_norm)
+
+            # Delete the temporary pre-processed replacement layer.
+            os.remove(temp_file_path)
 
             self._finish_export()
 
