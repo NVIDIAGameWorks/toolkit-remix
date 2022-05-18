@@ -17,7 +17,7 @@ from lightspeed.common import constants
 from omni.kit.property.usd.prim_selection_payload import PrimSelectionPayload
 from omni.kit.property.usd.references_widget import DEFAULT_PRIM_TAG, PayloadReferenceWidget
 from omni.kit.property.usd.usd_property_widget import UsdPropertiesWidget
-from pxr import Sdf, Usd
+from pxr import Sdf, Tf, Usd
 
 
 class MeshAssetWidget(PayloadReferenceWidget):
@@ -102,6 +102,7 @@ class MeshAssetsWidget(UsdPropertiesWidget):
         super().__init__(title=title, collapsed=False)
         self.__children_widgets = []
         self.__prototypes_data = {}
+        self._listener = None
 
     def on_new_payload(self, payloads):
         self.__prototypes_data = {}
@@ -137,7 +138,7 @@ class MeshAssetsWidget(UsdPropertiesWidget):
             widget = MeshAssetWidget(proto, self)
             widget.on_new_payload(PrimSelectionPayload(weakref.ref(stage), [proto]))
             self.__children_widgets.append(widget)
-        return True
+        return super().on_new_payload(payloads)
 
     def build_items(self):
         self._collapsable_frame.name = "groupFrame"  # to have dark background
@@ -148,7 +149,34 @@ class MeshAssetsWidget(UsdPropertiesWidget):
                 ):
                     widget.build_items()
 
+        # recreate the tf notice
+        if not self._payload:
+            return
+        last_prim = self._get_prim(self._payload[-1])
+        if not last_prim:
+            return
+
+        stage = last_prim.GetStage()
+        if not stage:
+            return
+        self._listener = Tf.Notice.Register(Usd.Notice.ObjectsChanged, self._on_usd_changed, stage)
+
+    def _on_usd_changed(self, notice, stage):
+        super()._on_usd_changed(notice, stage)
+        if notice.GetResyncedPaths():
+            self.request_rebuild()
+
+    def reset(self):
+        super().reset()
+        self._disable_listener()
+
+    def _disable_listener(self):
+        if self._listener:
+            self._listener.Revoke()
+        self._listener = None
+
     def clean(self):
+        self._disable_listener()
         for children_widget in self.__children_widgets:
             children_widget.clean()
         self.__children_widgets = []
