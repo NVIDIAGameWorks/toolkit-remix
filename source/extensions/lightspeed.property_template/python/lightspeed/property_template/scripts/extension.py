@@ -13,8 +13,9 @@ import omni.kit.app
 import omni.kit.window.property
 
 from .asset_delegate import AssetDelegate
-from .material_asset_widget import MaterialAssetWidget
-from .mesh_asset_widget import MeshAssetWidget
+from .info_asset_widget import InfoAssetWidget
+from .material_asset_widget import MaterialAssetsWidget
+from .mesh_asset_widget import MeshAssetsWidget
 
 
 class PropertyTemplateExtension(omni.ext.IExt):
@@ -29,12 +30,13 @@ class PropertyTemplateExtension(omni.ext.IExt):
         self._extension_path = omni.kit.app.get_app().get_extension_manager().get_extension_path(ext_id)
         property_window = omni.kit.window.property.get_window()
         if property_window:
-            property_window.register_widget("prim", "lss_mesh_asset", MeshAssetWidget("Shared Mesh"))
+            property_window.register_widget("prim", "lss_info_asset", InfoAssetWidget("Current selection information"))
+            property_window.register_widget("prim", "lss_mesh_assets", MeshAssetsWidget("Shared Mesh"))
             property_window.register_widget(
-                "prim", "lss_material_asset", MaterialAssetWidget("Shared Material", self._extension_path)
+                "prim", "lss_material_asset", MaterialAssetsWidget("Shared Material", self._extension_path)
             )
             property_window.register_scheme_delegate("prim", "lss", AssetDelegate())
-            property_window.set_scheme_delegate_layout("prim", ["path_prim", "lss"])
+            property_window.set_scheme_delegate_layout("prim", ["lss"])
             self._registered = True
 
     def on_shutdown(self):
@@ -43,5 +45,6 @@ class PropertyTemplateExtension(omni.ext.IExt):
         if self._registered and property_window:
             property_window.unregister_scheme_delegate("prim", "lss")
             property_window.unregister_widget("prim", "lss_material_asset")
-            property_window.unregister_widget("prim", "lss_mesh_asset")
+            property_window.unregister_widget("prim", "lss_mesh_assets")
+            property_window.unregister_widget("prim", "lss_info_asset")
             self._registered = False

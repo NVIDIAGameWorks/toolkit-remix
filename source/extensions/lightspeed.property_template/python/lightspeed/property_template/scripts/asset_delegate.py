@@ -17,8 +17,8 @@ class AssetDelegate(PropertySchemeDelegate):
     def get_widgets(self, payload):
         widgets_to_build = []
         if self._should_enable_delegate(payload):
-            widgets_to_build.append("path")
-            widgets_to_build.append("lss_mesh_asset")
+            widgets_to_build.append("lss_info_asset")
+            widgets_to_build.append("lss_mesh_assets")
             widgets_to_build.append("lss_material_asset")
             widgets_to_build.append("attribute")
         return widgets_to_build
@@ -42,6 +42,7 @@ class AssetDelegate(PropertySchemeDelegate):
                 "media",
                 "metadata",
                 "nodegraph",
+                "path",
                 "payloads",
                 "physx_custom_properties",
                 "physx_invisible",
