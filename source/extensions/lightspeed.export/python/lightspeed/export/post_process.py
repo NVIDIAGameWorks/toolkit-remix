@@ -22,7 +22,7 @@ from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
 class LightspeedPosProcessExporter:
     def __init__(self):
-        self._nvtt_path = constants.NVTT_PATH
+        self._nvtt_path = Path(constants.NVTT_PATH)
         self.__layer_manager = LayerManagerCore()
 
     def _remove_extra_attr(self, prim: Usd.Prim):
