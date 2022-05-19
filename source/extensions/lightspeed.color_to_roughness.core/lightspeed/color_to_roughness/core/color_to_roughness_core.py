@@ -73,7 +73,7 @@ class ColorToRoughnessCore:
         # Double the width of the input image so that the neural net driver thinks there's a known result for comparison
         # This can be just empty since it's not used in any way, but is the required input format
         try:
-            with Image.open(texture) as im:
+            with Image.open(png_texture_path) as im:
                 width, height = im.size
                 im = im.crop((0, 0, width * 2, height))
                 im.save(test_path, "PNG")
