@@ -113,6 +113,8 @@ class EventsManagerCore:
         self.__ds_events.remove(ds_event)
 
     def destroy(self):
+        for event in self.__ds_events:
+            event.uninstall()
         self.__ds_events = []
         for attr, value in self.default_attr.items():
             m_attr = getattr(self, attr)

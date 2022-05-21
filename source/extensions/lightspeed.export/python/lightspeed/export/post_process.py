@@ -14,7 +14,7 @@ import traceback
 import carb
 import omni.usd
 from lightspeed.common import ReferenceEdit, constants
-from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
+from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from lightspeed.tool.octahedral_converter import LightspeedOctahedralConverter
 from omni.kit.window.popup_dialog import MessageDialog
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
