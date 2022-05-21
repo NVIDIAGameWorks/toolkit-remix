@@ -15,7 +15,7 @@ import omni.client
 import omni.ext
 import omni.kit.menu.utils as omni_utils
 import omni.kit.window.content_browser as content
-from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
+from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from omni import ui
 from omni.kit.menu.utils import MenuItemDescription
 from omni.kit.tool.collect.icons import Icons

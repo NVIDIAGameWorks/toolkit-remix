@@ -14,7 +14,7 @@ import omni.client
 import omni.ext
 import omni.usd
 from lightspeed.common import constants
-from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
+from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from pxr import Sdf, Usd
 
 

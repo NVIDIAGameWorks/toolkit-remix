@@ -52,3 +52,5 @@ def open_file_picker(callback: Callable, callback_cancel: Callable, current_dire
         item_filter_fn=lambda item: on_filter_item(dialog, item),
         current_directory=current_directory,
     )
+    if current_directory:
+        dialog.navigate_to(current_directory)

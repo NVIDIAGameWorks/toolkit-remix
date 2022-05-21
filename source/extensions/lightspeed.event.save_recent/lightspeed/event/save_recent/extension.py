@@ -9,7 +9,7 @@
 """
 import carb
 import omni.ext
-from lightspeed.events_manager.scripts.core import EVENTS_MANAGER_INSTANCE
+from lightspeed.events_manager.core import EVENTS_MANAGER_INSTANCE
 
 from .core import EventSaveRecentCore
 

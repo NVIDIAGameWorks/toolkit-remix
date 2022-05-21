@@ -70,6 +70,7 @@ exts.include = [
     "lightspeed.common",
     "lightspeed.export",
     "lightspeed.events_manager",
+    "lightspeed.event.layers_cleanup",
     "lightspeed.event.save_recent",
     "lightspeed.layer_helpers",
     "lightspeed.layer_manager",

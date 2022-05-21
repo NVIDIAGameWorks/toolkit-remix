@@ -16,8 +16,8 @@ import carb.settings
 import omni.kit.commands
 import omni.kit.window.file
 import omni.usd
-from lightspeed.layer_manager.scripts.constants import LSS_LAYER_GAME_NAME
-from lightspeed.layer_manager.scripts.core import LayerManagerCore, LayerType
+from lightspeed.layer_manager.constants import LSS_LAYER_GAME_NAME
+from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from omni.kit.widget.layers import LayerUtils
 from omni.usd import handle_exception
 

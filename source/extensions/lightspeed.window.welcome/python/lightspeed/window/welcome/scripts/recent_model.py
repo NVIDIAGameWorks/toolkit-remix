@@ -10,7 +10,7 @@
 
 import omni.client
 import omni.ui as ui
-from lightspeed.event.save_recent.scripts.recent_saved_file_utils import get_instance
+from lightspeed.event.save_recent.recent_saved_file_utils import get_instance
 
 HEADER_DICT = {0: "Recent scenarios"}
 

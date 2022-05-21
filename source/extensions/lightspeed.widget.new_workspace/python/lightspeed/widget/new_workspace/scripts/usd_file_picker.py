@@ -170,6 +170,8 @@ def open_file_picker(
         item_filter_fn=lambda item: on_filter_item(dialog, item, show_folder_only=show_folder_only),
         current_directory=current_directory,
     )
+    if current_directory:
+        dialog.navigate_to(current_directory)
     if bookmarks:
         for k, v in bookmarks.items():
             dialog.toggle_bookmark_from_path(k, v, True)
