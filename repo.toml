@@ -167,6 +167,22 @@ bucket_dir = "${project}/${version}"
 [repo_format]
 # move up to a newer version of black since the older version used by repo_format by defualt is currently broken.
 black_version="22.3.0"
+# Python file patterns to exclude when formatting. Refer to `black` docs for more info.
+py_exclude = """
+(
+  /(
+      \\.eggs
+    | \\.git
+    | \\.venv
+    | _build
+    | _repo
+    | _compiler
+    | _vendor
+    | source/.*/lightspeed/common/tools/.*
+    | tools/packman
+  )/
+)
+"""
 
 
 ########################################################################################################################
