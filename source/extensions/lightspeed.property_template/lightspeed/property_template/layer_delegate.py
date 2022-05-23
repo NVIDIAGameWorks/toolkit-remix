@@ -7,4 +7,13 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-from .scripts import *  # noqa F401
+from omni.kit.window.property.property_scheme_delegate import PropertySchemeDelegate
+
+
+# noinspection PyMethodMayBeStatic
+class LayerDelegate(PropertySchemeDelegate):
+    def get_unwanted_widgets(self, payload):
+        return [
+            "audio_settings",
+            "metadata",
+        ]

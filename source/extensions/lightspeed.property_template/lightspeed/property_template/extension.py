@@ -14,6 +14,7 @@ import omni.kit.window.property
 
 from .asset_delegate import AssetDelegate
 from .info_asset_widget import InfoAssetWidget
+from .layer_delegate import LayerDelegate
 from .material_asset_widget import MaterialAssetsWidget
 from .mesh_asset_widget import MeshAssetsWidget
 
@@ -35,7 +36,8 @@ class PropertyTemplateExtension(omni.ext.IExt):
             property_window.register_widget(
                 "prim", "lss_material_asset", MaterialAssetsWidget("Shared Material", self._extension_path)
             )
-            property_window.register_scheme_delegate("prim", "lss", AssetDelegate())
+            property_window.register_scheme_delegate("prim", "lss_asset", AssetDelegate())
+            property_window.register_scheme_delegate("layers", "lss_layer", LayerDelegate())
             property_window.set_scheme_delegate_layout("prim", ["lss"])
             self._registered = True
 
@@ -43,7 +45,8 @@ class PropertyTemplateExtension(omni.ext.IExt):
         carb.log_info("[lightspeed.property_template] Lightspeed Property Template shutdown")
         property_window = omni.kit.window.property.get_window()
         if self._registered and property_window:
-            property_window.unregister_scheme_delegate("prim", "lss")
+            property_window.unregister_scheme_delegate("prim", "lss_asset")
+            property_window.unregister_scheme_delegate("prim", "lss_layer")
             property_window.unregister_widget("prim", "lss_material_asset")
             property_window.unregister_widget("prim", "lss_mesh_assets")
             property_window.unregister_widget("prim", "lss_info_asset")
