@@ -38,7 +38,7 @@ class PropertyTemplateExtension(omni.ext.IExt):
             )
             property_window.register_scheme_delegate("prim", "lss_asset", AssetDelegate())
             property_window.register_scheme_delegate("layers", "lss_layer", LayerDelegate())
-            property_window.set_scheme_delegate_layout("prim", ["lss"])
+            property_window.set_scheme_delegate_layout("prim", ["lss_asset", "lss_layer"])
             self._registered = True
 
     def on_shutdown(self):
