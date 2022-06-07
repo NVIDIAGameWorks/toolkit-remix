@@ -23,9 +23,10 @@ name = "Lightspeed New Game Widget"
 "omni.kit.window.filepicker" = {}
 "omni.ui" = {}
 "omni.usd" = {}
+# omni.kit.pip_archive has Pillow and numpy. Adding Pillow in requirements will not work, because Pillow needs to
+# import PIL, not import Pillow.
+"omni.kit.pip_archive" = {}
+"lightspeed.pip_archive" = {}
 
 [[python.module]]
 name = "lightspeed.widget.new_game"
-
-[python.pipapi]
-requirements = ["Pillow"]

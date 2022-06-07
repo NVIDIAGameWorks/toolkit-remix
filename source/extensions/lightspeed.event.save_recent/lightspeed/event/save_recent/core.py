@@ -11,8 +11,8 @@ import carb
 import omni.client
 import omni.usd
 from lightspeed.events_manager.i_ds_event import ILSSEvent
-from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from lightspeed.layer_manager.constants import LSS_LAYER_GAME_NAME
+from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 
 from .recent_saved_file_utils import RecentSavedFile
 

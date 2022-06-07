@@ -1,5 +1,56 @@
 [flake8]
-ignore=E402,E501,W503
 max-line-length = 120
 max-complexity = 18
 exclude=_*,.vscode,.git
+docstring-convention = google
+
+ignore =
+    F403, F405, W503, D1, D2, D4,
+    # ignore multiple with statements (for omni.ui)
+    SIM117,
+    # ignore whitespace before ':', Black takes care of it
+    E203,
+    # Missing function or method docstring (missing-function-docstring)
+    PLC0116,
+    # Method could be a function (no-self-use)
+    PLR0201,
+    # Line too long (107/100) (line-too-long) # we already have another plugin that check that
+    PLC0301,
+    # Unable to import
+    PLE0401,
+    # Use 'from omni import ui' instead (consider-using-from-import)
+    PLR0402,
+    # Missing module docstring (missing-module-docstring)
+    PLC0114,
+    # Unused argument 'item' (unused-argument) # we already have another plugin that check that
+    PLW0613,
+    # Too few public method, too many....
+    PLR09,
+    # Using the global statement (global-statement)
+    PLW0603,
+    # Unnecessary pass statement (unnecessary-pass)
+    PLW0107,
+    # Missing class docstring (missing-class-docstring)
+    PLC0115,
+    # ignore todo
+    PLW0511,
+    # No name 'RiggedVehicleCore' in module 'core.core' (no-name-in-module)
+    PLE0611,
+    # Anomalous backslash in string: '\S'.
+    PLW1401,
+    # Attribute 'bla' defined outside __init__
+    PLW0201,
+    # Access to member 'bla' before its definition line
+    PLE0203,
+    # Instance of 'SetupUI' has no '' member (no-member)
+    PLE1101,
+    # Unused private member `ContentItem.__background_image` (unused-private-member)
+    PLW0238,
+    # Method should have "self" as first argument (no-self-argument)  # we already have N805
+    PLE0213,
+    # Import "import omni.ui as ui" should be placed at the top of the module (wrong-import-position) (with use isort)
+    PLC0413,
+    # Unused import asyncio (unused-import), we use F401
+    PLW0611,
+    # No value for argument 'is_item_expanded_fn' in constructor call (no-value-for-parameter)
+    PLE1120

@@ -7,9 +7,9 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-from pathlib import Path
 import subprocess
 import traceback
+from pathlib import Path
 
 import carb
 import omni.usd
@@ -59,8 +59,8 @@ class LightspeedPosProcessExporter:
         # invert the vertical texture coordinate
         flattened_uvs = st_prim_var.ComputeFlattened()
         inverted_uvs = []
-        for uv in flattened_uvs:
-            inverted_uvs.append(Gf.Vec2f(uv[0], -uv[1]))
+        for uv_value in flattened_uvs:
+            inverted_uvs.append(Gf.Vec2f(uv_value[0], -uv_value[1]))
 
         prim.CreateAttribute("invertedUvs", Sdf.ValueTypeNames.Float2Array, False).Set(inverted_uvs)
 
@@ -293,12 +293,12 @@ class LightspeedPosProcessExporter:
             if attr and attr.Get():
                 abs_path = Path(attr.Get().resolvedPath)
                 rel_path = Path(attr.Get().path)
-                if abs_path and not abs_path.suffix.lower() == ".dds":
+                if abs_path and abs_path.suffix.lower() != ".dds":
                     dds_path = abs_path.with_suffix(".dds")
                     rel_dds_path = rel_path.with_suffix(".dds")
                     # only create the dds if it doesn't already exist
                     if not dds_path.exists():
-                        compress_mip_process = subprocess.Popen(
+                        compress_mip_process = subprocess.Popen(  # noqa
                             [str(self._nvtt_path), str(abs_path), "--format", bc_mode, "--output", str(dds_path)]
                         )
                         compress_mip_process.wait()
@@ -315,7 +315,7 @@ class LightspeedPosProcessExporter:
 
         # TODO: Crash, use async function instead, waiting OM-42168
         # success = context.open_stage(export_file_path)
-        result, err = await context.open_stage_async(export_file_path)
+        result, _ = await context.open_stage_async(export_file_path)
         if not result:
             return
 
@@ -338,7 +338,7 @@ class LightspeedPosProcessExporter:
                 # apply edits to the geo prim in it's source usd, not in the top level replacements.usd
                 with ReferenceEdit(geo_prim):
                     self._process_mesh_prim(geo_prim)
-            except Exception as e:
+            except Exception as e:  # noqa
                 failed_processes.append(str(geo_prim.GetPath()))
                 carb.log_error("Exception when post-processing mesh: " + str(geo_prim.GetPath()))
                 carb.log_error(f"{e}")
@@ -353,7 +353,7 @@ class LightspeedPosProcessExporter:
                 # apply edits to the shader prim in it's source usd, not in the top level replacements.usd
                 with ReferenceEdit(shader_prim):
                     self._process_shader_prim(shader_prim)
-            except Exception as e:
+            except Exception as e:  # noqa
                 failed_processes.append(str(shader_prim.GetPath()))
                 carb.log_error("Exception when post-processing shader: " + str(shader_prim.GetPath()))
                 carb.log_error(f"{e}")
@@ -375,7 +375,7 @@ class LightspeedPosProcessExporter:
             dialog = MessageDialog(
                 width=600,
                 message=message,
-                ok_handler=lambda dialog: on_okay_clicked(dialog),
+                ok_handler=on_okay_clicked,
                 ok_label="Okay",
                 disable_cancel_button=True,
             )
