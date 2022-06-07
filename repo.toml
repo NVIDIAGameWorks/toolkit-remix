@@ -41,6 +41,9 @@ strip_package_infos = true
 # package content
 files = [
     ["**"],
+    # WAR: repo_fileutils fails to package folder starting with dot on windows unless specified explicitly. The reason is that
+    # python's std glob module doesn't support finding them. Fixing that turned out to be quite hard.
+    ["_build/$platform/$config/kit/extscore/omni.kit.pip_archive/pip_prebundle/numpy/.libs"],
 ]
 files_exclude = [
     ["**/*.pdb"],
@@ -163,27 +166,59 @@ protocol = "s3"
 bucket_name = "omniverse-docs"
 bucket_dir = "${project}/${version}"
 
+########################################################################################################################
+# Code Format Tool
+########################################################################################################################
 
-[repo_format]
-# move up to a newer version of black since the older version used by repo_format by defualt is currently broken.
-black_version="22.3.0"
-# Python file patterns to exclude when formatting. Refer to `black` docs for more info.
-py_exclude = """
-(
-  /(
-      \\.eggs
-    | \\.git
-    | \\.venv
-    | _build
-    | _repo
-    | _compiler
-    | _vendor
-    | source/.*/lightspeed/common/tools/.*
-    | tools/packman
-  )/
-)
-"""
+# C++ is formatted with clang-format:
+[repo_format.cpp]
+files.include = ["**"]
+files.exclude = [
+    ".vscode/*",
+    "_build/*",
+    "_compiler/*",
+    "_repo/*",
+    ".git/*",
+    ".eggs/*",
+    ".venv/*",
+    "tools/*",
+]
 
+# python is formatted with black+isort:
+[repo_format.python]
+files.include = ["**/*.py"]
+files.exclude = [
+    ".vscode/*",
+    "_build/*",
+    "_compiler/*",
+    "_repo/*",
+    ".git/*",
+    ".eggs/*",
+    ".venv/*",
+    "tools/*",
+    "source/*/lightspeed/common/tools/*"
+]
+python_version = "py37"
+job_count = 1
+
+
+########################################################################################################################
+# Python lint tool
+########################################################################################################################
+
+[repo_lint]
+files.include = ["**/*.py"]
+files.exclude = [
+    ".vscode/*",
+    "_build/*",
+    "_compiler/*",
+    "_repo/*",
+    ".git/*",
+    ".eggs/*",
+    ".venv/*",
+    "tools/*",
+    "source/*/lightspeed/common/tools/*"
+]
 
 ########################################################################################################################
 # Launcher publish and deploy

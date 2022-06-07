@@ -34,10 +34,9 @@ icon = "data/icon.png"
 
 [dependencies]
 "lightspeed.common" = {}
-
-
-[python.pipapi]
-requirements = ["Pillow", "numpy"]
+# omni.kit.pip_archive has Pillow and numpy. Adding Pillow in requirements will not work, because Pillow needs to
+# import PIL, not import Pillow.
+"omni.kit.pip_archive" = {}
 
 # Main python module this extension provides, it will be publicly available as "import omni.example.hello".
 [[python.module]]

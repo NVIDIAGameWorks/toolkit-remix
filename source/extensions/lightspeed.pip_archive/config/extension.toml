@@ -1,0 +1,29 @@
+[package]
+title = "Pip Archive"
+category = "Internal"
+
+[core]
+# Load as early as possible
+order = -1000
+reloadable = false
+
+[dependencies]
+"omni.kit.pipapi" = {} # We need it so that we can use [python.pipapi].
+
+# We bundle not only "toml" package, but many other. No need to mention all of them, just importing one will add whole
+# folder (pip_prebundle) to sys.path.
+[[python.module]]
+name = "toml"
+path = "pip_prebundle"
+
+# That is empty module, added here only to make tests discoverable in test run
+[[python.module]]
+name = "lightspeed.pip_archive"
+
+[python.pipapi]
+# That extension brings folder with pip wheels, to enable offline pip install (prebundling). It is specified here:
+archiveDirs = ["pip_archive"]
+
+# https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
+requirements = []
+

@@ -33,17 +33,12 @@ preview_image = "data/preview.png"
 icon = "data/icon.png"
 
 [dependencies]
+"lightspeed.pip_archive" = {}
 "omni.kit.test" = {}
+# omni.kit.pip_archive has Pillow and numpy. Adding Pillow in requirements will not work, because Pillow needs to
+# import PIL, not import Pillow.
+"omni.kit.pip_archive" = {}
 "omni.ui" = {}
-
-[python.pipapi]
-requirements = ["Pillow", 
-    "torch>=1.4.0",
-    "torchvision>=0.5.0",
-    "dominate>=2.4.0",
-    "wandb"
-]
-use_online_index = true
 
 # Main python module this extension provides, it will be publicly available as "import omni.example.hello".
 [[python.module]]
