@@ -50,6 +50,7 @@ files = [
 files_exclude = [
     ["**/*.pdb"],
     ["**/*.exp"],
+    ["kit/**"],
     ["apps/kit.portable"],
 ]
 "linux-x86_64".files_strip = [
