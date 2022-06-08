@@ -41,6 +41,8 @@ strip_package_infos = true
 # package content
 files = [
     ["**"],
+]
+"windows-x86_64".files = [
     # WAR: repo_fileutils fails to package folder starting with dot on windows unless specified explicitly. The reason is that
     # python's std glob module doesn't support finding them. Fixing that turned out to be quite hard.
     ["kit/extscore/omni.kit.pip_archive/pip_prebundle/numpy/.libs"],
