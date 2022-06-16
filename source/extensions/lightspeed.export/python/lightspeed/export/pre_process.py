@@ -32,10 +32,8 @@ def preprocess(layer_manager: LayerManagerCore):
             all_capture_mats = mat_prim.GetAllChildren()
             for prim in all_capture_mats:
                 # if Prim has any properties in the replacements layer
-                if (
-                    replacements_layer.GetPrimAtPath(prim.GetPath())
-                    or autoupscale_layer is not None
-                    and autoupscale_layer.GetPrimAtPath(prim.GetPath())
+                if replacements_layer.GetPrimAtPath(prim.GetPath()) or (
+                    autoupscale_layer is not None and autoupscale_layer.GetPrimAtPath(prim.GetPath())
                 ):
                     _cleanup_capture_refs(prim, capture_layer, constants.MATERIALS_FOLDER + "/")
 
@@ -43,12 +41,19 @@ def preprocess(layer_manager: LayerManagerCore):
             all_capture_meshes = mesh_prim.GetAllChildren()
             for prim in all_capture_meshes:
                 # if Prim has any properties in the replacements layer
-                if (
-                    replacements_layer.GetPrimAtPath(prim.GetPath())
-                    or autoupscale_layer is not None
-                    and autoupscale_layer.GetPrimAtPath(prim.GetPath())
+                if replacements_layer.GetPrimAtPath(prim.GetPath()) or (
+                    autoupscale_layer is not None and autoupscale_layer.GetPrimAtPath(prim.GetPath())
                 ):
                     _cleanup_capture_refs(prim, capture_layer, constants.MESHES_FOLDER + "/")
+
+            light_prim = stage.GetPrimAtPath(constants.ROOTNODE_LIGHTS)
+            all_capture_lights = light_prim.GetAllChildren()
+            for prim in all_capture_lights:
+                # if Prim has any properties in the replacements layer
+                if replacements_layer.GetPrimAtPath(prim.GetPath()) or (
+                    autoupscale_layer is not None and autoupscale_layer.GetPrimAtPath(prim.GetPath())
+                ):
+                    omni.usd.stitch_prim_specs(stage, prim.GetPath(), replacements_layer)
 
 
 def _cleanup_capture_refs(prim, capture_layer: Sdf.Layer, capture_folder):
