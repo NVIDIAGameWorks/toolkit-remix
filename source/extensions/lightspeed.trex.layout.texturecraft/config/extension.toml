@@ -1,0 +1,11 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex layout for the StageCraft"
+description = "Layout for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"lightspeed.trex.layout.shared" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.layout.texturecraft"

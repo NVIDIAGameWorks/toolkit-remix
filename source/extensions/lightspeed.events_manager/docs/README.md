@@ -1,4 +1,4 @@
-# omni.drivesim.scenario.events_manager
+# lightspeed.events_manager
 
 # Overview
 API that let developer to register DS events (behaviors).
@@ -12,10 +12,10 @@ Or if we open a stage, we want to do something.
 To register an DS event
 
 First you need to create an extension that will implement the behavior, like:
-`omni.drivesim.scenario.event.my_behavior`
+`lightspeed.event.my_behavior`
 
 ```python
-from omni.drivesim.scenario.events_manager.scripts.i_ds_event import IDSEvent
+from lightspeed.events_manager.scripts.i_ds_event import IDSEvent
 
 
 class MyBehavior(IDSEvent):
@@ -43,7 +43,7 @@ class MyBehavior(IDSEvent):
 After you have to register your behavior
 
 ```python
-from omni.drivesim.scenario.events_manager.scripts.core import EVENTS_MANAGER_INSTANCE
+from lightspeed.events_manager.scripts.core import EVENTS_MANAGER_INSTANCE
 
 my_behavior = MyBehavior()
 EVENTS_MANAGER_INSTANCE.register_event(my_behavior)
@@ -54,7 +54,7 @@ As a result, the event manager will install your behavior.
 ## All commands
 
 ```python
-from omni.drivesim.scenario.events_manager.scripts.core import EVENTS_MANAGER_INSTANCE
+from lightspeed.events_manager.scripts.core import EVENTS_MANAGER_INSTANCE
 
 EVENTS_MANAGER_INSTANCE.register_event()
 EVENTS_MANAGER_INSTANCE.unregister_event()

@@ -1,0 +1,14 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex control for the StageCraft"
+description = "Control will connect back end and front end for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"lightspeed.trex.capture.core.shared" = {}
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.layout.stagecraft" = {}
+"lightspeed.trex.stage.core.shared" = {}
+"omni.flux.utils.common" = {}
+
+[[python.module]]
+name = "lightspeed.trex.control.stagecraft"

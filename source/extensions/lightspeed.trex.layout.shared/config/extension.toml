@@ -1,0 +1,13 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex shared layout"
+description = "Shared layout for Lightspeed Trex App"
+
+[dependencies]
+"lightspeed.trex.app.setup" = {}
+"omni.flux.header_navigator.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.layout.shared"

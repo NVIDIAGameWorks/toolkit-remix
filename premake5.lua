@@ -12,4 +12,8 @@ repo_build.prebuild_copy {
     { "source/shell/*${shell_ext}", bin_dir },
 }
 
+define_app("lightspeed.app.trex")
+define_app("lightspeed.app.trex.stagecraft")
+define_app("lightspeed.app.trex.texturecraft")
+define_app("lightspeed.app.trex_dev")
 define_app("omni.app.lightspeed")

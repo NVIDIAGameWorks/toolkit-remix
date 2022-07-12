@@ -1,0 +1,12 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex Style"
+description = "Global Style for Lightspeed Trex App"
+
+[dependencies]
+"omni.kit.window.popup_dialog" = {}
+"omni.flux.utils.widget" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.app.style"

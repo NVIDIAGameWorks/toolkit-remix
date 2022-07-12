@@ -1,0 +1,41 @@
+[package]
+title = "Lightspeed Trex splash screen"
+description = "Show the Splash Screen for Lightspeed Trex"
+version = "2020.3"
+
+# That makes it browsable in UI with "experience" filter
+keywords = ["experience", "extensions"]
+
+[dependencies]
+"omni.kit.uiapp" = {}
+"lightspeed.trex.app.resources" = {}
+"lightspeed.trex.app.splash" = {}
+
+[settings]
+app.extensions.enabledCore = []
+
+# OS Window default settings:
+app.window.title = "Lightspeed Trex is Starting"
+
+# setup size
+app.window.width = 860
+app.window.height = 500
+# center position
+app.window.x = -1
+app.window.y = -1
+
+# window properties
+app.window.fullscreen = false
+app.window.noDecorations = true
+app.window.alwaysOnTop = false
+app.window.scaleToMonitor = false
+
+# faster load time as not need for RTX
+exts."omni.kit.renderer.core".compatibilityMode = true
+exts."lightspeed.trex.app.splash".max_slides_count = 5
+exts."lightspeed.trex.app.splash".slides_file_pattern = "${lightspeed.trex.app.resources}/data/images/background_images/*.png"
+exts."lightspeed.trex.app.splash".slide_hold_time = 5.0
+
+# Register extension folder from this repo in kit
+[settings.app.exts]
+folders.'++' = ["${app}/../exts", "${app}/../extscache"]

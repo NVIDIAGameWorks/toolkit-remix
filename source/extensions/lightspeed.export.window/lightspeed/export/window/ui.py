@@ -118,7 +118,7 @@ class LightspeedExporterUI:
         self._on_export_button_clicked(validate_dependencies=False)
 
     def __create_save_menu(self):
-        """Create the menu to Save scenario"""
+        """Create the menu to Save runtime mod"""
         self._tools_manager_menus = [
             MenuItemDescription(
                 name="Export to Lightspeed Runtime", onclick_fn=self.__clicked, glyph="none.svg", appear_after="Save"

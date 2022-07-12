@@ -1,0 +1,11 @@
+[package]
+authors = ["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex Setup Extension"
+description = "This Extension does the final setup of the Lightspeed Trex Apps"
+
+[dependencies]
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.app.setup"

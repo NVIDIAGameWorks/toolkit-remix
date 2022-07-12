@@ -33,7 +33,7 @@ class RecentSavedFile:
         return f"{directory}/recent_saved_file.json"
 
     def save_recent_file(self, data):
-        """Save the recent scenarios to the file"""
+        """Save the recent work files to the file"""
         file_path = self.__get_recent_file()
         with open(file_path, "w", encoding="utf8") as json_file:
             json.dump(data, json_file, indent=2)
@@ -41,7 +41,7 @@ class RecentSavedFile:
         carb.log_info(f"Recent saved file tracker saved to {file_path}")
 
     def append_path_to_recent_file(self, path: str, game: str, capture: str, save: bool = True):
-        """Append a scenario path to file"""
+        """Append a work file path to file"""
         current_data = self.get_recent_file_data()
 
         if path in current_data:
@@ -53,7 +53,7 @@ class RecentSavedFile:
         result = {}
         for current_path, current_data in current_data.items():  # noqa B020
             if current_path in current_data_max:
-                result[current_path] = current_data
+                result[current_path] = current_data  # noqa B020
         if save:
             self.save_recent_file(result)
         return result
@@ -66,7 +66,7 @@ class RecentSavedFile:
         return True
 
     def get_recent_file_data(self):
-        """Load the recent scenarios from the file"""
+        """Load the recent work files from the file"""
         if not self.is_recent_file_exist():
             return {}
         file_path = self.__get_recent_file()

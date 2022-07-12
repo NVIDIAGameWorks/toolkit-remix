@@ -1,0 +1,15 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex Properties Pane for the StageCraft"
+description = "Properties Pane for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.components_pane.stagecraft.controller" = {}
+"lightspeed.trex.properties_pane.shared.mod_setup.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.properties_pane.stagecraft.widget"

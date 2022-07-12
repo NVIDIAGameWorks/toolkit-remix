@@ -1,0 +1,16 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex Viewports implementation for the StageCraft"
+description = "Viewports implementation for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"omni.kit.manipulator.camera" = {}
+"omni.kit.manipulator.prim" = {}
+"omni.kit.manipulator.selection" = {}
+"omni.kit.widget.viewport" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.viewports.manipulators"

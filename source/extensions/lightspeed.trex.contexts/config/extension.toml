@@ -1,0 +1,11 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex contexts"
+description = "Contexts for Lightspeed Trex App(s). Each sub-app has his own context. Meaning that each viewports can show different stage(s)"
+
+[dependencies]
+"omni.usd" = {}
+"omni.flux.utils.common" = {}
+
+[[python.module]]
+name = "lightspeed.trex.contexts"

@@ -12,7 +12,7 @@
     <package name="repo_package" version="5.6.1" />
   </dependency>
   <dependency name="repo_licensing" linkPath="../_repo/deps/repo_licensing" tags="non-redist">
-    <package name="repo_licensing" version="1.9.3" />
+    <package name="repo_licensing" version="1.9.4" />
   </dependency>
   <dependency name="repo_codesign" linkPath="../_repo/deps/repo_codesign">
     <package name="repo_codesign" version="3.9.1" />

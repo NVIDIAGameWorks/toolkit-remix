@@ -1,0 +1,14 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex capture extension for the StageCraft"
+description = "Extension that works on capture data for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.layer_manager" = {}
+"omni.kit.usd.layers" = {}
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.capture.core.shared"

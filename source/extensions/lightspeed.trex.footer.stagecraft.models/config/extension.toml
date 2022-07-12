@@ -1,0 +1,13 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex footer StageCraft models"
+description = "This is the data used by the StageCraft footer"
+
+[dependencies]
+"omni.flux.footer.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.footer.stagecraft.models"

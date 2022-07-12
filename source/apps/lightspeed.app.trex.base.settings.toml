@@ -1,0 +1,10 @@
+[app.exts]
+folders = [
+    "${app}/../apps",
+    "${app}/../exts",
+    "${kit}/exts",
+    "${kit}/extsPhysics",
+    "${kit}/experiences/kit",
+    "${app_documents}/exts",
+    "${shared_documents}/exts"
+]

@@ -1,0 +1,21 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex Properties Pane Mod Setup widget for the StageCraft"
+description = "Mod Setup Properties Pane widget for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.trex.capture.core.shared" = {}
+"omni.client" = {}
+"omni.kit.widget.filebrowser" = {}
+"omni.kit.window.filepicker" = {}
+"omni.kit.window.popup_dialog" = {}
+"omni.flux.property_widget_builder.model.file" = {}
+"omni.flux.property_widget_builder.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.properties_pane.shared.mod_setup.widget"

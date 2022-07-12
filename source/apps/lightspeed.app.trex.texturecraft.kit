@@ -1,0 +1,114 @@
+[package]
+version = "2022.1.0"
+category = "Application"
+title = "Lightspeed Trex TextureCraft"
+description = "A tool to edit stage(s) captured from game(s)"
+authors = ["Damien Bataille <dbataille@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+keywords = ["lightspeed", "trex", "app", "texturecraft"]
+changelog = """
+# Lightspeed Trex TextureCraft
+
+## [2022.0.0] - 2022-06-16
+- Publishing first version.
+"""
+readme = """
+# Lightspeed Trex TextureCraft
+
+A tool to edit stage(s) captured from game(s)
+"""
+
+[dependencies]
+"lightspeed.app.trex.base" = {}
+"lightspeed.trex.layout.texturecraft" = {}
+
+
+[settings]
+"@import@" = [
+	"./lightspeed.app.trex.base.settings.toml",
+]
+
+# Basic Kit App
+################################
+app.name = "Lightspeed Trex TextureCraft"
+
+[settings.app.window]
+title = "Lightspeed Trex TextureCraft"
+iconPath = "${lightspeed.trex.app.resources}/data/icons/nvidia-omniverse-create.ico"
+
+[settings.exts."omni.kit.window.modifier.titlebar"]
+titleFormatString = "  Lightspeed Trex TextureCraft  {verKey:/app/version,font_color=0x909090,font_size=16} {separator} {file, board=true}"
+icon.file = "${lightspeed.trex.app.resources}/data/icons/nvidia-omniverse-create.ico"
+
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Kit SDK Version: 104.0+master.84422.e2ead62b.tc
+# Kit SDK dependencies:
+# 	carb.audio-0.1.0
+# 	carb.windowing.plugins-1.0.0
+# 	omni.appwindow-1.0.0
+# 	omni.assets.plugins-0.0.0
+# 	omni.client-0.1.0
+# 	omni.gpu_foundation-0.0.0
+# 	omni.hydra.rtx-0.1.0
+# 	omni.hydra.scene_delegate-0.3.0
+# 	omni.kit.actions.core-1.0.0
+# 	omni.kit.async_engine-0.0.0
+# 	omni.kit.audiodeviceenum-1.0.0
+# 	omni.kit.commands-1.2.3
+# 	omni.kit.loop-default-0.1.1
+# 	omni.kit.mainwindow-0.0.0
+# 	omni.kit.menu.utils-1.2.11
+# 	omni.kit.pip_archive-0.0.0
+# 	omni.kit.pipapi-0.0.0
+# 	omni.kit.renderer.capture-0.0.0
+# 	omni.kit.renderer.core-0.0.0
+# 	omni.kit.renderer.imgui-0.0.0
+# 	omni.kit.renderer.init-0.0.0
+# 	omni.kit.test-0.0.0
+# 	omni.kit.uiapp-0.0.0
+# 	omni.kit.widget.graph-1.4.4
+# 	omni.kit.window.extensions-1.1.0
+# 	omni.kit.window.popup_dialog-2.0.7
+# 	omni.kit.window.splash-1.0.0
+# 	omni.kit.window.title-1.1.1
+# 	omni.renderer-rtx-0.0.0
+# 	omni.stats-0.0.0
+# 	omni.timeline-1.0.2
+# 	omni.ui-2.9.8
+# 	omni.uiaudio-1.0.0
+# 	omni.usd-1.5.4
+# 	omni.usd.config-1.0.0
+# 	omni.usd.libs-1.0.0
+# 	omni.usd.schema.anim-0.0.0
+# 	omni.usd.schema.audio-0.0.0
+# 	omni.usd.schema.omnigraph-1.0.0
+# 	omni.usd.schema.physics-1.0.0
+# 	omni.usd.schema.semantics-0.0.0
+
+# Exact Version dependencies:
+# 	omni.kit.window.modifier.titlebar-104.0.7
+
+# Version lock for all dependencies:
+[settings.app.exts]
+enabled = [
+	"lightspeed.app.trex.base-2022.1.0",
+	"lightspeed.trex.app.resources-0.0.0",
+	"lightspeed.trex.app.setup-0.0.0",
+	"lightspeed.trex.app.style-0.0.0",
+	"lightspeed.trex.contexts-0.0.0",
+	"lightspeed.trex.layout.shared-0.0.0",
+	"lightspeed.trex.layout.texturecraft-0.0.0",
+	"omni.flux.header_navigator.widget-1.1.1",
+	"omni.flux.utils.common-1.1.0",
+	"omni.flux.utils.widget-1.1.1",
+	"omni.kit.agent-0.1.5",
+	"omni.kit.splash-0.4.0",
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################

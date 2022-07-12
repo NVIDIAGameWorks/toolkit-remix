@@ -1,0 +1,10 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex Components Pane models for the StageCraft"
+description = "Models for the Components Pane for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"omni.flux.tree_panel.widget" = {}
+
+[[python.module]]
+name = "lightspeed.trex.components_pane.stagecraft.models"

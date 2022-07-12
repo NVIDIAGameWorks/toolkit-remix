@@ -1,0 +1,108 @@
+[package]
+version = "2022.1.0"
+category = "Application"
+title = "Lightspeed Trex Base"
+description = "Base app that regroups all extensions shared between all Lightspeed Trex experiences"
+authors = ["Damien Bataille <dbataille@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+keywords = ["lightspeed", "trex", "app", "base"]
+changelog = """
+# Lightspeed Trex
+
+## [2022.0.0] - 2022-06-14
+- Publishing first version.
+"""
+readme = """
+# Lightspeed Trex Base Experience
+
+This base experience regroup all extensions shared between all Lightspeed Trex experiences
+"""
+
+[dependencies]
+# The Main UI App
+"omni.kit.uiapp" = {}
+"omni.kit.renderer.core" = {}
+"omni.kit.splash" = { order = -5000}
+
+# Trex shared extensions
+"lightspeed.trex.contexts" = {} # contexts used for each Flux App
+"lightspeed.trex.app.resources" = {order = -1000}  # should start first because of "default_resources_ext"
+"lightspeed.trex.app.setup" = { order = 1000 } # layout setup, we are running that at the end
+"lightspeed.trex.app.style" = {}  # global style
+
+# Windows
+"omni.kit.window.title" = {}
+# Windows only extensions. For all of them set exact=true to not be included into generated version lock.
+# That will break linux otherwise, as version lock is platform agnostic currently.
+[dependencies."filter:platform"."windows-x86_64"]
+"omni.kit.window.modifier.titlebar" = { version = "104.0.7", exact = true }
+
+# Viewport and Renderer
+"omni.kit.renderer.capture" = {}
+"omni.renderer" = { tag = "rtx" }
+"omni.hydra.rtx" = {}
+
+"omni.kit.window.extensions" = {}
+
+[settings]
+# Basic Kit App
+################################
+persistent.app.window.uiStyle = "NvidiaDark"
+app.menu.legacy_mode = false
+app.menu.compatibility_mode=false
+
+app.content.emptyStageOnStart = true
+
+# Misc Settings
+###############################
+persistent.app.viewport.noPadding = true
+
+
+# Splash Setup
+################################
+exts."omni.kit.window.splash".imagePath = "${lightspeed.trex.app.resources}/data/images/background_images_small/ego-config-start-04.png"
+exts.'omni.kit.splash'.splash_app = "${lightspeed.trex.app.setup}/apps/lightspeed.trex.app.splash.kit"
+
+[settings.app.extensions]
+registryEnabled = false
+
+# Fonts
+[settings.app.font]
+file = "${lightspeed.trex.app.resources}/data/fonts/Barlow-Regular.otf"
+size = 16
+
+[settings.app.window]
+width = 1700
+height = 800
+x = -1
+y = -1
+
+[settings.exts."omni.kit.window.modifier.titlebar"]
+showFileFullPath = true
+icon.size = 256
+defaultFont.name = "Arial"
+defaultFont.size = 16
+defaultFont.color = 0xD0D0D0
+separator.color = 0x00B976
+separator.width = 1
+windowBorder.color = 0x0F0F0F
+windowBorder.width = 0
+colors.caption = 0x0F0F0F
+colors.client = 0x0F0F0F
+
+[settings.ext."omni.kit.mainwindow"]
+margin.width = 0
+margin.height = 0
+backgroundColor = 0xFF0F0F0F
+
+[settings.exts."lightspeed.trex.app.setup"]
+hide_menu = true
+
+[settings.exts."omni.flux.utils.widget"]
+default_resources_ext = "lightspeed.trex.app.resources"
+
+# kit-core overwrites this, so set this shaderDb setting here, or move them from kit-core to renderer extension
+[settings.renderer.shadercache.driverDiskCache]
+enabled = true
+[settings.rtx.shaderDb]
+driverAppShaderCachePath = "${kit}/../../startup/nv_shadercache/${config}"

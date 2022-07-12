@@ -89,6 +89,13 @@ class NewGameWorkspaceCore:
             )
         )
 
+    def __copy_metadata_from_stage_to_stage(self, stage_source, stage_destination):
+        # copy over layer-meta-data from capture layer
+        UsdGeom.SetStageUpAxis(stage_destination, UsdGeom.GetStageUpAxis(stage_source))
+        UsdGeom.SetStageMetersPerUnit(stage_destination, UsdGeom.GetStageMetersPerUnit(stage_source))
+        time_codes = stage_source.GetTimeCodesPerSecond()
+        stage_destination.SetTimeCodesPerSecond(time_codes)
+
     def __create_game_workspace(
         self,
         capture_data: "ContentData",
@@ -107,11 +114,7 @@ class NewGameWorkspaceCore:
         # copy over layer-meta-data from capture layer
         stage = omni.usd.get_context().get_stage()
         capture_stage = Usd.Stage.Open(capture_data.path)
-        UsdGeom.SetStageUpAxis(stage, UsdGeom.GetStageUpAxis(capture_stage))
-        UsdGeom.SetStageMetersPerUnit(stage, UsdGeom.GetStageMetersPerUnit(capture_stage))
-        time_codes = capture_stage.GetTimeCodesPerSecond()
-        stage.SetTimeCodesPerSecond(time_codes)
-        capture_stage = None
+        self.__copy_metadata_from_stage_to_stage(capture_stage, stage)
 
         # add the capture layer
         self._layer_manager.insert_sublayer(capture_data.path, LayerType.capture, add_custom_layer_data=False)
@@ -119,11 +122,6 @@ class NewGameWorkspaceCore:
         asyncio.ensure_future(self.___deferred_setup_persepctive_camera())
 
         # add the replacement layer if exist
-        layer_instance = self._layer_manager.get_layer_instance(LayerType.replacement)
-        if layer_instance is None:
-            carb.log_error(f"Can't find a layer schema type {LayerType.ego_configuration.value}")
-            return
-        layer_instance.set_custom_layer_data({LSS_LAYER_GAME_NAME: game.title})
         if use_existing_layer:
             self._layer_manager.insert_sublayer(
                 enhancement_layer_path, LayerType.replacement, sublayer_insert_position=0
@@ -134,10 +132,15 @@ class NewGameWorkspaceCore:
             )
             # replacement layer needs to have the same TimeCodesPerSecond as the capture layer
             # for reference deletion to work. See OM-42663 for more info.
+            time_codes = capture_stage.GetTimeCodesPerSecond()
             replacement_stage = Usd.Stage.Open(layer.realPath)
             replacement_stage.SetTimeCodesPerSecond(time_codes)
             replacement_stage.Save()
-            replacement_stage = None
+        layer_instance = self._layer_manager.get_layer_instance(LayerType.replacement)
+        if layer_instance is None:
+            carb.log_error(f"Can't find a layer schema type {LayerType.replacement.value}")
+            return
+        layer_instance.set_custom_layer_data({LSS_LAYER_GAME_NAME: game.title})
 
     def _setup_stage_event(self):
         """We listen to stage event when we are running but turn it off otherwise"""
