@@ -16,7 +16,7 @@ import omni.kit.commands
 import omni.usd
 from lightspeed.common.constants import CAPTURE_FOLDER
 from lightspeed.widget.content_viewer.scripts.core import ContentData
-from omni.kit.widget.layers.layer_utils import LayerUtils
+from omni.kit.usd.layers import LayerUtils
 from pxr import Sdf
 
 from .constants import LSS_LAYER_GAME_NAME

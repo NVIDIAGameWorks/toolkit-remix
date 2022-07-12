@@ -17,7 +17,7 @@
   <dependency name="pybind11" linkPath="../_build/target-deps/pybind11" />
   <dependency name="fmt" linkPath="../_build/target-deps/fmt" />
   <dependency name="python" linkPath="../_build/target-deps/python" />
-  <dependency name="omni_core_materials" linkPath="../_build/${platform}/${config}/kit/mdl/core">
+  <dependency name="omni_core_materials" linkPath="../_build/${platform}/${config}/omni_core_materials">
     <package name="omni_core_materials" version="bef5e3f083f370b679af43f6ebd877583486560e"/>
   </dependency>
 </project>

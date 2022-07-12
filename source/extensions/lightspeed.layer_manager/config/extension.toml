@@ -18,7 +18,7 @@ name = "Lightspeed Layer Manager"
 "lightspeed.common" = {}
 "lightspeed.widget.content_viewer" = {}
 "omni.client" = {}
-"omni.kit.widget.layers" = {}
+"omni.kit.usd.layers" = {}
 
 [[python.module]]
 name = "lightspeed.layer_manager"
