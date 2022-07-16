@@ -4,7 +4,6 @@ title = "Lightspeed Trex Properties Pane for the StageCraft"
 description = "Properties Pane for Lightspeed Trex StageCraft App"
 
 [dependencies]
-"lightspeed.trex.contexts" = {}
 "lightspeed.trex.components_pane.stagecraft.controller" = {}
 "lightspeed.trex.properties_pane.shared.mod_setup.widget" = {}
 "omni.flux.utils.common" = {}

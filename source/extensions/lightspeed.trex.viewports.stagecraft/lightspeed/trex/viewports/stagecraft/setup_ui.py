@@ -18,7 +18,7 @@ from omni.ui import scene as sc
 
 
 class SetupUI:
-    def __init__(self):
+    def __init__(self, context):
         """Nvidia StageCraft Viewport UI"""
 
         self._default_attr = {
@@ -31,6 +31,7 @@ class SetupUI:
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
+        self._context = context  # can get the name of the context?
         self.__create_ui()
 
     def __create_ui(self):

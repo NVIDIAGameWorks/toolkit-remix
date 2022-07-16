@@ -9,14 +9,12 @@
 """
 import omni.ui as ui
 from lightspeed.trex.components_pane.stagecraft.models import EnumItems as ComponentsEnumItems
-from lightspeed.trex.contexts import get_instance as trex_contexts_instance
-from lightspeed.trex.contexts.setup import Contexts as TrexContexts
 from lightspeed.trex.properties_pane.shared.mod_setup.widget import ModSetupPane as _ModSetupPan
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 
 class SetupUI:
-    def __init__(self):
+    def __init__(self, context):
         """Nvidia StageCraft Components Pane"""
 
         self._default_attr = {"_all_frames": None, "_context": None}
@@ -24,7 +22,7 @@ class SetupUI:
             setattr(self, attr, value)
 
         self._all_frames = {}
-        self._context = trex_contexts_instance().get_context(TrexContexts.STAGE_CRAFT)
+        self._context = context
         self.__create_ui()
 
     def get_frame(self, component_type_value: ComponentsEnumItems):  # noqa PLR1710

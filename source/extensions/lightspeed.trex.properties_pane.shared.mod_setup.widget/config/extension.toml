@@ -5,11 +5,13 @@ description = "Mod Setup Properties Pane widget for Lightspeed Trex StageCraft A
 
 [dependencies]
 "lightspeed.common" = {}
+"lightspeed.layer_manager" = {}
 "lightspeed.trex.capture.core.shared" = {}
+"lightspeed.trex.replacement.core.shared" = {}
+"lightspeed.trex.utils.widget" = {}
 "omni.client" = {}
 "omni.kit.widget.filebrowser" = {}
 "omni.kit.window.filepicker" = {}
-"omni.kit.window.popup_dialog" = {}
 "omni.flux.property_widget_builder.model.file" = {}
 "omni.flux.property_widget_builder.widget" = {}
 "omni.flux.utils.common" = {}

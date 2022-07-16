@@ -4,6 +4,7 @@ title = "Lightspeed Trex layout for the StageCraft"
 description = "Layout for Lightspeed Trex StageCraft App"
 
 [dependencies]
+"lightspeed.trex.contexts" = {}
 "lightspeed.trex.components_pane.stagecraft.controller" = {}
 "lightspeed.trex.components_pane.stagecraft.models" = {}
 "lightspeed.trex.footer.stagecraft.models" = {}

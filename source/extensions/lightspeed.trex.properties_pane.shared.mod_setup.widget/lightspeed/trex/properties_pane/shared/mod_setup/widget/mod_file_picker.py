@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 import carb
-from lightspeed.common.constants import CAPTURE_FOLDER
+import omni.client
 from omni.kit.widget.filebrowser import FileBrowserItem
 from omni.kit.window.filepicker import FilePickerDialog
 
@@ -19,7 +19,10 @@ from omni.kit.window.filepicker import FilePickerDialog
 def on_filter_item(dialog: FilePickerDialog, item: FileBrowserItem) -> bool:
     if not item or item.is_folder:
         return True
-    return False
+    if dialog.current_filter_option == 0:
+        # Show only files with listed extensions
+        return str(Path(item.path).suffix) in [".usd", ".usda", ".usdc"]
+    return True
 
 
 def on_click_open(dialog: FilePickerDialog, filename: str, dirname: str, callback: Callable):
@@ -29,29 +32,41 @@ def on_click_open(dialog: FilePickerDialog, filename: str, dirname: str, callbac
     are the filename and directory name. Together they form the fullpath to the selected
     file.
     """
-    if not dirname or not Path(dirname).exists() or str(Path(dirname).stem) != CAPTURE_FOLDER:
-        carb.log_error(f'Please select a folder named "{CAPTURE_FOLDER}"')
+    if not filename or str(Path(filename).suffix) not in [".usd", ".usda", ".usdc"]:
+        carb.log_error("Please select an USD mod file")
         return
     # Normally, you'd want to hide the dialog
     dialog.hide()
-    callback(dirname)
+    if dirname:
+        fullpath = f"{dirname}/{filename}"
+    else:
+        fullpath = filename
+    callback(omni.client.normalize_url(fullpath))
 
 
 def on_click_cancel(dialog: FilePickerDialog, filename: str, dirname: str, callback: Callable):
     # Normally, you'd want to hide the dialog
     dialog.hide()
-    callback(dirname)
+    if dirname:
+        fullpath = f"{dirname}/{filename}"
+    else:
+        fullpath = filename
+    callback(omni.client.normalize_url(fullpath))
 
 
-def open_directory_picker(callback: Callable, callback_cancel: Callable, current_directory: str = None):
+def open_file_picker(callback: Callable, callback_cancel: Callable, current_file: str = None):
+    item_filter_options = ["USD Files (*.usd, *.usda, *.usdc)", "All Files (*)"]
+    p_file = Path(current_file) if current_file else None
     dialog = FilePickerDialog(
-        "Capture Directory picker",
+        "Mod File picker",
         apply_button_label="Select",
         click_apply_handler=lambda filename, dirname: on_click_open(dialog, filename, dirname, callback),
         click_cancel_handler=lambda filename, dirname: on_click_cancel(dialog, filename, dirname, callback_cancel),
         item_filter_fn=lambda item: on_filter_item(dialog, item),
-        current_directory=current_directory,
+        item_filter_options=item_filter_options,
+        current_directory=str(p_file.parent) if p_file else None,
+        current_filename=str(p_file.name) if p_file else None,
         allow_multi_selection=False,
     )
-    if current_directory:
-        dialog.navigate_to(current_directory)
+    if current_file:
+        dialog.navigate_to(str(p_file))

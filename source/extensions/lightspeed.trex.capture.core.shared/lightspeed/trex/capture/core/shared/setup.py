@@ -8,16 +8,21 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import asyncio
+import functools
 from pathlib import Path
 from typing import List, Optional
 
 import carb
+import omni.client
 import omni.usd
 from lightspeed.common.constants import CAPTURE_FOLDER
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.layer_types import LayerType, LayerTypeKeys
+from lightspeed.upscale.core import UpscalerCore
+from omni.flux.utils.common import async_wrap as _async_wrap
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.usd.layers import LayerUtils
+from PIL import Image
 from pxr import Sdf, Usd, UsdGeom
 
 
@@ -29,6 +34,9 @@ class Setup:
         self.__directory = None
         self._context = context
         self._layer_manager = _LayerManagerCore(context=context)
+
+    def get_layer(self):
+        return self._layer_manager.get_layer(LayerType.capture)
 
     @omni.usd.handle_exception
     async def ___deferred_setup_persepctive_camera(self):
@@ -60,6 +68,47 @@ class Setup:
         time_codes = stage_source.GetTimeCodesPerSecond()
         stage_destination.SetTimeCodesPerSecond(time_codes)
 
+    @staticmethod
+    def is_path_valid(path: str) -> bool:
+        if not path or not path.strip():
+            carb.log_error(f"{path} is not valid")
+            return False
+        _, entry = omni.client.stat(path)
+        if not (entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN):  # noqa PLC0325
+            carb.log_error(f"{path} is not a directory")
+            return False
+        return True
+
+    @staticmethod
+    def get_game_icon_from_folder(folder_path: str) -> Optional[str]:
+        icons = list(Path(folder_path).glob("*_icon.bmp"))
+        return str(icons[0]) if icons else None
+
+    @staticmethod
+    def get_upscaled_game_icon_from_folder(folder_path: str) -> Optional[str]:
+        default_icon = Setup.get_game_icon_from_folder(folder_path)
+        if not default_icon:
+            return None
+        # look for the upscaled icon
+        upscaled = default_icon.replace("_icon.bmp", "_upscaled_icon.png")
+        upscaled_path = Path(upscaled)
+        if not upscaled_path.exists():
+            # first we convert the bmp to png without alpha
+            png_file = default_icon.replace("_icon.bmp", "_icon.png")
+            im1 = Image.open(default_icon)
+            im1 = im1.convert("RGB")
+            im1.save(png_file)
+            im1.close()
+            # we upscale
+            UpscalerCore().perform_upscale(png_file, str(upscaled_path))
+        return str(upscaled_path)
+
+    @omni.usd.handle_exception
+    async def deferred_get_upscaled_game_icon_from_folder(self, folder_path: str, callback):  # noqa PLW0238
+        wrapped_fn = _async_wrap(functools.partial(self.get_upscaled_game_icon_from_folder, folder_path))
+        result = await wrapped_fn()
+        callback(result)
+
     def import_capture_layer(self, path: str):
         carb.log_info(f"Import capture layer {path}")
         # copy over layer-meta-data from capture layer
@@ -89,6 +138,9 @@ class Setup:
         if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == LayerType.capture.value:
             return True
         return False
+
+    def get_game_name(self, path: str) -> str:
+        return self._layer_manager.get_game_name_from_path(path)
 
     def _check_directory(self) -> bool:
         if not self.__directory:

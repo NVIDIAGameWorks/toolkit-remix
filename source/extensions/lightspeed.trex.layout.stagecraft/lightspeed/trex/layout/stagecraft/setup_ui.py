@@ -17,6 +17,8 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.trex.components_pane.stagecraft.controller import SetupUI as ComponentsPaneSetupUI
 from lightspeed.trex.components_pane.stagecraft.models import EnumItems as ComponentsEnumItems
+from lightspeed.trex.contexts import get_instance as trex_contexts_instance
+from lightspeed.trex.contexts.setup import Contexts as TrexContexts
 from lightspeed.trex.footer.stagecraft.models import StageCraftFooterModel
 from lightspeed.trex.layout.shared import SetupUI as TrexLayout
 from lightspeed.trex.properties_pane.stagecraft.widget import SetupUI as PropertyPanelUI
@@ -52,6 +54,9 @@ class SetupUI(TrexLayout):
         self._subcription_app_window_size_changed = appwindow_stream.create_subscription_to_pop(
             self._on_app_window_size_changed, name="On app window resized", order=0
         )
+
+        self._context = trex_contexts_instance().get_context(TrexContexts.STAGE_CRAFT)
+
         self._welcome_pads_model = WelcomePadModel()
         self._welcome_pads_model.add_items([NewWorkFileItem(self._new_work_file_clicked)])
 
@@ -59,6 +64,18 @@ class SetupUI(TrexLayout):
 
         self._header_refreshed_task = self._header_navigator.subscribe_header_refreshed(self._on_header_refreshed)
         self._on_new_work_file_clicked = _Event()
+        self.__on_import_capture_layer = _Event()
+
+    def _import_replacement_layer(self, path, use_existing_layer):
+        """Call the event object that has the list of functions"""
+        self.__on_import_capture_layer(path, use_existing_layer)
+        self._components_pane.refresh()
+
+    def subscribe_import_replacement_layer(self, function):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_import_capture_layer, function)
 
     def _new_work_file_clicked(self):
         """Call the event object that has the list of functions"""
@@ -68,6 +85,7 @@ class SetupUI(TrexLayout):
             self._components_pane.get_model().get_item_children(None)[0]
         )
         self._on_new_work_file_clicked()
+        self._components_pane.refresh()
 
     def subscribe_new_work_file_clicked(self, fn):
         """
@@ -98,6 +116,7 @@ class SetupUI(TrexLayout):
                 "_background_images": None,
                 "_on_new_work_file_clicked": None,
                 "_splitter_property_viewport": None,
+                "_sub_import_replacement_layer": None,
             }
         )
         return default_attr
@@ -219,12 +238,12 @@ class SetupUI(TrexLayout):
                     with ui.ZStack(width=0):
                         with ui.HStack():
                             with ui.Frame(width=ui.Pixel(self.WIDTH_COMPONENT_PANEL)):
-                                self._components_pane = ComponentsPaneSetupUI()
+                                self._components_pane = ComponentsPaneSetupUI(self._context)
                             self._property_panel_frame = ui.Frame(
                                 visible=False, width=ui.Pixel(self.WIDTH_PROPERTY_PANEL)
                             )
                             with self._property_panel_frame:
-                                self._properties_pane = PropertyPanelUI()
+                                self._properties_pane = PropertyPanelUI(self._context)
                                 # hidden by default
                                 self._properties_pane.show_panel(forced_value=False)
                         self._splitter_property_viewport = ui.Placer(
@@ -235,8 +254,28 @@ class SetupUI(TrexLayout):
                             offset_x_changed_fn=self._on_property_viewport_splitter_change,
                         )
                         with self._splitter_property_viewport:
-                            ui.Rectangle(width=12)
-                    self._viewport = ViewportUI()
+                            with ui.Frame(separate_window=True, width=ui.Pixel(12)):  # to keep the Z depth order
+                                with ui.ZStack():
+                                    ui.Rectangle(name="WorkspaceBackground")
+                                    with ui.ScrollingFrame(
+                                        name="TreePanelBackground",
+                                        vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                                        horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                                        scroll_y_max=0,
+                                    ):
+                                        with ui.VStack():
+                                            for _ in range(3):
+                                                ui.Image(
+                                                    "",
+                                                    name="TreePanelLinesBackground",
+                                                    fill_policy=ui.FillPolicy.PRESERVE_ASPECT_FIT,
+                                                    height=ui.Pixel(256),
+                                                    width=ui.Pixel(256),
+                                                )
+                                    with ui.Frame(separate_window=True):
+                                        ui.Rectangle(name="TreePanelBackground")
+                    with ui.Frame(separate_window=True):  # to keep the Z depth order
+                        self._viewport = ViewportUI(self._context)
 
         # connect the component pane back arrow
         components_pane_widget = self._components_pane.get_ui_widget()
@@ -248,6 +287,11 @@ class SetupUI(TrexLayout):
         self._components_pane_tree_selection_changed = components_pane_widget.subscribe_tree_selection_changed(
             self._on_components_pane_tree_selection_changed
         )
+
+        # connect the property pane with the component pane
+        self._sub_import_replacement_layer = self._properties_pane.get_frame(
+            ComponentsEnumItems.MOD_SETUP
+        ).subscribe_import_replacement_layer(self._import_replacement_layer)
 
         if self.__background_switcher_task:
             self.__background_switcher_task.cancel()
