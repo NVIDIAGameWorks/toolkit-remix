@@ -350,9 +350,13 @@ class LightspeedPosProcessExporter:
         # TODO a crash in one shader shouldn't prevent processing the rest of the materials
         for shader_prim in all_shaders:
             try:
-                # apply edits to the shader prim in it's source usd, not in the top level replacements.usd
-                with ReferenceEdit(shader_prim):
+                if export_replacement_layer.get_sdf_layer().GetPrimAtPath(shader_prim.GetPath()):
+                    # top level replacements already has opinions about this shader, so apply edits in replacements.
                     self._process_shader_prim(shader_prim)
+                else:
+                    # Shader is just referenced from another USD, so apply edits to the source usd
+                    with ReferenceEdit(shader_prim):
+                        self._process_shader_prim(shader_prim)
             except Exception as e:  # noqa
                 failed_processes.append(str(shader_prim.GetPath()))
                 carb.log_error("Exception when post-processing shader: " + str(shader_prim.GetPath()))
