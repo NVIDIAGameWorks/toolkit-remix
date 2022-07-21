@@ -51,6 +51,9 @@ class LightspeedColorToNormalMenuExtension(omni.ext.IExt):
         omni_utils.remove_menu_items(self._tools_manager_menus, "Batch Tools")
 
     def _batch_upscale_set_progress(self, progress):
+        if not self._progress_bar:
+            self._progress_bar = ProgressPopup(title="Converting")
+            self._progress_bar.show()
         self._progress_bar.set_progress(progress)
 
     @omni.usd.handle_exception
