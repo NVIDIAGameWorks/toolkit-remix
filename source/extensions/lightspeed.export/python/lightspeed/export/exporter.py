@@ -235,12 +235,12 @@ class LightspeedExporterCore:
             export_file_path_norm = omni.client.normalize_url(
                 export_file_path + os.path.basename(self._temp_replacements_path)
             )
-            dest_file_path_norm = omni.client.normalize_url(export_file_path + os.path.basename(usd_path))
+            dest_file_path_norm = omni.client.normalize_url(export_file_path + constants.GAME_READY_REPLACEMENTS_FILE)
             os.replace(export_file_path_norm, dest_file_path_norm)
 
             self._progress_text_changed(f"Post Processing USD {os.path.basename(usd_path)}...")
             # now process/optimize geo for game
-            await self._post_exporter.process(dest_file_path_norm)
+            await self._post_exporter.process(dest_file_path_norm, self._progress_text_changed, self._progress_changed)
 
             # reopen original stage
             # TODO: Crash, use async function instead, waiting OM-42168

@@ -308,7 +308,7 @@ class LightspeedPosProcessExporter:
                     # to resolve the absolute path if the file no longer exists.
                     # os.remove(abs_path)
 
-    async def process(self, export_file_path):
+    async def process(self, export_file_path, progress_text_callback, progress_callback):
         carb.log_info("Processing: " + export_file_path)
 
         context = omni.usd.get_context()
@@ -333,7 +333,12 @@ class LightspeedPosProcessExporter:
         all_geos = [prim_ref for prim_ref in export_stage.TraverseAll() if UsdGeom.Mesh(prim_ref)]
         failed_processes = []
         # TODO a crash in one geo shouldn't prevent processing the rest of the geometry
-        for geo_prim in all_geos:
+        length = len(all_geos)
+        for i, geo_prim in enumerate(all_geos):
+            carb.log_info(f"Post Processing Mesh: {geo_prim.GetPath()}")
+            progress_text_callback(f"Post Processing Mesh:\n{geo_prim.GetPath()}")
+            progress_callback(float(i) / length)
+            await omni.kit.app.get_app().next_update_async()
             try:
                 # apply edits to the geo prim in it's source usd, not in the top level replacements.usd
                 with ReferenceEdit(geo_prim):
@@ -348,7 +353,13 @@ class LightspeedPosProcessExporter:
         # TraverseAll because we want to grab overrides
         all_shaders = [prim_ref for prim_ref in export_stage.TraverseAll() if prim_ref.IsA(UsdShade.Shader)]
         # TODO a crash in one shader shouldn't prevent processing the rest of the materials
-        for shader_prim in all_shaders:
+        i = 0.0
+        length = len(all_shaders)
+        for i, shader_prim in enumerate(all_shaders):
+            carb.log_info(f"Post Processing Shader: {shader_prim.GetPath()}")
+            progress_text_callback(f"Post Processing Shader:\n{shader_prim.GetPath()}")
+            progress_callback(float(i) / length)
+            await omni.kit.app.get_app().next_update_async()
             try:
                 if export_replacement_layer.get_sdf_layer().GetPrimAtPath(shader_prim.GetPath()):
                     # top level replacements already has opinions about this shader, so apply edits in replacements.
