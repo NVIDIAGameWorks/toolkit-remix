@@ -1,0 +1,14 @@
+check-code-format:
+  extends: .defaults
+  stage: check_format
+  needs: []
+  variables:
+      GIT_STRATEGY: clone
+      GIT_DEPTH: 0 #get all previous commits to know the files that changed
+  script:
+    - git remote set-head origin --auto
+    - .\format_code.bat --verify
+  except:
+    variables:
+      - $CI_MERGE_REQUEST_TITLE =~ /\[pipeline:format:skip\]/
+  timeout: 10m

@@ -1,0 +1,14 @@
+# windows
+build:windows:
+  extends: .defaults
+  stage: build
+  tags:
+    - windows
+    - build
+  needs:
+    - check-code-format
+  before_script:
+    - .\build.bat --clean
+  script:
+    - 'dir env:'
+    - .\build.bat --release

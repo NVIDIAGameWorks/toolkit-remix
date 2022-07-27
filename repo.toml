@@ -9,7 +9,7 @@ logging = "warn"
 import_configs = ["${root}/_repo/deps/repo_kit_tools/kit-template/repo.toml"]
 
 # Reposiory Name. It is used for solution name and final package name
-name = "trex-launcher"
+name = "trex"
 
 ########################################################################################################################
 # Test Runner
@@ -32,13 +32,11 @@ timeout = 1800
 # Packaging
 ########################################################################################################################
 
-# package content
-[repo_package.packages.main_package]
-ziponly = true
-replace_authors_in_kit_extensions = true
-strip_package_infos = true
+[repo_package]
+windows_max_path_length = 240
 
 # package content
+[repo_package.packages.main_package]
 files = [
     ["**"],
 ]
@@ -59,6 +57,10 @@ files_exclude = [
 "linux-x86_64".files_strip_exclude = [
 ]
 
+[repo_package.packages.trex]
+omniverse_flow_version_scheme = true
+archive_format = "7z"
+strip_package_infos = true
 
 ########################################################################################################################
 # Extensions publisher
@@ -67,42 +69,7 @@ files_exclude = [
 [repo_publish_exts]
 
 # Extensions to publish, include and exclude among those discovered by kit. Wildcards are supported.
-exts.include = [
-    "lightspeed.color_to_normal.core",
-    "lightspeed.color_to_normal.menu",
-    "lightspeed.color_to_roughness.core",
-    "lightspeed.color_to_roughness.menu",
-    "lightspeed.common",
-    "lightspeed.export",
-    "lightspeed.events_manager",
-    "lightspeed.event.layers_cleanup",
-    "lightspeed.event.save_recent",
-    "lightspeed.layer_helpers",
-    "lightspeed.layer_manager",
-    "lightspeed.lock_xform",
-    "lightspeed.progress_popup.window",
-    "lightspeed.property_template",
-    "lightspeed.stage_column_nickname",
-    "lightspeed.tool.material",
-    "lightspeed.tool.octahedral_converter",
-    "lightspeed.upscale.content_browser.menu",
-    "lightspeed.upscale.core",
-    "lightspeed.upscale.menu",
-    "lightspeed.window.capture_swapper",
-    "lightspeed.widget.content_viewer",
-    "lightspeed.widget.new_game",
-    "lightspeed.widget.new_workspace",
-    "lightspeed.window.capture_swapper",
-    "lightspeed.window.welcome",
-    "lightspeed.workspace",
-    "lightspeed_example.app.resources",
-    "lightspeed_example.my_name.controller",
-    "lightspeed_example.my_name.core",
-    "lightspeed_example.my_name.menu",
-    "lightspeed_example.my_name.widget",
-    "lightspeed_example.my_name.window",
-    "lightspeed_example.style",
-]
+exts.include = []
 exts.exclude = []
 
 # verify before publishing
@@ -228,4 +195,4 @@ files.exclude = [
 
 [repo_deploy_launcher]
 enabled = true
-git_url = "https://oauth2:${env:GITLAB_AUTH_TOKEN}@gitlab-master.nvidia.com/omniverse/trex-release-pipeline.git"
+git_url = "https://oauth2:${env:TREX_RELEASE_TOKEN}@gitlab-master.nvidia.com/omniverse/trex-release-pipeline.git"

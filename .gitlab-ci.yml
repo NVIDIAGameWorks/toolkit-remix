@@ -1,17 +1,18 @@
-stages:
-  - check
-
-check-code-format:
-  stage: check
+.defaults:
   only:
     - merge_requests
+  dependencies: []
   variables:
-      GIT_STRATEGY: fetch
-      GIT_DEPTH: 0 #get all previous commits to know the files that changed
-  script:
-    - git remote set-head origin --auto    
-    - ./format_code.bat --verify
-  except:
-    variables:
-      - $CI_MERGE_REQUEST_TITLE =~ /\[pipeline:format:skip\]/
-  timeout: 45m
+    GIT_STRATEGY: fetch
+
+stages:
+  - check_format
+  - check_lint
+  - build
+  - package_and_publish
+
+include:
+  - local: tools/ci/gitlab/check_format.yml
+  - local: tools/ci/gitlab/check_lint.yml
+  - local: tools/ci/gitlab/build.yml
+  - local: tools/ci/gitlab/package_and_publish.yml

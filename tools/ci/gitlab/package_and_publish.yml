@@ -1,0 +1,25 @@
+package_and_publish:windows:
+  stage: package_and_publish
+  only:
+    - master
+  when: manual
+  tags:
+    - windows
+    - build
+  before_script:
+    - .\build.bat --clean
+  script:
+    - 'dir env:'
+    - .\build.bat --release
+    - .\repo.bat package -m trex
+  after_script:
+    - dir .\_build\packages
+    - .\repo.bat publish -p trex
+  artifacts:
+    name: windows_release_"$CI_JOB_ID"
+    paths:
+      - .\_build\packages/*
+    when: always
+  variables:
+    GIT_STRATEGY: fetch
+    PM_PACKAGES_ROOT: C:\packman-repo
