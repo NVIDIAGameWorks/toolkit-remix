@@ -35,7 +35,9 @@ def preprocess(layer_manager: LayerManagerCore):
                 if replacements_layer.GetPrimAtPath(prim.GetPath()) or (
                     autoupscale_layer is not None and autoupscale_layer.GetPrimAtPath(prim.GetPath())
                 ):
-                    _cleanup_capture_refs(prim, capture_layer, constants.MATERIALS_FOLDER + "/")
+                    _cleanup_capture_refs(
+                        prim, capture_layer, constants.MATERIALS_FOLDER + "/", constants.CAPTURED_MAT_PATH_PREFIX
+                    )
 
             mesh_prim = stage.GetPrimAtPath(constants.ROOTNODE_MESHES)
             all_capture_meshes = mesh_prim.GetAllChildren()
@@ -44,7 +46,9 @@ def preprocess(layer_manager: LayerManagerCore):
                 if replacements_layer.GetPrimAtPath(prim.GetPath()) or (
                     autoupscale_layer is not None and autoupscale_layer.GetPrimAtPath(prim.GetPath())
                 ):
-                    _cleanup_capture_refs(prim, capture_layer, constants.MESHES_FOLDER + "/")
+                    _cleanup_capture_refs(
+                        prim, capture_layer, constants.MESHES_FOLDER + "/", constants.CAPTURED_MESH_PATH_PREFIX
+                    )
 
             light_prim = stage.GetPrimAtPath(constants.ROOTNODE_LIGHTS)
             all_capture_lights = light_prim.GetAllChildren()
@@ -56,7 +60,7 @@ def preprocess(layer_manager: LayerManagerCore):
                     omni.usd.stitch_prim_specs(stage, prim.GetPath(), replacements_layer)
 
 
-def _cleanup_capture_refs(prim, capture_layer: Sdf.Layer, capture_folder):
+def _cleanup_capture_refs(prim, capture_layer: Sdf.Layer, capture_folder, ref_path_prefix):
     """
     Promote all references to replacements layer
     """
@@ -96,6 +100,6 @@ def _cleanup_capture_refs(prim, capture_layer: Sdf.Layer, capture_folder):
             abs_path = Sdf.ComputeAssetPathRelativeToLayer(capture_layer, rel_path)
             if not os.path.exists(abs_path):
                 carb.log_error("Missing base USD for prim " + prim.GetName())
-            refs = [Sdf.Reference(assetPath=abs_path, primPath=prim.GetPath())]
+            refs = [Sdf.Reference(assetPath=abs_path, primPath=ref_path_prefix + prim.GetName())]
 
     prim.GetReferences().SetReferences(refs)
