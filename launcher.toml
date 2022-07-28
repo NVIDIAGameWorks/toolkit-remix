@@ -2,7 +2,7 @@
 name = "TRex"
 #displayed before application name in launcher
 productArea = "Omniverse"
-version = "2022.3.8"
+version = "2022.3.10"
 
 #unique identifier for component, all lower case, persists between versions
 slug = "trex"

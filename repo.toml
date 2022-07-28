@@ -59,7 +59,7 @@ files_exclude = [
 
 [repo_package.packages.trex]
 omniverse_flow_version_scheme = true
-archive_format = "7z"
+archive_format = "zip"
 strip_package_infos = true
 
 ########################################################################################################################
