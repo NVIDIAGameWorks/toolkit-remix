@@ -147,7 +147,7 @@ class LightspeedPosProcessExporter:
         fixed_normals = []
         normals_interp = mesh_schema.GetNormalsInterpolation()
         normals = mesh_schema.GetNormalsAttr().Get()
-        if normals_interp == UsdGeom.Tokens.vertex:
+        if normals_interp == UsdGeom.Tokens.vertex and normals:
             # Normals are currently in the (old) vertex order.  need to expand them to be 1 normal per vertex per face
             for i in fixed_indices:
                 fixed_normals.append(normals[face_vertex_indices[i]])
@@ -215,11 +215,12 @@ class LightspeedPosProcessExporter:
         # Normals
         normals_attr = mesh_schema.GetNormalsAttr()
         normals_arr = normals_attr.Get()
-        new_normals_arr = []
-        for normal in normals_arr:
-            new_normal = xform.GetInverse().GetTranspose().TransformAffine(normal)
-            new_normals_arr.append(new_normal)
-        normals_attr.Set(new_normals_arr)
+        if normals_arr:
+            new_normals_arr = []
+            for normal in normals_arr:
+                new_normal = xform.GetInverse().GetTranspose().TransformAffine(normal)
+                new_normals_arr.append(new_normal)
+            normals_attr.Set(new_normals_arr)
 
     def _process_mesh_prim(self, prim: Usd.Prim):
         # processing steps:
@@ -276,16 +277,18 @@ class LightspeedPosProcessExporter:
             encoding = normal_map_encoding_attr.Get()
             if encoding != constants.NormalMapEncodings.OCTAHEDRAL.value:
                 # need to re-encode normal map
-                abs_path = Path(normal_map_attr.Get().resolvedPath)
-                rel_path = Path(normal_map_attr.Get().path)
-                new_abs_path = abs_path.with_name(abs_path.stem + "_OTH" + abs_path.suffix)
-                new_rel_path = rel_path.with_name(rel_path.stem + "_OTH" + rel_path.suffix)
-                if encoding == constants.NormalMapEncodings.TANGENT_SPACE_DX.value:
-                    LightspeedOctahedralConverter.convert_dx_file_to_octahedral(str(abs_path), str(new_abs_path))
-                elif encoding == constants.NormalMapEncodings.TANGENT_SPACE_OGL.value:
-                    LightspeedOctahedralConverter.convert_ogl_file_to_octahedral(str(abs_path), str(new_abs_path))
-                normal_map_attr.Set(str(new_rel_path))
-                normal_map_encoding_attr.Set(constants.NormalMapEncodings.OCTAHEDRAL.value)
+                normal_path = normal_map_attr.Get()
+                if normal_path:
+                    abs_path = Path(normal_path.resolvedPath)
+                    rel_path = Path(normal_path.path)
+                    new_abs_path = abs_path.with_name(abs_path.stem + "_OTH" + abs_path.suffix)
+                    new_rel_path = rel_path.with_name(rel_path.stem + "_OTH" + rel_path.suffix)
+                    if encoding == constants.NormalMapEncodings.TANGENT_SPACE_DX.value:
+                        LightspeedOctahedralConverter.convert_dx_file_to_octahedral(str(abs_path), str(new_abs_path))
+                    elif encoding == constants.NormalMapEncodings.TANGENT_SPACE_OGL.value:
+                        LightspeedOctahedralConverter.convert_ogl_file_to_octahedral(str(abs_path), str(new_abs_path))
+                    normal_map_attr.Set(str(new_rel_path))
+                    normal_map_encoding_attr.Set(constants.NormalMapEncodings.OCTAHEDRAL.value)
 
         # compress png textures to dds
         for attr_name, bc_mode in constants.TEXTURE_COMPRESSION_LEVELS.items():
