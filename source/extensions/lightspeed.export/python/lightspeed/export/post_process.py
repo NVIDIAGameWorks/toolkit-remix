@@ -55,14 +55,15 @@ class LightspeedPosProcessExporter:
         # get the primvars attribute of the UVs
         st_prim_var = gp_pv.GetPrimvar("st")
 
-        # [AJAUS] Because USD and Directx8/9 assume different texture coordinate origins,
-        # invert the vertical texture coordinate
-        flattened_uvs = st_prim_var.ComputeFlattened()
-        inverted_uvs = []
-        for uv_value in flattened_uvs:
-            inverted_uvs.append(Gf.Vec2f(uv_value[0], -uv_value[1]))
+        if st_prim_var:
+            # [AJAUS] Because USD and Directx8/9 assume different texture coordinate origins,
+            # invert the vertical texture coordinate
+            flattened_uvs = st_prim_var.ComputeFlattened()
+            inverted_uvs = []
+            for uv_value in flattened_uvs:
+                inverted_uvs.append(Gf.Vec2f(uv_value[0], -uv_value[1]))
 
-        prim.CreateAttribute("invertedUvs", Sdf.ValueTypeNames.Float2Array, False).Set(inverted_uvs)
+            prim.CreateAttribute("invertedUvs", Sdf.ValueTypeNames.Float2Array, False).Set(inverted_uvs)
 
     def _triangulate_mesh(self, prim: Usd.Prim):
         # indices and faces converted to triangles
