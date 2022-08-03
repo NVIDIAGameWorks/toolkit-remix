@@ -160,6 +160,7 @@ class ColorToNormalCore:
             unorm_oct_array = np.insert(unorm_oct_array, 2, 0, axis=2)
             out_im = Image.fromarray(np.uint8((unorm_oct_array * 255).round()))
             out_im.save(str(result_path))
+            out_im.close()
         # Convert to DDS if necessary, and generate mips (note dont use the temp dir for this)
         if output_texture.lower().endswith(".dds"):
             compress_mip_process = subprocess.Popen(

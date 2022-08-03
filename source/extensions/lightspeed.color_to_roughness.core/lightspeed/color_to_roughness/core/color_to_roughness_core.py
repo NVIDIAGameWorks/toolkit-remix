@@ -122,6 +122,7 @@ class ColorToRoughnessCore:
                 # Convert Smoothness to roughness
                 grey_im = ImageOps.invert(grey_im)
                 grey_im.save(str(result_path))
+                grey_im.close()
         except NotImplementedError:
             return
         # Convert to DDS if necessary, and generate mips (note dont use the temp dir for this)
