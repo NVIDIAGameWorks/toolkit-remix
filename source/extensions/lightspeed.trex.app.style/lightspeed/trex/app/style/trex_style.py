@@ -22,10 +22,14 @@ _BLUE_SELECTED = 0x66FFC700
 _BLUE_HOVERED = 0x1AFFC700
 
 _DARK_00 = 0x01000000  # 01 for alpha or it will show a default color
-_DARK_32 = 0xFF202020
-_DARK_42 = 0xFF2A2A2A
-_DARK_50 = 0xFF303030
+_DARK_85 = 0xD9000000
 
+_GREY_32 = 0xFF202020
+_GREY_42 = 0xFF2A2A2A
+_GREY_50 = 0xFF303030
+
+
+_WHITE_10 = 0x1AFFFFFF
 _WHITE_20 = 0x33FFFFFF
 _WHITE_30 = 0x4DFFFFFF
 _WHITE_40 = 0x66FFFFFF
@@ -54,7 +58,7 @@ _DEFAULT_FIELD_READ_HOVERED_VALUE = {
 }
 
 _DEFAULT_DARK_PANEL_BACKGROUND_VALUE = {
-    "background_color": _DARK_32,
+    "background_color": _GREY_32,
     "border_width": 1,
     "border_color": _WHITE_20,
     "border_radius": 8,
@@ -90,7 +94,7 @@ current_dict = style.default
 current_dict.update(
     {
         "Button::Main": {
-            "background_color": _DARK_42,
+            "background_color": _GREY_42,
             "border_width": 1,
             "border_color": _WHITE_20,
             "border_radius": 4,
@@ -155,6 +159,7 @@ current_dict.update(
         "Image::TreeViewBranchCollapsed": {"image_url": _get_icons("disclosure-collapsed"), "color": _WHITE_100},
         "Image::TreeViewBranchExpanded": {"image_url": _get_icons("disclosure-expanded"), "color": _WHITE_100},
         "Image::WelcomePadDefault": {"color": 0x40000000, "border_radius": 12},
+        "Image::WelcomePadImage": {"border_radius": 12},
         "ImageWithProvider::HeaderNvidiaTitle": {
             "color": _WHITE_60,
             "font_size": 32,
@@ -234,6 +239,11 @@ current_dict.update(
             "font_size": 18,
             "image_url": _get_fonts("Barlow-Medium"),
         },
+        "ImageWithProvider::WelcomePadItemTitle:checked": {
+            "color": _WHITE_30,
+            "font_size": 18,
+            "image_url": _get_fonts("Barlow-Medium"),
+        },
         "ImageWithProvider::WelcomePadTitle": {
             "color": _WHITE_60,
             "font_size": 24,
@@ -241,15 +251,24 @@ current_dict.update(
         },
         "Label::USDPropertiesWidgetValueOverlay": {"color": _WHITE_20},
         "Label::WelcomePadItemDescription": {"color": _WHITE_100, "font_size": 16},
+        "Label::WelcomePadItemDescription:checked": {"color": _WHITE_30, "font_size": 16},
         "Label::PropertiesPaneSectionCaptureTreeItem": {"color": _WHITE_80, "font_size": 14},
         "Label::PropertiesPaneSectionCaptureTreeItemNoImage": {"color": _WHITE_80, "font_size": 18},
         "Label::HeaderNavigatorMenuItem": {"color": _WHITE_60, "font_size": 20},
         "Label::HeaderNavigatorMenuItem:selected": {"color": _WHITE_100, "font_size": 20},
         "Label::HeaderNavigatorMenuItem:hovered": {"color": _WHITE_80, "font_size": 20},
+        "Label::MenuBurgerHotkey": {"color": _WHITE_60, "font_size": 12},
         "Label::WelcomePadFooter": {"color": _WHITE_100, "font_size": 18},
         "Line::PropertiesPaneSectionTitle": {"color": _WHITE_20, "border_width": 1},
         "Line::WelcomePadTop": {"color": _WHITE_20, "border_width": 1},
-        "Menu": {"background_color": _DARK_32, "color": _WHITE_100, "background_selected_color": _WHITE_80},
+        "MenuBurger": {
+            "background_color": _DARK_85,
+            "border_radius": 8,
+            "border_width": 0,
+            "padding": 8,
+            "background_selected_color": _BLUE_SELECTED,
+        },
+        "MenuBurgerItem": {"background_selected_color": _BLUE_HOVERED, "color": _WHITE_100},
         "PropertiesWidgetField": {
             "background_color": _DARK_00,  # 01 for alpha or it will show a default color
             "color": _WHITE_80,
@@ -301,7 +320,7 @@ current_dict.update(
         },
         "Rectangle::PropertiesPaneSectionWindowBackground": _DEFAULT_DARK_PANEL_BACKGROUND_VALUE,
         "Rectangle::TreePanelBackground": {"background_color": 0x33000000},
-        "Rectangle::WorkspaceBackground": {"background_color": _DARK_50},
+        "Rectangle::WorkspaceBackground": {"background_color": _GREY_50},
         "Rectangle::FooterBackground": {"background_color": 0x99000000},
         "Rectangle::PropertiesPaneSectionWindowImageBackground": _DEFAULT_DARK_PANEL_BACKGROUND_VALUE,
         "Rectangle::PropertiesPaneSectionWindowCaptureBackground": _DEFAULT_DARK_PANEL_BACKGROUND_VALUE,
@@ -310,10 +329,13 @@ current_dict.update(
             "border_radius": 2,
         },
         "Rectangle::MenuBurgerBackground": {"background_color": 0x0},
+        "Rectangle::MenuBurgerFloatingBackground": {"background_color": 0x0},
         "Rectangle::MenuBurgerBackground:hovered": {"background_color": _BLUE_HOVERED},
         "Rectangle::MenuBurgerBackground:selected": {"background_color": _BLUE_SELECTED},
         "ScrollingFrame::PropertiesPaneSection": {"background_color": 0x0, "secondary_color": 0x12FFFFFF},
         "ScrollingFrame::TreePanelBackground": {"background_color": 0x0},
+        "ScrollingFrame::WelcomePad": {"background_color": 0x0, "secondary_color": _WHITE_10},
+        "ScrollingFrame::WelcomePadItem": {"background_color": 0x0, "secondary_color": _WHITE_10},
         "TreeView": {
             "background_color": 0x0,
             "background_selected_color": _BLUE_HOVERED,
@@ -323,7 +345,7 @@ current_dict.update(
             "background_color": 0x0,
             "background_selected_color": 0x0,
         },  # background_selected_color = hovered
-        "TreeView::TreePanel:selected": {"background_color": _DARK_50},
+        "TreeView::TreePanel:selected": {"background_color": _GREY_50},
         "TreeView::WelcomePad:selected": {"background_color": 0x0},
         "TreeView.ScrollingFrame::WelcomePad": {"background_color": 0x0},
         "Window": {"background_color": 0xFF0F0F0F},

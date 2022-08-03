@@ -6,6 +6,7 @@ description = "Welcome Pads implementation for Lightspeed Trex StageCraft App"
 [dependencies]
 "omni.flux.utils.widget" = {}
 "omni.flux.welcome_pad.widget" = {}
+"omni.ui" = {}
 
 [[python.module]]
 name = "lightspeed.trex.welcome_pads.stagecraft.models"

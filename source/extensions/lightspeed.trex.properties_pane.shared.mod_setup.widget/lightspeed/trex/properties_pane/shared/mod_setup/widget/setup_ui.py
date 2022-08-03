@@ -11,12 +11,12 @@ import asyncio
 import functools
 import os
 
+import carb.input
 import omni.appwindow
 import omni.client
+import omni.kit.usd.layers as _layers
 import omni.ui as ui
 import omni.usd
-from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
-from lightspeed.layer_manager.layer_types import LayerType
 from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCoreSetup
 from lightspeed.trex.utils.widget import TrexMessageDialog
@@ -38,6 +38,38 @@ from .capture_tree.delegate import Delegate as CaptureTreeDelegate
 from .capture_tree.model import ListModel as CaptureTreeModel
 from .mod_file_picker import open_file_picker
 from .mod_file_picker_create import open_file_picker_create
+
+
+def ignore_function(attrs=None):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            for attr in attrs:
+                if getattr(self, attr):
+                    return
+                setattr(self, attr, True)
+            func(self, *args, **kwargs)
+            for attr in attrs:
+                setattr(self, attr, False)
+
+        return wrapper
+
+    return decorator
+
+
+def sandwich_attrs_function(attrs=None):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            for attr in attrs:
+                setattr(self, attr, True)
+            func(self, *args, **kwargs)
+            for attr in attrs:
+                setattr(self, attr, False)
+
+        return wrapper
+
+    return decorator
 
 
 class ModSetupPane:
@@ -86,18 +118,21 @@ class ModSetupPane:
             "_mod_details_delegate": None,
             "_mod_detail_property_widget": None,
             "_sub_stage_event": None,
-            "_layer_manager": None,
+            "_sub_layer_event": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
         self._context = context
-        self._layer_manager = _LayerManagerCore(context=self._context)
         self.__import_existing_mod_file = True
-        self._capture_tree_hovered_task = False
+        self._capture_tree_hovered_task = None
         self._game_icon_hovered_task = None
-        self.__ignore_capture_tree_selection_changed = False
+        self._ignore_capture_tree_selection_changed = False
         self.__ignore_capture_tree_hovered = False
+        self._ignore_capture_detail_refresh = False
+        self._ignore_mod_file_field_changed = False
+        self._ignore_mod_detail_refresh = False
+        self.__ignore_import_capture_layer = False
         self._capture_tree_model = CaptureTreeModel()
         self._capture_tree_delegate = CaptureTreeDelegate()
         self._capture_tree_delegate_window = CaptureTreeDelegate()
@@ -109,6 +144,11 @@ class ModSetupPane:
             self.__on_stage_event, name="StageChanged"
         )
 
+        self._layers = _layers.get_layers()
+        self._sub_layer_event = self._layers.get_event_stream().create_subscription_to_pop(
+            self.__on_layer_event, name="LayerChange"
+        )
+
         self.__file_listener_instance = _get_file_listener_instance()
 
         self.__on_select_vehicle_pressed_event = _Event()
@@ -118,27 +158,23 @@ class ModSetupPane:
         self.__update_default_style()
         self.__create_ui()
 
+    def __on_layer_event(self, event):
+        payload = _layers.get_layer_event_payload(event)
+        if not payload:
+            return
+        if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
+            self.__on_event()
+
     def __on_stage_event(self, event):
         if event.type in [
             int(omni.usd.StageEventType.CLOSED),
             int(omni.usd.StageEventType.OPENED),
-            int(omni.usd.StageEventType.ASSETS_LOADED),
         ]:
-            if not self._capture_tree_view_window:
-                return
-            capture_layer = self._layer_manager.get_layer(LayerType.capture)
-            if capture_layer is not None:
-                for item in self._capture_tree_model.get_item_children(None):
-                    if omni.client.normalize_url(item.path) == omni.client.normalize_url(capture_layer.realPath):
-                        self._capture_tree_view_window.selection = [item]
-                        return
-            self._capture_tree_view_window.selection = []
+            self.__on_event()
 
-            replacement_layer = self._layer_manager.get_layer(LayerType.replacement)
-            if replacement_layer is not None:
-                self._mod_file_field.model.set_value(omni.client.normalize_url(replacement_layer.realPath))
-            else:
-                self._mod_file_field.model.set_value("...")
+    def __on_event(self):
+        self.refresh_capture_detail_panel()
+        self.refresh_mod_detail_panel()
 
     def __update_default_style(self):
         """
@@ -160,18 +196,16 @@ class ModSetupPane:
         def on_okay_clicked(dialog: TrexMessageDialog):
             dialog.hide()
             self.__on_import_capture_layer(path)
-            self.refresh_capture_detail_panel()
             self._last_capture_tree_view_window_selection = self._capture_tree_view_window.selection
 
+        @ignore_function(attrs=["_ignore_capture_tree_selection_changed"])
         def on_cancel_clicked(dialog: TrexMessageDialog):
             dialog.hide()
-            self.__ignore_capture_tree_selection_changed = True
             self._capture_tree_view_window.selection = (
                 []
                 if self._last_capture_tree_view_window_selection is None
                 else self._last_capture_tree_view_window_selection
             )
-            self.__ignore_capture_tree_selection_changed = False
 
         message = f"Are you sure you want to load this capture layer?\n{path}"
 
@@ -514,14 +548,20 @@ class ModSetupPane:
         self._mod_file_collapsable_frame.enabled = value
         self._mod_file_details_collapsable_frame.enabled = value
 
+    @sandwich_attrs_function(attrs=["_ignore_mod_file_field_changed"])
+    @ignore_function(attrs=["_ignore_mod_detail_refresh"])
     def refresh_mod_detail_panel(self):
         if not self._root_frame.visible:
             return
         self._mod_file_details_frame.clear()
-        value = self._mod_file_field.model.get_value_as_string()
-        current_file = value if value.strip() else None
+        capture_layer = self._core_replacement.get_layer()
+        if capture_layer is None:
+            self.set_mod_file_field("...")
+            return
+        current_file = omni.client.normalize_url(capture_layer.realPath)
         if not current_file or not self._core_replacement.is_path_valid(current_file):
             return
+        self.set_mod_file_field(current_file)
         self._destroy_mod_properties()
 
         items = []
@@ -538,6 +578,7 @@ class ModSetupPane:
                 ui.Spacer(height=ui.Pixel(8))
                 self._mod_detail_property_widget = _PropertyWidget(self._mod_details_model, self._mod_details_delegate)
 
+    @ignore_function(attrs=["_ignore_capture_detail_refresh"])
     def refresh_capture_detail_panel(self):
         """
         Refresh the panel with the given paths
@@ -570,22 +611,58 @@ class ModSetupPane:
                 self._game_icon_hovered_task.cancel()
             self._game_icon_hovered_task = asyncio.ensure_future(deferred_on_game_icon_hovered(widget, hovered))
 
+        def unselect_items():
+            self.__ignore_import_capture_layer = True
+            self._capture_tree_view_window.selection = []
+            self._capture_tree_view.selection = self._capture_tree_view_window.selection
+            self.__ignore_import_capture_layer = False
+
         if not self._root_frame.visible:
             return
-        self._capture_details_frame.clear()
-
+        if not self._capture_tree_view_window:
+            self.__create_capture_tree_window()
         self._enable_panels()
 
-        value = self._capture_dir_field.model.get_value_as_string()
-        current_directory = value if value.strip() else None
-        if not current_directory:
-            return
+        # update capture tree from capture dir field
+        self._capture_details_frame.clear()
         self._destroy_capture_properties()
+        capture_layer = self._core_capture.get_layer()
 
-        selection = self._capture_tree_view_window.selection
-        if not selection:
+        if capture_layer is None:
+            # grab from the field
+            value = self._capture_dir_field.model.get_value_as_string()
+        else:
+            value = os.path.dirname(omni.client.normalize_url(capture_layer.realPath))
+        capture_dir = value if value.strip() else None
+        if not capture_dir or not self._core_capture.is_path_valid(capture_dir):
+            unselect_items()
             return
-        capture_path = selection[0].path
+
+        self.set_capture_dir_field(capture_dir)
+        self._capture_tree_model.refresh(
+            [(path, self._core_capture.get_capture_image(path)) for path in self._core_capture.capture_files]
+        )
+        if not self._capture_manipulator_frame.visible:
+            self._capture_manipulator_frame.visible = True
+            self._tree_capture_scroll_frame.height = ui.Pixel(self.DEFAULT_CAPTURE_TREE_FRAME_HEIGHT)
+
+        # check if there is current capture layer
+        if capture_layer is None:
+            unselect_items()
+            return
+        capture_path = omni.client.normalize_url(capture_layer.realPath)
+
+        found_current_layer = False
+        for item in self._capture_tree_model.get_item_children(None):
+            if omni.client.normalize_url(item.path) == omni.client.normalize_url(capture_layer.realPath):
+                self.__ignore_import_capture_layer = True
+                self._capture_tree_view_window.selection = [item]
+                self._capture_tree_view.selection = self._capture_tree_view_window.selection
+                self.__ignore_import_capture_layer = False
+                found_current_layer = True
+                break
+        if not found_current_layer:
+            unselect_items()
 
         items = []
         for attr in [attr for attr in dir(omni.client.ListEntry) if not attr.startswith("_")]:
@@ -623,18 +700,24 @@ class ModSetupPane:
                     self._capture_details_model, self._capture_details_delegate
                 )
 
+    @ignore_function(attrs=["_ignore_capture_tree_selection_changed"])
     def _on_capture_tree_selection_changed(self, items):
-        if self.__ignore_capture_tree_selection_changed:
-            return
         if len(items) > 1:
             self._capture_tree_view_window.selection = [items[0]]
-        self._capture_tree_view.selection = self._capture_tree_view_window.selection
-        if self._capture_tree_view_window.selection:
+        if self._capture_tree_view_window.selection and not self.__ignore_import_capture_layer:
             self._import_capture_layer(items[0].path)
         else:
             self.refresh_capture_detail_panel()
 
     def _on_capture_tree_hovered(self, hovered):
+        # if the left click is pushed, we ignore (because it can come from the property/viewport splitter)
+        iinput = carb.input.acquire_input_interface()
+        app_window = omni.appwindow.get_default_app_window()
+        mouse = app_window.get_mouse()
+        mouse_value = iinput.get_mouse_value(mouse, carb.input.MouseInput.LEFT_BUTTON)
+        if mouse_value:
+            return
+
         if self._window_capture_tree is None:
             self.__create_capture_tree_window()
         if self.__ignore_capture_tree_hovered:
@@ -719,6 +802,7 @@ class ModSetupPane:
 
     def set_capture_dir_field(self, path):
         self._capture_dir_field.model.set_value(path)
+        self._core_capture.set_directory(path)
 
     def _on_capture_dir_field_begin(self, model):
         self.__capture_field_is_editing = True
@@ -734,20 +818,14 @@ class ModSetupPane:
             return
         if not self._core_capture.is_path_valid(path):
             return
-        self._core_capture.set_directory(path)
-        self._capture_tree_model.refresh(
-            [(path, self._core_capture.get_capture_image(path)) for path in self._core_capture.capture_files]
-        )
-        if not self._capture_manipulator_frame.visible:
-            self._capture_manipulator_frame.visible = True
-            self._tree_capture_scroll_frame.height = ui.Pixel(self.DEFAULT_CAPTURE_TREE_FRAME_HEIGHT)
+        self.refresh_capture_detail_panel()
 
+    @ignore_function(attrs=["_ignore_mod_file_field_changed"])
     def _on_mod_file_field_changed(self, model):
         path = model.get_value_as_string()
+        if self._core_replacement.is_path_valid(path, existing_file=self.__import_existing_mod_file):
+            self.__on_import_replacement_layer(path, self.__import_existing_mod_file)
         self.refresh_mod_detail_panel()
-        if not self._core_replacement.is_path_valid(path):
-            return
-        self.__on_import_replacement_layer(path, self.__import_existing_mod_file)
 
     def _destroy_capture_properties(self):
         if self.__file_listener_instance and self._capture_details_model and self._capture_details_delegate:

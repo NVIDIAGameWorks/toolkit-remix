@@ -8,6 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import asyncio
+import contextlib
 import functools
 from pathlib import Path
 from typing import List, Optional
@@ -21,7 +22,6 @@ from lightspeed.layer_manager.layer_types import LayerType, LayerTypeKeys
 from lightspeed.upscale.core import UpscalerCore
 from omni.flux.utils.common import async_wrap as _async_wrap
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from omni.kit.usd.layers import LayerUtils
 from PIL import Image
 from pxr import Sdf, Usd, UsdGeom
 
@@ -43,30 +43,24 @@ class Setup:
         await omni.kit.app.get_app().next_update_async()
 
         # setup the session camera to match the capture camera
-        stage = omni.usd.get_context().get_stage()
+        stage = self._context.get_stage()
         capture_layer = self._layer_manager.get_layer(LayerType.capture)
         if capture_layer is None:
             carb.log_warn("Can't find a capture layer, won't be setting up the default camera to match game")
             return
         session_layer = stage.GetSessionLayer()
-        current_edit_layer = Sdf.Find(LayerUtils.get_edit_target(stage))
-        swap_edit_targets = current_edit_layer != session_layer
-        try:
-            if swap_edit_targets:
-                LayerUtils.set_edit_target(stage, session_layer.identifier)
-
-            carb.log_info("Setting up perspective camera from capture")
-            Sdf.CopySpec(capture_layer, "/RootNode/Camera", session_layer, "/OmniverseKit_Persp")
-        finally:
-            if swap_edit_targets:
-                LayerUtils.set_edit_target(stage, current_edit_layer.identifier)
+        with contextlib.suppress(Exception):
+            with Usd.EditContext(stage, session_layer):
+                carb.log_info("Setting up perspective camera from capture")
+                Sdf.CopySpec(capture_layer, "/RootNode/Camera", session_layer, "/OmniverseKit_Persp")
 
     def __copy_metadata_from_stage_to_stage(self, stage_source, stage_destination):
         # copy over layer-meta-data from capture layer
-        UsdGeom.SetStageUpAxis(stage_destination, UsdGeom.GetStageUpAxis(stage_source))
-        UsdGeom.SetStageMetersPerUnit(stage_destination, UsdGeom.GetStageMetersPerUnit(stage_source))
-        time_codes = stage_source.GetTimeCodesPerSecond()
-        stage_destination.SetTimeCodesPerSecond(time_codes)
+        with Usd.EditContext(stage_destination, stage_destination.GetRootLayer()):
+            UsdGeom.SetStageUpAxis(stage_destination, UsdGeom.GetStageUpAxis(stage_source))
+            UsdGeom.SetStageMetersPerUnit(stage_destination, UsdGeom.GetStageMetersPerUnit(stage_source))
+            time_codes = stage_source.GetTimeCodesPerSecond()
+            stage_destination.SetTimeCodesPerSecond(time_codes)
 
     @staticmethod
     def is_path_valid(path: str) -> bool:

@@ -4,7 +4,9 @@ title = "Lightspeed Trex control for the StageCraft"
 description = "Control will connect back end and front end for Lightspeed Trex StageCraft App"
 
 [dependencies]
+"lightspeed.layer_manager" = {}
 "omni.flux.utils.common" = {}
+"omni.kit.window.file" = {}
 "omni.usd" = {}
 
 [[python.module]]

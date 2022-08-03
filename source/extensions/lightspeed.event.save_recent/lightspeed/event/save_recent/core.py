@@ -13,6 +13,7 @@ import omni.usd
 from lightspeed.events_manager.i_ds_event import ILSSEvent
 from lightspeed.layer_manager.constants import LSS_LAYER_GAME_NAME
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
+from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 from .recent_saved_file_utils import RecentSavedFile
 
@@ -66,15 +67,4 @@ class EventSaveRecentCore(ILSSEvent):
             )
 
     def destroy(self):
-        for attr, value in self.default_attr.items():
-            m_attr = getattr(self, attr)
-            if isinstance(m_attr, list):
-                m_attrs = m_attr
-            else:
-                m_attrs = [m_attr]
-            for m_attr in m_attrs:
-                destroy = getattr(m_attr, "destroy", None)
-                if callable(destroy):
-                    destroy()
-                del m_attr
-                setattr(self, attr, value)
+        _reset_default_attrs(self)

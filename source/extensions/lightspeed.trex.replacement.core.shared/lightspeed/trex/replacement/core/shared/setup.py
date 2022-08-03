@@ -7,6 +7,8 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import os
+
 import carb
 import omni.client
 import omni.usd
@@ -26,21 +28,28 @@ class Setup:
         self._layer_manager = _LayerManagerCore(context=context)
 
     def get_layer(self):
-        return self._layer_manager.get_layer(LayerType.capture)
+        return self._layer_manager.get_layer(LayerType.replacement)
 
     @staticmethod
-    def is_path_valid(path: str) -> bool:
+    def is_path_valid(path: str, existing_file: bool = True) -> bool:
         if not path or not path.strip():
             carb.log_error(f"{path} is not valid")
-            return False
-        _, entry = omni.client.stat(path)
-        if not (entry.flags & omni.client.ItemFlags.WRITEABLE_FILE):  # noqa PLC0325
-            if entry.flags & omni.client.ItemFlags.READABLE_FILE:
-                carb.log_error(f"{path} is not writeable")
             return False
         if path.rpartition(".")[-1] not in ["usd", "usda", "usdc"]:
             carb.log_error(f"The path {path} is not an USD path")
             return False
+        if existing_file:
+            _, entry = omni.client.stat(path)
+            if not (entry.flags & omni.client.ItemFlags.WRITEABLE_FILE):  # noqa PLC0325
+                if entry.flags & omni.client.ItemFlags.READABLE_FILE:
+                    carb.log_error(f"{path} is not writeable")
+                return False
+        else:
+            result, entry = omni.client.stat(os.path.dirname(path))
+            if result != omni.client.Result.OK or not (
+                entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN
+            ):  # noqa PLC0325
+                return False
         return True
 
     def import_replacement_layer(self, path: str, use_existing_layer: bool = True):

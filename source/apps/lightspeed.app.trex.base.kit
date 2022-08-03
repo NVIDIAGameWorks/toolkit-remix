@@ -30,6 +30,8 @@ This base experience regroup all extensions shared between all Lightspeed Trex e
 "lightspeed.trex.app.setup" = { order = 1000 } # layout setup, we are running that at the end
 "lightspeed.trex.app.style" = {}  # global style
 
+"lightspeed.event.save_recent" = {}  # for recent saved file
+
 # Windows
 "omni.kit.window.title" = {}
 # Windows only extensions. For all of them set exact=true to not be included into generated version lock.
@@ -70,6 +72,9 @@ registryEnabled = false
 [settings.app.font]
 file = "${lightspeed.trex.app.resources}/data/fonts/Barlow-Regular.otf"
 size = 16
+
+[settings.app.file]
+ignoreUnsavedStage = true
 
 [settings.app.window]
 width = 1700

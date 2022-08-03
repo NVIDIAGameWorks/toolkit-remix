@@ -8,28 +8,33 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import asyncio
+import os
 from enum import Enum
+from functools import partial
 
 import carb.events
 import omni.appwindow
 import omni.kit.app
 import omni.ui as ui
 import omni.usd
+from lightspeed.event.save_recent.recent_saved_file_utils import RecentSavedFile as _RecentSavedFile
 from lightspeed.trex.components_pane.stagecraft.controller import SetupUI as ComponentsPaneSetupUI
 from lightspeed.trex.components_pane.stagecraft.models import EnumItems as ComponentsEnumItems
 from lightspeed.trex.contexts import get_instance as trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as TrexContexts
 from lightspeed.trex.footer.stagecraft.models import StageCraftFooterModel
 from lightspeed.trex.layout.shared import SetupUI as TrexLayout
+from lightspeed.trex.menu.workfile import get_instance as get_burger_menu_instance
 from lightspeed.trex.properties_pane.stagecraft.widget import SetupUI as PropertyPanelUI
 from lightspeed.trex.viewports.stagecraft import SetupUI as ViewportUI
-from lightspeed.trex.welcome_pads.stagecraft.models import NewWorkFileItem
+from lightspeed.trex.welcome_pads.stagecraft.models import NewWorkFileItem, RecentWorkFileItem, ResumeWorkFileItem
 from omni.flux.footer.widget import FooterWidget
 from omni.flux.header_nvidia.widget import HeaderWidget
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.widget.color import color_to_hex
 from omni.flux.utils.widget.resources import get_background_images
+from omni.flux.utils.widget.resources import get_icons as _get_icons
 from omni.flux.welcome_pad.widget import WelcomePadWidget
 from omni.flux.welcome_pad.widget.model import Model as WelcomePadModel
 
@@ -57,13 +62,22 @@ class SetupUI(TrexLayout):
 
         self._context = trex_contexts_instance().get_context(TrexContexts.STAGE_CRAFT)
 
-        self._welcome_pads_model = WelcomePadModel()
-        self._welcome_pads_model.add_items([NewWorkFileItem(self._new_work_file_clicked)])
+        self._welcome_pads_new_model = WelcomePadModel()
+        self._welcome_resume_item = ResumeWorkFileItem(self._resume_work_file_clicked)
+        self._welcome_pads_new_model.add_items(
+            [self._welcome_resume_item, NewWorkFileItem(self._new_work_file_clicked)]
+        )
+
+        self._recent_saved_file = _RecentSavedFile()
+        self._welcome_pads_recent_model = WelcomePadModel()
+        self._welcome_pads_recent_model.set_list_limit(20)
 
         self.__current_page = None
 
         self._header_refreshed_task = self._header_navigator.subscribe_header_refreshed(self._on_header_refreshed)
         self._on_new_work_file_clicked = _Event()
+        self._on_open_work_file = _Event()
+        self._on_resume_work_file_clicked = _Event()
         self.__on_import_capture_layer = _Event()
 
     def _import_replacement_layer(self, path, use_existing_layer):
@@ -77,6 +91,24 @@ class SetupUI(TrexLayout):
         """
         return _EventSubscription(self.__on_import_capture_layer, function)
 
+    def _open_work_file(self, path):
+        """Call the event object that has the list of functions"""
+        self._on_open_work_file(path)
+        self.show_page(Pages.WORKSPACE_PAGE)
+        # select the first component
+        self._components_pane.get_ui_widget().set_selection(
+            self._components_pane.get_model().get_item_children(None)[0]
+        )
+        self._components_pane.refresh()
+        # enable resume welcome panel item
+        self._welcome_pads_new_model.enable_items([self._welcome_resume_item], True)
+
+    def subscribe_open_work_file(self, function):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self._on_open_work_file, function)
+
     def _new_work_file_clicked(self):
         """Call the event object that has the list of functions"""
         self.show_page(Pages.WORKSPACE_PAGE)
@@ -86,6 +118,8 @@ class SetupUI(TrexLayout):
         )
         self._on_new_work_file_clicked()
         self._components_pane.refresh()
+        # enable resume welcome panel item
+        self._welcome_pads_new_model.enable_items([self._welcome_resume_item], True)
 
     def subscribe_new_work_file_clicked(self, fn):
         """
@@ -93,6 +127,18 @@ class SetupUI(TrexLayout):
         Called when we click on a tool (change of the selected tool)
         """
         return _EventSubscription(self._on_new_work_file_clicked, fn)
+
+    def _resume_work_file_clicked(self):
+        self.show_page(Pages.WORKSPACE_PAGE)
+        self._on_resume_work_file_clicked()
+        self._components_pane.refresh()
+
+    def subscribe_resume_work_file_clicked(self, fn):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        Called when we click on a tool (change of the selected tool)
+        """
+        return _EventSubscription(self._on_resume_work_file_clicked, fn)
 
     @property
     def default_attr(self):
@@ -102,7 +148,8 @@ class SetupUI(TrexLayout):
                 "_header_nvidia_widget": None,
                 "_welcome_pad_widgets": None,
                 "_subcription_app_window_size_changed": None,
-                "_welcome_pads_model": None,
+                "_welcome_pads_new_model": None,
+                "_welcome_pads_recent_model": None,
                 "_frame_home_page": None,
                 "_frame_workspace": None,
                 "_header_refreshed_task": None,
@@ -114,9 +161,12 @@ class SetupUI(TrexLayout):
                 "_property_panel_frame": None,
                 "_all_frames": None,
                 "_background_images": None,
-                "_on_new_work_file_clicked": None,
                 "_splitter_property_viewport": None,
                 "_sub_import_replacement_layer": None,
+                "_welcome_resume_item": None,
+                "_sub_menu_burger_pressed": None,
+                "_recent_saved_file": None,
+                "_welcome_pad_widget_recent": None,
             }
         )
         return default_attr
@@ -217,12 +267,23 @@ class SetupUI(TrexLayout):
                             with ui.VStack(width=ui.Pixel(480)):
                                 ui.Spacer(height=ui.Pixel(48))
                                 self._welcome_pad_widgets.append(
-                                    WelcomePadWidget(model=self._welcome_pads_model, show_footer=False, title="NEW")
+                                    WelcomePadWidget(
+                                        model=self._welcome_pads_new_model,
+                                        show_footer=False,
+                                        title="NEW",
+                                        auto_resize_list=False,
+                                    )
                                 )  # hold or crash
                             ui.Spacer(width=ui.Pixel(64))
                             with ui.VStack(width=ui.Pixel(480)):
                                 ui.Spacer(height=ui.Pixel(48))
-                                self._welcome_pad_widgets.append(WelcomePadWidget(title="RECENT"))  # hold or crash
+                                self._welcome_pad_widget_recent = WelcomePadWidget(
+                                    model=self._welcome_pads_recent_model,
+                                    title="RECENT",
+                                    auto_resize_list=False,
+                                    word_wrap_description=False,
+                                )  # hold or crash
+                                self._welcome_pad_widgets.append(self._welcome_pad_widget_recent)
                             ui.Spacer(width=ui.Pixel(64))
                             with ui.VStack(width=ui.Pixel(480)):
                                 ui.Spacer(height=ui.Pixel(48))
@@ -274,13 +335,18 @@ class SetupUI(TrexLayout):
                                                 )
                                     with ui.Frame(separate_window=True):
                                         ui.Rectangle(name="TreePanelBackground")
-                    with ui.Frame(separate_window=True):  # to keep the Z depth order
+                    with ui.Frame(separate_window=False):
                         self._viewport = ViewportUI(self._context)
+
+        # subscribe to the burger menu
+        self._sub_menu_burger_pressed = self._components_pane.get_ui_widget().menu_burger_widget.set_mouse_pressed_fn(
+            lambda x, y, b, m: self._on_menu_burger_mouse_pressed(b)
+        )
 
         # connect the component pane back arrow
         components_pane_widget = self._components_pane.get_ui_widget()
         components_pane_widget.arrow_back_title_widget.set_mouse_pressed_fn(
-            lambda x, y, b, m: self.show_page(Pages.HOME_PAGE)
+            lambda x, y, b, m: self._on_back_arrow_pressed()
         )
 
         # connect the component pane to the property pane
@@ -296,6 +362,48 @@ class SetupUI(TrexLayout):
         if self.__background_switcher_task:
             self.__background_switcher_task.cancel()
         self.__background_switcher_task = asyncio.ensure_future(self.__background_switcher())
+
+        self._refresh_welcome_pads_recent_model()
+
+    def _on_back_arrow_pressed(self):
+        self.show_page(Pages.HOME_PAGE)
+        self._refresh_welcome_pads_recent_model()
+
+    def _refresh_welcome_pads_recent_model(self):
+        @omni.usd.handle_exception
+        async def _update_images(_path):
+            _, thumbnail = await self._recent_saved_file.find_thumbnail_async(_path)
+            if thumbnail is None:
+                return
+            await omni.kit.app.get_app().next_update_async()
+            images_widgets = self._welcome_pad_widget_recent.delegate.get_image_widgets()
+            _title = os.path.basename(_path)
+            if _title in images_widgets:
+                images_widgets[_title].source_url = thumbnail
+
+        def _get_image(_path):
+            asyncio.ensure_future(_update_images(_path))
+            return _get_icons("new_workfile")  # default image or it will always show the default image from style
+
+        items = []
+        for path, _ in self._recent_saved_file.get_recent_file_data().items():
+            title = os.path.basename(path)
+            details = {"Path": path}
+            details.update(self._recent_saved_file.get_path_detail(path))
+            items.append(
+                RecentWorkFileItem(title, details, partial(_get_image, path), partial(self._open_work_file, path))
+            )
+        self._welcome_pads_recent_model.set_items(reversed(items))
+
+    def _on_menu_burger_mouse_pressed(self, button):
+        if button != 0:
+            return
+        get_burger_menu_instance().show_at(
+            self._components_pane.get_ui_widget().menu_burger_widget.screen_position_x,
+            self._components_pane.get_ui_widget().menu_burger_widget.screen_position_y
+            + self._components_pane.get_ui_widget().menu_burger_widget.computed_height
+            + ui.Pixel(8),
+        )
 
     def subscribe_import_capture_layer(self, function):
         """

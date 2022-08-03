@@ -7,8 +7,10 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import asyncio
 import json
 import math
+import os
 import shutil
 from pathlib import Path
 from typing import Dict
@@ -97,6 +99,28 @@ class RecentSavedFile:
             )
             return result
         return {}
+
+    @staticmethod
+    @omni.usd.handle_exception
+    async def find_thumbnail_async(path: str, auto=False):
+        if not path.strip() or ".thumbs" in path:
+            return None, None
+        parent_dir = os.path.dirname(path)
+        item_name = os.path.basename(path)
+        if auto:
+            thumbnail = f"{parent_dir}/.thumbs/256x256/{item_name}.auto.png"
+        else:
+            thumbnail = f"{parent_dir}/.thumbs/256x256/{item_name}.png"
+
+        try:
+            result, _ = await asyncio.wait_for(omni.client.stat_async(thumbnail), timeout=10.0)
+        except (Exception, asyncio.TimeoutError):  # noqa PLW0703
+            result = omni.client.Result.ERROR_NOT_FOUND
+        if result == omni.client.Result.OK:
+            return path, thumbnail
+        if not auto:
+            return await RecentSavedFile.find_thumbnail_async(path, auto=True)
+        return None, None
 
     @staticmethod
     def convert_size(size_bytes):

@@ -5,7 +5,6 @@ description = "Mod Setup Properties Pane widget for Lightspeed Trex StageCraft A
 
 [dependencies]
 "lightspeed.common" = {}
-"lightspeed.layer_manager" = {}
 "lightspeed.trex.capture.core.shared" = {}
 "lightspeed.trex.replacement.core.shared" = {}
 "lightspeed.trex.utils.widget" = {}
@@ -16,6 +15,7 @@ description = "Mod Setup Properties Pane widget for Lightspeed Trex StageCraft A
 "omni.flux.property_widget_builder.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
+"omni.kit.usd.layers" = {}
 "omni.ui" = {}
 "omni.usd" = {}
 

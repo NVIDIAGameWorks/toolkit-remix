@@ -4,11 +4,13 @@ title = "Lightspeed Trex layout for the StageCraft"
 description = "Layout for Lightspeed Trex StageCraft App"
 
 [dependencies]
+"lightspeed.event.save_recent" = {}
 "lightspeed.trex.contexts" = {}
 "lightspeed.trex.components_pane.stagecraft.controller" = {}
 "lightspeed.trex.components_pane.stagecraft.models" = {}
 "lightspeed.trex.footer.stagecraft.models" = {}
 "lightspeed.trex.layout.shared" = {}
+"lightspeed.trex.menu.workfile" = {}
 "lightspeed.trex.properties_pane.stagecraft.widget" = {}
 "lightspeed.trex.viewports.stagecraft" = {}
 "lightspeed.trex.welcome_pads.stagecraft.models" = {}

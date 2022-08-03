@@ -35,7 +35,7 @@ class SetupUI:
         self.__create_ui()
 
     def __create_ui(self):
-        with ui.ZStack():
+        with ui.ZStack(content_clipping=True):
             ui.Rectangle(name="WorkspaceBackground")
             self._viewport = ViewportWidget(
                 usd_context_name=TrexContexts.STAGE_CRAFT.value,

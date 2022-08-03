@@ -11,7 +11,6 @@ description = "Extension that works on capture data for Lightspeed Trex StageCra
 # omni.kit.pip_archive has Pillow and numpy. Adding Pillow in requirements will not work, because Pillow needs to
 # import PIL, not import Pillow.
 "omni.kit.pip_archive" = {}
-"omni.kit.usd.layers" = {}
 "omni.flux.utils.common" = {}
 "omni.usd" = {}
 

@@ -4,11 +4,14 @@ title = "Lightspeed Trex control for the StageCraft"
 description = "Control will connect back end and front end for Lightspeed Trex StageCraft App"
 
 [dependencies]
+"lightspeed.layer_manager" = {}
 "lightspeed.trex.capture.core.shared" = {}
 "lightspeed.trex.replacement.core.shared" = {}
 "lightspeed.trex.contexts" = {}
 "lightspeed.trex.layout.stagecraft" = {}
+"lightspeed.trex.menu.workfile" = {}
 "lightspeed.trex.stage.core.shared" = {}
+"lightspeed.trex.utils.widget" = {}
 "omni.flux.utils.common" = {}
 
 [[python.module]]

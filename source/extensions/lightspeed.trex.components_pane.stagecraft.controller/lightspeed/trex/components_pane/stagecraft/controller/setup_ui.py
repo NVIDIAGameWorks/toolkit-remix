@@ -7,6 +7,8 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+from pathlib import Path
+
 import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.layer_types import LayerType
@@ -17,6 +19,9 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 
 class SetupUI:
+
+    DEFAULT_TITLE = "Untitled workfile"
+
     def __init__(self, context):
         """Nvidia StageCraft Components Pane"""
 
@@ -41,12 +46,13 @@ class SetupUI:
         self._model = _Model()
         self._model.set_items(self._items)
         self._ui = _PanelOutlinerWidget(tree_model=self._model)  # hold or crash
-        self._ui.set_title("Untitled workfile")
+        self._ui.set_title(self.DEFAULT_TITLE)
 
     def __on_stage_event(self, event):
         if event.type in [
             int(omni.usd.StageEventType.CLOSED),
             int(omni.usd.StageEventType.OPENED),
+            int(omni.usd.StageEventType.SAVED),
             int(omni.usd.StageEventType.ASSETS_LOADED),
         ]:
             self.refresh()
@@ -67,6 +73,15 @@ class SetupUI:
             # enable only the first one
             for i, item in enumerate(self._model.get_item_children(None)):
                 item.enabled = i == 0
+
+        # update the title
+        stage_url = self._context.get_stage_url()
+        stage = self._context.get_stage()
+        root_layer = stage.GetRootLayer() if stage else None
+        if stage_url and stage and root_layer and not root_layer.anonymous:
+            self._ui.set_title(Path(stage_url).stem)
+        else:
+            self._ui.set_title(self.DEFAULT_TITLE)
 
     def destroy(self):
         _reset_default_attrs(self)

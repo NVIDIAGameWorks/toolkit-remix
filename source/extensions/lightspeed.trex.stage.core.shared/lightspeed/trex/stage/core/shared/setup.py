@@ -8,17 +8,36 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import asyncio
+from typing import Callable
 
+import omni.kit.window.file
 import omni.usd
+from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
+from lightspeed.layer_manager.layer_types import LayerType
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 
 class Setup:
     def __init__(self, context: omni.usd.UsdContext):
-        self._default_attr = {"_context": None}
+        self._default_attr = {"_context": None, "_layer_manager": None, "_sub_stage_event": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
         self._context = context
+        self._layer_manager = _LayerManagerCore(context=self._context)
+        self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
+            self.__on_stage_event, name="StageChanged"
+        )
+
+    def open_stage(self, path, callback=None):
+        omni.kit.window.file.open_stage(path)
+        if callback:
+            callback()
+
+    def __on_stage_event(self, event):
+        if event.type in [
+            int(omni.usd.StageEventType.OPENED),
+        ]:
+            self._layer_manager.set_edit_target_layer(LayerType.replacement)
 
     def create_new_work_file(self):
         self._context.new_stage_with_callback(self._on_new_stage_created)
@@ -66,6 +85,12 @@ class Setup:
         sphere = UsdGeom.Cube.Define(stage, "/hello1/world1")
         sphere.GetSizeAttr().Set(40)
         print("hellloooo")
+
+    def save(self):
+        omni.kit.window.file.save()
+
+    def save_as(self, on_save_done: Callable[[bool, str], None] = None):
+        omni.kit.window.file.save_as(False, on_save_done=on_save_done)
 
     def destroy(self):
         _reset_default_attrs(self)
