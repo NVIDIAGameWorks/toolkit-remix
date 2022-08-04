@@ -9,6 +9,7 @@
 """
 import asyncio
 import os
+import stat
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -73,6 +74,7 @@ class LightspeedExporterCore:
         self.__on_progress_changed = self._Event()
         self.__on_progress_text_changed = self._Event()
         self.__on_finish_export = self._Event()
+        self.__on_export_readonly_error = self._Event()
 
         self.__collector_weakref = None
         self._export_button_fn = export_button_fn
@@ -99,6 +101,16 @@ class LightspeedExporterCore:
         Return the object that will automatically unsubscribe when destroyed.
         """
         return self._EventSubscription(self.__on_progress_text_changed, func)
+
+    def _export_readonly_error(self, read_only_paths):
+        """Call the event object that has the list of functions"""
+        self.__on_export_readonly_error(read_only_paths)
+
+    def subscribe_export_readonly_error(self, func):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return self._EventSubscription(self.__on_export_readonly_error, func)
 
     def _finish_export(self):
         """Call the event object that has the list of functions"""
@@ -170,6 +182,10 @@ class LightspeedExporterCore:
         return True
 
     def _start_exporting(self, export_folder):
+        # Make sure there are no readonly files or directories in the export folder
+        if not self._validate_write_permissions(export_folder):
+            return
+
         context = omni.usd.get_context()
         # Save the current stage
         context.save_stage()
@@ -273,3 +289,22 @@ class LightspeedExporterCore:
                     destroy()
                 del m_attr
                 setattr(self, attr, value)
+
+    def _validate_write_permissions(self, export_folder):
+        read_only = list()
+        for root, _, files in os.walk(export_folder, followlinks=True):
+            root_path = Path(root)
+            file_paths = list(map(lambda f: root_path / f, files))
+
+            if stat.FILE_ATTRIBUTE_READONLY & root_path.stat().st_file_attributes:
+                read_only.append(str(root_path))
+
+            for file_path in file_paths:
+                if stat.FILE_ATTRIBUTE_READONLY & file_path.stat().st_file_attributes:
+                    read_only.append(str(file_path))
+
+        if len(read_only) > 0:
+            self._export_readonly_error(read_only)
+            return False
+
+        return True

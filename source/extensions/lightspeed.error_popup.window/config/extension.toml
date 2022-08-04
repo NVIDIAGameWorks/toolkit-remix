@@ -1,0 +1,20 @@
+[package]
+version = "0.1.0"
+authors = ["ptrottier@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+keywords = ["window"]
+title = "Lightspeed Error Popup Window"
+description = "An Error Popup Window"
+category = "other"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+icon = "data/icon.png"
+preview_image = "data/preview.png"
+
+
+[dependencies]
+"omni.ui" = {}
+"omni.flux.utils.common" = {}
+
+[[python.module]]
+name = "lightspeed.error_popup.window"

@@ -1,4 +1,4 @@
-﻿# all folders starting with _ are local
+# all folders starting with _ are local
 _*/
 # exclude local website repo, used for publishing
 website/
@@ -95,5 +95,7 @@ symbols.txt
 output.txt
 
 # PACKAGE-LICENSES/
-
 PACKAGE-DEPS.yaml
+
+# JetBrains configs
+.idea/
