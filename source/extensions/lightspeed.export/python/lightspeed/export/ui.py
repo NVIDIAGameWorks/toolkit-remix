@@ -15,6 +15,7 @@ import omni.client
 import omni.ext
 import omni.kit.menu.utils as omni_utils
 import omni.kit.window.content_browser as content
+from lightspeed.error_popup.window import ErrorPopup
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from lightspeed.progress_popup.window import ProgressPopup
 from omni import ui
@@ -31,12 +32,14 @@ class LightspeedExporterUI:
             "_window": None,
             "_folder_exsit_popup": None,
             "_progress_popup": None,
+            "_error_popup": None,
             "_exportion_path_field": None,
             "_core": None,
             "_layer_manager": None,
             "_subscription_progress_changed": None,
             "_subscription_progress_text_changed": None,
             "_subscription_finish_export": None,
+            "_subscription_export_readonly_error": None,
         }
         for attr, value in self.__default_attr.items():
             setattr(self, attr, value)
@@ -48,11 +51,15 @@ class LightspeedExporterUI:
             self._on_progress_text_changed
         )
         self._subscription_finish_export = self._core.subscribe_finish_export(self._on_finish_export)
+        self._subscription_export_readonly_error = self._core.subscribe_export_readonly_error(
+            self._on_export_readonly_error
+        )
 
         self._window = None
-        self._folder_exsit_popup = None
-        self._exportion_path_field = None
+        self._folder_exist_popup = None
+        self._export_path_field = None
         self._progress_popup = None
+        self._error_popup = None
 
         self.__create_save_menu()
 
@@ -66,6 +73,17 @@ class LightspeedExporterUI:
         content_window = content.get_content_window()
         content_window.refresh_current_directory()
         self._progress_popup.hide()
+
+    def _on_export_readonly_error(self, read_only_paths):
+        content_window = content.get_content_window()
+        content_window.refresh_current_directory()
+        self._progress_popup.hide()
+        self._show_error_popup(
+            "Read-Only Error Occurred",
+            "One or more path in your export folder is read-only. Change the file or folder permissions to fix this "
+            "issue.",
+            "\n".join(read_only_paths),
+        )
 
     def __create_save_menu(self):
         """Create the menu to Save scenario"""
@@ -117,10 +135,10 @@ class LightspeedExporterUI:
                     ui.Spacer(width=5)
                     with ui.VStack(height=0):
                         ui.Spacer(height=4)
-                        self._exportion_path_field = ui.StringField(height=20, width=ui.Fraction(1))
+                        self._export_path_field = ui.StringField(height=20, width=ui.Fraction(1))
                         default_path = self._core.get_default_export_path(create_if_not_exist=True)
                         if default_path:
-                            self._exportion_path_field.model.set_value(default_path)
+                            self._export_path_field.model.set_value(default_path)
                         ui.Spacer(height=4)
                     with ui.VStack(height=0, width=0):
                         ui.Spacer(height=4)
@@ -149,7 +167,7 @@ class LightspeedExporterUI:
                 ui.Spacer(height=20)
 
     def _on_export_button_clicked(self):
-        export_dir = self._exportion_path_field.model.get_value_as_string()
+        export_dir = self._export_path_field.model.get_value_as_string()
         if not self._core.check_export_path(export_dir):
             return
         self._show_progress_popup()
@@ -161,7 +179,7 @@ class LightspeedExporterUI:
         self._window.visible = False
 
     def _select_picked_folder_callback(self, path):
-        self._exportion_path_field.model.set_value(path)
+        self._export_path_field.model.set_value(path)
         self._window.visible = True
 
     def _cancel_picked_folder_callback(self):
@@ -169,7 +187,7 @@ class LightspeedExporterUI:
 
     def _show_file_picker(self):
         self._window.visible = False
-        path = self._exportion_path_field.model.get_value_as_string()
+        path = self._export_path_field.model.get_value_as_string()
         current_directory = path if path else None
         open_file_picker(self._select_picked_folder_callback, lambda *args: None, current_directory=current_directory)
 
@@ -179,6 +197,11 @@ class LightspeedExporterUI:
             self._progress_popup.set_cancel_fn(self._core.cancel)
         self._progress_popup.progress = 0
         self._progress_popup.show()
+
+    def _show_error_popup(self, title, message, details):
+        if not self._error_popup:
+            self._error_popup = ErrorPopup(title, message, details)
+        self._error_popup.show()
 
     def destroy(self):
         omni_utils.remove_menu_items(self._tools_manager_menus, "File")
