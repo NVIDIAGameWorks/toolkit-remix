@@ -38,7 +38,7 @@ def handle_exception(func):
         except asyncio.CancelledError:
             # We always cancel the task. It's not a problem.
             pass
-        except Exception as e:
+        except Exception as e:  # noqa PLW0703, PLC0103
             carb.log_error(f"Exception when async '{func}'")
             carb.log_error(f"{e}")
             carb.log_error(f"{traceback.format_exc()}")
@@ -147,16 +147,16 @@ class ContentItemAdd:
     def is_selected(self):
         return self.__overlay_wide_rectangle.selected
 
-    def _on_mouse_clicked(self, x, y, b, m):
+    def _on_mouse_clicked(self, x, y, b, m):  # noqa PLC0103
         """Called when the item is clicked on"""
         self._core.set_item_was_clicked(True)
         self._core.set_selection(self.content_data)
 
-    def _on_mouse_released(self, x, y, b, m):
+    def _on_mouse_released(self, x, y, b, m):  # noqa PLC0103
         """Called when the mouse is released"""
         pass
 
-    def _on_mouse_moved(self, x, y, b, m):
+    def _on_mouse_moved(self, x, y, b, m):  # noqa PLC0103
         """Called when the mouse is moved"""
         pass
 
@@ -323,9 +323,7 @@ class ContentItem:
             self.__title_frame.clear()
             self.__title_frame.style = self.style
             with self.__title_frame:
-                ui.Label(
-                    self.content_data.title, alignment=ui.Alignment.CENTER, name="Title", height=0, elided_text=True
-                )
+                ui.Label(self.content_data.title, alignment=ui.Alignment.CENTER, name="Title", height=0, word_wrap=True)
 
     def __create_ui(self):
         """Create the UI"""
@@ -462,13 +460,13 @@ class ContentItem:
                 return entries[::-1][self.__checkpoint_combobox.model.get_item_value_model().as_int]
         return None
 
-    def _on_checkpoint_combobox_mouse_clicked(self, x, y, b, m):
+    def _on_checkpoint_combobox_mouse_clicked(self, x, y, b, m):  # noqa PLC0103
         self._core.set_block_selection(True)
 
-    def _on_checkpoint_combobox_mouse_released(self, x, y, b, m):
+    def _on_checkpoint_combobox_mouse_released(self, x, y, b, m):  # noqa PLC0103
         self._core.set_block_selection(False)
 
-    def _on_mouse_clicked(self, x, y, b, m):
+    def _on_mouse_clicked(self, x, y, b, m):  # noqa PLC0103
         """Called when the item is clicked on"""
         if self._core.is_selection_blocked():
             return
@@ -486,11 +484,11 @@ class ContentItem:
         else:
             self._core.set_selection(self.content_data)
 
-    def _on_mouse_released(self, x, y, b, m):
+    def _on_mouse_released(self, x, y, b, m):  # noqa PLC0103
         """Called when the mouse is released"""
         pass
 
-    def _on_mouse_moved(self, x, y, b, m):
+    def _on_mouse_moved(self, x, y, b, m):  # noqa PLC0103
         """Called when the mouse is moved"""
         pass
 
@@ -797,6 +795,6 @@ class ContentViewer:
         self.__content_items = None
         self.__content_data = None
         self.__filter_content_title_value = None
-        instance = super(ContentViewer, self)
+        instance = super()
         if instance:
             del instance
