@@ -12,6 +12,7 @@ import collections.abc
 import os
 from typing import Callable
 
+import carb
 import omni.client
 import omni.usd
 from pxr import Sdf, Usd, UsdUtils
@@ -62,7 +63,11 @@ class PathsToRelative:
     @staticmethod  # noqa C901
     @omni.usd.handle_exception
     async def convert_current_stage(
-        context=None, progress_callback: Callable[[float], None] = None, scan_only: bool = True, only_data=None
+        context=None,
+        progress_callback: Callable[[float], None] = None,
+        scan_only: bool = True,
+        only_data=None,
+        show_print=True,
     ):
         def traverse_instanced_children(prim):
             for child in prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate):
@@ -88,6 +93,8 @@ class PathsToRelative:
         doublon = {}
 
         data = {}
+
+        save_errors = ""
 
         for layer in layers:  # noqa PLR1702
             to_save_layer = False
@@ -133,8 +140,9 @@ class PathsToRelative:
                                 result = os.path.basename(str(attr.Get()))
                                 if result[-1:] == "@":
                                     result = result[:-1]
-                                print(f"From layer {chk}        {prim.GetPath().pathString}\n")
-                                print(f"    {attr.Get()}\n  -->\n   {result}\n" + "=" * 30)
+                                if show_print:
+                                    carb.log_info(f"From layer {chk}        {prim.GetPath().pathString}\n")
+                                    carb.log_info(f"    {attr.Get()}\n  -->\n   {result}\n" + "=" * 30)
                                 if not scan_only:
                                     attr.Set(result)
                                 deep_update_data(
@@ -151,8 +159,9 @@ class PathsToRelative:
                                 result = os.path.basename(str(attr.Get()))
                                 if result[-1:] == "@":
                                     result = result[:-1]
-                                print(f"From layer {chk}        {prim.GetPath().pathString}\n")
-                                print(f"    {attr.Get()}\n  -->\n   {result}\n" + "=" * 30)
+                                if show_print:
+                                    carb.log_info(f"From layer {chk}        {prim.GetPath().pathString}\n")
+                                    carb.log_info(f"    {attr.Get()}\n  -->\n   {result}\n" + "=" * 30)
                                 if not scan_only:
                                     attr.Set(result)
                                 deep_update_data(
@@ -186,8 +195,9 @@ class PathsToRelative:
                                     # for whatever reason, this doesnt work. Need to use omni.client (?)
                                     # result = Sdf.ComputeAssetPathRelativeToLayer(layer, str_value)
                                     result = omni.client.make_relative_url(chk, str_value)
-                                    print(f"From layer {chk}        {prim.GetPath().pathString}\n")
-                                    print(f"    {attr.Get()}\n  -->\n   {result}\n" + "=" * 30)
+                                    if show_print:
+                                        carb.log_info(f"From layer {chk}        {prim.GetPath().pathString}\n")
+                                        carb.log_info(f"    {attr.Get()}\n  -->\n   {result}\n" + "=" * 30)
                                     if not scan_only:
                                         attr.Set(result)
                                     deep_update_data(
@@ -199,8 +209,11 @@ class PathsToRelative:
                                     else:
                                         doublon[os.path.basename(result)].append(chk)
                                 else:  # can't find relative path
-                                    print(f"From layer {chk}\n")
-                                    print(f"    {attr.Get()}\n  -->\n   Can't find relative path\n" + "=" * 30)
+                                    if show_print:
+                                        carb.log_info(f"From layer {chk}\n")
+                                        carb.log_info(
+                                            f"    {attr.Get()}\n  -->\n   Can't find relative path\n" + "=" * 30
+                                        )
                 for primspec in prim.GetPrimStack():
                     if not primspec:
                         continue
@@ -225,8 +238,9 @@ class PathsToRelative:
                             if result:
                                 result_items.append((item, result))
                                 new_ref = True
-                                print(f"From layer {chk}        {prim.GetPath().pathString}\n")
-                                print(f"    {item.assetPath}\n  -->\n   {result.assetPath}\n" + "=" * 30)
+                                if show_print:
+                                    carb.log_info(f"From layer {chk}        {prim.GetPath().pathString}\n")
+                                    carb.log_info(f"    {item.assetPath}\n  -->\n   {result.assetPath}\n" + "=" * 30)
                             else:  # can't find the relative path, keep
                                 result_items.append((item, item))
                         else:
@@ -267,15 +281,17 @@ class PathsToRelative:
                             if result:
                                 result_items.append((item, result))
                                 new_ref = True
-                                print(f"From layer {chk}        {prim.GetPath().pathString}\n")
-                                print(f"    {item.assetPath}\n  -->\n   {result.assetPath}\n" + "=" * 30)
+                                if show_print:
+                                    carb.log_info(f"From layer {chk}        {prim.GetPath().pathString}\n")
+                                    carb.log_info(f"    {item.assetPath}\n  -->\n   {result.assetPath}\n" + "=" * 30)
                             else:  # can't find the relative path, keep
                                 result_items.append((item, item))
                         else:
                             result_items.append((item, item))
                         if new_ref:
                             to_save_layer = True
-                            print(("5" * 50), to_save_layer, scan_only)
+                            if show_print:
+                                carb.log_info(("5" * 50), to_save_layer, scan_only)
                             if not scan_only:
                                 primspec.referenceList.prependedItems = [result_item[1] for result_item in result_items]
                             deep_update_data(
@@ -294,11 +310,15 @@ class PathsToRelative:
                             )
 
             if to_save_layer and not scan_only:
-                print(f"Save layer {chk}")
-                sub_stage.Save()
+                if show_print:
+                    carb.log_info(f"Save layer {chk}")
+                try:
+                    sub_stage.Save()
+                except Exception:  # noqa PLW0703
+                    save_errors += f"Can't save {chk}. Read only?\n"
         for tex, lays in doublon.items():
-            if len(lays) > 1:
-                print(("Doublon", tex, lays))
+            if len(lays) > 1 and show_print:
+                carb.log_info(("Doublon", tex, lays))
         # reload
         await context.open_stage_async(usd)
-        return data
+        return data, save_errors

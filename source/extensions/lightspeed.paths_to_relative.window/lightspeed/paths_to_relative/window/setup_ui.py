@@ -11,6 +11,7 @@ import asyncio
 
 import omni.ui as ui
 import omni.usd
+from lightspeed.error_popup.window import ErrorPopup
 from lightspeed.paths_to_relative.core import PathsToRelative, deep_update_data
 from lightspeed.progress_popup.window import ProgressPopup
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -27,6 +28,7 @@ class PathsToRelativeWindow:
             "_window": None,
             "_tree": None,
             "_progress_bar": None,
+            "_error_popup": None,
         }
         for attr, value in self.__default_attr.items():
             setattr(self, attr, value)
@@ -93,7 +95,7 @@ class PathsToRelativeWindow:
 
         await asyncio.sleep(0.01)
 
-        result = await PathsToRelative.convert_current_stage(
+        result, errors_messages = await PathsToRelative.convert_current_stage(
             progress_callback=self._batch_upscale_set_progress, scan_only=scan_only, only_data=data
         )
         if scan_only:
@@ -105,6 +107,10 @@ class PathsToRelativeWindow:
         if self._progress_bar:
             self._progress_bar.hide()
             self._progress_bar = None
+
+        if errors_messages:
+            self._error_popup = ErrorPopup("Errors!", "There are some errors:", errors_messages)
+            self._error_popup.show()
 
     def _scan(self):
         asyncio.ensure_future(self._run_batch_convert())

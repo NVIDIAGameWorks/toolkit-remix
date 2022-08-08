@@ -199,8 +199,7 @@ class LightspeedExporterUI:
         self._progress_popup.show()
 
     def _show_error_popup(self, title, message, details):
-        if not self._error_popup:
-            self._error_popup = ErrorPopup(title, message, details)
+        self._error_popup = ErrorPopup(title, message, details)
         self._error_popup.show()
 
     def destroy(self):
