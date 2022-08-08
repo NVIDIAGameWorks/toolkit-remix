@@ -1,0 +1,9 @@
+signing:
+  extends: .defaults
+  stage: signing
+  tags:
+    - build
+  needs:
+    - build_pkg_test
+  script:
+    - .\tools\ci\publishing\sign-windows-binaries\step.bat

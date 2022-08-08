@@ -1,0 +1,15 @@
+pkg_publish:
+  stage: pkg_publish
+  only:
+    - master
+  when: manual
+  tags:
+    - build
+  before_script:
+    - .\build.bat --clean
+  script:
+    - .\build.bat --release
+    - .\tools\package.bat -a -c release
+    - .\tools\ci\publishing\publish\step.bat
+    - whoami
+    - .\tools\ci\publishing\publish-launcher-packages\step.bat

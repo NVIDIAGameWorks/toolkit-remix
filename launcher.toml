@@ -9,11 +9,11 @@ slug = "trex"
 ## install and launch instructions by environment
 [defaults.windows-x86_64]
 url = ""
-entrypoint = "${productRoot}/_build/windows-x86_64/release/omni.app.lightspeed.bat"
+entrypoint = "${productRoot}/omni.app.lightspeed.bat"
 args = ["--/app/environment/name='launcher'"]
 
 [defaults.windows-x86_64.open]
-command = "${productRoot}/_build/windows-x86_64/release/omni.app.lightspeed.bat"
+command = "${productRoot}/omni.app.lightspeed.bat"
 args = ['--exec "open_stage.py ${file}"', "--/app/environment/name='launcher'"]
 
 [defaults.windows-x86_64.environment]
@@ -23,7 +23,7 @@ pre-install = ""
 pre-install-args = []
 install = ""
 install-args = []
-post-install = "${productRoot}/_build/windows-x86_64/release/omni.app.lightspeed.warmup.bat"
+post-install = "${productRoot}/omni.app.lightspeed.warmup.bat"
 post-install-args = ["--/app/environment/name='launcher_warmup'"]
 
 [defaults.windows-x86_64.uninstall]
@@ -36,8 +36,8 @@ post-uninstall-args = []
 
 [defaults.linux-x86_64]
 url = ""
-entrypoint = "${productRoot}/_build/windows-x86_64/release/omni.app.lightspeed.sh"
-args = ["--/app/environment/name='launcher'"]
+entrypoint = "" # ${productRoot}/omni.app.lightspeed.sh
+args = [] # "--/app/environment/name='launcher'"
 [defaults.linux-x86_64.environment]
 
 [defaults.linux-x86_64.install]

@@ -59,7 +59,8 @@ files_exclude = [
 
 [repo_package.packages.trex]
 omniverse_flow_version_scheme = true
-archive_format = "zip"
+ziponly = true
+compression_level_7z = 3
 strip_package_infos = true
 
 ########################################################################################################################
@@ -122,6 +123,7 @@ sphinx_exclude_patterns = [
     "tools",
     "_build",
     "VERSION.md",
+    "source/extensions/lightspeed_example*",
 ]
 
 repo_url = "https://gitlab-master.nvidia.com/omniverse/kit-extensions/kit-template/-/blob/master"
