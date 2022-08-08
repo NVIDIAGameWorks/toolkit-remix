@@ -1,3 +1,37 @@
+# Publishing a new App Version to the OV Launcher
+
+To bump the TRex app version number, there are 3 files that need to be updated. 
+***Attempts to publish to the OV launcher without first making sure that these*** 
+***files are properly updated will result cause incorrect versions to be displayed,***
+***or will cause the pipeline to outright fail.***
+
+The files that need to be updated are outlined below:
+
+```
+  ./launcher.toml
+    #displayed before application name in launcher
+    productArea = "Omniverse"
+    version = "2022.X.X"
+
+  ./VERSION.md
+    2022.X.X
+
+  ./source/apps/omni.app.lightspeed.kit
+    title = "Lightspeed Kit"
+    description = "Used for lightspeed remastering."
+    version = "2022.X.X"
+```
+
+Once these files have been updated and your merge request has been approved and merged
+to master, a quick check/build/test pipeline will run.
+
+After the check/build/test pipeline completes and you are ready to publish the new version,
+click the play button for the manual job that was created after your MR was merged.
+
+The publish process takes about ~20 minutes as Aug 2022.
+
+Please make sure to test the new version by downloading it from the launcher.
+
 # Kit Extensions & Apps Example :package:
 
 This repo is the gold standard for building Kit extensions and applications.

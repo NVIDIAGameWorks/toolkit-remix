@@ -15,19 +15,6 @@ url = "${kit-sdk-launcher_windows-x86_64}"
 location = "$${base}/kit"
 main = false
 
-[[package.linux-x86_64.packman]]
-name = "TRex"
-url = "${package_url_linux-x86_64}"
-location = "$${base}"
-main = true
-
-[[package.linux-x86_64.packman]]
-name = "kit-sdk-launcher"
-url = "${kit-sdk-launcher_linux-x86_64}"
-location = "$${base}/kit"
-main = false
-
-
 [images]
 name = "Create-Images"
 url = "https://d4i3qtqj3r0z5.cloudfront.net/code-launcher-images@2022.1.1.zip"

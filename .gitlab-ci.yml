@@ -8,11 +8,13 @@
 stages:
   - check_format
   - check_lint
-  - build
-  - package_and_publish
+  - build_test
+  - pkg_publish
+#  - signing
 
 include:
   - local: tools/ci/gitlab/check_format.yml
   - local: tools/ci/gitlab/check_lint.yml
-  - local: tools/ci/gitlab/build.yml
-  - local: tools/ci/gitlab/package_and_publish.yml
+  - local: tools/ci/gitlab/build_test.yml
+  - local: tools/ci/gitlab/pkg_publish.yml
+#  - local: tools/ci/gitlab/signing.yml

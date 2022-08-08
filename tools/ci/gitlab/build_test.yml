@@ -1,14 +1,12 @@
-# windows
-build:windows:
+build_test:
   extends: .defaults
-  stage: build
+  stage: build_test
   tags:
-    - windows
     - build
   needs:
-    - check-code-format
+    - check-code-lint
   before_script:
     - .\build.bat --clean
   script:
-    - 'dir env:'
     - .\build.bat --release
+    - .\tools\ci\testing\windows-x86_64\step.bat
