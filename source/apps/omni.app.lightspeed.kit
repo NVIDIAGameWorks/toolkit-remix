@@ -232,6 +232,9 @@ exts."lightspeed.lock_xform".prim_filter = "instances/inst_"
 
 exts."omni.kit.material.library".lib_paths = [ "${kit}/../omni_core_materials/Base"]
 
+# default stage columns enabled
+persistent.exts."omni.kit.window.stage".columns = "Nickname|Visibility|Type"
+
 renderer.enabled='rtx'
 renderer.multiGpu.maxGpuCount = 1
 renderer.mdl.searchPaths.templates = "${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"

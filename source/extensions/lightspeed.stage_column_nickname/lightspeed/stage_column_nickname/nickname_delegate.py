@@ -28,12 +28,12 @@ class UsdNicknameWatchModel(UsdPropertyWatchModel):
         if not self._path:
             self._path = path
 
-    def get_value_as_string(self) -> Optional[str]:
+    def get_value_as_string(self) -> str:
         """Reimplemented get string"""
         prop = self._get_prop()
         if prop:
             return prop.Get()
-        return None
+        return ""
 
     def set_value(self, value: str):
         """Reimplemented set string"""
