@@ -31,22 +31,15 @@ class Delegate(ui.AbstractItemDelegate):
             "_bigger_image": None,
             "_no_image_label": None,
             "_path_scroll_frames": None,
-            "_default_item_path_scroll_x": None,
             "_on_import_layer_pressed_event": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
-        self._default_item_path_scroll_x = {}
         self._path_scroll_frames = {}
-        self._widget_stacks = {}
-        self._branch_stacks = {}
         self.__cancel_mouse_hovered = False
         self.__current_big_image_item = None
         self.__create_bigger_image_ui()
-
-    def set_default_item_path_scroll_x(self, item, value):
-        self._default_item_path_scroll_x[item] = value
 
     def get_path_scroll_frames(self):
         return self._path_scroll_frames
@@ -168,9 +161,7 @@ class Delegate(ui.AbstractItemDelegate):
                         scroll_y_max=0,
                     )
                     with self._path_scroll_frames[id(item)]:
-                        ui.Label(
-                            os.path.basename(item.path), name="PropertiesPaneSectionCaptureTreeItem", tooltip=item.path
-                        )
+                        ui.Label(os.path.basename(item.path), name="PropertiesPaneSectionTreeItem", tooltip=item.path)
 
     def build_header(self, column_id):
         """Build the header"""

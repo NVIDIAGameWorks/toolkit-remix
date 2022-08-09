@@ -29,7 +29,9 @@ from omni.flux.property_widget_builder.widget import PropertyWidget as _Property
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from omni.flux.utils.widget.collapsable_frame import PropertyCollapsableFrameWithInfoPopup
+from omni.flux.utils.widget.collapsable_frame import (
+    PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
+)
 from omni.flux.utils.widget.label import create_label_with_font as _create_label_with_font
 from omni.flux.utils.widget.resources import get_fonts as _get_fonts
 
@@ -308,7 +310,7 @@ class ModSetupPane:
                         with ui.VStack():
                             ui.Spacer(height=ui.Pixel(8))
 
-                            self._capture_file_collapsable_frame = PropertyCollapsableFrameWithInfoPopup(
+                            self._capture_file_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "CAPTURE FILE",
                                 info_text=(
                                     "The capture file loads the captured scene from the game.\n"
@@ -425,11 +427,11 @@ class ModSetupPane:
                                                                     width=ui.Percent(
                                                                         self.SIZE_PERCENT_MANIPULATOR_WIDTH
                                                                     ),
-                                                                    name="PropertiesPaneSectionCaptureTreeManipulator",
+                                                                    name="PropertiesPaneSectionTreeManipulator",
                                                                 )
                             ui.Spacer(height=ui.Pixel(16))
 
-                            self._capture_details_collapsable_frame = PropertyCollapsableFrameWithInfoPopup(
+                            self._capture_details_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "CAPTURE DETAILS",
                                 info_text="Details from the capture layer file loaded in this stage",
                                 collapsed=True,
@@ -439,7 +441,7 @@ class ModSetupPane:
                                 self._capture_details_frame = ui.Frame()
 
                             ui.Spacer(height=ui.Pixel(16))
-                            self._mod_file_collapsable_frame = PropertyCollapsableFrameWithInfoPopup(
+                            self._mod_file_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "MOD FILE",
                                 info_text=(
                                     "The mod file modify the capture file above.\n"
@@ -501,7 +503,7 @@ class ModSetupPane:
 
                             ui.Spacer(height=ui.Pixel(16))
 
-                            self._mod_file_details_collapsable_frame = PropertyCollapsableFrameWithInfoPopup(
+                            self._mod_file_details_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "MOD DETAILS",
                                 info_text="Details from the mod layer file loaded in this stage",
                                 collapsed=True,

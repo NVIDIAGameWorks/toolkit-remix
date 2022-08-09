@@ -1,0 +1,14 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex Selection Tree implementation for the StageCraft"
+description = "Selection Tree implementation for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"lightspeed.common" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.selection_tree.shared.widget"

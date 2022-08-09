@@ -13,4 +13,4 @@ description = "Viewports implementation for Lightspeed Trex StageCraft App"
 "omni.ui" = {}
 
 [[python.module]]
-name = "lightspeed.trex.viewports.stagecraft"
+name = "lightspeed.trex.viewports.stagecraft.widget"

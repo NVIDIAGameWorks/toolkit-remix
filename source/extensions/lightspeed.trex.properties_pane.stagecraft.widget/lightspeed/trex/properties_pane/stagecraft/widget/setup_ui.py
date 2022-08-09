@@ -9,6 +9,9 @@
 """
 import omni.ui as ui
 from lightspeed.trex.components_pane.stagecraft.models import EnumItems as ComponentsEnumItems
+from lightspeed.trex.properties_pane.shared.asset_replacements.widget import (
+    AssetReplacementsPane as _AssetReplacementsPane,
+)
 from lightspeed.trex.properties_pane.shared.mod_setup.widget import ModSetupPane as _ModSetupPan
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
@@ -34,6 +37,7 @@ class SetupUI:
         with ui.ZStack():
             ui.Rectangle(name="WorkspaceBackground")
             self._all_frames[ComponentsEnumItems.MOD_SETUP] = _ModSetupPan(self._context)
+            self._all_frames[ComponentsEnumItems.ASSET_REPLACEMENTS] = _AssetReplacementsPane(self._context)
 
     def show_panel(self, title: str = None, forced_value: bool = None):
         for enum_item in ComponentsEnumItems:

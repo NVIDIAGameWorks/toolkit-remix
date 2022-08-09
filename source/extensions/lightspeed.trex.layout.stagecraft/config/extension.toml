@@ -12,12 +12,14 @@ description = "Layout for Lightspeed Trex StageCraft App"
 "lightspeed.trex.layout.shared" = {}
 "lightspeed.trex.menu.workfile" = {}
 "lightspeed.trex.properties_pane.stagecraft.widget" = {}
-"lightspeed.trex.viewports.stagecraft" = {}
+"lightspeed.trex.viewports.stagecraft.widget" = {}
 "lightspeed.trex.welcome_pads.stagecraft.models" = {}
 "omni.flux.footer.widget" = {}
 "omni.flux.header_nvidia.widget" = {}
 "omni.flux.utils.widget" = {}
 "omni.flux.welcome_pad.widget" = {}
+"omni.kit.widget.filebrowser" = {}
+"omni.kit.window.filepicker" = {}
 "omni.ui" = {}
 
 [[python.module]]

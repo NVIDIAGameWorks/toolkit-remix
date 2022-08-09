@@ -1,0 +1,14 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex Properties Pane Asset Replacements widget for the StageCraft"
+description = "Asset Replacements Properties Pane widget for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"lightspeed.trex.selection_tree.shared.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.properties_pane.shared.asset_replacements.widget"

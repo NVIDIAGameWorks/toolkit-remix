@@ -130,6 +130,17 @@ current_dict.update(
         "Image::Account": {"image_url": _get_icons("account-circle"), "color": _WHITE_50},
         "Image::Account:selected": {"image_url": _get_icons("account-circle"), "color": _WHITE_100},
         "Image::Account:hovered": {"image_url": _get_icons("account-circle"), "color": _WHITE_80},
+        "Image::Add": {"image_url": _get_icons("add"), "color": _WHITE_60},
+        "Image::Eye": {"image_url": _get_icons("eye"), "color": _WHITE_60},
+        "Image::Eye:hovered": {"image_url": _get_icons("eye"), "color": _WHITE_100},
+        "Image::FolderClosed": {"image_url": _get_icons("folder-closed"), "color": _WHITE_80},
+        "Image::Frame": {"image_url": _get_icons("frame"), "color": _WHITE_60},
+        "Image::Frame:hovered": {"image_url": _get_icons("frame"), "color": _WHITE_100},
+        "Image::Hexagon": {"image_url": _get_icons("shape-hexagon"), "color": _WHITE_80},
+        "Image::Nickname": {"image_url": _get_icons("nickname"), "color": _WHITE_60},
+        "Image::Nickname:hovered": {"image_url": _get_icons("nickname"), "color": _WHITE_100},
+        "Image::Subtract": {"image_url": _get_icons("subtract"), "color": _WHITE_60},
+        "Image::Subtract:hovered": {"image_url": _get_icons("subtract"), "color": _WHITE_100},
         "Image::TreePanelLinesBackground": {
             "image_url": _get_image("45deg-256x256-1px-2px-sp-black"),
             "color": _WHITE_30,
@@ -156,8 +167,6 @@ current_dict.update(
         },
         "Image::PropertiesPaneSectionInfo": {"image_url": _get_icons("info"), "color": _WHITE_60},
         "Image::PropertiesPaneSectionInfo:hovered": {"image_url": _get_icons("info"), "color": _WHITE_100},
-        "Image::TreeViewBranchCollapsed": {"image_url": _get_icons("disclosure-collapsed"), "color": _WHITE_100},
-        "Image::TreeViewBranchExpanded": {"image_url": _get_icons("disclosure-expanded"), "color": _WHITE_100},
         "Image::WelcomePadDefault": {"color": 0x40000000, "border_radius": 12},
         "Image::WelcomePadImage": {"border_radius": 12},
         "ImageWithProvider::HeaderNvidiaTitle": {
@@ -234,6 +243,22 @@ current_dict.update(
             "font_size": 13,
             "image_url": _get_fonts("Barlow-Bold"),
         },
+        "ImageWithProvider::SelectionGradient": {
+            "background_color": 0x00303030,
+            "background_gradient_color": _GREY_50,
+        },
+        "ImageWithProvider::SelectionGradient_hovered": {
+            "background_color": 0x00453F2B,
+            "background_gradient_color": 0xFF453F2B,  # hardened _BLUE_HOVERED over _GREY_50
+        },
+        "ImageWithProvider::SelectionGradient_selected": {
+            "background_color": 0x00836C1D,
+            "background_gradient_color": 0xFF836C1D,  # hardened _BLUE_SELECTED over _GREY_50
+        },
+        "ImageWithProvider::SelectionGradient_selected_hovered": {
+            "background_color": 0x0090751A,
+            "background_gradient_color": 0xFF90751A,  # hardened _BLUE_SELECTED + _BLUE_HOVERED over _GREY_50
+        },
         "ImageWithProvider::WelcomePadItemTitle": {
             "color": _WHITE_100,
             "font_size": 18,
@@ -252,7 +277,8 @@ current_dict.update(
         "Label::USDPropertiesWidgetValueOverlay": {"color": _WHITE_20},
         "Label::WelcomePadItemDescription": {"color": _WHITE_100, "font_size": 16},
         "Label::WelcomePadItemDescription:checked": {"color": _WHITE_30, "font_size": 16},
-        "Label::PropertiesPaneSectionCaptureTreeItem": {"color": _WHITE_80, "font_size": 14},
+        "Label::PropertiesPaneSectionTreeItem": {"color": _WHITE_80, "font_size": 14},
+        "Label::PropertiesPaneSectionTreeItem60": {"color": _WHITE_40, "font_size": 14},
         "Label::PropertiesPaneSectionCaptureTreeItemNoImage": {"color": _WHITE_80, "font_size": 18},
         "Label::HeaderNavigatorMenuItem": {"color": _WHITE_60, "font_size": 20},
         "Label::HeaderNavigatorMenuItem:selected": {"color": _WHITE_100, "font_size": 20},
@@ -324,7 +350,7 @@ current_dict.update(
         "Rectangle::FooterBackground": {"background_color": 0x99000000},
         "Rectangle::PropertiesPaneSectionWindowImageBackground": _DEFAULT_DARK_PANEL_BACKGROUND_VALUE,
         "Rectangle::PropertiesPaneSectionWindowCaptureBackground": _DEFAULT_DARK_PANEL_BACKGROUND_VALUE,
-        "Rectangle::PropertiesPaneSectionCaptureTreeManipulator": {
+        "Rectangle::PropertiesPaneSectionTreeManipulator": {
             "background_color": _WHITE_40,
             "border_radius": 2,
         },
@@ -347,6 +373,8 @@ current_dict.update(
         },  # background_selected_color = hovered
         "TreeView::TreePanel:selected": {"background_color": _GREY_50},
         "TreeView::WelcomePad:selected": {"background_color": 0x0},
+        "TreeView.Item.Minus": {"image_url": _get_icons("disclosure-collapsed"), "color": _WHITE_60},
+        "TreeView.Item.Plus": {"image_url": _get_icons("disclosure-collapsed_h"), "color": _WHITE_60},
         "TreeView.ScrollingFrame::WelcomePad": {"background_color": 0x0},
         "Window": {"background_color": 0xFF0F0F0F},
     }

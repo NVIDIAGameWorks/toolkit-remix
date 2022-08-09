@@ -26,7 +26,7 @@ from lightspeed.trex.footer.stagecraft.models import StageCraftFooterModel
 from lightspeed.trex.layout.shared import SetupUI as TrexLayout
 from lightspeed.trex.menu.workfile import get_instance as get_burger_menu_instance
 from lightspeed.trex.properties_pane.stagecraft.widget import SetupUI as PropertyPanelUI
-from lightspeed.trex.viewports.stagecraft import SetupUI as ViewportUI
+from lightspeed.trex.viewports.stagecraft.widget import SetupUI as ViewportUI
 from lightspeed.trex.welcome_pads.stagecraft.models import NewWorkFileItem, RecentWorkFileItem, ResumeWorkFileItem
 from omni.flux.footer.widget import FooterWidget
 from omni.flux.header_nvidia.widget import HeaderWidget
@@ -37,6 +37,8 @@ from omni.flux.utils.widget.resources import get_background_images
 from omni.flux.utils.widget.resources import get_icons as _get_icons
 from omni.flux.welcome_pad.widget import WelcomePadWidget
 from omni.flux.welcome_pad.widget.model import Model as WelcomePadModel
+
+from .workfile_picker import open_file_picker
 
 
 class Pages(Enum):
@@ -61,9 +63,13 @@ class SetupUI(TrexLayout):
         )
 
         self._context = trex_contexts_instance().get_context(TrexContexts.STAGE_CRAFT)
+        self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
+            self.__on_stage_event, name="StageChanged"
+        )
 
         self._welcome_pads_new_model = WelcomePadModel()
         self._welcome_resume_item = ResumeWorkFileItem(self._resume_work_file_clicked)
+        self._welcome_resume_item.enabled = bool(self._context.get_stage())  # TODO to remove, dev only.
         self._welcome_pads_new_model.add_items(
             [self._welcome_resume_item, NewWorkFileItem(self._new_work_file_clicked)]
         )
@@ -79,6 +85,19 @@ class SetupUI(TrexLayout):
         self._on_open_work_file = _Event()
         self._on_resume_work_file_clicked = _Event()
         self.__on_import_capture_layer = _Event()
+
+    def __on_stage_event(self, event):
+        if event.type in [
+            int(omni.usd.StageEventType.CLOSED),
+            int(omni.usd.StageEventType.OPENED),
+            int(omni.usd.StageEventType.SAVED),
+        ]:
+            stage = self._context.get_stage()
+            have_disk_stage = False
+            if stage:
+                have_disk_stage = not bool(stage.GetRootLayer().anonymous)
+            self._welcome_pads_new_model.enable_items([self._welcome_resume_item], have_disk_stage)
+            self._components_pane.refresh()
 
     def _import_replacement_layer(self, path, use_existing_layer):
         """Call the event object that has the list of functions"""
@@ -99,9 +118,10 @@ class SetupUI(TrexLayout):
         self._components_pane.get_ui_widget().set_selection(
             self._components_pane.get_model().get_item_children(None)[0]
         )
-        self._components_pane.refresh()
-        # enable resume welcome panel item
-        self._welcome_pads_new_model.enable_items([self._welcome_resume_item], True)
+
+    def _on_open_from_storage_pad_clicked(self):
+        """Called when we click on the 'open from storage' from the welcome pad"""
+        open_file_picker(self._open_work_file, lambda *args: None)
 
     def subscribe_open_work_file(self, function):
         """
@@ -117,9 +137,6 @@ class SetupUI(TrexLayout):
             self._components_pane.get_model().get_item_children(None)[0]
         )
         self._on_new_work_file_clicked()
-        self._components_pane.refresh()
-        # enable resume welcome panel item
-        self._welcome_pads_new_model.enable_items([self._welcome_resume_item], True)
 
     def subscribe_new_work_file_clicked(self, fn):
         """
@@ -131,6 +148,10 @@ class SetupUI(TrexLayout):
     def _resume_work_file_clicked(self):
         self.show_page(Pages.WORKSPACE_PAGE)
         self._on_resume_work_file_clicked()
+        if not self._components_pane.get_ui_widget().get_selection():
+            self._components_pane.get_ui_widget().set_selection(
+                self._components_pane.get_model().get_item_children(None)[0]
+            )
         self._components_pane.refresh()
 
     def subscribe_resume_work_file_clicked(self, fn):
@@ -167,6 +188,7 @@ class SetupUI(TrexLayout):
                 "_sub_menu_burger_pressed": None,
                 "_recent_saved_file": None,
                 "_welcome_pad_widget_recent": None,
+                "_sub_stage_event": None,
             }
         )
         return default_attr
@@ -280,6 +302,8 @@ class SetupUI(TrexLayout):
                                 self._welcome_pad_widget_recent = WelcomePadWidget(
                                     model=self._welcome_pads_recent_model,
                                     title="RECENT",
+                                    footer="Open from storage...",
+                                    footer_callback=self._on_open_from_storage_pad_clicked,
                                     auto_resize_list=False,
                                     word_wrap_description=False,
                                 )  # hold or crash
@@ -376,6 +400,8 @@ class SetupUI(TrexLayout):
             if thumbnail is None:
                 return
             await omni.kit.app.get_app().next_update_async()
+            if not self._welcome_pad_widget_recent or not self._welcome_pad_widget_recent.delegate:
+                return
             images_widgets = self._welcome_pad_widget_recent.delegate.get_image_widgets()
             _title = os.path.basename(_path)
             if _title in images_widgets:
