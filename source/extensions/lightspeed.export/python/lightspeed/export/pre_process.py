@@ -57,7 +57,9 @@ def preprocess(layer_manager: LayerManagerCore):
                 if replacements_layer.GetPrimAtPath(prim.GetPath()) or (
                     autoupscale_layer is not None and autoupscale_layer.GetPrimAtPath(prim.GetPath())
                 ):
-                    omni.usd.stitch_prim_specs(stage, prim.GetPath(), replacements_layer)
+                    _cleanup_capture_refs(
+                        prim, capture_layer, constants.LIGHTS_FOLDER + "/", constants.CAPTURED_LIGHT_PATH_PREFIX
+                    )
 
 
 def _cleanup_capture_refs(prim, capture_layer: Sdf.Layer, capture_folder, ref_path_prefix):
