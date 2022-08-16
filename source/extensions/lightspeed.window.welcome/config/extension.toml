@@ -23,5 +23,8 @@ name = "lightspeed Welcome Window"
 "lightspeed.workspace" = {}
 "omni.ui" = {}
 
+[[test]]
+args = ["--no-window"]
+
 [[python.module]]
 name = "lightspeed.window.welcome"

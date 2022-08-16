@@ -20,5 +20,8 @@ name = "Lightspeed Event Save recent"
 "lightspeed.layer_manager" = {}
 "omni.client" = {}
 
+[[test]]
+args = ["--no-window"]
+
 [[python.module]]
 name = "lightspeed.event.save_recent"

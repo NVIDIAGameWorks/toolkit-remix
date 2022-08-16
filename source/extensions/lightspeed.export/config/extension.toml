@@ -42,5 +42,8 @@ icon = "data/icon.png"
 "lightspeed.progress_popup.window" = {}
 "lightspeed.error_popup.window" = {}
 
+[[test]]
+args = ["--no-window"]
+
 [[python.module]]
 name = "lightspeed.export"

@@ -21,8 +21,18 @@ path = "${test_root}"
 
 [[repo_test.suites.alltests.group]]
 # Run app test
-include = ["tests-omni.app.lightspeed${shell_ext}"]
-exclude = []
+include = [
+    "tests-omni.app.lightspeed${shell_ext}",
+    "tests-lightspeed.event.*${shell_ext}",
+    "tests-lightspeed.*.core${shell_ext}",
+    "tests-lightspeed.*.menu${shell_ext}",
+    "tests-lightspeed.*.window${shell_ext}",
+    "tests-lightspeed.*${shell_ext}"
+]
+exclude = [
+    "tests-lightspeed.tool.octahedral_converter${shell_ext}",
+    "tests-lightspeed.lock_xform${shell_ext}"
+]
 args = [
     "--/app/extensions/registryEnabled=0" # It should start ok without a registry enabled (everything prebundled)
 ]

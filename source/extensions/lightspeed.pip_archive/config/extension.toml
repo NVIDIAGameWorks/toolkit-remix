@@ -10,6 +10,9 @@ reloadable = false
 [dependencies]
 "omni.kit.pipapi" = {} # We need it so that we can use [python.pipapi].
 
+[[test]]
+args = ["--no-window"]
+
 # We bundle not only "toml" package, but many other. No need to mention all of them, just importing one will add whole
 # folder (pip_prebundle) to sys.path.
 [[python.module]]
