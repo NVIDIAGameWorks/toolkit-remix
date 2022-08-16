@@ -34,13 +34,17 @@ icon = "data/icon.png"
 
 [dependencies]
 "omni.usd" = {}
+"omni.kit.menu.utils" = {}
 "omni.kit.usd_undo" = {}
 "omni.kit.window.popup_dialog" = {}
+
+[[test]]
+args = ["--no-window"]
 
 # Main python module this extension provides, it will be publicly available as "import omni.example.hello".
 [[python.module]]
 name = "lightspeed.lock_xform"
 
 [settings]
-exts."lightspeed.lock_xform".reason_for_lock = ""
 exts."lightspeed.lock_xform".prim_filter = ""
+exts."lightspeed.lock_xform".reason_for_lock = ""

@@ -21,5 +21,8 @@ name = "Lightspeed Capture Swapper Window"
 "omni.kit.widget.layers" = {}
 "omni.ui" = {}
 
+[[test]]
+args = ["--no-window"]
+
 [[python.module]]
 name = "lightspeed.window.capture_swapper"

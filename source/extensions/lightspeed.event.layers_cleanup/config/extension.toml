@@ -20,5 +20,8 @@ name = "Lightspeed Event Layers Cleanup"
 "lightspeed.layer_manager" = {}
 "omni.usd" = {}
 
+[[test]]
+args = ["--no-window"]
+
 [[python.module]]
 name = "lightspeed.event.layers_cleanup"

@@ -25,5 +25,8 @@ name = "Lightspeed Widget New Workspace"
 "omni.ui" = {}
 "omni.kit.usd.layers" = {}
 
+[[test]]
+args = ["--no-window"]
+
 [[python.module]]
 name = "lightspeed.widget.new_workspace"

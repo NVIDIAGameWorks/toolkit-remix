@@ -14,5 +14,8 @@ preview_image = "data/preview.png"
 [ui]
 name = "Lightspeed Events manager"
 
+[[test]]
+args = ["--no-window"]
+
 [[python.module]]
 name = "lightspeed.events_manager"
