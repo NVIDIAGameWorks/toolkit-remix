@@ -34,7 +34,9 @@ exclude = [
     "tests-lightspeed.lock_xform${shell_ext}"
 ]
 args = [
-    "--/app/extensions/registryEnabled=0" # It should start ok without a registry enabled (everything prebundled)
+    "--/app/extensions/registryEnabled=0", # It should start ok without a registry enabled (everything prebundled)
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1"
 ]
 timeout = 1800
 
