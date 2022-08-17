@@ -284,10 +284,22 @@ class LightspeedPosProcessExporter:
                     rel_path = Path(normal_path.path)
                     new_abs_path = abs_path.with_name(abs_path.stem + "_OTH" + abs_path.suffix)
                     new_rel_path = rel_path.with_name(rel_path.stem + "_OTH" + rel_path.suffix)
-                    if encoding == constants.NormalMapEncodings.TANGENT_SPACE_DX.value:
-                        LightspeedOctahedralConverter.convert_dx_file_to_octahedral(str(abs_path), str(new_abs_path))
-                    elif encoding == constants.NormalMapEncodings.TANGENT_SPACE_OGL.value:
-                        LightspeedOctahedralConverter.convert_ogl_file_to_octahedral(str(abs_path), str(new_abs_path))
+                    new_abs_dds_path = new_abs_path.with_suffix(".dds")
+                    # only convert if the final converted dds doesn't exist, or is older than the source png.
+                    needs_convert = (
+                        not new_abs_dds_path.exists()
+                    ) or new_abs_dds_path.stat().st_mtime < abs_path.stat().st_mtime
+                    if needs_convert:
+                        carb.log_info("converting normal map to octahedral: " + str(rel_path))
+                        if encoding == constants.NormalMapEncodings.TANGENT_SPACE_DX.value:
+                            LightspeedOctahedralConverter.convert_dx_file_to_octahedral(
+                                str(abs_path), str(new_abs_path)
+                            )
+                        elif encoding == constants.NormalMapEncodings.TANGENT_SPACE_OGL.value:
+                            LightspeedOctahedralConverter.convert_ogl_file_to_octahedral(
+                                str(abs_path), str(new_abs_path)
+                            )
+
                     normal_map_attr.Set(str(new_rel_path))
                     normal_map_encoding_attr.Set(constants.NormalMapEncodings.OCTAHEDRAL.value)
 
@@ -300,8 +312,9 @@ class LightspeedPosProcessExporter:
                 if abs_path and abs_path.suffix.lower() != ".dds":
                     dds_path = abs_path.with_suffix(".dds")
                     rel_dds_path = rel_path.with_suffix(".dds")
-                    # only create the dds if it doesn't already exist
-                    if not dds_path.exists():
+                    # only create the dds if it doesn't already exist or is older than the source png
+                    if not dds_path.exists() or abs_path.stat().st_mtime > dds_path.stat().st_mtime:
+                        carb.log_info("Converting PNG to DDS: " + str(rel_path))
                         compress_mip_process = subprocess.Popen(  # noqa
                             [str(self._nvtt_path), str(abs_path), "--format", bc_mode, "--output", str(dds_path)]
                         )
