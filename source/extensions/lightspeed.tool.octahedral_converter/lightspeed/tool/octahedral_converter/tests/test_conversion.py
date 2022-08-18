@@ -36,7 +36,7 @@ class Test(omni.kit.test.AsyncTestCaseFailOnLogError):
 
         dx_img = np.array(Image.open(dx_path))[:, :, 0:3]
         oth_img = np.array(Image.open(oth_path))[:, :, 0:3]
-        converted_img = LightspeedOctahedralConverter.ConvertDXToOctahedral(dx_img)
+        converted_img = LightspeedOctahedralConverter.convert_dx_to_octahedral(dx_img)
 
         diff = oth_img[:, :, 0:3].astype("int32") - converted_img[:, :, 0:3].astype("int32")
 
@@ -54,7 +54,7 @@ class Test(omni.kit.test.AsyncTestCaseFailOnLogError):
         oth_img = np.array(Image.open(oth_path))[:, :, 0:3]
         ogl_img = np.array(Image.open(ogl_path))[:, :, 0:3]
 
-        converted_img = LightspeedOctahedralConverter.ConvertOGLToOctahedral(ogl_img)
+        converted_img = LightspeedOctahedralConverter.convert_ogl_to_octahedral(ogl_img)
 
         diff = oth_img[:, :, 0:3].astype("int32") - converted_img[:, :, 0:3].astype("int32")
         self.assertTrue((diff <= 2).all())

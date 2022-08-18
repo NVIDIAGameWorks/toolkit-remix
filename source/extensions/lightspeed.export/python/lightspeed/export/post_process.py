@@ -7,6 +7,7 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import os
 import subprocess
 import traceback
 from pathlib import Path
@@ -337,6 +338,13 @@ class LightspeedPosProcessExporter:
             return
 
         export_stage = context.get_stage()
+
+        # TODO: Remove this section once the collector properly handles sublayer paths [OM-60283]
+        export_replacement_sdf_layer = self.__layer_manager.get_layer(LayerType.replacement)
+        sublayers = []
+        for path in export_replacement_sdf_layer.subLayerPaths:
+            sublayers.append("./SubUSDs/" + os.path.basename(str(path)))
+        export_replacement_sdf_layer.subLayerPaths = sublayers
 
         # flatten all layers
         export_replacement_layer = self.__layer_manager.get_layer_instance(LayerType.replacement)
