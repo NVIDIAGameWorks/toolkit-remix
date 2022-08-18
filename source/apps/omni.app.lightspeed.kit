@@ -1,7 +1,7 @@
 [package]
 title = "Lightspeed Kit"
 description = "Used for lightspeed remastering."
-version = "2022.6.0"
+version = "2022.6.1"
 keywords = ["app", "lightspeed"]
 
 [dependencies]
@@ -117,7 +117,7 @@ keywords = ["app", "lightspeed"]
 "omni.kit.asset_converter" = {}
 "omni.kit.tool.asset_importer" = {}
 "omni.kit.tool.asset_exporter" = {}
-"omni.kit.tool.collect" = {}
+"omni.kit.tool.collect" = { version = "2.1.12"} # Locked because 2.1.13 broke path updates.
 
 # All QuickSearch
 "omni.kit.window.quicksearch" = { version = "2.0.4"}
@@ -726,7 +726,7 @@ enabled = [
 	"omni.kit.thumbnails.usd-0.5.2",
 	"omni.kit.tool.asset_exporter-1.1.7",
 	"omni.kit.tool.asset_importer-2.3.20",
-	"omni.kit.tool.collect-2.1.13",
+	"omni.kit.tool.collect-2.1.12",
 	"omni.kit.widget.calendar-1.0.5",
 	"omni.kit.widget.collection-0.1.8",
 	"omni.kit.widget.extended_searchfield-1.0.14",
