@@ -30,7 +30,6 @@ include = [
     "tests-lightspeed.*${shell_ext}"
 ]
 exclude = [
-    "tests-lightspeed.tool.octahedral_converter${shell_ext}",
     "tests-lightspeed.lock_xform${shell_ext}"
 ]
 args = [
