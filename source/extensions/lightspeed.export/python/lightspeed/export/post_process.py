@@ -7,10 +7,14 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import functools
+import multiprocessing
 import os
 import subprocess
 import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import Callable
 
 import carb
 import omni.usd
@@ -266,11 +270,17 @@ class LightspeedPosProcessExporter:
         # subsets store face indices, but dxvk_rt needs triangle indices.
         self._process_subsets(prim)
 
-    def _process_shader_prim(self, prim):
+    def _process_shader_prim_convert_tangent_space(
+        self, prim, progress_fn, executor=None, process_texture=True, set_usd=True, futures=None
+    ):
         # convert tangent space normal maps to octahedral
+        if executor is None:
+            progress_fn()
+        if futures is None:
+            futures = []
         normal_map_encoding_attr = prim.GetAttribute(constants.MATERIAL_INPUTS_NORMALMAP_ENCODING)
         normal_map_attr = prim.GetAttribute(constants.MATERIAL_INPUTS_NORMALMAP_TEXTURE)
-        if (
+        if (  # noqa PLR1702
             normal_map_attr
             and normal_map_encoding_attr
             and normal_map_encoding_attr.HasValue()
@@ -290,21 +300,52 @@ class LightspeedPosProcessExporter:
                     needs_convert = (
                         not new_abs_dds_path.exists()
                     ) or new_abs_dds_path.stat().st_mtime < abs_path.stat().st_mtime
-                    if needs_convert:
+                    if needs_convert and process_texture:
                         carb.log_info("converting normal map to octahedral: " + str(rel_path))
                         if encoding == constants.NormalMapEncodings.TANGENT_SPACE_DX.value:
-                            LightspeedOctahedralConverter.convert_dx_file_to_octahedral(
-                                str(abs_path), str(new_abs_path)
-                            )
+                            if executor is not None:
+
+                                def do(old_path, new_path):  # noqa PLC0130
+                                    progress_fn()
+                                    LightspeedOctahedralConverter.convert_dx_file_to_octahedral(old_path, new_path)
+
+                                futures.append(executor.submit(functools.partial(do, str(abs_path), str(new_abs_path))))
+                            else:
+                                LightspeedOctahedralConverter.convert_dx_file_to_octahedral(
+                                    str(abs_path), str(new_abs_path)
+                                )
                         elif encoding == constants.NormalMapEncodings.TANGENT_SPACE_OGL.value:
-                            LightspeedOctahedralConverter.convert_ogl_file_to_octahedral(
-                                str(abs_path), str(new_abs_path)
-                            )
+                            if executor is not None:
 
-                    normal_map_attr.Set(str(new_rel_path))
-                    normal_map_encoding_attr.Set(constants.NormalMapEncodings.OCTAHEDRAL.value)
+                                def do(old_path, new_path):  # noqa PLC0130
+                                    progress_fn()
+                                    LightspeedOctahedralConverter.convert_ogl_file_to_octahedral(old_path, new_path)
 
+                                futures.append(executor.submit(functools.partial(do, str(abs_path), str(new_abs_path))))
+                            else:
+                                LightspeedOctahedralConverter.convert_ogl_file_to_octahedral(
+                                    str(abs_path), str(new_abs_path)
+                                )
+
+                    if set_usd:
+                        normal_map_attr.Set(str(new_rel_path))
+                        normal_map_encoding_attr.Set(constants.NormalMapEncodings.OCTAHEDRAL.value)
+
+    def _process_shader_prim_compress_dds(
+        self,
+        prim,
+        progress_fn,
+        process_texture=True,
+        set_usd=True,
+        result=None,
+        result_shader_prim_compress_dds_outputs=None,
+    ):
         # compress png textures to dds
+        if result is None:
+            result = []
+        if result_shader_prim_compress_dds_outputs is None:
+            result_shader_prim_compress_dds_outputs = []
+        progress_fn()
         for attr_name, bc_mode in constants.TEXTURE_COMPRESSION_LEVELS.items():
             attr = prim.GetAttribute(attr_name)
             if attr and attr.Get():
@@ -314,18 +355,26 @@ class LightspeedPosProcessExporter:
                     dds_path = abs_path.with_suffix(".dds")
                     rel_dds_path = rel_path.with_suffix(".dds")
                     # only create the dds if it doesn't already exist or is older than the source png
-                    if not dds_path.exists() or abs_path.stat().st_mtime > dds_path.stat().st_mtime:
+                    if str(dds_path) not in result_shader_prim_compress_dds_outputs and (
+                        not dds_path.exists() or abs_path.stat().st_mtime > dds_path.stat().st_mtime
+                    ):
                         carb.log_info("Converting PNG to DDS: " + str(rel_path))
-                        compress_mip_process = subprocess.Popen(  # noqa
-                            [str(self._nvtt_path), str(abs_path), "--format", bc_mode, "--output", str(dds_path)]
-                        )
-                        compress_mip_process.wait()
+                        if process_texture:
+                            subprocess.call(  # noqa
+                                [str(self._nvtt_path), str(abs_path), "--format", bc_mode, "--output", str(dds_path)]
+                            )
+                        else:
+                            line = [str(abs_path), "--format", bc_mode, "--output", str(dds_path)]
+                            result.append(line)
+                        result_shader_prim_compress_dds_outputs.append(str(dds_path))
 
-                    attr.Set(str(rel_dds_path))
+                    if set_usd:
+                        attr.Set(str(rel_dds_path))
                     # NOTE: not safe to delete the original png here, as any other prims re-using the texture will fail
                     # to resolve the absolute path if the file no longer exists.
                     # os.remove(abs_path)
 
+    @omni.usd.handle_exception  # noqa C901
     async def process(self, export_file_path, progress_text_callback, progress_callback):
         carb.log_info("Processing: " + export_file_path)
 
@@ -357,9 +406,17 @@ class LightspeedPosProcessExporter:
         # TraverseAll because we want to grab overrides
         all_geos = [prim_ref for prim_ref in export_stage.TraverseAll() if UsdGeom.Mesh(prim_ref)]
         failed_processes = []
+        processed_mesh_prim_layer_paths = []
         # TODO a crash in one geo shouldn't prevent processing the rest of the geometry
+
         length = len(all_geos)
         for i, geo_prim in enumerate(all_geos):
+            # we only work on meshes that have USD reference path(s) and process the USD reference 1 time
+            ref_node = geo_prim.GetPrimIndex().rootNode.children[0]
+            ref_asset_path = ref_node.layerStack.layers[0]
+            ref_asset_path_value = ref_asset_path.realPath
+            if not ref_asset_path_value or ref_asset_path_value in processed_mesh_prim_layer_paths:
+                continue
             carb.log_info(f"Post Processing Mesh: {geo_prim.GetPath()}")
             progress_text_callback(f"Post Processing Mesh:\n{geo_prim.GetPath()}")
             progress_callback(float(i) / length)
@@ -368,6 +425,7 @@ class LightspeedPosProcessExporter:
                 # apply edits to the geo prim in it's source usd, not in the top level replacements.usd
                 with ReferenceEdit(geo_prim):
                     self._process_mesh_prim(geo_prim)
+                    processed_mesh_prim_layer_paths.append(ref_asset_path_value)
             except Exception as e:  # noqa
                 failed_processes.append(str(geo_prim.GetPath()))
                 carb.log_error("Exception when post-processing mesh: " + str(geo_prim.GetPath()))
@@ -378,26 +436,109 @@ class LightspeedPosProcessExporter:
         # TraverseAll because we want to grab overrides
         all_shaders = [prim_ref for prim_ref in export_stage.TraverseAll() if prim_ref.IsA(UsdShade.Shader)]
         # TODO a crash in one shader shouldn't prevent processing the rest of the materials
-        i = 0.0
+        max_cpu = multiprocessing.cpu_count() - 8
+        if max_cpu <= 0:
+            max_cpu = 1
         length = len(all_shaders)
-        for i, shader_prim in enumerate(all_shaders):
-            carb.log_info(f"Post Processing Shader: {shader_prim.GetPath()}")
-            progress_text_callback(f"Post Processing Shader:\n{shader_prim.GetPath()}")
-            progress_callback(float(i) / length)
+
+        def _update_progress(i_progress, length_progress, prim_path, progress_prefix):
+            carb.log_info(f"{progress_prefix} {prim_path}")
+            progress_text_callback(f"{progress_prefix}\n{prim_path}")
+            progress_callback(float(i_progress) / length_progress)
+
+        def _process_shader(process_shader_fn: Callable[[Usd.Prim], None], progress_prefix):
+            # the first step is to do all process in multicore without to touch USD
+            # the second step is to apply the result into USD
+            for i, shader_prim in enumerate(all_shaders):
+                try:
+                    if export_replacement_layer.get_sdf_layer().GetPrimAtPath(shader_prim.GetPath()):
+                        # top level replacements already has opinions about this shader, so apply edits in replacements.
+                        process_shader_fn(
+                            shader_prim,
+                            functools.partial(_update_progress, i, length, shader_prim.GetPath(), progress_prefix),
+                        )
+                    else:
+                        # Shader is just referenced from another USD, so apply edits to the source usd
+                        with ReferenceEdit(shader_prim):
+                            process_shader_fn(
+                                shader_prim,
+                                functools.partial(_update_progress, i, length, shader_prim.GetPath(), progress_prefix),
+                            )
+                except Exception as e:  # noqa
+                    failed_processes.append(str(shader_prim.GetPath()))
+                    carb.log_error("Exception when post-processing shader: " + str(shader_prim.GetPath()))
+                    carb.log_error(f"{e}")
+                    carb.log_error(f"{traceback.format_exc()}")
+
+        # process convert tangent without to set USD attribute. Do it in thread (we don't need multiprocess because
+        # most of the time is spent during Pillow image saving. And Processing freeze)
+        executor = ThreadPoolExecutor(max_workers=max_cpu)
+        futures = []
+        _process_shader(
+            functools.partial(
+                self._process_shader_prim_convert_tangent_space,
+                executor=executor,
+                process_texture=True,
+                set_usd=False,
+                futures=futures,
+            ),
+            "Post Processing Shader Tangent Process:",
+        )
+        for _ in as_completed(futures):
+            # for the progress bar
             await omni.kit.app.get_app().next_update_async()
-            try:
-                if export_replacement_layer.get_sdf_layer().GetPrimAtPath(shader_prim.GetPath()):
-                    # top level replacements already has opinions about this shader, so apply edits in replacements.
-                    self._process_shader_prim(shader_prim)
-                else:
-                    # Shader is just referenced from another USD, so apply edits to the source usd
-                    with ReferenceEdit(shader_prim):
-                        self._process_shader_prim(shader_prim)
-            except Exception as e:  # noqa
-                failed_processes.append(str(shader_prim.GetPath()))
-                carb.log_error("Exception when post-processing shader: " + str(shader_prim.GetPath()))
-                carb.log_error(f"{e}")
-                carb.log_error(f"{traceback.format_exc()}")
+        # wait the process to be finished
+        executor.shutdown(wait=True)
+        await omni.kit.app.get_app().next_update_async()
+
+        # set USD attributes for convert tangent
+        _process_shader(
+            functools.partial(self._process_shader_prim_convert_tangent_space, process_texture=False, set_usd=True),
+            "Post Processing Shader Tangent set USD:",
+        )
+        await omni.kit.app.get_app().next_update_async()
+
+        # read the texture to be converted to dds
+        result_shader_prim_compress_dds = []
+        result_shader_prim_compress_dds_outputs = []
+        _process_shader(
+            functools.partial(
+                self._process_shader_prim_compress_dds,
+                process_texture=False,
+                set_usd=False,
+                result=result_shader_prim_compress_dds,
+                result_shader_prim_compress_dds_outputs=result_shader_prim_compress_dds_outputs,
+            ),
+            "Post Processing Shader compress DDS read:",
+        )
+        _update_progress(
+            0, len(result_shader_prim_compress_dds), "Please wait", "Post Processing Shader compress DDS in progress..."
+        )
+        await omni.kit.app.get_app().next_update_async()
+        # Using a lot of nvtt with cuda will crash the whole computer. Running just 2...
+        futures = []
+        executor = ThreadPoolExecutor(max_workers=2)
+        for cmd in [[str(self._nvtt_path)] + cmds for cmds in result_shader_prim_compress_dds]:
+            futures.append(executor.submit(subprocess.check_call, cmd))
+
+        for i_dds, _ in enumerate(as_completed(futures)):
+            # for the progress bar
+            _update_progress(
+                i_dds,
+                len(result_shader_prim_compress_dds),
+                "Please wait",
+                "Post Processing Shader compress DDS in progress...",
+            )
+            await omni.kit.app.get_app().next_update_async()
+        # wait the process to be finished
+        executor.shutdown(wait=True)
+
+        await omni.kit.app.get_app().next_update_async()
+        # set the new converted dds textures
+        _process_shader(
+            functools.partial(self._process_shader_prim_compress_dds, process_texture=False, set_usd=True),
+            "Post Processing Shader compress DDS set USD:",
+        )
 
         await context.save_stage_async()
 
