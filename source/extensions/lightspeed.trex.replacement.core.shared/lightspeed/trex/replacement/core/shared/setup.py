@@ -62,6 +62,7 @@ class Setup:
             )
             return
 
+        self._layer_manager.remove_layer(LayerType.replacement)
         if use_existing_layer:
             carb.log_info(f"Importing mod layer {path}")
             layer = self._layer_manager.insert_sublayer(path, LayerType.replacement, sublayer_insert_position=0)

@@ -23,7 +23,7 @@ from lightspeed.upscale.core import UpscalerCore
 from omni.flux.utils.common import async_wrap as _async_wrap
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from PIL import Image
-from pxr import Sdf, Usd, UsdGeom
+from pxr import Gf, Sdf, Usd, UsdGeom
 
 
 class Setup:
@@ -52,7 +52,17 @@ class Setup:
         with contextlib.suppress(Exception):
             with Usd.EditContext(stage, session_layer):
                 carb.log_info("Setting up perspective camera from capture")
-                Sdf.CopySpec(capture_layer, "/RootNode/Camera", session_layer, "/OmniverseKit_Persp")
+                camera_path = "/OmniverseKit_Persp"
+                Sdf.CopySpec(capture_layer, "/RootNode/Camera", session_layer, camera_path)
+
+                camera_prim = stage.GetPrimAtPath(camera_path)
+                xf_tr = camera_prim.GetProperty("xformOp:translate")
+                translate = xf_tr.Get()
+                zlen = Gf.Vec3d(translate[0], translate[1], translate[2]).GetLength()
+                center_of_interest = Gf.Vec3d(0, 0, -zlen)
+                camera_prim.CreateAttribute(
+                    "omni:kit:centerOfInterest", Sdf.ValueTypeNames.Vector3d, True, Sdf.VariabilityUniform
+                ).Set(center_of_interest)
 
     def __copy_metadata_from_stage_to_stage(self, stage_source, stage_destination):
         # copy over layer-meta-data from capture layer

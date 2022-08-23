@@ -1,0 +1,10 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex common utils"
+description = "Common utils helper for Lightspeed widgets"
+
+[dependencies]
+"omni.client" = {}
+
+[[python.module]]
+name = "lightspeed.trex.utils.common"

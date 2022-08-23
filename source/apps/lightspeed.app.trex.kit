@@ -1,11 +1,11 @@
 [package]
 version = "2022.1.0"
 category = "Application"
-title = "Lightspeed Trex"
+title = "Lightspeed RTX Remix"
 description = "App that regroups all extensions shared between all Lightspeed Trex experiences"
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
-keywords = ["lightspeed", "trex", "app"]
+keywords = ["lightspeed", "trex", "app", "remix"]
 changelog = """
 # Lightspeed Trex
 
@@ -29,17 +29,20 @@ This experience regroup all extensions shared between all Lightspeed Trex experi
 
 # Basic Kit App
 ################################
-app.name = "Lightspeed Trex"
+app.name = "Lightspeed RTX Remix"
+
+# Fast shutdown by default
+app.fastShutdown = true
 
 [settings.app.window]
-title = "Lightspeed Trex"
+title = "Lightspeed RTX Remix"
 iconPath = "${lightspeed.trex.app.resources}/data/icons/nvidia-omniverse-create.ico"
 
 [settings.app.trex]
 default_layout_extension = "lightspeed.trex.layout.stagecraft"
 
 [settings.exts."omni.kit.window.modifier.titlebar"]
-titleFormatString = "  Lightspeed Trex  {verKey:/app/version,font_color=0x909090,font_size=16} {separator} {file, board=true}"
+titleFormatString = "  Lightspeed RTX Remix  {verKey:/app/version,font_color=0x909090,font_size=16} {separator} {file, board=true}"
 icon.file = "${lightspeed.trex.app.resources}/data/icons/nvidia-omniverse-create.ico"
 
 
@@ -138,6 +141,7 @@ enabled = [
 	"lightspeed.trex.app.resources-0.0.0",
 	"lightspeed.trex.app.setup-0.0.0",
 	"lightspeed.trex.app.style-0.0.0",
+	"lightspeed.trex.asset_replacements.core.shared-0.0.0",
 	"lightspeed.trex.capture.core.shared-0.0.0",
 	"lightspeed.trex.components_pane.stagecraft.controller-0.0.0",
 	"lightspeed.trex.components_pane.stagecraft.models-0.0.0",
@@ -148,10 +152,13 @@ enabled = [
 	"lightspeed.trex.layout.stagecraft-0.0.0",
 	"lightspeed.trex.layout.texturecraft-0.0.0",
 	"lightspeed.trex.menu.workfile-0.0.0",
+	"lightspeed.trex.properties_pane.shared.asset_replacements.widget-0.0.0",
 	"lightspeed.trex.properties_pane.shared.mod_setup.widget-0.0.0",
 	"lightspeed.trex.properties_pane.stagecraft.widget-0.0.0",
 	"lightspeed.trex.replacement.core.shared-0.0.0",
+	"lightspeed.trex.selection_tree.shared.widget-0.0.0",
 	"lightspeed.trex.stage.core.shared-0.0.0",
+	"lightspeed.trex.utils.common-0.0.0",
 	"lightspeed.trex.utils.widget-0.0.0",
 	"lightspeed.trex.viewports.manipulators-0.0.0",
 	"lightspeed.trex.viewports.stagecraft.widget-0.0.0",

@@ -1,0 +1,11 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex Asset Replacements extension for the StageCraft"
+description = "Extension that works on asset replacement data for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"omni.client" = {}
+"omni.flux.utils.common" = {}
+
+[[python.module]]
+name = "lightspeed.trex.asset_replacements.core.shared"

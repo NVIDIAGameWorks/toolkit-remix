@@ -4,6 +4,7 @@ title = "Lightspeed Trex Properties Pane Asset Replacements widget for the Stage
 description = "Asset Replacements Properties Pane widget for Lightspeed Trex StageCraft App"
 
 [dependencies]
+"lightspeed.trex.mesh_properties.shared.widget" = {}
 "lightspeed.trex.selection_tree.shared.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}

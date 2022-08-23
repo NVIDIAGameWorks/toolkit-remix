@@ -9,6 +9,7 @@
 """
 import omni.ui as ui
 import omni.usd
+from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshPropertiesWidget
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
@@ -18,23 +19,22 @@ from omni.flux.utils.widget.resources import get_fonts as _get_fonts
 
 
 class AssetReplacementsPane:
-
-    DEFAULT_CAPTURE_TREE_FRAME_HEIGHT = 200
-    SIZE_PERCENT_MANIPULATOR_WIDTH = 50
-
     def __init__(self, context: omni.usd.UsdContext):
         """Nvidia StageCraft Components Pane"""
 
         self._default_attr = {
             "_root_frame": None,
             "_selection_tree_widget": None,
-            "_mod_file_details_collapsable_frame": None,
+            "_selection_collapsable_frame": None,
             "_mesh_properties_collapsable_frame": None,
+            "_sub_tree_selection_changed": None,
+            "_mesh_properties_widget": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
         self._context = context
+
         self.__update_default_style()
         self.__create_ui()
 
@@ -68,12 +68,12 @@ class AssetReplacementsPane:
                         ui.Spacer(width=ui.Pixel(8), height=ui.Pixel(0))
                         with ui.VStack():
                             ui.Spacer(height=ui.Pixel(8))
-                            self._mod_file_details_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
+                            self._selection_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "SELECTION",
                                 info_text="Tree that will shows your current selection\n",
                                 collapsed=False,
                             )
-                            with self._mod_file_details_collapsable_frame:
+                            with self._selection_collapsable_frame:
                                 self._selection_tree_widget = _SelectionTreeWidget(self._context)
 
                             ui.Spacer(height=ui.Pixel(16))
@@ -83,9 +83,30 @@ class AssetReplacementsPane:
                                 info_text="Mesh properties of the selected mesh(es)",
                                 collapsed=False,
                             )
+                            with self._mesh_properties_collapsable_frame:
+                                self._mesh_properties_widget = _MeshPropertiesWidget(self._context)
+
+        self._sub_tree_selection_changed = self._selection_tree_widget.subscribe_tree_selection_changed(
+            self._on_tree_selection_changed
+        )
+        self._refresh_mesh_properties_widget()
+
+    def _on_tree_selection_changed(self, items):
+        self._refresh_mesh_properties_widget()
+
+    def _refresh_mesh_properties_widget(self):
+        items = self._selection_tree_widget.get_selection()
+        self._mesh_properties_widget.refresh(items)
+
+    def refresh(self):
+        self._selection_tree_widget.refresh()
+        self._refresh_mesh_properties_widget()
 
     def show(self, value):
         self._root_frame.visible = value
+        self._selection_tree_widget.show(value)
+        if value:
+            self.refresh()
 
     def destroy(self):
         _reset_default_attrs(self)

@@ -118,6 +118,7 @@ class Setup:
                 ok_handler=on_okay_clicked,
                 cancel_handler=on_cancel_clicked,
                 ok_label="Yes",
+                cancel_label="No",
                 disable_cancel_button=False,
             )
             dialog.show()

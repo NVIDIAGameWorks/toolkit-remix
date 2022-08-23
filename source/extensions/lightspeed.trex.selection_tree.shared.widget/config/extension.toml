@@ -7,6 +7,9 @@ description = "Selection Tree implementation for Lightspeed Trex StageCraft App"
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
 "lightspeed.common" = {}
+"lightspeed.trex.asset_replacements.core.shared" = {}
+"lightspeed.trex.utils.common" = {}
+"lightspeed.trex.utils.widget" = {}
 "omni.ui" = {}
 "omni.usd" = {}
 

@@ -7,6 +7,7 @@ description = "Mod Setup Properties Pane widget for Lightspeed Trex StageCraft A
 "lightspeed.common" = {}
 "lightspeed.trex.capture.core.shared" = {}
 "lightspeed.trex.replacement.core.shared" = {}
+"lightspeed.trex.utils.common" = {}
 "lightspeed.trex.utils.widget" = {}
 "omni.client" = {}
 "omni.kit.widget.filebrowser" = {}

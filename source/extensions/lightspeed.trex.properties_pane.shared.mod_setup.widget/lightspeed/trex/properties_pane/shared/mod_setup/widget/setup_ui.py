@@ -19,6 +19,8 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCoreSetup
+from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
+from lightspeed.trex.utils.common import sandwich_attrs_function_decorator as _sandwich_attrs_function_decorator
 from lightspeed.trex.utils.widget import TrexMessageDialog
 from lightspeed.trex.utils.widget import create_widget_with_pattern as _create_widget_with_pattern
 from omni.flux.property_widget_builder.model.file import FileAttributeItem as _FileAttributeItem
@@ -40,38 +42,6 @@ from .capture_tree.delegate import Delegate as CaptureTreeDelegate
 from .capture_tree.model import ListModel as CaptureTreeModel
 from .mod_file_picker import open_file_picker
 from .mod_file_picker_create import open_file_picker_create
-
-
-def ignore_function(attrs=None):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            for attr in attrs:
-                if getattr(self, attr):
-                    return
-                setattr(self, attr, True)
-            func(self, *args, **kwargs)
-            for attr in attrs:
-                setattr(self, attr, False)
-
-        return wrapper
-
-    return decorator
-
-
-def sandwich_attrs_function(attrs=None):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            for attr in attrs:
-                setattr(self, attr, True)
-            func(self, *args, **kwargs)
-            for attr in attrs:
-                setattr(self, attr, False)
-
-        return wrapper
-
-    return decorator
 
 
 class ModSetupPane:
@@ -121,12 +91,17 @@ class ModSetupPane:
             "_mod_detail_property_widget": None,
             "_sub_stage_event": None,
             "_sub_layer_event": None,
+            "_sub_mod_field_changed": None,
+            "_sub_capture_dir_field_begin_edit": None,
+            "_sub_capture_dir_field_end_edit": None,
+            "_sub_capture_dir_field_changed": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
         self._context = context
         self.__import_existing_mod_file = True
+        self.__ignore_current_capture_layer = False
         self._capture_tree_hovered_task = None
         self._game_icon_hovered_task = None
         self._ignore_capture_tree_selection_changed = False
@@ -200,7 +175,7 @@ class ModSetupPane:
             self.__on_import_capture_layer(path)
             self._last_capture_tree_view_window_selection = self._capture_tree_view_window.selection
 
-        @ignore_function(attrs=["_ignore_capture_tree_selection_changed"])
+        @_ignore_function_decorator(attrs=["_ignore_capture_tree_selection_changed"])
         def on_cancel_clicked(dialog: TrexMessageDialog):
             dialog.hide()
             self._capture_tree_view_window.selection = (
@@ -343,14 +318,20 @@ class ModSetupPane:
                                                             name="USDPropertiesWidgetValueOverlay",
                                                             width=0,
                                                         )
-                                                self._capture_dir_field.model.add_begin_edit_fn(
-                                                    self._on_capture_dir_field_begin
+                                                self._sub_capture_dir_field_begin_edit = (
+                                                    self._capture_dir_field.model.subscribe_begin_edit_fn(
+                                                        self._on_capture_dir_field_begin
+                                                    )
                                                 )
-                                                self._capture_dir_field.model.add_end_edit_fn(
-                                                    self._on_capture_dir_field_end
+                                                self._sub_capture_dir_field_end_edit = (
+                                                    self._capture_dir_field.model.subscribe_end_edit_fn(
+                                                        self._on_capture_dir_field_end
+                                                    )
                                                 )
-                                                self._capture_dir_field.model.add_value_changed_fn(
-                                                    self._on_capture_dir_field_changed
+                                                self._sub_capture_dir_field_changed = (
+                                                    self._capture_dir_field.model.subscribe_value_changed_fn(
+                                                        self._on_capture_dir_field_changed
+                                                    )
                                                 )
                                             ui.Spacer(width=ui.Pixel(8))
                                             with ui.VStack(width=ui.Pixel(20)):
@@ -497,8 +478,10 @@ class ModSetupPane:
                                                 ui.Spacer(width=ui.Pixel(8))
                                                 self._mod_file_field = ui.StringField(read_only=True, height=0)
                                                 self._mod_file_field.model.set_value("...")
-                                                self._mod_file_field.model.add_value_changed_fn(
-                                                    self._on_mod_file_field_changed
+                                                self._sub_mod_field_changed = (
+                                                    self._mod_file_field.model.subscribe_value_changed_fn(
+                                                        self._on_mod_file_field_changed
+                                                    )
                                                 )
 
                             ui.Spacer(height=ui.Pixel(16))
@@ -550,8 +533,8 @@ class ModSetupPane:
         self._mod_file_collapsable_frame.enabled = value
         self._mod_file_details_collapsable_frame.enabled = value
 
-    @sandwich_attrs_function(attrs=["_ignore_mod_file_field_changed"])
-    @ignore_function(attrs=["_ignore_mod_detail_refresh"])
+    @_sandwich_attrs_function_decorator(attrs=["_ignore_mod_file_field_changed"])
+    @_ignore_function_decorator(attrs=["_ignore_mod_detail_refresh"])
     def refresh_mod_detail_panel(self):
         if not self._root_frame.visible:
             return
@@ -580,7 +563,7 @@ class ModSetupPane:
                 ui.Spacer(height=ui.Pixel(8))
                 self._mod_detail_property_widget = _PropertyWidget(self._mod_details_model, self._mod_details_delegate)
 
-    @ignore_function(attrs=["_ignore_capture_detail_refresh"])
+    @_ignore_function_decorator(attrs=["_ignore_capture_detail_refresh"])
     def refresh_capture_detail_panel(self):
         """
         Refresh the panel with the given paths
@@ -630,9 +613,10 @@ class ModSetupPane:
         self._destroy_capture_properties()
         capture_layer = self._core_capture.get_layer()
 
-        if capture_layer is None:
+        if capture_layer is None or self.__ignore_current_capture_layer:
             # grab from the field
             value = self._capture_dir_field.model.get_value_as_string()
+            self.__ignore_current_capture_layer = False
         else:
             value = os.path.dirname(omni.client.normalize_url(capture_layer.realPath))
         capture_dir = value if value.strip() else None
@@ -702,7 +686,7 @@ class ModSetupPane:
                     self._capture_details_model, self._capture_details_delegate
                 )
 
-    @ignore_function(attrs=["_ignore_capture_tree_selection_changed"])
+    @_ignore_function_decorator(attrs=["_ignore_capture_tree_selection_changed"])
     def _on_capture_tree_selection_changed(self, items):
         if len(items) > 1:
             self._capture_tree_view_window.selection = [items[0]]
@@ -800,6 +784,7 @@ class ModSetupPane:
             result, entry = omni.client.stat(current_directory)
             if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN:
                 current_directory = None
+        self.__ignore_current_capture_layer = True
         open_directory_picker(self.set_capture_dir_field, lambda *args: None, current_directory=current_directory)
 
     def set_capture_dir_field(self, path):
@@ -822,7 +807,7 @@ class ModSetupPane:
             return
         self.refresh_capture_detail_panel()
 
-    @ignore_function(attrs=["_ignore_mod_file_field_changed"])
+    @_ignore_function_decorator(attrs=["_ignore_mod_file_field_changed"])
     def _on_mod_file_field_changed(self, model):
         path = model.get_value_as_string()
         if self._core_replacement.is_path_valid(path, existing_file=self.__import_existing_mod_file):

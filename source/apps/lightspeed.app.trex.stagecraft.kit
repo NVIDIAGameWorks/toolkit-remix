@@ -32,6 +32,10 @@ A tool to edit stage(s) captured from game(s)
 ################################
 app.name = "Lightspeed Trex StageCraft"
 
+renderer.enabled='rtx'
+renderer.multiGpu.maxGpuCount = 1
+renderer.mdl.searchPaths.templates = "${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+
 [settings.app.window]
 title = "Lightspeed Trex StageCraft"
 iconPath = "${lightspeed.trex.app.resources}/data/icons/nvidia-omniverse-create.ico"
@@ -39,6 +43,25 @@ iconPath = "${lightspeed.trex.app.resources}/data/icons/nvidia-omniverse-create.
 [settings.exts."omni.kit.window.modifier.titlebar"]
 titleFormatString = "  Lightspeed Trex StageCraft  {verKey:/app/version,font_color=0x909090,font_size=16} {separator} {file, board=true}"
 icon.file = "${lightspeed.trex.app.resources}/data/icons/nvidia-omniverse-create.ico"
+
+[settings.rtx]
+rendermode = "PathTracing"
+multiThreading.enabled = true
+materialflattener.enabled = false
+
+[settings.rtx-transient]
+resourcemanager.enableTextureStreaming = false
+
+[settings.rtx.hydra]
+TBNFrameMode = 0 # Auto-mode
+
+[settings.rtx.post]
+tonemap.op = 7
+histogram.enabled = true
+histogram.useExposureClamping = false
+histogram.filterType = 1
+histogram.tau = 10.0
+histogram.whiteScale = 5.0
 
 
 ########################################################################################################################
@@ -134,6 +157,7 @@ enabled = [
 	"lightspeed.trex.app.resources-0.0.0",
 	"lightspeed.trex.app.setup-0.0.0",
 	"lightspeed.trex.app.style-0.0.0",
+	"lightspeed.trex.asset_replacements.core.shared-0.0.0",
 	"lightspeed.trex.capture.core.shared-0.0.0",
 	"lightspeed.trex.components_pane.stagecraft.controller-0.0.0",
 	"lightspeed.trex.components_pane.stagecraft.models-0.0.0",
@@ -143,10 +167,13 @@ enabled = [
 	"lightspeed.trex.layout.shared-0.0.0",
 	"lightspeed.trex.layout.stagecraft-0.0.0",
 	"lightspeed.trex.menu.workfile-0.0.0",
+	"lightspeed.trex.properties_pane.shared.asset_replacements.widget-0.0.0",
 	"lightspeed.trex.properties_pane.shared.mod_setup.widget-0.0.0",
 	"lightspeed.trex.properties_pane.stagecraft.widget-0.0.0",
 	"lightspeed.trex.replacement.core.shared-0.0.0",
+	"lightspeed.trex.selection_tree.shared.widget-0.0.0",
 	"lightspeed.trex.stage.core.shared-0.0.0",
+	"lightspeed.trex.utils.common-0.0.0",
 	"lightspeed.trex.utils.widget-0.0.0",
 	"lightspeed.trex.viewports.manipulators-0.0.0",
 	"lightspeed.trex.viewports.stagecraft.widget-0.0.0",

@@ -28,6 +28,7 @@ _GREY_32 = 0xFF202020
 _GREY_42 = 0xFF2A2A2A
 _GREY_50 = 0xFF303030
 
+_RED_05 = 0x0D0000FF
 
 _WHITE_10 = 0x1AFFFFFF
 _WHITE_20 = 0x33FFFFFF
@@ -42,6 +43,15 @@ _WHITE_100 = 0xFFFFFFFF
 _DEFAULT_FIELD_READ_VALUE = {
     "background_color": _DARK_00,  # 01 for alpha or it will show a default color
     "color": 0x90FFFFFF,
+    "border_width": 1,
+    "border_radius": 5,
+    "border_color": 0x0DFFFFFF,
+    "font_size": 14,
+}
+
+_DEFAULT_FIELD_READ_ERROR_VALUE = {
+    "background_color": _RED_05,  # 01 for alpha or it will show a default color
+    "color": 0xCC0000FF,
     "border_width": 1,
     "border_radius": 5,
     "border_color": 0x0DFFFFFF,
@@ -125,6 +135,7 @@ current_dict.update(
             "secondary_color": 0x0,
         },
         "Field": _DEFAULT_FIELD_READ_VALUE,
+        "FieldError": _DEFAULT_FIELD_READ_ERROR_VALUE,
         "Field:hovered": _DEFAULT_FIELD_READ_HOVERED_VALUE,
         "FreeBezierCurve::HeaderNvidiaLine": {"border_width": 1, "color": _WHITE_30},
         "Image::Account": {"image_url": _get_icons("account-circle"), "color": _WHITE_50},
@@ -255,10 +266,6 @@ current_dict.update(
             "background_color": 0x00836C1D,
             "background_gradient_color": 0xFF836C1D,  # hardened _BLUE_SELECTED over _GREY_50
         },
-        "ImageWithProvider::SelectionGradient_selected_hovered": {
-            "background_color": 0x0090751A,
-            "background_gradient_color": 0xFF90751A,  # hardened _BLUE_SELECTED + _BLUE_HOVERED over _GREY_50
-        },
         "ImageWithProvider::WelcomePadItemTitle": {
             "color": _WHITE_100,
             "font_size": 18,
@@ -367,12 +374,21 @@ current_dict.update(
             "background_selected_color": _BLUE_HOVERED,
         },  # background_selected_color = hovered
         "TreeView:selected": {"background_color": _BLUE_SELECTED},
+        "TreeView.Selection": {
+            "background_color": 0x0,
+            "background_selected_color": 0x0,
+        },  # background_selected_color = hovered
+        "TreeView.Selection:selected": {"background_color": 0x0},
         "TreeView::TreePanel": {
             "background_color": 0x0,
             "background_selected_color": 0x0,
         },  # background_selected_color = hovered
         "TreeView::TreePanel:selected": {"background_color": _GREY_50},
         "TreeView::WelcomePad:selected": {"background_color": 0x0},
+        "TreeView.Item": {"background_color": 0x0},
+        "TreeView.Item:selected": {"background_color": _BLUE_SELECTED},
+        "TreeView.Item.selected": {"background_color": _BLUE_SELECTED},
+        "TreeView.Item.IsHovered": {"background_color": _BLUE_HOVERED},
         "TreeView.Item.Minus": {"image_url": _get_icons("disclosure-collapsed"), "color": _WHITE_60},
         "TreeView.Item.Plus": {"image_url": _get_icons("disclosure-collapsed_h"), "color": _WHITE_60},
         "TreeView.ScrollingFrame::WelcomePad": {"background_color": 0x0},

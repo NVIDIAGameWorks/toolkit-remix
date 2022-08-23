@@ -1,0 +1,19 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex Mesh Properties implementation for the StageCraft"
+description = "Mesh Properties implementation for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"lightspeed.trex.asset_replacements.core.shared" = {}
+"lightspeed.trex.selection_tree.shared.widget" = {}
+"lightspeed.trex.utils.common" = {}
+"lightspeed.trex.utils.widget" = {}
+"omni.client" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.kit.widget.filebrowser" = {}
+"omni.kit.window.filepicker" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.mesh_properties.shared.widget"
