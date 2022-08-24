@@ -222,6 +222,7 @@ class LightspeedExporterCore:
         )
         context.save_as_stage(self._temp_stage_path)
 
+        stage = context.get_stage()  # be sure to reload
         root_layer = stage.GetRootLayer()
         layer = self._layer_manager.get_layer(LayerType.replacement)
         if layer is None:
