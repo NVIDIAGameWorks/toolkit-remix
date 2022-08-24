@@ -98,7 +98,7 @@ class LightspeedExporterUI:
 
         details = ""
         for type_error, data in dependency_errors.items():
-            details += f"\n{type_error}:\n"
+            details += f"\n{type_error} ({len(data.keys())} errors):\n"
             for key, error_type in data.items():
                 details += "-" * 100
                 details += "\n"

@@ -10,6 +10,7 @@
 import asyncio
 import glob
 import os
+import re
 import stat
 import uuid
 from enum import Enum
@@ -40,6 +41,7 @@ class DependencyErrorTypes(Enum):
     TEXTURE_IS_DDS = "Texture is a dds texture"
     REFERENCE_ABSOLUTE_PATH = "Reference absolute path"
     REFERENCE_PATH_NOT_EXIST = "Reference path does not exist"
+    REFERENCE_HASH_NOT_EXIST = "Reference hash/delta does not exist anymore"
 
 
 class LightspeedExporterCore:
@@ -328,6 +330,22 @@ class LightspeedExporterCore:
 
         result_errors = {}
 
+        # filter stale meshes references. We want to remove overrides of references on meshes hashes that don't
+        # exist anymore
+        # we use the capture layer file to find the meshes folder
+        layer = self._layer_manager.get_layer(LayerType.capture)
+        hashes = []
+        if layer:
+            # we generate a list of hashes from the list of mesh usd files
+            meshes_folder = os.path.join(os.path.dirname(layer.identifier), constants.MESHES_FOLDER)
+            for usd_mesh in glob.glob(os.path.join(meshes_folder, "*.usd")):
+                match = re.match(f"^{constants.MESHES_FILE_PREFIX}(.*).usd$", os.path.basename(usd_mesh))
+                if match:
+                    hashes.append(match.groups()[0])
+                    # now when we check reference paths, we check if the hash of the reference prim is in this list
+        else:
+            carb.log_error("Can't find the capture layer")
+
         for layer in all_layers:  # noqa PLR1702
             chk = layer.identifier
             chk_path = Path(chk)
@@ -412,6 +430,23 @@ class LightspeedExporterCore:
                                         f"{str(attr.Get())}"
                                     )
 
+                def check_prim_hash_exist(_items, _prim):
+                    """
+                    Check that the prim hash is still needed. It can happen that some overrides are still here but
+                    the captured mesh is not here anymore
+                    """
+                    if _items:
+                        _match = re.match(
+                            f"^{constants.MESHES_FILE_PREFIX}(.*)$", os.path.basename(_prim.GetPath().pathString)
+                        )
+                        if _match and _match.groups()[0] not in hashes:
+                            if not result_errors.get(DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value):
+                                result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value] = {}
+                            _key = f"{chk}\n             {_prim.GetPath().pathString}"  # noqa PLW0640
+                            result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value][
+                                _key
+                            ] = "ERROR: This is an old override. Please remove it"
+
                 for primspec in prim.GetPrimStack():
                     if not primspec:
                         continue
@@ -422,6 +457,8 @@ class LightspeedExporterCore:
                         continue
                     # Checking USDA
                     items = primspec.referenceList.explicitItems
+                    if items:
+                        check_prim_hash_exist(items, prim)
                     for item in items:
                         if item is not None and ":/" in item.assetPath:
                             key = f"{chk}\n             {prim.GetPath().pathString}"
@@ -450,6 +487,8 @@ class LightspeedExporterCore:
 
                     # Checking USD
                     items = primspec.referenceList.prependedItems
+                    if items:
+                        check_prim_hash_exist(items, prim)
                     for item in items:
                         if item is not None and ":/" in item.assetPath:
                             key = f"{chk}\n             {prim.GetPath().pathString}"
