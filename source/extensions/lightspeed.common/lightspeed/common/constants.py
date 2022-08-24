@@ -33,6 +33,7 @@ CAPTURE_FOLDER = "capture"
 MATERIALS_FOLDER = "materials"
 MESHES_FOLDER = "meshes"
 LIGHTS_FOLDER = "lights"
+MESHES_FILE_PREFIX = "mesh_"
 NVTT_PATH = str(Path(__file__).parent.joinpath("tools", "nvtt", "nvtt_export.exe"))
 PIX2PIX_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "pytorch-CycleGAN-and-pix2pix"))
 PIX2PIX_TEST_SCRIPT_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("test.py"))
