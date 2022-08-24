@@ -40,6 +40,8 @@ class LightspeedExporterUI:
             "_subscription_progress_text_changed": None,
             "_subscription_finish_export": None,
             "_subscription_export_readonly_error": None,
+            "_subscription_dependency_errors": None,
+            "_sub_dependency_errors_yes": None,
         }
         for attr, value in self.__default_attr.items():
             setattr(self, attr, value)
@@ -54,6 +56,7 @@ class LightspeedExporterUI:
         self._subscription_export_readonly_error = self._core.subscribe_export_readonly_error(
             self._on_export_readonly_error
         )
+        self._subscription_dependency_errors = self._core.subscribe_dependency_errors(self._on_dependency_errors)
 
         self._window = None
         self._folder_exist_popup = None
@@ -78,12 +81,41 @@ class LightspeedExporterUI:
         content_window = content.get_content_window()
         content_window.refresh_current_directory()
         self._progress_popup.hide()
-        self._show_error_popup(
-            "Read-Only Error Occurred",
-            "One or more path in your export folder is read-only. Change the file or folder permissions to fix this "
-            "issue.",
-            "\n".join(read_only_paths),
+        title = "Read-Only Error Occurred"
+        message = (
+            "One or more path in your export folder is read-only. "
+            "Change the file or folder permissions to fix this issue."
         )
+        details = "\n".join(read_only_paths)
+
+        self._error_popup = ErrorPopup(title, message, details)
+        self._error_popup.show()
+
+    def _on_dependency_errors(self, dependency_errors):
+        content_window = content.get_content_window()
+        content_window.refresh_current_directory()
+        self._progress_popup.hide()
+
+        details = ""
+        for type_error, data in dependency_errors.items():
+            details += f"\n{type_error}:\n"
+            for key, error_type in data.items():
+                details += "-" * 100
+                details += "\n"
+                details += f"       {key}:\n                {error_type}\n"
+
+        title = "Dependency Errors Occurred"
+        message = (
+            "There are dependencies in your stage that have errors, please double check. "
+            "Do you want to continue the export?"
+        )
+
+        self._error_popup = ErrorPopup(title, message, details, yes_no=True, window_size=(1000, 600))
+        self._sub_dependency_errors_yes = self._error_popup.subscribe_yes_clicked(self._on_dependency_errors_yes)
+        self._error_popup.show()
+
+    def _on_dependency_errors_yes(self):
+        self._on_export_button_clicked(validate_dependencies=False)
 
     def __create_save_menu(self):
         """Create the menu to Save scenario"""
@@ -146,7 +178,7 @@ class LightspeedExporterUI:
                             ui.Rectangle(name="hovering")
                             button = ui.Button(name="folder", width=24, height=24)
                             button.set_tooltip("Choose folder")
-                            button.set_clicked_fn(lambda: self._show_file_picker())
+                            button.set_clicked_fn(self._show_file_picker)
                         ui.Spacer(height=4)
                     ui.Spacer(width=2)
                     ui.Spacer(width=40)
@@ -166,12 +198,12 @@ class LightspeedExporterUI:
                     ui.Spacer()
                 ui.Spacer(height=20)
 
-    def _on_export_button_clicked(self):
+    def _on_export_button_clicked(self, validate_dependencies=True):
         export_dir = self._export_path_field.model.get_value_as_string()
         if not self._core.check_export_path(export_dir):
             return
         self._show_progress_popup()
-        self._core.export(export_dir)
+        self._core.export(export_dir, validate_dependencies=validate_dependencies)
 
         self._window.visible = False
 
@@ -198,10 +230,6 @@ class LightspeedExporterUI:
         self._progress_popup.progress = 0
         self._progress_popup.show()
 
-    def _show_error_popup(self, title, message, details):
-        self._error_popup = ErrorPopup(title, message, details)
-        self._error_popup.show()
-
     def destroy(self):
         omni_utils.remove_menu_items(self._tools_manager_menus, "File")
         for attr, value in self.__default_attr.items():
@@ -213,6 +241,6 @@ class LightspeedExporterUI:
             for m_attr in m_attrs:
                 destroy = getattr(m_attr, "destroy", None)
                 if callable(destroy):
-                    destroy()
+                    destroy()  # noqa PLE1102
                 del m_attr
                 setattr(self, attr, value)

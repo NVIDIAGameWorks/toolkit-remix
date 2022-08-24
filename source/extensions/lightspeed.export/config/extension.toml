@@ -33,14 +33,15 @@ icon = "data/icon.png"
 
 [dependencies]
 "lightspeed.common" = {}
+"lightspeed.error_popup.window" = {}
 "lightspeed.layer_manager" = {}
+"lightspeed.progress_popup.window" = {}
 "lightspeed.tool.octahedral_converter" = {}
 "omni.client" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.menu.utils" = {}
 "omni.kit.test" = {}
 "omni.kit.tool.collect" = {}
-"omni.kit.menu.utils" = {}
-"lightspeed.progress_popup.window" = {}
-"lightspeed.error_popup.window" = {}
 
 [[test]]
 args = ["--no-window"]
