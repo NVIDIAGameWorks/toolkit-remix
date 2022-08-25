@@ -444,7 +444,10 @@ class LightspeedPosProcessExporter:
         def _update_progress(i_progress, length_progress, prim_path, progress_prefix):
             carb.log_info(f"{progress_prefix} {prim_path}")
             progress_text_callback(f"{progress_prefix}\n{prim_path}")
-            progress_callback(float(i_progress) / length_progress)
+            if length_progress == 0:
+                progress_callback(1.0)
+            else:
+                progress_callback(float(i_progress) / length_progress)
 
         def _process_shader(process_shader_fn: Callable[[Usd.Prim], None], progress_prefix):
             # the first step is to do all process in multicore without to touch USD
