@@ -435,7 +435,7 @@ class LightspeedExporterCore:
                     Check that the prim hash is still needed. It can happen that some overrides are still here but
                     the captured mesh is not here anymore
                     """
-                    if _items:
+                    if _items and hashes:
                         _match = re.match(
                             f"^{constants.MESHES_FILE_PREFIX}(.*)$", os.path.basename(_prim.GetPath().pathString)
                         )
