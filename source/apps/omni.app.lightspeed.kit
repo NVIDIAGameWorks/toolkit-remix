@@ -1,7 +1,7 @@
 [package]
 title = "Lightspeed Kit"
 description = "Used for lightspeed remastering."
-version = "2022.6.8"
+version = "2022.6.9"
 keywords = ["app", "lightspeed"]
 
 [dependencies]
@@ -254,23 +254,38 @@ app.runLoops.rendering_0.fillResolution = false
 exts."omni.kit.window.viewport".blockingGetViewportDrawable = false
 
 [settings.rtx]
-rendermode = "PathTracing"
+rendermode = "RaytracedLighting"
 multiThreading.enabled = true
 materialflattener.enabled = false
-
+pathtracing.maxBounces = 3
+ambientOcclusion.denoiserMode = 0
+translucency.maxRefractionBounces = 1
+sceneDb.ambientLightIntensity = 0
+reflections.denoiser.enabled = 0
+reflections.importantLightsOnly = 1
+reflections.sampledLighting.maxRayIntensity = 0.15
+reflections.sampledLighting.samplesPerPixel = 1
+indirectDiffuse.computeDiffuseGiAfterSpecularEvents = 0
+indirectDiffuse.denoiser.enabled = 0
+indirectDiffuse.enabled = 1
+indirectDiffuse.fetchSampleCount = 4
+indirectDiffuse.maxBounces = 16
+indirectDiffuse.restir = 0
+directLighting.sampledLighting.autoEnable = 0
+directLighting.sampledLighting.enabled = 1
+directLighting.sampledLighting.maxRayIntensity = 0.15
+			
 [settings.rtx-transient]
-resourcemanager.enableTextureStreaming = false
+resourcemanager.enableTextureStreaming = true
 
 [settings.rtx.hydra]
 TBNFrameMode = 0 # Auto-mode
 
 [settings.rtx.post]
-tonemap.op = 7
-histogram.enabled = true
-histogram.useExposureClamping = false
-histogram.filterType = 1
-histogram.tau = 10.0
-histogram.whiteScale = 5.0
+tonemap.op = 6
+tonemap.cm2Factor = 1155
+histogram.enabled = false
+dlss.enableDenoiser = 1
 
 [settings.app.settings]
 persistent = true
