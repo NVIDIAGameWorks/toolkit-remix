@@ -1,7 +1,7 @@
 [package]
 title = "Lightspeed Kit"
 description = "Used for lightspeed remastering."
-version = "2022.6.9"
+version = "2022.6.10"
 keywords = ["app", "lightspeed"]
 
 [dependencies]
@@ -48,7 +48,7 @@ keywords = ["app", "lightspeed"]
 
 # Create Windows
 "omni.kit.window.title" = {}
-"omni.kit.widget.live" = {}
+# "omni.kit.widget.live" = {} # disabled because it broke a bunch of menu items
 "omni.kit.window.stage" = {}
 "omni.kit.widget.layers" = {}
 "omni.kit.window.cursor" = {}
@@ -274,7 +274,7 @@ indirectDiffuse.restir = 0
 directLighting.sampledLighting.autoEnable = 0
 directLighting.sampledLighting.enabled = 1
 directLighting.sampledLighting.maxRayIntensity = 0.15
-			
+
 [settings.rtx-transient]
 resourcemanager.enableTextureStreaming = true
 

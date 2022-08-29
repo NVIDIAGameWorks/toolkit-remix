@@ -415,7 +415,8 @@ class LightspeedPosProcessExporter:
             ref_node = geo_prim.GetPrimIndex().rootNode.children[0]
             ref_asset_path = ref_node.layerStack.layers[0]
             ref_asset_path_value = ref_asset_path.realPath
-            if not ref_asset_path_value or ref_asset_path_value in processed_mesh_prim_layer_paths:
+            ref_asset_and_prim_path = f"{ref_asset_path_value}, {ref_node.path}"
+            if not ref_asset_path_value or ref_asset_and_prim_path in processed_mesh_prim_layer_paths:
                 continue
             carb.log_info(f"Post Processing Mesh: {geo_prim.GetPath()}")
             progress_text_callback(f"Post Processing Mesh:\n{geo_prim.GetPath()}")
@@ -425,7 +426,7 @@ class LightspeedPosProcessExporter:
                 # apply edits to the geo prim in it's source usd, not in the top level replacements.usd
                 with ReferenceEdit(geo_prim):
                     self._process_mesh_prim(geo_prim)
-                    processed_mesh_prim_layer_paths.append(ref_asset_path_value)
+                    processed_mesh_prim_layer_paths.append(ref_asset_and_prim_path)
             except Exception as e:  # noqa
                 failed_processes.append(str(geo_prim.GetPath()))
                 carb.log_error("Exception when post-processing mesh: " + str(geo_prim.GetPath()))
@@ -520,7 +521,7 @@ class LightspeedPosProcessExporter:
         await omni.kit.app.get_app().next_update_async()
         # Using a lot of nvtt with cuda will crash the whole computer. Running just 2...
         futures = []
-        executor = ThreadPoolExecutor(max_workers=2)
+        executor = ThreadPoolExecutor(max_workers=4)
         for cmd in [[str(self._nvtt_path)] + cmds for cmds in result_shader_prim_compress_dds]:
             futures.append(executor.submit(subprocess.check_call, cmd))
 
