@@ -41,6 +41,7 @@ class LightspeedExporterUI:
             "_subscription_finish_export": None,
             "_subscription_export_readonly_error": None,
             "_subscription_dependency_errors": None,
+            "_sub_dependency_errors_yes": None,
         }
         for attr, value in self.__default_attr.items():
             setattr(self, attr, value)
@@ -109,8 +110,12 @@ class LightspeedExporterUI:
             "Do you want to continue the export?"
         )
 
-        self._error_popup = ErrorPopup(title, message, details, yes_no=False, window_size=(1000, 600))
+        self._error_popup = ErrorPopup(title, message, details, yes_no=True, window_size=(1000, 600))
+        self._sub_dependency_errors_yes = self._error_popup.subscribe_yes_clicked(self._on_dependency_errors_yes)
         self._error_popup.show()
+
+    def _on_dependency_errors_yes(self):
+        self._on_export_button_clicked(validate_dependencies=False)
 
     def __create_save_menu(self):
         """Create the menu to Save scenario"""
