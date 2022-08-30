@@ -292,9 +292,9 @@ class LightspeedPosProcessExporter:
                 normal_path = normal_map_attr.Get()
                 if normal_path:
                     abs_path = Path(normal_path.resolvedPath)
-                    rel_path = Path(normal_path.path)
+                    rel_path = normal_path.path
                     new_abs_path = abs_path.with_name(abs_path.stem + "_OTH" + abs_path.suffix)
-                    new_rel_path = rel_path.with_name(rel_path.stem + "_OTH" + rel_path.suffix)
+                    new_rel_path = rel_path.rpartition(".")[0] + "_OTH." + rel_path.rpartition(".")[-1]
                     new_abs_dds_path = new_abs_path.with_suffix(".dds")
                     # only convert if the final converted dds doesn't exist, or is older than the source png.
                     needs_convert = (
@@ -349,11 +349,30 @@ class LightspeedPosProcessExporter:
         for attr_name, bc_mode in constants.TEXTURE_COMPRESSION_LEVELS.items():
             attr = prim.GetAttribute(attr_name)
             if attr and attr.Get():
-                abs_path = Path(attr.Get().resolvedPath)
-                rel_path = Path(attr.Get().path)
-                if abs_path and abs_path.suffix.lower() != ".dds":
+                abs_path_str = attr.Get().resolvedPath
+                abs_path = Path(abs_path_str)
+                rel_path = attr.Get().path
+                rel_dds_path = rel_path.rpartition(".")[0] + ".dds"
+
+                dds_exist = False
+                dds_path = None
+                if not abs_path_str:
+                    # it means that the png is not here anymore, that why USD can't resolve the path
+                    # we will try to find if the dds fom the deleted png exist
+                    stacks = attr.GetPropertyStack(Usd.TimeCode.Default())
+                    for stack in stacks:
+                        virtual_abs_path = stack.layer.ComputeAbsolutePath(rel_path)
+                        dds_path = Path(f"{virtual_abs_path.rpartition('.')[0]}.dds")
+                        if dds_path.exists():
+                            dds_exist = True
+                            break
+                        dds_path = None
+                else:
                     dds_path = abs_path.with_suffix(".dds")
-                    rel_dds_path = rel_path.with_suffix(".dds")
+
+                if (not dds_exist and dds_path is not None) or (
+                    abs_path_str and abs_path.suffix.lower() != ".dds"
+                ):  # noqa SIM102
                     # only create the dds if it doesn't already exist or is older than the source png
                     if str(dds_path) not in result_shader_prim_compress_dds_outputs and (
                         not dds_path.exists() or abs_path.stat().st_mtime > dds_path.stat().st_mtime
@@ -368,11 +387,11 @@ class LightspeedPosProcessExporter:
                             result.append(line)
                         result_shader_prim_compress_dds_outputs.append(str(dds_path))
 
-                    if set_usd:
-                        attr.Set(str(rel_dds_path))
-                    # NOTE: not safe to delete the original png here, as any other prims re-using the texture will fail
-                    # to resolve the absolute path if the file no longer exists.
-                    # os.remove(abs_path)
+                if set_usd:
+                    attr.Set(str(rel_dds_path))
+                # NOTE: not safe to delete the original png here, as any other prims re-using the texture will fail
+                # to resolve the absolute path if the file no longer exists.
+                # os.remove(abs_path)
 
     @omni.usd.handle_exception  # noqa C901
     async def process(self, export_file_path, progress_text_callback, progress_callback):
