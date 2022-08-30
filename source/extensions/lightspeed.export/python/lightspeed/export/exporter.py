@@ -412,13 +412,24 @@ class LightspeedExporterCore:
                                     str_value = str_value[1:]
                                 if str_value.endswith("@"):
                                     str_value = str_value[:-1]
-                                if str_value.lower().endswith(".dds"):
-                                    key = f"{chk}\n             {prim.GetPath().pathString}::{attr.GetName()}"
-                                    if not result_errors.get(DependencyErrorTypes.TEXTURE_IS_DDS.value):
-                                        result_errors[DependencyErrorTypes.TEXTURE_IS_DDS.value] = {}
-                                    result_errors[DependencyErrorTypes.TEXTURE_IS_DDS.value][
-                                        key
-                                    ] = f"ERROR: {attr.GetName()} is a .dds path ----------> {str_value}"
+
+                                # disable .dds check
+                                # # we ignore dds that come from the capture folder
+                                # p_value = Path(str_value)
+                                # last_p_value = p_value
+                                # to_ignore = False
+                                # for parent in last_p_value.parents:
+                                #     if parent.stem == constants.CAPTURE_FOLDER:
+                                #         to_ignore = True
+                                #         break
+                                #
+                                # if str_value.lower().endswith(".dds") and not to_ignore:
+                                #     key = f"{chk}\n             {prim.GetPath().pathString}::{attr.GetName()}"
+                                #     if not result_errors.get(DependencyErrorTypes.TEXTURE_IS_DDS.value):
+                                #         result_errors[DependencyErrorTypes.TEXTURE_IS_DDS.value] = {}
+                                #     result_errors[DependencyErrorTypes.TEXTURE_IS_DDS.value][
+                                #         key
+                                #     ] = f"ERROR: {attr.GetName()} is a .dds path ----------> {str_value}"
 
                                 full_path = omni.client.normalize_url(layer.ComputeAbsolutePath(str_value))
                                 result, entry = omni.client.stat(full_path)
