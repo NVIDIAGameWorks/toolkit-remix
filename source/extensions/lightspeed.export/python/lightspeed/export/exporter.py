@@ -364,7 +364,11 @@ class LightspeedExporterCore:
             sub_stage = Usd.Stage.Open(chk)
             all_prims = list(traverse_instanced_children(sub_stage.GetPseudoRoot()))
             for prim in all_prims:
-                if prim.GetTypeName() in ["Shader"]:
+                # check overrides also
+                # if the prim specifier is an override and his name is "Shader", we check the overrides
+                if prim.GetTypeName() in ["Shader"] or (
+                    prim.GetSpecifier() == Sdf.SpecifierOver and prim.GetName() == "Shader"
+                ):
                     for attr in prim.GetAttributes():
                         layers = [
                             x.layer.identifier
