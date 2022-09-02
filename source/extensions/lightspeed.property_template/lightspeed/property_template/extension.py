@@ -23,7 +23,7 @@ class PropertyTemplateExtension(omni.ext.IExt):
     """Standard extension support class, necessary for extension management"""
 
     def __init__(self, *args, **kwargs):
-        super(PropertyTemplateExtension, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._registered = False
 
     def on_startup(self, ext_id):

@@ -40,16 +40,16 @@ class UpscalerCore:
         original_texture_name = str(Path(texture).stem)
         output_texture_name = str(Path(output_texture).stem)
         output_texture_path = str(Path(output_texture).absolute().parent)
-        temp_dir = tempfile.TemporaryDirectory()
+        temp_dir = tempfile.TemporaryDirectory()  # noqa PLR1732
         # begin real work
         carb.log_info("Upscaling: " + texture)
         # convert to png
         if not texture.lower().endswith(".png"):
             png_texture_path = str(Path(temp_dir.name).joinpath(original_texture_name + ".png"))
-            convert_png_process = subprocess.Popen(
+            with subprocess.Popen(
                 [nvtt_path, texture, "--output", png_texture_path], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
-            )
-            convert_png_process.wait()
+            ) as convert_png_process:
+                convert_png_process.wait()
             # use PILLOW as a fallback if nvtt fails
             if not Path(png_texture_path).exists():
                 with contextlib.suppress(NotImplementedError):
@@ -60,12 +60,12 @@ class UpscalerCore:
         # perform upscale
         Path(output_texture).parent.mkdir(parents=True, exist_ok=True)
         upscaled_texture_path = str(Path(output_texture_path).joinpath(output_texture_name + ".png"))
-        upscale_process = subprocess.Popen(
+        with subprocess.Popen(
             [esrgan_tool_path, "-i", png_texture_path, "-o", upscaled_texture_path],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.STDOUT,
-        )
-        upscale_process.wait()
+        ) as upscale_process:
+            upscale_process.wait()
         # check for alpha channel and upscale it if it exists
         try:
             with Image.open(png_texture_path) as memory_image:
@@ -75,12 +75,12 @@ class UpscalerCore:
                         Path(temp_dir.name).joinpath(original_texture_name + "_upscaled4x_alpha.png")
                     )
                     memory_image.split()[-1].save(alpha_path)
-                    upscale_process = subprocess.Popen(
+                    with subprocess.Popen(
                         [esrgan_tool_path, "-i", alpha_path, "-o", upscaled_alpha_path],
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.STDOUT,
-                    )
-                    upscale_process.wait()
+                    ) as upscale_process:
+                        upscale_process.wait()
                     with Image.open(upscaled_alpha_path).convert("L") as upscaled_alpha_image:
                         with Image.open(upscaled_texture_path) as upscaled_memory_image:
                             upscaled_memory_image.putalpha(upscaled_alpha_image)
@@ -90,7 +90,7 @@ class UpscalerCore:
             pass
         # convert to DDS, and generate mips (note dont use the temp dir for this)
         if output_texture.lower().endswith(".dds"):
-            compress_mip_process = subprocess.Popen(
+            with subprocess.Popen(
                 [
                     nvtt_path,
                     upscaled_texture_path,
@@ -101,8 +101,8 @@ class UpscalerCore:
                 ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT,
-            )
-            compress_mip_process.wait()
+            ) as compress_mip_process:
+                compress_mip_process.wait()
         if (
             not keep_png
             and output_texture.replace("\\", "/") != upscaled_texture_path.replace("\\", "/")

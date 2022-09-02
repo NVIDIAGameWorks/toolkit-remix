@@ -56,6 +56,7 @@ class LayerManagerCore:
                 if set_as_edit_target:
                     self.set_edit_target_layer(layer_obj.layer_type, force_layer_identifier=layer.identifier)
                 return layer
+        return None
 
     def insert_sublayer(
         self,
@@ -105,11 +106,9 @@ class LayerManagerCore:
             carb.log_error(f'Can\'t find the layer type "{layer_type.value}" in the stage')
             return
         layer.Save()
-        result, entry = omni.client.stat(layer.realPath)
+        result, _ = omni.client.stat(layer.realPath)
         if result == omni.client.Result.OK:
-            result, query = omni.client.create_checkpoint(
-                layer.realPath, "" if comment is None else comment, force=True
-            )
+            result, _ = omni.client.create_checkpoint(layer.realPath, "" if comment is None else comment, force=True)
             if result != omni.client.Result.OK:
                 carb.log_error(f"Can't create a checkpoint for file {layer.realPath}")
 
@@ -122,9 +121,9 @@ class LayerManagerCore:
         if not existing_layer:
             Sdf.Layer.CreateNew(path)
         layer.Export(path)
-        result, entry = omni.client.stat(path)
+        result, _ = omni.client.stat(path)
         if result == omni.client.Result.OK:
-            result, query = omni.client.create_checkpoint(path, "" if comment is None else comment, force=True)
+            result, _ = omni.client.create_checkpoint(path, "" if comment is None else comment, force=True)
             if result != omni.client.Result.OK:
                 carb.log_error(f"Can't create a checkpoint for file {path}")
 
@@ -151,9 +150,8 @@ class LayerManagerCore:
             if force_layer_identifier is not None and layer.identifier == force_layer_identifier:
                 omni.kit.commands.execute("SetEditTarget", layer_identifier=layer.identifier)
                 break
-            else:
-                if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
-                    omni.kit.commands.execute("SetEditTarget", layer_identifier=layer.identifier)
+            if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
+                omni.kit.commands.execute("SetEditTarget", layer_identifier=layer.identifier)
 
     @staticmethod
     def lock_layer(layer_type: LayerType, value=True):

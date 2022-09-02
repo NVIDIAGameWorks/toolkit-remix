@@ -69,7 +69,7 @@ class GameCore(ContentViewerCore):
             self._event.remove(self._fn)
 
     def __init__(self):
-        super(GameCore, self).__init__()
+        super().__init__()
         self._settings = carb.settings.get_settings()
         self._filter = None
 
@@ -108,7 +108,7 @@ class GameCore(ContentViewerCore):
 
     @property
     def default_attr(self):
-        result = super(GameCore, self).default_attr
+        result = super().default_attr
         result.update({})
         return result
 
@@ -133,6 +133,3 @@ class GameCore(ContentViewerCore):
             except ValidationError as e:
                 carb.log_error(e.json())
         return result
-
-    def destroy(self):
-        super(GameCore, self).destroy()

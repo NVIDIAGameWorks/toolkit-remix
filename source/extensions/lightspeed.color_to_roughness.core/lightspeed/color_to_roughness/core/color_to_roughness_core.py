@@ -50,19 +50,19 @@ class ColorToRoughnessCore:
         )
         # Create temp dir and set up texture name/path
         original_texture_name = Path(texture).stem
-        temp_dir = tempfile.TemporaryDirectory().name
+        temp_dir = tempfile.TemporaryDirectory().name  # noqa PLR1732
         test_path = Path(temp_dir).joinpath("test", "texture", "texture.png")
         test_path.parent.mkdir(parents=True, exist_ok=True)
         carb.log_info("Converting: " + texture)
         # Convert the input image to a PNG if it already isn't
         if not texture.lower().endswith(".png"):
             png_texture_path = Path(temp_dir).joinpath(original_texture_name + ".png")
-            convert_png_process = subprocess.Popen(
+            with subprocess.Popen(
                 [str(nvtt_path), texture, "--output", str(png_texture_path)],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT,
-            )
-            convert_png_process.wait()
+            ) as convert_png_process:
+                convert_png_process.wait()
             # use PILLOW as a fallback if nvtt fails
             if png_texture_path.exists():
                 with contextlib.suppress(NotImplementedError):
@@ -90,7 +90,7 @@ class ColorToRoughnessCore:
         new_env = os.environ.copy()
         new_env["PYTHONPATH"] = pythonpath_env
         # Perform the conversion
-        conversion_process = subprocess.Popen(
+        with subprocess.Popen(
             [
                 python_path,
                 str(converter_path),
@@ -113,8 +113,8 @@ class ColorToRoughnessCore:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.STDOUT,
             env=new_env,
-        )
-        conversion_process.wait()
+        ) as conversion_process:
+            conversion_process.wait()
         # Reduce the 3 channel output to a single channgel image
         try:
             with Image.open(str(result_path)) as im:
@@ -127,7 +127,7 @@ class ColorToRoughnessCore:
             return
         # Convert to DDS if necessary, and generate mips (note dont use the temp dir for this)
         if output_texture.lower().endswith(".dds"):
-            compress_mip_process = subprocess.Popen(
+            with subprocess.Popen(
                 [
                     str(nvtt_path),
                     str(result_path),
@@ -138,8 +138,8 @@ class ColorToRoughnessCore:
                 ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT,
-            )
-            compress_mip_process.wait()
+            ) as compress_mip_process:
+                compress_mip_process.wait()
         else:
             shutil.copy(str(result_path), output_texture)
 
@@ -147,4 +147,4 @@ class ColorToRoughnessCore:
     @omni.usd.handle_exception
     async def async_perform_upscale(texture, output_texture):
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, ColorToRoughnessCore.perform_upscale, texture, output_texture)
+        await loop.run_in_executor(None, ColorToRoughnessCore.perform_conversion, texture, output_texture)

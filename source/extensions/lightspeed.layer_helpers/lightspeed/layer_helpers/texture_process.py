@@ -38,9 +38,9 @@ class LightspeedTextureProcessingCore:
         if len(asset_absolute_paths) != len(output_asset_absolute_paths):
             raise RuntimeError("List length mismatch.")
         total = len(asset_absolute_paths)
-        for i in range(len(asset_absolute_paths)):
+        for i, asset_absolute_path in enumerate(asset_absolute_paths):
             # perform upscale and place the output textures next to the enhancements layer location
-            await loop.run_in_executor(None, processing_method, asset_absolute_paths[i], output_asset_absolute_paths[i])
+            await loop.run_in_executor(None, processing_method, asset_absolute_path, output_asset_absolute_paths[i])
             if progress_callback:
                 progress_callback((i + 1) / total)
 
@@ -48,9 +48,9 @@ class LightspeedTextureProcessingCore:
     def blocking_batch_texture_process(processing_method, asset_absolute_paths, output_asset_absolute_paths):
         if len(asset_absolute_paths) != len(output_asset_absolute_paths):
             raise RuntimeError("List length mismatch.")
-        for i in range(len(asset_absolute_paths)):
+        for i, asset_absolute_path in enumerate(asset_absolute_paths):
             # perform upscale and place the output textures next to the enhancements layer location
-            processing_method(asset_absolute_paths[i], output_asset_absolute_paths[i])
+            processing_method(asset_absolute_path, output_asset_absolute_paths[i])
 
     @staticmethod
     def lss_generate_populate_and_child_autoupscale_layer(output_texture_type, prim_paths, output_asset_relative_paths):
@@ -80,9 +80,9 @@ class LightspeedTextureProcessingCore:
         return_prim_paths, return_output_asset_relative_paths = [], []
         if len(prim_paths) != len(output_asset_absolute_paths) or len(prim_paths) != len(output_asset_relative_paths):
             raise RuntimeError("List length mismatch.")
-        for i in range(len(prim_paths)):
+        for i, prim_path in enumerate(prim_paths):
             if Path(output_asset_absolute_paths[i]).exists():
-                return_prim_paths.append(prim_paths[i])
+                return_prim_paths.append(prim_path)
                 return_output_asset_relative_paths.append(output_asset_relative_paths[i])
         return return_prim_paths, return_output_asset_relative_paths
 

@@ -204,6 +204,6 @@ class CaptureSwapperWindow:
             for m_attr in m_attrs:
                 destroy = getattr(m_attr, "destroy", None)
                 if callable(destroy):
-                    destroy()
+                    destroy()  # noqa PLE1102
                 del m_attr
                 setattr(self, attr, value)

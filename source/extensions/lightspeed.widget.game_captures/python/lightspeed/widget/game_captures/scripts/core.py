@@ -58,7 +58,7 @@ class GameCapturesCore(ContentViewerCore):
             self._event.remove(self._fn)
 
     def __init__(self):
-        super(GameCapturesCore, self).__init__()
+        super().__init__()
         self.__current_game_capture_folder = None
         self.__current_capture = None
         self.__on_current_game_capture_folder_changed = self._Event()
@@ -66,7 +66,7 @@ class GameCapturesCore(ContentViewerCore):
 
     @property
     def default_attr(self):
-        result = super(GameCapturesCore, self).default_attr
+        result = super().default_attr
         result.update({})
         return result
 
@@ -126,6 +126,3 @@ class GameCapturesCore(ContentViewerCore):
                 carb.log_error(e.json())
 
         return result
-
-    def destroy(self):
-        super(GameCapturesCore, self).destroy()

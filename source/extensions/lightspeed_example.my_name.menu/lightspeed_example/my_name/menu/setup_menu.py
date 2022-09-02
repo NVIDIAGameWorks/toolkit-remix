@@ -107,7 +107,7 @@ class _SetupMenu:
                 destroy = getattr(m_attr, "destroy", None)
                 if callable(destroy):
                     destroy()
-                del m_attr
+                del m_attr  # noqa PLW4701
                 setattr(self, attr, value)
 
 

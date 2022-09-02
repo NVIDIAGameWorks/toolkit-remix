@@ -35,7 +35,7 @@ class RecentSavedFile:
     def save_recent_file(self, data):
         """Save the recent scenarios to the file"""
         file_path = self.__get_recent_file()
-        with open(file_path, "w") as json_file:
+        with open(file_path, "w", encoding="utf8") as json_file:
             json.dump(data, json_file, indent=2)
 
         carb.log_info(f"Recent saved file tracker saved to {file_path}")
@@ -51,7 +51,7 @@ class RecentSavedFile:
         current_data_max = list(current_data.keys())[:40]
 
         result = {}
-        for current_path, current_data in current_data.items():
+        for current_path, current_data in current_data.items():  # noqa B020
             if current_path in current_data_max:
                 result[current_path] = current_data
         if save:
@@ -72,7 +72,7 @@ class RecentSavedFile:
         file_path = self.__get_recent_file()
         carb.log_info(f"Get recent saved file(s) from {file_path}")
         try:
-            with open(file_path) as json_file:
+            with open(file_path, encoding="utf8") as json_file:
                 return json.load(json_file)
         except json.JSONDecodeError:
             carb.log_warn(f"{file_path} is corrupted! Deleting it.")

@@ -370,7 +370,7 @@ class LightspeedPosProcessExporter:
                 else:
                     dds_path = abs_path.with_suffix(".dds")
 
-                if (not dds_exist and dds_path is not None) or (
+                if (not dds_exist and dds_path is not None) or (  # noqa SIM102
                     abs_path_str and abs_path.suffix.lower() != ".dds"
                 ):  # noqa SIM102
                     # only create the dds if it doesn't already exist or is older than the source png

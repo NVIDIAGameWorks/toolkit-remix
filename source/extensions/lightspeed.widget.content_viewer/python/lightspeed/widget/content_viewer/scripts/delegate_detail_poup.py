@@ -18,7 +18,7 @@ class AssetDetailTagsDelegate(ui.AbstractItemDelegate):
     """Delegate of the Mapper Batcher"""
 
     def __init__(self, on_image_hovered_fn):
-        super(AssetDetailTagsDelegate, self).__init__()
+        super().__init__()
         self.__on_image_hovered_fn = on_image_hovered_fn
 
     def build_branch(self, model, item, column_id, level, expanded):

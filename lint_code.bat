@@ -1,2 +1,2 @@
 @echo off
-call "%~dp0repo" lint -m %*
+call "%~dp0repo" lint %*

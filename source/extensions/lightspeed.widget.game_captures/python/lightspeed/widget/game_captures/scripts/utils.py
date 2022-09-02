@@ -44,7 +44,7 @@ def get_captures_directory(data: "ContentData") -> str:
 
 def read_file(file_path) -> Optional[bytes]:
     """Read a file on the disk"""
-    result, version, content = omni.client.read_file(file_path)
+    result, _, content = omni.client.read_file(file_path)
     if result == omni.client.Result.OK:
         data = memoryview(content).tobytes()
     else:

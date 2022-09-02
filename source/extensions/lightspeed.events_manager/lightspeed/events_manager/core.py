@@ -61,7 +61,6 @@ class EventsManagerCore:
         self.default_attr = {}
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
-        self.__extension_path = extension_path
 
         self.__ds_events = []
 

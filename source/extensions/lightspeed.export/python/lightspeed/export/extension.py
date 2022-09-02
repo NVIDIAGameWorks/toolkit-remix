@@ -15,7 +15,7 @@ from .ui import LightspeedExporterUI
 
 class LightspeedExporterExtension(omni.ext.IExt):
     def __init__(self, *args, **kwargs):
-        super(LightspeedExporterExtension, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__default_attr = {"_ui": None}
         for attr, value in self.__default_attr.items():
             setattr(self, attr, value)

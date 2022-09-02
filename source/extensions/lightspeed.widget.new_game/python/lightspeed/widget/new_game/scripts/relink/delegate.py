@@ -15,9 +15,6 @@ from .model import HEADER_DICT
 class Delegate(ui.AbstractItemDelegate):
     """Delegate of the action lister"""
 
-    def __init__(self):
-        super(Delegate, self).__init__()
-
     def build_branch(self, model, item, column_id, level, expanded):
         """Create a branch widget that opens or closes subtree"""
         pass

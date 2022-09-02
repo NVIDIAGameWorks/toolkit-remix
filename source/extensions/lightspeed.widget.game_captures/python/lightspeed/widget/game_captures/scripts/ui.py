@@ -8,6 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import typing
+from pathlib import Path
 from typing import List
 
 from lightspeed.widget.content_viewer.scripts.ui import ContentItem, ContentViewer
@@ -15,8 +16,6 @@ from lightspeed.widget.content_viewer.scripts.ui import ContentItem, ContentView
 if typing.TYPE_CHECKING:
     from .core import GameCapturesCore
     from lightspeed.widget.content_viewer.scripts.core import ContentData
-
-from pathlib import Path
 
 import omni.ui as ui  # TODO: menu, switch to the new method when Kit switched
 
@@ -33,20 +32,20 @@ class GameCapturesViewer(ContentViewer):
 
     def __init__(self, core: "GameCapturesCore", extension_path: str):
         """Window to list all maps"""
-        super(GameCapturesViewer, self).__init__(core, extension_path)
+        super().__init__(core, extension_path)
         self._subcription_current_game_changed = self._core.subscribe_current_game_capture_folder_changed(
             self._on_current_game_changed
         )
 
     @property
     def default_attr(self):
-        result = super(GameCapturesViewer, self).default_attr
+        result = super().default_attr
         result.update({"_label_game": None})
         return result
 
     @property
     def style(self):
-        style = super(GameCapturesViewer, self).style
+        style = super().style
         style.update(
             {
                 "Label::vehicle": {"font_size": 22},

@@ -60,7 +60,6 @@ class LightspeedExporterCore:
         self.__on_export_readonly_error = _Event()
         self.__on_dependency_errors = _Event()
 
-        self.__collector_weakref = None
         self._export_button_fn = export_button_fn
         self._cancel_button_fn = cancel_button_fn
         self._layer_manager = LayerManagerCore()
@@ -304,7 +303,6 @@ class LightspeedExporterCore:
         asyncio.ensure_future(self._collector.collect(progress_callback, finish_callback))
 
     def destroy(self):
-        self.__collector_weakref = None
         for attr, value in self.__default_attr.items():
             m_attr = getattr(self, attr)
             if isinstance(m_attr, list):

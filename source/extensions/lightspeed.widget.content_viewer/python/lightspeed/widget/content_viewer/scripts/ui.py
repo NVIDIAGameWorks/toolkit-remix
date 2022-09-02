@@ -84,7 +84,7 @@ class ContentItemAdd:
         self._core = core
 
         self.__overlay_wide_rectangle = None
-        self.__overlay_highlight_rectangle = None
+        self.__overlay_highlight_rectangle = None  # noqa PLW0238
 
         self.__create_ui()
 
@@ -131,7 +131,7 @@ class ContentItemAdd:
                                 ui.Image(self._get_icon_path("add"), name="Add")
 
                             # highlight rectangle when the mouse is over it
-                            self.__overlay_highlight_rectangle = ui.Rectangle(
+                            self.__overlay_highlight_rectangle = ui.Rectangle(  # noqa PLW0238
                                 style_type_name_override="Rectangle.Overlay"
                             )
                     ui.Spacer(height=ui.Fraction(1))
@@ -161,7 +161,7 @@ class ContentItemAdd:
         pass
 
     def destroy(self):
-        self.__overlay_highlight_rectangle = None
+        self.__overlay_highlight_rectangle = None  # noqa PLW0238
         self.__overlay_wide_rectangle = None
         for attr, value in self.default_attr.items():
             m_attr = getattr(self, attr)
@@ -195,7 +195,7 @@ class ContentItem:
         self._asset_detail_windows = asset_detail_windows
         self._is_usd_path_valid = False
         self._style = {}
-        self.__background_image = None
+        self.__background_image = None  # noqa PLW0238
         self.__checkpoint_zstack = None
         self.__checkpoint_combobox = None
         self.__overlay_wide_rectangle = None
@@ -277,7 +277,7 @@ class ContentItem:
             self.__no_image_frame.visible = False
             self.__image_frame.visible = True
             with self.__image_frame:
-                self.__background_image = ui.Image(
+                self.__background_image = ui.Image(  # noqa PLW0238
                     thumbnail_path, fill_policy=ui.FillPolicy.PRESERVE_ASPECT_FIT, visible=True, name="Background"
                 )
         else:
@@ -417,16 +417,16 @@ class ContentItem:
         return self.content_data.path
 
     def destroy(self):
-        self.__background_image = None
-        self.__checkpoint_zstack = None
-        self.__checkpoint_combobox = None
-        self.__overlay_wide_rectangle = None
-        self.__overlay_highlight_rectangle = None
-        self.__no_image_frame = None
-        self.__no_usd_path_frame = None
-        self.__title_frame = None
-        self.__image_frame = None
-        self.__label_message_no_image = None
+        self.__background_image = None  # noqa PLW0238
+        self.__checkpoint_zstack = None  # noqa PLW0238
+        self.__checkpoint_combobox = None  # noqa PLW0238
+        self.__overlay_wide_rectangle = None  # noqa PLW0238
+        self.__overlay_highlight_rectangle = None  # noqa PLW0238
+        self.__no_image_frame = None  # noqa PLW0238
+        self.__no_usd_path_frame = None  # noqa PLW0238
+        self.__title_frame = None  # noqa PLW0238
+        self.__image_frame = None  # noqa PLW0238
+        self.__label_message_no_image = None  # noqa PLW0238
         for attr, value in self.default_attr.items():
             m_attr = getattr(self, attr)
             if isinstance(m_attr, list):

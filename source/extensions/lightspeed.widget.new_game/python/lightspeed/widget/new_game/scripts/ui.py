@@ -8,6 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import typing
+from pathlib import Path
 from typing import List
 
 import carb
@@ -19,8 +20,6 @@ from lightspeed.widget.content_viewer.scripts.utils import is_path_readable
 
 if typing.TYPE_CHECKING:
     from .core import GameCore
-
-from pathlib import Path
 
 import omni.ui as ui  # TODO: menu, switch to the new method when Kit switched
 
@@ -38,7 +37,7 @@ class GameContentItem(ContentItem):
 
     @property
     def style(self):
-        style = super(GameContentItem, self).style
+        style = super().style
         style.update(
             {
                 "Image::Background": {"border_radius": 20},
@@ -67,14 +66,14 @@ class GameViewer(ContentViewer):
 
     def __init__(self, core: "GameCore", extension_path: str):
         """Window to list all maps"""
-        super(GameViewer, self).__init__(core, extension_path)
+        super().__init__(core, extension_path)
         self._settings = carb.settings.get_settings()
         self._relink_tree_model = RelinkTreeModel()
         self._relink_tree_delegate = RelinkTreeDelegate()
 
     @property
     def default_attr(self):
-        result = super(GameViewer, self).default_attr
+        result = super().default_attr
         result.update(
             {
                 "_label_game": None,
@@ -90,7 +89,7 @@ class GameViewer(ContentViewer):
 
     @property
     def style(self):
-        style = super(GameViewer, self).style
+        style = super().style
         style.update(
             {
                 "Button::relink": {"background_color": 0x70C5911A},

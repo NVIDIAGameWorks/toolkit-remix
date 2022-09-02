@@ -17,7 +17,7 @@ class EventsManagerExtension(omni.ext.IExt):
     """Standard extension support class, necessary for extension management"""
 
     def __init__(self, *args, **kwargs):
-        super(EventsManagerExtension, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.default_attr = {"_events_manager": None}
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)

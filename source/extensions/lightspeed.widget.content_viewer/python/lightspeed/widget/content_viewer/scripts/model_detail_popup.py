@@ -16,7 +16,7 @@ class EntityItem(ui.AbstractItem):
     """Item of the model"""
 
     def __init__(self, image_path, tags):
-        super(EntityItem, self).__init__()
+        super().__init__()
         self.image_path = image_path
         self.image_path_model = ui.SimpleStringModel(image_path)
         self.tags = tags
@@ -32,7 +32,7 @@ class AssetDetailTagsModel(ui.AbstractItemModel):
     SIZE_ADDITIONAL_THUMBNAIL = 100
 
     def __init__(self, core):
-        super(AssetDetailTagsModel, self).__init__()
+        super().__init__()
         self._core = core
         self.__filter_str = ""
         self.__all_items = []
@@ -81,6 +81,6 @@ class AssetDetailTagsModel(ui.AbstractItemModel):
             return self.__root
         if column_id == 0:
             return item.image_path_model
-        elif column_id == 1:
+        if column_id == 1:
             return item.tags_model
         return None

@@ -104,10 +104,10 @@ class ContentViewerCore:
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
 
-        self.__ignore_thumbnails = False
+        self.__ignore_thumbnails = False  # noqa PLW0238
         self.__selection_blocked = False
 
-        self.__asset_detail_core = AssetDetailCore()
+        self.__asset_detail_core = AssetDetailCore()  # noqa PLW0238
 
         self.__on_content_changed = self._Event()
         self.__on_error_get_data = self._Event()
@@ -225,13 +225,13 @@ class ContentViewerCore:
         return self._content
 
     def get_content_size(self):
-        self.__ignore_thumbnails = True
+        self.__ignore_thumbnails = True  # noqa PLW0238
         result = len(self._get_content_data())
-        self.__ignore_thumbnails = False
+        self.__ignore_thumbnails = False  # noqa PLW0238
         return result  # noqa R504
 
     def destroy(self):
-        self.__ignore_thumbnails = False
+        self.__ignore_thumbnails = False  # noqa PLW0238
         self.__selection_blocked = False
         for attr, value in self.default_attr.items():
             m_attr = getattr(self, attr)
@@ -242,9 +242,9 @@ class ContentViewerCore:
             for m_attr in m_attrs:
                 destroy = getattr(m_attr, "destroy", None)
                 if callable(destroy):
-                    destroy()
-                del m_attr
+                    destroy()  # noqa PLE1102
+                del m_attr  # noqa PLW4701
                 setattr(self, attr, value)
-        instance = super(ContentViewerCore, self)
+        instance = super(ContentViewerCore, self)  # noqa PLR1725
         if instance:
             del instance

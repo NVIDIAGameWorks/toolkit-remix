@@ -45,7 +45,7 @@ class NewGameWorkspaceCore:
         stage = omni.usd.get_context().get_stage()
         capture_layer = self._layer_manager.get_layer(LayerType.capture)
         if capture_layer is None:
-            carb.log_warn(f"Can't find a capture layer, won't be setting up the default camera to match game")
+            carb.log_warn("Can't find a capture layer, won't be setting up the default camera to match game")
             return
         session_layer = stage.GetSessionLayer()
         current_edit_layer = Sdf.Find(LayerUtils.get_edit_target(stage))
@@ -54,7 +54,7 @@ class NewGameWorkspaceCore:
             if swap_edit_targets:
                 LayerUtils.set_edit_target(stage, session_layer.identifier)
 
-            carb.log_info(f"Setting up perspective camera from capture")
+            carb.log_info("Setting up perspective camera from capture")
             Sdf.CopySpec(capture_layer, "/RootNode/Camera", session_layer, "/OmniverseKit_Persp")
         finally:
             if swap_edit_targets:

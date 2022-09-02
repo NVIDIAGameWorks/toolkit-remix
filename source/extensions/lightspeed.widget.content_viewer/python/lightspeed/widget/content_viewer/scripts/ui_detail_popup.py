@@ -58,7 +58,7 @@ class AssetDetailWindow:
 
         self.__bigger_image = None
         self.__primary_thumnail = None
-        self.__tree_view = None
+        self.__tree_view = None  # noqa PLW0238
         self.__string_field_custom_tags = None
         self.__string_field_name = None
         self.__string_field_file_path = None
@@ -164,7 +164,7 @@ class AssetDetailWindow:
                                             visible=False,
                                         )
                                 with ui.ScrollingFrame(style_type_name_override="TreeView.ScrollingFrame"):
-                                    self.__tree_view = ui.TreeView(
+                                    self.__tree_view = ui.TreeView(  # noqa PLW0238
                                         self.__model,
                                         delegate=self.__delegate,
                                         root_visible=False,
@@ -220,7 +220,6 @@ class AssetDetailWindow:
             return
         if hovered:
             self.__bigger_image.source_url = image_widget.source_url
-            x, y = self.get_current_mouse_coords()
             self._window_bigger_image.position_x = image_widget.screen_position_x + image_widget.computed_width + 10
             self._window_bigger_image.position_y = image_widget.screen_position_y
             self._window_bigger_image.visible = True
@@ -278,7 +277,7 @@ class AssetDetailWindow:
     def destroy(self):
         self.__primary_thumnail = None
         self.__bigger_image = None
-        self.__tree_view = None
+        self.__tree_view = None  # noqa PLW0238
         self.__string_field_custom_tags = None
         self.__string_field_file_path = None
         self.__string_field_name = None
@@ -295,7 +294,7 @@ class AssetDetailWindow:
             for m_attr in m_attrs:
                 destroy = getattr(m_attr, "destroy", None)
                 if callable(destroy):
-                    destroy()
+                    destroy()  # noqa PLE1102
                 del m_attr
                 setattr(self, attr, value)
         self.__model = None
