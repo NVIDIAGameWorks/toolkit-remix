@@ -19,7 +19,7 @@ class RecentItem(ui.AbstractItem):
     """Item of the model"""
 
     def __init__(self, path):
-        super(RecentItem, self).__init__()
+        super().__init__()
         self.path = path
         self.path_model = ui.SimpleStringModel(self.path)
 
@@ -35,7 +35,7 @@ class RecentModel(ui.AbstractItemModel):
     """List model"""
 
     def __init__(self):
-        super(RecentModel, self).__init__()
+        super().__init__()
         self.__items = []
         self.refresh_list()
 

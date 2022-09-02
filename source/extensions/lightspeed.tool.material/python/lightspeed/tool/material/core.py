@@ -30,14 +30,14 @@ class ToolMaterialCore:
         usd_context = omni.usd.get_context()
         stage = usd_context.get_stage()
         material_prims = []
-        for prim_path in prim_paths:
+        for prim_path in prim_paths:  # noqa PLR1702
             prim = stage.GetPrimAtPath(prim_path)
             if prim.IsValid():
                 refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
                 if str(prim_path).startswith(constants.INSTANCE_PATH) and refs_and_layers:
                     for (ref, _) in refs_and_layers:
                         if not ref.assetPath:
-                            material, relationship = UsdShade.MaterialBindingAPI(
+                            material, _ = UsdShade.MaterialBindingAPI(
                                 stage.GetPrimAtPath(ref.primPath)
                             ).ComputeBoundMaterial()
                             if material:
@@ -45,7 +45,7 @@ class ToolMaterialCore:
                 elif prim.IsA(UsdShade.Material):
                     material_prims.append(UsdShade.Material(prim))
                 else:
-                    material, relationship = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
+                    material, _ = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
                     if material:
                         material_prims.append(material)
         return material_prims

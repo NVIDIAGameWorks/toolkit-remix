@@ -19,7 +19,7 @@ from .usd_file_picker import ReplacementPathUtils, open_file_picker
 class GameWorkspaceViewer(GameCapturesViewer):
     @property
     def default_attr(self):
-        result = super(GameWorkspaceViewer, self).default_attr
+        result = super().default_attr
         result.update(
             {
                 "_use_existing_layer": None,
@@ -31,7 +31,7 @@ class GameWorkspaceViewer(GameCapturesViewer):
 
     @property
     def style(self):
-        style = super(GameWorkspaceViewer, self).style
+        style = super().style
         style.update(
             {
                 "Image::SavePath": {"color": 0x90FFFFFF},
@@ -49,7 +49,7 @@ class GameWorkspaceViewer(GameCapturesViewer):
         """Create the main UI"""
         with ui.Frame(style=self.style):
             with ui.VStack():
-                super(GameWorkspaceViewer, self).create_ui()
+                super().create_ui()
                 with ui.ZStack(height=0):
                     ui.Rectangle(name="SubBackground0")
                     with ui.VStack():

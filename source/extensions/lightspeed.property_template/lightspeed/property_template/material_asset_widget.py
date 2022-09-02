@@ -23,7 +23,7 @@ class MaterialAssetWidget(UsdMaterialAttributeWidget):
         super().__init__(title=title, schema=UsdShade.Material, include_names=[], exclude_names=[])
         self._extension_path = extension_path
         self._material_paths = materials
-        self.__parent_widget = parent_widget
+        self.__parent_widget = parent_widget  # noqa PLW0238
         self._current_material_index = 0
         self._style = {
             "Image::material": {"image_url": f"{self._extension_path}/icons/material@3x.png"},
@@ -52,7 +52,7 @@ class MaterialAssetWidget(UsdMaterialAttributeWidget):
         )
 
     def clean(self):
-        self.__parent_widget = None
+        self.__parent_widget = None  # noqa PLW0238
         super().clean()
 
     @property
@@ -117,7 +117,7 @@ class MaterialAssetsWidget(UsdPropertiesWidget):
 
         def get_mat_from_geo(prim, prototype):
             if prim.IsA(UsdGeom.Subset) or prim.IsA(UsdGeom.Mesh):
-                material, relationship = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
+                material, _ = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
                 if material:
                     mat_path = material.GetPath()
                     if mat_path not in self.__prototypes_data[str(prototype)]:
@@ -128,7 +128,7 @@ class MaterialAssetsWidget(UsdPropertiesWidget):
             return False
 
         stage = payloads.get_stage()
-        for p in payloads:
+        for p in payloads:  # noqa PLR1702
             prim = stage.GetPrimAtPath(p)
             if prim.IsValid():
                 refs_and_layers = omni.usd.get_composed_references_from_prim(prim)

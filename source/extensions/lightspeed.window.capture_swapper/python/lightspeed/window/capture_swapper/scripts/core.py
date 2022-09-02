@@ -8,14 +8,13 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import typing
+from typing import Optional
 
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from lightspeed.widget.content_viewer.scripts.core import ContentData
 
 if typing.TYPE_CHECKING:
     from pxr import Sdf
-
-from typing import Optional
 
 
 class CaptureSwapperCore:

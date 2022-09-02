@@ -40,7 +40,7 @@ class LockXformSession:
             prim = stage.GetPrimAtPath(prim_path)
             for attr in prim.GetAttributes():
                 attr_path = attr.GetPath()
-                if "xformOp:" in attr_path.__str__():
+                if "xformOp:" in str(attr_path):
                     # Cache prim state using usd_undo module
                     self._usd_undo.reserve(attr_path)
                     self._prim_xformOp_cache.add(attr_path)

@@ -25,7 +25,7 @@ class UsdNicknameWatchModel(UsdPropertyWatchModel):
             `path`: The full path to the watched property
         """
         UsdPropertyWatchModel.__init__(self, stage, path)
-        if not self._path:
+        if not self._path:  # noqa PLE0203
             self._path = path
 
     def get_value_as_string(self) -> str:

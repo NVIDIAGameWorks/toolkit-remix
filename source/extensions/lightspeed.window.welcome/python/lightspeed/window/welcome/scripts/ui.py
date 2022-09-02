@@ -106,19 +106,19 @@ class WelcomeWindow:
         self.__create_loading_ui()
         self.__create_menu()
 
-        self.__subcription_current_game_capture_folder_changed = (
+        self.__subcription_current_game_capture_folder_changed = (  # noqa PLW0238
             self._game_core.subscribe_current_game_capture_folder_changed(  # noqa E501
                 self._on_current_game_capture_folder_changed
             )
         )
 
-        self.__subcription_game_selection_changed = self._game_core.subscribe_selection_changed(
+        self.__subcription_game_selection_changed = self._game_core.subscribe_selection_changed(  # noqa PLW0238
             self._on_game_selection_changed
         )
 
-        self.__subcription_workspace_changed = lightspeed_workspace_instance().subscribe_workspace_restored(
-            self._on_workspace_restored
-        )
+        self.__subcription_workspace_changed = lightspeed_workspace_instance().subscribe_workspace_restored(  # noqa
+            self._on_workspace_restored  # noqa PLW0238
+        )  # noqa PLW0238
 
     def _on_tree_selection_changed(self, items):
         if items:
@@ -559,9 +559,9 @@ class WelcomeWindow:
             self._window.visible = not self._window.visible
 
     def destroy(self):
-        self.__subcription_workspace_changed = None
-        self.__subcription_game_selection_changed = None
-        self.__subcription_current_game_capture_folder_changed = None
+        self.__subcription_workspace_changed = None  # noqa PLW0238
+        self.__subcription_game_selection_changed = None  # noqa PLW0238
+        self.__subcription_current_game_capture_folder_changed = None  # noqa PLW0238
         omni.kit.menu.utils.remove_menu_items(self._menus, "File")
         for attr, value in self.__default_attr.items():
             m_attr = getattr(self, attr)

@@ -108,7 +108,7 @@ def get_instance():
 
 def read_file(file_path) -> Optional[bytes]:
     """Read a file on the disk"""
-    result, version, content = omni.client.read_file(file_path)
+    result, _, content = omni.client.read_file(file_path)
     if result == omni.client.Result.OK:
         data = memoryview(content).tobytes()
     else:
@@ -130,7 +130,7 @@ def write_file(file_path, data, comment=None) -> bool:
         return False
     result, entry = omni.client.stat(file_path)
     if result == omni.client.Result.OK and entry.flags & omni.client.ItemFlags.IS_CHECKPOINTED:
-        result, query = omni.client.create_checkpoint(file_path, "" if comment is None else comment, force=True)
+        result, _ = omni.client.create_checkpoint(file_path, "" if comment is None else comment, force=True)
         if result != omni.client.Result.OK:
             carb.log_error(f"Can't create a checkpoint for file {file_path}")
     carb.log_info(f"File saved to {file_path}")

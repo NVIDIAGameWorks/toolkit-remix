@@ -17,7 +17,7 @@ from .recent_model import HEADER_DICT
 class RecentDelegate(ui.AbstractItemDelegate):
     def __init__(self):
         """Window to list all content"""
-        super(RecentDelegate, self).__init__()
+        super().__init__()
         self.__default_attr = {}
         for attr, value in self.__default_attr.items():
             setattr(self, attr, value)

@@ -23,9 +23,8 @@ def on_filter_item(dialog: FilePickerDialog, item: FileBrowserItem) -> bool:
         # Show only files with listed extensions
         _, ext = os.path.splitext(item.path)
         return ext in [".usd", ".usda", ".usdc"]
-    else:
-        # Show All Files (*)
-        return True
+    # Show All Files (*)
+    return True
 
 
 def on_click_save(dialog: FilePickerDialog, filename: str, dirname: str, callback: Callable):

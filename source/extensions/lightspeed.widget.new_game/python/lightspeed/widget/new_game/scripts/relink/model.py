@@ -25,7 +25,7 @@ class Item(ui.AbstractItem):
     """Item of the model"""
 
     def __init__(self, title, path, search_value, replace_value):
-        super(Item, self).__init__()
+        super().__init__()
         self.title = title
         resolved = Path(path).resolve()
         self.path = str(resolved)
@@ -43,7 +43,7 @@ class ListModel(ui.AbstractItemModel):
     """List model of actions"""
 
     def __init__(self):
-        super(ListModel, self).__init__()
+        super().__init__()
         self.default_attr = {}
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)

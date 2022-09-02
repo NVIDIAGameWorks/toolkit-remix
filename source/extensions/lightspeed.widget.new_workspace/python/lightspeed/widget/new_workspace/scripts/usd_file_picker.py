@@ -36,7 +36,7 @@ class ReplacementPathUtils:
     def save_recent_file(self, data):
         """Save the recent scenarios to the file"""
         file_path = self.__get_recent_file()
-        with open(file_path, "w") as json_file:
+        with open(file_path, "w", encoding="utf-8") as json_file:
             json.dump(data, json_file, indent=2)
 
         carb.log_info(f"Recent replacement paths file tracker saved to {file_path}")
@@ -51,7 +51,7 @@ class ReplacementPathUtils:
         current_data_max = list(current_data.keys())[:40]
 
         result = {}
-        for current_path, current_data in current_data.items():
+        for current_path, current_data in current_data.items():  # noqa B020
             if current_path in current_data_max:
                 result[current_path] = current_data
         if save:
@@ -71,7 +71,7 @@ class ReplacementPathUtils:
             return {}
         file_path = self.__get_recent_file()
         carb.log_info(f"Get recent replacement paths file(s) from {file_path}")
-        with open(file_path) as json_file:
+        with open(file_path, encoding="utf-8") as json_file:
             return json.load(json_file)
 
 
@@ -83,9 +83,8 @@ def on_filter_item(dialog: FilePickerDialog, item: FileBrowserItem, show_folder_
             # Show only files with listed extensions
             _, ext = os.path.splitext(item.path)
             return ext in [".usd", ".usda", ".usdc"]
-        else:
-            # Show All Files (*)
-            return True
+        # Show All Files (*)
+        return True
     return False
 
 
@@ -133,12 +132,12 @@ def on_click_cancel(dialog: FilePickerDialog, filename: str, dirname: str, callb
             carb.log_warn("No filename provided!")
             return
 
-        ok = False
+        is_ok = False
         for ext in [".usd", ".usda", ".usdc"]:
             if filename.endswith(ext):
-                ok = True
+                is_ok = True
                 break
-        if not ok:
+        if not is_ok:
             filename = filename + ".usd"
 
         if dirname:
@@ -173,5 +172,5 @@ def open_file_picker(
     if current_directory:
         dialog.navigate_to(current_directory)
     if bookmarks:
-        for k, v in bookmarks.items():
-            dialog.toggle_bookmark_from_path(k, v, True)
+        for key, value in bookmarks.items():
+            dialog.toggle_bookmark_from_path(key, value, True)

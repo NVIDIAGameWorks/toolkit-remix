@@ -113,7 +113,7 @@ class MeshAssetsWidget(UsdPropertiesWidget):
             return False
 
         stage = payloads.get_stage()
-        for p in payloads:
+        for p in payloads:  # noqa PLR1702
             prim = stage.GetPrimAtPath(p)
             if prim.IsValid():
                 if str(p).startswith(constants.INSTANCE_PATH):
@@ -134,7 +134,7 @@ class MeshAssetsWidget(UsdPropertiesWidget):
         if not self.__prototypes_data:
             return False
 
-        for proto in self.__prototypes_data.keys():
+        for proto in self.__prototypes_data:
             widget = MeshAssetWidget(proto, self)
             widget.on_new_payload(PrimSelectionPayload(weakref.ref(stage), [proto]))
             self.__children_widgets.append(widget)

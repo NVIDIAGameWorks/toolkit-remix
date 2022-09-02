@@ -27,8 +27,7 @@ class AutoUpscaleLayer(ILayer):
 
         if len(prim_paths) != len(output_asset_relative_paths):
             raise RuntimeError("List length mismatch.")
-        for index in range(len(prim_paths)):
-            prim_path = prim_paths[index]
+        for index, prim_path in enumerate(prim_paths):
             output_asset_relative_path = output_asset_relative_paths[index]
             UsdShade.Material.Define(auto_stage, prim_path)
             shader = UsdShade.Shader.Define(auto_stage, str(prim_path) + "/" + constants.SHADER)

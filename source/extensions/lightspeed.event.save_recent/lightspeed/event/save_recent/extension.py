@@ -18,7 +18,7 @@ class EventSaveRecentExtension(omni.ext.IExt):
     """Standard extension support class, necessary for extension management"""
 
     def __init__(self, *args, **kwargs):
-        super(EventSaveRecentExtension, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.default_attr = {"_core": None}
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
