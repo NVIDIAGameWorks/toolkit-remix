@@ -383,7 +383,7 @@ class LightspeedPosProcessExporter:
                     ):
                         carb.log_info("Converting PNG to DDS: " + str(rel_path))
                         if process_texture:
-                            subprocess.call(  # noqa
+                            return_code = subprocess.check_call(  # noqa
                                 [str(self._nvtt_path), str(abs_path), "--format", bc_mode, "--output", str(dds_path)]
                             )
                         else:
@@ -596,6 +596,11 @@ class LightspeedPosProcessExporter:
             "Post Processing Shader compress DDS set USD:",
         )
 
+        if failed_processes:
+            custom_layer_data = export_replacement_layer.customLayerData
+            custom_layer_data[constants.EXPORT_STATUS_NAME] = constants.EXPORT_STATUS_FAILED_TESTS
+            export_replacement_layer.customLayerData = custom_layer_data
+
         await context.save_stage_async()
 
         if failed_processes:
@@ -608,6 +613,8 @@ class LightspeedPosProcessExporter:
                 "\nError details have been printed to the console."
                 "\n\nFailing prims: \n  " + ",\n  ".join(failed_processes)
             )
+
+            carb.log_error(constants.BAD_EXPORT_LOG_PREFIX + message)
 
             dialog = MessageDialog(
                 width=600,

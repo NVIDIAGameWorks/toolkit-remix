@@ -209,10 +209,12 @@ class LightspeedExporterCore:
 
         context = omni.usd.get_context()
         stage = context.get_stage()
-
-        if validate_dependencies:
-            result_errors = self._validate_dependencies_exist(stage)
-            if result_errors:
+        export_status = constants.EXPORT_STATUS_RELEASE_READY
+        result_errors = self._validate_dependencies_exist(stage)
+        if result_errors:
+            export_status = constants.EXPORT_STATUS_PRECHECK_ERRORS
+            carb.log_error(constants.BAD_EXPORT_LOG_PREFIX + str(result_errors))
+            if validate_dependencies:
                 self._dependency_errors(result_errors)
                 return
 
@@ -259,6 +261,10 @@ class LightspeedExporterCore:
         )
 
         preprocess(self._layer_manager)
+        preprocessed_replacements = self._layer_manager.get_layer(LayerType.replacement)
+        preprocessed_custom_layer_data = preprocessed_replacements.customLayerData
+        preprocessed_custom_layer_data[constants.EXPORT_STATUS_NAME] = export_status
+        preprocessed_replacements.customLayerData = preprocessed_custom_layer_data
 
         self._layer_manager.save_layer_as(LayerType.replacement, self._temp_replacements_path)
 
