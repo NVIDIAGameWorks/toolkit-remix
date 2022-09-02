@@ -211,6 +211,7 @@ class LightspeedExporterCore:
             if result_errors:
                 self._dependency_errors(result_errors)
                 return
+
         # Save the current stage
         context.save_stage()
         # cache workspace stage path, which is currently open
@@ -332,15 +333,29 @@ class LightspeedExporterCore:
         # exist anymore
         # we use the capture layer file to find the meshes folder
         layer = self._layer_manager.get_layer(LayerType.capture)
-        hashes = []
+        mesh_hashes = []
+        material_hashes = []
+        light_hashes = []
         if layer:
             # we generate a list of hashes from the list of mesh usd files
             meshes_folder = os.path.join(os.path.dirname(layer.identifier), constants.MESHES_FOLDER)
             for usd_mesh in glob.glob(os.path.join(meshes_folder, "*.usd")):
                 match = re.match(f"^{constants.MESHES_FILE_PREFIX}(.*).usd$", os.path.basename(usd_mesh))
                 if match:
-                    hashes.append(match.groups()[0])
+                    mesh_hashes.append(match.groups()[0])
                     # now when we check reference paths, we check if the hash of the reference prim is in this list
+            # we generate a list of hashes from the list of material usd files
+            materiales_folder = os.path.join(os.path.dirname(layer.identifier), constants.MATERIALS_FOLDER)
+            for usd_material in glob.glob(os.path.join(materiales_folder, "*.usd")):
+                match = re.match(f"^{constants.MATERIAL_FILE_PREFIX}(.*).usd$", os.path.basename(usd_material))
+                if match:
+                    material_hashes.append(match.groups()[0])
+            # we generate a list of hashes from the list of light usd files
+            lights_folder = os.path.join(os.path.dirname(layer.identifier), constants.LIGHTS_FOLDER)
+            for usd_light in glob.glob(os.path.join(lights_folder, "*.usd")):
+                match = re.match(f"^{constants.LIGHT_FILE_PREFIX}(.*).usd$", os.path.basename(usd_light))
+                if match:
+                    light_hashes.append(match.groups()[0])
         else:
             carb.log_error("Can't find the capture layer")
 
@@ -443,22 +458,57 @@ class LightspeedExporterCore:
                                         f"{str(attr.Get())}"
                                     )
 
-                def check_prim_hash_exist(_items, _prim):
+                def check_prim_hash_exist(_prim):
                     """
                     Check that the prim hash is still needed. It can happen that some overrides are still here but
                     the captured mesh is not here anymore
                     """
-                    if _items and hashes:
+                    to_return = True
+                    for _primspec in _prim.GetPrimStack():
+                        if not _primspec:
+                            continue
+                        if _primspec.layer and _primspec.layer.identifier != chk:  # noqa PLW0640
+                            # ignore things that are not overridden in the current layer or part of the current layer
+                            continue
+                        to_return = False
+                        break
+                    if to_return:
+                        return
+                    if mesh_hashes:
                         _match = re.match(
                             f"^{constants.MESHES_FILE_PREFIX}(.*)$", os.path.basename(_prim.GetPath().pathString)
                         )
-                        if _match and _match.groups()[0] not in hashes:
+                        if _match and _match.groups()[0] not in mesh_hashes:
                             if not result_errors.get(DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value):
                                 result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value] = {}
                             _key = f"{chk}\n             {_prim.GetPath().pathString}"  # noqa PLW0640
                             result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value][
                                 _key
                             ] = "ERROR: This is an old override. Please remove it"
+                    if material_hashes:
+                        _match = re.match(
+                            f"^{constants.MATERIAL_FILE_PREFIX}(.*)$", os.path.basename(_prim.GetPath().pathString)
+                        )
+                        if _match and _match.groups()[0] not in material_hashes:
+                            if not result_errors.get(DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value):
+                                result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value] = {}
+                            _key = f"{chk}\n             {_prim.GetPath().pathString}"  # noqa PLW0640
+                            result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value][
+                                _key
+                            ] = "ERROR: This is an old override. Please remove it"
+                    if light_hashes:
+                        _match = re.match(
+                            f"^{constants.LIGHT_FILE_PREFIX}(.*)$", os.path.basename(_prim.GetPath().pathString)
+                        )
+                        if _match and _match.groups()[0] not in light_hashes:
+                            if not result_errors.get(DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value):
+                                result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value] = {}
+                            _key = f"{chk}\n             {_prim.GetPath().pathString}"  # noqa PLW0640
+                            result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value][
+                                _key
+                            ] = "ERROR: This is an old override. Please remove it"
+
+                check_prim_hash_exist(prim)
 
                 for primspec in prim.GetPrimStack():
                     if not primspec:
@@ -470,8 +520,6 @@ class LightspeedExporterCore:
                         continue
                     # Checking USDA
                     items = primspec.referenceList.explicitItems
-                    if items:
-                        check_prim_hash_exist(items, prim)
                     for item in items:
                         if item is not None and ":/" in item.assetPath:
                             key = f"{chk}\n             {prim.GetPath().pathString}"
@@ -500,8 +548,6 @@ class LightspeedExporterCore:
 
                     # Checking USD
                     items = primspec.referenceList.prependedItems
-                    if items:
-                        check_prim_hash_exist(items, prim)
                     for item in items:
                         if item is not None and ":/" in item.assetPath:
                             key = f"{chk}\n             {prim.GetPath().pathString}"
