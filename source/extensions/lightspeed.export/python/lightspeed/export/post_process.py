@@ -228,7 +228,7 @@ class LightspeedPosProcessExporter:
                 new_normals_arr.append(new_normal)
             normals_attr.Set(new_normals_arr)
 
-    def _process_mesh_prim(self, prim: Usd.Prim):
+    def _process_mesh_prim(self, prim: Usd.Prim, process_only_transform):
         # processing steps:
         # * Freeze transforms
         # * Strip unused attributes
@@ -250,25 +250,26 @@ class LightspeedPosProcessExporter:
         #   xform info will be stripped
         self._bake_geom_prim_xforms_in_mesh(prim)
 
-        # strip out  attributes that the runtime doesn't support
-        self._remove_extra_attr(prim)
+        if not process_only_transform:
+            # strip out  attributes that the runtime doesn't support
+            self._remove_extra_attr(prim)
 
-        # Runtime only supports a single array of verts, with each vertex having position, normal, uv, etc.
-        # Thus, we need to make all of the per-vertex data arrays the same length and ordering. As FaceVarying
-        # primvars can have the most information (3 points of data per triangle), all data arrays have to be expanded
-        # to match that.
-        self._align_vertex_data(prim)
+            # Runtime only supports a single array of verts, with each vertex having position, normal, uv, etc.
+            # Thus, we need to make all of the per-vertex data arrays the same length and ordering. As FaceVarying
+            # primvars can have the most information (3 points of data per triangle), all data arrays have to be
+            # expanded to match that.
+            self._align_vertex_data(prim)
 
-        # split any non-triangle faces into triangles (updates indices of all indexed data)
-        # As this introduces new faces, this must also update any geom subsets.
-        self._triangulate_mesh(prim)
+            # split any non-triangle faces into triangles (updates indices of all indexed data)
+            # As this introduces new faces, this must also update any geom subsets.
+            self._triangulate_mesh(prim)
 
-        # Make a new attribute for dxvk_rt compatible uvs:
-        # 3 uvs per triangle, in the same order as the positions, with the uv.y coordinate inverted.
-        self._process_uvs(prim)
+            # Make a new attribute for dxvk_rt compatible uvs:
+            # 3 uvs per triangle, in the same order as the positions, with the uv.y coordinate inverted.
+            self._process_uvs(prim)
 
-        # subsets store face indices, but dxvk_rt needs triangle indices.
-        self._process_subsets(prim)
+            # subsets store face indices, but dxvk_rt needs triangle indices.
+            self._process_subsets(prim)
 
     def _process_shader_prim_convert_tangent_space(
         self, prim, progress_fn, executor=None, process_texture=True, set_usd=True, futures=None
@@ -426,6 +427,7 @@ class LightspeedPosProcessExporter:
         all_geos = [prim_ref for prim_ref in export_stage.TraverseAll() if UsdGeom.Mesh(prim_ref)]
         failed_processes = []
         processed_mesh_prim_layer_paths = []
+        processed_mesh_prim_layer_paths_same_usd = []
         # TODO a crash in one geo shouldn't prevent processing the rest of the geometry
 
         length = len(all_geos)
@@ -435,6 +437,20 @@ class LightspeedPosProcessExporter:
             ref_asset_path = ref_node.layerStack.layers[0]
             ref_asset_path_value = ref_asset_path.realPath
             ref_asset_and_prim_path = f"{ref_asset_path_value}, {ref_node.path}"
+
+            # if the reference is inside another reference and it was already processed,
+            # we don't need to bake other things than the transform.
+            stack = geo_prim.GetPrimStack()
+            ref_asset_and_prim_path_same_usd = None
+            process_only_transform = False
+            if stack:
+                # this will give the usd reference path of the prim, even if the prim is a ref in a ref in a ref...
+                ref_asset_path_value_same_usd = stack[0].layer.realPath
+                prim_path_same_usd = stack[0].path
+                ref_asset_and_prim_path_same_usd = f"{ref_asset_path_value_same_usd}, {prim_path_same_usd}"
+                if ref_asset_and_prim_path_same_usd in processed_mesh_prim_layer_paths_same_usd:
+                    process_only_transform = True
+
             if not ref_asset_path_value or ref_asset_and_prim_path in processed_mesh_prim_layer_paths:
                 continue
             carb.log_info(f"Post Processing Mesh: {geo_prim.GetPath()}")
@@ -444,8 +460,10 @@ class LightspeedPosProcessExporter:
             try:
                 # apply edits to the geo prim in it's source usd, not in the top level replacements.usd
                 with ReferenceEdit(geo_prim):
-                    self._process_mesh_prim(geo_prim)
+                    self._process_mesh_prim(geo_prim, process_only_transform)
                     processed_mesh_prim_layer_paths.append(ref_asset_and_prim_path)
+                    if ref_asset_and_prim_path_same_usd:
+                        processed_mesh_prim_layer_paths_same_usd.append(ref_asset_and_prim_path_same_usd)
             except Exception as e:  # noqa
                 failed_processes.append(str(geo_prim.GetPath()))
                 carb.log_error("Exception when post-processing mesh: " + str(geo_prim.GetPath()))

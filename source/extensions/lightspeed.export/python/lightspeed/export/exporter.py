@@ -42,6 +42,10 @@ class DependencyErrorTypes(Enum):
     REFERENCE_ABSOLUTE_PATH = "Reference absolute path"
     REFERENCE_PATH_NOT_EXIST = "Reference path does not exist"
     REFERENCE_HASH_NOT_EXIST = "Reference hash/delta does not exist anymore"
+    THIS_IS_A_PAYLOAD = (
+        "There are payload(s) in your stage. Open the layer at the first line of each error "
+        "and switch the payload into a reference."
+    )
 
 
 class LightspeedExporterCore:
@@ -511,6 +515,39 @@ class LightspeedExporterCore:
                 check_prim_hash_exist(prim)
 
                 for primspec in prim.GetPrimStack():
+                    # check if there are payloads
+                    if (
+                        constants.INSTANCE_PATH not in str(prim.GetPath())
+                        and primspec.layer
+                        and primspec.layer.identifier == chk
+                    ):
+                        items = []
+                        for item in primspec.payloadList.addedItems:
+                            if item.assetPath:
+                                items.append(item)
+                        for item in primspec.payloadList.prependedItems:
+                            if item.assetPath:
+                                items.append(item)
+                        for item in primspec.payloadList.explicitItems:
+                            if item.assetPath:
+                                items.append(item)
+                        for item in items:
+                            if item is None:
+                                continue
+                            str_value = str(item.assetPath)
+                            if str_value.strip():
+                                if str_value.startswith("@"):
+                                    str_value = str_value[1:]
+                                if str_value.endswith("@"):
+                                    str_value = str_value[:-1]
+                                full_path = omni.client.normalize_url(layer.ComputeAbsolutePath(str_value))
+                                key = f"{chk}\n             {prim.GetPath().pathString}"
+                                if not result_errors.get(DependencyErrorTypes.THIS_IS_A_PAYLOAD.value):
+                                    result_errors[DependencyErrorTypes.THIS_IS_A_PAYLOAD.value] = {}
+                                result_errors[DependencyErrorTypes.THIS_IS_A_PAYLOAD.value][
+                                    key
+                                ] = f"ERROR: {prim.GetName()} is a payload ----------> {full_path}"
+
                     if not primspec:
                         continue
                     if not primspec.referenceList:
