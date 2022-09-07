@@ -29,7 +29,7 @@ class LightspeedColorToNormalMenuExtension(omni.ext.IExt):
                 glyph="none.svg",
             )
         ]
-        omni_utils.add_menu_items(self._tools_manager_menus, "Batch Tools")
+        omni_utils.add_menu_items(self._tools_manager_menus, "Utils")
 
     def on_shutdown(self):
         omni_utils.remove_menu_items(self._tools_manager_menus, "Batch Tools")

@@ -9,6 +9,7 @@
 """
 
 import asyncio
+import functools
 
 import omni
 import omni.ext
@@ -30,6 +31,12 @@ processing_config = (
     constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
     "_upscaled4x.dds",
 )
+processing_config_overwrite = (
+    functools.partial(UpscalerCore.perform_upscale, overwrite=True),
+    constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
+    constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
+    "_upscaled4x.dds",
+)
 
 
 class LightspeedUpscalerMenuExtension(omni.ext.IExt):
@@ -38,10 +45,20 @@ class LightspeedUpscalerMenuExtension(omni.ext.IExt):
         self._progress_bar = None
 
     def __create_save_menu(self):
-        self._tools_manager_menus = [
+        sub_menu = [
             MenuItemDescription(
-                name="Batch Upscale All Game Capture Textures", onclick_fn=self.__clicked, glyph="none.svg"
-            )
+                name="Skip already converted one",
+                onclick_fn=self.__clicked,
+                glyph="none.svg",
+            ),
+            MenuItemDescription(
+                name="Overwrite all textures (re-convert everything)",
+                onclick_fn=self.__clicked_overwrite,
+                glyph="none.svg",
+            ),
+        ]
+        self._tools_manager_menus = [
+            MenuItemDescription(name="Batch Upscale All Game Capture Textures", glyph="none.svg", sub_menu=sub_menu)
         ]
         omni_utils.add_menu_items(self._tools_manager_menus, "Batch Tools")
 
@@ -55,17 +72,20 @@ class LightspeedUpscalerMenuExtension(omni.ext.IExt):
         self._progress_bar.set_progress(progress)
 
     @omni.usd.handle_exception
-    async def _run_batch_upscale(self):
+    async def _run_batch_upscale(self, config):
         if not self._progress_bar:
             self._progress_bar = ProgressPopup(title="Upscaling")
         self._progress_bar.set_progress(0)
         self._progress_bar.show()
         await LightspeedTextureProcessingCore.lss_async_batch_process_entire_capture_layer(
-            processing_config, progress_callback=self._batch_upscale_set_progress
+            config, progress_callback=self._batch_upscale_set_progress
         )
         if self._progress_bar:
             self._progress_bar.hide()
             self._progress_bar = None
 
     def __clicked(self):
-        asyncio.ensure_future(self._run_batch_upscale())
+        asyncio.ensure_future(self._run_batch_upscale(processing_config))
+
+    def __clicked_overwrite(self):
+        asyncio.ensure_future(self._run_batch_upscale(processing_config_overwrite))

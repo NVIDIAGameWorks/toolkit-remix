@@ -28,14 +28,18 @@ from PIL import Image
 
 class ColorToNormalCore:
     @staticmethod
-    def perform_conversion(texture, output_texture):
-        # Get the paths to the nvtt process for format conversion and pix2pix for access to the nueral net driver
-        if os.path.exists(output_texture):
+    def perform_conversion(texture, output_texture, overwrite=False):
+        # Get the paths to the nvtt process for format conversion and pix2pix for access to the neural net driver
+        if os.path.exists(output_texture) and not overwrite:
             carb.log_info("Skipping " + texture + " since " + output_texture + " already exists.")
             return
         if not output_texture.lower().endswith(".dds") and not output_texture.lower().endswith(".png"):
             carb.log_info("Output texture " + output_texture + "must be either png or dds format.")
             return
+        if os.path.exists(output_texture) and overwrite:
+            # delete
+            os.remove(output_texture)
+
         nvtt_path = constants.NVTT_PATH
         converter_path = Path(constants.PIX2PIX_TEST_SCRIPT_PATH)
         converter_dir = Path(constants.PIX2PIX_ROOT_PATH)
@@ -65,16 +69,16 @@ class ColorToNormalCore:
             # use PILLOW as a fallback if nvtt fails
             if png_texture_path.exists():
                 with contextlib.suppress(NotImplementedError):
-                    with Image.open(texture) as im:
+                    with Image.open(texture) as im:  # noqa
                         im.save(png_texture_path, "PNG")
         else:
             png_texture_path = texture
         # Double the width of the input image so that the neural net driver thinks there's a known result for comparison
         # This can be just empty since it's not used in any way, but is the required input format
         try:
-            with Image.open(png_texture_path) as im:
+            with Image.open(png_texture_path) as im:  # noqa
                 width, height = im.size
-                im = im.crop((0, 0, width * 2, height))
+                im = im.crop((0, 0, width * 2, height))  # noqa
                 im.save(test_path, "PNG")
         except NotImplementedError:
             return
@@ -116,7 +120,7 @@ class ColorToNormalCore:
             conversion_process.wait()
         # The resulting normal map isn't guarenteed to have perfectly normal vector values, so we need to normalize it
         # Then convert to octohedral encoding
-        with Image.open(str(result_path)) as im:
+        with Image.open(str(result_path)) as im:  # noqa
             normal_map_array = (np.asarray(im) / 255)[:, :, 0:3]
             normal_map_array = (normal_map_array * 2) - 1
             squared_array = np.square(normal_map_array)
@@ -135,7 +139,7 @@ class ColorToNormalCore:
                 + np.square(hemi_sphere_array[:, :, 2][:, :, np.newaxis])
             )
             hemi_sphere_array = hemi_sphere_array / np.repeat(hemi_mag, 3, axis=2)
-            p = hemi_sphere_array[:, :, (0, 1)] * (
+            p = hemi_sphere_array[:, :, (0, 1)] * (  # noqa
                 1
                 / (
                     np.absolute(hemi_sphere_array[:, :, 0][:, :, np.newaxis])

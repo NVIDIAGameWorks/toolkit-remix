@@ -23,14 +23,17 @@ from PIL import Image
 
 class UpscalerCore:
     @staticmethod
-    def perform_upscale(texture, output_texture, keep_png=False):
+    def perform_upscale(texture, output_texture, keep_png=False, overwrite=False):
         # setup script paths'
-        if Path(output_texture).exists():
+        if Path(output_texture).exists() and not overwrite:
             carb.log_info("Skipping " + texture + " since " + output_texture + " already exists.")
             return
         if not output_texture.lower().endswith(".dds") and not output_texture.lower().endswith(".png"):
             carb.log_info("Output texture " + output_texture + "must be either png or dds format.")
             return
+        if os.path.exists(output_texture) and overwrite:
+            # delete
+            os.remove(output_texture)
         script_path = str(Path(__file__).absolute().parent)
         nvtt_path = constants.NVTT_PATH
         esrgan_tool_path = str(
@@ -53,7 +56,7 @@ class UpscalerCore:
             # use PILLOW as a fallback if nvtt fails
             if not Path(png_texture_path).exists():
                 with contextlib.suppress(NotImplementedError):
-                    with Image.open(texture) as im:
+                    with Image.open(texture) as im:  # noqa
                         im.save(png_texture_path, "PNG")
         else:
             png_texture_path = texture
