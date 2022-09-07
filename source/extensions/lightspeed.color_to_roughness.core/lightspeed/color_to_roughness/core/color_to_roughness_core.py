@@ -29,14 +29,17 @@ from PIL import Image, ImageOps
 
 class ColorToRoughnessCore:
     @staticmethod
-    def perform_conversion(texture, output_texture):
+    def perform_conversion(texture, output_texture, overwrite=False):
         # Get the paths to the nvtt process for format conversion and pix2pix for access to the nueral net driver
-        if os.path.exists(output_texture):
+        if os.path.exists(output_texture) and not overwrite:
             carb.log_info("Skipping " + texture + " since " + output_texture + " already exists.")
             return
         if not output_texture.lower().endswith(".dds") and not output_texture.lower().endswith(".png"):
             carb.log_info("Output texture " + output_texture + "must be either png or dds format.")
             return
+        if os.path.exists(output_texture) and overwrite:
+            # delete
+            os.remove(output_texture)
         nvtt_path = constants.NVTT_PATH
         converter_path = Path(constants.PIX2PIX_TEST_SCRIPT_PATH)
         converter_dir = Path(constants.PIX2PIX_ROOT_PATH)
@@ -66,16 +69,16 @@ class ColorToRoughnessCore:
             # use PILLOW as a fallback if nvtt fails
             if png_texture_path.exists():
                 with contextlib.suppress(NotImplementedError):
-                    with Image.open(texture) as im:
+                    with Image.open(texture) as im:  # noqa
                         im.save(png_texture_path, "PNG")
         else:
             png_texture_path = texture
         # Double the width of the input image so that the neural net driver thinks there's a known result for comparison
         # This can be just empty since it's not used in any way, but is the required input format
         try:
-            with Image.open(png_texture_path) as im:
+            with Image.open(png_texture_path) as im:  # noqa
                 width, height = im.size
-                im = im.crop((0, 0, width * 2, height))
+                im = im.crop((0, 0, width * 2, height))  # noqa
                 im.save(test_path, "PNG")
         except NotImplementedError:
             return
@@ -117,7 +120,7 @@ class ColorToRoughnessCore:
             conversion_process.wait()
         # Reduce the 3 channel output to a single channgel image
         try:
-            with Image.open(str(result_path)) as im:
+            with Image.open(str(result_path)) as im:  # noqa
                 grey_im = ImageOps.grayscale(im)
                 # Convert Smoothness to roughness
                 grey_im = ImageOps.invert(grey_im)
