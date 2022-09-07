@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Callable
 
 import carb
+import omni.client
 import omni.usd
 from lightspeed.common import ReferenceEdit, constants
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
@@ -272,7 +273,7 @@ class LightspeedPosProcessExporter:
             self._process_subsets(prim)
 
     def _process_shader_prim_convert_tangent_space(
-        self, prim, progress_fn, executor=None, process_texture=True, set_usd=True, futures=None
+        self, layer, prim, progress_fn, executor=None, process_texture=True, set_usd=True, futures=None
     ):
         # convert tangent space normal maps to octahedral
         if executor is None:
@@ -293,7 +294,7 @@ class LightspeedPosProcessExporter:
                 normal_path = normal_map_attr.Get()
                 if normal_path:
                     abs_path = Path(normal_path.resolvedPath)
-                    rel_path = normal_path.path
+                    rel_path = omni.client.make_relative_url(layer.identifier, str(abs_path))
                     new_abs_path = abs_path.with_name(abs_path.stem + "_OTH" + abs_path.suffix)
                     new_rel_path = rel_path.rpartition(".")[0] + "_OTH." + rel_path.rpartition(".")[-1]
                     new_abs_dds_path = new_abs_path.with_suffix(".dds")
@@ -334,6 +335,7 @@ class LightspeedPosProcessExporter:
 
     def _process_shader_prim_compress_dds(
         self,
+        layer,
         prim,
         progress_fn,
         process_texture=True,
@@ -351,8 +353,9 @@ class LightspeedPosProcessExporter:
             attr = prim.GetAttribute(attr_name)
             if attr and attr.Get():
                 abs_path_str = attr.Get().resolvedPath
+
                 abs_path = Path(abs_path_str)
-                rel_path = attr.Get().path
+                rel_path = omni.client.make_relative_url(layer.identifier, abs_path_str)
                 rel_dds_path = rel_path.rpartition(".")[0] + ".dds"
 
                 dds_exist = False
@@ -518,6 +521,7 @@ class LightspeedPosProcessExporter:
         _process_shader(
             functools.partial(
                 self._process_shader_prim_convert_tangent_space,
+                export_replacement_layer.get_sdf_layer(),
                 executor=executor,
                 process_texture=True,
                 set_usd=False,
@@ -534,7 +538,12 @@ class LightspeedPosProcessExporter:
 
         # set USD attributes for convert tangent
         _process_shader(
-            functools.partial(self._process_shader_prim_convert_tangent_space, process_texture=False, set_usd=True),
+            functools.partial(
+                self._process_shader_prim_convert_tangent_space,
+                export_replacement_layer.get_sdf_layer(),
+                process_texture=False,
+                set_usd=True,
+            ),
             "Post Processing Shader Tangent set USD:",
         )
         await omni.kit.app.get_app().next_update_async()
@@ -545,6 +554,7 @@ class LightspeedPosProcessExporter:
         _process_shader(
             functools.partial(
                 self._process_shader_prim_compress_dds,
+                export_replacement_layer.get_sdf_layer(),
                 process_texture=False,
                 set_usd=False,
                 result=result_shader_prim_compress_dds,
@@ -577,7 +587,12 @@ class LightspeedPosProcessExporter:
         await omni.kit.app.get_app().next_update_async()
         # set the new converted dds textures
         _process_shader(
-            functools.partial(self._process_shader_prim_compress_dds, process_texture=False, set_usd=True),
+            functools.partial(
+                self._process_shader_prim_compress_dds,
+                export_replacement_layer.get_sdf_layer(),
+                process_texture=False,
+                set_usd=True,
+            ),
             "Post Processing Shader compress DDS set USD:",
         )
 
