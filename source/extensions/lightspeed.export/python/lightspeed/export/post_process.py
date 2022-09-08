@@ -10,6 +10,7 @@
 import functools
 import multiprocessing
 import os
+import re
 import subprocess
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -273,7 +274,7 @@ class LightspeedPosProcessExporter:
             self._process_subsets(prim)
 
     def _process_shader_prim_convert_tangent_space(
-        self, layer, prim, progress_fn, executor=None, process_texture=True, set_usd=True, futures=None
+        self, prim, progress_fn, executor=None, process_texture=True, set_usd=True, futures=None
     ):
         # convert tangent space normal maps to octahedral
         if executor is None:
@@ -282,6 +283,7 @@ class LightspeedPosProcessExporter:
             futures = []
         normal_map_encoding_attr = prim.GetAttribute(constants.MATERIAL_INPUTS_NORMALMAP_ENCODING)
         normal_map_attr = prim.GetAttribute(constants.MATERIAL_INPUTS_NORMALMAP_TEXTURE)
+        layer = prim.GetStage().GetEditTarget().GetLayer()
         if (  # noqa PLR1702
             normal_map_attr
             and normal_map_encoding_attr
@@ -333,9 +335,25 @@ class LightspeedPosProcessExporter:
                         normal_map_attr.Set(str(new_rel_path))
                         normal_map_encoding_attr.Set(constants.NormalMapEncodings.OCTAHEDRAL.value)
 
+    def _sanitize_mdl_paths(self, prim, progress_fn):
+        """
+        Sanitize mdl paths to a good path. We want something like "Aperture.mdl", not "./Aperture.mdl" or
+        "../../Aperture.mdl" or "c:/hello/Aperture.mdl"
+        We do that as post process because if the current stage is read only, we can't sanitize anything
+        """
+        progress_fn()
+        attr = prim.GetAttribute("info:mdl:sourceAsset")
+        value = str(attr.Get())
+        if value.startswith("@"):
+            value = value[1:]
+        if value.endswith("@"):
+            value = value[:-1]
+        # remove the number and folder path
+        new_value = os.path.basename(re.sub(r"_\d+.mdl", ".mdl", value))
+        attr.Set(new_value)
+
     def _process_shader_prim_compress_dds(
         self,
-        layer,
         prim,
         progress_fn,
         process_texture=True,
@@ -349,6 +367,7 @@ class LightspeedPosProcessExporter:
         if result_shader_prim_compress_dds_outputs is None:
             result_shader_prim_compress_dds_outputs = []
         progress_fn()
+        layer = prim.GetStage().GetEditTarget().GetLayer()
         for attr_name, bc_mode in constants.TEXTURE_COMPRESSION_LEVELS.items():
             attr = prim.GetAttribute(attr_name)
             if attr and attr.Get():
@@ -514,6 +533,13 @@ class LightspeedPosProcessExporter:
                     carb.log_error(f"{e}")
                     carb.log_error(f"{traceback.format_exc()}")
 
+        # sanitize the mdl paths
+        _process_shader(
+            self._sanitize_mdl_paths,
+            "Sanitize MDL paths:",
+        )
+        await omni.kit.app.get_app().next_update_async()
+
         # process convert tangent without to set USD attribute. Do it in thread (we don't need multiprocess because
         # most of the time is spent during Pillow image saving. And Processing freeze)
         executor = ThreadPoolExecutor(max_workers=max_cpu)
@@ -521,7 +547,6 @@ class LightspeedPosProcessExporter:
         _process_shader(
             functools.partial(
                 self._process_shader_prim_convert_tangent_space,
-                export_replacement_layer.get_sdf_layer(),
                 executor=executor,
                 process_texture=True,
                 set_usd=False,
@@ -540,7 +565,6 @@ class LightspeedPosProcessExporter:
         _process_shader(
             functools.partial(
                 self._process_shader_prim_convert_tangent_space,
-                export_replacement_layer.get_sdf_layer(),
                 process_texture=False,
                 set_usd=True,
             ),
@@ -554,7 +578,6 @@ class LightspeedPosProcessExporter:
         _process_shader(
             functools.partial(
                 self._process_shader_prim_compress_dds,
-                export_replacement_layer.get_sdf_layer(),
                 process_texture=False,
                 set_usd=False,
                 result=result_shader_prim_compress_dds,
@@ -589,7 +612,6 @@ class LightspeedPosProcessExporter:
         _process_shader(
             functools.partial(
                 self._process_shader_prim_compress_dds,
-                export_replacement_layer.get_sdf_layer(),
                 process_texture=False,
                 set_usd=True,
             ),
