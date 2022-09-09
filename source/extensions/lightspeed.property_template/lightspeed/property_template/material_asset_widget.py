@@ -12,6 +12,7 @@ import weakref
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
+from lightspeed.tool.material.ui import MaterialButtons
 from omni.kit.property.material.scripts.usd_attribute_widget import UsdMaterialAttributeWidget
 from omni.kit.property.usd.prim_selection_payload import PrimSelectionPayload
 from omni.kit.property.usd.usd_property_widget import UsdPropertiesWidget
@@ -25,6 +26,7 @@ class MaterialAssetWidget(UsdMaterialAttributeWidget):
         self._material_paths = materials
         self.__parent_widget = parent_widget  # noqa PLW0238
         self._current_material_index = 0
+        self._button = MaterialButtons()
         self._style = {
             "Image::material": {"image_url": f"{self._extension_path}/icons/material@3x.png"},
             "Image::find": {"image_url": f"{self._extension_path}/icons/find.png"},
@@ -47,12 +49,16 @@ class MaterialAssetWidget(UsdMaterialAttributeWidget):
         if material_path is None:
             return False
 
+        current_material = self._material_paths[self._current_material_index]
+        self._button.set_force_material_paths([str(current_material)])
+
         return super().on_new_payload(
             PrimSelectionPayload(weakref.ref(payload.get_stage()), [] if material_path is None else [material_path])
         )
 
     def clean(self):
         self.__parent_widget = None  # noqa PLW0238
+        self._button.clean()
         super().clean()
 
     @property
@@ -65,11 +71,12 @@ class MaterialAssetWidget(UsdMaterialAttributeWidget):
         current_index = model.get_item_value_model().as_int
         current_selection = self._material_paths[current_index]
         self._current_material_index = current_index
+        self._button.set_force_material_paths([str(current_selection)])
         super().on_new_payload(PrimSelectionPayload(weakref.ref(self._payload.get_stage()), [current_selection]))
         self.request_rebuild()
 
-    def _select_material(self, b):
-        if b != 0:
+    def _select_material(self, button):
+        if button != 0:
             return
         current_material = self._material_paths[self._current_material_index]
         usd_context = omni.usd.get_context()
@@ -101,6 +108,9 @@ class MaterialAssetWidget(UsdMaterialAttributeWidget):
                                 mouse_pressed_fn=lambda x, y, b, m: self._select_material(b),
                             )
                         ui.Spacer()
+            with ui.CollapsableFrame(title="Tools", collapsed=False, height=0, style=self._button.get_style()):
+                with ui.HStack(spacing=8):
+                    self._button.create(48)
             super().build_items()
 
 

@@ -21,11 +21,9 @@ class LightspeedSetupExtension(omni.ext.IExt):
 
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.tool.material] Lightspeed Tool Material startup")
-        extension_path = omni.kit.app.get_app().get_extension_manager().get_extension_path(ext_id)
-
         toolbar = omni.kit.window.toolbar.toolbar.get_instance()
         # add material tools
-        self._material_tools = MaterialButtonGroup(f"{extension_path}/data")
+        self._material_tools = MaterialButtonGroup()
         toolbar.add_widget(self._material_tools, 100)
 
     def on_shutdown(self):

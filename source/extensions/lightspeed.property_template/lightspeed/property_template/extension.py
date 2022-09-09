@@ -16,6 +16,8 @@ from .asset_delegate import AssetDelegate
 from .info_asset_widget import InfoAssetWidget
 from .layer_delegate import LayerDelegate
 from .material_asset_widget import MaterialAssetsWidget
+from .material_shader_asset_widget import MaterialAssetWidget, ShaderAssetWidget
+from .material_shader_delegate import MaterialShaderDelegate
 from .mesh_asset_widget import MeshAssetsWidget
 
 
@@ -36,9 +38,14 @@ class PropertyTemplateExtension(omni.ext.IExt):
             property_window.register_widget(
                 "prim", "lss_material_asset", MaterialAssetsWidget("Shared Material", self._extension_path)
             )
+            property_window.register_widget("prim", "lss_shader", ShaderAssetWidget("Shader", self._extension_path))
+            property_window.register_widget(
+                "prim", "lss_material", MaterialAssetWidget("Material", self._extension_path)
+            )
             property_window.register_scheme_delegate("prim", "lss_asset", AssetDelegate())
+            property_window.register_scheme_delegate("prim", "lss_material_shader", MaterialShaderDelegate())
             property_window.register_scheme_delegate("layers", "lss_layer", LayerDelegate())
-            property_window.set_scheme_delegate_layout("prim", ["lss_asset", "lss_layer"])
+            property_window.set_scheme_delegate_layout("prim", ["lss_asset", "lss_layer", "lss_material_shader"])
             self._registered = True
 
     def on_shutdown(self):
@@ -47,7 +54,10 @@ class PropertyTemplateExtension(omni.ext.IExt):
         if self._registered and property_window:
             property_window.unregister_scheme_delegate("prim", "lss_asset")
             property_window.unregister_scheme_delegate("prim", "lss_layer")
+            property_window.unregister_scheme_delegate("prim", "lss_material_shader")
             property_window.unregister_widget("prim", "lss_material_asset")
+            property_window.unregister_widget("prim", "lss_material")
+            property_window.unregister_widget("prim", "lss_shader")
             property_window.unregister_widget("prim", "lss_mesh_assets")
             property_window.unregister_widget("prim", "lss_info_asset")
             self._registered = False
