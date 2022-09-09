@@ -15,6 +15,8 @@ preview_image = "data/preview.png"
 name = "Lightspeed Property template"
 
 [dependencies]
+"lightspeed.common" = {}
+"lightspeed.tool.material" = {}
 "omni.client" = {}
 "omni.kit.property.bundle" = {optional=true}  # to be sure that we are the last registering property delegate
 "omni.kit.property.material" = {}
@@ -22,7 +24,6 @@ name = "Lightspeed Property template"
 "omni.kit.window.property" = {}
 "omni.ui" = {}
 "omni.usd" = {}
-"lightspeed.common" = {}
 
 [[test]]
 args = ["--no-window"]
