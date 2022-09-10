@@ -9,10 +9,10 @@
 """
 import carb
 import omni.client
+import omni.kit.notification_manager as nm
 import omni.usd
 from lightspeed.events_manager.i_ds_event import ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
-from omni.kit.notification_manager import NotificationStatus, post_notification
 from omni.kit.usd.layers import LayerEventType, get_layer_event_payload, get_layers
 from pxr import Sdf
 
@@ -20,11 +20,19 @@ from pxr import Sdf
 class SwitchToReplacementCore(ILSSEvent):
     def __init__(self):
         super().__init__()
-        self.default_attr = {"_subscription": None, "_layer_manager": None, "_layer_sub": None}
+        self.default_attr = {
+            "_subscription": None,
+            "_layer_manager": None,
+            "_layer_sub": None,
+            "_notification_manager": None,
+        }
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
         self._context = omni.usd.get_context()
         self._layer_manager = LayerManagerCore()
+        self._notification_manager = nm.manager.NotificationManager()
+        self._notification_manager.on_startup()
+        self.__current_notification = None
 
     @property
     def name(self) -> str:
@@ -59,6 +67,15 @@ class SwitchToReplacementCore(ILSSEvent):
         if event.type in [int(omni.usd.StageEventType.SAVED), int(omni.usd.StageEventType.OPENED)]:
             self.check_current_edit_layer()
 
+    def _show_message(self, message):
+        if self.__current_notification:
+            self._notification_manager.remove_notification(self.__current_notification)
+            self.__current_notification.dismiss()
+        ok_button = nm.NotificationButtonInfo("OK")
+        ni = nm.notification_info.NotificationInfo(message, False, 3, nm.NotificationStatus.WARNING, [ok_button])
+        self.__current_notification = self._notification_manager.post_notification(ni)
+        carb.log_warn(message)
+
     def check_current_edit_layer(self):
         def get_sublayer(layer):
             result = []
@@ -77,30 +94,32 @@ class SwitchToReplacementCore(ILSSEvent):
             layer_capture = self._layer_manager.get_layer(LayerType.capture)
             if layer_capture:
                 message = "Can't find the replacement layer in the current stage"
-                post_notification(message, hide_after_timeout=False, status=NotificationStatus.WARNING)
-                carb.log_verbose(message)
+                self._show_message(message)
                 return
             return
         stage = self._context.get_stage()
         default_edit_target = stage.GetEditTarget().GetLayer()
         valid_layer_paths = [layer_replacement.identifier]
         valid_layer_paths.extend(get_sublayer(layer_replacement))
+        message = ""
         # if the current edit target is not part of the valid layers, switch it to the replacement layer
         if default_edit_target.identifier not in valid_layer_paths:
-            message = "Current edit layer is not valid. Switching to the replacement/mod layer"
-            carb.log_warn(message)
-            post_notification(message, hide_after_timeout=False, status=NotificationStatus.WARNING)
+            message += "Current edit layer is not valid. Switching to the replacement/mod layer"
             stage.SetEditTarget(layer_replacement)
 
         # check if the replacement/mod layer is locked or not
         layer_is_writable = omni.usd.is_layer_writable(layer_replacement.identifier)
         layer_is_locked = omni.usd.is_layer_locked(self._context, layer_replacement.identifier)
         if not layer_is_writable or layer_is_locked:
-            message = "Current replacement/mod layer is locked/not writable"
-            carb.log_warn(message)
-            post_notification(message, hide_after_timeout=False, status=NotificationStatus.WARNING)
+            if message:
+                message += "\n"
+            message += "Current replacement/mod layer is locked/not writable"
+        if message:
+            self._show_message(message)
 
     def destroy(self):
+        self.__current_notification = None
+        self._notification_manager.on_shutdown()
         for attr, value in self.default_attr.items():
             m_attr = getattr(self, attr)
             if isinstance(m_attr, list):
