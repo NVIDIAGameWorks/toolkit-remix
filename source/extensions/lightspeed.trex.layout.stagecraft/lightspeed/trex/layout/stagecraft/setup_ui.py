@@ -311,7 +311,9 @@ class SetupUI(TrexLayout):
                             ui.Spacer(width=ui.Pixel(64))
                             with ui.VStack(width=ui.Pixel(480)):
                                 ui.Spacer(height=ui.Pixel(48))
-                                self._welcome_pad_widgets.append(WelcomePadWidget(title="WHAT'S NEW"))  # hold or crash
+                                self._welcome_pad_widgets.append(
+                                    WelcomePadWidget(title="WHAT'S NEW", create_demo_items=False)
+                                )  # hold or crash
 
                             ui.Spacer()  # flexible
                         self._home_footer = FooterWidget(model=StageCraftFooterModel, height=ui.Pixel(144))
