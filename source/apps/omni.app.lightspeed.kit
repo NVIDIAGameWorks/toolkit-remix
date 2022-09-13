@@ -224,6 +224,9 @@ keywords = ["app", "lightspeed"]
 "lightspeed.workspace" = { order = 1000 } # fails to set layout unless at the end
 
 [settings]
+"@import@" = [
+	"./lightspeed.app.rendering.settings.toml",
+]
 exts."omni.kit.window.file".useNewFilePicker = true
 exts."omni.kit.tool.asset_importer".useNewFilePicker = true
 exts."omni.kit.tool.collect".useNewFilePicker = true
@@ -242,9 +245,6 @@ persistent.exts."omni.kit.window.stage".columns = "Nickname|Visibility|Type"
 # drag and drop should always be a reference
 persistent.app.stage.dragDropImport = "reference"
 
-renderer.enabled='rtx'
-renderer.multiGpu.maxGpuCount = 1
-renderer.mdl.searchPaths.templates = "${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 app.content.emptyStageOnStart = true
 
 # Fast shutdown by default
@@ -256,40 +256,6 @@ exts."omni.services.transport.server.http".port = 8111
 # default viewport is fill
 app.runLoops.rendering_0.fillResolution = false
 exts."omni.kit.window.viewport".blockingGetViewportDrawable = false
-
-[settings.rtx]
-rendermode = "RaytracedLighting"
-multiThreading.enabled = true
-materialflattener.enabled = false
-pathtracing.maxBounces = 3
-ambientOcclusion.denoiserMode = 0
-translucency.maxRefractionBounces = 1
-sceneDb.ambientLightIntensity = 0
-reflections.denoiser.enabled = 0
-reflections.importantLightsOnly = 1
-reflections.sampledLighting.maxRayIntensity = 0.15
-reflections.sampledLighting.samplesPerPixel = 1
-indirectDiffuse.computeDiffuseGiAfterSpecularEvents = 0
-indirectDiffuse.denoiser.enabled = 0
-indirectDiffuse.enabled = 1
-indirectDiffuse.fetchSampleCount = 4
-indirectDiffuse.maxBounces = 16
-indirectDiffuse.restir = 0
-directLighting.sampledLighting.autoEnable = 0
-directLighting.sampledLighting.enabled = 1
-directLighting.sampledLighting.maxRayIntensity = 0.15
-
-[settings.rtx-transient]
-resourcemanager.enableTextureStreaming = true
-
-[settings.rtx.hydra]
-TBNFrameMode = 0 # Auto-mode
-
-[settings.rtx.post]
-tonemap.op = 6
-tonemap.cm2Factor = 1155
-histogram.enabled = false
-dlss.enableDenoiser = 1
 
 [settings.app.settings]
 persistent = true
