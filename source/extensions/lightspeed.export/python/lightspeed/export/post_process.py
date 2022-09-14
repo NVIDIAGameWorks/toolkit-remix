@@ -144,22 +144,19 @@ class LightspeedPosProcessExporter:
 
         fixed_indices = range(0, len(face_vertex_indices))
         fixed_points = []
-        for i in fixed_indices:
-            fixed_points.append(points[face_vertex_indices[i]])
+        fixed_points = [points[face_vertex_indices[i]] for i in fixed_indices]
 
         for primvar in primvars:
             if primvar["interpolation"] == UsdGeom.Tokens.vertex:
-                for i in fixed_indices:
-                    primvar["fixed_values"].append(primvar["values"][face_vertex_indices[i]])
+                primvar["fixed_values"] = [primvar["values"][face_vertex_indices[i]] for i in fixed_indices]
 
         fixed_normals = []
         normals_interp = mesh_schema.GetNormalsInterpolation()
         normals = mesh_schema.GetNormalsAttr().Get()
         if normals_interp == UsdGeom.Tokens.vertex and normals:
             # Normals are currently in the (old) vertex order.  need to expand them to be 1 normal per vertex per face
-            for i in fixed_indices:
-                fixed_normals.append(normals[face_vertex_indices[i]])
-            mesh_schema.GetNormalsAttr().Set(normals)
+            fixed_normals = [normals[face_vertex_indices[i]] for i in fixed_indices]
+            mesh_schema.GetNormalsAttr().Set(fixed_normals)
         else:
             # Normals are already in 1 normal per vertex per face, need to set it to vertex so that triangulation
             # doesn't break it.
@@ -229,6 +226,10 @@ class LightspeedPosProcessExporter:
                 new_normal = xform.GetInverse().GetTranspose().TransformAffine(normal)
                 new_normals_arr.append(new_normal)
             normals_attr.Set(new_normals_arr)
+
+        # clear out the original transform data.
+        xformable = UsdGeom.Xformable(prim)
+        xformable.ClearXformOpOrder()
 
     def _process_mesh_prim(self, prim: Usd.Prim, process_only_transform):
         # processing steps:
@@ -467,8 +468,8 @@ class LightspeedPosProcessExporter:
             process_only_transform = False
             if stack:
                 # this will give the usd reference path of the prim, even if the prim is a ref in a ref in a ref...
-                ref_asset_path_value_same_usd = stack[0].layer.realPath
-                prim_path_same_usd = stack[0].path
+                ref_asset_path_value_same_usd = stack[-1].layer.realPath
+                prim_path_same_usd = stack[-1].path
                 ref_asset_and_prim_path_same_usd = f"{ref_asset_path_value_same_usd}, {prim_path_same_usd}"
                 if ref_asset_and_prim_path_same_usd in processed_mesh_prim_layer_paths_same_usd:
                     process_only_transform = True
