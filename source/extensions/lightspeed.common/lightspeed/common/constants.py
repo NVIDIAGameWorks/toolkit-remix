@@ -47,6 +47,7 @@ BAD_EXPORT_LOG_PREFIX = "Export is not release ready: "
 EXPORT_STATUS_NAME = "remix_replacement_status"
 EXPORT_STATUS_RELEASE_READY = "Release Ready"
 EXPORT_STATUS_PRECHECK_ERRORS = "Precheck Failed"
+EXPORT_STATUS_PRECHECK_MEMORY_ERRORS = "Precheck Memory Failed"
 EXPORT_STATUS_POSTPROCESS_ERRORS = "PostProcess Errors"
 
 TEXTURE_COMPRESSION_LEVELS = {

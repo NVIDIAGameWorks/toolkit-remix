@@ -210,13 +210,19 @@ class LightspeedExporterCore:
         context = omni.usd.get_context()
         stage = context.get_stage()
         export_status = constants.EXPORT_STATUS_RELEASE_READY
-        result_errors = self._validate_dependencies_exist(stage)
-        if result_errors:
-            export_status = constants.EXPORT_STATUS_PRECHECK_ERRORS
-            carb.log_error(constants.BAD_EXPORT_LOG_PREFIX + str(result_errors))
-            if validate_dependencies:
-                self._dependency_errors(result_errors)
-                return
+        try:
+            result_errors = self._validate_dependencies_exist(stage)
+            if result_errors:
+                export_status = constants.EXPORT_STATUS_PRECHECK_ERRORS
+                carb.log_error(constants.BAD_EXPORT_LOG_PREFIX + str(result_errors))
+                if validate_dependencies:
+                    self._dependency_errors(result_errors)
+                    return
+        except MemoryError:
+            # TODO we don't have a fix for this yet, so it shouldn't be a blocker.
+            # when the USD memory error is fixed, this should set an export_status.
+            # export_status = constants.EXPORT_STATUS_PRECHECK_MEMORY_ERRORS
+            carb.log_error("Memory error: can't run dependencies validator")
 
         # Save the current stage
         context.save_stage()
