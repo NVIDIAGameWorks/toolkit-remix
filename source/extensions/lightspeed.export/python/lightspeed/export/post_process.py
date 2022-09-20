@@ -50,7 +50,7 @@ class LightspeedPosProcessExporter:
 
         attr_to_remove = []
         for attr in prim.GetAttributes():
-            if attr.GetName() not in white_list:
+            if attr.GetName() not in white_list and "xformOp" not in attr.GetName():
                 attr_to_remove.append(attr.GetName())
 
         for attr in attr_to_remove:
@@ -229,7 +229,9 @@ class LightspeedPosProcessExporter:
 
         # clear out the original transform data.
         xformable = UsdGeom.Xformable(prim)
+        parent_xform = UsdGeom.XformCache().ComputeRelativeTransform(prim.GetParent(), parent_prim)[0]
         xformable.ClearXformOpOrder()
+        xformable.AddTransformOp().Set(parent_xform.GetInverse())
 
     def _process_mesh_prim(self, prim: Usd.Prim, process_only_transform):
         # processing steps:
@@ -620,9 +622,9 @@ class LightspeedPosProcessExporter:
         )
 
         if failed_processes:
-            custom_layer_data = export_replacement_layer.customLayerData
-            custom_layer_data[constants.EXPORT_STATUS_NAME] = constants.EXPORT_STATUS_FAILED_TESTS
-            export_replacement_layer.customLayerData = custom_layer_data
+            custom_layer_data = export_replacement_layer.get_sdf_layer().customLayerData
+            custom_layer_data[constants.EXPORT_STATUS_NAME] = constants.EXPORT_STATUS_POSTPROCESS_ERRORS
+            export_replacement_layer.get_sdf_layer().customLayerData = custom_layer_data
 
         await context.save_stage_async()
 
