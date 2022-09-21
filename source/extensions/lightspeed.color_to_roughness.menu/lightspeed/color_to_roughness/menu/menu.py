@@ -24,18 +24,18 @@ from omni.kit.menu.utils import MenuItemDescription
 # processing_method = UpscalerCore.perform_upscale
 # input_texture_type = constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE
 # output_texture_type = constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE
-# output_suffix = "_upscaled4x.dds"
+# output_suffix = "_upscaled4x.png"
 processing_config = (
     ColorToRoughnessCore.perform_conversion,
     constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
     constants.MATERIAL_INPUTS_REFLECTIONROUGHNESS_TEXTURE,
-    "_color2roughness.dds",
+    "_color2roughness.png",
 )
 processing_config_overwrite = (
     functools.partial(ColorToRoughnessCore.perform_conversion, overwrite=True),
     constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
     constants.MATERIAL_INPUTS_REFLECTIONROUGHNESS_TEXTURE,
-    "_color2roughness.dds",
+    "_color2roughness.png",
 )
 
 

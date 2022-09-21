@@ -64,7 +64,7 @@ class MaterialButtons:
             UpscalerCore.perform_upscale,
             constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
             constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
-            "_upscaled4x.dds",
+            "_upscaled4x.png",
         )
         await LightspeedTextureProcessingCore.lss_async_batch_process_capture_layer_by_prim_paths(
             processing_config, material_prim_paths, progress_callback=self._material_upscale_set_progress
