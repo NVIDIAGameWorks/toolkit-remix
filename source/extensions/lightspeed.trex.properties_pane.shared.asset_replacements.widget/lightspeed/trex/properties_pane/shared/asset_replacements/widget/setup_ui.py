@@ -8,7 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import omni.ui as ui
-import omni.usd
+from lightspeed.trex.material_properties.shared.widget import SetupUI as _MaterialPropertiesWidget
 from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshPropertiesWidget
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -19,7 +19,7 @@ from omni.flux.utils.widget.resources import get_fonts as _get_fonts
 
 
 class AssetReplacementsPane:
-    def __init__(self, context: omni.usd.UsdContext):
+    def __init__(self, context_name: str):
         """Nvidia StageCraft Components Pane"""
 
         self._default_attr = {
@@ -27,13 +27,15 @@ class AssetReplacementsPane:
             "_selection_tree_widget": None,
             "_selection_collapsable_frame": None,
             "_mesh_properties_collapsable_frame": None,
+            "_material_properties_collapsable_frame": None,
             "_sub_tree_selection_changed": None,
             "_mesh_properties_widget": None,
+            "_material_properties_widget": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
-        self._context = context
+        self._context_name = context_name
 
         self.__update_default_style()
         self.__create_ui()
@@ -74,7 +76,7 @@ class AssetReplacementsPane:
                                 collapsed=False,
                             )
                             with self._selection_collapsable_frame:
-                                self._selection_tree_widget = _SelectionTreeWidget(self._context)
+                                self._selection_tree_widget = _SelectionTreeWidget(self._context_name)
 
                             ui.Spacer(height=ui.Pixel(16))
 
@@ -84,7 +86,17 @@ class AssetReplacementsPane:
                                 collapsed=False,
                             )
                             with self._mesh_properties_collapsable_frame:
-                                self._mesh_properties_widget = _MeshPropertiesWidget(self._context)
+                                self._mesh_properties_widget = _MeshPropertiesWidget(self._context_name)
+
+                            ui.Spacer(height=ui.Pixel(16))
+
+                            self._material_properties_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
+                                "MATERIAL PROPERTIES",
+                                info_text="Material properties of the selected mesh(es)",
+                                collapsed=False,
+                            )
+                            with self._material_properties_collapsable_frame:
+                                self._material_properties_widget = _MaterialPropertiesWidget(self._context_name)
 
         self._sub_tree_selection_changed = self._selection_tree_widget.subscribe_tree_selection_changed(
             self._on_tree_selection_changed
@@ -93,10 +105,15 @@ class AssetReplacementsPane:
 
     def _on_tree_selection_changed(self, items):
         self._refresh_mesh_properties_widget()
+        self._refresh_material_properties_widget()
 
     def _refresh_mesh_properties_widget(self):
         items = self._selection_tree_widget.get_selection()
         self._mesh_properties_widget.refresh(items)
+
+    def _refresh_material_properties_widget(self):
+        items = self._selection_tree_widget.get_selection()
+        self._material_properties_widget.refresh(items)
 
     def refresh(self):
         self._selection_tree_widget.refresh()

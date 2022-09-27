@@ -3,6 +3,7 @@ enabled='rtx'
 multiGpu.maxGpuCount = 1
 mdl.searchPaths.templates = "${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 
+# TODO: after build 104.0+release.93090.5768a7e9.tc, change [rtx-defaults] to [rtx]
 [rtx-defaults]
 rendermode = "RaytracedLighting"
 multiThreading.enabled = true

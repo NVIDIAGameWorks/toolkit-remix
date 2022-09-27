@@ -1,0 +1,40 @@
+[app]
+fastShutdown = true
+
+[app.content]
+emptyStageOnStart = true
+
+[app.extensions]
+registryEnabled = false
+
+# Fonts
+[app.font]
+file = "${lightspeed.trex.app.resources}/data/fonts/Barlow-Regular.otf"
+size = 16
+
+[app.file]
+ignoreUnsavedStage = true
+
+[app.menu]
+legacy_mode = false
+compatibility_mode=false
+
+[app.exts]
+folders.'++' = ["${app}/../exts", "${app}/../extscache", "${app}/../apps"]
+
+[app.window]
+width = 1700
+height = 800
+x = -1
+y = -1
+
+# Basic Kit App
+################################
+[persistent.app.window]
+uiStyle = "NvidiaDark"
+
+# Viewport
+###############################
+[persistent.app.viewport]
+pickingMode = "models"
+noPadding = true

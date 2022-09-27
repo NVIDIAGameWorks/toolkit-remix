@@ -4,7 +4,6 @@ title = "Lightspeed Trex Viewports implementation for the StageCraft"
 description = "Viewports implementation for Lightspeed Trex StageCraft App"
 
 [dependencies]
-"lightspeed.trex.contexts" = {}
 "lightspeed.trex.viewports.manipulators" = {}
 "omni.kit.manipulator.camera" = {}
 "omni.kit.manipulator.prim" = {}

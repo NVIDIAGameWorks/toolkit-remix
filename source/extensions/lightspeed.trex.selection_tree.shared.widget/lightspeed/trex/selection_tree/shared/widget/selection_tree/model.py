@@ -67,7 +67,7 @@ class ItemAddNewReferenceFileMesh(ui.AbstractItem):
 class ItemReferenceFileMesh(ui.AbstractItem):
     """Item of the model that represent a mesh"""
 
-    def __init__(self, prim: "Usd.Prim", ref: "Sdf.reference", layer: "Sdf.Layer", ref_index: int, size_ref_index: int):
+    def __init__(self, prim: "Usd.Prim", ref: "Sdf.Reference", layer: "Sdf.Layer", ref_index: int, size_ref_index: int):
         super().__init__()
         self.prim = prim
         self.ref = ref
@@ -117,7 +117,7 @@ class ItemMesh(ui.AbstractItem):
 class ListModel(ui.AbstractItemModel):
     """List model of actions"""
 
-    def __init__(self, context):
+    def __init__(self, context_name):
         super().__init__()
         self.default_attr = {"_stage_event": None, "_usd_listener": None}
         for attr, value in self.default_attr.items():
@@ -125,7 +125,7 @@ class ListModel(ui.AbstractItemModel):
         self.__children = []
         self._stage = None
         self._ignore_refresh = False
-        self._context = context
+        self._context = omni.usd.get_context(context_name)
         self._stage_event = None
         self._usd_listener = _USDListener()
 

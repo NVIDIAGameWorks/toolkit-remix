@@ -49,7 +49,7 @@ class ModSetupPane:
     DEFAULT_CAPTURE_TREE_FRAME_HEIGHT = 200
     SIZE_PERCENT_MANIPULATOR_WIDTH = 50
 
-    def __init__(self, context: omni.usd.UsdContext):
+    def __init__(self, context_name: str):
         """Nvidia StageCraft Components Pane"""
 
         self._default_attr = {
@@ -99,7 +99,7 @@ class ModSetupPane:
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
-        self._context = context
+        self._context = omni.usd.get_context(context_name)
         self.__import_existing_mod_file = True
         self.__ignore_current_capture_layer = False
         self._capture_tree_hovered_task = None
@@ -114,8 +114,8 @@ class ModSetupPane:
         self._capture_tree_delegate = CaptureTreeDelegate()
         self._capture_tree_delegate_window = CaptureTreeDelegate()
         self.__capture_field_is_editing = False
-        self._core_capture = CaptureCoreSetup(context)
-        self._core_replacement = ReplacementCoreSetup(context)
+        self._core_capture = CaptureCoreSetup(context_name)
+        self._core_replacement = ReplacementCoreSetup(context_name)
 
         self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
             self.__on_stage_event, name="StageChanged"
@@ -240,6 +240,7 @@ class ModSetupPane:
             with ui.ScrollingFrame(
                 name="PropertiesPaneSection",
                 horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                scroll_y_changed_fn=self._on_scroll_y_window_capture_tree_changed,
             ):
                 with ui.ZStack():
                     ui.Rectangle(name="PropertiesPaneSectionWindowCaptureBackground")
@@ -269,6 +270,10 @@ class ModSetupPane:
                 self._resize_capture_tree_columns, self._capture_tree_view_window, self._window_capture_tree.frame
             )
         )
+
+    def _on_scroll_y_window_capture_tree_changed(self, y):
+        if self._tree_capture_scroll_frame:
+            self._tree_capture_scroll_frame.scroll_y = y
 
     def __create_ui(self):
         self._root_frame = ui.Frame()
@@ -556,7 +561,7 @@ class ModSetupPane:
         self._mod_details_model = _FileModel(current_file)
         self._mod_details_model.set_items(items)
         self._mod_details_delegate = _FileDelegate()
-        self.__file_listener_instance.add_model_and_delegate(self._mod_details_model, self._mod_details_delegate)
+        self.__file_listener_instance.add_model(self._mod_details_model)
 
         with self._mod_file_details_frame:
             with ui.VStack():
@@ -657,9 +662,7 @@ class ModSetupPane:
         self._capture_details_model = _FileModel(capture_path)
         self._capture_details_model.set_items(items)
         self._capture_details_delegate = _FileDelegate()
-        self.__file_listener_instance.add_model_and_delegate(
-            self._capture_details_model, self._capture_details_delegate
-        )
+        self.__file_listener_instance.add_model(self._capture_details_model)
 
         with self._capture_details_frame:
             with ui.VStack():
@@ -816,13 +819,11 @@ class ModSetupPane:
 
     def _destroy_capture_properties(self):
         if self.__file_listener_instance and self._capture_details_model and self._capture_details_delegate:
-            self.__file_listener_instance.remove_model_and_delegate(
-                self._capture_details_model, self._capture_details_delegate
-            )
+            self.__file_listener_instance.remove_model(self._capture_details_model)
 
     def _destroy_mod_properties(self):
         if self.__file_listener_instance and self._mod_details_model and self._mod_details_delegate:
-            self.__file_listener_instance.remove_model_and_delegate(self._mod_details_model, self._mod_details_delegate)
+            self.__file_listener_instance.remove_model(self._mod_details_model)
 
     def show(self, value):
         self._root_frame.visible = value

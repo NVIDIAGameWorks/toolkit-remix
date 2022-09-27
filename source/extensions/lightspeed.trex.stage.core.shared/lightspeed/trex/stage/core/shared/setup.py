@@ -18,12 +18,12 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 
 class Setup:
-    def __init__(self, context: omni.usd.UsdContext):
+    def __init__(self, context_name: str):
         self._default_attr = {"_context": None, "_layer_manager": None, "_sub_stage_event": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
-        self._context = context
-        self._layer_manager = _LayerManagerCore(context=self._context)
+        self._context = omni.usd.get_context(context_name)
+        self._layer_manager = _LayerManagerCore(context_name=context_name)
         self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
             self.__on_stage_event, name="StageChanged"
         )

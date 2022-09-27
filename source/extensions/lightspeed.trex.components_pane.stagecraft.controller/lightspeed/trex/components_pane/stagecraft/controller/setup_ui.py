@@ -22,7 +22,7 @@ class SetupUI:
 
     DEFAULT_TITLE = "Untitled workfile"
 
-    def __init__(self, context):
+    def __init__(self, context_name: str):
         """Nvidia StageCraft Components Pane"""
 
         self._default_attr = {
@@ -35,8 +35,8 @@ class SetupUI:
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
-        self._context = context
-        self._layer_manager = _LayerManagerCore(context=self._context)
+        self._context = omni.usd.get_context(context_name)
+        self._layer_manager = _LayerManagerCore(context_name=context_name)
 
         self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
             self.__on_stage_event, name="StageChanged"

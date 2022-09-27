@@ -7,11 +7,10 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-from urllib.parse import urlparse
-
 import carb
 import omni.client
 import omni.usd
+from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from pxr import Sdf, Usd
 
@@ -19,11 +18,11 @@ _DEFAULT_PRIM_TAG = "<Default Prim>"
 
 
 class Setup:
-    def __init__(self, context: omni.usd.UsdContext):
+    def __init__(self, context_name: str):
         self._default_attr = {}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
-        self._context = context
+        self._context = omni.usd.get_context(context_name)
 
     @staticmethod
     def switch_ref_abs_to_rel_path(stage, path):
@@ -167,21 +166,11 @@ class Setup:
 
     @staticmethod
     def is_absolute_path(path: str) -> bool:
-        return bool(urlparse(path).scheme)
+        return _path_utils.is_absolute_path(path)
 
     @staticmethod
     def is_file_path_valid(path: str, layer: Sdf.Layer, log_error: bool = True) -> bool:
-        if not path or not path.strip():
-            if log_error:
-                carb.log_error(f"{path} is not valid")
-            return False
-        path = omni.client.normalize_url(layer.ComputeAbsolutePath(path))
-        _, entry = omni.client.stat(path)
-        if not (entry.flags & omni.client.ItemFlags.READABLE_FILE):  # noqa PLC0325
-            if log_error:
-                carb.log_error(f"{path} can't be read")
-            return False
-        return True
+        return _path_utils.is_file_path_valid(path, layer=layer, log_error=log_error)
 
     def destroy(self):
         _reset_default_attrs(self)

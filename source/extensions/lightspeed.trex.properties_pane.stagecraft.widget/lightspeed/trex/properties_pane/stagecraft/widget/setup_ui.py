@@ -17,15 +17,15 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 
 class SetupUI:
-    def __init__(self, context):
+    def __init__(self, context_name):
         """Nvidia StageCraft Components Pane"""
 
-        self._default_attr = {"_all_frames": None, "_context": None}
+        self._default_attr = {"_all_frames": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
         self._all_frames = {}
-        self._context = context
+        self._context_name = context_name
         self.__create_ui()
 
     def get_frame(self, component_type_value: ComponentsEnumItems):  # noqa PLR1710
@@ -36,8 +36,8 @@ class SetupUI:
     def __create_ui(self):
         with ui.ZStack():
             ui.Rectangle(name="WorkspaceBackground")
-            self._all_frames[ComponentsEnumItems.MOD_SETUP] = _ModSetupPan(self._context)
-            self._all_frames[ComponentsEnumItems.ASSET_REPLACEMENTS] = _AssetReplacementsPane(self._context)
+            self._all_frames[ComponentsEnumItems.MOD_SETUP] = _ModSetupPan(self._context_name)
+            self._all_frames[ComponentsEnumItems.ASSET_REPLACEMENTS] = _AssetReplacementsPane(self._context_name)
 
     def show_panel(self, title: str = None, forced_value: bool = None):
         for enum_item in ComponentsEnumItems:

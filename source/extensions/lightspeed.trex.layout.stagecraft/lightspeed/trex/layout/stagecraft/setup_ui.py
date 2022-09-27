@@ -48,7 +48,7 @@ class Pages(Enum):
 
 class SetupUI(TrexLayout):
     WIDTH_COMPONENT_PANEL = 256
-    WIDTH_PROPERTY_PANEL = 328
+    WIDTH_PROPERTY_PANEL = 400
 
     def __init__(self):
         super().__init__()
@@ -62,6 +62,7 @@ class SetupUI(TrexLayout):
             self._on_app_window_size_changed, name="On app window resized", order=0
         )
 
+        self._context_name = TrexContexts.STAGE_CRAFT.value
         self._context = trex_contexts_instance().get_context(TrexContexts.STAGE_CRAFT)
         self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
             self.__on_stage_event, name="StageChanged"
@@ -325,12 +326,12 @@ class SetupUI(TrexLayout):
                     with ui.ZStack(width=0):
                         with ui.HStack():
                             with ui.Frame(width=ui.Pixel(self.WIDTH_COMPONENT_PANEL)):
-                                self._components_pane = ComponentsPaneSetupUI(self._context)
+                                self._components_pane = ComponentsPaneSetupUI(self._context_name)
                             self._property_panel_frame = ui.Frame(
                                 visible=False, width=ui.Pixel(self.WIDTH_PROPERTY_PANEL)
                             )
                             with self._property_panel_frame:
-                                self._properties_pane = PropertyPanelUI(self._context)
+                                self._properties_pane = PropertyPanelUI(self._context_name)
                                 # hidden by default
                                 self._properties_pane.show_panel(forced_value=False)
                         self._splitter_property_viewport = ui.Placer(
@@ -362,7 +363,7 @@ class SetupUI(TrexLayout):
                                     with ui.Frame(separate_window=True):
                                         ui.Rectangle(name="TreePanelBackground")
                     with ui.Frame(separate_window=False):
-                        self._viewport = ViewportUI(self._context)
+                        self._viewport = ViewportUI(self._context_name)
 
         # subscribe to the burger menu
         self._sub_menu_burger_pressed = self._components_pane.get_ui_widget().menu_burger_widget.set_mouse_pressed_fn(

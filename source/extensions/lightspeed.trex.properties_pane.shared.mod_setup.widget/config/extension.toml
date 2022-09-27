@@ -13,7 +13,7 @@ description = "Mod Setup Properties Pane widget for Lightspeed Trex StageCraft A
 "omni.kit.widget.filebrowser" = {}
 "omni.kit.window.filepicker" = {}
 "omni.flux.property_widget_builder.model.file" = {}
-"omni.flux.property_widget_builder.widget" = {}
+"omni.flux.property_widget_builder.widget" = {version = "2.0"}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
 "omni.kit.usd.layers" = {}

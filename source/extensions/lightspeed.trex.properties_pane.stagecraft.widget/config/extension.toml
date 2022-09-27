@@ -9,7 +9,6 @@ description = "Properties Pane for Lightspeed Trex StageCraft App"
 "lightspeed.trex.properties_pane.shared.mod_setup.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.ui" = {}
-"omni.usd" = {}
 
 [[python.module]]
 name = "lightspeed.trex.properties_pane.stagecraft.widget"

@@ -14,13 +14,14 @@ from typing import List, Union
 import carb
 import omni.client
 import omni.ui as ui
+import omni.usd
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
     ItemReferenceFileMesh as _ItemReferenceFileMesh,
 )
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
-from lightspeed.trex.utils.widget.file_pickers.mesh_ref_file_picker import open_file_picker as _open_file_picker
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.flux.utils.widget.label import create_label_with_font as _create_label_with_font
 
 if typing.TYPE_CHECKING:
@@ -35,7 +36,7 @@ if typing.TYPE_CHECKING:
 
 
 class SetupUI:
-    def __init__(self, context):
+    def __init__(self, context_name: str):
         """Nvidia StageCraft Viewport UI"""
 
         self._default_attr = {
@@ -66,15 +67,15 @@ class SetupUI:
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
-        self._context = context
-        self._core = _AssetReplacementsCore(self._context)
+        self._context = omni.usd.get_context(context_name)
+        self._core = _AssetReplacementsCore(context_name)
         self._mesh_properties_frames = {}
         self.__ref_mesh_field_is_editing = False
         self._current_reference_file_mesh_items = []
         self.__create_ui()
 
     def __create_ui(self):
-        with ui.ZStack():
+        with ui.ZStack(height=ui.Pixel(104)):
             self._frame_none = ui.Frame(visible=True)
             self._mesh_properties_frames[None] = self._frame_none
             with self._frame_none:
@@ -95,7 +96,7 @@ class SetupUI:
                 with ui.VStack():
                     ui.Spacer(height=ui.Pixel(8))
                     with ui.HStack(height=ui.Pixel(24), spacing=ui.Pixel(8)):
-                        with ui.HStack(width=ui.Percent(40)):
+                        with ui.HStack(width=ui.Pixel(160)):
                             ui.Spacer()
                             with ui.VStack(width=0):
                                 ui.Spacer()
@@ -144,7 +145,7 @@ class SetupUI:
 
                     ui.Spacer(height=ui.Pixel(8))
                     with ui.HStack(height=ui.Pixel(48), spacing=ui.Pixel(8)):
-                        with ui.HStack(width=ui.Percent(40)):
+                        with ui.HStack(width=ui.Pixel(160)):
                             ui.Spacer()
                             with ui.VStack(width=0):
                                 ui.Spacer(height=ui.Pixel(4))
@@ -240,7 +241,14 @@ class SetupUI:
             fallback = True
             navigate_to = os.path.dirname(stage.GetRootLayer().identifier)
 
-        _open_file_picker(self.set_ref_mesh_field, lambda *args: None, current_file=navigate_to, fallback=fallback)
+        _open_file_picker(
+            "USD Reference File picker",
+            self.set_ref_mesh_field,
+            lambda *args: None,
+            current_file=navigate_to,
+            fallback=fallback,
+            extensions=[".usd", ".usda", ".usdc"],
+        )
 
     def _on_mesh_ref_field_begin(self, _model):
         self.__ref_mesh_field_is_editing = True
@@ -339,7 +347,10 @@ class SetupUI:
         return True
 
     def __is_ref_prim_field_path_valid(self, path, prim_path) -> bool:
-        layer = self._current_reference_file_mesh_items[0].layer
+        if self._only_read_mesh_ref or self._from_mesh_ref_checkbox:
+            layer = self._current_reference_file_mesh_items[0].layer
+        else:
+            layer = self._context.get_stage().GetEditTarget().GetLayer()
         if not self._core.is_ref_prim_path_valid(path, prim_path, layer, log_error=False):
             self._mesh_ref_prim_field.style_type_name_override = "FieldError"
             return False

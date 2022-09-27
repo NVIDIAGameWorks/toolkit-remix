@@ -38,13 +38,14 @@ class Setup:
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
+        self._context_name = _TrexContexts.STAGE_CRAFT.value
         self._context = _trex_contexts_instance().get_context(_TrexContexts.STAGE_CRAFT)
-        self._layer_manager = _LayerManagerCore(context=self._context)
+        self._layer_manager = _LayerManagerCore(context_name=_TrexContexts.STAGE_CRAFT.value)
         self._layout_instance = _get_layout_instance()
         self._menu_workfile_instance = _get_menu_workfile_instance()
-        self._stage_core_setup = _StageCoreSetup(self._context)
-        self._capture_core_setup = _CaptureCoreSetup(self._context)
-        self._replacement_core_setup = _ReplacementCoreSetup(self._context)
+        self._stage_core_setup = _StageCoreSetup(self._context_name)
+        self._capture_core_setup = _CaptureCoreSetup(self._context_name)
+        self._replacement_core_setup = _ReplacementCoreSetup(self._context_name)
         self._sub_new_work_file_clicked = self._layout_instance.subscribe_new_work_file_clicked(
             self._on_new_work_file_clicked
         )

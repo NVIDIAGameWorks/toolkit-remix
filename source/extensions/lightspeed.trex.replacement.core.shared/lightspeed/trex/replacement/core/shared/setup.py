@@ -20,12 +20,12 @@ from pxr import Sdf, Usd
 
 
 class Setup:
-    def __init__(self, context: omni.usd.UsdContext):
+    def __init__(self, context_name: str):
         self._default_attr = {"_layer_manager": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
-        self._context = context
-        self._layer_manager = _LayerManagerCore(context=context)
+        self._context = omni.usd.get_context(context_name)
+        self._layer_manager = _LayerManagerCore(context_name=context_name)
 
     def get_layer(self):
         return self._layer_manager.get_layer(LayerType.replacement)

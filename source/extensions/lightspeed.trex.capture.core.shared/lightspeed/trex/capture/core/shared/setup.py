@@ -8,6 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import asyncio
+import concurrent.futures
 import contextlib
 import functools
 from pathlib import Path
@@ -27,21 +28,20 @@ from pxr import Gf, Sdf, Usd, UsdGeom
 
 
 class Setup:
-    def __init__(self, context: omni.usd.UsdContext):
+    def __init__(self, context_name: str):
         self._default_attr = {"_layer_manager": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
         self.__directory = None
-        self._context = context
-        self._layer_manager = _LayerManagerCore(context=context)
+        self._context = omni.usd.get_context(context_name)
+        self._layer_manager = _LayerManagerCore(context_name=context_name)
 
     def get_layer(self):
         return self._layer_manager.get_layer(LayerType.capture)
 
     @omni.usd.handle_exception
-    async def ___deferred_setup_persepctive_camera(self):
+    async def ___deferred_setup_perspective_camera(self):
         await omni.kit.app.get_app().next_update_async()
-
         # setup the session camera to match the capture camera
         stage = self._context.get_stage()
         capture_layer = self._layer_manager.get_layer(LayerType.capture)
@@ -127,7 +127,7 @@ class Setup:
             path, LayerType.capture, add_custom_layer_data=False, set_as_edit_target=False
         )
         self._layer_manager.lock_layer(LayerType.capture)
-        asyncio.ensure_future(self.___deferred_setup_persepctive_camera())
+        asyncio.ensure_future(self.___deferred_setup_perspective_camera())
 
     def set_directory(self, path: str):
         self.__directory = path
@@ -157,16 +157,23 @@ class Setup:
 
     @property
     def capture_files(self) -> List[str]:
+        def _get_files(_file):
+            return _file, _file.is_file() and _file.suffix in [".usd", ".usda", ".usdc"] and self.is_capture_file(
+                str(_file)
+            )
+
         if not self._check_directory():
             return []
-        return sorted(
-            [
-                str(file)
-                for file in Path(self.__directory).iterdir()
-                if file.is_file() and file.suffix in [".usd", ".usda", ".usdc"] and self.is_capture_file(str(file))
-            ],
-            reverse=True,
-        )
+
+        result = []
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future_to_url = [executor.submit(_get_files, file) for file in Path(self.__directory).iterdir()]
+            for future in concurrent.futures.as_completed(future_to_url):
+                file, is_valid = future.result()
+                if is_valid:
+                    result.append(str(file))
+
+        return sorted(result, reverse=True)
 
     def get_capture_image(self, path: str) -> Optional[str]:
         image_path = Path(path).parent.joinpath(".thumbs", f"{Path(path).name}.dds")

@@ -1,0 +1,17 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex Material Properties implementation for the StageCraft"
+description = "Material Properties implementation for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"lightspeed.trex.material.core.shared" = {}
+"lightspeed.trex.selection_tree.shared.widget" = {}
+"omni.flux.properties_pane.materials.usd.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.client" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.material_properties.shared.widget"

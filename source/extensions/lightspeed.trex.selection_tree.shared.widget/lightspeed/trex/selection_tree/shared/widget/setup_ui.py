@@ -17,10 +17,10 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
-from lightspeed.trex.utils.widget.file_pickers.mesh_ref_file_picker import open_file_picker as _open_file_picker
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 
 from .selection_tree.delegate import Delegate as _Delegate
 from .selection_tree.model import ItemAddNewReferenceFileMesh as _ItemAddNewReferenceFileMesh
@@ -39,7 +39,7 @@ class SetupUI:
     DEFAULT_TREE_FRAME_HEIGHT = 200
     SIZE_PERCENT_MANIPULATOR_WIDTH = 50
 
-    def __init__(self, context):
+    def __init__(self, context_name):
         """Nvidia StageCraft Viewport UI"""
 
         self._default_attr = {
@@ -60,9 +60,9 @@ class SetupUI:
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
-        self._context = context  # can get the name of the context?
-        self._core = _AssetReplacementsCore(self._context)
-        self._tree_model = _ListModel(self._context)
+        self._context = omni.usd.get_context(context_name)
+        self._core = _AssetReplacementsCore(context_name)
+        self._tree_model = _ListModel(context_name)
         self._tree_delegate = _Delegate()
 
         self._ignore_tree_selection_changed = False
@@ -316,7 +316,12 @@ class SetupUI:
 
         # if add item was clicked, we open the ref picker
         if add_item_selected:
-            _open_file_picker(functools.partial(self._add_new_ref_mesh, add_item_selected[0]), lambda *args: None)
+            _open_file_picker(
+                "USD Reference File picker",
+                functools.partial(self._add_new_ref_mesh, add_item_selected[0]),
+                lambda *args: None,
+                extensions=[".usd", ".usda", ".usdc"],
+            )
 
         self._tree_selection_changed(items)
 

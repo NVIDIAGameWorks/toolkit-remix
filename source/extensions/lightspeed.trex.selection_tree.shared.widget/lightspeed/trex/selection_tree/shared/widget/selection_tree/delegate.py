@@ -195,7 +195,7 @@ class Delegate(ui.AbstractItemDelegate):
                 with ui.VStack():
                     ui.Spacer()
                     with ui.HStack(width=16 * (level + 2), height=self.DEFAULT_IMAGE_ICON_SIZE):
-                        ui.Spacer()
+                        # ui.Spacer()
                         if model.can_item_have_children(item):
                             # Draw the +/- icon
                             style_type_name_override = "TreeView.Item.Minus" if expanded else "TreeView.Item.Plus"

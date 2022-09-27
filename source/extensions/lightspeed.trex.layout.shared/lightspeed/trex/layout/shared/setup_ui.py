@@ -9,10 +9,13 @@
 """
 import abc
 
+import carb.settings
 import omni.ui as ui
 from lightspeed.trex.app.setup.extension import get_instance as get_main_instance
 from omni.flux.header_navigator.widget import setup_ui as header_navigator_ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+
+_APP_NAME = "/app/name"
 
 
 class SetupUI:
@@ -28,7 +31,10 @@ class SetupUI:
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
 
-        top_header_instance_name = "Lightspeed Trex"
+        settings = carb.settings.get_settings()
+        top_header_instance_name = settings.get(_APP_NAME)
+        if not top_header_instance_name:
+            top_header_instance_name = "App name"
         headers_navigator = header_navigator_ui.get_instances()
         if headers_navigator.get(top_header_instance_name):
             self._header_navigator = headers_navigator.get(top_header_instance_name)

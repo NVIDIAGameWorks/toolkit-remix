@@ -24,11 +24,17 @@ This base experience regroup all extensions shared between all Lightspeed Trex e
 "omni.kit.renderer.core" = {}
 "omni.kit.splash" = { order = -5000}
 
+"omni.renderer" = { tag = "rtx" }
+"omni.hydra.rtx" = {}
+"omni.hydra.pxr" = {}
+# "omni.hydra.pxr.settings" = {}
+# "omni.rtx.settings.core" = {} # this is the new Render Settings 2.0
+
 # Trex shared extensions
 "lightspeed.trex.contexts" = {} # contexts used for each Flux App
 "lightspeed.trex.app.resources" = {order = -1000}  # should start first because of "default_resources_ext"
 "lightspeed.trex.app.setup" = { order = 1000 } # layout setup, we are running that at the end
-"lightspeed.trex.app.style" = {}  # global style
+"lightspeed.trex.app.style" = {order = -100}  # global style
 
 "lightspeed.event.save_recent" = {}  # for recent saved file
 
@@ -47,44 +53,11 @@ This base experience regroup all extensions shared between all Lightspeed Trex e
 "omni.kit.window.extensions" = {}
 
 [settings]
-# Basic Kit App
-################################
-persistent.app.window.uiStyle = "NvidiaDark"
-app.menu.legacy_mode = false
-app.menu.compatibility_mode=false
-
-app.content.emptyStageOnStart = true
-
-# Viewport
-###############################
-persistent.app.viewport.pickingMode = "models"
-
-# Misc Settings
-###############################
-persistent.app.viewport.noPadding = true
-
-
 # Splash Setup
 ################################
 exts."omni.kit.window.splash".imagePath = "${lightspeed.trex.app.resources}/data/images/background_images_small/8.9.C.png"
 exts.'omni.kit.splash'.splash_app = "${lightspeed.trex.app.setup}/apps/lightspeed.trex.app.splash.kit"
 
-[settings.app.extensions]
-registryEnabled = false
-
-# Fonts
-[settings.app.font]
-file = "${lightspeed.trex.app.resources}/data/fonts/Barlow-Regular.otf"
-size = 16
-
-[settings.app.file]
-ignoreUnsavedStage = true
-
-[settings.app.window]
-width = 1700
-height = 800
-x = -1
-y = -1
 
 [settings.exts."omni.kit.window.modifier.titlebar"]
 showFileFullPath = true
@@ -109,9 +82,3 @@ hide_menu = true
 
 [settings.exts."omni.flux.utils.widget"]
 default_resources_ext = "lightspeed.trex.app.resources"
-
-# kit-core overwrites this, so set this shaderDb setting here, or move them from kit-core to renderer extension
-[settings.renderer.shadercache.driverDiskCache]
-enabled = true
-[settings.rtx.shaderDb]
-driverAppShaderCachePath = "${kit}/../../startup/nv_shadercache/${config}"
