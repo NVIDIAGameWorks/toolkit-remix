@@ -171,10 +171,10 @@ class LightspeedExporterCore:
         os.remove(self._temp_replacements_path)
 
     def get_default_export_path(self, create_if_not_exist: bool = False) -> Optional[str]:
-        current_game_capture_folder = self._layer_manager.game_current_game_capture_folder()
-        if not current_game_capture_folder:
+        game_name, capture_folder = self._layer_manager.game_current_game_capture_folder()
+        if not game_name:
             return None
-        path = str(Path(current_game_capture_folder.path).parent.joinpath(constants.GAME_READY_ASSETS_FOLDER)) + os.sep
+        path = str(Path(capture_folder).parent.joinpath(constants.GAME_READY_ASSETS_FOLDER)) + os.sep
         if create_if_not_exist:
             Path(path).mkdir(parents=True, exist_ok=True)
         return path

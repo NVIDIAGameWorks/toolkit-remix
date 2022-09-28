@@ -8,7 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import typing
-from typing import Optional
+from typing import Optional, Tuple
 
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from lightspeed.widget.content_viewer.scripts.core import ContentData
@@ -37,6 +37,6 @@ class CaptureSwapperCore:
         )
         self._layer_manager.lock_layer(LayerType.capture)
 
-    def game_current_game_capture_folder(self) -> Optional["ContentData"]:
+    def game_current_game_capture_folder(self) -> Tuple[Optional[str], Optional[str]]:
         """Get the current capture folder from the current capture layer"""
         return self._layer_manager.game_current_game_capture_folder()

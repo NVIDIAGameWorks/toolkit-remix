@@ -11,8 +11,10 @@ import abc
 from typing import Dict
 
 import omni.kit.commands
+import omni.kit.undo
 import omni.usd
 import six
+from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 from ..layer_types import LayerType, LayerTypeKeys
 
@@ -44,22 +46,24 @@ class ILayer:
         return self.__custom_layer_data
 
     def flatten_sublayers(self, delete_sublayer_files: bool = True):
-        usd_context = omni.usd.get_context()
+        usd_context = omni.usd.get_context(self._core.context_name or "")
         stage = usd_context.get_stage()
         root_layer = stage.GetRootLayer()
         layers = stage.GetLayerStack()
-        omni.kit.commands.execute("FlattenLayers")
+        omni.kit.commands.execute("FlattenLayers", usd_context=self._core.context_name or "")
         if delete_sublayer_files:
             for layer in layers:
                 if layer.realPath == root_layer.realPath or not layer.realPath:
                     continue
                 omni.client.delete(layer.realPath)
 
-    def create_sublayer(self, path: str = None, sublayer_create_position=0, parent_layer=None):
+    def create_sublayer(self, path: str = None, sublayer_create_position=0, parent_layer=None, do_undo=True):
+        if do_undo:
+            omni.kit.undo.begin_group()
         need_new_layer = self._core.get_layer(self.layer_type)
         if need_new_layer is not None:
-            self._core.remove_layer(self.layer_type)
-        usd_context = omni.usd.get_context()
+            self._core.remove_layer(self.layer_type, do_undo=False)
+        usd_context = omni.usd.get_context(self._core.context_name or "")
         stage = usd_context.get_stage()
         if not parent_layer:
             parent_layer = stage.GetRootLayer()
@@ -71,6 +75,7 @@ class ILayer:
             new_layer_path=path if path else "",
             transfer_root_content=False,
             create_or_insert=True,
+            usd_context=self._core.context_name or "",
         )
         layers = stage.GetLayerStack()
         new_layers = list(set(layers) - set(current_layers))
@@ -81,10 +86,12 @@ class ILayer:
             custom_layer_data.update(self.__custom_layer_data)
         layer.customLayerData = custom_layer_data
         layer.Save()
+        if do_undo:
+            omni.kit.undo.end_group()
         return layer
 
     def get_sdf_layer(self):
-        usd_context = omni.usd.get_context()
+        usd_context = omni.usd.get_context(self._core.context_name or "")
         stage = usd_context.get_stage()
         if stage is None:
             return None
@@ -95,15 +102,4 @@ class ILayer:
 
     def destroy(self):
         self._core = None
-        for attr, value in self._default_attr.items():
-            m_attr = getattr(self, attr)
-            if isinstance(m_attr, list):
-                m_attrs = m_attr
-            else:
-                m_attrs = [m_attr]
-            for m_attr in m_attrs:
-                destroy = getattr(m_attr, "destroy", None)
-                if callable(destroy):
-                    destroy()
-                del m_attr
-                setattr(self, attr, value)
+        _reset_default_attrs(self)

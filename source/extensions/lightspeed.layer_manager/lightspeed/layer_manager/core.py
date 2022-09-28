@@ -8,14 +8,15 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import carb
 import omni.client
 import omni.kit.commands
+import omni.kit.undo
 import omni.usd
 from lightspeed.common.constants import CAPTURE_FOLDER
-from lightspeed.widget.content_viewer.scripts.core import ContentData
+from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.usd.layers import LayerUtils
 from pxr import Sdf
 
@@ -25,10 +26,12 @@ from .layers import autoupscale, capture, i_layer, replacement
 
 
 class LayerManagerCore:
-    def __init__(self):
+    def __init__(self, context_name=None):
         self.__default_attr = {}
         for attr, value in self.__default_attr.items():
             setattr(self, attr, value)
+        self.context_name = context_name
+        self.__context = omni.usd.get_context(context_name or "")
         self.__capture_layer = capture.CaptureLayer(self)
         self.__replacement_layer = replacement.ReplacementLayer(self)
         self.__autoupscale_layer = autoupscale.AutoUpscaleLayer(self)
@@ -47,15 +50,27 @@ class LayerManagerCore:
         set_as_edit_target: bool = True,
         sublayer_create_position=0,
         parent_layer=None,
+        do_undo=True,
     ):
+        if do_undo:
+            omni.kit.undo.begin_group()
         for layer_obj in self.__layers:  # noqa R503
             if layer_obj.layer_type == layer_type:
                 layer = layer_obj.create_sublayer(
-                    path=path, sublayer_create_position=sublayer_create_position, parent_layer=parent_layer
+                    path=path,
+                    sublayer_create_position=sublayer_create_position,
+                    parent_layer=parent_layer,
+                    do_undo=False,
                 )
                 if set_as_edit_target:
-                    self.set_edit_target_layer(layer_obj.layer_type, force_layer_identifier=layer.identifier)
+                    self.set_edit_target_layer(
+                        layer_obj.layer_type, force_layer_identifier=layer.identifier, do_undo=False
+                    )
+                if do_undo:
+                    omni.kit.undo.end_group()
                 return layer
+        if do_undo:
+            omni.kit.undo.end_group()
         return None
 
     def insert_sublayer(
@@ -66,8 +81,11 @@ class LayerManagerCore:
         sublayer_insert_position=-1,
         add_custom_layer_data=True,
         parent_layer=None,
+        do_undo=True,
     ):
-        stage = omni.usd.get_context().get_stage()
+        if do_undo:
+            omni.kit.undo.begin_group()
+        stage = self.__context.get_stage()
         if parent_layer is None:
             parent_layer = stage.GetRootLayer()
         omni.kit.commands.execute(
@@ -78,6 +96,7 @@ class LayerManagerCore:
             transfer_root_content=False,
             create_or_insert=False,
             layer_name="",
+            usd_context=self.__context,
         )
         for layer in stage.GetLayerStack():
             if omni.client.normalize_url(layer.realPath) == omni.client.normalize_url(path):
@@ -92,8 +111,12 @@ class LayerManagerCore:
                     layer.customLayerData = custom_layer_data
                     layer.Save()  # because of new customLayerData
                 if set_as_edit_target:
-                    self.set_edit_target_layer(layer_type, force_layer_identifier=layer.identifier)
+                    self.set_edit_target_layer(layer_type, force_layer_identifier=layer.identifier, do_undo=False)
+                if do_undo:
+                    omni.kit.undo.end_group()
                 return layer
+        if do_undo:
+            omni.kit.undo.end_group()
         return None
 
     @staticmethod
@@ -127,10 +150,8 @@ class LayerManagerCore:
             if result != omni.client.Result.OK:
                 carb.log_error(f"Can't create a checkpoint for file {path}")
 
-    @staticmethod
-    def get_layer(layer_type: LayerType) -> Optional[Sdf.Layer]:
-        usd_context = omni.usd.get_context()
-        stage = usd_context.get_stage()
+    def get_layer(self, layer_type: LayerType) -> Optional[Sdf.Layer]:
+        stage = self.__context.get_stage()
         if stage is None:
             return None
         for layer in stage.GetLayerStack():
@@ -142,31 +163,39 @@ class LayerManagerCore:
     def get_custom_data(layer: Sdf.Layer) -> Dict[str, str]:
         return layer.customLayerData
 
-    @staticmethod
-    def set_edit_target_layer(layer_type: LayerType, force_layer_identifier: str = None):
-        usd_context = omni.usd.get_context()
-        stage = usd_context.get_stage()
+    def set_edit_target_layer(self, layer_type: LayerType, force_layer_identifier: str = None, do_undo=True):
+        if do_undo:
+            omni.kit.undo.begin_group()
+        stage = self.__context.get_stage()
         for layer in stage.GetLayerStack():
             if force_layer_identifier is not None and layer.identifier == force_layer_identifier:
-                omni.kit.commands.execute("SetEditTarget", layer_identifier=layer.identifier)
+                omni.kit.commands.execute(
+                    "SetEditTarget", layer_identifier=layer.identifier, usd_context=self.__context
+                )
                 break
             if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
-                omni.kit.commands.execute("SetEditTarget", layer_identifier=layer.identifier)
+                omni.kit.commands.execute(
+                    "SetEditTarget", layer_identifier=layer.identifier, usd_context=self.__context
+                )
+        if do_undo:
+            omni.kit.undo.end_group()
 
-    @staticmethod
-    def lock_layer(layer_type: LayerType, value=True):
-        usd_context = omni.usd.get_context()
-        stage = usd_context.get_stage()
+    def lock_layer(self, layer_type: LayerType, value=True, do_undo=True):
+        if do_undo:
+            omni.kit.undo.begin_group()
+        stage = self.__context.get_stage()
         for layer in stage.GetLayerStack():
             if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
                 omni.kit.commands.execute(
-                    "LockLayer", usd_context=usd_context, layer_identifier=layer.identifier, locked=value
+                    "LockLayer", usd_context=self.__context, layer_identifier=layer.identifier, locked=value
                 )
+        if do_undo:
+            omni.kit.undo.end_group()
 
-    @staticmethod
-    def remove_layer(layer_type: LayerType):
-        usd_context = omni.usd.get_context()
-        stage = usd_context.get_stage()
+    def remove_layer(self, layer_type: LayerType, do_undo=True):
+        if do_undo:
+            omni.kit.undo.begin_group()
+        stage = self.__context.get_stage()
         for layer in stage.GetLayerStack():
             for sublayerpath in layer.subLayerPaths:
                 sublayer = Sdf.Layer.FindOrOpen(layer.ComputeAbsolutePath(sublayerpath))
@@ -175,34 +204,36 @@ class LayerManagerCore:
                 if sublayer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
                     position = LayerUtils.get_sublayer_position_in_parent(layer.identifier, sublayer.identifier)
                     omni.kit.commands.execute(
-                        "RemoveSublayer", layer_identifier=layer.identifier, sublayer_position=position
+                        "RemoveSublayer",
+                        layer_identifier=layer.identifier,
+                        sublayer_position=position,
+                        usd_context=self.__context,
                     )
                     carb.log_info(f"Layer {layer} removed")
+        if do_undo:
+            omni.kit.undo.end_group()
 
-    def game_current_game_capture_folder(self) -> Optional["ContentData"]:
+    @staticmethod
+    def get_game_name_from_path(path: str) -> str:
+        layer = Sdf.Layer.FindOrOpen(path)
+        default = "Unknow game"
+        if not layer:
+            return default
+        return layer.customLayerData.get(LSS_LAYER_GAME_NAME, "default")
+
+    def game_current_game_capture_folder(self) -> Tuple[Optional[str], Optional[str]]:
         """Get the current capture folder from the current capture layer"""
         layer = self.get_layer(LayerType.capture)
         # we only save stage that have a replacement layer
         if not layer:
             carb.log_error("Can't find the capture layer in the current stage")
-            return None
+            return None, None
         capture_folder = Path(layer.realPath)
         if capture_folder.parent.name != CAPTURE_FOLDER:
             carb.log_error(f'Can\'t find the "{CAPTURE_FOLDER}" folder from the {LayerType.capture} layer')
-            return None
+            return None, None
         game_name = layer.customLayerData.get(LSS_LAYER_GAME_NAME, "MyGame")
-        return ContentData(title=game_name, path=str(capture_folder.parent))
+        return game_name, str(capture_folder.parent)
 
     def destroy(self):
-        for attr, value in self.__default_attr.items():
-            m_attr = getattr(self, attr)
-            if isinstance(m_attr, list):
-                m_attrs = m_attr
-            else:
-                m_attrs = [m_attr]
-            for m_attr in m_attrs:
-                destroy = getattr(m_attr, "destroy", None)
-                if callable(destroy):
-                    destroy()
-                del m_attr
-                setattr(self, attr, value)
+        _reset_default_attrs(self)

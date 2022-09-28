@@ -15,6 +15,7 @@ import omni.appwindow
 import omni.kit.menu.utils
 import omni.kit.widget.layers as layers
 import omni.ui as ui
+from lightspeed.widget.content_viewer.scripts.core import ContentData
 from lightspeed.widget.game_captures.scripts.core import GameCapturesCore
 from lightspeed.widget.game_captures.scripts.ui import GameCapturesViewer
 
@@ -171,8 +172,9 @@ class CaptureSwapperWindow:
 
     def show_for_game_capture_folder(self, objects):
         """Find the current game using the current replacement layer"""
-        current_game_capture_folder = self._core.game_current_game_capture_folder()
-        if current_game_capture_folder:
+        game_name, capture_folder = self._core.game_current_game_capture_folder()
+        if game_name:
+            current_game_capture_folder = ContentData(title=game_name, path=capture_folder)
             self._game_capture_core.set_current_game_capture_folder(current_game_capture_folder)
             self._game_capture_core.refresh_content()
 
