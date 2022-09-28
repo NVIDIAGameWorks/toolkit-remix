@@ -356,20 +356,22 @@ class LightspeedExporterCore:
             # we generate a list of hashes from the list of mesh usd files
             meshes_folder = os.path.join(os.path.dirname(layer.identifier), constants.MESHES_FOLDER)
             for usd_mesh in glob.glob(os.path.join(meshes_folder, "*.usd")):
-                match = re.match(f"^{constants.MESHES_FILE_PREFIX}(.*).usd$", os.path.basename(usd_mesh))
+                match = re.match(f"^{constants.MESHES_FILE_PREFIX}([A-Z0-9]{{16}}).usd$", os.path.basename(usd_mesh))
                 if match:
                     mesh_hashes.append(match.groups()[0])
                     # now when we check reference paths, we check if the hash of the reference prim is in this list
             # we generate a list of hashes from the list of material usd files
             materiales_folder = os.path.join(os.path.dirname(layer.identifier), constants.MATERIALS_FOLDER)
             for usd_material in glob.glob(os.path.join(materiales_folder, "*.usd")):
-                match = re.match(f"^{constants.MATERIAL_FILE_PREFIX}(.*).usd$", os.path.basename(usd_material))
+                match = re.match(
+                    f"^{constants.MATERIAL_FILE_PREFIX}([A-Z0-9]{{16}}).usd$", os.path.basename(usd_material)
+                )
                 if match:
                     material_hashes.append(match.groups()[0])
             # we generate a list of hashes from the list of light usd files
             lights_folder = os.path.join(os.path.dirname(layer.identifier), constants.LIGHTS_FOLDER)
             for usd_light in glob.glob(os.path.join(lights_folder, "*.usd")):
-                match = re.match(f"^{constants.LIGHT_FILE_PREFIX}(.*).usd$", os.path.basename(usd_light))
+                match = re.match(f"^{constants.LIGHT_FILE_PREFIX}([A-Z0-9]{{16}}).usd$", os.path.basename(usd_light))
                 if match:
                     light_hashes.append(match.groups()[0])
         else:
@@ -492,7 +494,8 @@ class LightspeedExporterCore:
                         return
                     if mesh_hashes:
                         _match = re.match(
-                            f"^{constants.MESHES_FILE_PREFIX}(.*)$", os.path.basename(_prim.GetPath().pathString)
+                            f"^{constants.MESHES_FILE_PREFIX}([A-Z0-9]{{16}})$",
+                            os.path.basename(_prim.GetPath().pathString),
                         )
                         if _match and _match.groups()[0] not in mesh_hashes:
                             if not result_errors.get(DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value):
@@ -503,7 +506,8 @@ class LightspeedExporterCore:
                             ] = "ERROR: This is an old override. Please remove it"
                     if material_hashes:
                         _match = re.match(
-                            f"^{constants.MATERIAL_FILE_PREFIX}(.*)$", os.path.basename(_prim.GetPath().pathString)
+                            f"^{constants.MATERIAL_FILE_PREFIX}([A-Z0-9]{{16}})$",
+                            os.path.basename(_prim.GetPath().pathString),
                         )
                         if _match and _match.groups()[0] not in material_hashes:
                             if not result_errors.get(DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value):
@@ -514,7 +518,8 @@ class LightspeedExporterCore:
                             ] = "ERROR: This is an old override. Please remove it"
                     if light_hashes:
                         _match = re.match(
-                            f"^{constants.LIGHT_FILE_PREFIX}(.*)$", os.path.basename(_prim.GetPath().pathString)
+                            f"^{constants.LIGHT_FILE_PREFIX}([A-Z0-9]{{16}})$",
+                            os.path.basename(_prim.GetPath().pathString),
                         )
                         if _match and _match.groups()[0] not in light_hashes:
                             if not result_errors.get(DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value):
