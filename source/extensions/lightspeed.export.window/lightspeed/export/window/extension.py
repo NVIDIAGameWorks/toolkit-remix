@@ -21,11 +21,11 @@ class LightspeedExporterExtension(omni.ext.IExt):
             setattr(self, attr, value)
 
     def on_startup(self, ext_id):
-        carb.log_info("[lightspeed.export] Lightspeed Export extension startup")
+        carb.log_info("[lightspeed.export.window] Lightspeed Export extension startup")
         self._ui = LightspeedExporterUI()
 
     def on_shutdown(self):
-        carb.log_info("[lightspeed.export] Lightspeed Export extension shutdown")
+        carb.log_info("[lightspeed.export.window] Lightspeed Export extension shutdown")
         for attr, value in self.__default_attr.items():
             m_attr = getattr(self, attr)
             if isinstance(m_attr, list):
