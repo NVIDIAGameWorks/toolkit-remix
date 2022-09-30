@@ -171,8 +171,7 @@ class ColorToNormalCore:
                 [
                     str(nvtt_path),
                     str(result_path),
-                    "--format",
-                    constants.TEXTURE_COMPRESSION_LEVELS[constants.MATERIAL_INPUTS_NORMALMAP_TEXTURE],
+                    constants.TEXTURE_INFO[constants.MATERIAL_INPUTS_NORMALMAP_TEXTURE].to_nvtt_flag_string(),
                     "--output",
                     output_texture,
                 ],

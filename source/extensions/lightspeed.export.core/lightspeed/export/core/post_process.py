@@ -317,7 +317,7 @@ class LightspeedPosProcessExporter:
             result_shader_prim_compress_dds_outputs = []
         progress_fn()
         layer = prim.GetStage().GetEditTarget().GetLayer()
-        for attr_name, bc_mode in constants.TEXTURE_COMPRESSION_LEVELS.items():
+        for attr_name, texture_format_info in constants.TEXTURE_INFO.items():
             attr = prim.GetAttribute(attr_name)
             if attr and attr.Get():
                 abs_path_str = attr.Get().resolvedPath
@@ -350,12 +350,15 @@ class LightspeedPosProcessExporter:
                         not dds_path.exists() or abs_path.stat().st_mtime > dds_path.stat().st_mtime
                     ):
                         carb.log_info("Converting PNG to DDS: " + str(rel_path))
+
+                        texture_flags = texture_format_info.to_nvtt_flag_string()
+
                         if process_texture:
                             return_code = subprocess.check_call(  # noqa
-                                [str(self._nvtt_path), str(abs_path), "--format", bc_mode, "--output", str(dds_path)]
+                                [str(self._nvtt_path), str(abs_path), texture_flags, "--output", str(dds_path)]
                             )
                         else:
-                            line = [str(abs_path), "--format", bc_mode, "--output", str(dds_path)]
+                            line = [str(abs_path), texture_flags, "--output", str(dds_path)]
                             result.append(line)
                         result_shader_prim_compress_dds_outputs.append(str(dds_path))
 

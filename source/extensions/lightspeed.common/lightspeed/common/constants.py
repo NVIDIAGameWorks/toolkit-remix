@@ -1,6 +1,8 @@
 from enum import IntEnum
 from pathlib import Path
 
+from .texture_info import CompressionFormat, TextureInfo
+
 MATERIAL_INPUTS_DIFFUSE_TEXTURE = "inputs:diffuse_texture"
 MATERIAL_INPUTS_NORMALMAP_TEXTURE = "inputs:normalmap_texture"
 MATERIAL_INPUTS_NORMALMAP_ENCODING = "inputs:encoding"
@@ -50,14 +52,16 @@ EXPORT_STATUS_PRECHECK_ERRORS = "Precheck Failed"
 EXPORT_STATUS_PRECHECK_MEMORY_ERRORS = "Precheck Memory Failed"
 EXPORT_STATUS_POSTPROCESS_ERRORS = "PostProcess Errors"
 
-TEXTURE_COMPRESSION_LEVELS = {
-    MATERIAL_INPUTS_DIFFUSE_TEXTURE: "bc7",
-    MATERIAL_INPUTS_NORMALMAP_TEXTURE: "bc5",
-    MATERIAL_INPUTS_TANGENT_TEXTURE: "bc5",
-    MATERIAL_INPUTS_REFLECTIONROUGHNESS_TEXTURE: "bc4",
-    MATERIAL_INPUTS_EMISSIVE_MASK_TEXTURE: "bc7",
-    MATERIAL_INPUTS_METALLIC_TEXTURE: "bc4",
-    MATERIAL_INPUTS_TRANSMITTANCE_TEXTURE: "bc7",
+# Texture information describing various aspects of a class of textures such as its encoding and desired export
+# format.
+TEXTURE_INFO = {
+    MATERIAL_INPUTS_DIFFUSE_TEXTURE: TextureInfo(CompressionFormat.BC7, True),
+    MATERIAL_INPUTS_NORMALMAP_TEXTURE: TextureInfo(CompressionFormat.BC5, False),
+    MATERIAL_INPUTS_TANGENT_TEXTURE: TextureInfo(CompressionFormat.BC5, False),
+    MATERIAL_INPUTS_REFLECTIONROUGHNESS_TEXTURE: TextureInfo(CompressionFormat.BC4, False),
+    MATERIAL_INPUTS_EMISSIVE_MASK_TEXTURE: TextureInfo(CompressionFormat.BC7, True),
+    MATERIAL_INPUTS_METALLIC_TEXTURE: TextureInfo(CompressionFormat.BC4, False),
+    MATERIAL_INPUTS_TRANSMITTANCE_TEXTURE: TextureInfo(CompressionFormat.BC7, True),
 }
 
 AUTOUPSCALE_LAYER_FILENAME = "autoupscale.usda"
