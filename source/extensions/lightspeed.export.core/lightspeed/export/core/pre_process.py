@@ -18,14 +18,14 @@ from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from pxr import Sdf, Usd
 
 
-def preprocess(layer_manager: LayerManagerCore):
+def preprocess(layer_manager: LayerManagerCore, context_name: str = ""):
     """
     Pre process to fully resolve reference stacks for tweaked materials and meshes
     """
     capture_layer = layer_manager.get_layer(LayerType.capture)
     autoupscale_layer = layer_manager.get_layer(LayerType.autoupscale)
     replacements_layer = layer_manager.get_layer(LayerType.replacement)
-    stage = omni.usd.get_context().get_stage()
+    stage = omni.usd.get_context(context_name).get_stage()
     with Usd.EditContext(stage, replacements_layer):
         with Sdf.ChangeBlock():
             mat_prim = stage.GetPrimAtPath(constants.ROOTNODE_LOOKS)

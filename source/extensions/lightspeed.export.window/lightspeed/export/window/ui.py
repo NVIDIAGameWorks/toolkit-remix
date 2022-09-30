@@ -16,13 +16,13 @@ import omni.ext
 import omni.kit.menu.utils as omni_utils
 import omni.kit.window.content_browser as content
 from lightspeed.error_popup.window import ErrorPopup
+from lightspeed.export.core import LightspeedExporterCore
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from lightspeed.progress_popup.window import ProgressPopup
 from omni import ui
 from omni.kit.menu.utils import MenuItemDescription
 from omni.kit.tool.collect.icons import Icons
 
-from .exporter import LightspeedExporterCore
 from .usd_file_picker import open_file_picker
 
 

@@ -53,8 +53,13 @@ class LightspeedExporterCore:
     EXPORT_START_MARKER = "*********************** Export Start ***********************"
     EXPORT_END_MARKER = "*********************** Export End ***********************"
 
-    def __init__(self, export_button_fn=None, cancel_button_fn=None):
-        self.__default_attr = {"_layer_manager": None, "_post_exporter": None, "_collector": None}
+    def __init__(self, export_button_fn=None, cancel_button_fn=None, context_name: str = ""):
+        self.__default_attr = {
+            "_layer_manager": None,
+            "_post_exporter": None,
+            "_collector": None,
+            "_context_name": None,
+        }
         for attr, value in self.__default_attr.items():
             setattr(self, attr, value)
 
@@ -64,10 +69,11 @@ class LightspeedExporterCore:
         self.__on_export_readonly_error = _Event()
         self.__on_dependency_errors = _Event()
 
+        self._context_name = context_name
         self._export_button_fn = export_button_fn
         self._cancel_button_fn = cancel_button_fn
-        self._layer_manager = LayerManagerCore()
-        self._post_exporter = LightspeedPosProcessExporter()
+        self._layer_manager = LayerManagerCore(self._context_name)
+        self._post_exporter = LightspeedPosProcessExporter(self._context_name)
 
     def _dependency_errors(self, dependency_errors: Dict[DependencyErrorTypes, Dict[str, str]]):
         """Call the event object that has the list of functions"""
@@ -164,7 +170,7 @@ class LightspeedExporterCore:
             self._collector.cancel()
 
         # reopen original stage
-        omni.usd.get_context().open_stage(self._workspace_stage_path_norm)
+        omni.usd.get_context(self._context_name).open_stage(self._workspace_stage_path_norm)
 
         # Delete the temporary pre-processed replacement layer.
         os.remove(self._temp_stage_path)
@@ -180,7 +186,7 @@ class LightspeedExporterCore:
         return path
 
     def check_export_path(self, path) -> bool:
-        stage = omni.usd.get_context().get_stage()
+        stage = omni.usd.get_context(self._context_name).get_stage()
         if stage.GetRootLayer().anonymous:
             carb.log_error("Please save your stage first")
             return False
@@ -207,7 +213,7 @@ class LightspeedExporterCore:
         if not self._validate_write_permissions(export_folder):
             return
 
-        context = omni.usd.get_context()
+        context = omni.usd.get_context(self._context_name)
         stage = context.get_stage()
         export_status = constants.EXPORT_STATUS_RELEASE_READY
         try:
@@ -266,7 +272,7 @@ class LightspeedExporterCore:
             add_custom_layer_data=False,
         )
 
-        preprocess(self._layer_manager)
+        preprocess(self._layer_manager, self._context_name)
         preprocessed_replacements = self._layer_manager.get_layer(LayerType.replacement)
         preprocessed_custom_layer_data = preprocessed_replacements.customLayerData
         preprocessed_custom_layer_data[constants.EXPORT_STATUS_NAME] = export_status

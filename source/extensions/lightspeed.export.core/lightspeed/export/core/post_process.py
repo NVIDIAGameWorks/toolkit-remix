@@ -28,9 +28,10 @@ from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
 
 class LightspeedPosProcessExporter:
-    def __init__(self):
+    def __init__(self, context_name: str = ""):
+        self._context_name = context_name
         self._nvtt_path = Path(constants.NVTT_PATH)
-        self.__layer_manager = LayerManagerCore()
+        self.__layer_manager = LayerManagerCore(self._context_name)
 
     def _remove_extra_attr(self, prim: Usd.Prim):
         white_list = {
@@ -92,7 +93,7 @@ class LightspeedPosProcessExporter:
         children_iterator = iter(Usd.PrimRange(mesh.GetPrim(), display_predicate))
         for child_prim in children_iterator:
             if child_prim.IsA(UsdGeom.Subset):
-                subset = UsdGeom.Subset.Get(omni.usd.get_context().get_stage(), child_prim.GetPath())
+                subset = UsdGeom.Subset.Get(omni.usd.get_context(self._context_name).get_stage(), child_prim.GetPath())
                 subsets.append(
                     {
                         "subset": subset,
@@ -178,7 +179,7 @@ class LightspeedPosProcessExporter:
         children_iterator = iter(Usd.PrimRange(prim, display_predicate))
         for child_prim in children_iterator:
             if child_prim.IsA(UsdGeom.Subset):
-                subset = UsdGeom.Subset.Get(omni.usd.get_context().get_stage(), child_prim.GetPath())
+                subset = UsdGeom.Subset.Get(omni.usd.get_context(self._context_name).get_stage(), child_prim.GetPath())
                 face_indices = subset.GetIndicesAttr().Get()
                 vert_indices = []
                 for face_index in face_indices:
@@ -368,7 +369,7 @@ class LightspeedPosProcessExporter:
     async def process(self, export_file_path, progress_text_callback, progress_callback):
         carb.log_info("Processing: " + export_file_path)
 
-        context = omni.usd.get_context()
+        context = omni.usd.get_context(self._context_name)
 
         # TODO: Crash, use async function instead, waiting OM-42168
         # success = context.open_stage(export_file_path)
