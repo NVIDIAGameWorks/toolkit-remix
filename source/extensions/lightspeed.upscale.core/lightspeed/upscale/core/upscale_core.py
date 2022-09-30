@@ -97,8 +97,7 @@ class UpscalerCore:
                 [
                     nvtt_path,
                     upscaled_texture_path,
-                    "--format",
-                    constants.TEXTURE_COMPRESSION_LEVELS[constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE],
+                    constants.TEXTURE_INFO[constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE].to_nvtt_flag_string(),
                     "--output",
                     output_texture,
                 ],
