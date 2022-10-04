@@ -27,7 +27,7 @@ from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.kit.tool.collect.collector import Collector
-from pxr import Sdf, Usd, UsdUtils
+from pxr import Sdf, Usd, UsdGeom, UsdUtils
 
 from .post_process import LightspeedPosProcessExporter
 from .pre_process import preprocess
@@ -42,6 +42,7 @@ class DependencyErrorTypes(Enum):
     REFERENCE_ABSOLUTE_PATH = "Reference absolute path"
     REFERENCE_PATH_NOT_EXIST = "Reference path does not exist"
     REFERENCE_HASH_NOT_EXIST = "Reference hash/delta does not exist anymore"
+    HAS_SUBDIVISIONS = "Mesh uses subdivisions"
     THIS_IS_A_PAYLOAD = (
         "There are payload(s) in your stage. Open the layer at the first line of each error "
         "and switch the payload into a reference."
@@ -633,6 +634,23 @@ class LightspeedExporterCore:
                                     f"ERROR: {prim.GetName()} has reference path that doesn't exist ----------> "
                                     f"{item.assetPath}"
                                 )
+
+                # if the prim is a mesh, check that it has normals
+                mesh_schema = UsdGeom.Mesh(prim)
+                if mesh_schema:
+                    subdiv_scheme = mesh_schema.GetSubdivisionSchemeAttr().Get()
+                    if subdiv_scheme != "none":
+                        key = f"{chk}\n             {prim.GetPath().pathString}"
+                        if not result_errors.get(DependencyErrorTypes.HAS_SUBDIVISIONS.value):
+                            result_errors[DependencyErrorTypes.HAS_SUBDIVISIONS.value] = {}
+                        result_errors[DependencyErrorTypes.HAS_SUBDIVISIONS.value][key] = (
+                            f"ERROR: subdivision setting other than `none` was found on the mesh {prim.GetName()}."
+                            f"\n               "
+                            f" Please re-export the geometry with normals. If this is an export from Maya, in the"
+                            f"\n               "
+                            f" export options, please set the `subdivision method` to `None` (under `Geometry`)."
+                        )
+
         return result_errors
 
     def _validate_write_permissions(self, export_folder):
