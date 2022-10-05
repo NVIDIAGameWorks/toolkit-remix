@@ -64,19 +64,27 @@ class AssetCaptureLocalizerCore:
         if not all_prims:
             return []
         capture_prims_dict = self.get_capture_mesh_dict()
+        regex_pattern = re.compile("^.*\/([a-zA-Z]+)_([A-Z0-9]{16})(_[0-9]+)*$")  # noqa
         for prim in all_prims:
+            if not regex_pattern.match(prim.GetPath().pathString):
+                continue
             if INSTANCE_PATH in prim.GetPath().pathString:
                 continue
             refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
-            for (ref, layer) in refs_and_layers:
-                if ref.assetPath:
-                    match = re.match(f"^{MESHES_FILE_PREFIX}(.*).usd$", os.path.basename(ref.assetPath))
-                    if match:
-                        continue
-                    capture_layer_path = "Not found"
-                    if capture_prims_dict.get(prim.GetName()):
-                        capture_layer_path = capture_prims_dict[prim.GetName()]
-                    result.append((prim, ref, layer, capture_layer_path))
+            capture_layer_path = "Not found"
+            if refs_and_layers:
+                for (ref, layer) in refs_and_layers:
+                    if ref.assetPath:
+                        match = re.match(f"^{MESHES_FILE_PREFIX}(.*).usd$", os.path.basename(ref.assetPath))
+                        if match:
+                            continue
+                        if capture_prims_dict.get(prim.GetName()):
+                            capture_layer_path = capture_prims_dict[prim.GetName()]
+                        result.append((prim, ref, layer, capture_layer_path))
+            else:
+                if capture_prims_dict.get(prim.GetName()):
+                    capture_layer_path = capture_prims_dict[prim.GetName()]
+                result.append((prim, None, None, capture_layer_path))
         return result
 
     def destroy(self):
