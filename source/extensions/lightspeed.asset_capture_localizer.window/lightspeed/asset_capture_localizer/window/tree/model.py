@@ -30,7 +30,7 @@ class Item(ui.AbstractItem):
         self.ref = ref
         self.layer = layer
         self.capture_layer_path = capture_layer_path
-        self.ref_asset_path_model = ui.SimpleStringModel(self.ref.assetPath)
+        self.ref_asset_path_model = ui.SimpleStringModel(self.ref.assetPath if self.ref else "None")
         self._nickname = None
 
     @property
@@ -66,13 +66,13 @@ class ListModel(ui.AbstractItemModel):
             if (
                 self._filter
                 and self._filter.lower() not in prim.GetPath().pathString.lower()
-                and self._filter.lower() not in ref.assetPath.lower()
+                and ((ref and self._filter.lower() not in ref.assetPath.lower()) or not ref)
                 and self._filter.lower() not in capture_layer_path.lower()
                 and self._filter.lower() not in _get_nickname(prim).lower()
             ):
                 continue
             items.append(Item(prim, ref, layer, capture_layer_path))
-        items = sorted(items, key=lambda x: x.ref.assetPath)
+        items = sorted(items, key=lambda x: x.ref.assetPath if x.ref else "None")
         self.__children = items
         self.__children_unfiltered = items
         self._item_changed(None)
@@ -83,13 +83,13 @@ class ListModel(ui.AbstractItemModel):
             if (
                 self._filter
                 and self._filter.lower() not in item.prim.GetPath().pathString.lower()
-                and self._filter.lower() not in item.ref.assetPath.lower()
+                and ((item.ref and self._filter.lower() not in item.ref.assetPath.lower()) or not item.ref)
                 and self._filter.lower() not in item.capture_layer_path.lower()
                 and self._filter.lower() not in item.nickname.lower()
             ):
                 continue
             items.append(item)
-        items = sorted(items, key=lambda x: x.ref.assetPath)
+        items = sorted(items, key=lambda x: x.ref.assetPath if x.ref else "None")
         self.__children = items
         self._item_changed(None)
 

@@ -25,7 +25,7 @@ class Delegate(ui.AbstractItemDelegate):
         if item is None:
             return
         if column_id == 0:
-            ui.Label(item.ref.assetPath)
+            ui.Label(item.ref.assetPath if item.ref else "None")
         elif column_id == 1:
             ui.Label(item.prim.GetPath().pathString)
         elif column_id == 2:
