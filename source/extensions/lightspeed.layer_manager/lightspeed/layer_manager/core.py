@@ -135,20 +135,24 @@ class LayerManagerCore:
             if result != omni.client.Result.OK:
                 carb.log_error(f"Can't create a checkpoint for file {layer.realPath}")
 
-    def save_layer_as(self, layer_type: LayerType, path: str, comment: str = None):
+    def save_layer_as(self, layer_type: LayerType, path: str, comment: str = None) -> bool:
         layer = self.get_layer(layer_type)
         if layer is None:
             carb.log_error(f'Can\'t find the layer type "{layer_type.value}" in the stage')
-            return
+            return False
         existing_layer = Sdf.Layer.FindOrOpen(path)
         if not existing_layer:
             Sdf.Layer.CreateNew(path)
-        layer.Export(path)
+        if not layer.Export(path):
+            carb.log_error(f'Failed to save layer type "{layer_type.value}" as {path}')
+            return False
         result, _ = omni.client.stat(path)
         if result == omni.client.Result.OK:
             result, _ = omni.client.create_checkpoint(path, "" if comment is None else comment, force=True)
             if result != omni.client.Result.OK:
+                # Not an error with saving, so still return True.
                 carb.log_error(f"Can't create a checkpoint for file {path}")
+        return True
 
     def get_layer(self, layer_type: LayerType) -> Optional[Sdf.Layer]:
         stage = self.__context.get_stage()

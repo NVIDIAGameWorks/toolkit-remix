@@ -24,7 +24,7 @@ from lightspeed.common import ReferenceEdit, constants
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from lightspeed.tool.octahedral_converter import LightspeedOctahedralConverter
 from omni.kit.window.popup_dialog import MessageDialog
-from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade, UsdUtils
 
 
 class LightspeedPosProcessExporter:
@@ -368,6 +368,33 @@ class LightspeedPosProcessExporter:
                 # to resolve the absolute path if the file no longer exists.
                 # os.remove(abs_path)
 
+    async def _on_processor_error(self, context, export_replacement_layer, message):
+        if export_replacement_layer is not None:
+            custom_layer_data = export_replacement_layer.get_sdf_layer().customLayerData
+            custom_layer_data[constants.EXPORT_STATUS_NAME] = constants.EXPORT_STATUS_POSTPROCESS_ERRORS
+            export_replacement_layer.get_sdf_layer().customLayerData = custom_layer_data
+
+            await context.save_stage_async()
+
+        def on_okay_clicked(dialog: MessageDialog):
+            dialog.hide()
+
+        carb.log_error(constants.BAD_EXPORT_LOG_PREFIX + message)
+
+        dialog = MessageDialog(
+            width=600,
+            message=message,
+            ok_handler=on_okay_clicked,
+            ok_label="Okay",
+            disable_cancel_button=True,
+        )
+        dialog.show()
+
+    def _file_in_folder(self, file_path, folder_path):
+        abs_file_path = os.path.abspath(file_path)
+        abs_folder_path = os.path.abspath(folder_path)
+        return abs_file_path.startswith(abs_folder_path)
+
     @omni.usd.handle_exception  # noqa C901
     async def process(self, export_file_path, progress_text_callback, progress_callback):
         carb.log_info("Processing: " + export_file_path)
@@ -378,6 +405,11 @@ class LightspeedPosProcessExporter:
         # success = context.open_stage(export_file_path)
         result, _ = await context.open_stage_async(export_file_path)
         if not result:
+            await self._on_processor_error(
+                context,
+                None,
+                f"Post Process could not open the collected stage.\nStage was expected at {export_file_path}",
+            )
             return
 
         export_stage = context.get_stage()
@@ -392,9 +424,33 @@ class LightspeedPosProcessExporter:
         # flatten all layers
         export_replacement_layer = self.__layer_manager.get_layer_instance(LayerType.replacement)
         if export_replacement_layer is None:
-            carb.log_error("Can't find the replacement layer")
+            await self._on_processor_error(context, None, "Can't find the replacement layer.")
             return
         export_replacement_layer.flatten_sublayers()
+
+        # Verify export_stage only contains references that are inside of the gameReadyAssets folder
+        game_ready_assets_folder = Path(export_file_path).parent
+        (all_layers, all_assets, unresolved_paths) = UsdUtils.ComputeAllDependencies(export_file_path)
+        for layer in all_layers:
+            if not self._file_in_folder(layer.identifier, game_ready_assets_folder):
+                await self._on_processor_error(
+                    context,
+                    export_replacement_layer,
+                    "Post Process found layer reference outside of GameReadyAssets folder.\n"
+                    + f"expected {layer.identifier} to be inside of {game_ready_assets_folder}.",
+                )
+                return
+        for asset in all_assets:
+            if not asset.endswith(".mdl") and not self._file_in_folder(asset, game_ready_assets_folder):
+                await self._on_processor_error(
+                    context,
+                    export_replacement_layer,
+                    "Post Process found asset reference outside of GameReadyAssets folder.\n"
+                    + f"expected {asset} to be inside of {game_ready_assets_folder}.",
+                )
+                return
+        if unresolved_paths:
+            carb.log_warn("Post Processing found unresolved references before running:" + str(unresolved_paths))
 
         # process meshes
         # TraverseAll because we want to grab overrides
@@ -570,30 +626,16 @@ class LightspeedPosProcessExporter:
         )
 
         if failed_processes:
-            custom_layer_data = export_replacement_layer.get_sdf_layer().customLayerData
-            custom_layer_data[constants.EXPORT_STATUS_NAME] = constants.EXPORT_STATUS_POSTPROCESS_ERRORS
-            export_replacement_layer.get_sdf_layer().customLayerData = custom_layer_data
-
-        await context.save_stage_async()
-
-        if failed_processes:
-
-            def on_okay_clicked(dialog: MessageDialog):
-                dialog.hide()
-
             message = (
                 "Prims failed to export properly.  The contents of gameReadyAssets are probably invalid."
                 "\nError details have been printed to the console."
                 "\n\nFailing prims: \n  " + ",\n  ".join(failed_processes)
             )
+            await self._on_processor_error(context, export_replacement_layer, message)
+        else:
+            custom_layer_data = export_replacement_layer.get_sdf_layer().customLayerData
+            if custom_layer_data[constants.EXPORT_STATUS_NAME] is constants.EXPORT_STATUS_INCOMPLETE_EXPORT:
+                custom_layer_data[constants.EXPORT_STATUS_NAME] = constants.EXPORT_STATUS_POSTPROCESS_ERRORS
+                export_replacement_layer.get_sdf_layer().customLayerData = custom_layer_data
 
-            carb.log_error(constants.BAD_EXPORT_LOG_PREFIX + message)
-
-            dialog = MessageDialog(
-                width=600,
-                message=message,
-                ok_handler=on_okay_clicked,
-                ok_label="Okay",
-                disable_cancel_button=True,
-            )
-            dialog.show()
+            await context.save_stage_async()

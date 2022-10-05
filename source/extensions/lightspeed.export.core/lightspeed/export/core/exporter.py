@@ -216,7 +216,7 @@ class LightspeedExporterCore:
 
         context = omni.usd.get_context(self._context_name)
         stage = context.get_stage()
-        export_status = constants.EXPORT_STATUS_RELEASE_READY
+        export_status = constants.EXPORT_STATUS_INCOMPLETE_EXPORT
         try:
             result_errors = self._validate_dependencies_exist(stage)
             if result_errors:
@@ -247,7 +247,9 @@ class LightspeedExporterCore:
         root_layer = stage.GetRootLayer()
         layer = self._layer_manager.get_layer(LayerType.replacement)
         if layer is None:
-            carb.log_error("Can't find the replacement layer")
+            message = "Export Failed: Can't find the replacement layer"
+            carb.log_error(message)
+            self._progress_text_changed(message)
             return
         usd_path = Sdf.ComputeAssetPathRelativeToLayer(root_layer, layer.realPath)
 
@@ -279,7 +281,11 @@ class LightspeedExporterCore:
         preprocessed_custom_layer_data[constants.EXPORT_STATUS_NAME] = export_status
         preprocessed_replacements.customLayerData = preprocessed_custom_layer_data
 
-        self._layer_manager.save_layer_as(LayerType.replacement, self._temp_replacements_path)
+        if not self._layer_manager.save_layer_as(LayerType.replacement, self._temp_replacements_path):
+            message = "Export Failed: failed to save pre-processed replacement layer."
+            carb.log_error(message)
+            self._progress_text_changed(message)
+            return
 
         self._progress_text_changed(f"Analyzing USD {os.path.basename(usd_path)}...")
         self._collector = Collector(self._temp_replacements_path, export_folder, False, True, False)
