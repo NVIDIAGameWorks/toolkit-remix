@@ -14,6 +14,7 @@ class LayerType(Enum):
     capture = "capture"
     replacement = "replacement"
     autoupscale = "autoupscale"
+    workfile = "workfile"
 
 
 class LayerTypeKeys(Enum):

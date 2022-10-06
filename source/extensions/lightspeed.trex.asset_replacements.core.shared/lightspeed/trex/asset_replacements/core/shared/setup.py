@@ -7,12 +7,23 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import typing
+from pathlib import Path
+from typing import List, Union
+
 import carb
 import omni.client
 import omni.usd
+from lightspeed.common import constants
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from pxr import Sdf, Usd
+from pxr import Sdf, Usd, UsdGeom
+
+if typing.TYPE_CHECKING:
+    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
+    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
+        ItemReferenceFileMesh as _ItemReferenceFileMesh,
+    )
 
 _DEFAULT_PRIM_TAG = "<Default Prim>"
 
@@ -23,6 +34,73 @@ class Setup:
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
         self._context = omni.usd.get_context(context_name)
+
+    def get_children_from_prim(self, prim, from_reference_layer_path: str = None):  # noqa PLR1710
+        def traverse_instanced_children(_prim):  # noqa R503
+            for child in _prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate):
+                if from_reference_layer_path is not None:
+                    stacks = child.GetPrimStack()
+                    if from_reference_layer_path not in [stack.layer.realPath for stack in stacks]:
+                        yield from traverse_instanced_children(child)
+                        continue
+                yield child
+                yield from traverse_instanced_children(child)
+
+        return list(traverse_instanced_children(prim))
+
+    @staticmethod
+    def prim_is_from_a_capture_reference(prim) -> bool:
+        stacks = prim.GetPrimStack()
+        if stacks:
+            for stack in stacks:
+                layer_path = Path(stack.layer.realPath)
+                if constants.CAPTURE_FOLDER in layer_path.parts and constants.MESHES_FOLDER in layer_path.parts:
+                    # this is a mesh from the capture folder
+                    return True
+        return False
+
+    def filter_xformable_prims(self, prims: List[Usd.Prim]):
+        return [prim for prim in prims if UsdGeom.Xformable(prim)]
+
+    def get_corresponding_prototype_prims(self, prims) -> List[str]:
+        """Give a list of instance prims (inst_/*), and get the corresponding prims inside the prototypes (mesh_/*)"""
+        paths = []
+        for prim in prims:
+            root_node = prim.GetPrimIndex().rootNode
+            if not root_node:
+                continue
+            children = root_node.children
+            if not children:
+                continue
+            paths.append(str(children[0].path))
+        return paths
+
+    def get_xformable_prim_from_ref_items(
+        self,
+        ref_items: List["_ItemReferenceFileMesh"],
+        parent_items: List[Union["_ItemInstanceMesh", "_ItemReferenceFileMesh"]],
+    ) -> List[Usd.Prim]:
+        """
+        Get xformables prim that comes from the reference item and are children of the parent items.
+        """
+        if not ref_items:
+            return []
+        selected_prims = [item.prim for item in parent_items]
+        if not selected_prims:
+            return []
+        # TODO: select only the first selection for now, and select the material that match the selected usd ref
+        # path
+        selected_refs = [item.ref for item in ref_items]
+        selected_layers = [item.layer for item in ref_items]
+        reference_path = omni.client.normalize_url(selected_layers[0].ComputeAbsolutePath(selected_refs[0].assetPath))
+        children_prims = self.get_children_from_prim(selected_prims[0], from_reference_layer_path=reference_path)
+        if not children_prims:
+            return []
+        # get the first xformable from the list
+        xformable_prims = self.filter_xformable_prims(children_prims)
+        if xformable_prims:
+            xformable_prims = [xformable_prims[0]]
+        return xformable_prims
 
     @staticmethod
     def switch_ref_abs_to_rel_path(stage, path):

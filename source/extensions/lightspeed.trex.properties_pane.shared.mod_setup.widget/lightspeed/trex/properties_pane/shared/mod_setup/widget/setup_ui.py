@@ -20,6 +20,7 @@ import omni.usd
 from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCoreSetup
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
+from lightspeed.trex.utils.common import ignore_function_decorator_async as _ignore_function_decorator_async
 from lightspeed.trex.utils.common import sandwich_attrs_function_decorator as _sandwich_attrs_function_decorator
 from lightspeed.trex.utils.widget import TrexMessageDialog
 from lightspeed.trex.utils.widget import create_widget_with_pattern as _create_widget_with_pattern
@@ -48,6 +49,9 @@ class ModSetupPane:
 
     DEFAULT_CAPTURE_TREE_FRAME_HEIGHT = 200
     SIZE_PERCENT_MANIPULATOR_WIDTH = 50
+
+    CAPTURE_MIN_GAME_ICON_SIZE = 48
+    CAPTURE_MAX_GAME_ICON_SIZE = 96
 
     def __init__(self, context_name: str):
         """Nvidia StageCraft Components Pane"""
@@ -95,6 +99,9 @@ class ModSetupPane:
             "_sub_capture_dir_field_begin_edit": None,
             "_sub_capture_dir_field_end_edit": None,
             "_sub_capture_dir_field_changed": None,
+            "_tree_capture_window_scroll_frame": None,
+            "_capture_loading_frame": None,
+            "_refresh_capture_detail_panel_callback_task": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -104,6 +111,7 @@ class ModSetupPane:
         self.__ignore_current_capture_layer = False
         self._capture_tree_hovered_task = None
         self._game_icon_hovered_task = None
+        self._refresh_capture_detail_panel_callback_task = None
         self._ignore_capture_tree_selection_changed = False
         self.__ignore_capture_tree_hovered = False
         self._ignore_capture_detail_refresh = False
@@ -237,11 +245,12 @@ class ModSetupPane:
         )
         self._window_capture_tree.frame.set_mouse_hovered_fn(self._on_capture_tree_hovered)
         with self._window_capture_tree.frame:
-            with ui.ScrollingFrame(
+            self._tree_capture_window_scroll_frame = ui.ScrollingFrame(
                 name="PropertiesPaneSection",
                 horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
                 scroll_y_changed_fn=self._on_scroll_y_window_capture_tree_changed,
-            ):
+            )
+            with self._tree_capture_window_scroll_frame:
                 with ui.ZStack():
                     ui.Rectangle(name="PropertiesPaneSectionWindowCaptureBackground")
                     with ui.HStack():
@@ -359,34 +368,48 @@ class ModSetupPane:
                                             with ui.Frame():
                                                 with ui.ZStack():
                                                     with ui.VStack():
-                                                        self._tree_capture_scroll_frame = ui.ScrollingFrame(
-                                                            name="PropertiesPaneSection",
-                                                            # height=ui.Pixel(self.DEFAULT_CAPTURE_TREE_FRAME_HEIGHT),
-                                                            horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,  # noqa E501
-                                                        )
-                                                        with self._tree_capture_scroll_frame:
-                                                            self._capture_tree_view = ui.TreeView(
-                                                                self._capture_tree_model,
-                                                                delegate=self._capture_tree_delegate,
-                                                                root_visible=False,
-                                                                header_visible=False,
-                                                                columns_resizable=False,
-                                                                mouse_hovered_fn=self._on_capture_tree_hovered,
+                                                        with ui.ZStack():
+                                                            self._tree_capture_scroll_frame = ui.ScrollingFrame(
+                                                                name="PropertiesPaneSection",
+                                                                # height=ui.Pixel(self.DEFAULT_CAPTURE_TREE_FRAME_HEIGHT),
+                                                                horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,  # noqa E501
                                                             )
-                                                        self._tree_capture_scroll_frame.set_build_fn(
-                                                            functools.partial(
-                                                                self._resize_capture_tree_columns,
-                                                                self._capture_tree_view,
-                                                                self._tree_capture_scroll_frame,
+                                                            with self._tree_capture_scroll_frame:
+                                                                self._capture_tree_view = ui.TreeView(
+                                                                    self._capture_tree_model,
+                                                                    delegate=self._capture_tree_delegate,
+                                                                    root_visible=False,
+                                                                    header_visible=False,
+                                                                    columns_resizable=False,
+                                                                    mouse_hovered_fn=self._on_capture_tree_hovered,
+                                                                )
+                                                            self._tree_capture_scroll_frame.set_build_fn(
+                                                                functools.partial(
+                                                                    self._resize_capture_tree_columns,
+                                                                    self._capture_tree_view,
+                                                                    self._tree_capture_scroll_frame,
+                                                                )
                                                             )
-                                                        )
-                                                        self._tree_capture_scroll_frame.set_computed_content_size_changed_fn(  # noqa E501
-                                                            functools.partial(
-                                                                self._resize_capture_tree_columns,
-                                                                self._capture_tree_view,
-                                                                self._tree_capture_scroll_frame,
+                                                            self._tree_capture_scroll_frame.set_computed_content_size_changed_fn(  # noqa E501
+                                                                functools.partial(
+                                                                    self._resize_capture_tree_columns,
+                                                                    self._capture_tree_view,
+                                                                    self._tree_capture_scroll_frame,
+                                                                )
                                                             )
-                                                        )
+
+                                                            self._capture_loading_frame = ui.Frame(
+                                                                visible=False, separate_window=True
+                                                            )
+                                                            with self._capture_loading_frame:
+                                                                with ui.ZStack():
+                                                                    ui.Rectangle(
+                                                                        name="PropertiesPaneSectionWindowCaptureBackground"  # noqa
+                                                                    )
+                                                                    ui.Label(
+                                                                        "Loading...", alignment=ui.Alignment.CENTER
+                                                                    )
+
                                                         ui.Spacer(height=ui.Pixel(8))
                                                         ui.Line(name="PropertiesPaneSectionTitle")
                                                         ui.Spacer(height=ui.Pixel(8))
@@ -568,44 +591,21 @@ class ModSetupPane:
                 ui.Spacer(height=ui.Pixel(8))
                 self._mod_detail_property_widget = _PropertyWidget(self._mod_details_model, self._mod_details_delegate)
 
+    def __unselect_capture_items(self):
+        self.__ignore_import_capture_layer = True
+        self._capture_tree_view_window.selection = []
+        self._capture_tree_view.selection = self._capture_tree_view_window.selection
+        self.__ignore_import_capture_layer = False
+
+    def __show_capture_loading_frames(self, value):
+        if self._capture_loading_frame:
+            self._capture_loading_frame.visible = value
+
     @_ignore_function_decorator(attrs=["_ignore_capture_detail_refresh"])
     def refresh_capture_detail_panel(self):
         """
         Refresh the panel with the given paths
         """
-        min_game_icon_size = 48
-        max_game_icon_size = 96
-
-        def set_game_icon(widget, image_path):
-            widget.source_url = image_path
-
-        @omni.usd.handle_exception
-        async def deferred_on_game_icon_hovered(widget, hovered):
-            current_size = widget.computed_width
-            final_size = current_size
-            if hovered:
-                while final_size <= max_game_icon_size:
-                    await asyncio.sleep(0.04)
-                    final_size += 10
-                    widget.width = ui.Pixel(final_size)
-                    widget.height = ui.Pixel(final_size)
-            else:
-                while final_size >= min_game_icon_size:
-                    await asyncio.sleep(0.04)
-                    final_size -= 10
-                    widget.width = ui.Pixel(final_size)
-                    widget.height = ui.Pixel(final_size)
-
-        def on_game_icon_hovered(widget, hovered):
-            if self._game_icon_hovered_task:
-                self._game_icon_hovered_task.cancel()
-            self._game_icon_hovered_task = asyncio.ensure_future(deferred_on_game_icon_hovered(widget, hovered))
-
-        def unselect_items():
-            self.__ignore_import_capture_layer = True
-            self._capture_tree_view_window.selection = []
-            self._capture_tree_view.selection = self._capture_tree_view_window.selection
-            self.__ignore_import_capture_layer = False
 
         if not self._root_frame.visible:
             return
@@ -626,20 +626,58 @@ class ModSetupPane:
             value = os.path.dirname(omni.client.normalize_url(capture_layer.realPath))
         capture_dir = value if value.strip() else None
         if not capture_dir or not self._core_capture.is_path_valid(capture_dir):
-            unselect_items()
+            self.__unselect_capture_items()
             return
 
         self.set_capture_dir_field(capture_dir)
-        self._capture_tree_model.refresh(
-            [(path, self._core_capture.get_capture_image(path)) for path in self._core_capture.capture_files]
-        )
+
         if not self._capture_manipulator_frame.visible:
             self._capture_manipulator_frame.visible = True
             self._tree_capture_scroll_frame.height = ui.Pixel(self.DEFAULT_CAPTURE_TREE_FRAME_HEIGHT)
+        self.__show_capture_loading_frames(True)
+
+        if self._refresh_capture_detail_panel_callback_task:
+            self._refresh_capture_detail_panel_callback_task.cancel()
+        self._refresh_capture_detail_panel_callback_task = asyncio.ensure_future(
+            self._core_capture.deferred_get_capture_files(
+                functools.partial(self.__refresh_capture_detail_panel_callback, capture_layer)
+            )
+        )
+
+    @omni.usd.handle_exception
+    @_ignore_function_decorator_async(attrs=["_ignore_capture_detail_refresh"])
+    async def __refresh_capture_detail_panel_callback(self, capture_layer, capture_files):
+        def set_game_icon(widget, image_path):
+            widget.source_url = image_path
+
+        @omni.usd.handle_exception
+        async def deferred_on_game_icon_hovered(widget, hovered):
+            current_size = widget.computed_width
+            final_size = current_size
+            if hovered:
+                while final_size <= self.CAPTURE_MAX_GAME_ICON_SIZE:
+                    await asyncio.sleep(0.04)
+                    final_size += 10
+                    widget.width = ui.Pixel(final_size)
+                    widget.height = ui.Pixel(final_size)
+            else:
+                while final_size >= self.CAPTURE_MIN_GAME_ICON_SIZE:
+                    await asyncio.sleep(0.04)
+                    final_size -= 10
+                    widget.width = ui.Pixel(final_size)
+                    widget.height = ui.Pixel(final_size)
+
+        def on_game_icon_hovered(widget, hovered):
+            if self._game_icon_hovered_task:
+                self._game_icon_hovered_task.cancel()
+            self._game_icon_hovered_task = asyncio.ensure_future(deferred_on_game_icon_hovered(widget, hovered))
+
+        self.__show_capture_loading_frames(False)
+        self._capture_tree_model.refresh([(path, self._core_capture.get_capture_image(path)) for path in capture_files])
 
         # check if there is current capture layer
         if capture_layer is None:
-            unselect_items()
+            self.__unselect_capture_items()
             return
         capture_path = omni.client.normalize_url(capture_layer.realPath)
 
@@ -649,11 +687,12 @@ class ModSetupPane:
                 self.__ignore_import_capture_layer = True
                 self._capture_tree_view_window.selection = [item]
                 self._capture_tree_view.selection = self._capture_tree_view_window.selection
+                await self.deferred_scroll_to_the_capture_item(item)
                 self.__ignore_import_capture_layer = False
                 found_current_layer = True
                 break
         if not found_current_layer:
-            unselect_items()
+            self.__unselect_capture_items()
 
         items = []
         for attr in [attr for attr in dir(omni.client.ListEntry) if not attr.startswith("_")]:
@@ -667,14 +706,12 @@ class ModSetupPane:
         with self._capture_details_frame:
             with ui.VStack():
                 ui.Spacer(height=ui.Pixel(8))
-                with ui.HStack(height=ui.Pixel(min_game_icon_size)):
+                with ui.HStack(height=ui.Pixel(self.CAPTURE_MIN_GAME_ICON_SIZE)):
                     with ui.HStack(width=ui.Percent(40)):
                         ui.Spacer()
-                        game_icon_widget = ui.Image("", width=ui.Pixel(min_game_icon_size))
-                        asyncio.ensure_future(
-                            self._core_capture.deferred_get_upscaled_game_icon_from_folder(
-                                os.path.dirname(capture_path), functools.partial(set_game_icon, game_icon_widget)
-                            )
+                        game_icon_widget = ui.Image("", width=ui.Pixel(self.CAPTURE_MIN_GAME_ICON_SIZE))
+                        await self._core_capture.deferred_get_upscaled_game_icon_from_folder(
+                            os.path.dirname(capture_path), functools.partial(set_game_icon, game_icon_widget)
                         )
                         game_icon_widget.set_mouse_hovered_fn(functools.partial(on_game_icon_hovered, game_icon_widget))
                     with ui.VStack():
@@ -688,6 +725,21 @@ class ModSetupPane:
                 self._capture_detail_property_widget = _PropertyWidget(
                     self._capture_details_model, self._capture_details_delegate
                 )
+
+    @omni.usd.handle_exception
+    async def deferred_scroll_to_the_capture_item(self, item):
+        for _ in range(3):
+            await omni.kit.app.get_app().next_update_async()
+        items = self._capture_tree_model.get_item_children(None)
+        delta_scroll = self._tree_capture_scroll_frame.scroll_y_max / (len(items)) + 1
+        if item in items:
+            idx_item = items.index(item)
+            value = delta_scroll * idx_item
+            if self._tree_capture_window_scroll_frame:
+                # moving the scroll frame of the window will move the regular scroll frame
+                self._tree_capture_window_scroll_frame.scroll_y = value
+            else:
+                self._tree_capture_scroll_frame.scroll_y = value
 
     @_ignore_function_decorator(attrs=["_ignore_capture_tree_selection_changed"])
     def _on_capture_tree_selection_changed(self, items):
@@ -705,6 +757,9 @@ class ModSetupPane:
         mouse = app_window.get_mouse()
         mouse_value = iinput.get_mouse_value(mouse, carb.input.MouseInput.LEFT_BUTTON)
         if mouse_value:
+            return
+
+        if self._capture_loading_frame.visible:
             return
 
         if self._window_capture_tree is None:
@@ -738,15 +793,19 @@ class ModSetupPane:
                 final_value_h = size[1] - self._tree_capture_scroll_frame.screen_position_y - 8
             self._window_capture_tree.height = ui.Pixel(final_value_h + 8)
             self._window_capture_tree.width = ui.Pixel(self._tree_capture_scroll_frame.computed_width + 24)
+            scroll_y_value = int(self._tree_capture_scroll_frame.scroll_y)
             for _ in range(2):  # 2 frame to have the scroll frame appear
                 await omni.kit.app.get_app().next_update_async()  # wait the window to appear
+            self._tree_capture_window_scroll_frame.scroll_y = scroll_y_value
+
             item_path_scroll_frames = self._capture_tree_delegate_window.get_path_scroll_frames()
-            value = max(frame.scroll_x_max for frame in item_path_scroll_frames.values())
-            if value != 0:  # no scroll max = we see everything
-                final_value_w = self._window_capture_tree.width + value
-                if final_value_w > size[0] - self._tree_capture_scroll_frame.screen_position_x - 8:
-                    final_value_w = size[0] - self._tree_capture_scroll_frame.screen_position_x - 8
-                self._window_capture_tree.width = ui.Pixel(final_value_w + 16)
+            if item_path_scroll_frames:
+                value = max(frame.scroll_x_max for frame in item_path_scroll_frames.values())
+                if value != 0:  # no scroll max = we see everything
+                    final_value_w = self._window_capture_tree.width + value
+                    if final_value_w > size[0] - self._tree_capture_scroll_frame.screen_position_x - 8:
+                        final_value_w = size[0] - self._tree_capture_scroll_frame.screen_position_x - 8
+                    self._window_capture_tree.width = ui.Pixel(final_value_w + 16)
             self.__ignore_capture_tree_hovered = False
         elif (
             self._window_capture_tree.visible
@@ -820,6 +879,10 @@ class ModSetupPane:
     def _destroy_capture_properties(self):
         if self.__file_listener_instance and self._capture_details_model and self._capture_details_delegate:
             self.__file_listener_instance.remove_model(self._capture_details_model)
+        if self._capture_tree_hovered_task:
+            self._capture_tree_hovered_task.cancel()
+        if self._refresh_capture_detail_panel_callback_task:
+            self._refresh_capture_detail_panel_callback_task.cancel()
 
     def _destroy_mod_properties(self):
         if self.__file_listener_instance and self._mod_details_model and self._mod_details_delegate:
@@ -837,6 +900,8 @@ class ModSetupPane:
     def destroy(self):
         if self._capture_tree_hovered_task:
             self._capture_tree_hovered_task.cancel()
+        if self._refresh_capture_detail_panel_callback_task:
+            self._refresh_capture_detail_panel_callback_task.cancel()
         self._destroy_mod_properties()
         self._destroy_capture_properties()
         _reset_default_attrs(self)

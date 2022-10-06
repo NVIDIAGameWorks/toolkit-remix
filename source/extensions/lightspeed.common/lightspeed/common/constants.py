@@ -20,8 +20,12 @@ ROOTNODE_LOOKS = ROOTNODE + "/Looks"
 ROOTNODE_INSTANCES = ROOTNODE + "/instances"
 ROOTNODE_MESHES = ROOTNODE + "/meshes"
 ROOTNODE_LIGHTS = ROOTNODE + "/lights"
-INSTANCE_PATH = ROOTNODE_INSTANCES + "/inst_"
-MESH_PATH = ROOTNODE_MESHES + "/mesh_"
+LIGHT_NAME_PREFIX = "light_"
+LIGHT_PATH = ROOTNODE_LIGHTS + "/" + LIGHT_NAME_PREFIX
+INSTANCE_NAME_PREFIX = "inst_"
+INSTANCE_PATH = ROOTNODE_INSTANCES + "/" + INSTANCE_NAME_PREFIX
+MESH_NAME_PREFIX = "mesh_"
+MESH_PATH = ROOTNODE_MESHES + "/" + MESH_NAME_PREFIX
 SHADER = "Shader"
 MATERIAL = "Material"
 SCOPE = "Scope"
@@ -46,6 +50,13 @@ PIX2PIX_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "pytorch-CycleGA
 PIX2PIX_TEST_SCRIPT_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("test.py"))
 PIX2PIX_CHECKPOINTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("checkpoints"))
 PIX2PIX_RESULTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("results"))
+
+REGEX_INSTANCE_PATH = f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
+REGEX_LIGHT_PATH = f"^(.*)({LIGHT_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
+REGEX_SUB_INSTANCE_PATH = (
+    f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_]+)*$"  # noqa
+)
+REGEX_SUB_LIGHT_PATH = f"^(.*)({LIGHT_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa
 
 BAD_EXPORT_LOG_PREFIX = "Export is not release ready: "
 EXPORT_STATUS_NAME = "remix_replacement_status"

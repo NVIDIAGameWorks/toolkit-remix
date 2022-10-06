@@ -293,6 +293,7 @@ current_dict.update(
         "Label::MenuBurgerHotkey": {"color": _WHITE_60, "font_size": 12},
         "Label::WelcomePadFooter": {"color": _WHITE_100, "font_size": 18},
         "Line::PropertiesPaneSectionTitle": {"color": _WHITE_20, "border_width": 1},
+        "Line::PropertiesPaneSectionSeparator": {"color": _WHITE_10, "border_width": 1},
         "Line::WelcomePadTop": {"color": _WHITE_20, "border_width": 1},
         "MenuBurger": {
             "background_color": _DARK_85,

@@ -7,6 +7,10 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import concurrent.futures
+import math
+import multiprocessing
+import os
 import re
 import typing
 from typing import Dict, List, Optional, Tuple, Type, Union
@@ -16,11 +20,12 @@ import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from pxr import Usd
 
 from .listener import USDListener as _USDListener
 
 if typing.TYPE_CHECKING:
-    from pxr import Sdf, Usd
+    from pxr import Sdf
 
 HEADER_DICT = {0: "Path"}
 
@@ -149,50 +154,90 @@ class ListModel(ui.AbstractItemModel):
             if self._ignore_refresh:
                 self._ignore_refresh = False
 
-    def __get_mesh_from_path(self, path) -> Optional[str]:
-        if path.startswith(constants.MESH_PATH):
+    def __get_prototype_from_path(self, path) -> Optional[str]:
+        if path.startswith(constants.MESH_PATH) or path.startswith(constants.LIGHT_PATH):
             return path
         prim = self.stage.GetPrimAtPath(path)
         if not prim.IsValid():
             return None
         refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
         for (ref, _) in refs_and_layers:
-            if not ref.assetPath and str(ref.primPath).startswith(constants.MESH_PATH):
+            if not ref.assetPath and (
+                str(ref.primPath).startswith(constants.MESH_PATH) or str(ref.primPath).startswith(constants.LIGHT_PATH)
+            ):
                 return str(ref.primPath)
         return None
 
     @staticmethod
-    def __get_reference_prims(prim) -> List["Sdf.Path"]:
-        prim_paths = []
-        for prim_spec in prim.GetPrimStack():
-            items = prim_spec.referenceList.prependedItems
-            for item in items:
-                if item.primPath:
-                    prim_paths.append(item.primPath)
+    def __get_reference_prims(prims) -> Dict["Usd.Prim", List["Sdf.Path"]]:
+        prim_paths = {}
+        for prim in prims:
+            for prim_spec in prim.GetPrimStack():
+                items = prim_spec.referenceList.prependedItems
+                for item in items:
+                    if item.primPath:
+                        if prim in prim_paths:
+                            prim_paths[prim].append(item.primPath)
+                        else:
+                            prim_paths[prim] = [item.primPath]
 
         return prim_paths
 
-    def __get_instances_by_mesh(self) -> Dict["Sdf.Path", List["Usd.Prim"]]:
-        result = {}
+    def __get_instances_by_mesh(self, paths: List[str]) -> Dict["Sdf.Path", List["Usd.Prim"]]:
         if not self.stage:
-            return result
-        iterator = iter(self.stage.TraverseAll())
-        for prim in iterator:
-            ref = self.__get_reference_prims(prim)
-            if ref and ref[0] == prim.GetPath():
+            return {}
+
+        iterator = list(iter(Usd.PrimRange.Stage(self.stage, Usd.PrimIsActive & Usd.PrimIsDefined & Usd.PrimIsLoaded)))
+
+        # extract hashes from paths
+        hashes = set()
+        regex_inst_pattern = re.compile(constants.REGEX_INSTANCE_PATH)
+        for path in paths:
+            match = regex_inst_pattern.match(os.path.basename(path))
+            if not match:
                 continue
-            if ref and ref[0] in result and prim not in result[ref[0]]:
-                result[ref[0]].append(prim)
-            elif ref and ref[0] not in result:
-                result[ref[0]] = [prim]
+            hashes.add(match.groups()[2])
+
+        result = {}
+        futures = []
+        cpu_count = multiprocessing.cpu_count()
+        # we can use threadpool here because we are just reading the stage
+        # Use exact number of cpu count as max worker: this is faster that letting Python doing it
+        # Divide the iter by group that fit the  max worker
+        with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_count) as executor:
+            to_send = []
+            size_iter = len(iterator)
+            group_size = math.ceil(size_iter / cpu_count)
+            for i, prim in enumerate(iterator):
+                match = regex_inst_pattern.match(prim.GetName())
+                if not match or match.groups()[2] not in hashes:
+                    if i == size_iter - 1 and to_send:
+                        futures.append(executor.submit(self.__get_reference_prims, to_send))
+                    continue
+                if i == size_iter - 1 and to_send:
+                    futures.append(executor.submit(self.__get_reference_prims, to_send))
+                    continue
+                to_send.append(prim)
+                if len(to_send) == group_size:
+                    futures.append(executor.submit(self.__get_reference_prims, to_send))
+                    to_send = []
+
+            for future in concurrent.futures.as_completed(futures):
+                refs = future.result()
+                for prim, ref in refs.items():
+                    if ref and ref[0] == prim.GetPath():
+                        continue
+                    if ref and ref[0] in result and prim not in result[ref[0]]:
+                        result[ref[0]].append(prim)
+                    elif ref and ref[0] not in result:
+                        result[ref[0]] = [prim]
         return result
 
-    def select_instance_prim_from_selected_items(self, items):
-        result = [str(item.prim.GetPath()) for item in items if isinstance(item, ItemInstanceMesh)]
+    def select_prim_paths(self, paths: List[Union[str]]):
         current_selection = self._context.get_selection().get_selected_prim_paths()
-        if sorted(result) != sorted(current_selection):
+        if sorted(paths) != sorted(current_selection):
             self._ignore_refresh = True
-            self._context.get_selection().set_selected_prim_paths(result, True)
+            self._context.get_selection().set_selected_prim_paths(paths, True)
 
     @_ignore_function_decorator(attrs=["_ignore_refresh"])
     def refresh(self):
@@ -217,11 +262,18 @@ class ListModel(ui.AbstractItemModel):
         if self.stage:
             paths = self._context.get_selection().get_selected_prim_paths()
             if paths:
-                instances_data = self.__get_instances_by_mesh()
+                regex_sub_inst_pattern = re.compile(constants.REGEX_SUB_INSTANCE_PATH)
+                # if a sub instance is selected, select the instance
+                for path in paths[:]:
+                    match = regex_sub_inst_pattern.match(path)
+                    if not match:
+                        continue
+                    paths.append(os.path.dirname(path))
+                instances_data = self.__get_instances_by_mesh(paths)
                 meshes = []
                 for path in paths:
                     # first, we try to find the mesh_ from the selection
-                    mesh = self.__get_mesh_from_path(path)
+                    mesh = self.__get_prototype_from_path(path)
                     if not mesh or mesh in meshes:
                         continue
                     meshes.append(mesh)

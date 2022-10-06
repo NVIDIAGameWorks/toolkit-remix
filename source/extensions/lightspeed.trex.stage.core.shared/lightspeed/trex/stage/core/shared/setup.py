@@ -13,6 +13,7 @@ from typing import Callable
 import omni.kit.window.file
 import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
+from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.layer_manager.layer_types import LayerType
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
@@ -49,14 +50,17 @@ class Setup:
     async def _deferred_startup(self, context):
         """Or crash"""
         await omni.kit.app.get_app_interface().next_update_async()
-        # TODO, TMP
-        from pxr import Gf, UsdGeom  # noqa PLC0415
-
         await context.new_stage_async()
         await omni.kit.app.get_app_interface().next_update_async()
         stage = context.get_stage()
         while (context.get_stage_state() in [omni.usd.StageState.OPENING, omni.usd.StageState.CLOSING]) or not stage:
             await asyncio.sleep(0.1)
+        # set some metadata
+        root_layer = stage.GetRootLayer()
+        self._layer_manager.set_custom_data_layer_type(root_layer, _LayerType.workfile)
+
+        # TODO, TMP
+        from pxr import Gf, UsdGeom  # noqa PLC0415
 
         # set the camera
         camera = stage.GetPrimAtPath("/OmniverseKit_Persp")

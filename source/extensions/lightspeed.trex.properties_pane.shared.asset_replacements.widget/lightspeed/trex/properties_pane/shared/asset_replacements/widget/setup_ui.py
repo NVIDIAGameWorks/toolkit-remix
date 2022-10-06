@@ -81,7 +81,7 @@ class AssetReplacementsPane:
                             ui.Spacer(height=ui.Pixel(16))
 
                             self._mesh_properties_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
-                                "MESH PROPERTIES",
+                                "OBJECT PROPERTIES",
                                 info_text="Mesh properties of the selected mesh(es)",
                                 collapsed=False,
                             )

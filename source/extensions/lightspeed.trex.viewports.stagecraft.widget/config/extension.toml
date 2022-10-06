@@ -6,7 +6,6 @@ description = "Viewports implementation for Lightspeed Trex StageCraft App"
 [dependencies]
 "lightspeed.trex.viewports.manipulators" = {}
 "omni.kit.manipulator.camera" = {}
-"omni.kit.manipulator.prim" = {}
 "omni.kit.widget.viewport" = {}
 "omni.flux.utils.common" = {}
 "omni.ui" = {}

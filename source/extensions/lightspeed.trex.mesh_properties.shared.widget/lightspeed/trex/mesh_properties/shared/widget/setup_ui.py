@@ -20,6 +20,7 @@ from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
     ItemReferenceFileMesh as _ItemReferenceFileMesh,
 )
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
+from omni.flux.properties_pane.transformation.usd.widget import TransformPropertyWidget as _TransformPropertyWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.flux.utils.widget.label import create_label_with_font as _create_label_with_font
@@ -63,10 +64,12 @@ class SetupUI:
             "_sub_mesh_ref_field_end_edit": None,
             "_sub_mesh_ref_prim_field_begin_edit": None,
             "_sub_mesh_ref_prim_field_end_edit": None,
+            "_transformation_widget": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
+        self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
         self._core = _AssetReplacementsCore(context_name)
         self._mesh_properties_frames = {}
@@ -186,6 +189,13 @@ class SetupUI:
                                     ui.Spacer(width=ui.Pixel(8))
                                     self._mesh_ref_default_prim_label = ui.Label("Use default prim instead", width=0)
 
+                    ui.Spacer(height=ui.Pixel(8))
+                    with ui.HStack(height=1):
+                        ui.Spacer(width=ui.Pixel(100))
+                        ui.Line(name="PropertiesPaneSectionSeparator")
+                    ui.Spacer(height=ui.Pixel(8))
+                    self._transformation_widget = _TransformPropertyWidget(self._context_name)
+
     def refresh(
         self,
         items: List[
@@ -217,6 +227,11 @@ class SetupUI:
             self.set_ref_mesh_field(self._current_reference_file_mesh_items[-1].path)
             self._only_read_mesh_ref = False
 
+            # refresh of the transform
+            ref_items = [item for item in items if isinstance(item, _ItemReferenceFileMesh)]
+            xformable_prims = self._core.get_xformable_prim_from_ref_items(ref_items, ref_items)
+            self._transformation_widget.refresh([xformable_prim.GetPath() for xformable_prim in xformable_prims])
+
     def _on_ref_mesh_dir_pressed(self, button):
         if button != 0:
             return
@@ -247,7 +262,7 @@ class SetupUI:
             lambda *args: None,
             current_file=navigate_to,
             fallback=fallback,
-            extensions=[".usd", ".usda", ".usdc"],
+            file_extension_options=[("*.usd*", omni.usd.readable_usd_file_exts_str())],
         )
 
     def _on_mesh_ref_field_begin(self, _model):

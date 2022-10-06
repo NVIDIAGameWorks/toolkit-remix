@@ -7,18 +7,13 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import typing
-
 import omni.usd
 from omni.kit.manipulator.selection import SelectionManipulator, SelectionMode
 
 from .i_manipulator import IManipulator
 
-if typing.TYPE_CHECKING:
-    from omni.kit.widget.viewport.api import ViewportAPI
 
-
-class _Setup(IManipulator):
+class SelectionDefault(IManipulator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__selection_args = None
@@ -79,7 +74,3 @@ class _Setup(IManipulator):
 
     def destroy(self):
         pass
-
-
-def create_manipulator(viewport_api: "ViewportAPI"):
-    return _Setup(viewport_api)

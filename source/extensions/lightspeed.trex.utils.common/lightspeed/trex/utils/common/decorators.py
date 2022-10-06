@@ -38,6 +38,33 @@ def ignore_function_decorator(attrs: List[str] = None):
     return decorator
 
 
+def ignore_function_decorator_async(attrs: List[str] = None):
+    """
+    This decorator will break the infinite loop if a function calls itself
+
+    Args:
+        attrs:  list of attributes
+
+    Returns:
+
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(self, *args, **kwargs):
+            for attr in attrs:
+                if getattr(self, attr):
+                    return
+                setattr(self, attr, True)
+            await func(self, *args, **kwargs)
+            for attr in attrs:
+                setattr(self, attr, False)
+
+        return wrapper
+
+    return decorator
+
+
 def ignore_function_decorator_and_reset_value(attrs: Dict[str, bool] = None):
     """
     This decorator will break the infinite loop if a function calls itself

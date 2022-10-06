@@ -120,6 +120,7 @@ class SetupUI:
                 found = True
         if not found:
             self._material_properties_frames[None].visible = True
+        self._material_properties_widget.show(found)  # to disable the listener
 
         if found:
             # we select the material

@@ -8,7 +8,6 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import asyncio
-import concurrent.futures
 import contextlib
 import functools
 from pathlib import Path
@@ -155,24 +154,27 @@ class Setup:
             return False
         return True
 
-    @property
-    def capture_files(self) -> List[str]:
+    @omni.usd.handle_exception
+    async def deferred_get_capture_files(self, callback):  # noqa PLW0238
+        wrapped_fn = _async_wrap(self.get_capture_files)
+        result = await wrapped_fn()
+        await callback(result)
+
+    def get_capture_files(self) -> List[str]:
         def _get_files(_file):
-            return _file, _file.is_file() and _file.suffix in [".usd", ".usda", ".usdc"] and self.is_capture_file(
-                str(_file)
-            )
+            return _file.is_file() and _file.suffix in [".usd", ".usda", ".usdc"] and self.is_capture_file(str(_file))
 
         if not self._check_directory():
             return []
 
-        result = []
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_url = [executor.submit(_get_files, file) for file in Path(self.__directory).iterdir()]
-            for future in concurrent.futures.as_completed(future_to_url):
-                file, is_valid = future.result()
-                if is_valid:
-                    result.append(str(file))
+        result = [str(path) for path in Path(self.__directory).iterdir() if _get_files(path)]
 
+        # It will deadlock
+        # result = []
+        # with concurrent.futures.ThreadPoolExecutor() as executor:
+        #     for file, is_valid in executor.map(_get_files, Path(self.__directory).iterdir()):
+        #         if is_valid:
+        #             result.append(str(file))
         return sorted(result, reverse=True)
 
     def get_capture_image(self, path: str) -> Optional[str]:

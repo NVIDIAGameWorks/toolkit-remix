@@ -18,6 +18,7 @@ import omni.kit.app
 import omni.ui as ui
 import omni.usd
 from lightspeed.event.save_recent.recent_saved_file_utils import RecentSavedFile as _RecentSavedFile
+from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.trex.components_pane.stagecraft.controller import SetupUI as ComponentsPaneSetupUI
 from lightspeed.trex.components_pane.stagecraft.models import EnumItems as ComponentsEnumItems
 from lightspeed.trex.contexts import get_instance as trex_contexts_instance
@@ -57,6 +58,7 @@ class SetupUI(TrexLayout):
         self._all_frames = []
         self._background_images = []
         self.__background_switcher_task = None
+        self.__enable_items_task = None
         appwindow_stream = omni.appwindow.get_default_app_window().get_window_resize_event_stream()
         self._subcription_app_window_size_changed = appwindow_stream.create_subscription_to_pop(
             self._on_app_window_size_changed, name="On app window resized", order=0
@@ -64,13 +66,14 @@ class SetupUI(TrexLayout):
 
         self._context_name = TrexContexts.STAGE_CRAFT.value
         self._context = trex_contexts_instance().get_context(TrexContexts.STAGE_CRAFT)
+        self._layer_manager = _LayerManagerCore(context_name=self._context_name)
         self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
             self.__on_stage_event, name="StageChanged"
         )
 
         self._welcome_pads_new_model = WelcomePadModel()
         self._welcome_resume_item = ResumeWorkFileItem(self._resume_work_file_clicked)
-        self._welcome_resume_item.enabled = bool(self._context.get_stage())  # TODO to remove, dev only.
+        self._welcome_resume_item.enabled = self.enable_welcome_resume_item()
         self._welcome_pads_new_model.add_items(
             [self._welcome_resume_item, NewWorkFileItem(self._new_work_file_clicked)]
         )
@@ -87,18 +90,38 @@ class SetupUI(TrexLayout):
         self._on_resume_work_file_clicked = _Event()
         self.__on_import_capture_layer = _Event()
 
+    def enable_welcome_resume_item(self) -> bool:
+        current_stage = self._context.get_stage()
+        if current_stage:
+            # enable when a stage from disk is opened
+            if not bool(current_stage.GetRootLayer().anonymous):
+                return True
+            # check if the custom data is here
+            root_layer = current_stage.GetRootLayer()
+            if root_layer:
+                return bool(self._layer_manager.get_custom_data_layer_type(root_layer))
+        return False
+
     def __on_stage_event(self, event):
         if event.type in [
             int(omni.usd.StageEventType.CLOSED),
             int(omni.usd.StageEventType.OPENED),
             int(omni.usd.StageEventType.SAVED),
         ]:
-            stage = self._context.get_stage()
-            have_disk_stage = False
-            if stage:
-                have_disk_stage = not bool(stage.GetRootLayer().anonymous)
-            self._welcome_pads_new_model.enable_items([self._welcome_resume_item], have_disk_stage)
+            if self.__enable_items_task:
+                self.__enable_items_task.cancel()
+            self.__enable_items_task = asyncio.ensure_future(self.__deferred_enable_items())
             self._components_pane.refresh()
+
+    @omni.usd.handle_exception
+    async def __deferred_enable_items(self):
+        stage = self._context.get_stage()
+        while (
+            self._context.get_stage_state() in [omni.usd.StageState.OPENING, omni.usd.StageState.CLOSING]
+        ) or not stage:
+            await asyncio.sleep(0.1)
+        await omni.kit.app.get_app_interface().next_update_async()
+        self._welcome_pads_new_model.enable_items([self._welcome_resume_item], self.enable_welcome_resume_item())
 
     def _import_replacement_layer(self, path, use_existing_layer):
         """Call the event object that has the list of functions"""
@@ -190,6 +213,7 @@ class SetupUI(TrexLayout):
                 "_recent_saved_file": None,
                 "_welcome_pad_widget_recent": None,
                 "_sub_stage_event": None,
+                "_layer_manager": None,
             }
         )
         return default_attr
@@ -466,6 +490,9 @@ class SetupUI(TrexLayout):
         self._properties_pane.show_panel(title=selection[0].title)
 
     def destroy(self):
+        if self.__enable_items_task:
+            self.__enable_items_task.cancel()
+        self.__enable_items_task = None
         if self.__background_switcher_task:
             self.__background_switcher_task.cancel()
         self.__background_switcher_task = None

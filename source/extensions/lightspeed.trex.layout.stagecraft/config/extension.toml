@@ -5,6 +5,7 @@ description = "Layout for Lightspeed Trex StageCraft App"
 
 [dependencies]
 "lightspeed.event.save_recent" = {}
+"lightspeed.layer_manager" = {}
 "lightspeed.trex.contexts" = {}
 "lightspeed.trex.components_pane.stagecraft.controller" = {}
 "lightspeed.trex.components_pane.stagecraft.models" = {}

@@ -167,6 +167,17 @@ class LayerManagerCore:
     def get_custom_data(layer: Sdf.Layer) -> Dict[str, str]:
         return layer.customLayerData
 
+    @staticmethod
+    def set_custom_data_layer_type(layer: Sdf.Layer, layer_type: LayerType):
+        custom_layer_data = layer.customLayerData
+        custom_layer_data.update({LayerTypeKeys.layer_type.value: layer_type.value})
+        layer.customLayerData = custom_layer_data
+        return layer.customLayerData
+
+    @staticmethod
+    def get_custom_data_layer_type(layer: Sdf.Layer):
+        return layer.customLayerData.get(LayerTypeKeys.layer_type.value)
+
     def set_edit_target_layer(self, layer_type: LayerType, force_layer_identifier: str = None, do_undo=True):
         if do_undo:
             omni.kit.undo.begin_group()

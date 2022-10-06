@@ -9,12 +9,15 @@
 """
 import asyncio
 import functools
+import os
+import re
 import typing
-from typing import Callable, List, Union
+from typing import Any, Callable, List, Union
 
 import carb
 import omni.ui as ui
 import omni.usd
+from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common import Event as _Event
@@ -105,7 +108,7 @@ class SetupUI:
                     ]
                 ]
             ],
-            None,
+            Any,
         ],
     ):
         """
@@ -206,6 +209,12 @@ class SetupUI:
         if not self._tree_model:
             return
         stage_selection = self._context.get_selection().get_selected_prim_paths()
+        # is a sub instance is selected, select the instance
+        regex_sub_inst_pattern = re.compile(constants.REGEX_SUB_INSTANCE_PATH)
+        for path in stage_selection[:]:
+            match = regex_sub_inst_pattern.match(path)
+            if match:
+                stage_selection.append(os.path.dirname(path))
         selection = [
             item for item in self._tree_model.get_item_children_type(_ItemInstanceMesh) if item.path in stage_selection
         ]
@@ -309,8 +318,16 @@ class SetupUI:
                     items.append(instance_item)
 
         self._tree_view.selection = items
-        if not self._ignore_select_instance_prim_from_selected_items:
-            self._tree_model.select_instance_prim_from_selected_items(items)
+        items_instance = [item for item in items if isinstance(item, _ItemInstanceMesh)]
+        items_ref = [item for item in items if isinstance(item, _ItemReferenceFileMesh)]
+        # if an item ref is selected, we select the sub mesh of the instance. Even if the tree items changed
+        if items_ref:
+            xformable_prims = self._core.get_xformable_prim_from_ref_items(items_ref, items_instance)
+            self._tree_model.select_prim_paths([str(xformable_prim.GetPath()) for xformable_prim in xformable_prims])
+        # but if the selection of the tree changed (and the tree items didn't change), we select the instance
+        elif not self._ignore_select_instance_prim_from_selected_items:
+            instance_paths = [str(item.prim.GetPath()) for item in items_instance]
+            self._tree_model.select_prim_paths(instance_paths)
         self._previous_tree_selection = items
         self._tree_delegate.on_item_selected(items, self._tree_model.get_all_items())
 
@@ -320,7 +337,7 @@ class SetupUI:
                 "USD Reference File picker",
                 functools.partial(self._add_new_ref_mesh, add_item_selected[0]),
                 lambda *args: None,
-                extensions=[".usd", ".usda", ".usdc"],
+                file_extension_options=[("*.usd*", omni.usd.readable_usd_file_exts_str())],
             )
 
         self._tree_selection_changed(items)
@@ -382,4 +399,5 @@ class SetupUI:
             self.__refresh_delegate_gradients()
 
     def destroy(self):
+        self.__on_tree_selection_changed = None
         _reset_default_attrs(self)

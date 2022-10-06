@@ -8,10 +8,11 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import omni.ui as ui
-from lightspeed.trex.viewports.manipulators import create_selection_default_manipulator
+from lightspeed.trex.viewports.manipulators import PrimTransformManipulator as _PrimTransformManipulator
+from lightspeed.trex.viewports.manipulators import PrimTransformModel as _ManipulatorPrimTransformModel
+from lightspeed.trex.viewports.manipulators import SelectionDefault as _ManipulatorSelectionDefault
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.manipulator.camera import ViewportCameraManipulator
-from omni.kit.manipulator.prim import PrimTransformManipulator
 from omni.kit.widget.viewport import ViewportWidget
 from omni.ui import scene as sc
 
@@ -23,9 +24,10 @@ class SetupUI:
         self._default_attr = {
             "_viewport": None,
             "_camera_manip": None,
-            "_prim_manip": None,
+            "_prim_transform_manip": None,
             "_selection": None,
             "_scene_view": None,
+            "_manipulator_prim_transform_model": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -45,11 +47,14 @@ class SetupUI:
             self._scene_view = sc.SceneView(aspect_ratio_policy=sc.AspectRatioPolicy.STRETCH)
 
             with self._scene_view.scene:
-                self._prim_manip = PrimTransformManipulator(
-                    usd_context_name=self._context_name, viewport_api=self._viewport.viewport_api
+                self._manipulator_prim_transform_model = _ManipulatorPrimTransformModel(self._context_name)
+                self._prim_transform_manip = _PrimTransformManipulator(
+                    usd_context_name=self._context_name,
+                    viewport_api=self._viewport.viewport_api,
+                    model=self._manipulator_prim_transform_model,
                 )
                 self._camera_manip = ViewportCameraManipulator(self._viewport.viewport_api)
-                self._selection = create_selection_default_manipulator(self._viewport.viewport_api)
+                self._selection = _ManipulatorSelectionDefault(self._viewport.viewport_api)
             self._viewport.viewport_api.add_scene_view(self._scene_view)
 
     def destroy(self):
