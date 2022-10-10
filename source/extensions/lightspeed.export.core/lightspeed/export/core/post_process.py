@@ -351,14 +351,14 @@ class LightspeedPosProcessExporter:
                     ):
                         carb.log_info("Converting PNG to DDS: " + str(rel_path))
 
-                        texture_flags = texture_format_info.to_nvtt_flag_string()
+                        texture_flags = texture_format_info.to_nvtt_flag_array()
 
                         if process_texture:
                             return_code = subprocess.check_call(  # noqa
-                                [str(self._nvtt_path), str(abs_path), texture_flags, "--output", str(dds_path)]
+                                [str(self._nvtt_path), str(abs_path), "--output", str(dds_path)] + texture_flags
                             )
                         else:
-                            line = [str(abs_path), texture_flags, "--output", str(dds_path)]
+                            line = [str(abs_path), "--output", str(dds_path)] + texture_flags
                             result.append(line)
                         result_shader_prim_compress_dds_outputs.append(str(dds_path))
 
@@ -369,6 +369,8 @@ class LightspeedPosProcessExporter:
                 # os.remove(abs_path)
 
     async def _on_processor_error(self, context, export_replacement_layer, message):
+        carb.log_error(constants.BAD_EXPORT_LOG_PREFIX + message)
+
         if export_replacement_layer is not None:
             custom_layer_data = export_replacement_layer.get_sdf_layer().customLayerData
             custom_layer_data[constants.EXPORT_STATUS_NAME] = constants.EXPORT_STATUS_POSTPROCESS_ERRORS
@@ -378,8 +380,6 @@ class LightspeedPosProcessExporter:
 
         def on_okay_clicked(dialog: MessageDialog):
             dialog.hide()
-
-        carb.log_error(constants.BAD_EXPORT_LOG_PREFIX + message)
 
         dialog = MessageDialog(
             width=600,
@@ -634,8 +634,8 @@ class LightspeedPosProcessExporter:
             await self._on_processor_error(context, export_replacement_layer, message)
         else:
             custom_layer_data = export_replacement_layer.get_sdf_layer().customLayerData
-            if custom_layer_data[constants.EXPORT_STATUS_NAME] is constants.EXPORT_STATUS_INCOMPLETE_EXPORT:
-                custom_layer_data[constants.EXPORT_STATUS_NAME] = constants.EXPORT_STATUS_POSTPROCESS_ERRORS
+            if custom_layer_data[constants.EXPORT_STATUS_NAME] == constants.EXPORT_STATUS_INCOMPLETE_EXPORT:
+                custom_layer_data[constants.EXPORT_STATUS_NAME] = constants.EXPORT_STATUS_RELEASE_READY
                 export_replacement_layer.get_sdf_layer().customLayerData = custom_layer_data
 
             await context.save_stage_async()

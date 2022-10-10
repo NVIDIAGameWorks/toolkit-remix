@@ -21,7 +21,7 @@ class TextureInfo:
         self.compression_format = compression_format
         self.gamma_encoded = gamma_encoded
 
-    def to_nvtt_flag_string(self):
+    def to_nvtt_flag_array(self):
         compression_format_string = None
 
         # Note: All valid compression formats handled here, no else case for a fallback as
@@ -37,4 +37,4 @@ class TextureInfo:
         # for highest quality results.
         mip_gamma_correction_string = "--mip-gamma-correct" if self.gamma_encoded else "--no-mip-gamma-correct"
 
-        return f"--format {compression_format_string} {mip_gamma_correction_string}"
+        return ["--format", compression_format_string, mip_gamma_correction_string]
