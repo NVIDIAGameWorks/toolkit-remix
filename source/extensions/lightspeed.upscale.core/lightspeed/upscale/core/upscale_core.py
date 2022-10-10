@@ -97,10 +97,11 @@ class UpscalerCore:
                 [
                     nvtt_path,
                     upscaled_texture_path,
-                    constants.TEXTURE_INFO[constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE].to_nvtt_flag_string(),
                     "--output",
                     output_texture,
-                ],
+                ]
+                + constants.TEXTURE_INFO[constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE].to_nvtt_flag_array(),
+                output_texture,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT,
             ) as compress_mip_process:
