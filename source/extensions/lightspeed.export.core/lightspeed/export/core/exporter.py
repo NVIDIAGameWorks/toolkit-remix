@@ -29,7 +29,7 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.kit.tool.collect.collector import Collector
 from pxr import Sdf, Usd, UsdGeom, UsdUtils
 
-from .post_process import LightspeedPosProcessExporter
+from .post_process import LightspeedPostProcessExporter
 from .pre_process import preprocess
 
 
@@ -74,7 +74,7 @@ class LightspeedExporterCore:
         self._export_button_fn = export_button_fn
         self._cancel_button_fn = cancel_button_fn
         self._layer_manager = LayerManagerCore(self._context_name)
-        self._post_exporter = LightspeedPosProcessExporter(self._context_name)
+        self._post_exporter = LightspeedPostProcessExporter(self._context_name)
 
     def _dependency_errors(self, dependency_errors: Dict[DependencyErrorTypes, Dict[str, str]]):
         """Call the event object that has the list of functions"""

@@ -95,7 +95,9 @@ class ProgressPopup:
             self._cancel_button_fn()
 
     def _build_ui(self):
-        self._popup = ui.Window(self._title, visible=False, height=0, dockPreference=ui.DockPreference.DISABLED)
+        self._popup = ui.Window(
+            self._title, visible=False, width=600, height=0, dockPreference=ui.DockPreference.DISABLED
+        )
         self._popup.flags = (
             ui.WINDOW_FLAGS_NO_COLLAPSE
             | ui.WINDOW_FLAGS_NO_RESIZE
@@ -112,7 +114,7 @@ class ProgressPopup:
                 ui.Spacer(height=10)
                 with ui.HStack(height=0):
                     ui.Spacer()
-                    self._status_label = ui.Label(self._status_text, width=0, height=0)
+                    self._status_label = ui.Label(self._status_text, word_wrap=True, width=0, height=0)
                     ui.Spacer()
                 ui.Spacer(height=10)
                 with ui.HStack(height=0):

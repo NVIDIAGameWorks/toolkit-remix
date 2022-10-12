@@ -26,12 +26,15 @@ from lightspeed.tool.octahedral_converter import LightspeedOctahedralConverter
 from omni.kit.window.popup_dialog import MessageDialog
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade, UsdUtils
 
+from .asset_hasher import LightspeedAssetHasher
 
-class LightspeedPosProcessExporter:
+
+class LightspeedPostProcessExporter:
     def __init__(self, context_name: str = ""):
         self._context_name = context_name
         self._nvtt_path = Path(constants.NVTT_PATH)
         self.__layer_manager = LayerManagerCore(self._context_name)
+        self._asset_hasher = None
 
     def _remove_extra_attr(self, prim: Usd.Prim):
         white_list = {
@@ -229,7 +232,7 @@ class LightspeedPosProcessExporter:
         if executor is None:
             progress_fn()
         if futures is None:
-            futures = []
+            futures = {}
         normal_map_encoding_attr = prim.GetAttribute(constants.MATERIAL_INPUTS_NORMALMAP_ENCODING)
         normal_map_attr = prim.GetAttribute(constants.MATERIAL_INPUTS_NORMALMAP_TEXTURE)
         layer = prim.GetStage().GetEditTarget().GetLayer()
@@ -249,36 +252,44 @@ class LightspeedPosProcessExporter:
                     new_abs_path = abs_path.with_name(abs_path.stem + "_OTH" + abs_path.suffix)
                     new_rel_path = rel_path.rpartition(".")[0] + "_OTH." + rel_path.rpartition(".")[-1]
                     new_abs_dds_path = new_abs_path.with_suffix(".dds")
-                    # only convert if the final converted dds doesn't exist, or is older than the source png.
-                    needs_convert = (
-                        not new_abs_dds_path.exists()
-                    ) or new_abs_dds_path.stat().st_mtime < abs_path.stat().st_mtime
-                    if needs_convert and process_texture:
-                        carb.log_info("converting normal map to octahedral: " + str(rel_path))
-                        if encoding == constants.NormalMapEncodings.TANGENT_SPACE_DX.value:
-                            if executor is not None:
+                    if process_texture:
+                        # only convert if the final converted dds doesn't exist, or the source's hash differs from the
+                        # stored hash.
+                        needs_convert = (not new_abs_dds_path.exists()) or self._asset_hasher.should_process_asset(
+                            abs_path
+                        )
+                        already_queued = futures.get(abs_path, None) is not None
+                        if needs_convert and not already_queued:
+                            carb.log_info("converting normal map to octahedral: " + str(rel_path))
+                            self._asset_hasher.update_asset_hash(abs_path)
+                            if encoding == constants.NormalMapEncodings.TANGENT_SPACE_DX.value:
+                                if executor is not None:
 
-                                def do(old_path, new_path):  # noqa PLC0130
-                                    progress_fn()
-                                    LightspeedOctahedralConverter.convert_dx_file_to_octahedral(old_path, new_path)
+                                    def do(old_path, new_path):  # noqa PLC0130
+                                        progress_fn()
+                                        LightspeedOctahedralConverter.convert_dx_file_to_octahedral(old_path, new_path)
 
-                                futures.append(executor.submit(functools.partial(do, str(abs_path), str(new_abs_path))))
-                            else:
-                                LightspeedOctahedralConverter.convert_dx_file_to_octahedral(
-                                    str(abs_path), str(new_abs_path)
-                                )
-                        elif encoding == constants.NormalMapEncodings.TANGENT_SPACE_OGL.value:
-                            if executor is not None:
+                                    futures[abs_path] = executor.submit(
+                                        functools.partial(do, str(abs_path), str(new_abs_path))
+                                    )
+                                else:
+                                    LightspeedOctahedralConverter.convert_dx_file_to_octahedral(
+                                        str(abs_path), str(new_abs_path)
+                                    )
+                            elif encoding == constants.NormalMapEncodings.TANGENT_SPACE_OGL.value:
+                                if executor is not None:
 
-                                def do(old_path, new_path):  # noqa PLC0130
-                                    progress_fn()
-                                    LightspeedOctahedralConverter.convert_ogl_file_to_octahedral(old_path, new_path)
+                                    def do(old_path, new_path):  # noqa PLC0130
+                                        progress_fn()
+                                        LightspeedOctahedralConverter.convert_ogl_file_to_octahedral(old_path, new_path)
 
-                                futures.append(executor.submit(functools.partial(do, str(abs_path), str(new_abs_path))))
-                            else:
-                                LightspeedOctahedralConverter.convert_ogl_file_to_octahedral(
-                                    str(abs_path), str(new_abs_path)
-                                )
+                                    futures.append(
+                                        executor.submit(functools.partial(do, str(abs_path), str(new_abs_path)))
+                                    )
+                                else:
+                                    LightspeedOctahedralConverter.convert_ogl_file_to_octahedral(
+                                        str(abs_path), str(new_abs_path)
+                                    )
 
                     if set_usd:
                         normal_map_attr.Set(str(new_rel_path))
@@ -326,6 +337,12 @@ class LightspeedPosProcessExporter:
                 rel_path = omni.client.make_relative_url(layer.identifier, abs_path_str)
                 rel_dds_path = rel_path.rpartition(".")[0] + ".dds"
 
+                if set_usd:
+                    attr.Set(str(rel_dds_path))
+
+                if not process_texture:
+                    continue
+
                 dds_exist = False
                 dds_path = None
                 if not abs_path_str:
@@ -342,28 +359,22 @@ class LightspeedPosProcessExporter:
                 else:
                     dds_path = abs_path.with_suffix(".dds")
 
-                if (not dds_exist and dds_path is not None) or (  # noqa SIM102
-                    abs_path_str and abs_path.suffix.lower() != ".dds"
+                # only create the dds if it doesn't already exist or has been modified since the last time it was
+                # processed.
+                if (
+                    ((not dds_exist and dds_path is not None) or (abs_path_str and abs_path.suffix.lower() != ".dds"))
+                    and str(dds_path) not in result_shader_prim_compress_dds_outputs
+                    and self._asset_hasher.should_process_asset(abs_path)
                 ):  # noqa SIM102
-                    # only create the dds if it doesn't already exist or is older than the source png
-                    if str(dds_path) not in result_shader_prim_compress_dds_outputs and (
-                        not dds_path.exists() or abs_path.stat().st_mtime > dds_path.stat().st_mtime
-                    ):
-                        carb.log_info("Converting PNG to DDS: " + str(rel_path))
+                    self._asset_hasher.update_asset_hash(abs_path)
+                    carb.log_info("Converting PNG to DDS: " + str(rel_path))
 
-                        texture_flags = texture_format_info.to_nvtt_flag_array()
+                    texture_flags = texture_format_info.to_nvtt_flag_array()
 
-                        if process_texture:
-                            return_code = subprocess.check_call(  # noqa
-                                [str(self._nvtt_path), str(abs_path), "--output", str(dds_path)] + texture_flags
-                            )
-                        else:
-                            line = [str(abs_path), "--output", str(dds_path)] + texture_flags
-                            result.append(line)
-                        result_shader_prim_compress_dds_outputs.append(str(dds_path))
+                    line = [str(abs_path), "--output", str(dds_path)] + texture_flags
+                    result.append(line)
+                    result_shader_prim_compress_dds_outputs.append(str(dds_path))
 
-                if set_usd:
-                    attr.Set(str(rel_dds_path))
                 # NOTE: not safe to delete the original png here, as any other prims re-using the texture will fail
                 # to resolve the absolute path if the file no longer exists.
                 # os.remove(abs_path)
@@ -451,6 +462,8 @@ class LightspeedPosProcessExporter:
                 return
         if unresolved_paths:
             carb.log_warn("Post Processing found unresolved references before running:" + str(unresolved_paths))
+
+        self._asset_hasher = LightspeedAssetHasher(game_ready_assets_folder / "manifest.pkl")
 
         # process meshes
         # TraverseAll because we want to grab overrides
@@ -550,7 +563,7 @@ class LightspeedPosProcessExporter:
         # process convert tangent without to set USD attribute. Do it in thread (we don't need multiprocess because
         # most of the time is spent during Pillow image saving. And Processing freeze)
         executor = ThreadPoolExecutor(max_workers=max_cpu)
-        futures = []
+        futures = {}
         _process_shader(
             functools.partial(
                 self._process_shader_prim_convert_tangent_space,
@@ -561,7 +574,7 @@ class LightspeedPosProcessExporter:
             ),
             "Post Processing Shader Tangent Process:",
         )
-        for _ in as_completed(futures):
+        for _ in as_completed(futures.values()):
             # for the progress bar
             await omni.kit.app.get_app().next_update_async()
         # wait the process to be finished
@@ -585,7 +598,7 @@ class LightspeedPosProcessExporter:
         _process_shader(
             functools.partial(
                 self._process_shader_prim_compress_dds,
-                process_texture=False,
+                process_texture=True,
                 set_usd=False,
                 result=result_shader_prim_compress_dds,
                 result_shader_prim_compress_dds_outputs=result_shader_prim_compress_dds_outputs,
@@ -624,6 +637,9 @@ class LightspeedPosProcessExporter:
             ),
             "Post Processing Shader compress DDS set USD:",
         )
+
+        self._asset_hasher.save_manifest()
+        self._asset_hasher = None
 
         if failed_processes:
             message = (
