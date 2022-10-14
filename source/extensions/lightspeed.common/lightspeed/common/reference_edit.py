@@ -32,6 +32,9 @@ class ReferenceEdit:
     def __enter__(self):
         if self._prim.GetPrimIndex().rootNode.children:
             self._refNode = self._prim.GetPrimIndex().rootNode.children[0]
+            # if a prim's nested under several references, chase it all the way to the bottom.
+            while self._refNode.children:
+                self._refNode = self._refNode.children[0]
 
             self._stage.SetEditTarget(Usd.EditTarget(self._refNode.layerStack.layers[0], self._refNode))
         else:
