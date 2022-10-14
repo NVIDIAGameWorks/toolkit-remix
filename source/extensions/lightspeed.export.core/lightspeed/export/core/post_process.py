@@ -477,6 +477,9 @@ class LightspeedPostProcessExporter:
         for i, geo_prim in enumerate(all_geos):
             # we only work on meshes that have USD reference path(s) and process the USD reference 1 time
             ref_node = geo_prim.GetPrimIndex().rootNode.children[0]
+            # if a prim's nested under several references, chase it all the way to the bottom.
+            while ref_node.children:
+                ref_node = ref_node.children[0]
             ref_asset_path = ref_node.layerStack.layers[0]
             ref_asset_path_value = ref_asset_path.realPath
             ref_asset_and_prim_path = f"{ref_asset_path_value}, {ref_node.path}"
