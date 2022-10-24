@@ -6,6 +6,7 @@ import carb
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
+from lightspeed.error_popup.window import ErrorPopup
 from lightspeed.layer_helpers import LightspeedTextureProcessingCore
 from lightspeed.progress_popup.window import ProgressPopup
 from lightspeed.upscale.core import UpscalerCore
@@ -66,11 +67,15 @@ class MaterialButtons:
             constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
             "_upscaled4x.png",
         )
-        await LightspeedTextureProcessingCore.lss_async_batch_process_capture_layer_by_prim_paths(
+        error = await LightspeedTextureProcessingCore.lss_async_batch_process_capture_layer_by_prim_paths(
             processing_config, material_prim_paths, progress_callback=self._material_upscale_set_progress
         )
-        self._upscale_progress_bar.hide()
-        self._upscale_progress_bar = None
+        if error:
+            self._error_popup = ErrorPopup("An error occurred while upscaling", error, "", window_size=(350, 150))
+            self._error_popup.show()
+        if self._upscale_progress_bar:
+            self._upscale_progress_bar.hide()
+            self._upscale_progress_bar = None
 
     def _on_opaque_clicked(self, *_):
         if not self._opaque_button.enabled:

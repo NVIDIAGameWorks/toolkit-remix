@@ -10,6 +10,7 @@
 
 import asyncio
 from pathlib import Path
+from typing import Optional
 
 import omni.usd
 from lightspeed.common import constants
@@ -18,15 +19,15 @@ from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 
 class LightspeedTextureProcessingCore:
     @staticmethod
-    def lss_get_capture_textures_by_prim_paths(input_texture_type, prim_paths):
-        layer_manager = LayerManagerCore()
+    def lss_get_capture_textures_by_prim_paths(input_texture_type, prim_paths, context_name=""):
+        layer_manager = LayerManagerCore(context_name)
         return layer_manager.get_layer_instance(LayerType.capture).get_textures_by_prim_paths(
             prim_paths, input_texture_type
         )
 
     @staticmethod
-    def lss_collect_capture_textures(input_texture_type):
-        layer_manager = LayerManagerCore()
+    def lss_collect_capture_textures(input_texture_type, context_name=""):
+        layer_manager = LayerManagerCore(context_name)
         return layer_manager.get_layer_instance(LayerType.capture).get_textures(input_texture_type)
 
     @staticmethod
@@ -53,8 +54,10 @@ class LightspeedTextureProcessingCore:
             processing_method(asset_absolute_path, output_asset_absolute_paths[i])
 
     @staticmethod
-    def lss_generate_populate_and_child_autoupscale_layer(output_texture_type, prim_paths, output_asset_relative_paths):
-        layer_manager = LayerManagerCore()
+    def lss_generate_populate_and_child_autoupscale_layer(
+        output_texture_type, prim_paths, output_asset_relative_paths, context_name=""
+    ):
+        layer_manager = LayerManagerCore(context_name)
         # get/setup layers
         replacement_layer = layer_manager.get_layer(LayerType.replacement)
         # create/open and populate auto-upscale layer, placing it next to the enhancements layer
@@ -89,12 +92,18 @@ class LightspeedTextureProcessingCore:
     @staticmethod
     @omni.usd.handle_exception
     async def lss_async_batch_process_capture_layer(
-        processing_config, prim_paths, abs_paths, rel_paths, progress_callback=None
-    ):
+        processing_config, prim_paths, abs_paths, rel_paths, progress_callback=None, context_name=""
+    ) -> Optional[str]:
+        """
+        returns the error message if an error occurred
+        """
         output_suffix = processing_config[3]
         processing_method = processing_config[0]
         output_texture_type = processing_config[2]
-        replacement_layer_path = LayerManagerCore().get_layer(LayerType.replacement).realPath
+        replacement_layer = LayerManagerCore(context_name).get_layer(LayerType.replacement)
+        if replacement_layer is None:
+            return "No replacement layer was found. Make sure the opened USD file contains a replacement layer."
+        replacement_layer_path = replacement_layer.realPath
         out_rel_paths = [path.replace(Path(path).suffix, output_suffix) for path in rel_paths]
         out_abs_paths = [
             str(Path(replacement_layer_path).parent.joinpath(out_rel_path)) for out_rel_path in out_rel_paths
@@ -106,35 +115,44 @@ class LightspeedTextureProcessingCore:
             prim_paths, out_abs_paths, out_rel_paths
         )
         LightspeedTextureProcessingCore.lss_generate_populate_and_child_autoupscale_layer(
-            output_texture_type, prim_paths, out_rel_paths
+            output_texture_type, prim_paths, out_rel_paths, context_name
         )
+        return None
 
     @staticmethod
     @omni.usd.handle_exception
-    async def lss_async_batch_process_entire_capture_layer(processing_config, progress_callback=None):
+    async def lss_async_batch_process_entire_capture_layer(
+        processing_config, progress_callback=None, context_name=""
+    ) -> Optional[str]:
+        """
+        returns the error message if an error occurred
+        """
         LightspeedTextureProcessingCore.lss_workaround_gpu_crash()
         input_texture_type = processing_config[1]
         prim_paths, abs_paths, rel_paths = LightspeedTextureProcessingCore.lss_collect_capture_textures(
-            input_texture_type
+            input_texture_type, context_name
         )
-        await LightspeedTextureProcessingCore.lss_async_batch_process_capture_layer(
-            processing_config, prim_paths, abs_paths, rel_paths, progress_callback
+        return await LightspeedTextureProcessingCore.lss_async_batch_process_capture_layer(
+            processing_config, prim_paths, abs_paths, rel_paths, progress_callback, context_name
         )
 
     @staticmethod
     @omni.usd.handle_exception
     async def lss_async_batch_process_capture_layer_by_prim_paths(
-        processing_config, prim_paths, progress_callback=None
-    ):
+        processing_config, prim_paths, progress_callback=None, context_name=""
+    ) -> Optional[str]:
+        """
+        returns the error message if an error occurred
+        """
         LightspeedTextureProcessingCore.lss_workaround_gpu_crash()
         input_texture_type = processing_config[1]
         abs_paths, rel_paths = LightspeedTextureProcessingCore.lss_get_capture_textures_by_prim_paths(
-            input_texture_type, prim_paths
+            input_texture_type, prim_paths, context_name
         )
-        await LightspeedTextureProcessingCore.lss_async_batch_process_capture_layer(
-            processing_config, prim_paths, abs_paths, rel_paths, progress_callback
+        return await LightspeedTextureProcessingCore.lss_async_batch_process_capture_layer(
+            processing_config, prim_paths, abs_paths, rel_paths, progress_callback, context_name
         )
 
     @staticmethod
-    def lss_workaround_gpu_crash():
-        LayerManagerCore().remove_layer(layer_type=LayerType.autoupscale)
+    def lss_workaround_gpu_crash(context_name=""):
+        LayerManagerCore(context_name).remove_layer(layer_type=LayerType.autoupscale)

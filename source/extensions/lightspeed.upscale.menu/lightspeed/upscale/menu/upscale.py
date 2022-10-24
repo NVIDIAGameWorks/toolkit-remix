@@ -16,6 +16,7 @@ import omni.ext
 import omni.kit.menu.utils as omni_utils
 import omni.usd
 from lightspeed.common import constants
+from lightspeed.error_popup.window import ErrorPopup
 from lightspeed.layer_helpers import LightspeedTextureProcessingCore
 from lightspeed.progress_popup.window import ProgressPopup
 from lightspeed.upscale.core import UpscalerCore
@@ -77,9 +78,12 @@ class LightspeedUpscalerMenuExtension(omni.ext.IExt):
             self._progress_bar = ProgressPopup(title="Upscaling")
         self._progress_bar.set_progress(0)
         self._progress_bar.show()
-        await LightspeedTextureProcessingCore.lss_async_batch_process_entire_capture_layer(
+        error = await LightspeedTextureProcessingCore.lss_async_batch_process_entire_capture_layer(
             config, progress_callback=self._batch_upscale_set_progress
         )
+        if error:
+            self._error_popup = ErrorPopup("An error occurred while upscaling", error, "", window_size=(350, 150))
+            self._error_popup.show()
         if self._progress_bar:
             self._progress_bar.hide()
             self._progress_bar = None
