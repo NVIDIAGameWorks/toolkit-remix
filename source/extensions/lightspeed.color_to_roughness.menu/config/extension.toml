@@ -39,6 +39,7 @@ icon = "data/icon.png"
 "lightspeed.layer_manager" = {}
 "lightspeed.common" = {}
 "lightspeed.color_to_roughness.core" = {}
+"lightspeed.error_popup.window" = {}
 "lightspeed.progress_popup.window" = {}
 
 

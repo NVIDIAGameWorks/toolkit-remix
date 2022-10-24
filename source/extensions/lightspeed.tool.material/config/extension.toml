@@ -41,6 +41,7 @@ icon = "data/icon.png"
 "lightspeed.layer_helpers" = {}
 "lightspeed.layer_manager" = {}
 "lightspeed.upscale.core" = {}
+"lightspeed.error_popup.window" = {}
 "lightspeed.progress_popup.window" = {}
 
 [[test]]
