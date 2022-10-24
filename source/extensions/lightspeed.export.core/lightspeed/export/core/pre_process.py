@@ -49,6 +49,7 @@ def preprocess(layer_manager: LayerManagerCore, context_name: str = ""):
                     _cleanup_capture_refs(
                         prim, capture_layer, constants.MESHES_FOLDER + "/", constants.CAPTURED_MESH_PATH_PREFIX
                     )
+                _maybe_preserve_original_draw(prim, capture_layer)
 
             light_prim = stage.GetPrimAtPath(constants.ROOTNODE_LIGHTS)
             all_capture_lights = light_prim.GetAllChildren()
@@ -105,3 +106,32 @@ def _cleanup_capture_refs(prim, capture_layer: Sdf.Layer, capture_folder, ref_pa
             refs = [Sdf.Reference(assetPath=abs_path, primPath=ref_path_prefix + prim.GetName())]
 
     prim.GetReferences().SetReferences(refs)
+
+
+def _file_in_folder(file_path, folder_path):
+    abs_file_path = os.path.abspath(file_path)
+    abs_folder_path = os.path.abspath(folder_path)
+    return abs_file_path.startswith(abs_folder_path)
+
+
+def _maybe_preserve_original_draw(prim, capture_layer):
+    original_mesh = prim.GetChild("mesh")
+    if original_mesh and len(prim.GetAllChildren()) > 1:
+        # Original mesh is still present, but new children are as well. Check for changes to the original
+        stack = original_mesh.GetPrimStack()
+        if len(stack) == 1:
+            ref_path = stack[0].layer.realPath
+            capture_folder = os.path.dirname(capture_layer.realPath)
+            if _file_in_folder(ref_path, capture_folder) and ref_path.endswith(prim.GetName() + ".usd"):
+                # mesh is unaltered capture.  Need to exclude it and flag the runtime to preserve the original
+                # draw call.
+                attr = prim.CreateAttribute(constants.PRESERVE_ORIGINAL_ATTRIBUTE, Sdf.ValueTypeNames.Int)
+                attr.Set(1)
+                # delete the reference to the original captured mesh.
+                refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
+                refs = []
+                for ref, _layer in refs_and_layers:
+                    # Need to convert references to absolute paths.
+                    if not _file_in_folder(ref.assetPath, capture_folder):
+                        refs.append(ref)
+                prim.GetReferences().SetReferences(refs)
