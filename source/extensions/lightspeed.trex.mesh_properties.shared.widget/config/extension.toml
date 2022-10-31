@@ -8,6 +8,7 @@ description = "Mesh Properties implementation for Lightspeed Trex StageCraft App
 "lightspeed.trex.selection_tree.shared.widget" = {}
 "lightspeed.trex.utils.common" = {}
 "lightspeed.trex.utils.widget" = {}
+"lightspeed.common" = {}
 "omni.client" = {}
 "omni.flux.properties_pane.transformation.usd.widget" = {}
 "omni.flux.utils.common" = {}

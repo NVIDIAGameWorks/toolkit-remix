@@ -32,8 +32,9 @@ class PrimTransformManipulator(_PrimTransformManipulator):
         selection panel to enable the manipulator
         """
         super().on_selection_changed(stage, selection, *args, **kwargs)
+
         new_prim_paths = []
-        regex_pattern = re.compile(constants.REGEX_INSTANCE_PATH)
+        regex_pattern = re.compile(constants.REGEX_IN_INSTANCE_PATH)
         regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
         regex_sub_light_pattern = re.compile(constants.REGEX_SUB_LIGHT_PATH)
         for path in selection:
@@ -48,11 +49,9 @@ class PrimTransformManipulator(_PrimTransformManipulator):
                 continue
             if not self._core.filter_xformable_prims([prim]):
                 continue
-            parent_prim = prim.GetParent()
-            if not parent_prim.IsValid():
-                continue
             # enable the transform manip only for lights and instances
-            if not regex_pattern.match(parent_prim.GetName()):
+            # we don't allow moving mesh directly, an instance has to be selected
+            if not regex_pattern.match(str(prim.GetPath())):
                 continue
             corresponding_paths = self._core.get_corresponding_prototype_prims([prim])
             if corresponding_paths:

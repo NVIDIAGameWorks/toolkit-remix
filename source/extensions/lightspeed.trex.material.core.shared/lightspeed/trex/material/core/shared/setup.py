@@ -47,13 +47,11 @@ class Setup:
                 return _material.GetPath()
             return None
 
-        children_prims = traverse_instanced_children(prim)
         result = []
-        for prim in children_prims:  # noqa PLR1702
-            if prim.IsValid() and (prim.IsA(UsdGeom.Subset) or prim.IsA(UsdGeom.Mesh)):
-                mat_prim = get_mat_from_geo(prim)
-                if mat_prim:
-                    result.append(mat_prim)
+        if prim.IsValid() and (prim.IsA(UsdGeom.Subset) or prim.IsA(UsdGeom.Mesh)):
+            mat_prim = get_mat_from_geo(prim)
+            if mat_prim:
+                result.append(mat_prim)
         return result
 
     def destroy(self):

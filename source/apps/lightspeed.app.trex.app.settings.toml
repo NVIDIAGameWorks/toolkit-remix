@@ -36,5 +36,6 @@ uiStyle = "NvidiaDark"
 # Viewport
 ###############################
 [persistent.app.viewport]
-pickingMode = "models"
+# pickingMode = "models"
+pickingMode = "prims"
 noPadding = true

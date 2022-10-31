@@ -122,6 +122,8 @@ class AssetReplacementsPane:
     def show(self, value):
         self._root_frame.visible = value
         self._selection_tree_widget.show(value)
+        self._mesh_properties_widget.show(value)
+        self._material_properties_widget.show(value)
         if value:
             self.refresh()
 

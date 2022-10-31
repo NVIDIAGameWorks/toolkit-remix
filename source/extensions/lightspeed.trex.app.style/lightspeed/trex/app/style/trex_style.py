@@ -168,6 +168,8 @@ current_dict.update(
         "Image::MenuBurger:hovered": {"image_url": _get_icons("menu-burger"), "color": _WHITE_80},
         "Image::MenuBurger:selected": {"image_url": _get_icons("menu-burger"), "color": _WHITE_100},
         "Image::NvidiaShort": {"image_url": _get_image("NVIDIA-logo-green-white"), "color": _WHITE_100},
+        "Image::Scope": {"image_url": _get_icons("scope"), "color": _WHITE_60},
+        "Image::Xform": {"image_url": _get_icons("xform"), "color": _WHITE_80},
         "ImagePropertiesPaneSectionTriangleCollapsed": {
             "image_url": _get_icons("disclosure-collapsed"),
             "color": _WHITE_60,

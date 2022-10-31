@@ -9,7 +9,7 @@
 """
 import typing
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 import carb
 import omni.client
@@ -35,18 +35,49 @@ class Setup:
             setattr(self, attr, value)
         self._context = omni.usd.get_context(context_name)
 
-    def get_children_from_prim(self, prim, from_reference_layer_path: str = None):  # noqa PLR1710
-        def traverse_instanced_children(_prim):  # noqa R503
+    def get_children_from_prim(
+        self, prim, from_reference_layer_path: str = None, level: Optional[int] = None
+    ):  # noqa PLR1710
+
+        _level = 0
+
+        def traverse_instanced_children(_prim, _level):  # noqa R503
+            if level is not None and _level == level:
+                return
+            _level += 1
             for child in _prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate):
                 if from_reference_layer_path is not None:
                     stacks = child.GetPrimStack()
                     if from_reference_layer_path not in [stack.layer.realPath for stack in stacks]:
-                        yield from traverse_instanced_children(child)
+                        yield from traverse_instanced_children(child, _level)
                         continue
                 yield child
-                yield from traverse_instanced_children(child)
+                yield from traverse_instanced_children(child, _level)
 
-        return list(traverse_instanced_children(prim))
+        return list(traverse_instanced_children(prim, _level))
+
+    def get_next_xform_children(self, prim, from_reference_layer_path: str = None) -> List[Usd.Prim]:
+        children_prims = prim.GetChildren()
+        if not children_prims:
+            return []
+        if from_reference_layer_path is not None:
+            children_prims2 = []
+            for child in children_prims:
+                stacks = child.GetPrimStack()
+                if from_reference_layer_path in [stack.layer.realPath for stack in stacks]:
+                    children_prims2.append(child)
+        else:
+            children_prims2 = list(children_prims)
+        if not children_prims2:
+            return []
+        xformable_prims = self.filter_xformable_prims(children_prims2)
+        if xformable_prims:
+            return xformable_prims
+        # if not children, check if the sub children is a xform
+        result = []
+        for children_prim in children_prims2:
+            result.extend(self.get_next_xform_children(children_prim))
+        return result
 
     @staticmethod
     def prim_is_from_a_capture_reference(prim) -> bool:
@@ -62,6 +93,12 @@ class Setup:
     def filter_xformable_prims(self, prims: List[Usd.Prim]):
         return [prim for prim in prims if UsdGeom.Xformable(prim)]
 
+    def filter_scope_prims(self, prims: List[Usd.Prim]):
+        return [prim for prim in prims if UsdGeom.Scope(prim)]
+
+    def filter_imageable_prims(self, prims: List[Usd.Prim]):
+        return [prim for prim in prims if UsdGeom.Imageable(prim)]
+
     def get_corresponding_prototype_prims(self, prims) -> List[str]:
         """Give a list of instance prims (inst_/*), and get the corresponding prims inside the prototypes (mesh_/*)"""
         paths = []
@@ -75,10 +112,19 @@ class Setup:
             paths.append(str(children[0].path))
         return paths
 
-    def get_xformable_prim_from_ref_items(
+    def get_corresponding_prototype_prims_from_path(self, paths) -> List[str]:
+        """Give a list of instance prims (inst_/*), and get the corresponding prims inside the prototypes (mesh_/*)"""
+        stage = self._context.get_stage()
+        prims = [stage.GetPrimAtPath(path) for path in paths]
+        return self.get_corresponding_prototype_prims(prims)
+
+    def get_prim_from_ref_items(
         self,
         ref_items: List["_ItemReferenceFileMesh"],
         parent_items: List[Union["_ItemInstanceMesh", "_ItemReferenceFileMesh"]],
+        only_xformable: bool = False,
+        only_imageable: bool = False,
+        level: Optional[int] = None,
     ) -> List[Usd.Prim]:
         """
         Get xformables prim that comes from the reference item and are children of the parent items.
@@ -93,14 +139,29 @@ class Setup:
         selected_refs = [item.ref for item in ref_items]
         selected_layers = [item.layer for item in ref_items]
         reference_path = omni.client.normalize_url(selected_layers[0].ComputeAbsolutePath(selected_refs[0].assetPath))
-        children_prims = self.get_children_from_prim(selected_prims[0], from_reference_layer_path=reference_path)
+        children_prims = self.get_children_from_prim(
+            selected_prims[0], from_reference_layer_path=reference_path, level=level
+        )
         if not children_prims:
             return []
-        # get the first xformable from the list
-        xformable_prims = self.filter_xformable_prims(children_prims)
-        if xformable_prims:
-            xformable_prims = [xformable_prims[0]]
-        return xformable_prims
+        if only_xformable:
+            # get the first xformable from the list
+            children_prims = self.filter_xformable_prims(children_prims)
+        if only_imageable:
+            # get the first xformable from the list
+            children_prims = self.filter_imageable_prims(children_prims)
+        return children_prims
+
+    def get_scope_prims_without_imageable_children(self, prims):
+        result = []
+        scoped_children = self.filter_scope_prims(prims)
+        for scope in scoped_children:
+            scope_children = self.get_children_from_prim(scope)
+            imageable_children = self.filter_imageable_prims(scope_children)
+            # if this is a scope prim, and this scope prim doesn't have any imageable prim, we keep it
+            if not imageable_children:
+                result.append(scope)
+        return result
 
     @staticmethod
     def switch_ref_abs_to_rel_path(stage, path):

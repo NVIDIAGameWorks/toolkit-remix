@@ -25,6 +25,7 @@ from .model import ItemAddNewReferenceFileMesh as _ItemAddNewReferenceFileMesh
 from .model import ItemInstanceMesh as _ItemInstanceMesh
 from .model import ItemInstancesMeshGroup as _ItemInstancesMeshGroup
 from .model import ItemMesh as _ItemMesh
+from .model import ItemPrim as _ItemPrim
 from .model import ItemReferenceFileMesh as _ItemReferenceFileMesh
 
 if typing.TYPE_CHECKING:
@@ -195,7 +196,7 @@ class Delegate(ui.AbstractItemDelegate):
                 with ui.VStack():
                     ui.Spacer()
                     with ui.HStack(width=16 * (level + 2), height=self.DEFAULT_IMAGE_ICON_SIZE):
-                        # ui.Spacer()
+                        ui.Spacer(width=ui.Pixel(16 * (level + 1)))
                         if model.can_item_have_children(item):
                             # Draw the +/- icon
                             style_type_name_override = "TreeView.Item.Minus" if expanded else "TreeView.Item.Plus"
@@ -210,17 +211,36 @@ class Delegate(ui.AbstractItemDelegate):
                                 ui.Spacer(width=0)
                         else:
                             ui.Spacer(width=ui.Pixel(16))
-                        with ui.HStack():
-                            ui.Spacer(height=0, width=ui.Pixel(8))
-                            with ui.VStack(width=ui.Pixel(16)):
-                                ui.Spacer(width=0)
-                                if isinstance(item, (_ItemMesh, _ItemReferenceFileMesh)):
-                                    ui.Image("", height=ui.Pixel(16), name="Hexagon")
-                                elif isinstance(item, _ItemAddNewReferenceFileMesh):
-                                    ui.Image("", height=ui.Pixel(16), name="Add")
-                                elif isinstance(item, _ItemInstancesMeshGroup):
-                                    ui.Image("", height=ui.Pixel(16), name="FolderClosed")
-                                ui.Spacer(width=0)
+                        if isinstance(
+                            item,
+                            (
+                                _ItemMesh,
+                                _ItemReferenceFileMesh,
+                                _ItemAddNewReferenceFileMesh,
+                                _ItemInstancesMeshGroup,
+                                _ItemPrim,
+                            ),
+                        ):
+                            with ui.HStack():
+                                ui.Spacer(height=0, width=ui.Pixel(8))
+                                with ui.VStack(width=ui.Pixel(16)):
+                                    ui.Spacer(width=0)
+                                    if isinstance(item, (_ItemMesh, _ItemReferenceFileMesh)):
+                                        ui.Image("", height=ui.Pixel(16), name="Hexagon")
+                                    elif isinstance(item, _ItemAddNewReferenceFileMesh):
+                                        ui.Image("", height=ui.Pixel(16), name="Add")
+                                    elif isinstance(item, _ItemInstancesMeshGroup):
+                                        ui.Image("", height=ui.Pixel(16), name="FolderClosed")
+                                    elif isinstance(item, _ItemPrim):
+                                        icon = ""
+                                        if item.is_xformable():
+                                            icon = "Xform"
+                                        elif item.is_scope():
+                                            icon = "Scope"
+                                        ui.Image("", height=ui.Pixel(16), name=icon)
+                                    ui.Spacer(width=0)
+                        else:
+                            ui.Spacer(width=ui.Pixel(24))
                     ui.Spacer()
 
     # noinspection PyUnusedLocal
@@ -261,7 +281,7 @@ class Delegate(ui.AbstractItemDelegate):
                                             with ui.HStack():
                                                 if isinstance(item, _ItemMesh):
                                                     ui.Label(item.prim.GetName(), name="PropertiesPaneSectionTreeItem")
-                                                elif isinstance(item, _ItemReferenceFileMesh):
+                                                elif isinstance(item, (_ItemReferenceFileMesh, _ItemPrim)):
                                                     ui.Label(
                                                         os.path.basename(item.path),
                                                         name="PropertiesPaneSectionTreeItem",

@@ -9,7 +9,6 @@
 """
 import asyncio
 import functools
-import os
 import re
 import typing
 from typing import Any, Callable, List, Union
@@ -30,6 +29,7 @@ from .selection_tree.model import ItemAddNewReferenceFileMesh as _ItemAddNewRefe
 from .selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
 from .selection_tree.model import ItemInstancesMeshGroup as _ItemInstancesMeshGroup
 from .selection_tree.model import ItemMesh as _ItemMesh
+from .selection_tree.model import ItemPrim as _ItemPrim
 from .selection_tree.model import ItemReferenceFileMesh as _ItemReferenceFileMesh
 from .selection_tree.model import ListModel as _ListModel
 
@@ -204,20 +204,39 @@ class SetupUI:
 
     @omni.usd.handle_exception
     async def _on_deferred_tree_model_changed(self):
-        await self.__deferred_expand()
         # set selection
         if not self._tree_model:
             return
         stage_selection = self._context.get_selection().get_selected_prim_paths()
-        # is a sub instance is selected, select the instance
-        regex_sub_inst_pattern = re.compile(constants.REGEX_SUB_INSTANCE_PATH)
-        for path in stage_selection[:]:
-            match = regex_sub_inst_pattern.match(path)
-            if match:
-                stage_selection.append(os.path.dirname(path))
-        selection = [
-            item for item in self._tree_model.get_item_children_type(_ItemInstanceMesh) if item.path in stage_selection
-        ]
+
+        selection = []
+        # we select the instance in the tree
+        for item in self._tree_model.get_item_children_type(_ItemInstanceMesh):
+            if item in selection:
+                continue
+            for stage_selection_path in stage_selection:
+                if stage_selection_path.startswith(item.path) and item not in selection:
+                    selection.append(item)
+
+        # select the item prim
+        prototypes_stage_selected_paths = self._core.get_corresponding_prototype_prims_from_path(stage_selection)
+        item_prims = self._tree_model.get_item_children_type(_ItemPrim)
+        item_group_instances = self._tree_model.get_item_children_type(_ItemInstancesMeshGroup)
+        for item in item_prims:
+            if item.path in prototypes_stage_selected_paths:
+                selection.append(item)
+        # if this is a light, there is no instance/prototype
+        regex_sub_light_pattern = re.compile(constants.REGEX_SUB_LIGHT_PATH)
+        regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
+        for stage_selection_path in stage_selection:
+            if regex_sub_light_pattern.match(stage_selection_path):
+                for item in item_prims:
+                    if item.path == stage_selection_path:
+                        selection.append(item)
+            # but if this is a light, we select the group instance because a light doesn't have instances
+            if regex_light_pattern.match(stage_selection_path):
+                selection.extend(item_group_instances)
+
         if self._previous_tree_selection:
             current_ref_mesh_file = self._tree_model.get_item_children_type(_ItemReferenceFileMesh)
             # we remove instance because they are base on stage selection
@@ -238,6 +257,7 @@ class SetupUI:
 
         # we select the corresponding prim instance
         self._ignore_select_instance_prim_from_selected_items = True
+        await self.__deferred_expand(selection)
         self._tree_view.selection = selection
         self._previous_tree_selection = selection
         self._ignore_select_instance_prim_from_selected_items = False
@@ -270,31 +290,34 @@ class SetupUI:
                 if isinstance(item, (_ItemInstanceMesh, _ItemInstancesMeshGroup))
             ]
 
-        # if we select 1 mesh ref, we keep the instance selected
-        if len(items) == 1 and isinstance(items[0], _ItemReferenceFileMesh):
-            # grab all current instance
-            instance_items = self._tree_model.get_item_children_type(_ItemInstanceMesh)
+        # grab all current instance
+        instance_items = self._tree_model.get_item_children_type(_ItemInstanceMesh)
+
+        # if we select a mesh ref or prim item, we keep the instance
+        if len(items) == 1 and isinstance(items[0], (_ItemReferenceFileMesh, _ItemPrim)):
             # find links between old and new instances
             for item in self._previous_tree_selection:
-                if isinstance(item, _ItemInstanceMesh):
+                if isinstance(item, (_ItemInstanceMesh, _ItemPrim)):
                     for instance_item in instance_items:
                         if instance_item.prim == item.prim:
                             items.append(instance_item)
                             break
-        # only instance can be multiple selected
-        instance_items = self._tree_model.get_item_children_type(_ItemInstanceMesh)
+
+        # only item instance and item prim can be multiple selected
         if len(items) > 1:
             # grab all type
             all_item_types = {type(item) for item in items}
             if _ItemInstanceMesh in all_item_types:
                 all_item_types.remove(_ItemInstanceMesh)
+            if _ItemPrim in all_item_types:
+                all_item_types.remove(_ItemPrim)
             # if we have more than 1 type, only the last one can be taken
             if len(all_item_types) > 1:
                 result = []
                 last_other_item = None
                 for item in items:
-                    # we keep instance items
-                    if isinstance(item, (_ItemInstanceMesh, _ItemInstancesMeshGroup)):
+                    # we keep prim and instance items
+                    if isinstance(item, (_ItemInstanceMesh, _ItemInstancesMeshGroup, _ItemPrim)):
                         result.append(item)
                         continue
                     last_other_item = item
@@ -318,16 +341,17 @@ class SetupUI:
                     items.append(instance_item)
 
         self._tree_view.selection = items
-        items_instance = [item for item in items if isinstance(item, _ItemInstanceMesh)]
-        items_ref = [item for item in items if isinstance(item, _ItemReferenceFileMesh)]
-        # if an item ref is selected, we select the sub mesh of the instance. Even if the tree items changed
-        if items_ref:
-            xformable_prims = self._core.get_xformable_prim_from_ref_items(items_ref, items_instance)
-            self._tree_model.select_prim_paths([str(xformable_prim.GetPath()) for xformable_prim in xformable_prims])
-        # but if the selection of the tree changed (and the tree items didn't change), we select the instance
-        elif not self._ignore_select_instance_prim_from_selected_items:
-            instance_paths = [str(item.prim.GetPath()) for item in items_instance]
-            self._tree_model.select_prim_paths(instance_paths)
+        if not self._ignore_select_instance_prim_from_selected_items:
+            # select prims when item prims are clicked
+            # we swap all the item prim path with the current selected item instances
+            prim_paths = [str(item.prim.GetPath()) for item in items if isinstance(item, _ItemPrim)]
+            instance_paths = [str(item.prim.GetPath()) for item in items if isinstance(item, _ItemInstanceMesh)]
+            to_select_paths = []
+            for path in prim_paths:
+                for instance_path in instance_paths:
+                    to_select_path = re.sub(constants.REGEX_MESH_TO_INSTANCE_SUB, instance_path, path)
+                    to_select_paths.append(to_select_path)
+            self._tree_model.select_prim_paths(list(set(to_select_paths)))
         self._previous_tree_selection = items
         self._tree_delegate.on_item_selected(items, self._tree_model.get_all_items())
 
@@ -358,10 +382,22 @@ class SetupUI:
             carb.log_info("No reference set")
 
     @omni.usd.handle_exception
-    async def __deferred_expand(self):
+    async def __deferred_expand(self, selection):
+        def get_items_to_expand(items):
+            for sel in items:
+                if hasattr(sel, "parent"):
+                    yield sel.parent
+                    yield from get_items_to_expand([sel.parent])
+
+        items_to_expand = list(set(get_items_to_expand(selection)))
+
         def set_expanded(items):
             for item_ in items:
-                self._tree_view.set_expanded(item_, True, True)
+                # _ItemMesh is always expanded
+                if item_ not in items_to_expand and not isinstance(item_, _ItemMesh):
+                    continue
+                self._tree_view.set_expanded(item_, True, False)
+                set_expanded(self._tree_model.get_item_children(item_))
 
         if self._tree_view is None:
             return

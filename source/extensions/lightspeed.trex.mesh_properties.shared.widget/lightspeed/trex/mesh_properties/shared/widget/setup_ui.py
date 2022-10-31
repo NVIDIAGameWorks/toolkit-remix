@@ -8,6 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import os
+import re
 import typing
 from typing import List, Union
 
@@ -15,7 +16,12 @@ import carb
 import omni.client
 import omni.ui as ui
 import omni.usd
+from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
+    ItemInstancesMeshGroup as _ItemInstancesMeshGroup,
+)
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemPrim as _ItemPrim
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
     ItemReferenceFileMesh as _ItemReferenceFileMesh,
 )
@@ -30,9 +36,6 @@ if typing.TYPE_CHECKING:
         ItemAddNewReferenceFileMesh as _ItemAddNewReferenceFileMesh,
     )
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
-        ItemInstancesMeshGroup as _ItemInstancesMeshGroup,
-    )
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemMesh as _ItemMesh
 
 
@@ -45,6 +48,7 @@ class SetupUI:
             "_mesh_properties_frames": None,
             "_mesh_none_provider_label": None,
             "_frame_mesh_ref": None,
+            "_frame_mesh_prim": None,
             "_mesh_ref_provider_label": None,
             "_mesh_ref_field": None,
             "_overlay_mesh_ref_label": None,
@@ -189,22 +193,21 @@ class SetupUI:
                                     ui.Spacer(width=ui.Pixel(8))
                                     self._mesh_ref_default_prim_label = ui.Label("Use default prim instead", width=0)
 
-                    ui.Spacer(height=ui.Pixel(8))
-                    with ui.HStack(height=1):
-                        ui.Spacer(width=ui.Pixel(100))
-                        ui.Line(name="PropertiesPaneSectionSeparator")
-                    ui.Spacer(height=ui.Pixel(8))
-                    self._transformation_widget = _TransformPropertyWidget(self._context_name)
+            self._frame_mesh_prim = ui.Frame(visible=False)
+            self._mesh_properties_frames[_ItemPrim] = self._frame_mesh_prim
+            with self._frame_mesh_prim:
+                self._transformation_widget = _TransformPropertyWidget(self._context_name)
 
     def refresh(
         self,
         items: List[
             Union[
                 "_ItemMesh",
-                _ItemReferenceFileMesh,
+                "_ItemReferenceFileMesh",
                 "_ItemAddNewReferenceFileMesh",
                 "_ItemInstancesMeshGroup",
                 "_ItemInstanceMesh",
+                "_ItemPrim",
             ]
         ],
     ):
@@ -221,16 +224,41 @@ class SetupUI:
             self._mesh_properties_frames[None].visible = True
 
         self._current_reference_file_mesh_items = [item for item in items if isinstance(item, _ItemReferenceFileMesh)]
+        item_prims = [item for item in items if isinstance(item, _ItemPrim)]
+        item_instance_groups = [item for item in items if isinstance(item, _ItemInstancesMeshGroup)]
         if self._current_reference_file_mesh_items:
             # we take only the last value
             self._only_read_mesh_ref = True
             self.set_ref_mesh_field(self._current_reference_file_mesh_items[-1].path)
             self._only_read_mesh_ref = False
-
+        elif item_prims:
             # refresh of the transform
-            ref_items = [item for item in items if isinstance(item, _ItemReferenceFileMesh)]
-            xformable_prims = self._core.get_xformable_prim_from_ref_items(ref_items, ref_items)
-            self._transformation_widget.refresh([xformable_prim.GetPath() for xformable_prim in xformable_prims])
+            prims = [item.prim for item in item_prims]
+            xformable_prims = self._core.filter_xformable_prims(prims)
+            if xformable_prims:
+                self._transformation_widget.refresh([xformable_prims[0].GetPath()])
+            else:
+                # we show the none panel
+                self._mesh_properties_frames[_ItemPrim].visible = False
+                self._mesh_properties_frames[None].visible = True
+        elif item_instance_groups:
+            # if this is a light, we can transform the light by itself. So we should show the transform frame
+            # light will always select the instance group
+            prims = [item.parent.prim for item in item_instance_groups]
+            xformable_prims = self._core.filter_xformable_prims(prims)
+            regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
+            xformable_prims_final = []
+            for xformable_prim in xformable_prims:
+                if regex_pattern.match(xformable_prim.GetName()):
+                    xformable_prims_final.append(xformable_prim)
+            if xformable_prims_final:
+                self._mesh_properties_frames[_ItemPrim].visible = True
+                self._mesh_properties_frames[None].visible = False
+                self._transformation_widget.refresh([xformable_prims_final[0].GetPath()])
+            else:
+                # we show the none panel
+                self._mesh_properties_frames[_ItemPrim].visible = False
+                self._mesh_properties_frames[None].visible = True
 
     def _on_ref_mesh_dir_pressed(self, button):
         if button != 0:
@@ -393,6 +421,9 @@ class SetupUI:
             )
         else:
             carb.log_info("No ref set")
+
+    def show(self, value):
+        self._transformation_widget.show(value)
 
     def destroy(self):
         _reset_default_attrs(self)

@@ -11,12 +11,9 @@ import functools
 import typing
 from typing import List, Union
 
-import omni.client
 import omni.ui as ui
 from lightspeed.trex.material.core.shared import Setup as _MaterialCore
-from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
-    ItemReferenceFileMesh as _ItemReferenceFileMesh,
-)
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemPrim as _ItemPrim
 from omni.flux.properties_pane.materials.usd.widget import MaterialPropertyWidget as _MaterialPropertyWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.label import create_label_with_font as _create_label_with_font
@@ -30,6 +27,9 @@ if typing.TYPE_CHECKING:
         ItemInstancesMeshGroup as _ItemInstancesMeshGroup,
     )
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemMesh as _ItemMesh
+    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
+        ItemReferenceFileMesh as _ItemReferenceFileMesh,
+    )
 
 
 class SetupUI:
@@ -71,7 +71,7 @@ class SetupUI:
                             ui.Spacer()
                         ui.Spacer(height=0)
             self._frame_material_widget = ui.Frame(visible=False)
-            self._material_properties_frames[_ItemReferenceFileMesh] = self._frame_material_widget
+            self._material_properties_frames[_ItemPrim] = self._frame_material_widget
 
             with self._frame_material_widget:
                 with ui.VStack():
@@ -102,10 +102,11 @@ class SetupUI:
         items: List[
             Union[
                 "_ItemMesh",
-                _ItemReferenceFileMesh,
+                "_ItemReferenceFileMesh",
                 "_ItemAddNewReferenceFileMesh",
                 "_ItemInstancesMeshGroup",
                 "_ItemInstanceMesh",
+                _ItemPrim,
             ]
         ],
     ):
@@ -124,25 +125,26 @@ class SetupUI:
 
         if found:
             # we select the material
-            selected_prims = [item.prim for item in items if isinstance(item, _ItemReferenceFileMesh)]
-            if not selected_prims:
-                return
-            # TODO: select only the first selection for now, and select the material that match the selected usd ref
-            # path
-            selected_refs = [item.ref for item in items if isinstance(item, _ItemReferenceFileMesh)]
-            selected_layers = [item.layer for item in items if isinstance(item, _ItemReferenceFileMesh)]
-            reference_path = omni.client.normalize_url(
-                selected_layers[0].ComputeAbsolutePath(selected_refs[0].assetPath)
-            )
-            materials = self._core.get_materials_from_prim(selected_prims[0], from_reference_layer_path=reference_path)
-            if not materials:
-                return
-            self._frame_combobox_materials.clear()
-            default_idx = 0
-            with self._frame_combobox_materials:
-                material_list_combobox = ui.ComboBox(default_idx, *[str(material) for material in materials])
-                material_list_combobox.model.add_item_changed_fn(functools.partial(self.show_material, materials))
-            self._material_properties_widget.refresh([materials[default_idx]])
+            selected_prims = [item.prim for item in items if isinstance(item, _ItemPrim)]
+            if selected_prims:
+                # TODO: select only the first selection for now, and select the material that match the selected usd ref
+                materials = self._core.get_materials_from_prim(selected_prims[0])
+                if materials:
+                    self._frame_combobox_materials.clear()
+                    default_idx = 0
+                    with self._frame_combobox_materials:
+                        material_list_combobox = ui.ComboBox(default_idx, *[str(material) for material in materials])
+                        material_list_combobox.model.add_item_changed_fn(
+                            functools.partial(self.show_material, materials)
+                        )
+                    self._material_properties_widget.refresh([materials[default_idx]])
+                    return
+        self._material_properties_widget.show(False)  # to disable the listener
+        self._material_properties_frames[None].visible = True
+        self._material_properties_frames[_ItemPrim].visible = False
+
+    def show(self, value):
+        self._material_properties_widget.show(value)  # to disable the listener
 
     def destroy(self):
         _reset_default_attrs(self)

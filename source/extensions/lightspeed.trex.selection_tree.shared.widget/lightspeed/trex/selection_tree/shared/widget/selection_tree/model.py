@@ -10,7 +10,6 @@
 import concurrent.futures
 import math
 import multiprocessing
-import os
 import re
 import typing
 from typing import Dict, List, Optional, Tuple, Type, Union
@@ -18,9 +17,10 @@ from typing import Dict, List, Optional, Tuple, Type, Union
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
+from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from pxr import Usd
+from pxr import Usd, UsdGeom
 
 from .listener import USDListener as _USDListener
 
@@ -33,11 +33,28 @@ HEADER_DICT = {0: "Path"}
 class ItemInstanceMesh(ui.AbstractItem):
     """Item of the model that represent a mesh"""
 
-    def __init__(self, prim: "Usd.Prim"):
+    def __init__(self, prim: "Usd.Prim", parent: "ItemInstancesMeshGroup"):
         super().__init__()
-        self.prim = prim
-        self.path = str(prim.GetPath())
-        self.value_model = ui.SimpleStringModel(self.path)
+        self._parent = parent
+        self._prim = prim
+        self._path = str(prim.GetPath())
+        self._value_model = ui.SimpleStringModel(self._path)
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @property
+    def prim(self):
+        return self._prim
+
+    @property
+    def path(self):
+        return self._path
+
+    @property
+    def value_model(self):
+        return self._value_model
 
     def __repr__(self):
         return f'"{self.path}"'
@@ -46,11 +63,28 @@ class ItemInstanceMesh(ui.AbstractItem):
 class ItemInstancesMeshGroup(ui.AbstractItem):
     """Item of the model that represent a mesh"""
 
-    def __init__(self, instance_prims: List["Usd.Prim"]):
+    def __init__(self, instance_prims: List["Usd.Prim"], parent: "ItemMesh"):
         super().__init__()
-        self.display = "Instances"
-        self.instances = [ItemInstanceMesh(instance_prim) for instance_prim in instance_prims]
-        self.value_model = ui.SimpleStringModel(self.display)
+        self._parent = parent
+        self._display = "Instances"
+        self._instances = [ItemInstanceMesh(instance_prim, self) for instance_prim in instance_prims]
+        self._value_model = ui.SimpleStringModel(self._display)
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @property
+    def display(self):
+        return self._display
+
+    @property
+    def instances(self):
+        return self._instances
+
+    @property
+    def value_model(self):
+        return self._value_model
 
     def __repr__(self):
         return f'"{self.display}"'
@@ -59,28 +93,144 @@ class ItemInstancesMeshGroup(ui.AbstractItem):
 class ItemAddNewReferenceFileMesh(ui.AbstractItem):
     """Item of the model that represent a mesh"""
 
-    def __init__(self, prim: "Usd.Prim"):
+    def __init__(self, prim: "Usd.Prim", parent: "ItemMesh"):
         super().__init__()
-        self.prim = prim
-        self.display = "Add new reference..."
-        self.value_model = ui.SimpleStringModel(self.display)
+        self._parent = parent
+        self._prim = prim
+        self._display = "Add new reference..."
+        self._value_model = ui.SimpleStringModel(self._display)
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @property
+    def prim(self):
+        return self._prim
+
+    @property
+    def display(self):
+        return self._display
+
+    @property
+    def value_model(self):
+        return self._value_model
 
     def __repr__(self):
         return f'"{self.display}"'
 
 
+class ItemPrim(ui.AbstractItem):
+    """Item of the model that represent a mesh"""
+
+    def __init__(self, prim: "Usd.Prim", parent: Union["ItemPrim", "ItemReferenceFileMesh"], context_name: str):
+        super().__init__()
+        self._parent = parent
+        self._prim = prim
+        self._path = str(prim.GetPath())
+        self._value_model = ui.SimpleStringModel(self._path)
+        core = _AssetReplacementsCore(context_name)
+        children = core.filter_imageable_prims(self._prim.GetChildren())
+        scope_without = core.get_scope_prims_without_imageable_children(children)
+        self._child_prim_items = [
+            ItemPrim(child, self, context_name) for child in children if child not in scope_without
+        ]
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @property
+    def prim(self):
+        return self._prim
+
+    @property
+    def path(self):
+        return self._path
+
+    @property
+    def value_model(self):
+        return self._value_model
+
+    @property
+    def child_prim_items(self):
+        return self._child_prim_items
+
+    def is_xformable(self) -> bool:
+        return bool(UsdGeom.Xformable(self.prim))
+
+    def is_scope(self) -> bool:
+        return bool(UsdGeom.Scope(self.prim))
+
+    def __repr__(self):
+        return f'"{self.path}"'
+
+
 class ItemReferenceFileMesh(ui.AbstractItem):
     """Item of the model that represent a mesh"""
 
-    def __init__(self, prim: "Usd.Prim", ref: "Sdf.Reference", layer: "Sdf.Layer", ref_index: int, size_ref_index: int):
+    def __init__(
+        self,
+        prim: "Usd.Prim",
+        ref: "Sdf.Reference",
+        layer: "Sdf.Layer",
+        ref_index: int,
+        size_ref_index: int,
+        parent: "ItemMesh",
+        context_name: str,
+    ):
         super().__init__()
-        self.prim = prim
-        self.ref = ref
-        self.path = str(ref.assetPath)
-        self.layer = layer
-        self.ref_index = ref_index
-        self.size_ref_index = size_ref_index
-        self.value_model = ui.SimpleStringModel(self.path)
+        self._parent = parent
+        self._prim = prim
+        self._ref = ref
+        self._path = str(ref.assetPath)
+        self._layer = layer
+        self._ref_index = ref_index
+        self._size_ref_index = size_ref_index
+        self._value_model = ui.SimpleStringModel(self._path)
+        core = _AssetReplacementsCore(context_name)
+        children = core.get_prim_from_ref_items([self], [self], only_imageable=True, level=1)
+        scope_without = core.get_scope_prims_without_imageable_children(children)
+        # we ignore Looks scopes
+        self._child_prim_items = [
+            ItemPrim(child, self, context_name) for child in children if child not in scope_without
+        ]
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @property
+    def prim(self):
+        return self._prim
+
+    @property
+    def ref(self):
+        return self._ref
+
+    @property
+    def path(self):
+        return self._path
+
+    @property
+    def layer(self):
+        return self._layer
+
+    @property
+    def ref_index(self):
+        return self._ref_index
+
+    @property
+    def value_model(self):
+        return self._value_model
+
+    @property
+    def size_ref_index(self):
+        return self._size_ref_index
+
+    @property
+    def child_prim_items(self):
+        return self._child_prim_items
 
     def __repr__(self):
         return f'"{self.path}"'
@@ -89,18 +239,43 @@ class ItemReferenceFileMesh(ui.AbstractItem):
 class ItemMesh(ui.AbstractItem):
     """Item of the model that represent a mesh"""
 
-    def __init__(self, prim: "Usd.Prim", instance_prims: List["Usd.Prim"]):
+    def __init__(self, prim: "Usd.Prim", instance_prims: List["Usd.Prim"], context_name: str):
         super().__init__()
-        self.prim = prim
-        self.path = str(prim.GetPath())
-        self.value_model = ui.SimpleStringModel(self.path)
+        self._prim = prim
+        self._path = str(prim.GetPath())
+        self._value_model = ui.SimpleStringModel(self._path)
 
-        self.add_new_reference_item = ItemAddNewReferenceFileMesh(self.prim)
-        self.instance_group_item = ItemInstancesMeshGroup(instance_prims)
-        prim_paths, total_ref = self.__reference_file_paths(self.prim)
-        self.reference_items = [
-            ItemReferenceFileMesh(self.prim, ref, layer, i, total_ref) for ref, layer, i in prim_paths
+        self._add_new_reference_item = ItemAddNewReferenceFileMesh(self._prim, self)
+        self._instance_group_item = ItemInstancesMeshGroup(instance_prims, self)
+        prim_paths, total_ref = self.__reference_file_paths(self._prim)
+        self._reference_items = [
+            ItemReferenceFileMesh(self._prim, ref, layer, i, total_ref, self, context_name)
+            for ref, layer, i in prim_paths
         ]
+
+    @property
+    def prim(self):
+        return self._prim
+
+    @property
+    def path(self):
+        return self._path
+
+    @property
+    def value_model(self):
+        return self._value_model
+
+    @property
+    def add_new_reference_item(self):
+        return self._add_new_reference_item
+
+    @property
+    def instance_group_item(self):
+        return self._instance_group_item
+
+    @property
+    def reference_items(self):
+        return self._reference_items
 
     @staticmethod
     def __reference_file_paths(prim) -> Tuple[List[Tuple["Sdf.Reference", "Sdf.Layer", int]], int]:
@@ -130,6 +305,7 @@ class ListModel(ui.AbstractItemModel):
         self.__children = []
         self._stage = None
         self._ignore_refresh = False
+        self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
         self._stage_event = None
         self._usd_listener = _USDListener()
@@ -160,13 +336,13 @@ class ListModel(ui.AbstractItemModel):
         prim = self.stage.GetPrimAtPath(path)
         if not prim.IsValid():
             return None
-        refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
-        for (ref, _) in refs_and_layers:
-            if not ref.assetPath and (
-                str(ref.primPath).startswith(constants.MESH_PATH) or str(ref.primPath).startswith(constants.LIGHT_PATH)
-            ):
-                return str(ref.primPath)
-        return None
+        root_node = prim.GetPrimIndex().rootNode
+        if not root_node:
+            return None
+        children = root_node.children
+        if not children:
+            return None
+        return str(children[0].path)
 
     @staticmethod
     def __get_reference_prims(prims) -> Dict["Usd.Prim", List["Sdf.Path"]]:
@@ -183,6 +359,24 @@ class ListModel(ui.AbstractItemModel):
 
         return prim_paths
 
+    def __get_model_from_prototype_path(self, path):
+        if not path.startswith(constants.MESH_PATH) and not path.startswith(constants.LIGHT_PATH):
+            return None
+        prim = self.stage.GetPrimAtPath(path)
+        if not prim.IsValid():
+            return None
+        regex_pattern = re.compile(constants.REGEX_MESH_PATH)
+        if regex_pattern.match(prim.GetName()):
+            return path
+        regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
+        if regex_pattern.match(prim.GetName()):
+            return path
+        # get parent
+        parent = prim.GetParent()
+        if not parent or not parent.IsValid():
+            return None
+        return self.__get_model_from_prototype_path(str(parent.GetPath()))
+
     def __get_instances_by_mesh(self, paths: List[str]) -> Dict["Sdf.Path", List["Usd.Prim"]]:
         if not self.stage:
             return {}
@@ -191,9 +385,9 @@ class ListModel(ui.AbstractItemModel):
 
         # extract hashes from paths
         hashes = set()
-        regex_inst_pattern = re.compile(constants.REGEX_INSTANCE_PATH)
+        regex_inst_pattern = re.compile(constants.REGEX_HASH)
         for path in paths:
-            match = regex_inst_pattern.match(os.path.basename(path))
+            match = regex_inst_pattern.match(path)
             if not match:
                 continue
             hashes.add(match.groups()[2])
@@ -262,13 +456,6 @@ class ListModel(ui.AbstractItemModel):
         if self.stage:
             paths = self._context.get_selection().get_selected_prim_paths()
             if paths:
-                regex_sub_inst_pattern = re.compile(constants.REGEX_SUB_INSTANCE_PATH)
-                # if a sub instance is selected, select the instance
-                for path in paths[:]:
-                    match = regex_sub_inst_pattern.match(path)
-                    if not match:
-                        continue
-                    paths.append(os.path.dirname(path))
                 instances_data = self.__get_instances_by_mesh(paths)
                 meshes = []
                 for path in paths:
@@ -276,7 +463,10 @@ class ListModel(ui.AbstractItemModel):
                     mesh = self.__get_prototype_from_path(path)
                     if not mesh or mesh in meshes:
                         continue
-                    meshes.append(mesh)
+                    mesh_model = self.__get_model_from_prototype_path(mesh)
+                    if not mesh_model or mesh_model in meshes:
+                        continue
+                    meshes.append(mesh_model)
                 for mesh in meshes:
                     mesh_prim = self.stage.GetPrimAtPath(mesh)
                     sdf_mesh_path = mesh_prim.GetPath()
@@ -284,6 +474,7 @@ class ListModel(ui.AbstractItemModel):
                         ItemMesh(
                             mesh_prim,
                             sorted(instances_data.get(sdf_mesh_path, []), key=lambda x: natural_keys(x.GetName())),
+                            self._context_name,
                         )
                     )
         self.__children = mesh_items
@@ -293,11 +484,23 @@ class ListModel(ui.AbstractItemModel):
         self,
         item_type: Type[
             Union[
-                ItemMesh, ItemReferenceFileMesh, ItemAddNewReferenceFileMesh, ItemInstancesMeshGroup, ItemInstanceMesh
+                ItemMesh,
+                ItemReferenceFileMesh,
+                ItemAddNewReferenceFileMesh,
+                ItemInstancesMeshGroup,
+                ItemInstanceMesh,
+                ItemPrim,
             ]
         ],
     ) -> List[
-        Union[ItemMesh, ItemReferenceFileMesh, ItemAddNewReferenceFileMesh, ItemInstancesMeshGroup, ItemInstanceMesh]
+        Union[
+            ItemMesh,
+            ItemReferenceFileMesh,
+            ItemAddNewReferenceFileMesh,
+            ItemInstancesMeshGroup,
+            ItemInstanceMesh,
+            ItemPrim,
+        ]
     ]:
         result = []
 
@@ -329,6 +532,8 @@ class ListModel(ui.AbstractItemModel):
             return item.reference_items + [item.add_new_reference_item, item.instance_group_item]
         if isinstance(item, ItemInstancesMeshGroup):
             return item.instances
+        if isinstance(item, (ItemReferenceFileMesh, ItemPrim)):
+            return item.child_prim_items
         return []
 
     def get_item_value_model_count(self, item):
