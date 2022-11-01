@@ -26,6 +26,7 @@ from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
     ItemReferenceFileMesh as _ItemReferenceFileMesh,
 )
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
+from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
 from omni.flux.properties_pane.transformation.usd.widget import TransformPropertyWidget as _TransformPropertyWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
@@ -69,6 +70,7 @@ class SetupUI:
             "_sub_mesh_ref_prim_field_begin_edit": None,
             "_sub_mesh_ref_prim_field_end_edit": None,
             "_transformation_widget": None,
+            "_property_widget": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -82,7 +84,7 @@ class SetupUI:
         self.__create_ui()
 
     def __create_ui(self):
-        with ui.ZStack(height=ui.Pixel(104)):
+        with ui.ZStack():
             self._frame_none = ui.Frame(visible=True)
             self._mesh_properties_frames[None] = self._frame_none
             with self._frame_none:
@@ -196,7 +198,12 @@ class SetupUI:
             self._frame_mesh_prim = ui.Frame(visible=False)
             self._mesh_properties_frames[_ItemPrim] = self._frame_mesh_prim
             with self._frame_mesh_prim:
-                self._transformation_widget = _TransformPropertyWidget(self._context_name)
+                with ui.VStack(spacing=8):
+                    self._transformation_widget = _TransformPropertyWidget(self._context_name)
+                    with ui.HStack():
+                        ui.Spacer(height=0)
+                        ui.Line(name="PropertiesPaneSectionSeparator", width=ui.Percent(60))
+                    self._property_widget = _PropertyWidget(self._context_name)
 
     def refresh(
         self,
@@ -227,6 +234,8 @@ class SetupUI:
         item_prims = [item for item in items if isinstance(item, _ItemPrim)]
         item_instance_groups = [item for item in items if isinstance(item, _ItemInstancesMeshGroup)]
         if self._current_reference_file_mesh_items:
+            self._transformation_widget.show(False)
+            self._property_widget.show(False)
             # we take only the last value
             self._only_read_mesh_ref = True
             self.set_ref_mesh_field(self._current_reference_file_mesh_items[-1].path)
@@ -235,12 +244,15 @@ class SetupUI:
             # refresh of the transform
             prims = [item.prim for item in item_prims]
             xformable_prims = self._core.filter_xformable_prims(prims)
+            self._transformation_widget.show(bool(xformable_prims))
             if xformable_prims:
                 self._transformation_widget.refresh([xformable_prims[0].GetPath()])
             else:
                 # we show the none panel
                 self._mesh_properties_frames[_ItemPrim].visible = False
                 self._mesh_properties_frames[None].visible = True
+            # for a regular prim, we dont show others properties
+            self._property_widget.show(False)
         elif item_instance_groups:
             # if this is a light, we can transform the light by itself. So we should show the transform frame
             # light will always select the instance group
@@ -251,10 +263,39 @@ class SetupUI:
             for xformable_prim in xformable_prims:
                 if regex_pattern.match(xformable_prim.GetName()):
                     xformable_prims_final.append(xformable_prim)
+            self._transformation_widget.show(bool(xformable_prims_final))
+            self._property_widget.show(bool(xformable_prims_final))
+
+            # set specific attributes
+            specific_attrs = [
+                "angle",
+                "color",
+                "colorTemperature",
+                "enableColorTemperature",
+                "exposure",
+                "height",
+                "intensity",
+                "length",
+                "radius",
+                "width",
+            ]
+            self._property_widget.set_specific_attributes(specific_attrs)
+
+            # set lookup table for lights
+            lookup_table = {attr: {"name": attr.capitalize(), "group": None} for attr in specific_attrs}
+            lookup_table.update(
+                {
+                    "colorTemperature": {"name": "Color Temperature", "group": None},
+                    "enableColorTemperature": {"name": "Enable Color Temperature", "group": None},
+                }
+            )
+            self._property_widget.set_lookup_table(lookup_table)
+
             if xformable_prims_final:
                 self._mesh_properties_frames[_ItemPrim].visible = True
                 self._mesh_properties_frames[None].visible = False
                 self._transformation_widget.refresh([xformable_prims_final[0].GetPath()])
+                self._property_widget.refresh([xformable_prims_final[0].GetPath()])
             else:
                 # we show the none panel
                 self._mesh_properties_frames[_ItemPrim].visible = False
@@ -424,6 +465,7 @@ class SetupUI:
 
     def show(self, value):
         self._transformation_widget.show(value)
+        self._property_widget.show(value)
 
     def destroy(self):
         _reset_default_attrs(self)
