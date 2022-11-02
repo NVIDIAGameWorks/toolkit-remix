@@ -168,6 +168,8 @@ current_dict.update(
         "Image::MenuBurger:hovered": {"image_url": _get_icons("menu-burger"), "color": _WHITE_80},
         "Image::MenuBurger:selected": {"image_url": _get_icons("menu-burger"), "color": _WHITE_100},
         "Image::NvidiaShort": {"image_url": _get_image("NVIDIA-logo-green-white"), "color": _WHITE_100},
+        "Image::Preview": {"image_url": _get_icons("magnify-expand"), "color": _WHITE_60},
+        "Image::Preview:hovered": {"image_url": _get_icons("magnify-expand"), "color": _WHITE_80},
         "Image::Scope": {"image_url": _get_icons("scope"), "color": _WHITE_60},
         "Image::Xform": {"image_url": _get_icons("xform"), "color": _WHITE_80},
         "ImagePropertiesPaneSectionTriangleCollapsed": {
@@ -360,6 +362,9 @@ current_dict.update(
             "font_size": 14,
             "image_url": _get_fonts("Barlow-Medium"),
         },
+        "ImagePreviewCanvas": {
+            "background_color": 0x0,
+        },
         "Rectangle::BackgroundButton": {"background_color": 0x33000000, "border_radius": 8},
         "Rectangle::WelcomePadContent": {"background_color": 0x0},
         "Rectangle::WelcomePadContent:hovered": {
@@ -368,9 +373,12 @@ current_dict.update(
             "border_color": _WHITE_20,
             "border_radius": 16,
         },
+        "Rectangle::PreviewWindowBackground": {"background_color": _GREY_42},
+        "ScrollingFrame::PreviewWindowBackground": {"background_color": _GREY_42},
         "Rectangle::PropertiesPaneSectionWindowBackground": _DEFAULT_DARK_PANEL_BACKGROUND_VALUE,
         "Rectangle::TreePanelBackground": {"background_color": 0x33000000},
         "Rectangle::WorkspaceBackground": {"background_color": _GREY_50},
+        "ScrollingFrame::WorkspaceBackground": {"background_color": _GREY_50},
         "Rectangle::FooterBackground": {"background_color": 0x99000000},
         "Rectangle::PropertiesPaneSectionWindowImageBackground": _DEFAULT_DARK_PANEL_BACKGROUND_VALUE,
         "Rectangle::PropertiesPaneSectionWindowCaptureBackground": _DEFAULT_DARK_PANEL_BACKGROUND_VALUE,
