@@ -321,6 +321,20 @@ current_dict.update(
             "border_color": _WHITE_30,
             "font_size": 14,
         },
+        "ColorsWidgetFieldRead": {
+            "background_color": _DARK_00,  # 01 for alpha or it will show a default color
+            "color": 0x90FFFFFF,
+            "border_color": 0x0,
+            "font_size": 14,
+        },
+        "ColorWidget::ColorsWidgetFieldRead": {
+            "border_color": _WHITE_20,
+            "border_radius": 5,
+        },
+        "Rectangle::ColorsWidgetSeparator": {
+            "background_color": _WHITE_10,
+            "border_width": 0,
+        },
         "PropertiesWidgetFieldRead": _DEFAULT_FIELD_READ_VALUE,
         "PropertiesWidgetFieldRead:hovered": _DEFAULT_FIELD_READ_HOVERED_VALUE,
         "PropertiesWidgetFieldSelected": {
