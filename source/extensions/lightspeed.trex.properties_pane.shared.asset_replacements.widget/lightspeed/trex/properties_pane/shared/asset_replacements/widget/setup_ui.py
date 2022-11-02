@@ -11,6 +11,8 @@ import omni.ui as ui
 from lightspeed.trex.material_properties.shared.widget import SetupUI as _MaterialPropertiesWidget
 from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshPropertiesWidget
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
+from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as _UsdBookmarkCollectionModel
+from omni.flux.bookmark_tree.widget import BookmarkTreeWidget as _BookmarkTreeWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
@@ -24,7 +26,9 @@ class AssetReplacementsPane:
 
         self._default_attr = {
             "_root_frame": None,
+            "_bookmark_tree_widget": None,
             "_selection_tree_widget": None,
+            "_bookmarks_collapsable_frame": None,
             "_selection_collapsable_frame": None,
             "_mesh_properties_collapsable_frame": None,
             "_material_properties_collapsable_frame": None,
@@ -70,6 +74,28 @@ class AssetReplacementsPane:
                         ui.Spacer(width=ui.Pixel(8), height=ui.Pixel(0))
                         with ui.VStack():
                             ui.Spacer(height=ui.Pixel(8))
+                            self._bookmarks_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
+                                "BOOKMARKS",
+                                info_text="A tree of all the bookmark collections and bookmarked items.\n\n"
+                                "- Creating a bookmark will automatically parent the new item to the "
+                                "currently selected collection.\n"
+                                "- Both Collections and Items are sorted alphabetically.\n"
+                                "- Both Items and Collections can be drag/dropped to change the hierarchy.\n"
+                                "- Collections can be renamed by double-clicking on them.\n"
+                                "- Items can be added or removed from collections by using the add/remove "
+                                "buttons aligned with the desired collection.\n"
+                                "- Selecting an item in the viewport will change the bookmark selection if "
+                                "the item was bookmarked.\n"
+                                "- Selecting an item in the bookmarks will select the associated item in the "
+                                "viewport.\n",
+                                collapsed=False,
+                            )
+                            with self._bookmarks_collapsable_frame:
+                                model = _UsdBookmarkCollectionModel(self._context_name)
+                                self._bookmark_tree_widget = _BookmarkTreeWidget(model=model)
+
+                            ui.Spacer(height=ui.Pixel(16))
+
                             self._selection_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "SELECTION",
                                 info_text="Tree that will shows your current selection\n",
@@ -121,6 +147,7 @@ class AssetReplacementsPane:
 
     def show(self, value):
         self._root_frame.visible = value
+        self._bookmark_tree_widget.show(value)
         self._selection_tree_widget.show(value)
         self._mesh_properties_widget.show(value)
         self._material_properties_widget.show(value)

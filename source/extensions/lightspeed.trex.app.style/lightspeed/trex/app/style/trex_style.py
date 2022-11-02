@@ -19,6 +19,7 @@ imgui.push_style_color(carb.imgui.StyleColor.WindowShadow, carb.Float4(0, 0, 0, 
 
 # default values
 _BLUE_SELECTED = 0x66FFC700
+_BLUE_SEMI_SELECTED = 0x33FFC700
 _BLUE_HOVERED = 0x1AFFC700
 
 _DARK_00 = 0x01000000  # 01 for alpha or it will show a default color
@@ -141,12 +142,15 @@ current_dict.update(
         "Image::Account": {"image_url": _get_icons("account-circle"), "color": _WHITE_50},
         "Image::Account:selected": {"image_url": _get_icons("account-circle"), "color": _WHITE_100},
         "Image::Account:hovered": {"image_url": _get_icons("account-circle"), "color": _WHITE_80},
+        "Image::AddStatic": {"image_url": _get_icons("add"), "color": _WHITE_50},
         "Image::Add": {"image_url": _get_icons("add"), "color": _WHITE_60},
+        "Image::Add:hovered": {"image_url": _get_icons("add"), "color": _WHITE_100},
         "Image::Eye": {"image_url": _get_icons("eye"), "color": _WHITE_60},
         "Image::Eye:hovered": {"image_url": _get_icons("eye"), "color": _WHITE_100},
         "Image::FolderClosed": {"image_url": _get_icons("folder-closed"), "color": _WHITE_80},
         "Image::Frame": {"image_url": _get_icons("frame"), "color": _WHITE_60},
         "Image::Frame:hovered": {"image_url": _get_icons("frame"), "color": _WHITE_100},
+        "Image::Bookmark": {"image_url": _get_icons("bookmark"), "color": _WHITE_80},
         "Image::Hexagon": {"image_url": _get_icons("shape-hexagon"), "color": _WHITE_80},
         "Image::Nickname": {"image_url": _get_icons("nickname"), "color": _WHITE_60},
         "Image::Nickname:hovered": {"image_url": _get_icons("nickname"), "color": _WHITE_100},
@@ -270,6 +274,10 @@ current_dict.update(
             "background_color": 0x00836C1D,
             "background_gradient_color": 0xFF836C1D,  # hardened _BLUE_SELECTED over _GREY_50
         },
+        "ImageWithProvider::SelectionGradient_secondary": {
+            "background_color": 0x00594E26,
+            "background_gradient_color": 0xFF594E26,  # hardened _BLUE_SEMI_SELECTED over _GREY_50
+        },
         "ImageWithProvider::WelcomePadItemTitle": {
             "color": _WHITE_100,
             "font_size": 18,
@@ -299,6 +307,7 @@ current_dict.update(
         "Line::PropertiesPaneSectionTitle": {"color": _WHITE_20, "border_width": 1},
         "Line::PropertiesPaneSectionSeparator": {"color": _WHITE_10, "border_width": 1},
         "Line::WelcomePadTop": {"color": _WHITE_20, "border_width": 1},
+        "Line::TreeSpacer": {"color": _BLUE_SELECTED, "border_width": 2},
         "MenuBurger": {
             "background_color": _DARK_85,
             "border_radius": 8,
@@ -411,8 +420,8 @@ current_dict.update(
         "TreeView::TreePanel:selected": {"background_color": _GREY_50},
         "TreeView::WelcomePad:selected": {"background_color": 0x0},
         "TreeView.Item": {"background_color": 0x0},
-        "TreeView.Item:selected": {"background_color": _BLUE_SELECTED},
         "TreeView.Item.selected": {"background_color": _BLUE_SELECTED},
+        "TreeView.Item.semi_selected": {"background_color": _BLUE_SEMI_SELECTED},
         "TreeView.Item.IsHovered": {"background_color": _BLUE_HOVERED},
         "TreeView.Item.Minus": {"image_url": _get_icons("disclosure-collapsed"), "color": _WHITE_60},
         "TreeView.Item.Plus": {"image_url": _get_icons("disclosure-collapsed_h"), "color": _WHITE_60},

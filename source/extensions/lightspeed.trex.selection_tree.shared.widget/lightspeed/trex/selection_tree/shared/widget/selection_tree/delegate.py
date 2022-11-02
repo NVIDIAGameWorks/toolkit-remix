@@ -486,7 +486,7 @@ class Delegate(ui.AbstractItemDelegate):
     @omni.usd.handle_exception
     async def _add_gradient_or_not(self, item):
         await omni.kit.app.get_app().next_update_async()
-        if self._path_scroll_frames[id(item)].scroll_x_max > 0:
+        if id(item) in self._path_scroll_frames and self._path_scroll_frames[id(item)].scroll_x_max > 0:
             with self._gradient_frame[id(item)]:
                 # add gradient
                 self._gradient_image_provider[id(item)] = ui.ByteImageProvider()
