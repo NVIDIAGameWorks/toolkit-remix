@@ -36,7 +36,6 @@ from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
 from omni.flux.utils.widget.label import create_label_with_font as _create_label_with_font
-from omni.flux.utils.widget.resources import get_fonts as _get_fonts
 
 from .capture_dir_picker import open_directory_picker
 from .capture_tree.delegate import Delegate as CaptureTreeDelegate
@@ -140,7 +139,6 @@ class ModSetupPane:
         self.__on_import_capture_layer = _Event()
         self.__on_import_replacement_layer = _Event()
 
-        self.__update_default_style()
         self.__create_ui()
 
     def __on_layer_event(self, event):
@@ -160,22 +158,6 @@ class ModSetupPane:
     def __on_event(self):
         self.refresh_capture_detail_panel()
         self.refresh_mod_detail_panel()
-
-    def __update_default_style(self):
-        """
-        This widget generate image from text. It needs to read keys from a the global style.
-        If those keys doesn't exist, we add them here (or it will crash). With this, the widget will work even without
-        global style that sets those keys
-        """
-        style = ui.Style.get_instance()
-        current_dict = style.default
-        if "ImageWithProvider::PropertiesPaneSectionTitle" not in current_dict:
-            current_dict["ImageWithProvider::PropertiesPaneSectionTitle"] = {
-                "color": 0xB3FFFFFF,
-                "font_size": 13,
-                "image_url": _get_fonts("Barlow-Bold"),
-            }
-        style.default = current_dict
 
     def _import_capture_layer(self, path):
         def on_okay_clicked(dialog: TrexMessageDialog):

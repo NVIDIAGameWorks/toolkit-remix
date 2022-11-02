@@ -124,6 +124,20 @@ current_dict.update(
             "border_radius": 4,
             "margin": 2,
         },
+        "Button::ExportButton:disabled": {
+            "background_color": _WHITE_10,
+            "border_width": 1,
+            "border_color": _WHITE_30,
+            "border_radius": 4,
+            "margin": 2,
+        },
+        "Button::ExportButton:hovered": {
+            "background_color": _WHITE_10,
+            "border_width": 1,
+            "border_color": _WHITE_30,
+            "border_radius": 4,
+            "margin": 2,
+        },
         "Button.Label::NoBackground:disabled": {
             "color": _WHITE_30,
         },

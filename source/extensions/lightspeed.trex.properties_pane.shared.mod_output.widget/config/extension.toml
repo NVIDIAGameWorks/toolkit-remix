@@ -1,0 +1,14 @@
+[package]
+authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "Lightspeed Trex Properties Pane Mod Output widget for the StageCraft"
+description = "Mod Output Properties Pane widget for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"lightspeed.trex.mod_output_file.shared.widget" = {}
+"lightspeed.trex.mod_output_details.shared.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.properties_pane.shared.mod_output.widget"

@@ -1,0 +1,16 @@
+[package]
+authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "Lightspeed Trex Mod Output File Widget implementation for the StageCraft"
+description = "Trex Mod Output File Widget implementation for Lightspeed Trex StageCraft App"
+
+[dependencies]
+"lightspeed.error_popup.window" = {}
+"lightspeed.export.core" = {}
+"lightspeed.layer_manager" = {}
+"lightspeed.progress_popup.window" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.mod_output_file.shared.widget"

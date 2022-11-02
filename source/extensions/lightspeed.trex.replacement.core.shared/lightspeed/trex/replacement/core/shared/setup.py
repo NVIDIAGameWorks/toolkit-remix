@@ -8,15 +8,18 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import os
+from pathlib import Path
+from typing import Optional, Union
 
 import carb
 import omni.client
 import omni.usd
-from lightspeed.layer_manager.constants import LSS_LAYER_GAME_NAME
+from lightspeed.common.constants import GAME_READY_REPLACEMENTS_FILE
+from lightspeed.layer_manager.constants import LSS_LAYER_GAME_NAME, LSS_LAYER_MOD_NOTES
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.layer_types import LayerType, LayerTypeKeys
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from pxr import Sdf, Usd
+from pxr import Sdf, Tf, Usd
 
 
 class Setup:
@@ -53,7 +56,6 @@ class Setup:
         return True
 
     def import_replacement_layer(self, path: str, use_existing_layer: bool = True):
-
         capture_layer = self._layer_manager.get_layer(LayerType.capture)
         if not capture_layer:
             carb.log_error(
@@ -91,12 +93,53 @@ class Setup:
         )
 
     def is_mod_file(self, path: str) -> bool:
-        layer = Sdf.Layer.FindOrOpen(path)
+        try:
+            layer = Sdf.Layer.FindOrOpen(path)
+        except Tf.ErrorException as e:
+            carb.log_verbose(e)
+            return False
         if not layer:
             return False
         if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == LayerType.replacement.value:
             return True
         return False
+
+    def get_existing_mod_file(self, dirname: Union[str, Path]) -> Optional[str]:
+        """
+        Args:
+            dirname: The path to search for mod files
+
+        Returns:
+            The full path of the mod file if it's found. None otherwise
+        """
+        if not dirname:
+            return None
+
+        result, entries = omni.client.list(str(dirname))
+        if result != omni.client.Result.OK:
+            return None
+
+        for entry in entries:
+            mod_file = omni.client.combine_urls(str(dirname), entry.relative_path)
+            if Path(mod_file).name.lower() == GAME_READY_REPLACEMENTS_FILE.lower() and self.is_mod_file(mod_file):
+                return mod_file
+
+        return None
+
+    def get_layer_notes(self, mod_file_path: Union[str, Path]) -> Optional[str]:
+        """
+        Args:
+            mod_file_path: The full path to an existing mod file
+
+        Returns:
+            The notes saved in the file if present. None otherwise
+        """
+        if not mod_file_path:
+            return None
+
+        existing_mod_layer = Sdf.Layer.FindOrOpen(str(mod_file_path))
+        custom_layer_data = existing_mod_layer.customLayerData
+        return custom_layer_data[LSS_LAYER_MOD_NOTES] if LSS_LAYER_MOD_NOTES in custom_layer_data else None
 
     def destroy(self):
         _reset_default_attrs(self)

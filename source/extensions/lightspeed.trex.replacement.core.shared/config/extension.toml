@@ -4,6 +4,7 @@ title = "Lightspeed Trex replacement/mod extension for the StageCraft"
 description = "Extension that works on replacement data for Lightspeed Trex StageCraft App"
 
 [dependencies]
+"lightspeed.common" = {}
 "lightspeed.layer_manager" = {}
 "omni.client" = {}
 "omni.flux.utils.common" = {}

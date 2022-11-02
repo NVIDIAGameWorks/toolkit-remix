@@ -103,6 +103,13 @@ class ErrorPopup:
             width=self._window_size[0],
             height=self._window_size[1],
             dockPreference=ui.DockPreference.DISABLED,
+            flags=(
+                ui.WINDOW_FLAGS_NO_COLLAPSE
+                | ui.WINDOW_FLAGS_NO_MOVE
+                | ui.WINDOW_FLAGS_NO_RESIZE
+                | ui.WINDOW_FLAGS_NO_CLOSE
+                | ui.WINDOW_FLAGS_MODAL
+            ),
         )
         # self._popup.flags = (
         #     ui.WINDOW_FLAGS_NO_COLLAPSE

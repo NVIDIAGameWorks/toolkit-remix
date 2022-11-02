@@ -17,7 +17,6 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
-from omni.flux.utils.widget.resources import get_fonts as _get_fonts
 
 
 class AssetReplacementsPane:
@@ -41,24 +40,7 @@ class AssetReplacementsPane:
 
         self._context_name = context_name
 
-        self.__update_default_style()
         self.__create_ui()
-
-    def __update_default_style(self):
-        """
-        This widget generate image from text. It needs to read keys from a the global style.
-        If those keys doesn't exist, we add them here (or it will crash). With this, the widget will work even without
-        global style that sets those keys
-        """
-        style = ui.Style.get_instance()
-        current_dict = style.default
-        if "ImageWithProvider::PropertiesPaneSectionTitle" not in current_dict:
-            current_dict["ImageWithProvider::PropertiesPaneSectionTitle"] = {
-                "color": 0xB3FFFFFF,
-                "font_size": 13,
-                "image_url": _get_fonts("Barlow-Bold"),
-            }
-        style.default = current_dict
 
     def __create_ui(self):
         self._root_frame = ui.Frame()
