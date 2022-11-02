@@ -9,6 +9,7 @@ description = "Asset Replacements Properties Pane widget for Lightspeed Trex Sta
 "lightspeed.trex.selection_tree.shared.widget" = {}
 "omni.flux.bookmark_tree.model.usd" = {}
 "omni.flux.bookmark_tree.widget" = {}
+"omni.flux.layer_tree.usd.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
 "omni.ui" = {}

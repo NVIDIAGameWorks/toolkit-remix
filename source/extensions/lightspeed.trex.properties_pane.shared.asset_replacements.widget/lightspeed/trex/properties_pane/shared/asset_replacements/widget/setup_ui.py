@@ -13,6 +13,7 @@ from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshProper
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
 from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as _UsdBookmarkCollectionModel
 from omni.flux.bookmark_tree.widget import BookmarkTreeWidget as _BookmarkTreeWidget
+from omni.flux.layer_tree.usd.widget import LayerTreeWidget as _LayerTreeWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
@@ -25,15 +26,17 @@ class AssetReplacementsPane:
 
         self._default_attr = {
             "_root_frame": None,
+            "_layer_tree_widget": None,
             "_bookmark_tree_widget": None,
             "_selection_tree_widget": None,
+            "_mesh_properties_widget": None,
+            "_material_properties_widget": None,
+            "_layer_collapsable_frame": None,
             "_bookmarks_collapsable_frame": None,
             "_selection_collapsable_frame": None,
             "_mesh_properties_collapsable_frame": None,
             "_material_properties_collapsable_frame": None,
             "_sub_tree_selection_changed": None,
-            "_mesh_properties_widget": None,
-            "_material_properties_widget": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -56,6 +59,29 @@ class AssetReplacementsPane:
                         ui.Spacer(width=ui.Pixel(8), height=ui.Pixel(0))
                         with ui.VStack():
                             ui.Spacer(height=ui.Pixel(8))
+                            self._layer_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
+                                "LAYERS",
+                                info_text="Visual representation of the USD layers in the mod.\n\n"
+                                "- Layers can be drag/dropped to change the hierarchy\n"
+                                "- The active edit target can be changed by clicking the layer icon aligned "
+                                "with the layer\n"
+                                "- Layers can be deleted by clicking the Delete button aligned with the "
+                                "layer\n"
+                                "- Layers can be locked by clicking the Lock button aligned with the layer\n"
+                                "- Layers can be muted by clicking the Mute button aligned with the layer\n"
+                                "- Layers can be saved by clicking the Save button if they are not locked "
+                                "and muted\n"
+                                "- New layers can be created by clicking the Create button at the bottom of "
+                                "the widget\n"
+                                "- Existing layers can be imported by clicking the Import button at the "
+                                "bottom of the widget",
+                                collapsed=False,
+                            )
+                            with self._layer_collapsable_frame:
+                                self._layer_tree_widget = _LayerTreeWidget(self._context_name)
+
+                            ui.Spacer(height=ui.Pixel(16))
+
                             self._bookmarks_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "BOOKMARKS",
                                 info_text="A tree of all the bookmark collections and bookmarked items.\n\n"
@@ -129,6 +155,7 @@ class AssetReplacementsPane:
 
     def show(self, value):
         self._root_frame.visible = value
+        self._layer_tree_widget.show(value)
         self._bookmark_tree_widget.show(value)
         self._selection_tree_widget.show(value)
         self._mesh_properties_widget.show(value)
