@@ -25,6 +25,11 @@ def preprocess(layer_manager: LayerManagerCore, context_name: str = ""):
     capture_layer = layer_manager.get_layer(LayerType.capture)
     autoupscale_layer = layer_manager.get_layer(LayerType.autoupscale)
     replacements_layer = layer_manager.get_layer(LayerType.replacement)
+    # TODO TREX-2111: We should be merging the replacements layers before running the pre processor, and only
+    # supporting a single replacements layer here.
+    override_layers = [replacements_layer]
+    if autoupscale_layer:
+        override_layers.append(autoupscale_layer)
     stage = omni.usd.get_context(context_name).get_stage()
     with Usd.EditContext(stage, replacements_layer):
         with Sdf.ChangeBlock():
@@ -32,38 +37,45 @@ def preprocess(layer_manager: LayerManagerCore, context_name: str = ""):
             all_capture_mats = mat_prim.GetAllChildren()
             for prim in all_capture_mats:
                 # if Prim has any properties in the replacements layer
-                if replacements_layer.GetPrimAtPath(prim.GetPath()) or (
-                    autoupscale_layer is not None and autoupscale_layer.GetPrimAtPath(prim.GetPath())
-                ):
+                if _is_prim_overridden(prim.GetPath(), override_layers):
+                    capture_abs_path = _get_capture_asset_path(prim, capture_layer, constants.MATERIALS_FOLDER + "/")
+                    capture_prim_path = constants.CAPTURED_MAT_PATH_PREFIX + prim.GetName()
                     _cleanup_capture_refs(
-                        prim, capture_layer, constants.MATERIALS_FOLDER + "/", constants.CAPTURED_MAT_PATH_PREFIX
+                        stage,
+                        prim,
+                        capture_layer,
+                        override_layers,
+                        capture_abs_path,
+                        capture_prim_path,
+                        None,
                     )
 
             mesh_prim = stage.GetPrimAtPath(constants.ROOTNODE_MESHES)
             all_capture_meshes = mesh_prim.GetAllChildren()
             for prim in all_capture_meshes:
                 # if Prim has any properties in the replacements layer
-                if replacements_layer.GetPrimAtPath(prim.GetPath()) or (
-                    autoupscale_layer is not None and autoupscale_layer.GetPrimAtPath(prim.GetPath())
-                ):
+                if _is_prim_overridden(prim.GetPath(), override_layers):
+                    capture_abs_path = _get_capture_asset_path(prim, capture_layer, constants.MESHES_FOLDER + "/")
+                    capture_prim_path = constants.CAPTURED_MESH_PATH_PREFIX + prim.GetName()
                     _cleanup_capture_refs(
-                        prim, capture_layer, constants.MESHES_FOLDER + "/", constants.CAPTURED_MESH_PATH_PREFIX
+                        stage, prim, capture_layer, override_layers, capture_abs_path, capture_prim_path, "mesh"
                     )
-                _maybe_preserve_original_draw(prim, capture_layer)
 
             light_prim = stage.GetPrimAtPath(constants.ROOTNODE_LIGHTS)
             all_capture_lights = light_prim.GetAllChildren()
             for prim in all_capture_lights:
                 # if Prim has any properties in the replacements layer
-                if replacements_layer.GetPrimAtPath(prim.GetPath()) or (
-                    autoupscale_layer is not None and autoupscale_layer.GetPrimAtPath(prim.GetPath())
-                ):
+                if _is_prim_overridden(prim.GetPath(), override_layers):
+                    capture_abs_path = _get_capture_asset_path(prim, capture_layer, constants.LIGHTS_FOLDER + "/")
+                    capture_prim_path = constants.CAPTURED_LIGHT_PATH_PREFIX + prim.GetName()
                     _cleanup_capture_refs(
-                        prim, capture_layer, constants.LIGHTS_FOLDER + "/", constants.CAPTURED_LIGHT_PATH_PREFIX
+                        stage, prim, capture_layer, override_layers, capture_abs_path, capture_prim_path, None
                     )
 
 
-def _cleanup_capture_refs(prim, capture_layer: Sdf.Layer, capture_folder, ref_path_prefix):
+def _cleanup_capture_refs(
+    stage, prim, capture_layer: Sdf.Layer, override_layers, capture_abs_path, capture_prim_path, preserve_original_child
+):
     """
     Promote all references to replacements layer
     """
@@ -80,9 +92,7 @@ def _cleanup_capture_refs(prim, capture_layer: Sdf.Layer, capture_folder, ref_pa
         )
 
     # Check if the prim isn't present in the current capture layer.
-    if len(refs) == 0 and not capture_layer.GetPrimAtPath(prim.GetPath()):
-        rel_path = capture_folder + prim.GetName() + ".usd"
-
+    if not capture_layer.GetPrimAtPath(prim.GetPath()):
         # base reference may have been left out accidentally, so check if ref was intentionally deleted
         intentionally_deleted = False
         stack = prim.GetPrimStack()
@@ -92,19 +102,31 @@ def _cleanup_capture_refs(prim, capture_layer: Sdf.Layer, capture_folder, ref_pa
                 if op.isExplicit:
                     intentionally_deleted = True
                     break
-                desired_abs_path = Sdf.ComputeAssetPathRelativeToLayer(prim_spec.layer, rel_path)
                 for ref in op.deletedItems:
-                    if ref.assetPath == desired_abs_path:
+                    if prim_spec.layer.ComputeAbsolutePath(ref.assetPath) == capture_abs_path:
                         intentionally_deleted = True
                         break
 
         # Not intentionally deleted, so restore the ref to the capture asset
         if not intentionally_deleted:
-            abs_path = Sdf.ComputeAssetPathRelativeToLayer(capture_layer, rel_path)
-            if not os.path.exists(abs_path):
+            if not os.path.exists(capture_abs_path):
                 carb.log_error("Missing base USD for prim " + prim.GetName())
-            refs = [Sdf.Reference(assetPath=abs_path, primPath=ref_path_prefix + prim.GetName())]
 
+            if preserve_original_child is not None and not _is_prim_overridden(
+                prim.GetPath().AppendChild(preserve_original_child), override_layers
+            ):
+                if not refs and not prim.GetChildren():
+                    # no references and no children means that this was an ignorable override
+                    #   (This is usually caused by a change to the visibility property.)
+                    carb.log_warn("Preprocessing removed meaningless override on prim " + str(prim.GetPath()))
+                    stage.RemovePrim(prim.GetPath())
+                else:
+                    # No mesh alterations in replacements, need to preserve original call
+                    attr = prim.CreateAttribute(constants.PRESERVE_ORIGINAL_ATTRIBUTE, Sdf.ValueTypeNames.Int)
+                    attr.Set(1)
+            else:
+                # Need to restore the original capture reference.
+                refs.insert(0, Sdf.Reference(assetPath=capture_abs_path, primPath=capture_prim_path))
     prim.GetReferences().SetReferences(refs)
 
 
@@ -114,24 +136,9 @@ def _file_in_folder(file_path, folder_path):
     return abs_file_path.startswith(abs_folder_path)
 
 
-def _maybe_preserve_original_draw(prim, capture_layer):
-    original_mesh = prim.GetChild("mesh")
-    if original_mesh and len(prim.GetAllChildren()) > 1:
-        # Original mesh is still present, but new children are as well. Check for changes to the original
-        stack = original_mesh.GetPrimStack()
-        if len(stack) == 1:
-            ref_path = stack[0].layer.realPath
-            capture_folder = os.path.dirname(capture_layer.realPath)
-            if _file_in_folder(ref_path, capture_folder) and ref_path.endswith(prim.GetName() + ".usd"):
-                # mesh is unaltered capture.  Need to exclude it and flag the runtime to preserve the original
-                # draw call.
-                attr = prim.CreateAttribute(constants.PRESERVE_ORIGINAL_ATTRIBUTE, Sdf.ValueTypeNames.Int)
-                attr.Set(1)
-                # delete the reference to the original captured mesh.
-                refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
-                refs = []
-                for ref, _layer in refs_and_layers:
-                    # Need to convert references to absolute paths.
-                    if not _file_in_folder(ref.assetPath, capture_folder):
-                        refs.append(ref)
-                prim.GetReferences().SetReferences(refs)
+def _is_prim_overridden(prim_path, override_layers):
+    return any(layer.GetPrimAtPath(prim_path) for layer in override_layers)
+
+
+def _get_capture_asset_path(prim, capture_layer, capture_folder):
+    return Sdf.ComputeAssetPathRelativeToLayer(capture_layer, capture_folder + prim.GetName() + ".usd")

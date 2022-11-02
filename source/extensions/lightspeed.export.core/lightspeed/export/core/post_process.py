@@ -343,7 +343,6 @@ class LightspeedPostProcessExporter:
                 if not process_texture:
                     continue
 
-                dds_exist = False
                 dds_path = None
                 if not abs_path_str:
                     # it means that the png is not here anymore, that why USD can't resolve the path
@@ -353,18 +352,21 @@ class LightspeedPostProcessExporter:
                         virtual_abs_path = stack.layer.ComputeAbsolutePath(rel_path)
                         dds_path = Path(f"{virtual_abs_path.rpartition('.')[0]}.dds")
                         if dds_path.exists():
-                            dds_exist = True
                             break
                         dds_path = None
                 else:
                     dds_path = abs_path.with_suffix(".dds")
 
-                # only create the dds if it doesn't already exist or has been modified since the last time it was
-                # processed.
+                # Only add a conversion task if:
+                #   The dds_path is set
+                #   There isn't already a task for this dds_path
+                #   Either:
+                #     A dds doesn't exist at that path
+                #     The hash of the source asset that created the dds doesn't match the hash of the existing .png
                 if (
-                    ((not dds_exist and dds_path is not None) or (abs_path_str and abs_path.suffix.lower() != ".dds"))
+                    dds_path
                     and str(dds_path) not in result_shader_prim_compress_dds_outputs
-                    and self._asset_hasher.should_process_asset(abs_path)
+                    and (not dds_path.exists() or self._asset_hasher.should_process_asset(abs_path))
                 ):  # noqa SIM102
                     self._asset_hasher.update_asset_hash(abs_path)
                     carb.log_info("Converting PNG to DDS: " + str(rel_path))
@@ -375,9 +377,8 @@ class LightspeedPostProcessExporter:
                     result.append(line)
                     result_shader_prim_compress_dds_outputs.append(str(dds_path))
 
-                # NOTE: not safe to delete the original png here, as any other prims re-using the texture will fail
-                # to resolve the absolute path if the file no longer exists.
-                # os.remove(abs_path)
+                # NOTE: not safe to delete the original png until after the dds files are actually created and all prims
+                # have been updated to point at those dds files.
 
     async def _on_processor_error(self, context, export_replacement_layer, message):
         carb.log_error(constants.BAD_EXPORT_LOG_PREFIX + message)
