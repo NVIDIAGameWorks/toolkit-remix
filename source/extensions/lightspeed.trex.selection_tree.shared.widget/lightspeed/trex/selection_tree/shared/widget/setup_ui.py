@@ -258,7 +258,8 @@ class SetupUI:
         # we select the corresponding prim instance
         self._ignore_select_instance_prim_from_selected_items = True
         await self.__deferred_expand(selection)
-        self._tree_view.selection = selection
+        if self._tree_view is not None:
+            self._tree_view.selection = selection
         self._previous_tree_selection = selection
         self._ignore_select_instance_prim_from_selected_items = False
         # for _ in range(2):
@@ -266,13 +267,13 @@ class SetupUI:
         self.__refresh_delegate_gradients()
 
     def __refresh_delegate_gradients(self):
-        for item in self._tree_view.selection:
+        for item in self._tree_view.selection if self._tree_view is not None else []:
             if not self._tree_delegate:
                 return
             self._tree_delegate.refresh_gradient_color(item)
 
     def get_selection(self):
-        return self._tree_view.selection
+        return self._tree_view.selection if self._tree_view is not None else []
 
     @_ignore_function_decorator(attrs=["_ignore_tree_selection_changed"])
     def _on_tree_selection_changed(self, items):
@@ -340,7 +341,8 @@ class SetupUI:
                 if instance_item not in items:
                     items.append(instance_item)
 
-        self._tree_view.selection = items
+        if self._tree_view is not None:
+            self._tree_view.selection = items
         if not self._ignore_select_instance_prim_from_selected_items:
             # select prims when item prims are clicked
             # we swap all the item prim path with the current selected item instances

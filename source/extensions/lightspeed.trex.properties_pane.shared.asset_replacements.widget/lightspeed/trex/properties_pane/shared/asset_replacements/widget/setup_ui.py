@@ -132,6 +132,8 @@ class AssetReplacementsPane:
                             with self._material_properties_collapsable_frame:
                                 self._material_properties_widget = _MaterialPropertiesWidget(self._context_name)
 
+                            ui.Spacer(height=ui.Pixel(16))
+
         self._sub_tree_selection_changed = self._selection_tree_widget.subscribe_tree_selection_changed(
             self._on_tree_selection_changed
         )

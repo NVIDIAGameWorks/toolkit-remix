@@ -23,6 +23,7 @@ _BLUE_SEMI_SELECTED = 0x33FFC700
 _BLUE_HOVERED = 0x1AFFC700
 
 _DARK_00 = 0x01000000  # 01 for alpha or it will show a default color
+_DARK_40 = 0x66000000
 _DARK_85 = 0xD9000000
 
 _GREY_32 = 0xFF202020
@@ -186,6 +187,8 @@ current_dict.update(
         "Image::LayerActive": {"image_url": _get_icons("layers"), "color": _WHITE_100},
         "Image::Layer": {"image_url": _get_icons("layers"), "color": _WHITE_30},
         "Image::Layer:hovered": {"image_url": _get_icons("layers"), "color": _WHITE_60},
+        "Image::More": {"image_url": _get_icons("ellipsis"), "color": _WHITE_60},
+        "Image::More:hovered": {"image_url": _get_icons("ellipsis"), "color": _WHITE_100},
         "Image::TreePanelLinesBackground": {
             "image_url": _get_image("45deg-256x256-1px-2px-sp-black"),
             "color": _WHITE_30,
@@ -404,6 +407,11 @@ current_dict.update(
         "ImagePreviewCanvas": {
             "background_color": 0x0,
         },
+        "OverrideIndicator": {"background_color": 0xFFFFC734, "border_width": 0},
+        "OverrideIndicator:hovered": {"background_color": 0xFFFFDE88},
+        "OverrideBackground": {"background_color": _DARK_40},
+        "OverrideBackgroundHovered": {"background_color": _BLUE_HOVERED},
+        "OverrideBackgroundSelected": {"background_color": _BLUE_SELECTED},
         "Rectangle::BackgroundButton": {"background_color": 0x33000000, "border_radius": 8},
         "Rectangle::WelcomePadContent": {"background_color": 0x0},
         "Rectangle::WelcomePadContent:hovered": {
