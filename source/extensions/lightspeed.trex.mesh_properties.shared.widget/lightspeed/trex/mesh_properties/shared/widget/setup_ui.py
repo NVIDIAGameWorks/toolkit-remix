@@ -41,6 +41,13 @@ if typing.TYPE_CHECKING:
 
 
 class SetupUI:
+    FILE_EXTENSIONS = [
+        ("*.usd*", "USD Files"),
+        ("*.usd", "Binary or Ascii USD File"),
+        ("*.usda", "Human-readable USD File"),
+        ("*.usdc", "Binary USD File"),
+    ]
+
     def __init__(self, context_name: str):
         """Nvidia StageCraft Viewport UI"""
 
@@ -331,7 +338,7 @@ class SetupUI:
             lambda *args: None,
             current_file=navigate_to,
             fallback=fallback,
-            file_extension_options=[("*.usd*", omni.usd.readable_usd_file_exts_str())],
+            file_extension_options=self.FILE_EXTENSIONS,
         )
 
     def _on_mesh_ref_field_begin(self, _model):

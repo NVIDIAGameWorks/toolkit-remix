@@ -38,6 +38,12 @@ if typing.TYPE_CHECKING:
 
 
 class SetupUI:
+    FILE_EXTENSIONS = [
+        ("*.usd*", "USD Files"),
+        ("*.usd", "Binary or Ascii USD File"),
+        ("*.usda", "Human-readable USD File"),
+        ("*.usdc", "Binary USD File"),
+    ]
 
     DEFAULT_TREE_FRAME_HEIGHT = 200
     SIZE_PERCENT_MANIPULATOR_WIDTH = 50
@@ -363,7 +369,7 @@ class SetupUI:
                 "USD Reference File picker",
                 functools.partial(self._add_new_ref_mesh, add_item_selected[0]),
                 lambda *args: None,
-                file_extension_options=[("*.usd*", omni.usd.readable_usd_file_exts_str())],
+                file_extension_options=self.FILE_EXTENSIONS,
             )
 
         self._tree_selection_changed(items)
