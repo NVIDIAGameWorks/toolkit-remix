@@ -75,7 +75,7 @@ class AssetReplacementsPane:
                                 "the widget\n"
                                 "- Existing layers can be imported by clicking the Import button at the "
                                 "bottom of the widget",
-                                collapsed=False,
+                                collapsed=True,
                             )
                             with self._layer_collapsable_frame:
                                 self._layer_tree_widget = _LayerTreeWidget(self._context_name)
@@ -96,7 +96,7 @@ class AssetReplacementsPane:
                                 "the item was bookmarked.\n"
                                 "- Selecting an item in the bookmarks will select the associated item in the "
                                 "viewport.\n",
-                                collapsed=False,
+                                collapsed=True,
                             )
                             with self._bookmarks_collapsable_frame:
                                 model = _UsdBookmarkCollectionModel(self._context_name)
@@ -138,10 +138,12 @@ class AssetReplacementsPane:
             self._on_tree_selection_changed
         )
         self._refresh_mesh_properties_widget()
+        self._refresh_material_properties_widget()
 
     def _on_tree_selection_changed(self, items):
         self._refresh_mesh_properties_widget()
         self._refresh_material_properties_widget()
+        self._mesh_properties_collapsable_frame.root.rebuild()
 
     def _refresh_mesh_properties_widget(self):
         items = self._selection_tree_widget.get_selection()

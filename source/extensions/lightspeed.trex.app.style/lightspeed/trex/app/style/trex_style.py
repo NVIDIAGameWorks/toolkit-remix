@@ -458,6 +458,7 @@ current_dict.update(
         "TreeView::TreePanel:selected": {"background_color": _GREY_50},
         "TreeView::WelcomePad:selected": {"background_color": 0x0},
         "TreeView.Item": {"background_color": 0x0},
+        "TreeView.Item:selected": {"background_color": _BLUE_SELECTED},
         "TreeView.Item.selected": {"background_color": _BLUE_SELECTED},
         "TreeView.Item.semi_selected": {"background_color": _BLUE_SEMI_SELECTED},
         "TreeView.Item.IsHovered": {"background_color": _BLUE_HOVERED},

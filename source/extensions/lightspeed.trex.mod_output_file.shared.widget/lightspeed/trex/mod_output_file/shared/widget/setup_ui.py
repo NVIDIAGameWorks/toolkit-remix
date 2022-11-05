@@ -14,7 +14,6 @@ import omni.ui as ui
 from lightspeed.error_popup.window import ErrorPopup as _ErrorPopup
 from lightspeed.export.core import LightspeedExporterCore as _LightspeedExporterCore
 from lightspeed.layer_manager.constants import LSS_LAYER_MOD_NOTES
-from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.progress_popup.window import ProgressPopup as _ProgressPopup
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
@@ -27,7 +26,6 @@ class SetupUI:
     def __init__(self, context_name: str = ""):
         self._default_attr = {
             "_exporter": None,
-            "_layer_manager": None,
             "_progress_popup": None,
             "_error_popup": None,
             "_file_title_provider": None,
@@ -38,6 +36,7 @@ class SetupUI:
             "_export_widget": None,
             "_disabled_export_widget": None,
             "_sub_mod_output_dir_field_changed": None,
+            "_sub_mod_output_dir_field_end": None,
             "_sub_progress_changed": None,
             "_sub_progress_text_changed": None,
             "_sub_finish_export": None,
@@ -49,9 +48,9 @@ class SetupUI:
             setattr(self, attr, value)
 
         self._exporter = _LightspeedExporterCore(context_name=context_name)
-        self._layer_manager = _LayerManagerCore(context_name=context_name)
 
         self._progress_popup = None
+        self._previous_export_dir_value = None
 
         self._sub_progress_changed = self._exporter.subscribe_progress_changed(self._on_progress_changed)
         self._sub_progress_text_changed = self._exporter.subscribe_progress_text_changed(self._on_progress_text_changed)
@@ -75,6 +74,9 @@ class SetupUI:
                         self._mod_output_dir_field.model.subscribe_value_changed_fn(
                             self._on_mod_output_dir_field_changed
                         )
+                    )
+                    self._sub_mod_output_dir_field_end = self._mod_output_dir_field.model.subscribe_end_edit_fn(
+                        self._on_mod_output_dir_field_end
                     )
                     with ui.HStack():
                         ui.Spacer(width=ui.Pixel(8))
@@ -114,6 +116,7 @@ class SetupUI:
         default_path = self._exporter.get_default_export_path(create_if_not_exist=True)
         if default_path and not self._mod_output_dir_field.model.get_value_as_string():
             self._mod_output_dir_field.model.set_value(default_path)
+            self._previous_export_dir_value = default_path
         self._directory_changed(self._mod_output_dir_field.model.get_value_as_string())
 
     def _validate_output_path(self, model):
@@ -128,6 +131,15 @@ class SetupUI:
         self._export_widget.enabled = is_valid
         self._mod_output_dir_field.style_type_name_override = "Field" if is_valid else "FieldError"
         self._directory_changed(model.get_value_as_string())
+
+    def _on_mod_output_dir_field_end(self, model):
+        is_valid = self._validate_output_path(model)
+        if not is_valid:
+            if self._previous_export_dir_value:
+                self._on_directory_selected(self._previous_export_dir_value)
+            return
+        value = model.get_value_as_string()
+        self._previous_export_dir_value = value
 
     def _on_output_dir_pressed(self, button):
         if button != 0:

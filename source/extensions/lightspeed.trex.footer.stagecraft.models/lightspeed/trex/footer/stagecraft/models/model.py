@@ -60,7 +60,7 @@ class StageCraftFooterModel(FooterModel):
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer()
             self._image_provider_about_trex, _, _ = create_label_with_font(
-                "About Trex", "FooterLabel", remove_offset=True, quality_multiplier=1
+                "About RTX Remix", "FooterLabel", remove_offset=True, quality_multiplier=1
             )
             ui.Spacer()
 

@@ -78,6 +78,7 @@ class SetupUI:
             "_sub_mesh_ref_prim_field_end_edit": None,
             "_transformation_widget": None,
             "_property_widget": None,
+            "_object_property_line": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -209,7 +210,9 @@ class SetupUI:
                     self._transformation_widget = _TransformPropertyWidget(self._context_name)
                     with ui.HStack():
                         ui.Spacer(height=0)
-                        ui.Line(name="PropertiesPaneSectionSeparator", width=ui.Percent(60))
+                        self._object_property_line = ui.Line(
+                            name="PropertiesPaneSectionSeparator", width=ui.Percent(60)
+                        )
                     self._property_widget = _PropertyWidget(self._context_name)
 
     def refresh(
@@ -307,6 +310,8 @@ class SetupUI:
                 # we show the none panel
                 self._mesh_properties_frames[_ItemPrim].visible = False
                 self._mesh_properties_frames[None].visible = True
+
+        self._object_property_line.visible = all([self._transformation_widget.visible, self._property_widget.visible])
 
     def _on_ref_mesh_dir_pressed(self, button):
         if button != 0:

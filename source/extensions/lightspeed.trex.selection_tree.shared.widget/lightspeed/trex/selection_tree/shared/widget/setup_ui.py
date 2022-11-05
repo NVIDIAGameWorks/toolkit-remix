@@ -267,6 +267,7 @@ class SetupUI:
         if self._tree_view is not None:
             self._tree_view.selection = selection
         self._previous_tree_selection = selection
+        self._tree_selection_changed(selection)
         self._ignore_select_instance_prim_from_selected_items = False
         # for _ in range(2):
         #     await omni.kit.app.get_app().next_update_async()
