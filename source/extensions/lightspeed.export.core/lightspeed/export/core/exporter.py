@@ -274,6 +274,16 @@ class LightspeedExporterCore:
             set_as_edit_target=True,
             add_custom_layer_data=False,
         )
+        context.save_as_stage(self._temp_stage_path)
+
+        layer = self._layer_manager.get_layer(LayerType.replacement)
+        omni.kit.commands.execute("FlattenSubLayers", usd_context=context, layer_to_flatten=layer)
+
+        if not self._layer_manager.save_layer_as(LayerType.replacement, self._temp_replacements_path):
+            message = "Export Failed: failed to save flattened replacement layer."
+            carb.log_error(message)
+            self._progress_text_changed(message)
+            return
 
         preprocess(self._layer_manager, self._context_name)
         preprocessed_replacements = self._layer_manager.get_layer(LayerType.replacement)
