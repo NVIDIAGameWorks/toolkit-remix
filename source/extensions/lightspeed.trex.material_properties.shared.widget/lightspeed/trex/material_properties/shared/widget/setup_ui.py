@@ -133,7 +133,11 @@ class SetupUI:
                     self._frame_combobox_materials.clear()
                     default_idx = 0
                     with self._frame_combobox_materials:
-                        material_list_combobox = ui.ComboBox(default_idx, *[str(material) for material in materials])
+                        material_list_combobox = ui.ComboBox(
+                            default_idx,
+                            *[str(material) for material in materials],
+                            style_type_name_override="PropertiesWidgetField",
+                        )
                         material_list_combobox.model.add_item_changed_fn(
                             functools.partial(self.show_material, materials)
                         )

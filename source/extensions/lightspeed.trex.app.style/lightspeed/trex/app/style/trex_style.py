@@ -353,7 +353,7 @@ current_dict.update(
         },
         "MenuBurgerItem": {"background_selected_color": _BLUE_HOVERED, "color": _WHITE_100},
         "PropertiesWidgetField": {
-            "background_color": _DARK_00,  # 01 for alpha or it will show a default color
+            "background_color": _GREY_50,  # 01 for alpha or it will show a default color
             "color": _WHITE_80,
             "border_width": 1,
             "border_radius": 5,
@@ -361,12 +361,7 @@ current_dict.update(
             "font_size": 14,
         },
         "PropertiesWidgetField:hovered": {
-            "background_color": _WHITE_20,
-            "color": _WHITE_80,
-            "border_width": 1,
-            "border_radius": 5,
-            "border_color": _WHITE_30,
-            "font_size": 14,
+            "background_color": _GREY_50,
         },
         "ColorsWidgetFieldRead": {
             "background_color": _DARK_00,  # 01 for alpha or it will show a default color
