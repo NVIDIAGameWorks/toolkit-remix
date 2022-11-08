@@ -6,6 +6,7 @@ description = "Asset Replacements Properties Pane widget for Lightspeed Trex Sta
 [dependencies]
 "lightspeed.trex.material_properties.shared.widget" = {}
 "lightspeed.trex.mesh_properties.shared.widget" = {}
+"lightspeed.trex.replacement.core.shared" = {}
 "lightspeed.trex.selection_tree.shared.widget" = {}
 "omni.flux.bookmark_tree.model.usd" = {}
 "omni.flux.bookmark_tree.widget" = {}

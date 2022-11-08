@@ -10,9 +10,11 @@
 import omni.ui as ui
 from lightspeed.trex.material_properties.shared.widget import SetupUI as _MaterialPropertiesWidget
 from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshPropertiesWidget
+from lightspeed.trex.replacement.core.shared.layers import AssetReplacementLayersCore as _AssetReplacementLayersCore
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
 from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as _UsdBookmarkCollectionModel
 from omni.flux.bookmark_tree.widget import BookmarkTreeWidget as _BookmarkTreeWidget
+from omni.flux.layer_tree.usd.widget import LayerModel as _LayerModel
 from omni.flux.layer_tree.usd.widget import LayerTreeWidget as _LayerTreeWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
@@ -25,6 +27,7 @@ class AssetReplacementsPane:
         """Nvidia StageCraft Components Pane"""
 
         self._default_attr = {
+            "_core": None,
             "_root_frame": None,
             "_layer_tree_widget": None,
             "_bookmark_tree_widget": None,
@@ -37,11 +40,15 @@ class AssetReplacementsPane:
             "_mesh_properties_collapsable_frame": None,
             "_material_properties_collapsable_frame": None,
             "_sub_tree_selection_changed": None,
+            "_sub_stage_event": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
         self._context_name = context_name
+        self._core = _AssetReplacementLayersCore(context_name)
+
+        self._sub_stage_event = self._core.subscribe_stage_event(self._on_stage_event)
 
         self.__create_ui()
 
@@ -78,7 +85,14 @@ class AssetReplacementsPane:
                                 collapsed=True,
                             )
                             with self._layer_collapsable_frame:
-                                self._layer_tree_widget = _LayerTreeWidget(self._context_name)
+                                model = _LayerModel(
+                                    self._context_name,
+                                    self._core.get_layers_exclude_remove(),
+                                    self._core.get_layers_exclude_lock(),
+                                    self._core.get_layers_exclude_mute(),
+                                    self._core.get_layers_exclude_edit_target(),
+                                )
+                                self._layer_tree_widget = _LayerTreeWidget(model=model)
 
                             ui.Spacer(height=ui.Pixel(16))
 
@@ -156,6 +170,7 @@ class AssetReplacementsPane:
     def refresh(self):
         self._selection_tree_widget.refresh()
         self._refresh_mesh_properties_widget()
+        self._refresh_material_properties_widget()
 
     def show(self, value):
         self._root_frame.visible = value
@@ -166,6 +181,14 @@ class AssetReplacementsPane:
         self._material_properties_widget.show(value)
         if value:
             self.refresh()
+
+    def _on_stage_event(self):
+        self._layer_tree_widget.update_excludes(
+            self._core.get_layers_exclude_remove(),
+            self._core.get_layers_exclude_lock(),
+            self._core.get_layers_exclude_mute(),
+            self._core.get_layers_exclude_edit_target(),
+        )
 
     def destroy(self):
         _reset_default_attrs(self)
