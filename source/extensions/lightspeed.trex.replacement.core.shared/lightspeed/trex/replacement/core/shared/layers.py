@@ -88,9 +88,7 @@ class AssetReplacementLayersCore:
         self._layer_replacement = self._layer_manager.get_layer(_LayerType.replacement)
         self._layer_capture = self._layer_manager.get_layer(_LayerType.capture)
 
-        self._layer_root = None
-        if self._stage is not None:
-            self._layer_root = self._stage.GetRootLayer()
+        self._layer_root = self._stage.GetRootLayer() if self._stage else None
 
     def _stage_event(self):
         """Call the event object that has the list of functions"""

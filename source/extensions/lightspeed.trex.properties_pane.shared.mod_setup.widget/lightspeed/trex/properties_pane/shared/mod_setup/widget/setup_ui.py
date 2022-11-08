@@ -111,6 +111,7 @@ class ModSetupPane:
         self._capture_tree_hovered_task = None
         self._game_icon_hovered_task = None
         self._refresh_capture_detail_panel_callback_task = None
+        self._ignore_capture_window_tree_selection_changed = False
         self._ignore_capture_tree_selection_changed = False
         self.__ignore_capture_tree_hovered = False
         self._ignore_capture_detail_refresh = False
@@ -165,7 +166,7 @@ class ModSetupPane:
             self.__on_import_capture_layer(path)
             self._last_capture_tree_view_window_selection = self._capture_tree_view_window.selection
 
-        @_ignore_function_decorator(attrs=["_ignore_capture_tree_selection_changed"])
+        @_ignore_function_decorator(attrs=["_ignore_capture_window_tree_selection_changed"])
         def on_cancel_clicked(dialog: TrexMessageDialog):
             dialog.hide()
             self._capture_tree_view_window.selection = (
@@ -246,7 +247,7 @@ class ModSetupPane:
                                 header_visible=False,
                                 columns_resizable=False,
                                 name="PropertiesPaneSectionCapture",
-                                selection_changed_fn=self._on_capture_tree_selection_changed,
+                                selection_changed_fn=self._on_capture_window_tree_selection_changed,
                             )
                             ui.Spacer(height=ui.Pixel(8))
                         ui.Spacer(width=ui.Pixel(8))
@@ -364,6 +365,7 @@ class ModSetupPane:
                                                                     header_visible=False,
                                                                     columns_resizable=False,
                                                                     mouse_hovered_fn=self._on_capture_tree_hovered,
+                                                                    selection_changed_fn=self._on_capture_tree_selection_changed,  # noqa E501
                                                                 )
                                                             self._tree_capture_scroll_frame.set_build_fn(
                                                                 functools.partial(
@@ -723,14 +725,20 @@ class ModSetupPane:
             else:
                 self._tree_capture_scroll_frame.scroll_y = value
 
-    @_ignore_function_decorator(attrs=["_ignore_capture_tree_selection_changed"])
-    def _on_capture_tree_selection_changed(self, items):
+    @_ignore_function_decorator(attrs=["_ignore_capture_window_tree_selection_changed"])
+    def _on_capture_window_tree_selection_changed(self, items):
         if len(items) > 1:
             self._capture_tree_view_window.selection = [items[0]]
         if self._capture_tree_view_window.selection and not self.__ignore_import_capture_layer:
             self._import_capture_layer(items[0].path)
         else:
             self.refresh_capture_detail_panel()
+
+    @_ignore_function_decorator(attrs=["_ignore_capture_tree_selection_changed"])
+    def _on_capture_tree_selection_changed(self, items):
+        if not self._capture_tree_view_window:
+            self.__create_capture_tree_window()
+        self._capture_tree_view_window.selection = items
 
     def _on_capture_tree_hovered(self, hovered):
         # if the left click is pushed, we ignore (because it can come from the property/viewport splitter)

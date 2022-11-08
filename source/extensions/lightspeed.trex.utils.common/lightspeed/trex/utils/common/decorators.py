@@ -26,7 +26,7 @@ def ignore_function_decorator(attrs: List[str] = None):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             for attr in attrs:
-                if getattr(self, attr):
+                if hasattr(self, attr) and getattr(self, attr):
                     return
                 setattr(self, attr, True)
             func(self, *args, **kwargs)
@@ -53,7 +53,7 @@ def ignore_function_decorator_async(attrs: List[str] = None):
         @functools.wraps(func)
         async def wrapper(self, *args, **kwargs):
             for attr in attrs:
-                if getattr(self, attr):
+                if hasattr(self, attr) and getattr(self, attr):
                     return
                 setattr(self, attr, True)
             await func(self, *args, **kwargs)
