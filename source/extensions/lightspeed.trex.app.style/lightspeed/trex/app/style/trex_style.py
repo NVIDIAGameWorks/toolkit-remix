@@ -21,6 +21,7 @@ imgui.push_style_color(carb.imgui.StyleColor.WindowShadow, carb.Float4(0, 0, 0, 
 _BLUE_SELECTED = 0x66FFC700
 _BLUE_SEMI_SELECTED = 0x33FFC700
 _BLUE_HOVERED = 0x1AFFC700
+_BLUE_ACTION = 0xFFFFC734
 
 _DARK_00 = 0x01000000  # 01 for alpha or it will show a default color
 _DARK_40 = 0x66000000
@@ -164,8 +165,10 @@ current_dict.update(
         "Image::Eye:hovered": {"image_url": _get_icons("eye"), "color": _WHITE_100},
         "Image::EyeOff": {"image_url": _get_icons("eye-off"), "color": _WHITE_60},
         "Image::EyeOff:hovered": {"image_url": _get_icons("eye-off"), "color": _WHITE_100},
+        "Image::CreateLayerDisabled": {"image_url": _get_icons("create-layer"), "color": _WHITE_30},
         "Image::CreateLayer": {"image_url": _get_icons("create-layer"), "color": _WHITE_60},
         "Image::CreateLayer:hovered": {"image_url": _get_icons("create-layer"), "color": _WHITE_100},
+        "Image::ImportLayerDisabled": {"image_url": _get_icons("import-layer"), "color": _WHITE_30},
         "Image::ImportLayer": {"image_url": _get_icons("import-layer"), "color": _WHITE_60},
         "Image::ImportLayer:hovered": {"image_url": _get_icons("import-layer"), "color": _WHITE_100},
         "Image::FolderClosed": {"image_url": _get_icons("folder-closed"), "color": _WHITE_80},
@@ -179,8 +182,8 @@ current_dict.update(
         "Image::Subtract": {"image_url": _get_icons("subtract"), "color": _WHITE_60},
         "Image::Subtract:hovered": {"image_url": _get_icons("subtract"), "color": _WHITE_100},
         "Image::SaveDisabled": {"image_url": _get_icons("save"), "color": _WHITE_30},
-        "Image::Save": {"image_url": _get_icons("save"), "color": _WHITE_60},
-        "Image::Save:hovered": {"image_url": _get_icons("save"), "color": _WHITE_100},
+        "Image::Save": {"image_url": _get_icons("save_filled"), "color": _WHITE_60},
+        "Image::Save:hovered": {"image_url": _get_icons("save_filled"), "color": _WHITE_100},
         "Image::LockDisabled": {"image_url": _get_icons("lock"), "color": _WHITE_30},
         "Image::Lock": {"image_url": _get_icons("lock"), "color": _WHITE_60},
         "Image::Lock:hovered": {"image_url": _get_icons("lock"), "color": _WHITE_100},
@@ -405,7 +408,9 @@ current_dict.update(
         "ImagePreviewCanvas": {
             "background_color": 0x0,
         },
-        "OverrideIndicator": {"background_color": 0xFFFFC734, "border_width": 0},
+        "Image::ActiveLayerBackground": {"image_url": _get_image("45deg-256x256-1px-2px-sp-black"), "color": _WHITE_60},
+        "ScrollingFrame::ActiveLayerBackground": {"background_color": 0x6F9AAD09},
+        "OverrideIndicator": {"background_color": _BLUE_ACTION, "border_width": 0},
         "OverrideIndicator:hovered": {"background_color": 0xFFFFDE88},
         "OverrideBackground": {"background_color": _DARK_40},
         "OverrideBackgroundHovered": {"background_color": _BLUE_HOVERED},

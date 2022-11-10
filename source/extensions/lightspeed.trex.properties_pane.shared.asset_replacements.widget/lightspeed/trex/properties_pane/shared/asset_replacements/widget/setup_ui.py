@@ -48,8 +48,6 @@ class AssetReplacementsPane:
         self._context_name = context_name
         self._core = _AssetReplacementLayersCore(context_name)
 
-        self._sub_stage_event = self._core.subscribe_stage_event(self._on_stage_event)
-
         self.__create_ui()
 
     def __create_ui(self):
@@ -69,6 +67,7 @@ class AssetReplacementsPane:
                             self._layer_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "LAYERS",
                                 info_text="Visual representation of the USD layers in the mod.\n\n"
+                                "NOTE: USD parent layers aggregate children layers so they have stronger opinions.\n\n"
                                 "- Layers can be drag/dropped to change the hierarchy\n"
                                 "- The active edit target can be changed by clicking the layer icon aligned "
                                 "with the layer\n"
@@ -87,10 +86,11 @@ class AssetReplacementsPane:
                             with self._layer_collapsable_frame:
                                 model = _LayerModel(
                                     self._context_name,
-                                    self._core.get_layers_exclude_remove(),
-                                    self._core.get_layers_exclude_lock(),
-                                    self._core.get_layers_exclude_mute(),
-                                    self._core.get_layers_exclude_edit_target(),
+                                    self._core.get_layers_exclude_remove,
+                                    self._core.get_layers_exclude_lock,
+                                    self._core.get_layers_exclude_mute,
+                                    self._core.get_layers_exclude_edit_target,
+                                    self._core.get_layers_exclude_add_child,
                                 )
                                 self._layer_tree_widget = _LayerTreeWidget(model=model)
 
@@ -173,6 +173,7 @@ class AssetReplacementsPane:
         self._refresh_material_properties_widget()
 
     def show(self, value):
+        # Update the widget visibility
         self._root_frame.visible = value
         self._layer_tree_widget.show(value)
         self._bookmark_tree_widget.show(value)
@@ -181,14 +182,6 @@ class AssetReplacementsPane:
         self._material_properties_widget.show(value)
         if value:
             self.refresh()
-
-    def _on_stage_event(self):
-        self._layer_tree_widget.update_excludes(
-            self._core.get_layers_exclude_remove(),
-            self._core.get_layers_exclude_lock(),
-            self._core.get_layers_exclude_mute(),
-            self._core.get_layers_exclude_edit_target(),
-        )
 
     def destroy(self):
         _reset_default_attrs(self)
