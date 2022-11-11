@@ -7,6 +7,8 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import functools
+
 import omni.ui as ui
 from lightspeed.trex.material_properties.shared.widget import SetupUI as _MaterialPropertiesWidget
 from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshPropertiesWidget
@@ -47,6 +49,8 @@ class AssetReplacementsPane:
 
         self._context_name = context_name
         self._core = _AssetReplacementLayersCore(context_name)
+
+        self.__tree_selection_collapsed = False
 
         self.__create_ui()
 
@@ -93,6 +97,9 @@ class AssetReplacementsPane:
                                     self._core.get_layers_exclude_add_child,
                                 )
                                 self._layer_tree_widget = _LayerTreeWidget(model=model)
+                            self._layer_collapsable_frame.root.set_collapsed_changed_fn(
+                                functools.partial(self.__on_collapsable_frame_changed, self._layer_tree_widget)
+                            )
 
                             ui.Spacer(height=ui.Pixel(16))
 
@@ -115,36 +122,68 @@ class AssetReplacementsPane:
                             with self._bookmarks_collapsable_frame:
                                 model = _UsdBookmarkCollectionModel(self._context_name)
                                 self._bookmark_tree_widget = _BookmarkTreeWidget(model=model)
+                            self._bookmarks_collapsable_frame.root.set_collapsed_changed_fn(
+                                functools.partial(self.__on_collapsable_frame_changed, self._bookmark_tree_widget)
+                            )
 
                             ui.Spacer(height=ui.Pixel(16))
 
                             self._selection_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "SELECTION",
-                                info_text="Tree that will shows your current selection\n",
-                                collapsed=False,
+                                info_text="Tree that will shows your current viewport selection.\n\n"
+                                "- The top item is the 'prototype'. A prototype is what represent the asset\n"
+                                "- The prototype contains USD reference(s) (linked USD file(s)).\n"
+                                "- Multiple USD reference(s) can be added or removed.\n"
+                                "- USD prim hierarchy of each reference can be seen.\n"
+                                "- Clicking on a prim in the hierarchy will select the prin in the viewport.\n"
+                                "- 'Instances' item shows where the asset is instanced in your stage.\n"
+                                "- Clicking on an instance (with a prim item selected in the hierarchy) will select "
+                                "it in the viewport.\n",
+                                collapsed=self.__tree_selection_collapsed,
                             )
                             with self._selection_collapsable_frame:
                                 self._selection_tree_widget = _SelectionTreeWidget(self._context_name)
+                            self._selection_collapsable_frame.root.set_collapsed_changed_fn(
+                                self.__on_selection_collapsable_frame_changed
+                            )
 
                             ui.Spacer(height=ui.Pixel(16))
 
                             self._mesh_properties_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "OBJECT PROPERTIES",
-                                info_text="Mesh properties of the selected mesh(es)",
+                                info_text="Mesh properties of the selected mesh(es).\n\n"
+                                "- Will show different property depending of the selection from the "
+                                "selection panel above. If the selection panel is hiding, it will show nothing.\n"
+                                "- A blue circle tells that the property has a different value than the default one.\n"
+                                "- A darker background tells that the property has override(s) from layer(s).\n"
+                                "- Override(s) can be removed. The list shows the stronger layer (top) to "
+                                "the weaker layer (bottom).\n",
                                 collapsed=False,
                             )
                             with self._mesh_properties_collapsable_frame:
                                 self._mesh_properties_widget = _MeshPropertiesWidget(self._context_name)
+                            self._mesh_properties_collapsable_frame.root.set_collapsed_changed_fn(
+                                functools.partial(self.__on_collapsable_frame_changed, self._mesh_properties_widget)
+                            )
 
                             ui.Spacer(height=ui.Pixel(16))
 
                             self._material_properties_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "MATERIAL PROPERTIES",
-                                info_text="Material properties of the selected mesh(es)",
+                                info_text="Material properties of the selected mesh(es).\n\n"
+                                "- Will show material properties depending of the selection from the "
+                                "selection panel above. If the selection panel is hiding, it will show nothing.\n"
+                                "- A blue circle tells that the property has a different value than the default one.\n"
+                                "- A darker background tells that the property has override(s) from layer(s).\n"
+                                "- Override(s) can be removed. The list shows the stronger layer (top) to "
+                                "the weaker layer (bottom).\n",
                                 collapsed=False,
                             )
                             with self._material_properties_collapsable_frame:
                                 self._material_properties_widget = _MaterialPropertiesWidget(self._context_name)
+                            self._material_properties_collapsable_frame.root.set_collapsed_changed_fn(
+                                functools.partial(self.__on_collapsable_frame_changed, self._material_properties_widget)
+                            )
 
                             ui.Spacer(height=ui.Pixel(16))
 
@@ -154,17 +193,37 @@ class AssetReplacementsPane:
         self._refresh_mesh_properties_widget()
         self._refresh_material_properties_widget()
 
+    def __on_collapsable_frame_changed(self, widget, collapsed):
+        widget.show(not collapsed)
+
+    def __on_selection_collapsable_frame_changed(self, collapsed):
+        self.__tree_selection_collapsed = collapsed
+        self._selection_tree_widget.show(not collapsed)
+        # if this is collapsed, we disable the property and material widget because those panels depend from the
+        # selection in the tree. Showing the last selection can lead user to mistake(s) (difference between the viewport
+        # selection and the last selection).
+        if collapsed:
+            self._on_tree_selection_changed([])
+        else:
+            self._selection_tree_widget.refresh()
+
     def _on_tree_selection_changed(self, items):
         self._refresh_mesh_properties_widget()
         self._refresh_material_properties_widget()
         self._mesh_properties_collapsable_frame.root.rebuild()
 
     def _refresh_mesh_properties_widget(self):
-        items = self._selection_tree_widget.get_selection()
+        if self.__tree_selection_collapsed:
+            items = []
+        else:
+            items = self._selection_tree_widget.get_selection()
         self._mesh_properties_widget.refresh(items)
 
     def _refresh_material_properties_widget(self):
-        items = self._selection_tree_widget.get_selection()
+        if self.__tree_selection_collapsed:
+            items = []
+        else:
+            items = self._selection_tree_widget.get_selection()
         self._material_properties_widget.refresh(items)
 
     def refresh(self):

@@ -2,3 +2,6 @@
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
 title = "Lightspeed Trex Resources"
 description = "This Extension contains resources (images, icons) used by Lightspeed Trex and splash screen."
+
+[core]
+order = -1000

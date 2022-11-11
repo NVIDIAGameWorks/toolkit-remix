@@ -23,19 +23,17 @@ path = "${test_root}"
 # Run app test
 include = [
     "tests-omni.app.lightspeed${shell_ext}",
-    "tests-lightspeed.event.*${shell_ext}",
-    "tests-lightspeed.*.core${shell_ext}",
-    "tests-lightspeed.*.menu${shell_ext}",
-    "tests-lightspeed.*.window${shell_ext}",
     "tests-lightspeed.*${shell_ext}"
 ]
-exclude = [
-    "tests-lightspeed.lock_xform${shell_ext}"
-]
+exclude = []
 args = [
     "--/app/extensions/registryEnabled=0", # It should start ok without a registry enabled (everything prebundled)
     "--/app/hangDetector/enabled=0",
-    "--/app/fastShutdown=1"
+    "--/app/fastShutdown=1",
+    "--/exts/omni.kit.test/testExtArgs/0=\"--/app/hangDetector/enabled=0\"",
+    "--/exts/omni.kit.test/testExtArgs/1=\"--/app/fastShutdown=1\"",
+    "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
+    "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\""
 ]
 timeout = 1800
 

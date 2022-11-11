@@ -20,8 +20,5 @@ name = "Lightspeed Widget Game Captures"
 "lightspeed.widget.content_viewer" = {}
 "omni.ui" = {}
 
-[[test]]
-args = ["--no-window"]
-
 [[python.module]]
 name = "lightspeed.widget.game_captures"

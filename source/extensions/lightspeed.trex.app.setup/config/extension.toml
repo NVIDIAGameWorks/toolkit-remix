@@ -4,6 +4,7 @@ title = "Lightspeed Trex Setup Extension"
 description = "This Extension does the final setup of the Lightspeed Trex Apps"
 
 [dependencies]
+"omni.kit.mainwindow" = {}
 "omni.ui" = {}
 "omni.usd" = {}
 

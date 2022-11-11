@@ -20,8 +20,5 @@ name = "Lightspeed Layer Manager"
 "omni.flux.utils.common" = {}
 "omni.kit.usd.layers" = {}
 
-[[test]]
-args = ["--no-window"]
-
 [[python.module]]
 name = "lightspeed.layer_manager"

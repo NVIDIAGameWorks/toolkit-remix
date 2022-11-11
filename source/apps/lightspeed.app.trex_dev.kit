@@ -44,6 +44,32 @@ titleFormatString = "  Lightspeed RTX Remix Dev {verKey:/app/version,font_color=
 [settings.exts."lightspeed.trex.app.setup"]
 hide_menu = false
 
+[[test]]
+args = [
+	"--no-assert-dialog",
+	"--/rtx/materialDb/syncLoads=true",
+	"--/omni.kit.plugin/syncUsdLoads=true",
+	"--/rtx/hydra/materialSyncLoads=true",
+	"--/renderer/multiGpu/autoEnable=false",
+	"--/app/hydraEngine/skipStatusBarIdle=true",
+	"--/app/asyncRendering=false",
+	"--/renderer/debug/validation/enabled=false",
+	"--/renderer/enabled='rtx'"
+]
+
+dependencies = [
+    "omni.kit.ui_test",
+    "omni.kit.test_suite.helpers"
+]
+
+# We can run all extension tests inside of an app. In practice many of them failing and crashing, that requires time
+# investment to fix. Add one extension, to keep pipeline working:
+pythonTests.include = [
+]
+pythonTests.exclude = [
+]
+timeout = 600
+
 
 ########################################################################################################################
 # BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)

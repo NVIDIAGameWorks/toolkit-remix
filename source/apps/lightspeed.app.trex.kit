@@ -43,6 +43,32 @@ default_layout_extension = "lightspeed.trex.layout.stagecraft"
 titleFormatString = "  Lightspeed RTX Remix  {verKey:/app/version,font_color=0x909090,font_size=16} {separator} {file, board=true}"
 icon.file = "${lightspeed.trex.app.resources}/data/icons/nvidia-omniverse-create.ico"
 
+[[test]]
+args = [
+	"--no-assert-dialog",
+	"--/rtx/materialDb/syncLoads=true",
+	"--/omni.kit.plugin/syncUsdLoads=true",
+	"--/rtx/hydra/materialSyncLoads=true",
+	"--/renderer/multiGpu/autoEnable=false",
+	"--/app/hydraEngine/skipStatusBarIdle=true",
+	"--/app/asyncRendering=false",
+	"--/renderer/debug/validation/enabled=false",
+	"--/renderer/enabled='rtx'"
+]
+
+dependencies = [
+    "omni.kit.ui_test",
+    "omni.kit.test_suite.helpers"
+]
+
+# We can run all extension tests inside of an app. In practice many of them failing and crashing, that requires time
+# investment to fix. Add one extension, to keep pipeline working:
+pythonTests.include = [
+]
+pythonTests.exclude = [
+]
+timeout = 600
+
 
 ########################################################################################################################
 # BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)

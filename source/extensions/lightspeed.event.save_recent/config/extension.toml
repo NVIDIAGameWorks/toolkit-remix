@@ -22,8 +22,5 @@ name = "Lightspeed Event Save recent"
 "omni.client" = {}
 "omni.usd" = {}
 
-[[test]]
-args = ["--no-window"]
-
 [[python.module]]
 name = "lightspeed.event.save_recent"

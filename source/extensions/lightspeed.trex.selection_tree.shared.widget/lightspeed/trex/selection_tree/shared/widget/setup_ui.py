@@ -74,6 +74,8 @@ class SetupUI:
         self._tree_model = _ListModel(context_name)
         self._tree_delegate = _Delegate()
 
+        self.__on_deferred_tree_model_changed_tack = None
+
         self._ignore_tree_selection_changed = False
         self._ignore_select_instance_prim_from_selected_items = False
         self._previous_tree_selection = []
@@ -206,7 +208,9 @@ class SetupUI:
 
     def _on_tree_model_changed(self, _, __):
         self._tree_delegate.reset()
-        asyncio.ensure_future(self._on_deferred_tree_model_changed())
+        if self.__on_deferred_tree_model_changed_tack:
+            self.__on_deferred_tree_model_changed_tack.cancel()
+        self.__on_deferred_tree_model_changed_tack = asyncio.ensure_future(self._on_deferred_tree_model_changed())
 
     @omni.usd.handle_exception
     async def _on_deferred_tree_model_changed(self):
@@ -444,5 +448,8 @@ class SetupUI:
             self.__refresh_delegate_gradients()
 
     def destroy(self):
+        if self.__on_deferred_tree_model_changed_tack:
+            self.__on_deferred_tree_model_changed_tack.cancel()
+        self.__on_deferred_tree_model_changed_tack = None
         self.__on_tree_selection_changed = None
         _reset_default_attrs(self)

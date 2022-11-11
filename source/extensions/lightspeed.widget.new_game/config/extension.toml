@@ -28,8 +28,5 @@ name = "Lightspeed New Game Widget"
 "omni.kit.pip_archive" = {}
 "lightspeed.pip_archive" = {}
 
-[[test]]
-args = ["--no-window"]
-
 [[python.module]]
 name = "lightspeed.widget.new_game"

@@ -18,9 +18,6 @@ name = "Lightspeed Widget Content Viewer"
 "omni.client" = {}
 "omni.ui" = {}
 
-[[test]]
-args = ["--no-window"]
-
 [[python.module]]
 name = "lightspeed.widget.content_viewer"
 

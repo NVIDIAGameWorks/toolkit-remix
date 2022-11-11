@@ -300,13 +300,14 @@ class SetupUI(TrexLayout):
                 with ui.ZStack():
                     # create background image
                     background_image_paths = get_background_images()
-                    # the first image is the same than the last one! To be able to switch smoothly
-                    self._background_images.append(
-                        ui.Image(background_image_paths[-1], fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP)
-                    )
-                    for background_image_path in background_image_paths:
-                        image = ui.Image(background_image_path, fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP)
-                        self._background_images.append(image)
+                    if background_image_paths:
+                        # the first image is the same than the last one! To be able to switch smoothly
+                        self._background_images.append(
+                            ui.Image(background_image_paths[-1], fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP)
+                        )
+                        for background_image_path in background_image_paths:
+                            image = ui.Image(background_image_path, fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP)
+                            self._background_images.append(image)
                     with ui.VStack():
                         self._header_nvidia_widget = HeaderWidget()  # hold or it will crash
                         with ui.HStack():

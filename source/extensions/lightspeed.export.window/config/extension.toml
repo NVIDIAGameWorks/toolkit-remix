@@ -40,11 +40,5 @@ icon = "data/icon.png"
 "omni.flux.utils.widget" = {}
 "omni.kit.menu.utils" = {}
 
-[[test]]
-args = ["--no-window"]
-dependencies = [
-	"omni.kit.test"
-]
-
 [[python.module]]
 name = "lightspeed.export.window"
