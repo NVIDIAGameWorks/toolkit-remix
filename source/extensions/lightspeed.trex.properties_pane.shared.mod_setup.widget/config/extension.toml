@@ -5,6 +5,7 @@ description = "Mod Setup Properties Pane widget for Lightspeed Trex StageCraft A
 
 [dependencies]
 "lightspeed.common" = {}
+"lightspeed.error_popup.window" = {}
 "lightspeed.trex.capture.core.shared" = {}
 "lightspeed.trex.replacement.core.shared" = {}
 "lightspeed.trex.utils.common" = {}

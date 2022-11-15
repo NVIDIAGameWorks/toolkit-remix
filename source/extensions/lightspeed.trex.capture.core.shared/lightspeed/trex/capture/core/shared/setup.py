@@ -11,7 +11,7 @@ import asyncio
 import contextlib
 import functools
 from pathlib import Path
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import carb
 import omni.client
@@ -72,13 +72,17 @@ class Setup:
             stage_destination.SetTimeCodesPerSecond(time_codes)
 
     @staticmethod
-    def is_path_valid(path: str) -> bool:
+    def is_path_valid(path: str, error_callback: Callable[[str, str], None] = lambda *_: None) -> bool:
+        error_title = "Wrong capture directory"
         if not path or not path.strip():
-            carb.log_error(f"{path} is not valid")
+            error_callback(error_title, f"{path} is not valid")
             return False
         _, entry = omni.client.stat(path)
         if not (entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN):  # noqa PLC0325
-            carb.log_error(f"{path} is not a directory")
+            error_callback(error_title, f"{path} is not a directory")
+            return False
+        if str(Path(path).stem) != CAPTURE_FOLDER:
+            error_callback(error_title, f"{path} is not a 'capture' folder")
             return False
         return True
 

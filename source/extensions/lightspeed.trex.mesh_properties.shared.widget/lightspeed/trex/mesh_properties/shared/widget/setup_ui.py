@@ -89,6 +89,7 @@ class SetupUI:
         self._mesh_properties_frames = {}
         self.__ref_mesh_field_is_editing = False
         self._current_reference_file_mesh_items = []
+
         self.__create_ui()
 
     def __create_ui(self):
@@ -430,6 +431,15 @@ class SetupUI:
 
         if set_new_ref and not self._only_read_mesh_ref:
             self.set_new_usd_reference()
+        elif not self._from_mesh_ref_checkbox:
+            only_read_mesh_ref_was_true = self._only_read_mesh_ref
+            if not only_read_mesh_ref_was_true:
+                self._only_read_mesh_ref = True
+            self._ignore_mesh_ref_field_changed = False
+            self.set_ref_mesh_field(self._current_reference_file_mesh_items[-1].path)
+            if not only_read_mesh_ref_was_true:
+                self._only_read_mesh_ref = False
+            self._ignore_mesh_ref_field_changed = True
 
     def __is_ref_field_path_valid(self, path) -> bool:
         if self._only_read_mesh_ref or self._from_mesh_ref_checkbox:

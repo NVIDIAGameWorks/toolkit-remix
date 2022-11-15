@@ -17,6 +17,7 @@ import omni.client
 import omni.kit.usd.layers as _layers
 import omni.ui as ui
 import omni.usd
+from lightspeed.error_popup.window import ErrorPopup as _ErrorPopup
 from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCoreSetup
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
@@ -35,9 +36,9 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
+from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.flux.utils.widget.label import create_label_with_font as _create_label_with_font
 
-from .capture_dir_picker import open_directory_picker
 from .capture_tree.delegate import Delegate as CaptureTreeDelegate
 from .capture_tree.model import ListModel as CaptureTreeModel
 from .mod_file_picker import open_file_picker
@@ -101,11 +102,13 @@ class ModSetupPane:
             "_tree_capture_window_scroll_frame": None,
             "_capture_loading_frame": None,
             "_refresh_capture_detail_panel_callback_task": None,
+            "_error_popup": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
         self._context = omni.usd.get_context(context_name)
+        self.__last_capture_field_value = None
         self.__import_existing_mod_file = True
         self.__ignore_current_capture_layer = False
         self._capture_tree_hovered_task = None
@@ -305,7 +308,7 @@ class ModSetupPane:
                                             ui.Spacer(width=ui.Pixel(4))
                                             with ui.ZStack():
                                                 self._capture_dir_field = ui.StringField(
-                                                    height=ui.Pixel(18), name="USDPropertiesWidgetValue"
+                                                    height=ui.Pixel(18), style_type_name_override="Field"
                                                 )
                                                 with ui.HStack():
                                                     ui.Spacer(width=ui.Pixel(8))
@@ -383,7 +386,9 @@ class ModSetupPane:
                                                             )
 
                                                             self._capture_loading_frame = ui.Frame(
-                                                                visible=False, separate_window=True
+                                                                visible=False,
+                                                                separate_window=True,
+                                                                build_fn=self._resize_capture_loading_frame,
                                                             )
                                                             with self._capture_loading_frame:
                                                                 with ui.ZStack():
@@ -584,6 +589,7 @@ class ModSetupPane:
     def __show_capture_loading_frames(self, value):
         if self._capture_loading_frame:
             self._capture_loading_frame.visible = value
+            self._capture_loading_frame.rebuild()
 
     @_ignore_function_decorator(attrs=["_ignore_capture_detail_refresh"])
     def refresh_capture_detail_panel(self):
@@ -808,6 +814,9 @@ class ModSetupPane:
             ui.Percent(100),
         ]
 
+    def _resize_capture_loading_frame(self):
+        self._capture_loading_frame.height = ui.Pixel(self._tree_capture_scroll_frame.computed_height)
+
     def _on_capture_slide_x_changed(self, x):
         size_manip = self._capture_manip_frame.computed_width / 100 * self.SIZE_PERCENT_MANIPULATOR_WIDTH
         if x.value < 0:
@@ -826,6 +835,7 @@ class ModSetupPane:
         if y.value < 0:
             self._capture_slide_placer.offset_y = 0
         self._tree_capture_scroll_frame.height = ui.Pixel(self.DEFAULT_CAPTURE_TREE_FRAME_HEIGHT + y.value)
+        self._resize_capture_loading_frame()
 
     def _on_capture_dir_pressed(self, button):
         if button != 0:
@@ -837,7 +847,19 @@ class ModSetupPane:
             if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN:
                 current_directory = None
         self.__ignore_current_capture_layer = True
-        open_directory_picker(self.set_capture_dir_field, lambda *args: None, current_directory=current_directory)
+        _open_file_picker(
+            "Select capture directory",
+            self.set_capture_dir_field,
+            lambda *args: None,
+            current_file=current_directory,
+            select_directory=True,
+            validate_selection=lambda dirname, _: self._core_capture.is_path_valid(dirname, self._show_error_popup),
+        )
+
+    def _show_error_popup(self, title, message):
+        self._error_popup = _ErrorPopup(title, message, "", window_size=(400, 120))
+        self._error_popup.show()
+        carb.log_error(message)
 
     def set_capture_dir_field(self, path):
         self._capture_dir_field.model.set_value(path)
@@ -850,13 +872,21 @@ class ModSetupPane:
         self.__capture_field_is_editing = False
         self._on_capture_dir_field_changed(model)
 
+    @_ignore_function_decorator(attrs=["_ignore_capture_dir_field_changed"])
     def _on_capture_dir_field_changed(self, model):
         path = model.get_value_as_string()
         self._overlay_capture_label.visible = not bool(path.strip())
+        if not self._core_capture.is_path_valid(path):
+            if not self.__capture_field_is_editing:
+                self._capture_dir_field.style_type_name_override = "Field"
+                self._capture_dir_field.model.set_value(self.__last_capture_field_value or "")
+                return
+            self._capture_dir_field.style_type_name_override = "FieldError"
+            return
+        self._capture_dir_field.style_type_name_override = "Field"
         if self.__capture_field_is_editing:
             return
-        if not self._core_capture.is_path_valid(path):
-            return
+        self.__last_capture_field_value = path
         self.refresh_capture_detail_panel()
 
     @_ignore_function_decorator(attrs=["_ignore_mod_file_field_changed"])

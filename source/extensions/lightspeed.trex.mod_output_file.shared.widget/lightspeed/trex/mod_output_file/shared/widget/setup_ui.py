@@ -69,7 +69,7 @@ class SetupUI:
             ui.Spacer(height=ui.Pixel(8))
             with ui.HStack():
                 with ui.ZStack():
-                    self._mod_output_dir_field = ui.StringField(height=ui.Pixel(18), name="USDPropertiesWidgetValue")
+                    self._mod_output_dir_field = ui.StringField(height=ui.Pixel(18), style_type_name_override="Field")
                     self._sub_mod_output_dir_field_changed = (
                         self._mod_output_dir_field.model.subscribe_value_changed_fn(
                             self._on_mod_output_dir_field_changed
