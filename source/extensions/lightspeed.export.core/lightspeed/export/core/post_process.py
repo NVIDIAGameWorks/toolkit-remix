@@ -659,3 +659,5 @@ class LightspeedPostProcessExporter:
                 export_replacement_layer.get_sdf_layer().customLayerData = custom_layer_data
 
             await context.save_stage_async()
+            flat_path = game_ready_assets_folder / Path(constants.FLAT_GAME_READY_REPLACEMENTS_FILE)
+            await context.export_as_stage_async(str(flat_path))
