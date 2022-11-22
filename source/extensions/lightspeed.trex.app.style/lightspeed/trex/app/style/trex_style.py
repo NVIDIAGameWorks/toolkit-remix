@@ -43,6 +43,8 @@ _WHITE_70 = 0xB3FFFFFF
 _WHITE_80 = 0xCCFFFFFF
 _WHITE_100 = 0xFFFFFFFF
 
+_YELLOW = 0xFF00FFFF
+
 _DEFAULT_FIELD_READ_VALUE = {
     "background_color": _DARK_00,  # 01 for alpha or it will show a default color
     "color": 0x90FFFFFF,
@@ -335,6 +337,8 @@ current_dict.update(
             "image_url": _get_fonts("Barlow-Medium"),
         },
         "Label::USDPropertiesWidgetValueOverlay": {"color": _WHITE_20},
+        "Label::Title0": {"color": _WHITE_80, "font_size": 22},
+        "Label::Title1": {"color": _WHITE_80, "font_size": 18},
         "Label::WelcomePadItemDescription": {"color": _WHITE_100, "font_size": 16},
         "Label::WelcomePadItemDescription:checked": {"color": _WHITE_30, "font_size": 16},
         "Label::PropertiesPaneSectionTreeItem": {"color": _WHITE_80, "font_size": 14},
@@ -344,6 +348,7 @@ current_dict.update(
         "Label::HeaderNavigatorMenuItem:selected": {"color": _WHITE_100, "font_size": 20},
         "Label::HeaderNavigatorMenuItem:hovered": {"color": _WHITE_80, "font_size": 20},
         "Label::MenuBurgerHotkey": {"color": _WHITE_60, "font_size": 12},
+        "Label::Warning": {"color": _YELLOW, "font_size": 18},
         "Label::WelcomePadFooter": {"color": _WHITE_100, "font_size": 18},
         "Line::PropertiesPaneSectionTitle": {"color": _WHITE_20, "border_width": 1},
         "Line::PropertiesPaneSectionSeparator": {"color": _WHITE_10, "border_width": 1},
