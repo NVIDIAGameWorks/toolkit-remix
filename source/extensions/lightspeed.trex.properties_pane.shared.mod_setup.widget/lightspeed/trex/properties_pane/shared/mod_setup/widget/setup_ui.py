@@ -121,12 +121,14 @@ class ModSetupPane:
         self._ignore_mod_file_field_changed = False
         self._ignore_mod_detail_refresh = False
         self.__ignore_import_capture_layer = False
-        self._capture_tree_model = CaptureTreeModel()
+        self._capture_tree_model = CaptureTreeModel(context_name)
         self._capture_tree_delegate = CaptureTreeDelegate()
         self._capture_tree_delegate_window = CaptureTreeDelegate()
         self.__capture_field_is_editing = False
         self._core_capture = CaptureCoreSetup(context_name)
         self._core_replacement = ReplacementCoreSetup(context_name)
+
+        self._sub_model_changed = self._capture_tree_model.subscribe_progress_updated(self._refresh_trees)
 
         self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
             self.__on_stage_event, name="StageChanged"
@@ -580,6 +582,12 @@ class ModSetupPane:
                 ui.Spacer(height=ui.Pixel(8))
                 self._mod_detail_property_widget = _PropertyWidget(self._mod_details_model, self._mod_details_delegate)
 
+    def _refresh_trees(self, *_):
+        if self._capture_tree_view_window:
+            self._capture_tree_view_window.dirty_widgets()
+        if self._capture_tree_view:
+            self._capture_tree_view.dirty_widgets()
+
     def __unselect_capture_items(self):
         self.__ignore_import_capture_layer = True
         self._capture_tree_view_window.selection = []
@@ -801,7 +809,7 @@ class ModSetupPane:
                     final_value_w = self._window_capture_tree.width + value
                     if final_value_w > size[0] - self._tree_capture_scroll_frame.screen_position_x - 8:
                         final_value_w = size[0] - self._tree_capture_scroll_frame.screen_position_x - 8
-                    self._window_capture_tree.width = ui.Pixel(final_value_w + 16)
+                    self._window_capture_tree.width = ui.Pixel(final_value_w + 32)
             self.__ignore_capture_tree_hovered = False
         elif (
             self._window_capture_tree.visible
@@ -811,7 +819,8 @@ class ModSetupPane:
 
     def _resize_capture_tree_columns(self, tree_view, frame):
         tree_view.column_widths = [
-            ui.Percent(100),
+            ui.Percent(80),
+            ui.Percent(20),
         ]
 
     def _resize_capture_loading_frame(self):
@@ -914,6 +923,7 @@ class ModSetupPane:
             self.refresh_capture_detail_panel()
             self.refresh_mod_detail_panel()
         else:
+            self._capture_tree_model.cancel_tasks()
             self._destroy_mod_properties()
             self._destroy_capture_properties()
 

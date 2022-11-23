@@ -3,6 +3,7 @@ from pathlib import Path
 
 from .texture_info import CompressionFormat, TextureInfo
 
+MATERIAL_RELATIONSHIP = "material:binding"
 MATERIAL_INPUTS_DIFFUSE_TEXTURE = "inputs:diffuse_texture"
 MATERIAL_INPUTS_NORMALMAP_TEXTURE = "inputs:normalmap_texture"
 MATERIAL_INPUTS_NORMALMAP_ENCODING = "inputs:encoding"
@@ -54,6 +55,7 @@ PIX2PIX_RESULTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("results"))
 
 REGEX_IN_INSTANCE_PATH = f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*(.*)$"
 REGEX_MESH_PATH = f"^(.*)({MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
+REGEX_INSTANCE_PATH = f"^(.*)({INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
 REGEX_HASH = f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX}|{MATERIAL_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*(.*)$"  # noqa E501
 REGEX_MESH_TO_INSTANCE_SUB = f"^((.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX}|{MATERIAL_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*)"  # noqa E501
 REGEX_LIGHT_PATH = f"^(.*)({LIGHT_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"

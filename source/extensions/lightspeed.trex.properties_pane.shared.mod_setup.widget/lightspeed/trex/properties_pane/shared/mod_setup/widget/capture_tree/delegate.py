@@ -12,6 +12,8 @@ import os
 
 import omni.ui as ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.widget.color import color_to_hex as _color_to_hex
+from omni.flux.utils.widget.loader import Loader as _Loader
 
 from .model import HEADER_DICT
 
@@ -145,29 +147,59 @@ class Delegate(ui.AbstractItemDelegate):
     # noinspection PyUnusedLocal
     def build_widget(self, model, item, column_id, level, expanded):
         """Create a widget per item"""
-
         if item is None:
             return
-        if column_id == 0:
-            with ui.HStack():
-                ui.Spacer(height=0, width=ui.Pixel(8))
-                with ui.Frame(height=0, separate_window=True):
-                    self._path_scroll_frames[id(item)] = ui.ScrollingFrame(
-                        name="TreePanelBackground",
-                        height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE),
-                        width=ui.Percent(100),
-                        vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                        horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                        scroll_y_max=0,
-                    )
-                    with self._path_scroll_frames[id(item)]:
-                        ui.Label(os.path.basename(item.path), name="PropertiesPaneSectionTreeItem", tooltip=item.path)
+        with ui.HStack():
+            if column_id == 0:
+                with ui.HStack():
+                    ui.Spacer(height=0, width=ui.Pixel(8))
+                    with ui.Frame(height=0, separate_window=True):
+                        self._path_scroll_frames[id(item)] = ui.ScrollingFrame(
+                            name="TreePanelBackground",
+                            height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE),
+                            vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                            horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                            scroll_y_max=0,
+                        )
+                        with self._path_scroll_frames[id(item)]:
+                            ui.Label(
+                                os.path.basename(item.path), name="PropertiesPaneSectionTreeItem", tooltip=item.path
+                            )
+                    ui.Spacer(height=0, width=ui.Pixel(8))
+            if column_id == 1:
+                with ui.ZStack():
+                    if item.replaced_items is not None and item.total_items is not None:
+                        color = self.__get_progress_color(
+                            item.replaced_items / item.total_items if item.total_items > 0 else 0
+                        )
+                        ui.Rectangle(
+                            height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE) - 2,
+                            style={"background_color": color},
+                        )
+                        with ui.HStack():
+                            ui.Spacer()
+                            ui.Label(
+                                f"{'{:.0f}'.format(item.replaced_items)} / {'{:.0f}'.format(item.total_items)}",
+                                width=0,
+                                name="ProgressLabel",
+                            )
+                            ui.Spacer()
+                    else:
+                        with ui.HStack():
+                            ui.Spacer()
+                            _Loader()
+                            ui.Spacer()
 
     def build_header(self, column_id):
         """Build the header"""
         style_type_name = "TreeView.Header"
         with ui.HStack():
             ui.Label(HEADER_DICT[column_id], style_type_name_override=style_type_name)
+
+    def __get_progress_color(self, progress: float):
+        r = min(255.0, (1.0 - progress) * 2.0 * 255.0) / 255
+        g = min(255.0, progress * 2.0 * 255.0) / 255
+        return _color_to_hex((r, g, 0, 0.3))
 
     def destroy(self):
         _reset_default_attrs(self)

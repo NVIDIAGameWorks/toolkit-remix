@@ -9,12 +9,12 @@
 """
 import os
 from pathlib import Path
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 import carb
 import omni.client
 import omni.usd
-from lightspeed.common.constants import GAME_READY_REPLACEMENTS_FILE
+from lightspeed.common import constants
 from lightspeed.layer_manager.constants import LSS_LAYER_GAME_NAME, LSS_LAYER_MOD_NOTES
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.layer_types import LayerType, LayerTypeKeys
@@ -121,7 +121,9 @@ class Setup:
 
         for entry in entries:
             mod_file = omni.client.combine_urls(str(dirname), entry.relative_path)
-            if Path(mod_file).name.lower() == GAME_READY_REPLACEMENTS_FILE.lower() and self.is_mod_file(mod_file):
+            if Path(mod_file).name.lower() == constants.GAME_READY_REPLACEMENTS_FILE.lower() and self.is_mod_file(
+                mod_file
+            ):
                 return mod_file
 
         return None
@@ -140,6 +142,25 @@ class Setup:
         existing_mod_layer = Sdf.Layer.FindOrOpen(str(mod_file_path))
         custom_layer_data = existing_mod_layer.customLayerData
         return custom_layer_data[LSS_LAYER_MOD_NOTES] if LSS_LAYER_MOD_NOTES in custom_layer_data else None
+
+    def get_replaced_hashes(self, path: Optional[Union[str, Path]] = None) -> Dict[Sdf.Layer, Dict[str, Sdf.Path]]:
+        def get_sublayers_recursive(path: Sdf.Path):
+            layer = Sdf.Layer.FindOrOpen(path)
+            if not layer:
+                return []
+            sublayers = [layer]
+            for sub in [layer.ComputeAbsolutePath(s) for s in layer.subLayerPaths]:
+                sublayers.extend(get_sublayers_recursive(sub))
+            return sublayers
+
+        if self.is_path_valid(str(path)):
+            replacements = path
+        else:
+            replacements = self.get_layer().identifier
+        hashes = {}
+        for sublayer in get_sublayers_recursive(replacements):
+            hashes[sublayer] = self._layer_manager.get_layer_hashes_no_comp_arcs(sublayer)
+        return hashes
 
     def destroy(self):
         _reset_default_attrs(self)

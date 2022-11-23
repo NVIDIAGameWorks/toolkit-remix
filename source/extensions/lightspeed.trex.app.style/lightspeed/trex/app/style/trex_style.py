@@ -197,6 +197,7 @@ current_dict.update(
         "Image::Layer:hovered": {"image_url": _get_icons("layers"), "color": _WHITE_60},
         "Image::More": {"image_url": _get_icons("ellipsis"), "color": _WHITE_60},
         "Image::More:hovered": {"image_url": _get_icons("ellipsis"), "color": _WHITE_100},
+        "Image::Hourglass": {"image_url": _get_icons("hourglass"), "color": _WHITE_100},
         "Image::TreePanelLinesBackground": {
             "image_url": _get_image("45deg-256x256-1px-2px-sp-black"),
             "color": _WHITE_30,
@@ -336,6 +337,7 @@ current_dict.update(
             "font_size": 24,
             "image_url": _get_fonts("Barlow-Medium"),
         },
+        "Label::ProgressLabel": {"color": _WHITE_100},
         "Label::USDPropertiesWidgetValueOverlay": {"color": _WHITE_20},
         "Label::Title0": {"color": _WHITE_80, "font_size": 22},
         "Label::Title1": {"color": _WHITE_80, "font_size": 18},

@@ -11,12 +11,12 @@ import asyncio
 import contextlib
 import functools
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import carb
 import omni.client
 import omni.usd
-from lightspeed.common.constants import CAPTURE_FOLDER
+from lightspeed.common import constants
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.layer_types import LayerType, LayerTypeKeys
 from lightspeed.upscale.core import UpscalerCore
@@ -81,7 +81,7 @@ class Setup:
         if not (entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN):  # noqa PLC0325
             error_callback(error_title, f"{path} is not a directory")
             return False
-        if str(Path(path).stem) != CAPTURE_FOLDER:
+        if str(Path(path).stem) != constants.CAPTURE_FOLDER:
             error_callback(error_title, f"{path} is not a 'capture' folder")
             return False
         return True
@@ -153,7 +153,7 @@ class Setup:
         if not self.__directory:
             carb.log_error("Please set the current directory")
             return False
-        if Path(self.__directory).name != CAPTURE_FOLDER:
+        if Path(self.__directory).name != constants.CAPTURE_FOLDER:
             carb.log_error(f"{self.__directory} is not a capture directory")
             return False
         return True
@@ -184,6 +184,12 @@ class Setup:
     def get_capture_image(self, path: str) -> Optional[str]:
         image_path = Path(path).parent.joinpath(".thumbs", f"{Path(path).name}.dds")
         return str(image_path) if image_path.exists() else None
+
+    def get_captured_hashes(self, path: Union[str, Path]) -> Tuple[Sdf.Layer, Dict[str, Sdf.Path]]:
+        if not self.is_capture_file(str(path)):
+            return None, {}
+        layer = Sdf.Layer.FindOrOpen(path)
+        return layer, self._layer_manager.get_layer_hashes_no_comp_arcs(layer)
 
     def destroy(self):
         _reset_default_attrs(self)

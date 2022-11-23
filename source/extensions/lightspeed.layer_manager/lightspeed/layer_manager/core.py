@@ -7,15 +7,16 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import re
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import carb
 import omni.client
 import omni.kit.commands
 import omni.kit.undo
 import omni.usd
-from lightspeed.common.constants import CAPTURE_FOLDER
+from lightspeed.common.constants import CAPTURE_FOLDER, REGEX_HASH, REGEX_INSTANCE_PATH
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.usd.layers import LayerUtils
 from pxr import Sdf
@@ -249,6 +250,43 @@ class LayerManagerCore:
             return None, None
         game_name = layer.customLayerData.get(LSS_LAYER_GAME_NAME, "MyGame")
         return game_name, str(capture_folder.parent)
+
+    def get_layer_hashes_no_comp_arcs(self, layer: Sdf.Layer) -> Dict[str, Sdf.Path]:
+        """
+        This function does not take in consideration the layer composition arcs.
+        It only evaluates the given layer and no sub-layers.
+
+        Args:
+            layer: The layer to traverse
+
+        Returns:
+            A dictionary of the various hashes found and their respective prims
+        """
+
+        def get_prims_recursive_no_comp_arcs(parents: List[Sdf.PrimSpec]):
+            """
+            Composition Arcs are not taken in consideration when fetching the prims.
+            The prims will therefore all belong to the same layer but prims in
+            sub-layers will be ignored.
+            """
+            prims = set()
+            for prim in parents:
+                prims.add(prim)
+                prims = prims.union(get_prims_recursive_no_comp_arcs(prim.nameChildren))
+            return prims
+
+        hashes = {}
+        regex_hash = re.compile(REGEX_HASH)
+        regex_instance = re.compile(REGEX_INSTANCE_PATH)
+        for prim in get_prims_recursive_no_comp_arcs(layer.rootPrims):
+            match = regex_hash.match(str(prim.path))
+            if not match:
+                continue
+            if regex_instance.match(str(prim.path)):
+                continue
+            if match.group(3) not in hashes:
+                hashes[match.group(3)] = prim.path
+        return hashes
 
     def destroy(self):
         _reset_default_attrs(self)
