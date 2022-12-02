@@ -95,6 +95,7 @@ class AssetReplacementsPane:
                                     self._core.get_layers_exclude_mute,
                                     self._core.get_layers_exclude_edit_target,
                                     self._core.get_layers_exclude_add_child,
+                                    self._core.get_layers_exclude_move,
                                 )
                                 self._layer_tree_widget = _LayerTreeWidget(model=model)
                             self._layer_collapsable_frame.root.set_collapsed_changed_fn(

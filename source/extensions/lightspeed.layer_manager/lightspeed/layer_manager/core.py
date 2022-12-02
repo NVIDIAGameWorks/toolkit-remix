@@ -162,6 +162,10 @@ class LayerManagerCore:
         for layer in stage.GetLayerStack():
             if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
                 return layer
+        for layer_identifier in stage.GetMutedLayers():
+            layer = LayerUtils.find_layer(layer_identifier)
+            if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
+                return layer
         return None
 
     @staticmethod

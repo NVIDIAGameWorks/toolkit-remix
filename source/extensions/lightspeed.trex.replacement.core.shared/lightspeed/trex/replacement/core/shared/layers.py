@@ -57,6 +57,7 @@ class AssetReplacementLayersCore:
         return [
             layer.identifier
             for layer in [
+                self._layer_capture,
                 self._layer_root,
             ]
             if layer is not None
@@ -76,6 +77,17 @@ class AssetReplacementLayersCore:
         return [
             layer.identifier
             for layer in [
+                self._layer_capture,
+                self._layer_root,
+            ]
+            if layer is not None
+        ]
+
+    def get_layers_exclude_move(self):
+        return [
+            layer.identifier
+            for layer in [
+                self._layer_replacement,
                 self._layer_capture,
                 self._layer_root,
             ]
