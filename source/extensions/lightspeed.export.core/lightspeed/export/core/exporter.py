@@ -524,9 +524,10 @@ class LightspeedExporterCore:
                             if not result_errors.get(DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value):
                                 result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value] = {}
                             _key = f"{chk}\n             {_prim.GetPath().pathString}"  # noqa PLW0640
-                            result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value][
-                                _key
-                            ] = "ERROR: This is an old override. Please remove it"
+                            result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value][_key] = (
+                                "ERROR: Either the captured mesh is missing from captures/, or this is an old"
+                                + " override that should be removed."
+                            )
                     if material_hashes:
                         _match = re.match(
                             f"^{constants.MATERIAL_FILE_PREFIX}([A-Z0-9]{{16}})$",
@@ -536,9 +537,10 @@ class LightspeedExporterCore:
                             if not result_errors.get(DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value):
                                 result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value] = {}
                             _key = f"{chk}\n             {_prim.GetPath().pathString}"  # noqa PLW0640
-                            result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value][
-                                _key
-                            ] = "ERROR: This is an old override. Please remove it"
+                            result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value][_key] = (
+                                "ERROR: Either the captured material is missing from captures/, or this is an old"
+                                + " override that should be removed."
+                            )
                     if light_hashes:
                         _match = re.match(
                             f"^{constants.LIGHT_FILE_PREFIX}([A-Z0-9]{{16}})$",
@@ -548,9 +550,10 @@ class LightspeedExporterCore:
                             if not result_errors.get(DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value):
                                 result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value] = {}
                             _key = f"{chk}\n             {_prim.GetPath().pathString}"  # noqa PLW0640
-                            result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value][
-                                _key
-                            ] = "ERROR: This is an old override. Please remove it"
+                            result_errors[DependencyErrorTypes.REFERENCE_HASH_NOT_EXIST.value][_key] = (
+                                "ERROR: Either the captured light is missing from captures/, or this is an old"
+                                + " override that should be removed."
+                            )
 
                 check_prim_hash_exist(prim)
 
