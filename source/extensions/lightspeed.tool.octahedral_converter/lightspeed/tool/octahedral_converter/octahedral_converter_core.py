@@ -47,7 +47,7 @@ class LightspeedOctahedralConverter:
                 original_path
                 + " contained "
                 + str(num_negative)
-                + " pixels with inward pointing normals (z < 0.0, or b < 128).  TREX only supports hemispherical"
+                + " pixels with inward pointing normals (z < 0.0, or b < 128).  Remix only supports hemispherical"
                 + " normals, with the normal pointing away from the surface."
             )
 

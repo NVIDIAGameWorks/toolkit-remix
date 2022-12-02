@@ -475,46 +475,47 @@ class LightspeedPostProcessExporter:
         # TODO a crash in one geo shouldn't prevent processing the rest of the geometry
 
         length = len(all_geos)
-        for i, geo_prim in enumerate(all_geos):
-            # we only work on meshes that have USD reference path(s) and process the USD reference 1 time
-            ref_node = geo_prim.GetPrimIndex().rootNode.children[0]
-            # if a prim's nested under several references, chase it all the way to the bottom.
-            while ref_node.children:
-                ref_node = ref_node.children[0]
-            ref_asset_path = ref_node.layerStack.layers[0]
-            ref_asset_path_value = ref_asset_path.realPath
-            ref_asset_and_prim_path = f"{ref_asset_path_value}, {ref_node.path}"
+        with Sdf.ChangeBlock():
+            for i, geo_prim in enumerate(all_geos):
+                # we only work on meshes that have USD reference path(s) and process the USD reference 1 time
+                ref_node = geo_prim.GetPrimIndex().rootNode.children[0]
+                # if a prim's nested under several references, chase it all the way to the bottom.
+                while ref_node.children:
+                    ref_node = ref_node.children[0]
+                ref_asset_path = ref_node.layerStack.layers[0]
+                ref_asset_path_value = ref_asset_path.realPath
+                ref_asset_and_prim_path = f"{ref_asset_path_value}, {ref_node.path}"
 
-            # if the reference is inside another reference and it was already processed,
-            # we don't need to reprocess it.
-            stack = geo_prim.GetPrimStack()
-            ref_asset_and_prim_path_same_usd = None
-            if stack:
-                # this will give the usd reference path of the prim, even if the prim is a ref in a ref in a ref...
-                ref_asset_path_value_same_usd = stack[-1].layer.realPath
-                prim_path_same_usd = stack[-1].path
-                ref_asset_and_prim_path_same_usd = f"{ref_asset_path_value_same_usd}, {prim_path_same_usd}"
-                if ref_asset_and_prim_path_same_usd in processed_mesh_prim_layer_paths_same_usd:
+                # if the reference is inside another reference and it was already processed,
+                # we don't need to reprocess it.
+                stack = geo_prim.GetPrimStack()
+                ref_asset_and_prim_path_same_usd = None
+                if stack:
+                    # this will give the usd reference path of the prim, even if the prim is a ref in a ref in a ref...
+                    ref_asset_path_value_same_usd = stack[-1].layer.realPath
+                    prim_path_same_usd = stack[-1].path
+                    ref_asset_and_prim_path_same_usd = f"{ref_asset_path_value_same_usd}, {prim_path_same_usd}"
+                    if ref_asset_and_prim_path_same_usd in processed_mesh_prim_layer_paths_same_usd:
+                        continue
+
+                if not ref_asset_path_value or ref_asset_and_prim_path in processed_mesh_prim_layer_paths:
                     continue
-
-            if not ref_asset_path_value or ref_asset_and_prim_path in processed_mesh_prim_layer_paths:
-                continue
-            carb.log_info(f"Post Processing Mesh: {geo_prim.GetPath()}")
-            progress_text_callback(f"Post Processing Mesh:\n{geo_prim.GetPath()}")
-            progress_callback(float(i) / length)
-            await omni.kit.app.get_app().next_update_async()
-            try:
-                # apply edits to the geo prim in it's source usd, not in the top level replacements.usd
-                with ReferenceEdit(geo_prim):
-                    self._process_mesh_prim(geo_prim)
-                    processed_mesh_prim_layer_paths.append(ref_asset_and_prim_path)
-                    if ref_asset_and_prim_path_same_usd:
-                        processed_mesh_prim_layer_paths_same_usd.append(ref_asset_and_prim_path_same_usd)
-            except Exception as e:  # noqa
-                failed_processes.append(str(geo_prim.GetPath()))
-                carb.log_error("Exception when post-processing mesh: " + str(geo_prim.GetPath()))
-                carb.log_error(f"{e}")
-                carb.log_error(f"{traceback.format_exc()}")
+                carb.log_info(f"Post Processing Mesh: {geo_prim.GetPath()}")
+                progress_text_callback(f"Post Processing Mesh:\n{geo_prim.GetPath()}")
+                progress_callback(float(i) / length)
+                await omni.kit.app.get_app().next_update_async()
+                try:
+                    # apply edits to the geo prim in it's source usd, not in the top level replacements.usd
+                    with ReferenceEdit(geo_prim):
+                        self._process_mesh_prim(geo_prim)
+                        processed_mesh_prim_layer_paths.append(ref_asset_and_prim_path)
+                        if ref_asset_and_prim_path_same_usd:
+                            processed_mesh_prim_layer_paths_same_usd.append(ref_asset_and_prim_path_same_usd)
+                except Exception as e:  # noqa
+                    failed_processes.append(str(geo_prim.GetPath()))
+                    carb.log_error("Exception when post-processing mesh: " + str(geo_prim.GetPath()))
+                    carb.log_error(f"{e}")
+                    carb.log_error(f"{traceback.format_exc()}")
 
         # process materials
         # TraverseAll because we want to grab overrides
@@ -586,14 +587,15 @@ class LightspeedPostProcessExporter:
         await omni.kit.app.get_app().next_update_async()
 
         # set USD attributes for convert tangent
-        _process_shader(
-            functools.partial(
-                self._process_shader_prim_convert_tangent_space,
-                process_texture=False,
-                set_usd=True,
-            ),
-            "Post Processing Shader Tangent set USD:",
-        )
+        with Sdf.ChangeBlock():
+            _process_shader(
+                functools.partial(
+                    self._process_shader_prim_convert_tangent_space,
+                    process_texture=False,
+                    set_usd=True,
+                ),
+                "Post Processing Shader Tangent set USD:",
+            )
         await omni.kit.app.get_app().next_update_async()
 
         # read the texture to be converted to dds
@@ -617,9 +619,19 @@ class LightspeedPostProcessExporter:
         futures = []
         executor = ThreadPoolExecutor(max_workers=4)
         for cmd in [[str(self._nvtt_path)] + cmds for cmds in result_shader_prim_compress_dds]:
-            futures.append(executor.submit(subprocess.check_call, cmd))
+            carb.log_info("Queing DDS conversion: " + str(cmd))
+            future = executor.submit(subprocess.run, cmd, check=True, capture_output=True, text=True)
+            future.original_command = cmd
+            futures.append(future)
 
-        for i_dds, _ in enumerate(as_completed(futures)):
+        for i_dds, future in enumerate(as_completed(futures)):
+            try:
+                result = future.result()
+                carb.log_info("DDS command result: " + str(result))
+            except Exception as e:  # noqa
+                failed_processes.append(future.original_command[0])
+                carb.log_error("Exception when converting texture to dds")
+                carb.log_error(f"{traceback.format_exc()}")
             # for the progress bar
             _update_progress(
                 i_dds,
@@ -633,14 +645,15 @@ class LightspeedPostProcessExporter:
 
         await omni.kit.app.get_app().next_update_async()
         # set the new converted dds textures
-        _process_shader(
-            functools.partial(
-                self._process_shader_prim_compress_dds,
-                process_texture=False,
-                set_usd=True,
-            ),
-            "Post Processing Shader compress DDS set USD:",
-        )
+        with Sdf.ChangeBlock():
+            _process_shader(
+                functools.partial(
+                    self._process_shader_prim_compress_dds,
+                    process_texture=False,
+                    set_usd=True,
+                ),
+                "Post Processing Shader compress DDS set USD:",
+            )
 
         self._asset_hasher.save_manifest()
         self._asset_hasher = None
@@ -659,6 +672,3 @@ class LightspeedPostProcessExporter:
                 export_replacement_layer.get_sdf_layer().customLayerData = custom_layer_data
 
             await context.save_stage_async()
-            # TODO: need to make the flat export use relative paths
-            # flat_path = game_ready_assets_folder / Path(constants.FLAT_GAME_READY_REPLACEMENTS_FILE)
-            # await context.export_as_stage_async(str(flat_path))
