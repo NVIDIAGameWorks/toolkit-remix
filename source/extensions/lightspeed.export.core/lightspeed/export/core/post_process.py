@@ -564,6 +564,7 @@ class LightspeedPostProcessExporter:
             "Sanitize MDL paths:",
         )
         await omni.kit.app.get_app().next_update_async()
+        # TODO old <hash>.dds files are being used, instead of converting <hash>.png files into <hash>.dds files
 
         # process convert tangent without to set USD attribute. Do it in thread (we don't need multiprocess because
         # most of the time is spent during Pillow image saving. And Processing freeze)
@@ -629,7 +630,7 @@ class LightspeedPostProcessExporter:
                 result = future.result()
                 carb.log_info("DDS command result: " + str(result))
             except Exception as e:  # noqa
-                failed_processes.append(future.original_command[0])
+                failed_processes.append(future.original_command[1])
                 carb.log_error("Exception when converting texture to dds")
                 carb.log_error(f"{traceback.format_exc()}")
             # for the progress bar
