@@ -13,6 +13,7 @@ description = "Layout for Lightspeed Trex StageCraft App"
 "lightspeed.trex.layout.shared" = {}
 "lightspeed.trex.menu.workfile" = {}
 "lightspeed.trex.properties_pane.stagecraft.widget" = {}
+"lightspeed.trex.utils.common" = {}
 "lightspeed.trex.viewports.stagecraft.widget" = {}
 "lightspeed.trex.welcome_pads.stagecraft.models" = {}
 "omni.flux.footer.widget" = {}

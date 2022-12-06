@@ -9,7 +9,7 @@ registryEnabled = false
 
 # Fonts
 [app.font]
-file = "${lightspeed.trex.app.resources}/data/fonts/Barlow-Regular.otf"
+file = "${lightspeed.trex.app.resources}/data/fonts/NVIDIASans_A_Rg.ttf"
 size = 16
 
 [app.file]
@@ -39,3 +39,5 @@ uiStyle = "NvidiaDark"
 # pickingMode = "models"
 pickingMode = "prims"
 noPadding = true
+ui.background.opacity = 0.7
+ui.background.brightness = 0.9

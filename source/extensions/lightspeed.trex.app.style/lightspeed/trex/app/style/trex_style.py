@@ -12,6 +12,8 @@ from omni.flux.utils.widget.resources import get_fonts as _get_fonts
 from omni.flux.utils.widget.resources import get_icons as _get_icons
 from omni.flux.utils.widget.resources import get_image as _get_image
 from omni.kit.window.popup_dialog import message_dialog
+from omni.ui import color as cl
+from omni.ui import constant as fl
 
 # override global imgui style
 imgui = carb.imgui.acquire_imgui()
@@ -78,6 +80,15 @@ _DEFAULT_DARK_PANEL_BACKGROUND_VALUE = {
     "border_color": _WHITE_20,
     "border_radius": 8,
 }
+
+
+def update_viewport_menu_style():
+    """Should be called after the creation of the menus"""
+    # viewport menu
+    cl.viewport_menubar_title_background = 0x0
+    cl.viewport_menubar_selection_border = 0x0
+    cl.viewport_menubar_selection_border_button = 0x0
+    fl.viewport_menubar_border_radius = fl.shade(0)
 
 
 # override the style of the message dialog
@@ -153,10 +164,22 @@ current_dict.update(
             "background_color": 0x0,
             "secondary_color": 0x0,
         },
+        "ExpandCollapseButton": {
+            "background_color": 0,
+        },
+        "ExpandCollapseButton.Image::ExpandButton": {
+            "image_url": _get_icons("speed_expand"),
+        },
+        "ExpandCollapseButton.Image::CollapseButton": {
+            "image_url": _get_icons("speed_collapse"),
+        },
         "Field": _DEFAULT_FIELD_READ_VALUE,
         "FieldError": _DEFAULT_FIELD_READ_ERROR_VALUE,
         "Field:hovered": _DEFAULT_FIELD_READ_HOVERED_VALUE,
         "FreeBezierCurve::HeaderNvidiaLine": {"border_width": 1, "color": _WHITE_30},
+        "IconSeparator": {
+            "border_width": 45,
+        },
         "Image::Account": {"image_url": _get_icons("account-circle"), "color": _WHITE_50},
         "Image::Account:selected": {"image_url": _get_icons("account-circle"), "color": _WHITE_100},
         "Image::Account:hovered": {"image_url": _get_icons("account-circle"), "color": _WHITE_80},
@@ -235,42 +258,42 @@ current_dict.update(
         "ImageWithProvider::HeaderNvidiaTitle": {
             "color": _WHITE_60,
             "font_size": 32,
-            "image_url": _get_fonts("Barlow-Light"),
+            "image_url": _get_fonts("NVIDIASans_A_Lt"),
         },
         "ImageWithProvider::TreePanelTitleItemTitle": {
             "color": _WHITE_60,
             "font_size": 16,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
         "ImageWithProvider::TreePanelTitleItemTitle:checked": {
             "color": _WHITE_80,
             "font_size": 16,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },  # checked == hovered
         "ImageWithProviderTreePanelTitleItemTitleDisabled": {
             "color": _WHITE_30,
             "font_size": 16,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
         "ImageWithProvider::TreePanelTitle": {
             "color": _WHITE_80,
             "font_size": 18,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
         "ImageWithProvider::TreePanelTitle:hovered": {
             "color": _WHITE_100,
             "font_size": 18,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
         "ImageWithProvider::TreePanelTitle:selected": {
             "color": _WHITE_100,
             "font_size": 18,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
         "ImageWithProvider::HeaderNavigatorTitle": {
             "color": _WHITE_100,
             "font_size": 20,
-            "image_url": _get_fonts("Barlow-Light"),
+            "image_url": _get_fonts("NVIDIASans_A_Lt"),
         },
         "ImageWithProvider::HeaderNvidiaBackground": {
             "background_color": 0x33000000,
@@ -279,32 +302,32 @@ current_dict.update(
         "ImageWithProvider::FooterLabel": {
             "color": _WHITE_80,
             "font_size": 14,
-            "image_url": _get_fonts("Barlow-Light"),
+            "image_url": _get_fonts("NVIDIASans_A_Lt"),
         },
         "ImageWithProvider::FooterLabel:hovered": {
             "color": _WHITE_100,
             "font_size": 14,
-            "image_url": _get_fonts("Barlow-Light"),
+            "image_url": _get_fonts("NVIDIASans_A_Lt"),
         },
         "ImageWithProvider::PropertiesWidgetLabel": {
             "color": _WHITE_70,
             "font_size": 14,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
         "ImageWithProvider::PropertiesWidgetLabel:disabled": {
             "color": _WHITE_30,
             "font_size": 14,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
         "ImageWithProvider::PropertiesPaneSectionTitle": {
             "color": _WHITE_70,
             "font_size": 13,
-            "image_url": _get_fonts("Barlow-Bold"),
+            "image_url": _get_fonts("NVIDIASans_A_Bd"),
         },
         "ImageWithProvider::PropertiesPaneSectionTitle:disabled": {
             "color": _WHITE_30,
             "font_size": 13,
-            "image_url": _get_fonts("Barlow-Bold"),
+            "image_url": _get_fonts("NVIDIASans_A_Bd"),
         },
         "ImageWithProvider::SelectionGradient": {
             "background_color": 0x00303030,
@@ -325,18 +348,20 @@ current_dict.update(
         "ImageWithProvider::WelcomePadItemTitle": {
             "color": _WHITE_100,
             "font_size": 18,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
         "ImageWithProvider::WelcomePadItemTitle:checked": {
             "color": _WHITE_30,
             "font_size": 18,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
         "ImageWithProvider::WelcomePadTitle": {
             "color": _WHITE_60,
             "font_size": 24,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
+        "KeyboardKey": {"background_color": 0, "border_width": 1.5, "border_radius": 3},
+        "KeyboardLabel": {},
         "Label::ProgressLabel": {"color": _WHITE_100},
         "Label::USDPropertiesWidgetValueOverlay": {"color": _WHITE_20},
         "Label::Title0": {"color": _WHITE_80, "font_size": 22},
@@ -364,6 +389,9 @@ current_dict.update(
             "background_selected_color": _BLUE_SELECTED,
         },
         "MenuBurgerItem": {"background_selected_color": _BLUE_HOVERED, "color": _WHITE_100},
+        "MouseImage": {
+            "image_url": _get_icons("mouse_wheel_dark"),
+        },
         "PropertiesWidgetField": {
             "background_color": _GREY_50,  # 01 for alpha or it will show a default color
             "color": _WHITE_80,
@@ -402,17 +430,17 @@ current_dict.update(
         "PropertiesWidgetLabel": {
             "color": _WHITE_70,
             "font_size": 14,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
         "PropertiesWidgetLabel:disabled": {
             "color": _WHITE_30,
             "font_size": 14,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
         "PropertiesWidgetLabelSelected": {
             "color": _WHITE_100,
             "font_size": 14,
-            "image_url": _get_fonts("Barlow-Medium"),
+            "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
         "ImagePreviewCanvas": {
             "background_color": 0x0,
@@ -477,6 +505,9 @@ current_dict.update(
         "TreeView.Item.Minus": {"image_url": _get_icons("disclosure-collapsed"), "color": _WHITE_60},
         "TreeView.Item.Plus": {"image_url": _get_icons("disclosure-collapsed_h"), "color": _WHITE_60},
         "TreeView.ScrollingFrame::WelcomePad": {"background_color": 0x0},
+        "ViewportStats::FloatField": {
+            "background_color": 0,
+        },
         "Window": {"background_color": 0xFF0F0F0F},
     }
 )

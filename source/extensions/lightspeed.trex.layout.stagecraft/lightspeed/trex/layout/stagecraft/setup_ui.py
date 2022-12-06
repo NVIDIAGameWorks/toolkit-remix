@@ -27,6 +27,7 @@ from lightspeed.trex.footer.stagecraft.models import StageCraftFooterModel
 from lightspeed.trex.layout.shared import SetupUI as TrexLayout
 from lightspeed.trex.menu.workfile import get_instance as get_burger_menu_instance
 from lightspeed.trex.properties_pane.stagecraft.widget import SetupUI as PropertyPanelUI
+from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from lightspeed.trex.viewports.stagecraft.widget import SetupUI as ViewportUI
 from lightspeed.trex.welcome_pads.stagecraft.models import NewWorkFileItem, RecentWorkFileItem, ResumeWorkFileItem
 from omni.flux.footer.widget import FooterWidget
@@ -214,6 +215,7 @@ class SetupUI(TrexLayout):
                 "_welcome_pad_widget_recent": None,
                 "_sub_stage_event": None,
                 "_layer_manager": None,
+                "_last_property_viewport_splitter_x": None,
             }
         )
         return default_attr
@@ -465,9 +467,17 @@ class SetupUI(TrexLayout):
         """
         return self._properties_pane.get_frame(ComponentsEnumItems.MOD_SETUP).subscribe_import_capture_layer(function)
 
+    @_ignore_function_decorator(attrs=["_ignore_property_viewport_splitter_change"])
     def _on_property_viewport_splitter_change(self, x):
         if x.value <= self.WIDTH_COMPONENT_PANEL + self.WIDTH_PROPERTY_PANEL:
             self._splitter_property_viewport.offset_x = self.WIDTH_COMPONENT_PANEL + self.WIDTH_PROPERTY_PANEL
+        if (
+            self._last_property_viewport_splitter_x is not None
+            and self._splitter_property_viewport.offset_x.value >= self._last_property_viewport_splitter_x.value
+            and self._frame_workspace.computed_width + 8 > omni.appwindow.get_default_app_window().get_width()
+        ):
+            self._splitter_property_viewport.offset_x = self._last_property_viewport_splitter_x
+            return
         asyncio.ensure_future(self.__deferred_on_property_viewport_splitter_change(x))
 
     @omni.usd.handle_exception
@@ -476,6 +486,7 @@ class SetupUI(TrexLayout):
         if x.value < 0:
             x = 0
         self._property_panel_frame.width = ui.Pixel(x - self.WIDTH_COMPONENT_PANEL)
+        self._last_property_viewport_splitter_x = x
 
     def _on_components_pane_tree_selection_changed(self, selection):
         self._property_panel_frame.visible = bool(selection)

@@ -1,0 +1,11 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed Trex Viewports Menubar Camera implementation"
+description = "Viewports Menubar Camera implementation for Lightspeed Trex App"
+
+[dependencies]
+"omni.flux.utils.common" = {}
+"omni.kit.viewport.menubar.camera" = {}
+
+[[python.module]]
+name = "lightspeed.trex.viewports.menubar.camera"

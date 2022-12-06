@@ -26,7 +26,8 @@ class IManipulator:
             setattr(self, attr, value)
         self.__viewport_api = viewport_api
         self.__manipulator = self._create_manipulator()
-        self.__model_changed_sub = self.__manipulator.model.subscribe_item_changed_fn(self._model_changed)  # noqa
+        if self.__manipulator:
+            self.__model_changed_sub = self.__manipulator.model.subscribe_item_changed_fn(self._model_changed)  # noqa
 
     @property
     def viewport_api(self):
@@ -38,6 +39,16 @@ class IManipulator:
 
     def manipulator(self):
         return self.__manipulator
+
+    @property
+    @abc.abstractmethod
+    def categories(self):
+        return []
+
+    @property
+    @abc.abstractmethod
+    def name(self):
+        return ""
 
     @property
     def visible(self):

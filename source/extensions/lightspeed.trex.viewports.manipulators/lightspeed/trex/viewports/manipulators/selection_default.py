@@ -7,10 +7,12 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+from typing import Any, Dict
+
 import omni.usd
 from omni.kit.manipulator.selection import SelectionManipulator, SelectionMode
 
-from .i_manipulator import IManipulator
+from .interface.i_manipulator import IManipulator
 
 
 class SelectionDefault(IManipulator):
@@ -26,28 +28,49 @@ class SelectionDefault(IManipulator):
 
     def __handle_selection(self, ndc_rect, mode):
         # Map the NDC screen coordinates into texture space
-        box_start, start_in = self.viewport_api.map_ndc_to_texture_pixel((ndc_rect[0], ndc_rect[1]))
-        box_end, end_in = self.viewport_api.map_ndc_to_texture_pixel((ndc_rect[2], ndc_rect[3]))
-        # If either start or end cordinates are in the Viewport, save the state
-        if start_in or end_in:
+        box_start, _start_in = self.viewport_api.map_ndc_to_texture_pixel((ndc_rect[0], ndc_rect[1]))
+        box_end, _end_in = self.viewport_api.map_ndc_to_texture_pixel((ndc_rect[2], ndc_rect[3]))
+        # Clamp selection box to texture in pixel-space
+        resolution = self.viewport_api.resolution
+        box_start = (max(0, min(resolution[0], box_start[0])), max(0, min(resolution[1], box_start[1])))
+        box_end = (max(0, min(resolution[0], box_end[0])), max(0, min(resolution[1], box_end[1])))
+        # If the selection box overlaps the Viewport, save the state; otherwise clear it
+        if (box_start[0] < resolution[0]) and (box_end[0] > 0) and (box_start[1] > 0) and (box_end[1] < resolution[1]):
             self.__selection_args = box_start, box_end, mode
         else:
             self.__selection_args = None
 
-    def __request_pick(self, *args):
-        self.viewport_api.request_pick(*args)
+    def __request_pick(self):
+        # If not selection state (pick is 100% outside of the viewport); clear the UsdContext's selection
+        if self.__selection_args is None:
+            usd_context = self.viewport_api.usd_context
+            if usd_context:
+                usd_context.get_selection().set_selected_prim_paths([], False)
+            return
 
-    def _model_changed(self, model, item) -> None:
+        args = self.__selection_args
+        if hasattr(self.viewport_api, "request_pick"):
+            self.viewport_api.request_pick(*args)
+            return
+        self.viewport_api.pick(args[0][0], args[0][1], args[1][0], args[1][1], args[2])
+
+    def _model_changed(self, model, item):
+        # https://gitlab-master.nvidia.com/omniverse/kit/-/merge_requests/13725
+        if not hasattr(omni.usd, "PickingMode"):
+            import carb
+
+            carb.log_error("No picking support in omni.hydratexture")
+            return
+
         # We only care about rect and mode changes
         if item != model.get_item("ndc_rect") and item != model.get_item("mode"):
             return
 
         live_select = False
         ndc_rect = model.get_as_floats("ndc_rect")
-        # when we release the mouse, we select under the mouse and reset the values
         if not ndc_rect:
-            if not live_select and self.__selection_args:
-                self.__request_pick(*self.__selection_args)
+            if not live_select:
+                self.__request_pick()
             self.__reset_state()
             return
 
@@ -56,7 +79,6 @@ class SelectionDefault(IManipulator):
         if not mode:
             self.__reset_state()
             return
-
         mode = {
             SelectionMode.REPLACE: omni.usd.PickingMode.RESET_AND_SELECT,
             SelectionMode.APPEND: omni.usd.PickingMode.MERGE_SELECTION,
@@ -66,11 +88,23 @@ class SelectionDefault(IManipulator):
             self.__reset_state()
             return
 
-        # when we drag the mouse without to release, we select "in live"
         self.__handle_selection(ndc_rect, mode)
-        if live_select and self.__selection_args:
-            self.__request_pick(*self.__selection_args)
+
+        # For reset selection, we can live-select as the drag occurs
+        # live_select = mode == omni.usd.PickingMode.RESET_AND_SELECT
+        if live_select:
+            self.__request_pick()
         return
 
-    def destroy(self):
-        pass
+    @property
+    def categories(self):
+        return ["manipulator"]
+
+    @property
+    def name(self):
+        return "Selection"
+
+
+def selection_default_factory(desc: Dict[str, Any]):
+    manip = SelectionDefault(desc.get("viewport_api"))
+    return manip

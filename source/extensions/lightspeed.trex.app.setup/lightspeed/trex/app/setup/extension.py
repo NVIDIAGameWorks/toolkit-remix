@@ -11,11 +11,11 @@ import omni.ext
 
 from .setup_ui import SetupUI
 
-_WINDOW = None
+_SETUP_INSTANCE = None
 
 
 def get_instance():
-    return _WINDOW
+    return _SETUP_INSTANCE
 
 
 class TrexSetupExtension(omni.ext.IExt):
@@ -25,14 +25,14 @@ class TrexSetupExtension(omni.ext.IExt):
         self._setup = None
 
     def on_startup(self, ext_id):
-        global _WINDOW
+        global _SETUP_INSTANCE
         carb.log_info("[lightspeed.trex.app.setup] Startup")
         self._setup_ui = SetupUI()
-        _WINDOW = self._setup_ui.get_window()
+        _SETUP_INSTANCE = self._setup_ui.get_window()
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.app.setup] Shutdown")
         self._setup_ui.destroy()
-        global _WINDOW
-        _WINDOW = None
+        global _SETUP_INSTANCE
+        _SETUP_INSTANCE = None
         self._setup_ui = None

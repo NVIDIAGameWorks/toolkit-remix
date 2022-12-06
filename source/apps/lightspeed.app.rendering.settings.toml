@@ -1,10 +1,13 @@
+[app.renderer]
+resolution.width = 1920
+resolution.height = 1080
+
 [renderer]
 enabled='rtx'
 multiGpu.maxGpuCount = 1
 mdl.searchPaths.templates = "${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 
-# TODO: after build 104.0+release.93090.5768a7e9.tc, change [rtx-defaults] to [rtx]
-[rtx-defaults]
+[rtx]
 rendermode = "RaytracedLighting"
 multiThreading.enabled = true
 materialflattener.enabled = false
@@ -26,10 +29,10 @@ directLighting.sampledLighting.autoEnable = 0
 directLighting.sampledLighting.enabled = 1
 directLighting.sampledLighting.maxRayIntensity = 0.15
 
-[rtx-defaults.hydra]
+[rtx.hydra]
 TBNFrameMode = 0 # Auto-mode
 
-[rtx-defaults.post]
+[rtx.post]
 tonemap.op = 6
 tonemap.cm2Factor = 1155
 histogram.enabled = false

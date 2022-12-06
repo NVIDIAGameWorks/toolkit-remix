@@ -48,7 +48,9 @@ class Setup:
             for child in _prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate):
                 if from_reference_layer_path is not None:
                     stacks = child.GetPrimStack()
-                    if from_reference_layer_path not in [stack.layer.realPath for stack in stacks]:
+                    if from_reference_layer_path not in [
+                        omni.client.normalize_url(stack.layer.realPath) for stack in stacks
+                    ]:
                         yield from traverse_instanced_children(child, _level)
                         continue
                 yield child

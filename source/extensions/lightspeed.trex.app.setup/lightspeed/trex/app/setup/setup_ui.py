@@ -87,6 +87,7 @@ class SetupUI:
         await omni.kit.app.get_app().next_update_async()
         self._window.flags |= ui.WINDOW_FLAGS_NO_DOCKING
         self._resize_app_window_to_multiple_two()
+        await self.setup_render_settings_window()
 
     def _resize_app_window_to_multiple_two(self):
         # we don't want to have the size of the window to not be a multiple of 2.
@@ -113,8 +114,30 @@ class SetupUI:
         self._window.dock_in(main_dockspace, ui.DockPosition.SAME)
         self._window.dock_tab_bar_visible = False
         await omni.kit.app.get_app().next_update_async()
+        await self.setup_render_settings_window(hide=True)
         self._window.flags = self._flags
         self._window.flags |= ui.WINDOW_FLAGS_NO_DOCKING
+
+    @omni.usd.handle_exception
+    async def setup_render_settings_window(self, hide=False):
+        """Temp solution TODO: OM-72923"""
+        # Wait for the render settings windows
+        frame = 0
+        while True:
+            await omni.kit.app.get_app().next_update_async()
+            render_settings = ui.Workspace.get_window("Render Settings")
+            if render_settings is not None:
+                break
+            frame += 1
+            if frame == 100:
+                raise TimeoutError("Can't set the workspace, missing Render Settings window")
+
+        render_settings.height = self._window.height * 0.70
+        render_settings.width = 400
+        render_settings.position_x = self._window.width - render_settings.width
+        render_settings.position_y = 150
+        if hide:
+            render_settings.visible = False
 
     def get_window(self):
         return self._window

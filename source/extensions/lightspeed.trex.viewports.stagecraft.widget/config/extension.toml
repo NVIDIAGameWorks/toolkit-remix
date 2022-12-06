@@ -4,11 +4,23 @@ title = "Lightspeed Trex Viewports implementation for the StageCraft"
 description = "Viewports implementation for Lightspeed Trex StageCraft App"
 
 [dependencies]
+"lightspeed.trex.app.style" = {}
+"lightspeed.trex.utils.common" = {}
 "lightspeed.trex.viewports.manipulators" = {}
-"omni.kit.manipulator.camera" = {}
-"omni.kit.widget.viewport" = {}
+"lightspeed.trex.viewports.properties_pane.widget" = {}
 "omni.flux.utils.common" = {}
+"omni.kit.viewport.utility" = {}
 "omni.ui" = {}
+
+[settings]
+# Default legacy display options for any consumers (all visible but Skeletons)
+persistent.app.viewport.displayOptions = 32255
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.app.resources",
+]
+args = ["--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"]
 
 [[python.module]]
 name = "lightspeed.trex.viewports.stagecraft.widget"

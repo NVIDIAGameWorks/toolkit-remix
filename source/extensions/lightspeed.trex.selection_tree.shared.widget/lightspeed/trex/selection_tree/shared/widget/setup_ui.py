@@ -100,7 +100,8 @@ class SetupUI:
         ],
     ):
         """Call the event object that has the list of functions"""
-        self.__on_tree_selection_changed(items)
+        if self.__on_tree_selection_changed is not None:
+            self.__on_tree_selection_changed(items)
 
     def subscribe_tree_selection_changed(
         self,
