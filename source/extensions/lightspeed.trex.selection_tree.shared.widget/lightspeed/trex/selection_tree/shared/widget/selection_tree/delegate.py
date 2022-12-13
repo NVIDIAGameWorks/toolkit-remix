@@ -14,6 +14,7 @@ from typing import Callable
 
 import omni.ui as ui
 import omni.usd
+from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -113,9 +114,8 @@ class Delegate(ui.AbstractItemDelegate):
         )
 
         self.__on_delete_reference = _Event()
-        self.__on_toggle_visibility = _Event()
         self.__on_frame_prim = _Event()
-        self.__on_toggle_nickname = _Event()
+        self.__on_reset_released = _Event()
 
     def _delete_reference(self, item: _ItemReferenceFileMesh):
         """Call the event object that has the list of functions"""
@@ -127,16 +127,6 @@ class Delegate(ui.AbstractItemDelegate):
         """
         return _EventSubscription(self.__on_delete_reference, function)
 
-    def _toggle_visibility(self, prim: "Usd.Prim"):
-        """Call the event object that has the list of functions"""
-        self.__on_toggle_visibility(prim)
-
-    def subscribe_toggle_visibility(self, function: Callable[["Usd.Prim"], None]):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        """
-        return _EventSubscription(self.__on_toggle_visibility, function)
-
     def _frame_prim(self, prim: "Usd.Prim"):
         """Call the event object that has the list of functions"""
         self.__on_frame_prim(prim)
@@ -147,15 +137,44 @@ class Delegate(ui.AbstractItemDelegate):
         """
         return _EventSubscription(self.__on_frame_prim, function)
 
-    def _toggle_nickname(self, prim: "Usd.Prim"):
+    def _reset_released(self, prim: "Usd.Prim"):
         """Call the event object that has the list of functions"""
-        self.__on_toggle_nickname(prim)
+        # TODO: extract the menu from the flux.property.usd to delete overrides
+        return
 
-    def subscribe_toggle_nickname(self, function: Callable[["Usd.Prim"], None]):
+        def on_okay_clicked(_dialog: _TrexMessageDialog):  # noqa
+            _dialog.hide()
+            self.__on_reset_released(prim)
+
+        def on_cancel_clicked(_dialog: _TrexMessageDialog):
+            _dialog.hide()
+
+        message = (
+            "Are you sure that you want to reset this asset?\n"
+            "Doing this will delete all your override(s) for this asset:\n"
+            "- reference override(s)\n"
+            "- material override(s)\n"
+            "- positions\n"
+            "- etc etc\n"
+            "The original asset from your game capture will appear."
+        )
+
+        dialog = _TrexMessageDialog(
+            width=400,
+            message=message,
+            ok_handler=on_okay_clicked,
+            cancel_handler=on_cancel_clicked,
+            ok_label="Yes",
+            cancel_label="No",
+            disable_cancel_button=False,
+        )
+        dialog.show()
+
+    def subscribe_reset_released(self, function: Callable[["Usd.Prim"], None]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
-        return _EventSubscription(self.__on_toggle_nickname, function)
+        return _EventSubscription(self.__on_reset_released, function)
 
     def reset(self):
         self._current_selection = []
@@ -310,13 +329,14 @@ class Delegate(ui.AbstractItemDelegate):
                                     content_clipping=True,
                                 ):
                                     ui.Spacer(width=0)
-                                    ui.Image(
-                                        "",
-                                        height=ui.Pixel(16),
-                                        name="Nickname",
-                                        tooltip="Switch between nickname and real prim name",
-                                        mouse_released_fn=lambda x, y, b, m: self._on_nickname_mouse_released(b, item),
-                                    )
+                                    # ui.Image(
+                                    #     "",
+                                    #     height=ui.Pixel(16),
+                                    #     name="Restore",
+                                    #     tooltip="Restore the original asset",
+                                    #     mouse_released_fn=lambda x, y, b, m: self._on_reset_mouse_released(b, item),
+                                    # )
+                                    ui.Frame(height=ui.Pixel(16))  # todo to remove
                                     ui.Spacer(width=0)
                             elif isinstance(item, _ItemReferenceFileMesh):
                                 ui.Spacer(height=0, width=ui.Pixel(8))
@@ -328,28 +348,9 @@ class Delegate(ui.AbstractItemDelegate):
                                     ui.Image(
                                         "",
                                         height=ui.Pixel(16),
-                                        name="Subtract",
+                                        name="TrashCan",
                                         tooltip="Delete the asset",
                                         mouse_released_fn=lambda x, y, b, m: self._on_delete_ref_mouse_released(
-                                            b, item
-                                        ),
-                                    )
-                                    ui.Spacer(width=0)
-                                ui.Spacer(height=0, width=ui.Pixel(8))
-                                with ui.VStack(
-                                    width=ui.Pixel(16),
-                                    content_clipping=True,
-                                ):
-                                    ui.Spacer(width=0)
-                                    ui.Image(
-                                        "",
-                                        height=ui.Pixel(16),
-                                        name="Eye",
-                                        tooltip=(
-                                            "Hide/show the asset. Keep in mind that the exporter will ignore the "
-                                            "value"
-                                        ),
-                                        mouse_released_fn=lambda x, y, b, m: self._on_visibility_mouse_released(
                                             b, item
                                         ),
                                     )
@@ -369,25 +370,6 @@ class Delegate(ui.AbstractItemDelegate):
                                         mouse_released_fn=lambda x, y, b, m: self._on_frame_mouse_released(b, item),
                                     )
                                     ui.Spacer(width=0)
-                                ui.Spacer(height=0, width=ui.Pixel(8))
-                                with ui.VStack(
-                                    width=ui.Pixel(16),
-                                    content_clipping=True,
-                                ):
-                                    ui.Spacer(width=0)
-                                    ui.Image(
-                                        "",
-                                        height=ui.Pixel(16),
-                                        name="Eye",
-                                        tooltip=(
-                                            "Hide/show the asset. Keep in mind that the exporter will ignore "
-                                            "the value"
-                                        ),
-                                        mouse_released_fn=lambda x, y, b, m: self._on_visibility_mouse_released(
-                                            b, item
-                                        ),
-                                    )
-                                    ui.Spacer(width=0)
                         ui.Spacer(height=0, width=ui.Pixel(8))
 
         asyncio.ensure_future(self._add_gradient_or_not(item))
@@ -400,20 +382,15 @@ class Delegate(ui.AbstractItemDelegate):
             )
         self.refresh_gradient_color(item, deferred=False)
 
-    def _on_nickname_mouse_released(self, button, item):
+    def _on_reset_mouse_released(self, button, item):
         if button != 0:
             return
-        self._toggle_nickname(item.prim)
+        self._reset_released(item.prim)
 
     def _on_delete_ref_mouse_released(self, button, item):
         if button != 0:
             return
         self._delete_reference(item)
-
-    def _on_visibility_mouse_released(self, button, item):
-        if button != 0:
-            return
-        self._toggle_visibility(item.prim)
 
     def _on_frame_mouse_released(self, button, item):
         if button != 0:

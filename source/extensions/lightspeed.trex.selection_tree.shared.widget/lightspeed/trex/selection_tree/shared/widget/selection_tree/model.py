@@ -14,12 +14,14 @@ import re
 import typing
 from typing import Dict, List, Optional, Tuple, Type, Union
 
+import carb.events
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.kit.usd.layers import LayerEventType, get_layer_event_payload, get_layers
 from pxr import Usd, UsdGeom
 
 from .listener import USDListener as _USDListener
@@ -123,9 +125,16 @@ class ItemAddNewReferenceFileMesh(ui.AbstractItem):
 class ItemPrim(ui.AbstractItem):
     """Item of the model that represent a mesh"""
 
-    def __init__(self, prim: "Usd.Prim", parent: Union["ItemPrim", "ItemReferenceFileMesh"], context_name: str):
+    def __init__(
+        self,
+        prim: "Usd.Prim",
+        reference_item: "ItemReferenceFileMesh",
+        parent: Union["ItemPrim", "ItemReferenceFileMesh"],
+        context_name: str,
+    ):
         super().__init__()
         self._parent = parent
+        self._reference_item = reference_item
         self._prim = prim
         self._path = str(prim.GetPath())
         self._value_model = ui.SimpleStringModel(self._path)
@@ -133,8 +142,12 @@ class ItemPrim(ui.AbstractItem):
         children = core.filter_imageable_prims(self._prim.GetChildren())
         scope_without = core.get_scope_prims_without_imageable_children(children)
         self._child_prim_items = [
-            ItemPrim(child, self, context_name) for child in children if child not in scope_without
+            ItemPrim(child, reference_item, self, context_name) for child in children if child not in scope_without
         ]
+
+    @property
+    def reference_item(self):
+        return self._reference_item
 
     @property
     def parent(self):
@@ -193,7 +206,7 @@ class ItemReferenceFileMesh(ui.AbstractItem):
         scope_without = core.get_scope_prims_without_imageable_children(children)
         # we ignore Looks scopes
         self._child_prim_items = [
-            ItemPrim(child, self, context_name) for child in children if child not in scope_without
+            ItemPrim(child, self, self, context_name) for child in children if child not in scope_without
         ]
 
     @property
@@ -299,7 +312,7 @@ class ListModel(ui.AbstractItemModel):
 
     def __init__(self, context_name):
         super().__init__()
-        self.default_attr = {"_stage_event": None, "_usd_listener": None}
+        self.default_attr = {"_stage_event": None, "_usd_listener": None, "_layer_event": None}
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
         self.__children = []
@@ -308,6 +321,7 @@ class ListModel(ui.AbstractItemModel):
         self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
         self._stage_event = None
+        self._layer_event = None
         self._usd_listener = _USDListener()
 
     @property
@@ -320,9 +334,22 @@ class ListModel(ui.AbstractItemModel):
             self._stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
                 self._on_stage_event, name="StageEvent"
             )
+            event_stream = get_layers().get_event_stream()
+            self._layer_event = event_stream.create_subscription_to_pop(self._on_layer_event, name="layer events")
         else:
             self._usd_listener.remove_model(self)
             self._stage_event = None
+
+    def _on_layer_event(self, event: carb.events.IEvent):
+        temp = get_layer_event_payload(event)
+        if temp.event_type in [
+            LayerEventType.SUBLAYERS_CHANGED,
+            LayerEventType.MUTENESS_STATE_CHANGED,
+            LayerEventType.MUTENESS_SCOPE_CHANGED,
+        ]:
+            self.refresh()
+            if self._ignore_refresh:
+                self._ignore_refresh = False
 
     def _on_stage_event(self, event):
         if event.type == int(omni.usd.StageEventType.SELECTION_CHANGED):

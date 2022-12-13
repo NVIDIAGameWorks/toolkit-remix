@@ -197,6 +197,10 @@ class AssetReplacementsPane:
     def __on_collapsable_frame_changed(self, widget, collapsed):
         widget.show(not collapsed)
 
+    @property
+    def selection_tree_widget(self):
+        return self._selection_tree_widget
+
     def __on_selection_collapsable_frame_changed(self, collapsed):
         self.__tree_selection_collapsed = collapsed
         self._selection_tree_widget.show(not collapsed)

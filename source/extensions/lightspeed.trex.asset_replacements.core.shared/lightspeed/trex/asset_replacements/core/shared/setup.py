@@ -58,6 +58,26 @@ class Setup:
 
         return list(traverse_instanced_children(prim, _level))
 
+    def select_child_from_instance_item_and_ref(
+        self, stage, from_reference_layer_path, instance_items: List["_ItemInstanceMesh"]
+    ):
+        """
+        Select the first prim of a ref corresponding to the selected instance items
+        """
+        selection = []
+        for item in instance_items:
+            prim = stage.GetPrimAtPath(item.path)
+            if not prim.IsValid():
+                continue
+            children = self.get_children_from_prim(
+                prim, from_reference_layer_path=self.switch_ref_rel_to_abs_path(stage, from_reference_layer_path)
+            )
+            # select the first children
+            if children:
+                selection.append(str(children[0].GetPath()))
+        if selection:
+            self.select_prim_paths(selection)
+
     def get_next_xform_children(self, prim, from_reference_layer_path: str = None) -> List[Usd.Prim]:
         children_prims = prim.GetChildren()
         if not children_prims:
@@ -105,6 +125,8 @@ class Setup:
         """Give a list of instance prims (inst_/*), and get the corresponding prims inside the prototypes (mesh_/*)"""
         paths = []
         for prim in prims:
+            if not prim.IsValid():
+                continue
             root_node = prim.GetPrimIndex().rootNode
             if not root_node:
                 continue
@@ -119,6 +141,17 @@ class Setup:
         stage = self._context.get_stage()
         prims = [stage.GetPrimAtPath(path) for path in paths]
         return self.get_corresponding_prototype_prims(prims)
+
+    def reset_asset(self, prim):
+        pass
+
+    def get_selected_prim_paths(self) -> List[Union[str]]:
+        return self._context.get_selection().get_selected_prim_paths()
+
+    def select_prim_paths(self, paths: List[Union[str]]):
+        current_selection = self._context.get_selection().get_selected_prim_paths()
+        if sorted(paths) != sorted(current_selection):
+            self._context.get_selection().set_selected_prim_paths(paths, True)
 
     def get_prim_from_ref_items(
         self,
@@ -171,6 +204,14 @@ class Setup:
         # make the path relative to current edit target layer
         if not edit_layer.anonymous:
             return omni.client.make_relative_url(edit_layer.realPath, path)
+        return path
+
+    @staticmethod
+    def switch_ref_rel_to_abs_path(stage, path):
+        edit_layer = stage.GetEditTarget().GetLayer()
+        # make the path relative to current edit target layer
+        if not edit_layer.anonymous:
+            return omni.client.normalize_url(edit_layer.ComputeAbsolutePath(path))
         return path
 
     @staticmethod

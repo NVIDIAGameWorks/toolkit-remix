@@ -18,6 +18,7 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
     ItemInstancesMeshGroup as _ItemInstancesMeshGroup,
 )
@@ -36,7 +37,6 @@ if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
         ItemAddNewReferenceFileMesh as _ItemAddNewReferenceFileMesh,
     )
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemMesh as _ItemMesh
 
 
@@ -79,6 +79,7 @@ class SetupUI:
             "_transformation_widget": None,
             "_property_widget": None,
             "_object_property_line": None,
+            "_current_instance_items": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -89,6 +90,7 @@ class SetupUI:
         self._mesh_properties_frames = {}
         self.__ref_mesh_field_is_editing = False
         self._current_reference_file_mesh_items = []
+        self._current_instance_items = []
 
         self.__create_ui()
 
@@ -242,6 +244,7 @@ class SetupUI:
             self._mesh_properties_frames[None].visible = True
 
         self._current_reference_file_mesh_items = [item for item in items if isinstance(item, _ItemReferenceFileMesh)]
+        self._current_instance_items = [item for item in items if isinstance(item, _ItemInstanceMesh)]
         item_prims = [item for item in items if isinstance(item, _ItemPrim)]
         item_instance_groups = [item for item in items if isinstance(item, _ItemInstancesMeshGroup)]
         if self._current_reference_file_mesh_items:
@@ -482,6 +485,8 @@ class SetupUI:
                     f" layer {self._context.get_stage().GetEditTarget().GetLayer()}"
                 )
             )
+            # select the new prim of the new added ref
+            self._core.select_child_from_instance_item_and_ref(stage, new_ref.assetPath, self._current_instance_items)
         else:
             carb.log_info("No ref set")
 

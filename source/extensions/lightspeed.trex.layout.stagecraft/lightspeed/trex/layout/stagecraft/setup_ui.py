@@ -9,6 +9,7 @@
 """
 import asyncio
 import os
+import typing
 from enum import Enum
 from functools import partial
 
@@ -41,6 +42,9 @@ from omni.flux.welcome_pad.widget import WelcomePadWidget
 from omni.flux.welcome_pad.widget.model import Model as WelcomePadModel
 
 from .workfile_picker import open_file_picker
+
+if typing.TYPE_CHECKING:
+    from pxr import Usd
 
 
 class Pages(Enum):
@@ -216,6 +220,7 @@ class SetupUI(TrexLayout):
                 "_sub_stage_event": None,
                 "_layer_manager": None,
                 "_last_property_viewport_splitter_x": None,
+                "_sub_frame_prim_selection_panel": None,
             }
         )
         return default_attr
@@ -413,11 +418,20 @@ class SetupUI(TrexLayout):
             ComponentsEnumItems.MOD_SETUP
         ).subscribe_import_replacement_layer(self._import_replacement_layer)
 
+        # connect the property selection pane with the viewport
+        self._sub_frame_prim_selection_panel = self._properties_pane.get_frame(
+            ComponentsEnumItems.ASSET_REPLACEMENTS
+        ).selection_tree_widget.subscribe_frame_prim(self._frame_prim)
+
         if self.__background_switcher_task:
             self.__background_switcher_task.cancel()
         self.__background_switcher_task = asyncio.ensure_future(self.__background_switcher())
 
         self._refresh_welcome_pads_recent_model()
+
+    def _frame_prim(self, prim: "Usd.Prim"):
+        if prim and prim.IsValid():
+            self._viewport.frame_viewport_selection(selection=[str(prim.GetPath())])
 
     def _on_back_arrow_pressed(self):
         self.show_page(Pages.HOME_PAGE)

@@ -65,6 +65,7 @@ class SetupUI:
             "_sub_edit_path_reference": None,
             "_previous_tree_selection": None,
             "_sub_tree_delegate_delete_ref": None,
+            "_sub_tree_delegate_reset_ref": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -82,6 +83,7 @@ class SetupUI:
 
         self._sub_tree_model_changed = self._tree_model.subscribe_item_changed_fn(self._on_tree_model_changed)
         self._sub_tree_delegate_delete_ref = self._tree_delegate.subscribe_delete_reference(self._on_delete_reference)
+        self._sub_tree_delegate_reset_ref = self._tree_delegate.subscribe_reset_released(self._on_reset_asset)
 
         self.__create_ui()
 
@@ -128,14 +130,11 @@ class SetupUI:
     def subscribe_delete_reference(self, function: Callable[["Usd.Prim", str], None]):
         return self._tree_delegate.subscribe_delete_reference(function)
 
-    def subscribe_toggle_visibility(self, function: Callable[["Usd.Prim"], None]):
-        return self._tree_delegate.subscribe_toggle_visibility(function)
-
     def subscribe_frame_prim(self, function: Callable[["Usd.Prim"], None]):
         return self._tree_delegate.subscribe_frame_prim(function)
 
-    def subscribe_toggle_nickname(self, function: Callable[["Usd.Prim"], None]):
-        return self._tree_delegate.subscribe_toggle_nickname(function)
+    def subscribe_reset_released(self, function: Callable[["Usd.Prim"], None]):
+        return self._tree_delegate.subscribe_reset_released(function)
 
     def __create_ui(self):
         with ui.VStack():
@@ -203,9 +202,56 @@ class SetupUI:
     def refresh(self):
         self._tree_model.refresh()
 
+    def _on_reset_asset(self, prim: "Usd.Prim"):
+        self._core.reset_asset(prim)
+
     def _on_delete_reference(self, item: _ItemReferenceFileMesh):
         stage = self._context.get_stage()
+
+        # save the current selection
+        to_select = []
+        previous_selected_instance_items = [
+            _item for _item in self._previous_tree_selection if isinstance(_item, _ItemInstanceMesh)
+        ]
+        previous_selected_prim_items = [
+            _item
+            for _item in self._previous_tree_selection
+            if isinstance(_item, _ItemPrim)
+            and _item.reference_item.parent == item.parent
+            and _item.reference_item != item
+        ]
+        previous_selection = self._core.get_selected_prim_paths()
+
+        # select the first prim of the previous mesh from the first ref
+        if len(previous_selected_prim_items) < 1:
+            parent = item.parent
+            for mesh_item in parent.reference_items:
+                if mesh_item == item:
+                    continue
+                if mesh_item.child_prim_items:
+                    prims = self._core.get_prim_from_ref_items(
+                        [mesh_item], previous_selected_instance_items, only_xformable=True, level=1
+                    )
+                    if prims:
+                        to_select.append(str(prims[0].GetPath()))
+                        break
+
         self._core.remove_reference(stage, item.prim.GetPath(), item.ref, item.layer)
+
+        for prim_path in previous_selection:
+            prim = stage.GetPrimAtPath(prim_path)
+            if not prim.IsValid():
+                continue
+            to_select.append(prim_path)
+
+        # if there is nothing to select, we select the instance itself
+        if not to_select:
+            if previous_selected_instance_items:
+                to_select.append(previous_selected_instance_items[0].path)
+            else:
+                to_select.append(item.parent.path)
+            print(to_select)
+        self._core.select_prim_paths(to_select)
 
     def _on_tree_model_changed(self, _, __):
         self._tree_delegate.reset()
@@ -252,10 +298,15 @@ class SetupUI:
             current_ref_mesh_file = self._tree_model.get_item_children_type(_ItemReferenceFileMesh)
             # we remove instance because they are base on stage selection
             ref_file_mesh_items = []
-            for item in self._previous_tree_selection:
-                # we grab all reference file mesh
-                if isinstance(item, _ItemReferenceFileMesh):
-                    ref_file_mesh_items.append(item)
+            # if the last selection if a prim, we don't select the previous ref
+            to_add = True
+            if selection and isinstance(selection[-1], _ItemPrim):
+                to_add = False
+            if to_add:
+                for item in self._previous_tree_selection:
+                    # we grab all reference file mesh
+                    if isinstance(item, _ItemReferenceFileMesh):
+                        ref_file_mesh_items.append(item)
             # if the size of ref is the same, we select the previous ref
             if ref_file_mesh_items and current_ref_mesh_file:  # noqa SIM102
                 # same len ref as before, so we grab the previous selected index
@@ -314,6 +365,17 @@ class SetupUI:
                     for instance_item in instance_items:
                         if instance_item.prim == item.prim:
                             items.append(instance_item)
+                            break
+
+        # grab all current prims
+        prim_items = self._tree_model.get_item_children_type(_ItemPrim)
+        # but if we select an instance, and a prim is selected, we keep the prim selected
+        if len(items) == 1 and isinstance(items[0], _ItemInstanceMesh):
+            for item in self._previous_tree_selection:
+                if isinstance(item, _ItemPrim):
+                    for item_prim in prim_items:
+                        if item_prim.prim == item.prim:
+                            items.append(item_prim)
                             break
 
         # only item instance and item prim can be multiple selected
@@ -392,6 +454,11 @@ class SetupUI:
                     f"layer {self._context.get_stage().GetEditTarget().GetLayer()}"
                 )
             )
+            # select the new prim of the new added ref
+            current_instance_items = [
+                item for item in self._previous_tree_selection if isinstance(item, _ItemInstanceMesh)
+            ]
+            self._core.select_child_from_instance_item_and_ref(stage, new_ref.assetPath, current_instance_items)
         else:
             carb.log_info("No reference set")
 

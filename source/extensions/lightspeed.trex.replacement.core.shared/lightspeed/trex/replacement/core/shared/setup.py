@@ -156,7 +156,10 @@ class Setup:
         if self.is_path_valid(str(path)):
             replacements = path
         else:
-            replacements = self.get_layer().identifier
+            replacement_layer = self.get_layer()
+            if not replacement_layer:
+                return {}
+            replacements = replacement_layer.identifier
         hashes = {}
         for sublayer in get_sublayers_recursive(replacements):
             hashes[sublayer] = self._layer_manager.get_layer_hashes_no_comp_arcs(sublayer)
