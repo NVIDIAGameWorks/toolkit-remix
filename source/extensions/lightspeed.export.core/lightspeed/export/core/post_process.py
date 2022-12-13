@@ -629,10 +629,12 @@ class LightspeedPostProcessExporter:
             try:
                 result = future.result()
                 carb.log_info("DDS command result: " + str(result))
-            except Exception as e:  # noqa
+            except subprocess.CalledProcessError as e:  # noqa
                 failed_processes.append(future.original_command[1])
-                carb.log_error("Exception when converting texture to dds")
-                carb.log_error(f"{traceback.format_exc()}")
+                carb.log_error(
+                    "Exception when converting texture to dds.\n"
+                    + f"cmd: {e.cmd}\noutput: {e.output}\nstdout: {e.stdout}\nstderr: {e.stderr}"
+                )
             # for the progress bar
             _update_progress(
                 i_dds,
