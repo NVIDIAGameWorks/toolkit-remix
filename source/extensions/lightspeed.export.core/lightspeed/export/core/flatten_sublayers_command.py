@@ -10,7 +10,7 @@
 from typing import Union
 
 import omni
-from omni.kit.usd.layers import FlattenLayersCommand
+from omni.kit.usd.layers import FlattenLayersCommand, MergeLayersCommand
 from pxr import Sdf
 
 
@@ -38,6 +38,20 @@ class FlattenSubLayersCommand(FlattenLayersCommand):
         self._traverse(all_layers, None, root_layer, root_layer.identifier, current_subtree_stack)
 
         return all_layers
+
+    def do_impl(self):
+        all_sublayers = self._get_sublayers_from_strongest_to_weakest()
+        for parent, child in all_sublayers:
+            if child != self._layer_to_flatten.identifier:
+                merge = MergeLayersCommand(
+                    None,
+                    self._layer_to_flatten.identifier,
+                    parent,
+                    child,
+                    False,
+                )
+                merge.do_impl()
+                self._merges.append(merge)
 
 
 omni.kit.commands.register(FlattenSubLayersCommand)
