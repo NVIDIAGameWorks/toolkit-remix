@@ -7,12 +7,14 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import re
 import typing
 from pathlib import Path
 from typing import List, Optional, Union
 
 import carb
 import omni.client
+import omni.kit.undo
 import omni.usd
 from lightspeed.common import constants
 from omni.flux.utils.common import path_utils as _path_utils
@@ -33,33 +35,44 @@ class Setup:
         self._default_attr = {}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
+        self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
 
     def get_children_from_prim(
-        self, prim, from_reference_layer_path: str = None, level: Optional[int] = None
+        self, prim, from_reference_layer_path: str = None, level: Optional[int] = None, skip_remix_ref: bool = False
     ):  # noqa PLR1710
 
         _level = 0
 
-        def traverse_instanced_children(_prim, _level):  # noqa R503
+        def traverse_instanced_children(_prim, _level, _skip_remix_ref=False):  # noqa R503
             if level is not None and _level == level:
                 return
             _level += 1
             for child in _prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate):
+                # it can happen that we added the same reference multiple time. But USD can't do that.
+                # As a workaround, we had to create a xform child and add the reference to it.
+                # Check the children and find the attribute that define that
+                is_remix_ref = False
+                if _skip_remix_ref:
+                    is_remix_ref = child.GetAttribute(constants.IS_REMIX_REF_ATTR)
+                    if is_remix_ref.IsValid():
+                        _level -= 1
+
                 if from_reference_layer_path is not None:
                     stacks = child.GetPrimStack()
                     if from_reference_layer_path not in [
                         omni.client.normalize_url(stack.layer.realPath) for stack in stacks
                     ]:
-                        yield from traverse_instanced_children(child, _level)
+                        yield from traverse_instanced_children(child, _level, _skip_remix_ref=_skip_remix_ref)
                         continue
-                yield child
-                yield from traverse_instanced_children(child, _level)
+                if not is_remix_ref:
+                    yield child
+                yield from traverse_instanced_children(child, _level, _skip_remix_ref=_skip_remix_ref)
 
-        return list(traverse_instanced_children(prim, _level))
+        return list(traverse_instanced_children(prim, _level, _skip_remix_ref=skip_remix_ref))
 
     def select_child_from_instance_item_and_ref(
-        self, stage, from_reference_layer_path, instance_items: List["_ItemInstanceMesh"]
+        self, stage, from_prim, from_reference_layer_path, instance_items: List["_ItemInstanceMesh"]
     ):
         """
         Select the first prim of a ref corresponding to the selected instance items
@@ -69,6 +82,23 @@ class Setup:
             prim = stage.GetPrimAtPath(item.path)
             if not prim.IsValid():
                 continue
+
+            # it can happen that we added the same reference multiple time. But USD can't do that.
+            # As a workaround, we had to create a xform child and add the reference to it.
+            # Check the children and find the attribute that define that
+            to_break = False
+            for child in prim.GetChildren():
+                is_remix_ref = child.GetAttribute(constants.IS_REMIX_REF_ATTR)
+                if is_remix_ref.IsValid():
+                    proto_children = self.get_corresponding_prototype_prims([child])
+                    for proto_child in proto_children:
+                        if proto_child == str(from_prim.GetPath()):
+                            prim = child
+                            to_break = True
+                            break
+                if to_break:
+                    break
+
             children = self.get_children_from_prim(
                 prim, from_reference_layer_path=self.switch_ref_rel_to_abs_path(stage, from_reference_layer_path)
             )
@@ -160,6 +190,7 @@ class Setup:
         only_xformable: bool = False,
         only_imageable: bool = False,
         level: Optional[int] = None,
+        skip_remix_ref: bool = False,
     ) -> List[Usd.Prim]:
         """
         Get xformables prim that comes from the reference item and are children of the parent items.
@@ -175,7 +206,7 @@ class Setup:
         selected_layers = [item.layer for item in ref_items]
         reference_path = omni.client.normalize_url(selected_layers[0].ComputeAbsolutePath(selected_refs[0].assetPath))
         children_prims = self.get_children_from_prim(
-            selected_prims[0], from_reference_layer_path=reference_path, level=level
+            selected_prims[0], from_reference_layer_path=reference_path, level=level, skip_remix_ref=skip_remix_ref
         )
         if not children_prims:
             return []
@@ -267,17 +298,48 @@ class Setup:
         return False
 
     def add_new_reference(
-        self, stage: Usd.Stage, prim_path: Sdf.Path, asset_path: str, layer: Sdf.Layer
+        self,
+        stage: Usd.Stage,
+        prim_path: Sdf.Path,
+        asset_path: str,
+        layer: Sdf.Layer,
     ) -> Sdf.Reference:
-        asset_path = omni.client.normalize_url(omni.client.make_relative_url(layer.identifier, asset_path))
-        new_ref = Sdf.Reference(assetPath=asset_path.replace("\\", "/"), primPath=Sdf.Path())
-        omni.kit.commands.execute(
-            "AddReference",
-            stage=stage,
-            prim_path=prim_path,
-            reference=new_ref,
-        )
-        return new_ref
+
+        # it can happen that we added the same reference multiple time. But USD can't do that.
+        # As a workaround, we had to create a xform child and add the reference to it.
+        prim = stage.GetPrimAtPath(prim_path)
+        refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
+        asset_path_abs = layer.ComputeAbsolutePath(asset_path)
+        with omni.kit.undo.group():
+            for ref, ref_layer in refs_and_layers:
+                if omni.client.normalize_url(ref_layer.ComputeAbsolutePath(ref.assetPath)) == omni.client.normalize_url(
+                    asset_path_abs
+                ):
+                    is_remix_ref = prim.GetAttribute(constants.IS_REMIX_REF_ATTR)
+                    if is_remix_ref:
+                        prim_path = omni.usd.get_stage_next_free_path(stage, str(prim_path), False)
+                    else:
+                        prim_path = omni.usd.get_stage_next_free_path(stage, str(prim_path.AppendPath("ref")), False)
+                    omni.kit.commands.execute(
+                        "CreatePrimCommand",
+                        prim_path=prim_path,
+                        prim_type="Xform",
+                        select_new_prim=False,
+                        context_name=self._context_name,
+                    )
+                    child_prim = prim.GetStage().GetPrimAtPath(prim_path)
+                    child_prim.CreateAttribute(constants.IS_REMIX_REF_ATTR, Sdf.ValueTypeNames.Bool).Set(True)
+                    break
+
+            asset_path = omni.client.normalize_url(omni.client.make_relative_url(layer.identifier, asset_path))
+            new_ref = Sdf.Reference(assetPath=asset_path.replace("\\", "/"), primPath=Sdf.Path())
+            omni.kit.commands.execute(
+                "AddReference",
+                stage=stage,
+                prim_path=prim_path,
+                reference=new_ref,
+            )
+            return new_ref, prim_path
 
     def __anchor_reference_asset_path_to_layer(
         self, ref: Sdf.Reference, intro_layer: Sdf.Layer, anchor_layer: Sdf.Layer
@@ -307,12 +369,32 @@ class Setup:
         # not introducing layer
         if intro_layer and intro_layer != edit_target_layer:
             ref = self.__anchor_reference_asset_path_to_layer(ref, intro_layer, edit_target_layer)
-        omni.kit.commands.execute(
-            "RemoveReference",
-            stage=stage,
-            prim_path=str(prim_path),
-            reference=ref,
-        )
+        with omni.kit.undo.group():
+            # get prim
+            prim = stage.GetPrimAtPath(prim_path)
+            # if prim_path is mesh_*, we want to get his children and remove overrides later
+            # if not, we just remove the ref xform added for duplicated refs
+            prims = [prim]
+            regex_is_mesh = re.compile(constants.REGEX_MESH_PATH)
+            if regex_is_mesh.match(str(prim_path)):
+                # we grab the children, but we skip remix ref
+                prims = [
+                    _prim
+                    for _prim in prim.GetChildren()
+                    if not _prim.GetAttribute(constants.IS_REMIX_REF_ATTR).IsValid()
+                ]
+
+            omni.kit.commands.execute(
+                "RemoveReference",
+                stage=stage,
+                prim_path=str(prim_path),
+                reference=ref,
+            )
+            omni.kit.commands.execute(
+                "DeletePrims",
+                paths=[str(_prim.GetPath()) for _prim in prims if _prim.IsValid()],
+                context_name=self._context_name,
+            )
 
     def on_reference_edited(
         self,

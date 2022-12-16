@@ -486,7 +486,9 @@ class SetupUI:
                 )
             )
             # select the new prim of the new added ref
-            self._core.select_child_from_instance_item_and_ref(stage, new_ref.assetPath, self._current_instance_items)
+            self._core.select_child_from_instance_item_and_ref(
+                stage, self._current_reference_file_mesh_items[-1].prim, new_ref.assetPath, self._current_instance_items
+            )
         else:
             carb.log_info("No ref set")
 

@@ -7,6 +7,7 @@ description = "Extension that works on asset replacement data for Lightspeed Tre
 "lightspeed.common" = {}
 "omni.client" = {}
 "omni.flux.utils.common" = {}
+"omni.kit.commands" = {}  # for omni.kit.undo (this is inside omni.kit.commands)
 
 [[python.module]]
 name = "lightspeed.trex.asset_replacements.core.shared"

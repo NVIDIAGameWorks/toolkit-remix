@@ -193,6 +193,8 @@ current_dict.update(
         "Image::CreateLayerDisabled": {"image_url": _get_icons("create-layer"), "color": _WHITE_30},
         "Image::CreateLayer": {"image_url": _get_icons("create-layer"), "color": _WHITE_60},
         "Image::CreateLayer:hovered": {"image_url": _get_icons("create-layer"), "color": _WHITE_100},
+        "Image::Duplicate": {"image_url": _get_icons("copy"), "color": _WHITE_60},
+        "Image::Duplicate:hovered": {"image_url": _get_icons("copy"), "color": _WHITE_80},
         "Image::ImportLayerDisabled": {"image_url": _get_icons("import-layer"), "color": _WHITE_30},
         "Image::ImportLayer": {"image_url": _get_icons("import-layer"), "color": _WHITE_60},
         "Image::ImportLayer:hovered": {"image_url": _get_icons("import-layer"), "color": _WHITE_100},

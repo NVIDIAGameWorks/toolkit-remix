@@ -114,14 +114,25 @@ class Delegate(ui.AbstractItemDelegate):
         )
 
         self.__on_delete_reference = _Event()
+        self.__on_duplicate_reference = _Event()
         self.__on_frame_prim = _Event()
         self.__on_reset_released = _Event()
+
+    def _duplicate_reference(self, item: _ItemReferenceFileMesh):
+        """Call the event object that has the list of functions"""
+        self.__on_duplicate_reference(item)
+
+    def subscribe_duplicate_reference(self, function: Callable[[_ItemReferenceFileMesh], None]):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_duplicate_reference, function)
 
     def _delete_reference(self, item: _ItemReferenceFileMesh):
         """Call the event object that has the list of functions"""
         self.__on_delete_reference(item)
 
-    def subscribe_delete_reference(self, function: Callable[["Usd.Prim", str], None]):
+    def subscribe_delete_reference(self, function: Callable[[_ItemReferenceFileMesh], None]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
@@ -299,11 +310,16 @@ class Delegate(ui.AbstractItemDelegate):
                                         with self._path_scroll_frames[id(item)]:
                                             with ui.HStack():
                                                 if isinstance(item, _ItemMesh):
-                                                    ui.Label(item.prim.GetName(), name="PropertiesPaneSectionTreeItem")
+                                                    ui.Label(
+                                                        item.prim.GetName(),
+                                                        name="PropertiesPaneSectionTreeItem",
+                                                        tooltip=item.path,
+                                                    )
                                                 elif isinstance(item, (_ItemReferenceFileMesh, _ItemPrim)):
                                                     ui.Label(
                                                         os.path.basename(item.path),
                                                         name="PropertiesPaneSectionTreeItem",
+                                                        tooltip=item.path,
                                                     )
                                                 elif isinstance(item, _ItemAddNewReferenceFileMesh):
                                                     ui.Label(item.display, name="PropertiesPaneSectionTreeItem60")
@@ -313,6 +329,7 @@ class Delegate(ui.AbstractItemDelegate):
                                                     ui.Label(
                                                         os.path.basename(item.path),
                                                         name="PropertiesPaneSectionTreeItem",
+                                                        tooltip=item.path,
                                                     )
                                                 ui.Spacer(
                                                     height=0, width=ui.Pixel(self.__gradient_width / 2)
@@ -341,19 +358,30 @@ class Delegate(ui.AbstractItemDelegate):
                             elif isinstance(item, _ItemReferenceFileMesh):
                                 ui.Spacer(height=0, width=ui.Pixel(8))
                                 with ui.VStack(
-                                    width=ui.Pixel(16),
+                                    width=ui.Pixel(16 + 16 + 8),
                                     content_clipping=True,
                                 ):
                                     ui.Spacer(width=0)
-                                    ui.Image(
-                                        "",
-                                        height=ui.Pixel(16),
-                                        name="TrashCan",
-                                        tooltip="Delete the asset",
-                                        mouse_released_fn=lambda x, y, b, m: self._on_delete_ref_mouse_released(
-                                            b, item
-                                        ),
-                                    )
+                                    with ui.HStack(height=ui.Pixel(16)):
+                                        ui.Image(
+                                            "",
+                                            height=ui.Pixel(16),
+                                            name="TrashCan",
+                                            tooltip="Delete the asset",
+                                            mouse_released_fn=lambda x, y, b, m: self._on_delete_ref_mouse_released(
+                                                b, item
+                                            ),
+                                        )
+                                        ui.Spacer(height=0, width=ui.Pixel(8))
+                                        ui.Image(
+                                            "",
+                                            height=ui.Pixel(16),
+                                            name="Duplicate",
+                                            tooltip="Duplicate the asset",
+                                            mouse_released_fn=lambda x, y, b, m: self._on_duplicate_ref_mouse_released(
+                                                b, item
+                                            ),
+                                        )
                                     ui.Spacer(width=0)
                             elif isinstance(item, _ItemInstanceMesh):
                                 ui.Spacer(height=0, width=ui.Pixel(8))
@@ -391,6 +419,11 @@ class Delegate(ui.AbstractItemDelegate):
         if button != 0:
             return
         self._delete_reference(item)
+
+    def _on_duplicate_ref_mouse_released(self, button, item):
+        if button != 0:
+            return
+        self._duplicate_reference(item)
 
     def _on_frame_mouse_released(self, button, item):
         if button != 0:

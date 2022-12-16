@@ -65,6 +65,7 @@ class SetupUI:
             "_sub_edit_path_reference": None,
             "_previous_tree_selection": None,
             "_sub_tree_delegate_delete_ref": None,
+            "_sub_tree_delegate_duplicate_ref": None,
             "_sub_tree_delegate_reset_ref": None,
         }
         for attr, value in self._default_attr.items():
@@ -83,6 +84,9 @@ class SetupUI:
 
         self._sub_tree_model_changed = self._tree_model.subscribe_item_changed_fn(self._on_tree_model_changed)
         self._sub_tree_delegate_delete_ref = self._tree_delegate.subscribe_delete_reference(self._on_delete_reference)
+        self._sub_tree_delegate_duplicate_ref = self._tree_delegate.subscribe_duplicate_reference(
+            self._on_duplicate_reference
+        )
         self._sub_tree_delegate_reset_ref = self._tree_delegate.subscribe_reset_released(self._on_reset_asset)
 
         self.__create_ui()
@@ -205,6 +209,9 @@ class SetupUI:
     def _on_reset_asset(self, prim: "Usd.Prim"):
         self._core.reset_asset(prim)
 
+    def _on_duplicate_reference(self, item: _ItemReferenceFileMesh):
+        self._add_new_ref_mesh(item, item.path)
+
     def _on_delete_reference(self, item: _ItemReferenceFileMesh):
         stage = self._context.get_stage()
 
@@ -230,13 +237,19 @@ class SetupUI:
                     continue
                 if mesh_item.child_prim_items:
                     prims = self._core.get_prim_from_ref_items(
-                        [mesh_item], previous_selected_instance_items, only_xformable=True, level=1
+                        [mesh_item], previous_selected_instance_items, only_xformable=True, level=1, skip_remix_ref=True
                     )
                     if prims:
-                        to_select.append(str(prims[0].GetPath()))
+                        for prim in prims:
+                            to_select.append(str(prim.GetPath()))
                         break
 
         self._core.remove_reference(stage, item.prim.GetPath(), item.ref, item.layer)
+
+        to_select = [prim_path for prim_path in to_select if stage.GetPrimAtPath(prim_path).IsValid()]
+        if to_select:
+            # take only the first one
+            to_select = [to_select[0]]
 
         for prim_path in previous_selection:
             prim = stage.GetPrimAtPath(prim_path)
@@ -250,7 +263,6 @@ class SetupUI:
                 to_select.append(previous_selected_instance_items[0].path)
             else:
                 to_select.append(item.parent.path)
-            print(to_select)
         self._core.select_prim_paths(to_select)
 
     def _on_tree_model_changed(self, _, __):
@@ -282,6 +294,7 @@ class SetupUI:
         for item in item_prims:
             if item.path in prototypes_stage_selected_paths:
                 selection.append(item)
+
         # if this is a light, there is no instance/prototype
         regex_sub_light_pattern = re.compile(constants.REGEX_SUB_LIGHT_PATH)
         regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
@@ -442,10 +455,15 @@ class SetupUI:
 
         self._tree_selection_changed(items)
 
-    def _add_new_ref_mesh(self, add_reference_item: _ItemAddNewReferenceFileMesh, asset_path: str):
+    def _add_new_ref_mesh(
+        self, add_reference_item: Union[_ItemAddNewReferenceFileMesh, _ItemReferenceFileMesh], asset_path: str
+    ):
         stage = self._context.get_stage()
-        new_ref = self._core.add_new_reference(
-            stage, add_reference_item.prim.GetPath(), asset_path, stage.GetEditTarget().GetLayer()
+        new_ref, prim_path = self._core.add_new_reference(
+            stage,
+            add_reference_item.prim.GetPath(),
+            asset_path,
+            stage.GetEditTarget().GetLayer(),
         )
         if new_ref:
             carb.log_info(
@@ -458,7 +476,9 @@ class SetupUI:
             current_instance_items = [
                 item for item in self._previous_tree_selection if isinstance(item, _ItemInstanceMesh)
             ]
-            self._core.select_child_from_instance_item_and_ref(stage, new_ref.assetPath, current_instance_items)
+            self._core.select_child_from_instance_item_and_ref(
+                stage, stage.GetPrimAtPath(prim_path), new_ref.assetPath, current_instance_items
+            )
         else:
             carb.log_info("No reference set")
 

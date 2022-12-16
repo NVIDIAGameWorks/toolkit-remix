@@ -206,7 +206,9 @@ class ItemReferenceFileMesh(ui.AbstractItem):
         scope_without = core.get_scope_prims_without_imageable_children(children)
         # we ignore Looks scopes
         self._child_prim_items = [
-            ItemPrim(child, self, self, context_name) for child in children if child not in scope_without
+            ItemPrim(child, self, self, context_name)
+            for child in children
+            if child not in scope_without and not child.GetAttribute(constants.IS_REMIX_REF_ATTR).IsValid()
         ]
 
     @property
@@ -262,8 +264,8 @@ class ItemMesh(ui.AbstractItem):
         self._instance_group_item = ItemInstancesMeshGroup(instance_prims, self)
         prim_paths, total_ref = self.__reference_file_paths(self._prim)
         self._reference_items = [
-            ItemReferenceFileMesh(self._prim, ref, layer, i, total_ref, self, context_name)
-            for ref, layer, i in prim_paths
+            ItemReferenceFileMesh(_prim, ref, layer, i, total_ref, self, context_name)
+            for _prim, ref, layer, i in prim_paths
         ]
 
     @property
@@ -291,15 +293,28 @@ class ItemMesh(ui.AbstractItem):
         return self._reference_items
 
     @staticmethod
-    def __reference_file_paths(prim) -> Tuple[List[Tuple["Sdf.Reference", "Sdf.Layer", int]], int]:
+    def __reference_file_paths(prim) -> Tuple[List[Tuple["Usd.Prim", "Sdf.Reference", "Sdf.Layer", int]], int]:
         prim_paths = []
         ref_and_layers = omni.usd.get_composed_references_from_prim(prim, False)
         i = 0
         for (ref, layer) in ref_and_layers:
             if not ref.assetPath:
                 continue
-            prim_paths.append((ref, layer, i))
+            prim_paths.append((prim, ref, layer, i))
             i += 1
+
+        # it can happen that we added the same reference multiple time. But USD can't do that.
+        # As a workaround, we had to create a xform child and add the reference to it.
+        # Check the children and find the attribute that define that
+        for child in prim.GetChildren():
+            is_remix_ref = child.GetAttribute(constants.IS_REMIX_REF_ATTR)
+            if is_remix_ref.IsValid():
+                ref_and_layers = omni.usd.get_composed_references_from_prim(child, False)
+                for (ref, layer) in ref_and_layers:
+                    if not ref.assetPath:
+                        continue
+                    prim_paths.append((child, ref, layer, i))
+                    i += 1
 
         return prim_paths, i
 
