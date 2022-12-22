@@ -245,8 +245,22 @@ class SetupUI:
 
         self._current_reference_file_mesh_items = [item for item in items if isinstance(item, _ItemReferenceFileMesh)]
         self._current_instance_items = [item for item in items if isinstance(item, _ItemInstanceMesh)]
-        item_prims = [item for item in items if isinstance(item, _ItemPrim)]
-        item_instance_groups = [item for item in items if isinstance(item, _ItemInstancesMeshGroup)]
+        item_prims = [
+            item
+            for item in items
+            if isinstance(item, _ItemPrim) and not item.from_live_light_group and not item.is_usd_light()
+        ]
+        item_light_prims = [
+            item
+            for item in items
+            if isinstance(item, _ItemPrim) and (item.from_live_light_group or item.is_usd_light())
+        ]
+        regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
+        item_light_instance_groups = [
+            item
+            for item in items
+            if isinstance(item, _ItemInstancesMeshGroup) and regex_light_pattern.match(item.parent.path)
+        ]
         if self._current_reference_file_mesh_items:
             self._transformation_widget.show(False)
             self._property_widget.show(False)
@@ -267,18 +281,13 @@ class SetupUI:
                 self._mesh_properties_frames[None].visible = True
             # for a regular prim, we dont show others properties
             self._property_widget.show(False)
-        elif item_instance_groups:
+        elif item_light_instance_groups or item_light_prims:  # light
             # if this is a light, we can transform the light by itself. So we should show the transform frame
-            # light will always select the instance group
-            prims = [item.parent.prim for item in item_instance_groups]
+            prims = [item.parent.prim for item in item_light_instance_groups]
+            prims.extend([item.prim for item in item_light_prims])
             xformable_prims = self._core.filter_xformable_prims(prims)
-            regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
-            xformable_prims_final = []
-            for xformable_prim in xformable_prims:
-                if regex_pattern.match(xformable_prim.GetName()):
-                    xformable_prims_final.append(xformable_prim)
-            self._transformation_widget.show(bool(xformable_prims_final))
-            self._property_widget.show(bool(xformable_prims_final))
+            self._transformation_widget.show(bool(xformable_prims))
+            self._property_widget.show(bool(xformable_prims))
 
             # set specific attributes
             specific_attrs = [
@@ -305,11 +314,11 @@ class SetupUI:
             )
             self._property_widget.set_lookup_table(lookup_table)
 
-            if xformable_prims_final:
+            if xformable_prims:
                 self._mesh_properties_frames[_ItemPrim].visible = True
                 self._mesh_properties_frames[None].visible = False
-                self._transformation_widget.refresh([xformable_prims_final[0].GetPath()])
-                self._property_widget.refresh([xformable_prims_final[0].GetPath()])
+                self._transformation_widget.refresh([xformable_prims[0].GetPath()])
+                self._property_widget.refresh([xformable_prims[0].GetPath()])
             else:
                 # we show the none panel
                 self._mesh_properties_frames[_ItemPrim].visible = False

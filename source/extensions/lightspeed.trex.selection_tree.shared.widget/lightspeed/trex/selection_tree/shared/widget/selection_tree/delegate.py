@@ -22,9 +22,11 @@ from omni.flux.utils.widget.color import hex_to_color as _hex_to_color
 from omni.flux.utils.widget.gradient import create_gradient as _create_gradient
 
 from .model import HEADER_DICT
+from .model import ItemAddNewLiveLight as _ItemAddNewLiveLight
 from .model import ItemAddNewReferenceFileMesh as _ItemAddNewReferenceFileMesh
 from .model import ItemInstanceMesh as _ItemInstanceMesh
 from .model import ItemInstancesMeshGroup as _ItemInstancesMeshGroup
+from .model import ItemLiveLightGroup as _ItemLiveLightGroup
 from .model import ItemMesh as _ItemMesh
 from .model import ItemPrim as _ItemPrim
 from .model import ItemReferenceFileMesh as _ItemReferenceFileMesh
@@ -114,6 +116,7 @@ class Delegate(ui.AbstractItemDelegate):
         )
 
         self.__on_delete_reference = _Event()
+        self.__on_delete_prim = _Event()
         self.__on_duplicate_reference = _Event()
         self.__on_frame_prim = _Event()
         self.__on_reset_released = _Event()
@@ -137,6 +140,16 @@ class Delegate(ui.AbstractItemDelegate):
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__on_delete_reference, function)
+
+    def _delete_prim(self, item: _ItemPrim):
+        """Call the event object that has the list of functions"""
+        self.__on_delete_prim(item)
+
+    def subscribe_delete_prim(self, function: Callable[[_ItemPrim], None]):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_delete_prim, function)
 
     def _frame_prim(self, prim: "Usd.Prim"):
         """Call the event object that has the list of functions"""
@@ -206,7 +219,7 @@ class Delegate(ui.AbstractItemDelegate):
             return item.path
         if isinstance(item, _ItemReferenceFileMesh):
             return item.path
-        if isinstance(item, _ItemAddNewReferenceFileMesh):
+        if isinstance(item, (_ItemAddNewReferenceFileMesh, _ItemAddNewLiveLight, _ItemLiveLightGroup)):
             return item.display
         if isinstance(item, _ItemInstancesMeshGroup):
             return item.display
@@ -247,6 +260,8 @@ class Delegate(ui.AbstractItemDelegate):
                                 _ItemMesh,
                                 _ItemReferenceFileMesh,
                                 _ItemAddNewReferenceFileMesh,
+                                _ItemAddNewLiveLight,
+                                _ItemLiveLightGroup,
                                 _ItemInstancesMeshGroup,
                                 _ItemPrim,
                             ),
@@ -257,10 +272,12 @@ class Delegate(ui.AbstractItemDelegate):
                                     ui.Spacer(width=0)
                                     if isinstance(item, (_ItemMesh, _ItemReferenceFileMesh)):
                                         ui.Image("", height=ui.Pixel(16), name="Hexagon")
-                                    elif isinstance(item, _ItemAddNewReferenceFileMesh):
+                                    elif isinstance(item, (_ItemAddNewReferenceFileMesh, _ItemAddNewLiveLight)):
                                         ui.Image("", height=ui.Pixel(16), name="Add")
                                     elif isinstance(item, _ItemInstancesMeshGroup):
                                         ui.Image("", height=ui.Pixel(16), name="FolderClosed")
+                                    elif isinstance(item, _ItemLiveLightGroup):
+                                        ui.Image("", height=ui.Pixel(16), name="Light")
                                     elif isinstance(item, _ItemPrim):
                                         icon = ""
                                         if item.is_xformable():
@@ -321,9 +338,11 @@ class Delegate(ui.AbstractItemDelegate):
                                                         name="PropertiesPaneSectionTreeItem",
                                                         tooltip=item.path,
                                                     )
-                                                elif isinstance(item, _ItemAddNewReferenceFileMesh):
+                                                elif isinstance(
+                                                    item, (_ItemAddNewReferenceFileMesh, _ItemAddNewLiveLight)
+                                                ):
                                                     ui.Label(item.display, name="PropertiesPaneSectionTreeItem60")
-                                                elif isinstance(item, _ItemInstancesMeshGroup):
+                                                elif isinstance(item, (_ItemInstancesMeshGroup, _ItemLiveLightGroup)):
                                                     ui.Label(item.display, name="PropertiesPaneSectionTreeItem")
                                                 elif isinstance(item, _ItemInstanceMesh):
                                                     ui.Label(
@@ -398,6 +417,21 @@ class Delegate(ui.AbstractItemDelegate):
                                         mouse_released_fn=lambda x, y, b, m: self._on_frame_mouse_released(b, item),
                                     )
                                     ui.Spacer(width=0)
+                            elif isinstance(item, _ItemPrim) and item.from_live_light_group:
+                                ui.Spacer(height=0, width=ui.Pixel(8))
+                                with ui.VStack(
+                                    width=ui.Pixel(16),
+                                    content_clipping=True,
+                                ):
+                                    ui.Spacer(width=0)
+                                    ui.Image(
+                                        "",
+                                        height=ui.Pixel(16),
+                                        name="TrashCan",
+                                        tooltip="Delete the prim",
+                                        mouse_released_fn=lambda x, y, b, m: self._on_delete_prim_released(b, item),
+                                    )
+                                    ui.Spacer(width=0)
                         ui.Spacer(height=0, width=ui.Pixel(8))
 
         asyncio.ensure_future(self._add_gradient_or_not(item))
@@ -419,6 +453,11 @@ class Delegate(ui.AbstractItemDelegate):
         if button != 0:
             return
         self._delete_reference(item)
+
+    def _on_delete_prim_released(self, button, item):
+        if button != 0:
+            return
+        self._delete_prim(item)
 
     def _on_duplicate_ref_mouse_released(self, button, item):
         if button != 0:

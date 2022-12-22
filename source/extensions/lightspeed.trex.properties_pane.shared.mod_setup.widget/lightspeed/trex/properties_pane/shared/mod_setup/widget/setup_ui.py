@@ -24,7 +24,6 @@ from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_fu
 from lightspeed.trex.utils.common import ignore_function_decorator_async as _ignore_function_decorator_async
 from lightspeed.trex.utils.common import sandwich_attrs_function_decorator as _sandwich_attrs_function_decorator
 from lightspeed.trex.utils.widget import TrexMessageDialog
-from lightspeed.trex.utils.widget import create_widget_with_pattern as _create_widget_with_pattern
 from omni.flux.property_widget_builder.model.file import FileAttributeItem as _FileAttributeItem
 from omni.flux.property_widget_builder.model.file import FileDelegate as _FileDelegate
 from omni.flux.property_widget_builder.model.file import FileModel as _FileModel
@@ -33,6 +32,7 @@ from omni.flux.property_widget_builder.widget import PropertyWidget as _Property
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.widget.background_pattern import create_widget_with_pattern as _create_widget_with_pattern
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )

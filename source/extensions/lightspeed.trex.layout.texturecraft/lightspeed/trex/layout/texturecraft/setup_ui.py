@@ -21,8 +21,8 @@ from lightspeed.layer_helpers import LightspeedTextureProcessingCore
 from lightspeed.progress_popup.window import ProgressPopup
 from lightspeed.trex.contexts.setup import Contexts as TrexContexts
 from lightspeed.trex.layout.shared import SetupUI as ReplicatorLayout
-from lightspeed.trex.utils.widget import create_widget_with_pattern as _create_widget_with_pattern
 from lightspeed.upscale.core import UpscalerCore
+from omni.flux.utils.widget.background_pattern import create_widget_with_pattern as _create_widget_with_pattern
 
 
 class UpscaleProcessConfig(Enum):

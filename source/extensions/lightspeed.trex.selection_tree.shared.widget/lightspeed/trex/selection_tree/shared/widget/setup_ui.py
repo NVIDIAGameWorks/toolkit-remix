@@ -19,12 +19,14 @@ import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
+from omni.flux.light_creator.widget import LightCreatorWidget as _LightCreatorWidget
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 
 from .selection_tree.delegate import Delegate as _Delegate
+from .selection_tree.model import ItemAddNewLiveLight as _ItemAddNewLiveLight
 from .selection_tree.model import ItemAddNewReferenceFileMesh as _ItemAddNewReferenceFileMesh
 from .selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
 from .selection_tree.model import ItemInstancesMeshGroup as _ItemInstancesMeshGroup
@@ -67,10 +69,14 @@ class SetupUI:
             "_sub_tree_delegate_delete_ref": None,
             "_sub_tree_delegate_duplicate_ref": None,
             "_sub_tree_delegate_reset_ref": None,
+            "_sub_tree_delegate_delete_prim": None,
+            "_light_creator_window": None,
+            "_light_creator_widget": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
+        self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
         self._core = _AssetReplacementsCore(context_name)
         self._tree_model = _ListModel(context_name)
@@ -84,6 +90,7 @@ class SetupUI:
 
         self._sub_tree_model_changed = self._tree_model.subscribe_item_changed_fn(self._on_tree_model_changed)
         self._sub_tree_delegate_delete_ref = self._tree_delegate.subscribe_delete_reference(self._on_delete_reference)
+        self._sub_tree_delegate_delete_prim = self._tree_delegate.subscribe_delete_prim(self._on_delete_prim)
         self._sub_tree_delegate_duplicate_ref = self._tree_delegate.subscribe_duplicate_reference(
             self._on_duplicate_reference
         )
@@ -100,6 +107,7 @@ class SetupUI:
                 _ItemMesh,
                 _ItemReferenceFileMesh,
                 _ItemAddNewReferenceFileMesh,
+                _ItemAddNewLiveLight,
                 _ItemInstancesMeshGroup,
                 _ItemInstanceMesh,
             ]
@@ -118,6 +126,7 @@ class SetupUI:
                         _ItemMesh,
                         _ItemReferenceFileMesh,
                         _ItemAddNewReferenceFileMesh,
+                        _ItemAddNewLiveLight,
                         _ItemInstancesMeshGroup,
                         _ItemInstanceMesh,
                     ]
@@ -211,6 +220,33 @@ class SetupUI:
 
     def _on_duplicate_reference(self, item: _ItemReferenceFileMesh):
         self._add_new_ref_mesh(item, item.path)
+
+    def _on_delete_prim(self, item: _ItemPrim):
+        def _get_parent_item_mesh(_item):
+            if not hasattr(_item, "parent") or not _item.parent:
+                return None
+            if isinstance(_item.parent, (_ItemMesh, _ItemPrim)):
+                return _item.parent
+            return _get_parent_item_mesh(_item.parent)
+
+        # select the previous selection. If nothing was selected, select the parent of the item.
+        previous_selected_instance_items = [
+            _item for _item in self._previous_tree_selection if isinstance(_item, _ItemPrim) and _item.path != item.path
+        ]
+        if previous_selected_instance_items:
+            item_meshes = previous_selected_instance_items
+        else:
+            item_meshes = [_get_parent_item_mesh(item)]
+        self._core.delete_prim([item.path])
+
+        stage = self._context.get_stage()
+        to_select = []
+        for item_mesh in item_meshes:
+            prim = stage.GetPrimAtPath(item_mesh.path)
+            if not prim.IsValid():
+                continue
+            to_select.append(item_mesh.path)
+        self._core.select_prim_paths(to_select)
 
     def _on_delete_reference(self, item: _ItemReferenceFileMesh):
         stage = self._context.get_stage()
@@ -361,17 +397,33 @@ class SetupUI:
         # if the add mesh is clicked, we deselect all others things but not instances and instance group
         add_item_selected = [item for item in items if isinstance(item, _ItemAddNewReferenceFileMesh)]
         if add_item_selected:
-            items = [
-                item
-                for item in self._previous_tree_selection
-                if isinstance(item, (_ItemInstanceMesh, _ItemInstancesMeshGroup))
-            ]
+            items = list(
+                {
+                    item
+                    for item in self._previous_tree_selection
+                    if isinstance(item, (_ItemInstanceMesh, _ItemInstancesMeshGroup))
+                }
+            )
+
+        # if the add light is clicked, we deselect all others things but not live light prims
+        add_light_selected = [item for item in items if isinstance(item, _ItemAddNewLiveLight)]
+        if add_light_selected:
+            items = list(
+                {
+                    item
+                    for item in self._previous_tree_selection
+                    if isinstance(item, _ItemPrim) and item.from_live_light_group
+                }
+            )
 
         # grab all current instance
         instance_items = self._tree_model.get_item_children_type(_ItemInstanceMesh)
 
         # if we select a mesh ref or prim item, we keep the instance
-        if len(items) == 1 and isinstance(items[0], (_ItemReferenceFileMesh, _ItemPrim)):
+        if len(items) == 1 and (
+            isinstance(items[0], _ItemReferenceFileMesh)
+            or (isinstance(items[0], _ItemPrim) and not items[0].from_live_light_group)
+        ):
             # find links between old and new instances
             for item in self._previous_tree_selection:
                 if isinstance(item, (_ItemInstanceMesh, _ItemPrim)):
@@ -383,7 +435,7 @@ class SetupUI:
         # grab all current prims
         prim_items = self._tree_model.get_item_children_type(_ItemPrim)
         # but if we select an instance, and a prim is selected, we keep the prim selected
-        if len(items) == 1 and isinstance(items[0], _ItemInstanceMesh):
+        if len(items) == 1 and isinstance(items[0], _ItemInstanceMesh) and not items[0].parent.parent.is_light():
             for item in self._previous_tree_selection:
                 if isinstance(item, _ItemPrim):
                     for item_prim in prim_items:
@@ -415,7 +467,10 @@ class SetupUI:
                 items = result
 
         # if all instances are selected, select the instance group
-        if set(instance_items).issubset(items):
+        if set(instance_items).issubset(items) and (
+            (isinstance(items[0], _ItemPrim) and not items[0].from_live_light_group)
+            or isinstance(items[0], _ItemInstanceMesh)
+        ):
             group_instances = self._tree_model.get_item_children_type(_ItemInstancesMeshGroup)
             if group_instances:
                 items.append(group_instances[0])
@@ -433,15 +488,30 @@ class SetupUI:
         if not self._ignore_select_instance_prim_from_selected_items:
             # select prims when item prims are clicked
             # we swap all the item prim path with the current selected item instances
-            prim_paths = [str(item.prim.GetPath()) for item in items if isinstance(item, _ItemPrim)]
-            instance_paths = [str(item.prim.GetPath()) for item in items if isinstance(item, _ItemInstanceMesh)]
+            prim_paths = [
+                str(item.prim.GetPath())
+                for item in items
+                if isinstance(item, _ItemPrim) and not item.from_live_light_group
+            ]
+            light_prim_paths = [
+                str(item.prim.GetPath()) for item in items if isinstance(item, _ItemPrim) and item.from_live_light_group
+            ]
+            instance_items = [item for item in items if isinstance(item, _ItemInstanceMesh)]
             to_select_paths = []
-            for path in prim_paths:
-                for instance_path in instance_paths:
-                    to_select_path = re.sub(constants.REGEX_MESH_TO_INSTANCE_SUB, instance_path, path)
-                    to_select_paths.append(to_select_path)
+            if light_prim_paths:
+                to_select_paths = light_prim_paths
+            elif instance_items and instance_items[0].parent.parent.is_light():
+                to_select_paths.append(instance_items[0].path)
+            else:
+                for path in prim_paths:
+                    for instance_item in instance_items:
+                        to_select_path = re.sub(
+                            constants.REGEX_MESH_TO_INSTANCE_SUB, str(instance_item.prim.GetPath()), path
+                        )
+                        to_select_paths.append(to_select_path)
+
             self._tree_model.select_prim_paths(list(set(to_select_paths)))
-        self._previous_tree_selection = items
+        self._previous_tree_selection = list(set(items))
         self._tree_delegate.on_item_selected(items, self._tree_model.get_all_items())
 
         # if add item was clicked, we open the ref picker
@@ -452,8 +522,39 @@ class SetupUI:
                 lambda *args: None,
                 file_extension_options=self.FILE_EXTENSIONS,
             )
+        elif add_light_selected:  # if add light was clicked
+            self.__show_light_creator_window(add_light_selected[0], items)
 
         self._tree_selection_changed(items)
+
+    def __show_light_creator_window(self, add_item: _ItemAddNewLiveLight, selected_items: List[_ItemPrim]):
+        def _hide():
+            if self._light_creator_window:
+                self._light_creator_window.frame.clear()
+                self._light_creator_window.visible = False
+
+        self._light_creator_window = ui.Window(
+            "Light creator",
+            visible=True,
+            width=400,
+            height=100,
+            dockPreference=ui.DockPreference.DISABLED,
+            flags=(
+                ui.WINDOW_FLAGS_NO_COLLAPSE
+                | ui.WINDOW_FLAGS_NO_MOVE
+                | ui.WINDOW_FLAGS_NO_RESIZE
+                | ui.WINDOW_FLAGS_NO_SCROLLBAR
+                | ui.WINDOW_FLAGS_MODAL
+            ),
+        )
+        if selected_items:
+            under_path = selected_items[0].path  # we take the first selection
+        else:
+            under_path = add_item.parent.path
+        with self._light_creator_window.frame:
+            self._light_creator_widget = _LightCreatorWidget(
+                self._context_name, create_under_path=under_path, callback=_hide
+            )
 
     def _add_new_ref_mesh(
         self, add_reference_item: Union[_ItemAddNewReferenceFileMesh, _ItemReferenceFileMesh], asset_path: str

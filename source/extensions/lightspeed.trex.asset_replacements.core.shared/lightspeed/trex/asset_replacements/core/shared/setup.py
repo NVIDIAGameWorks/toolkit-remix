@@ -39,10 +39,28 @@ class Setup:
         self._context = omni.usd.get_context(context_name)
 
     def get_children_from_prim(
-        self, prim, from_reference_layer_path: str = None, level: Optional[int] = None, skip_remix_ref: bool = False
+        self,
+        prim,
+        from_reference_layer_path: str = None,
+        level: Optional[int] = None,
+        skip_remix_ref: bool = False,
+        only_prim_not_from_ref: bool = False,
     ):  # noqa PLR1710
 
         _level = 0
+
+        def get_parent_ref_layers(_prim):
+            refs_and_layers = omni.usd.get_composed_references_from_prim(_prim)
+            result = []
+            if refs_and_layers:
+                for (ref, layer) in refs_and_layers:
+                    if not ref.assetPath:
+                        continue
+                    result.append(omni.client.normalize_url(layer.ComputeAbsolutePath(ref.assetPath)))
+            parent = _prim.GetParent()
+            if parent and parent.IsValid():
+                result.extend(get_parent_ref_layers(parent))
+            return result
 
         def traverse_instanced_children(_prim, _level, _skip_remix_ref=False):  # noqa R503
             if level is not None and _level == level:
@@ -58,13 +76,18 @@ class Setup:
                     if is_remix_ref.IsValid():
                         _level -= 1
 
-                if from_reference_layer_path is not None:
-                    stacks = child.GetPrimStack()
-                    if from_reference_layer_path not in [
-                        omni.client.normalize_url(stack.layer.realPath) for stack in stacks
-                    ]:
-                        yield from traverse_instanced_children(child, _level, _skip_remix_ref=_skip_remix_ref)
-                        continue
+                layer_stack = [omni.client.normalize_url(stack.layer.realPath) for stack in child.GetPrimStack()]
+                if only_prim_not_from_ref and set(layer_stack).intersection(set(get_parent_ref_layers(_prim))):
+                    yield from traverse_instanced_children(child, _level, _skip_remix_ref=_skip_remix_ref)
+                    continue
+
+                if (
+                    from_reference_layer_path is not None
+                    and not only_prim_not_from_ref
+                    and from_reference_layer_path not in layer_stack
+                ):
+                    yield from traverse_instanced_children(child, _level, _skip_remix_ref=_skip_remix_ref)
+                    continue
                 if not is_remix_ref:
                     yield child
                 yield from traverse_instanced_children(child, _level, _skip_remix_ref=_skip_remix_ref)
@@ -157,13 +180,12 @@ class Setup:
         for prim in prims:
             if not prim.IsValid():
                 continue
-            root_node = prim.GetPrimIndex().rootNode
-            if not root_node:
+
+            stage = prim.GetStage()
+            path = re.sub(constants.REGEX_INSTANCE_TO_MESH_SUB, rf"{constants.MESH_PATH}\2", str(prim.GetPath()))
+            if not stage.GetPrimAtPath(path).IsValid():
                 continue
-            children = root_node.children
-            if not children:
-                continue
-            paths.append(str(children[0].path))
+            paths.append(path)
         return paths
 
     def get_corresponding_prototype_prims_from_path(self, paths) -> List[str]:
@@ -390,11 +412,23 @@ class Setup:
                 prim_path=str(prim_path),
                 reference=ref,
             )
-            omni.kit.commands.execute(
-                "DeletePrims",
-                paths=[str(_prim.GetPath()) for _prim in prims if _prim.IsValid()],
-                context_name=self._context_name,
-            )
+
+            # we should never delete /mesh_* or /light_* or /inst_*
+            regex_mesh_inst_light = re.compile(constants.REGEX_MESH_INST_LIGHT_PATH)
+            prims = [
+                str(_prim.GetPath())
+                for _prim in prims
+                if _prim.IsValid() and not regex_mesh_inst_light.match(str(_prim.GetPath()))
+            ]
+            if prims:
+                self.delete_prim(prims)
+
+    def delete_prim(self, paths: List[str]):
+        omni.kit.commands.execute(
+            "DeletePrims",
+            paths=paths,
+            context_name=self._context_name,
+        )
 
     def on_reference_edited(
         self,

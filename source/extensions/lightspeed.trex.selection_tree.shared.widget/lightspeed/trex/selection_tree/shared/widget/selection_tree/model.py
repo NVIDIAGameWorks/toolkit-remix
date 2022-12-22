@@ -22,7 +22,7 @@ from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplac
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.usd.layers import LayerEventType, get_layer_event_payload, get_layers
-from pxr import Usd, UsdGeom
+from pxr import Usd, UsdGeom, UsdLux
 
 from .listener import USDListener as _USDListener
 
@@ -68,7 +68,7 @@ class ItemInstancesMeshGroup(ui.AbstractItem):
     def __init__(self, instance_prims: List["Usd.Prim"], parent: "ItemMesh"):
         super().__init__()
         self._parent = parent
-        self._display = "Instances"
+        self._display = "Instance(s)"
         self._instances = [ItemInstanceMesh(instance_prim, self) for instance_prim in instance_prims]
         self._value_model = ui.SimpleStringModel(self._display)
 
@@ -83,6 +83,44 @@ class ItemInstancesMeshGroup(ui.AbstractItem):
     @property
     def instances(self):
         return self._instances
+
+    @property
+    def value_model(self):
+        return self._value_model
+
+    def __repr__(self):
+        return f'"{self.display}"'
+
+
+class ItemLiveLightGroup(ui.AbstractItem):
+    """Item of the model that represent a mesh"""
+
+    def __init__(self, parent: "ItemMesh", context_name: str):
+        super().__init__()
+        self._parent = parent
+        self._context_name = context_name
+        self._display = "Stage light(s)"
+        self._lights = [
+            ItemPrim(child, None, self, context_name, from_live_light_group=True) for child in self.get_live_lights()
+        ]
+        self._value_model = ui.SimpleStringModel(self._display)
+
+    def get_live_lights(self) -> List[Usd.Prim]:
+        """Get lights that are not from a ref"""
+        core = _AssetReplacementsCore(self._context_name)
+        return core.get_children_from_prim(self.parent.prim, only_prim_not_from_ref=True, level=1)
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @property
+    def display(self):
+        return self._display
+
+    @property
+    def lights(self):
+        return self._lights
 
     @property
     def value_model(self):
@@ -122,28 +160,69 @@ class ItemAddNewReferenceFileMesh(ui.AbstractItem):
         return f'"{self.display}"'
 
 
+class ItemAddNewLiveLight(ui.AbstractItem):
+    """Item of the model that represent a mesh"""
+
+    def __init__(self, prim: "Usd.Prim", parent: "ItemMesh"):
+        super().__init__()
+        self._parent = parent
+        self._prim = prim
+        self._display = "Add new stage light..."
+        self._value_model = ui.SimpleStringModel(self._display)
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @property
+    def prim(self):
+        return self._prim
+
+    @property
+    def display(self):
+        return self._display
+
+    @property
+    def value_model(self):
+        return self._value_model
+
+    def __repr__(self):
+        return f'"{self.display}"'
+
+
 class ItemPrim(ui.AbstractItem):
     """Item of the model that represent a mesh"""
 
     def __init__(
         self,
         prim: "Usd.Prim",
-        reference_item: "ItemReferenceFileMesh",
+        reference_item: Optional["ItemReferenceFileMesh"],
         parent: Union["ItemPrim", "ItemReferenceFileMesh"],
         context_name: str,
+        from_live_light_group: bool = False,
     ):
         super().__init__()
         self._parent = parent
         self._reference_item = reference_item
         self._prim = prim
+        self._from_live_light_group = from_live_light_group
         self._path = str(prim.GetPath())
         self._value_model = ui.SimpleStringModel(self._path)
         core = _AssetReplacementsCore(context_name)
         children = core.filter_imageable_prims(self._prim.GetChildren())
         scope_without = core.get_scope_prims_without_imageable_children(children)
         self._child_prim_items = [
-            ItemPrim(child, reference_item, self, context_name) for child in children if child not in scope_without
+            ItemPrim(child, reference_item, self, context_name, from_live_light_group=from_live_light_group)
+            for child in children
+            if child not in scope_without
         ]
+
+    @property
+    def from_live_light_group(self):
+        return self._from_live_light_group
+
+    def is_usd_light(self):
+        return self._prim.IsA(UsdLux.Light)
 
     @property
     def reference_item(self):
@@ -261,12 +340,22 @@ class ItemMesh(ui.AbstractItem):
         self._value_model = ui.SimpleStringModel(self._path)
 
         self._add_new_reference_item = ItemAddNewReferenceFileMesh(self._prim, self)
+        self._add_new_live_light = None
+        self._live_light_group = None
+        if self.is_light():
+            self._add_new_live_light = ItemAddNewLiveLight(self._prim, self)
+            self._live_light_group = ItemLiveLightGroup(self, context_name)
+        # instance also for light, to have a selected itme to show properties
         self._instance_group_item = ItemInstancesMeshGroup(instance_prims, self)
         prim_paths, total_ref = self.__reference_file_paths(self._prim)
         self._reference_items = [
             ItemReferenceFileMesh(_prim, ref, layer, i, total_ref, self, context_name)
             for _prim, ref, layer, i in prim_paths
         ]
+
+    def is_light(self):
+        regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
+        return bool(regex_pattern.match(self._path))
 
     @property
     def prim(self):
@@ -283,6 +372,14 @@ class ItemMesh(ui.AbstractItem):
     @property
     def add_new_reference_item(self):
         return self._add_new_reference_item
+
+    @property
+    def add_new_live_light(self):
+        return self._add_new_live_light
+
+    @property
+    def live_light_group(self):
+        return self._live_light_group
 
     @property
     def instance_group_item(self):
@@ -389,11 +486,16 @@ class ListModel(ui.AbstractItemModel):
     @staticmethod
     def __get_reference_prims(prims) -> Dict["Usd.Prim", List["Sdf.Path"]]:
         prim_paths = {}
+        regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
         for prim in prims:
-            for prim_spec in prim.GetPrimStack():
-                items = prim_spec.referenceList.prependedItems
-                for item in items:
-                    if item.primPath:
+            if regex_pattern.match(str(prim.GetPath())):
+                prim_paths[prim] = [prim.GetPath()]
+            else:
+                for prim_spec in prim.GetPrimStack():
+                    items = prim_spec.referenceList.prependedItems
+                    for item in items:
+                        if not item.primPath:
+                            continue
                         if prim in prim_paths:
                             prim_paths[prim].append(item.primPath)
                         else:
@@ -458,10 +560,11 @@ class ListModel(ui.AbstractItemModel):
                     futures.append(executor.submit(self.__get_reference_prims, to_send))
                     to_send = []
 
+            regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
             for future in concurrent.futures.as_completed(futures):
                 refs = future.result()
                 for prim, ref in refs.items():
-                    if ref and ref[0] == prim.GetPath():
+                    if ref and ref[0] == prim.GetPath() and not regex_pattern.match(str(prim.GetPath())):
                         continue
                     if ref and ref[0] in result and prim not in result[ref[0]]:
                         result[ref[0]].append(prim)
@@ -571,7 +674,16 @@ class ListModel(ui.AbstractItemModel):
         if item is None:
             return self.__children
         if isinstance(item, ItemMesh):
-            return item.reference_items + [item.add_new_reference_item, item.instance_group_item]
+            result = item.reference_items + [item.add_new_reference_item]
+            if item.is_light():
+                if item.live_light_group and item.live_light_group.lights:
+                    result.append(item.live_light_group)
+                result.append(item.add_new_live_light)
+            # instance also for light, to have a selected itme to show properties
+            result.append(item.instance_group_item)
+            return result
+        if isinstance(item, ItemLiveLightGroup):
+            return item.lights
         if isinstance(item, ItemInstancesMeshGroup):
             return item.instances
         if isinstance(item, (ItemReferenceFileMesh, ItemPrim)):
