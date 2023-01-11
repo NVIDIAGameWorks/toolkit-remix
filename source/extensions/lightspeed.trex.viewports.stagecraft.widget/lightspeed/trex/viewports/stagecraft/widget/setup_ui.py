@@ -25,6 +25,7 @@ from lightspeed.trex.viewports.properties_pane.widget import EnumItems as _Prope
 from lightspeed.trex.viewports.properties_pane.widget import SetupUI as _PropertiesPaneSetupUI
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.viewport.registry import RegisterScene, RegisterViewportLayer
+from omni.kit.viewport.utility import frame_viewport_prims as _frame_viewport_prims
 from omni.kit.viewport.utility import frame_viewport_selection as _frame_viewport_selection
 
 from .layers import ViewportLayers
@@ -187,13 +188,7 @@ class SetupUI:
             # frame the current selection:
             _frame_viewport_selection(viewport_api=self._viewport_layers.viewport_api)
             return
-        try:
-            from omni.kit.viewport.utility import frame_viewport_from_list as _frame_viewport_from_list
-
-            _frame_viewport_from_list(selection, viewport_api=self._viewport_layers.viewport_api)
-        except ImportError:
-            # TODO:  wait for the new SDK build with the function: OM-74372
-            pass
+        _frame_viewport_prims(viewport_api=self._viewport_layers.viewport_api, prims=selection)
 
     def toggle_viewport_property_panel(self, forced_value: bool = False, value: bool = False):
         if ((forced_value and value) or not self._property_panel_frame.visible) and self.___first_time_show_properties:
