@@ -96,12 +96,6 @@ class LightspeedWorkspaceExtension(omni.ext.IExt):
         _INSTANCE = LightspeedWorkspace(extension_path)
         _INSTANCE.setup_workspace()
 
-        # remove play button from main toolbar
-        toolbar = omni.kit.window.toolbar.toolbar.get_instance()
-        play_btn = omni.kit.window.toolbar.builtin_tools.play_button_group
-        if toolbar and play_btn:
-            toolbar.remove_widget(play_btn)
-
     def on_shutdown(self):
         carb.log_info("[lightspeed.workspace] Lightspeed Workspace shutdown")
 
