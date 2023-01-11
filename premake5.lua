@@ -13,6 +13,7 @@ repo_build.prebuild_copy {
 }
 
 define_app("lightspeed.app.trex")
+define_app("lightspeed.app.trex.ingestcraft")
 define_app("lightspeed.app.trex.stagecraft")
 define_app("lightspeed.app.trex.texturecraft")
 define_app("lightspeed.app.trex_dev")

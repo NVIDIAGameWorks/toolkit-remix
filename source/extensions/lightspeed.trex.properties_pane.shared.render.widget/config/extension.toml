@@ -1,6 +1,6 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed Trex Properties Pane Render widget"
+title = "Lightspeed RTX Remix Properties Pane Render widget"
 description = "Render Properties Pane widget for Lightspeed RTX Remix App"
 
 [dependencies]

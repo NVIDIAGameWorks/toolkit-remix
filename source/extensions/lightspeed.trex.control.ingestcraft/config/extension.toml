@@ -1,0 +1,19 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix control for the IngestCraft"
+description = "Control will connect back end and front end for Lightspeed RTX Remix IngestCraft App"
+
+[dependencies]
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.layout.ingestcraft" = {}
+"omni.flux.utils.common" = {}
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style"
+]
+args = ["--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"]
+
+[[python.module]]
+name = "lightspeed.trex.control.ingestcraft"

@@ -1,7 +1,7 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed Trex Properties Pane Asset Replacements widget for the StageCraft"
-description = "Asset Replacements Properties Pane widget for Lightspeed Trex StageCraft App"
+title = "Lightspeed RTX Remix Properties Pane Asset Replacements widget for the StageCraft"
+description = "Asset Replacements Properties Pane widget for Lightspeed RTX Remix StageCraft App"
 
 [dependencies]
 "lightspeed.trex.material_properties.shared.widget" = {}

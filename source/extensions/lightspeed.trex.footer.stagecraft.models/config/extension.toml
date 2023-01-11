@@ -1,6 +1,6 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed Trex footer StageCraft models"
+title = "Lightspeed RTX Remix footer StageCraft models"
 description = "This is the data used by the StageCraft footer"
 
 [dependencies]

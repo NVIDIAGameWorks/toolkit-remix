@@ -1,7 +1,7 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed Trex replacement/mod extension for the StageCraft"
-description = "Extension that works on replacement data for Lightspeed Trex StageCraft App"
+title = "Lightspeed RTX Remix replacement/mod extension for the StageCraft"
+description = "Extension that works on replacement data for Lightspeed RTX Remix StageCraft App"
 
 [dependencies]
 "lightspeed.common" = {}
