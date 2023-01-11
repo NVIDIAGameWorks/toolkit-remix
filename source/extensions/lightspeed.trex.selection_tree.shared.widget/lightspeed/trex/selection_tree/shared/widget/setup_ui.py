@@ -40,13 +40,6 @@ if typing.TYPE_CHECKING:
 
 
 class SetupUI:
-    FILE_EXTENSIONS = [
-        ("*.usd*", "USD Files"),
-        ("*.usd", "Binary or Ascii USD File"),
-        ("*.usda", "Human-readable USD File"),
-        ("*.usdc", "Binary USD File"),
-    ]
-
     DEFAULT_TREE_FRAME_HEIGHT = 200
     SIZE_PERCENT_MANIPULATOR_WIDTH = 50
 
@@ -517,10 +510,10 @@ class SetupUI:
         # if add item was clicked, we open the ref picker
         if add_item_selected:
             _open_file_picker(
-                "USD Reference File picker",
+                "Select a reference file",
                 functools.partial(self._add_new_ref_mesh, add_item_selected[0]),
                 lambda *args: None,
-                file_extension_options=self.FILE_EXTENSIONS,
+                file_extension_options=constants.READ_USD_FILE_EXTENSIONS_OPTIONS,
             )
         elif add_light_selected:  # if add light was clicked
             self.__show_light_creator_window(add_light_selected[0], items)

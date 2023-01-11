@@ -4,6 +4,7 @@ title = "Lightspeed RTX Remix layout for the StageCraft"
 description = "Layout for Lightspeed RTX Remix StageCraft App"
 
 [dependencies]
+"lightspeed.common" = {}
 "lightspeed.event.save_recent" = {}
 "lightspeed.layer_manager" = {}
 "lightspeed.trex.contexts" = {}

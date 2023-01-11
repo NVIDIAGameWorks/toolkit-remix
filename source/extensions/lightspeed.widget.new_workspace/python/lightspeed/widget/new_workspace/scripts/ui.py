@@ -12,8 +12,9 @@ from pathlib import Path
 import omni.ui as ui  # TODO: menu, switch to the new method when Kit switched
 from lightspeed.widget.game_captures.scripts.ui import GameCapturesViewer
 from lightspeed.widget.game_captures.scripts.utils import get_captures_directory
+from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 
-from .usd_file_picker import ReplacementPathUtils, open_file_picker
+from .utils import ReplacementPathUtils
 
 
 class GameWorkspaceViewer(GameCapturesViewer):
@@ -139,10 +140,12 @@ class GameWorkspaceViewer(GameCapturesViewer):
 
         bookmarks = {current_game.title: str(Path(current_game.path).resolve().parent)}
 
-        open_file_picker(
+        _open_file_picker(
+            "Directory picker",
             self._set_existing_layer_usd_str_field,
             lambda *args: None,
-            current_directory=current_directory,
+            current_file=current_directory,
+            select_directory=True,
             bookmarks=bookmarks,
         )
 

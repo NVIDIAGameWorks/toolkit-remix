@@ -17,6 +17,7 @@ import omni.client
 import omni.kit.usd.layers as _layers
 import omni.ui as ui
 import omni.usd
+from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS
 from lightspeed.error_popup.window import ErrorPopup as _ErrorPopup
 from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCoreSetup
@@ -41,7 +42,6 @@ from omni.flux.utils.widget.label import create_label_with_font as _create_label
 
 from .capture_tree.delegate import Delegate as CaptureTreeDelegate
 from .capture_tree.model import ListModel as CaptureTreeModel
-from .mod_file_picker import open_file_picker
 from .mod_file_picker_create import open_file_picker_create
 
 
@@ -526,7 +526,13 @@ class ModSetupPane:
             if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.READABLE_FILE:
                 current_file = None
         self.__import_existing_mod_file = True
-        open_file_picker(self.set_mod_file_field, lambda *args: None, current_file=current_file)
+        _open_file_picker(
+            "Select an existing mod file",
+            self.set_mod_file_field,
+            lambda *args: None,
+            current_file=current_file,
+            file_extension_options=READ_USD_FILE_EXTENSIONS_OPTIONS,
+        )
 
     def set_mod_file_field(self, path):
         self._mod_file_field.model.set_value(path)
@@ -857,7 +863,7 @@ class ModSetupPane:
                 current_directory = None
         self.__ignore_current_capture_layer = True
         _open_file_picker(
-            "Select capture directory",
+            "Select a capture directory",
             self.set_capture_dir_field,
             lambda *args: None,
             current_file=current_directory,

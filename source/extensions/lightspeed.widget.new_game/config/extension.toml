@@ -18,6 +18,7 @@ name = "Lightspeed New Game Widget"
 "lightspeed.common" = {}
 "lightspeed.upscale.core" = {}
 "omni.client" = {}
+"omni.flux.utils.widget" = {}
 "omni.kit.window.popup_dialog" = {}
 "omni.kit.widget.filebrowser" = {}
 "omni.kit.window.filepicker" = {}

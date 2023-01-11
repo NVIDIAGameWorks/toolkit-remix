@@ -18,6 +18,7 @@ import omni.appwindow
 import omni.kit.app
 import omni.ui as ui
 import omni.usd
+from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS
 from lightspeed.event.save_recent.recent_saved_file_utils import RecentSavedFile as _RecentSavedFile
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.trex.components_pane.stagecraft.controller import SetupUI as ComponentsPaneSetupUI
@@ -36,12 +37,11 @@ from omni.flux.header_nvidia.widget import HeaderWidget
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.widget.color import color_to_hex
+from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.flux.utils.widget.resources import get_background_images
 from omni.flux.utils.widget.resources import get_icons as _get_icons
 from omni.flux.welcome_pad.widget import WelcomePadWidget
 from omni.flux.welcome_pad.widget.model import Model as WelcomePadModel
-
-from .workfile_picker import open_file_picker
 
 if typing.TYPE_CHECKING:
     from pxr import Usd
@@ -150,7 +150,12 @@ class SetupUI(TrexLayout):
 
     def _on_open_from_storage_pad_clicked(self):
         """Called when we click on the 'open from storage' from the welcome pad"""
-        open_file_picker(self._open_work_file, lambda *args: None)
+        _open_file_picker(
+            "Workfile picker",
+            self._open_work_file,
+            lambda *args: None,
+            file_extension_options=READ_USD_FILE_EXTENSIONS_OPTIONS,
+        )
 
     def subscribe_open_work_file(self, function):
         """
