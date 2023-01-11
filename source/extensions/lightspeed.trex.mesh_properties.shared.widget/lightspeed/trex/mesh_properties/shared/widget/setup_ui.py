@@ -41,13 +41,6 @@ if typing.TYPE_CHECKING:
 
 
 class SetupUI:
-    FILE_EXTENSIONS = [
-        ("*.usd*", "USD Files"),
-        ("*.usd", "Binary or Ascii USD File"),
-        ("*.usda", "Human-readable USD File"),
-        ("*.usdc", "Binary USD File"),
-    ]
-
     def __init__(self, context_name: str):
         """Nvidia StageCraft Viewport UI"""
 
@@ -351,12 +344,12 @@ class SetupUI:
             navigate_to = os.path.dirname(stage.GetRootLayer().identifier)
 
         _open_file_picker(
-            "USD Reference File picker",
+            "Select a reference file",
             self.set_ref_mesh_field,
             lambda *args: None,
             current_file=navigate_to,
             fallback=fallback,
-            file_extension_options=self.FILE_EXTENSIONS,
+            file_extension_options=constants.READ_USD_FILE_EXTENSIONS_OPTIONS,
         )
 
     def _on_mesh_ref_field_begin(self, _model):

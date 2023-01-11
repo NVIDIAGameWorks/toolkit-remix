@@ -4,6 +4,7 @@ title = "Lightspeed Trex layout for the StageCraft"
 description = "Layout for Lightspeed Trex StageCraft App"
 
 [dependencies]
+"lightspeed.common" = {}
 "lightspeed.event.save_recent" = {}
 "lightspeed.layer_manager" = {}
 "lightspeed.trex.contexts" = {}

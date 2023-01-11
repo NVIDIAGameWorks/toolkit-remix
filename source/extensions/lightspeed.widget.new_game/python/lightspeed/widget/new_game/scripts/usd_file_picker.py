@@ -12,17 +12,10 @@ from typing import Callable
 
 import carb
 from lightspeed.common.constants import CAPTURE_FOLDER
-from omni.kit.widget.filebrowser import FileBrowserItem
-from omni.kit.window.filepicker import FilePickerDialog
+from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 
 
-def on_filter_item(dialog: FilePickerDialog, item: FileBrowserItem) -> bool:
-    if not item or item.is_folder:
-        return True
-    return False
-
-
-def on_click_open(dialog: FilePickerDialog, filename: str, dirname: str, callback: Callable):
+def __validate_selection(_: str, dirname: str):
     """
     The meat of the App is done in this callback when the user clicks 'Accept'. This is
     a potentially costly operation so we implement it as an async operation.  The inputs
@@ -31,23 +24,15 @@ def on_click_open(dialog: FilePickerDialog, filename: str, dirname: str, callbac
     """
     if not dirname or not Path(dirname).exists() or str(Path(dirname).stem) != CAPTURE_FOLDER:
         carb.log_error(f'Please select a folder named "{CAPTURE_FOLDER}"')
-        return
-    # Normally, you'd want to hide the dialog
-    dialog.hide()
-    callback(dirname)
-
-
-def on_click_cancel(dialog: FilePickerDialog, filename: str, dirname: str, callback: Callable):
-    # Normally, you'd want to hide the dialog
-    dialog.hide()
-    callback(dirname)
+        return False
+    return True
 
 
 def open_file_picker(callback: Callable, callback_cancel: Callable):
-    dialog = FilePickerDialog(
-        "Directory picker",
-        apply_button_label="Select",
-        click_apply_handler=lambda filename, dirname: on_click_open(dialog, filename, dirname, callback),
-        click_cancel_handler=lambda filename, dirname: on_click_cancel(dialog, filename, dirname, callback_cancel),
-        item_filter_fn=lambda item: on_filter_item(dialog, item),
+    _open_file_picker(
+        "Select a capture directory",
+        callback,
+        callback_cancel,
+        select_directory=True,
+        validate_selection=__validate_selection,
     )

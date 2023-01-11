@@ -92,6 +92,13 @@ TEXTURE_INFO = {
 
 AUTOUPSCALE_LAYER_FILENAME = "autoupscale.usda"
 
+SAVE_USD_FILE_EXTENSIONS_OPTIONS = [
+    ("*.usda", "Human-readable USD File"),
+    ("*.usd", "Binary or Ascii USD File"),
+    ("*.usdc", "Binary USD File"),
+]
+READ_USD_FILE_EXTENSIONS_OPTIONS = [("*.usd*", "USD Files"), *SAVE_USD_FILE_EXTENSIONS_OPTIONS]
+
 
 # This should match the `normalmap_encoding` in AperturePBR_normal.mdl
 class NormalMapEncodings(IntEnum):

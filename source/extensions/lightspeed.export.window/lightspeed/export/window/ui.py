@@ -20,7 +20,7 @@ from lightspeed.export.core import LightspeedExporterCore
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from lightspeed.progress_popup.window import ProgressPopup
 from omni import ui
-from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker
+from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.kit.menu.utils import MenuItemDescription
 from omni.kit.tool.collect.icons import Icons
 
@@ -225,11 +225,11 @@ class LightspeedExporterUI:
         self._window.visible = False
         path = self._export_path_field.model.get_value_as_string()
         current_directory = path if path else None
-        open_file_picker(
-            "Select Mod Output Directory",
+        _open_file_picker(
+            "Select a mod output directory",
             self._select_picked_folder_callback,
             lambda *args: None,
-            current_directory,
+            current_file=current_directory,
             select_directory=True,
             validate_selection=lambda dirname, _: self._core.check_export_path(dirname, self._show_error_popup),
         )

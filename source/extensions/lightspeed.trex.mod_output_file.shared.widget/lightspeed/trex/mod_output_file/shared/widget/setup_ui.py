@@ -146,10 +146,10 @@ class SetupUI:
             return
         current_path = self._mod_output_dir_field.model.get_value_as_string()
         _open_file_picker(
-            "Select Mod Output Directory",
+            "Select a mod output directory",
             self._on_directory_selected,
             lambda *args: None,
-            current_path,
+            current_file=current_path,
             select_directory=True,
             validate_selection=lambda dirname, _: self._exporter.check_export_path(dirname, self._show_error_popup),
         )
