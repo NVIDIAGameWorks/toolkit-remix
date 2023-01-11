@@ -35,8 +35,6 @@ from .stats.layer import ViewportStatsLayer
 
 
 class SetupUI:
-    WIDTH_PROPERTY_PANEL = 300
-
     def __init__(self, context_name):
         """Nvidia StageCraft Viewport UI"""
 
@@ -118,7 +116,9 @@ class SetupUI:
                             RegisterScene(_origin_default_factory, "omni.kit.viewport.scene.SimpleOrigin")
                         )
                         self._registered.append(
-                            RegisterScene(_camera_axis_default_factory, "omni.kit.viewport.scene.CameraAxisLayer")
+                            RegisterViewportLayer(
+                                _camera_axis_default_factory, "omni.kit.viewport.scene.CameraAxisLayer"
+                            )
                         )
 
                         # legacy light

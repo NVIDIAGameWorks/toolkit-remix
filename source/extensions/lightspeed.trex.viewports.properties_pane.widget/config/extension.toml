@@ -1,6 +1,6 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed Trex Viewports Properties Pane implementation"
+title = "Lightspeed RTX Remix Viewports Properties Pane implementation"
 description = "Viewports Properties Pane implementation for Lightspeed RTX Remix App"
 
 [dependencies]

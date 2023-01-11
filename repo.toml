@@ -94,6 +94,7 @@ publish_verification = true
 # Apps to run and precache
 apps = [
     "${root}/_build/$platform/$config/apps/lightspeed.app.trex.kit",
+    "${root}/_build/$platform/$config/apps/lightspeed.app.trex.ingestcraft.kit",
     "${root}/_build/$platform/$config/apps/lightspeed.app.trex.stagecraft.kit",
     "${root}/_build/$platform/$config/apps/lightspeed.app.trex.texturecraft.kit",
     "${root}/_build/$platform/$config/apps/lightspeed.app.trex_dev.kit",

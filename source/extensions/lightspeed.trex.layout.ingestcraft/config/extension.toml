@@ -1,0 +1,24 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix layout for the IngestCraft"
+description = "Layout for Lightspeed RTX Remix IngestCraft App"
+
+[dependencies]
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.components_pane.ingestcraft.controller" = {}
+"lightspeed.trex.components_pane.ingestcraft.models" = {}
+"lightspeed.trex.layout.shared" = {}
+"lightspeed.trex.properties_pane.ingestcraft.widget" = {}
+"lightspeed.trex.utils.common" = {}
+"lightspeed.trex.viewports.stagecraft.widget" = {}
+"omni.ui" = {}
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style"
+]
+args = ["--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"]
+
+[[python.module]]
+name = "lightspeed.trex.layout.ingestcraft"

@@ -1,6 +1,6 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed Trex Camera Properties implementation"
+title = "Lightspeed RTX Remix Camera Properties implementation"
 description = "Camera Properties implementation for Lightspeed RTX Remix App"
 
 [dependencies]

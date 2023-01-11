@@ -1,7 +1,7 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed Trex Properties Pane Mod Setup widget for the StageCraft"
-description = "Mod Setup Properties Pane widget for Lightspeed Trex StageCraft App"
+title = "Lightspeed RTX Remix Properties Pane Mod Setup widget for the StageCraft"
+description = "Mod Setup Properties Pane widget for Lightspeed RTX Remix StageCraft App"
 
 [dependencies]
 "lightspeed.common" = {}

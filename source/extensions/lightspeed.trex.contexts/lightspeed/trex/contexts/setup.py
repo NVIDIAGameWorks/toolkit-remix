@@ -15,9 +15,10 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 
 class Contexts(Enum):
+    INGEST_CRAFT = "ingestcraft"
     TEXTURE_CRAFT = "texturecraft"
     # STAGE_CRAFT = "stagecraft"
-    STAGE_CRAFT = ""
+    STAGE_CRAFT = ""  # TODO: wait for OM-77651
 
 
 class _Setup:

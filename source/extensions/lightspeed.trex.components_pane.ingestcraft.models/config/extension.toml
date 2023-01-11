@@ -1,0 +1,10 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix Components Pane models for the IngestCraft"
+description = "Models for the Components Pane for Lightspeed RTX Remix IngestCraft App"
+
+[dependencies]
+"omni.flux.tree_panel.widget" = {}
+
+[[python.module]]
+name = "lightspeed.trex.components_pane.ingestcraft.models"

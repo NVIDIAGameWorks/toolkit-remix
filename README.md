@@ -1,7 +1,7 @@
 # Publishing a new App Version to the OV Launcher
 
-To bump the TRex app version number, there are 3 files that need to be updated. 
-***Attempts to publish to the OV launcher without first making sure that these*** 
+To bump the RTX Remix app version number, there are 3 files that need to be updated.
+***Attempts to publish to the OV launcher without first making sure that these***
 ***files are properly updated will result cause incorrect versions to be displayed,***
 ***or will cause the pipeline to outright fail.***
 
@@ -45,40 +45,16 @@ This README file provides a quick overview.  In-depth documentation can be found
 [Teamcity Project](https://teamcity.nvidia.com/project/Omniverse_KitExtensions_KitTemplate?mode=builds)
 
 
-# Extension Types
-
-```mermaid
-graph TD
-
-  subgraph "python"
-  A3(__init__.py + python code)
-  end
-
-  subgraph cpp
-  A1(omni.ext-example_cpp_ext.plugin.dll)
-  end
-
-  subgraph "mixed"
-  A2(__init__.py + python code)
-  A2 --import _mixed_ext--> B2(example.mixed_ext.python)
-  B2 -- carb::Framework --> C2(example.mixed_ext.plugin.dll)
-  end
-
-
-
-  Kit[Kit] --> A1
-  Kit[Kit] --> A2
-  Kit[Kit] --> A3
-```
-
-
 ## Getting Started
 
 1. build: `build.bat -c release`
-2. run: `_build\windows-x86_64\release\omni.app.new_exts_demo_mini.bat`
-3. notice enabled extensions in "Extension Manager Window" of Kit. One of them brought its own test in "Test Runner" window.
+2. run: `_build\windows-x86_64\release\lightspeed.app.trex_dev.bat` (for the dev version that has menus) or
+`_build\windows-x86_64\release\lightspeed.app.trex.bat` for the regular version.
+If you work on a specific sub-app (IngestCraft, TextureCraft...), you can run the sub-app directly like `_build\windows-x86_64\release\lightspeed.app.trex.ingestcraft.bat`
 
 To run tests: `repo.bat test`
+
+To clean up your build (before to re-run build again): `build.bat --clean`
 
 ## Using a Local Build of Kit SDK
 
