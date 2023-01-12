@@ -33,6 +33,7 @@ from .scene.layer import ViewportSceneLayer
 from .scene.scenes import camera_axis_default_factory as _camera_axis_default_factory
 from .scene.scenes import origin_default_factory as _origin_default_factory
 from .stats.layer import ViewportStatsLayer
+from .tools.layer import ViewportToolsLayer
 
 
 class SetupUI:
@@ -137,6 +138,9 @@ class SetupUI:
                         )
                         self._registered.append(
                             RegisterViewportLayer(ViewportSceneLayer, "omni.kit.viewport.SceneLayer")
+                        )
+                        self._registered.append(
+                            RegisterViewportLayer(ViewportToolsLayer, "omni.kit.viewport.ViewportTools")
                         )
 
                     self._property_panel_frame_spacer = ui.Spacer(width=ui.Pixel(12))

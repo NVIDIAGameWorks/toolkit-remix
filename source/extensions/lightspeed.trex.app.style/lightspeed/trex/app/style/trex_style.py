@@ -85,10 +85,22 @@ _DEFAULT_DARK_PANEL_BACKGROUND_VALUE = {
 def update_viewport_menu_style():
     """Should be called after the creation of the menus"""
     # viewport menu
+    cl.viewport_menubar_selection = cl.shade(cl("#34C7FF3B"))
+    cl.viewport_menubar_selection_border = cl.shade(cl("#34C7FF"))
+    cl.viewport_menubar_selection_border_button = cl.shade(cl("#2B87AA"))
+    cl.viewport_menubar_background = cl.shade(cl("#25282ACC"))
     cl.viewport_menubar_title_background = 0x0
     cl.viewport_menubar_selection_border = 0x0
     cl.viewport_menubar_selection_border_button = 0x0
     fl.viewport_menubar_border_radius = fl.shade(0)
+
+    cl.toolbar_button_background = cl.shade(0x0)
+    cl.toolbar_button_background_checked = cl.shade(cl("#34C7FF3B"))
+    cl.toolbar_button_background_pressed = cl.shade(cl("#2B87AA"))
+    cl.toolbar_button_background_hovered = cl.shade(cl("#2b87aa4d"))
+
+
+update_viewport_menu_style()
 
 
 # override the style of the message dialog
@@ -547,6 +559,27 @@ current_dict.update(
         "TreeView.ScrollingFrame::WelcomePad": {"background_color": 0x0},
         "ViewportStats::FloatField": {
             "background_color": 0,
+        },
+        "Viewport.Item.Background": {
+            "background_color": cl.viewport_menubar_background,
+            "border_radius": cl.viewport_menubar_border_radius,
+            "padding": 1,
+            "margin": 2,
+        },
+        "Viewport.Item.Hover": {
+            "background_color": 0,
+            "padding": 1,
+            "margin": 1,
+        },
+        "Viewport.Item.Hover:hovered": {
+            "background_color": cl.viewport_menubar_selection,
+            "border_color": cl.viewport_menubar_selection_border_button,
+            "border_width": 1.5,
+        },
+        "Viewport.Item.Hover:pressed": {
+            "background_color": cl.viewport_menubar_selection,
+            "border_color": cl.viewport_menubar_selection_border_button,
+            "border_width": 1.5,
         },
         "Window": {"background_color": 0xFF0F0F0F},
     }

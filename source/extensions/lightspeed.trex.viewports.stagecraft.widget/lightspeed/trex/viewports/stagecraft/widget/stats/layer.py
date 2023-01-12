@@ -84,29 +84,19 @@ class ViewportStatsLayer(_LayerItem):
         with ui.VStack():
             ui.Spacer(name="Spacer", style_type_name_override="ViewportStats")
             with ui.HStack(height=hud_top):
-                ui.Spacer(name="Spacer", style_type_name_override="ViewportStats", width=ui.Pixel(8))
-                with ui.VStack():
-                    self.__groups.append(
-                        ViewportStatsGroup([ViewportSpeed], "Viewport Speed", ui.Alignment.LEFT, self.__viewport_api)
-                    )
-                    self.__groups.append(
-                        ViewportStatsGroup(
-                            [ViewportMessage], "Viewport Message", ui.Alignment.LEFT, self.__viewport_api
-                        )
-                    )
-            ui.Spacer(name="Spacer", style_type_name_override="ViewportStats", height=ui.Pixel(8))
+                self.__groups.append(
+                    ViewportStatsGroup([ViewportSpeed], "Viewport Speed", ui.Alignment.LEFT, self.__viewport_api)
+                )
+                self.__groups.append(
+                    ViewportStatsGroup([ViewportMessage], "Viewport Message", ui.Alignment.LEFT, self.__viewport_api)
+                )
         with ui.VStack():
             ui.Spacer(name="Spacer", style_type_name_override="ViewportStats")
             with ui.HStack(height=hud_top):
-                ui.Spacer(name="Spacer", style_type_name_override="ViewportStats", width=ui.Pixel(8))
-
                 ui.Spacer(name="LeftRightSpacer", style_type_name_override="ViewportStats")
-
                 self.__groups.append(
                     ViewportStatsGroup(right_stat_factories, "Viewport HUD", ui.Alignment.RIGHT, self.__viewport_api)
                 )
-                ui.Spacer(name="Spacer", style_type_name_override="ViewportStats", width=ui.Pixel(8))
-            ui.Spacer(name="Spacer", style_type_name_override="ViewportStats", height=ui.Pixel(8))
 
     def __stats_visiblity_changed(self, item: carb.dictionary.Item, event_type: carb.settings.ChangeEventType):
         if event_type == carb.settings.ChangeEventType.CHANGED:
