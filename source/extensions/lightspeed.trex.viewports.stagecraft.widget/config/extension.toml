@@ -10,6 +10,8 @@ description = "Viewports implementation for Lightspeed RTX Remix StageCraft App"
 "lightspeed.trex.viewports.properties_pane.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.viewport.utility" = {}
+# start before to be sure to apply settings from the app .kit
+"omni.kit.widget.toolbar" = {order = -10}
 "omni.ui" = {}
 
 [settings]

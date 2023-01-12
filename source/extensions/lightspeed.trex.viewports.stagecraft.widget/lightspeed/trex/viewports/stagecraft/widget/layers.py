@@ -172,17 +172,25 @@ class ViewportLayers:
                 self.__zstack.destroy()
                 self.__zstack.clear()
             with self.__ui_frame:
-                self.__zstack = ui.ZStack()
-                # Rebuild all the other layers according to our order
-                for _factory_id, factory_v in RegisterViewportLayer.ordered_factories(K_LAYER_ORDER):
-                    # Skip over things that weren't found (they may have not been registered or enabled yet)
-                    if not factory_v:
-                        continue
-                    with self.__zstack:
-                        try:
-                            self.__viewport_layers[factory_v] = factory_v(factory_args.copy())
-                        except Exception:  # noqa
-                            carb.log_error(f"Error creating layer {factory_v}. Traceback:\n{traceback.format_exc()}")
+                with ui.VStack():
+                    ui.Spacer(height=ui.Pixel(8))
+                    with ui.HStack():
+                        ui.Spacer(width=ui.Pixel(8))
+                        self.__zstack = ui.ZStack()
+                        # Rebuild all the other layers according to our order
+                        for _factory_id, factory_v in RegisterViewportLayer.ordered_factories(K_LAYER_ORDER):
+                            # Skip over things that weren't found (they may have not been registered or enabled yet)
+                            if not factory_v:
+                                continue
+                            with self.__zstack:
+                                try:
+                                    self.__viewport_layers[factory_v] = factory_v(factory_args.copy())
+                                except Exception:  # noqa
+                                    carb.log_error(
+                                        f"Error creating layer {factory_v}. Traceback:\n{traceback.format_exc()}"
+                                    )
+                        ui.Spacer(width=ui.Pixel(8))
+                    ui.Spacer(height=ui.Pixel(8))
         else:
             if factory in self.__viewport_layers:
                 self.__viewport_layers[factory].destroy()

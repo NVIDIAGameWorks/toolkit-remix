@@ -68,8 +68,9 @@ REGEX_LIGHT_PATH = f"^(.*)({LIGHT_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
 REGEX_MESH_INST_LIGHT_PATH = (
     f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
 )
-REGEX_SUB_LIGHT_PATH = f"^(.*)({LIGHT_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa
-
+REGEX_SUB_LIGHT_PATH = (
+    f"^(.*)({LIGHT_NAME_PREFIX}|{MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa
+)
 BAD_EXPORT_LOG_PREFIX = "Export is not release ready: "
 EXPORT_STATUS_NAME = "remix_replacement_status"
 EXPORT_STATUS_RELEASE_READY = "Release Ready"
