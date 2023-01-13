@@ -82,8 +82,7 @@ class Setup:
         def on_save(result, error):
             if not result or error:
                 dialog = _TrexMessageDialog(
-                    width=600,
-                    message="Error saving",
+                    message="An error occurred while saving.",
                     disable_cancel_button=True,
                 )
                 dialog.show()
@@ -91,7 +90,6 @@ class Setup:
             message = f"Are you sure you want to open this workfile?\n{path}"
 
             dialog = _TrexMessageDialog(
-                width=600,
                 message=message,
                 ok_handler=on_saved_okay_clicked,
                 cancel_handler=on_saved_cancel_clicked,
@@ -111,15 +109,17 @@ class Setup:
         layer_capture = self._layer_manager.get_layer(_LayerType.capture)
         layer_replacement = self._layer_manager.get_layer(_LayerType.replacement)
         if self._context.has_pending_edit() and layer_capture and layer_replacement:
-            message = "There is some pending edits on your current stage.\nDo you want to save your stage before"
+            message = (
+                "There are some pending edits in your current stage.\n"
+                "Do you want to save your change before changing workfile?"
+            )
 
             dialog = _TrexMessageDialog(
-                width=600,
                 message=message,
                 ok_handler=on_okay_clicked,
                 cancel_handler=on_cancel_clicked,
-                ok_label="Yes",
-                cancel_label="No",
+                ok_label="Save",
+                cancel_label="Discard",
                 disable_cancel_button=False,
             )
             dialog.show()

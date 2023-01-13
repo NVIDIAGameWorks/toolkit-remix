@@ -107,7 +107,7 @@ update_viewport_menu_style()
 def override_dialog_get_style(style_value):  # noqa PLW0621
     style_value.update(
         {
-            "Background": _DEFAULT_DARK_PANEL_BACKGROUND_VALUE,
+            "Background": {"color": _WHITE_100, "background_color": 0x0, "border_width": 0},
             "Button": {"background_color": _BLUE_HOVERED, "selected_color": 0xFF8A8777, "margin": 0},
             "Button:hovered": {"background_color": _BLUE_SELECTED, "selected_color": 0xFF8A8777, "margin": 0},
             "Button.Label": {"color": _WHITE_80},
@@ -235,6 +235,7 @@ current_dict.update(
         "Image::Add:hovered": {"image_url": _get_icons("add"), "color": _WHITE_100},
         "Image::Eye": {"image_url": _get_icons("eye"), "color": _WHITE_60},
         "Image::Eye:hovered": {"image_url": _get_icons("eye"), "color": _WHITE_100},
+        "Image::EyeDisabled": {"image_url": _get_icons("eye"), "color": _WHITE_30},
         "Image::EyeOff": {"image_url": _get_icons("eye-off"), "color": _WHITE_60},
         "Image::EyeOff:hovered": {"image_url": _get_icons("eye-off"), "color": _WHITE_100},
         "Image::CreateLayerDisabled": {"image_url": _get_icons("create-layer"), "color": _WHITE_30},

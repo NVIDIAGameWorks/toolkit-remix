@@ -183,7 +183,6 @@ class ModSetupPane:
         message = f"Are you sure you want to load this capture layer?\n{path}"
 
         dialog = TrexMessageDialog(
-            width=600,
             message=message,
             ok_handler=on_okay_clicked,
             cancel_handler=on_cancel_clicked,
@@ -924,6 +923,7 @@ class ModSetupPane:
             self.__file_listener_instance.remove_model(self._mod_details_model)
 
     def show(self, value):
+        self._capture_tree_model.enable_listeners(value)
         self._root_frame.visible = value
         if value:
             self.refresh_capture_detail_panel()
