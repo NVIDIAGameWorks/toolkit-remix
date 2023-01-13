@@ -12,10 +12,10 @@ import functools
 import re
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
-import omni.ui as ui
 from lightspeed.common.constants import MATERIAL_RELATIONSHIP, REGEX_HASH, REGEX_MESH_PATH
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCoreSetup
+from omni import ui, usd
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import async_wrap as _async_wrap
@@ -51,6 +51,7 @@ class ListModel(ui.AbstractItemModel):
             "_context_name": None,
             "_core_capture": None,
             "_core_replacement": None,
+            "_stage_event_sub": None,
             "_fetch_task": None,
             "_cancel_token": None,
         }
@@ -61,6 +62,7 @@ class ListModel(ui.AbstractItemModel):
         self._core_capture = _CaptureCoreSetup(context_name)
         self._core_replacement = _ReplacementCoreSetup(context_name)
 
+        self._stage_event_sub = None
         self._fetch_task = None
         self._cancel_token = False
         self.__children = []
@@ -97,10 +99,25 @@ class ListModel(ui.AbstractItemModel):
         if self._fetch_task is not None:
             self._cancel_token = True
 
+    def enable_listeners(self, value: bool):
+        if value:
+            self._stage_event_sub = (
+                usd.get_context(self._context_name)
+                .get_stage_event_stream()
+                .create_subscription_to_pop(self.__on_stage_event, name="STAGE_CHANGED_SUB")
+            )
+        else:
+            self._stage_event_sub = None
+
     def fetch_progress(self, items: Optional[List[Item]] = None):
         self.cancel_tasks()
         wrapped_fn = _async_wrap(functools.partial(self.__fetch_progress, items))
         self._fetch_task = asyncio.ensure_future(wrapped_fn())
+
+    def __on_stage_event(self, event):
+        if event.type not in [int(usd.StageEventType.CLOSING), int(usd.StageEventType.CLOSED)]:
+            return
+        self.cancel_tasks()
 
     def __task_completed(self):
         if self._fetch_task is not None:
@@ -122,9 +139,13 @@ class ListModel(ui.AbstractItemModel):
         # Fetch the replaced hashes
         replaced_items = set()
         for layer in self._core_replacement.get_replaced_hashes().items():
+            # Allow cancelling the task for every layer
+            if self._cancel_token:
+                self.__task_completed()
+                return
             replaced_items = replaced_items.union(self.__filter_hashes(layer))
         for item in collection:
-            # Allow cancelling the task after every capture item
+            # Allow cancelling the task for every capture item
             if self._cancel_token:
                 self.__task_completed()
                 return
@@ -145,6 +166,9 @@ class ListModel(ui.AbstractItemModel):
         regex_mesh = re.compile(REGEX_MESH_PATH)
         regex_hash = re.compile(REGEX_HASH)
         for prim_hash, prim_path in hashes.items():
+            # Allow cancelling the task for every item
+            if self._cancel_token:
+                break
             # If not a mesh, then no need to group
             if not regex_mesh.match(str(prim_path)):
                 filtered_hashes.add(prim_hash)

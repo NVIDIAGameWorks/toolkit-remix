@@ -470,5 +470,43 @@ class Setup:
     def is_file_path_valid(path: str, layer: Sdf.Layer, log_error: bool = True) -> bool:
         return _path_utils.is_file_path_valid(path, layer=layer, log_error=log_error)
 
+    def filter_transformable_prims(self, paths: Optional[List[Sdf.Path]]):
+        transformable = []
+        regex_in_instance = re.compile(constants.REGEX_IN_INSTANCE_PATH)
+        regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
+        for path in paths:
+            prim = self._context.get_stage().GetPrimAtPath(path)
+            if not self.filter_xformable_prims([prim]):
+                continue
+            if regex_light_pattern.match(prim.GetName()):
+                # if this is a light instance, we add it. We can move light instance directly
+                transformable.append(str(path))
+                continue
+            if regex_in_instance.match(str(prim.GetPath())):
+                # enable the transform manip only for lights and prim in instances (and light instance)
+                # we don't allow moving prim in mesh directly, a prim in an instance has to be selected
+                # we don't allow moving an instance directly
+                if self.prim_is_from_a_capture_reference(prim):
+                    # prim from capture can't be moved
+                    continue
+                corresponding_paths = self.get_corresponding_prototype_prims([prim])
+                if corresponding_paths:
+                    transformable.extend(corresponding_paths)
+        return transformable
+
+    @staticmethod
+    def get_prim_hash(prim_path):
+        return re.match(constants.REGEX_HASH, prim_path).group(3)
+
+    @staticmethod
+    def get_instance_from_mesh(mesh_paths: List[str], instance_paths: List[str]) -> List[str]:
+        instances = set()
+        for mesh_path in mesh_paths:
+            for instance_path in instance_paths:
+                if Setup.get_prim_hash(instance_path) != Setup.get_prim_hash(mesh_path):
+                    continue
+                instances.add(re.sub(constants.REGEX_MESH_TO_INSTANCE_SUB, instance_path, mesh_path))
+        return list(instances)
+
     def destroy(self):
         _reset_default_attrs(self)

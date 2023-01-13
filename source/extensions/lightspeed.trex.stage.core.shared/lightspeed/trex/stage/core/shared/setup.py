@@ -68,28 +68,6 @@ class Setup:
         camera_prim.ClearXformOpOrder()
         # omni.kit.commands.execute("TransformPrimCommand", path="/OmniverseKit_Persp", usd_context_name=context)
 
-        hello = UsdGeom.Xform.Define(stage, "/hello")
-        translate = hello.AddXformOp(UsdGeom.XformOp.TypeTranslate, UsdGeom.XformOp.PrecisionDouble, "")
-        translate.Set(Gf.Vec3f(0, 0, 0))
-        rotate = hello.AddXformOp(UsdGeom.XformOp.TypeRotateXYZ, UsdGeom.XformOp.PrecisionDouble, "")
-        rotate.Set(Gf.Vec3f(0, 0, 0))
-        scale = hello.AddXformOp(UsdGeom.XformOp.TypeScale, UsdGeom.XformOp.PrecisionDouble, "")
-        scale.Set(Gf.Vec3f(1, 1, 1))
-        stage.SetDefaultPrim(hello.GetPrim())
-        cube = UsdGeom.Cube.Define(stage, "/hello/world")
-        cube.GetSizeAttr().Set(50)
-
-        hello = UsdGeom.Xform.Define(stage, "/hello1")
-        translate = hello.AddXformOp(UsdGeom.XformOp.TypeTranslate, UsdGeom.XformOp.PrecisionDouble, "")
-        translate.Set(Gf.Vec3f(70, 0, 0))
-        rotate = hello.AddXformOp(UsdGeom.XformOp.TypeRotateXYZ, UsdGeom.XformOp.PrecisionDouble, "")
-        rotate.Set(Gf.Vec3f(0, 0, 0))
-        scale = hello.AddXformOp(UsdGeom.XformOp.TypeScale, UsdGeom.XformOp.PrecisionDouble, "")
-        scale.Set(Gf.Vec3f(1, 1, 1))
-        sphere = UsdGeom.Cube.Define(stage, "/hello1/world1")
-        sphere.GetSizeAttr().Set(40)
-        print("hellloooo")
-
     def save(self):
         omni.kit.window.file.save()
 

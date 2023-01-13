@@ -262,17 +262,20 @@ class SetupUI:
             self.set_ref_mesh_field(self._current_reference_file_mesh_items[-1].path)
             self._only_read_mesh_ref = False
         elif item_prims:
-            # refresh of the transform
-            prims = [item.prim for item in item_prims]
-            xformable_prims = self._core.filter_xformable_prims(prims)
-            self._transformation_widget.show(bool(xformable_prims))
-            if xformable_prims:
-                self._transformation_widget.refresh([xformable_prims[0].GetPath()])
+            # Get all the transformable prims from the instances
+            instances = self._core.get_instance_from_mesh(
+                [i.path for i in item_prims], [i.path for i in self._current_instance_items]
+            )
+            transformable_prim_paths = self._core.filter_transformable_prims(instances)
+            # Refresh of the transform
+            self._transformation_widget.show(bool(transformable_prim_paths))
+            if transformable_prim_paths:
+                self._transformation_widget.refresh([transformable_prim_paths[0]])
             else:
                 # we show the none panel
                 self._mesh_properties_frames[_ItemPrim].visible = False
                 self._mesh_properties_frames[None].visible = True
-            # for a regular prim, we dont show others properties
+            # for a regular prim, we don't show others properties
             self._property_widget.show(False)
         elif item_light_instance_groups or item_light_prims:  # light
             # if this is a light, we can transform the light by itself. So we should show the transform frame

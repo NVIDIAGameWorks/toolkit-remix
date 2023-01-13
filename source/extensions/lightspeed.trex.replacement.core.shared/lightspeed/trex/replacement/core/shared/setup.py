@@ -153,14 +153,14 @@ class Setup:
                 sublayers.extend(get_sublayers_recursive(sub))
             return sublayers
 
+        hashes = {}
         if self.is_path_valid(str(path)):
             replacements = path
         else:
             replacement_layer = self.get_layer()
             if not replacement_layer:
-                return {}
+                return hashes
             replacements = replacement_layer.identifier
-        hashes = {}
         for sublayer in get_sublayers_recursive(replacements):
             hashes[sublayer] = self._layer_manager.get_layer_hashes_no_comp_arcs(sublayer)
         return hashes
