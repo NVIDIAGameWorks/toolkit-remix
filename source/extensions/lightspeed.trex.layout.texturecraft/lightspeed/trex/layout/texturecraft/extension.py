@@ -31,7 +31,7 @@ class TextureCraftLayoutExtension(omni.ext.IExt):
         # create the TextureCraft configurator context
         trex_contexts_instance().create_context(TrexContexts.TEXTURE_CRAFT)
 
-        _SETUP_INSTANCE = SetupUI()
+        _SETUP_INSTANCE = SetupUI(ext_id)
         settings = carb.settings.get_settings()
         default_layout = settings.get(_DEFAULT_LAYOUT_EXTENSION)
         if (default_layout and ext_id.startswith(default_layout)) or not default_layout:

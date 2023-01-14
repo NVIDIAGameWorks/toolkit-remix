@@ -33,7 +33,7 @@ class TrexIngestCraftLayoutExtension(omni.ext.IExt):
         # create the StageCraft context
         trex_contexts_instance().create_context(TrexContexts.INGEST_CRAFT)
 
-        _SETUP_INSTANCE = SetupUI()
+        _SETUP_INSTANCE = SetupUI(ext_id)
 
         settings = carb.settings.get_settings()
         default_layout = settings.get(_DEFAULT_LAYOUT_EXTENSION)

@@ -177,8 +177,8 @@ class LightspeedExporterCore:
         os.remove(self._temp_stage_path)
         os.remove(self._temp_replacements_path)
 
-    def get_default_export_path(self, create_if_not_exist: bool = False) -> Optional[str]:
-        game_name, capture_folder = self._layer_manager.game_current_game_capture_folder()
+    def get_default_export_path(self, create_if_not_exist: bool = False, show_error: bool = True) -> Optional[str]:
+        game_name, capture_folder = self._layer_manager.game_current_game_capture_folder(show_error=show_error)
         if not game_name:
             return None
         path = str(Path(capture_folder).parent.joinpath(constants.GAME_READY_ASSETS_FOLDER)) + os.sep
@@ -203,7 +203,7 @@ class LightspeedExporterCore:
         """
         stage = omni.usd.get_context(self._context_name).get_stage()
         error_title = "Invalid Mod Export Directory"
-        if stage.GetRootLayer().anonymous:
+        if not stage or stage.GetRootLayer().anonymous:
             error_callback(error_title, "The stage must be saved before exporting")
             return False
         if not path:

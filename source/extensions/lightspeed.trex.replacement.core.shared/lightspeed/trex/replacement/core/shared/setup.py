@@ -154,7 +154,7 @@ class Setup:
             return sublayers
 
         hashes = {}
-        if self.is_path_valid(str(path)):
+        if path and self.is_path_valid(str(path)):
             replacements = path
         else:
             replacement_layer = self.get_layer()

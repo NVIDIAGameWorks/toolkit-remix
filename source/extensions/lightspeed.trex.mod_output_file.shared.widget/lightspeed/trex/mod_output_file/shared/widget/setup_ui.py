@@ -110,10 +110,12 @@ class SetupUI:
 
     def refresh(self):
         self._get_default_output_dir()
-        self._export_widget.enabled = self._validate_output_path(self._mod_output_dir_field.model)
+        is_valid = self._validate_output_path(self._mod_output_dir_field.model)
+        self._export_widget.enabled = is_valid
+        self.__change_style_color(is_valid)
 
     def _get_default_output_dir(self):
-        default_path = self._exporter.get_default_export_path(create_if_not_exist=True)
+        default_path = self._exporter.get_default_export_path(create_if_not_exist=True, show_error=False)
         if default_path and not self._mod_output_dir_field.model.get_value_as_string():
             self._mod_output_dir_field.model.set_value(default_path)
             self._previous_export_dir_value = default_path
@@ -125,11 +127,14 @@ class SetupUI:
             return False
         return self._exporter.check_export_path(output_dir, lambda _, message: carb.log_error(message))
 
+    def __change_style_color(self, is_valid):
+        self._mod_output_dir_field.style_type_name_override = "Field" if is_valid else "FieldError"
+
     def _on_mod_output_dir_field_changed(self, model):
         self._overlay_mod_output_label.visible = not model.get_value_as_string()
         is_valid = self._validate_output_path(model)
         self._export_widget.enabled = is_valid
-        self._mod_output_dir_field.style_type_name_override = "Field" if is_valid else "FieldError"
+        self.__change_style_color(is_valid)
         self._directory_changed(model.get_value_as_string())
 
     def _on_mod_output_dir_field_end(self, model):

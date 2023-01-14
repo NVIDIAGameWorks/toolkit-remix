@@ -434,6 +434,11 @@ current_dict.update(
         "Line::PropertiesPaneSectionSeparator": {"color": _WHITE_10, "border_width": 1},
         "Line::WelcomePadTop": {"color": _WHITE_20, "border_width": 1},
         "Line::TreeSpacer": {"color": _BLUE_SELECTED, "border_width": 2},
+        "Menu.Separator": {
+            "color": _WHITE_20,
+            "margin_height": 3,
+            "border_width": 1.5,
+        },
         "MenuBurger": {
             "background_color": _DARK_85,
             "border_radius": 8,

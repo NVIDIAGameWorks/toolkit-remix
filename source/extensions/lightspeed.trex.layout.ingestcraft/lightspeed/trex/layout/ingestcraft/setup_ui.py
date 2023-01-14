@@ -31,8 +31,8 @@ class SetupUI(TrexLayout):
     WIDTH_COMPONENT_PANEL = 160
     WIDTH_PROPERTY_PANEL = 496
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, ext_id):
+        super().__init__(ext_id)
         self._context_name = TrexContexts.INGEST_CRAFT.value
         self._context = trex_contexts_instance().get_context(TrexContexts.STAGE_CRAFT)
         self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
@@ -67,7 +67,7 @@ class SetupUI(TrexLayout):
 
     @property
     def button_name(self) -> str:
-        return "IngestCraft"
+        return "IngestCraft (WIP)"
 
     @property
     def button_priority(self) -> int:

@@ -93,12 +93,12 @@ publish_verification = true
 [repo_precache_exts]
 # Apps to run and precache
 apps = [
-    "${root}/_build/$platform/$config/apps/lightspeed.app.trex.kit",
-    "${root}/_build/$platform/$config/apps/lightspeed.app.trex.ingestcraft.kit",
-    "${root}/_build/$platform/$config/apps/lightspeed.app.trex.stagecraft.kit",
-    "${root}/_build/$platform/$config/apps/lightspeed.app.trex.texturecraft.kit",
-    "${root}/_build/$platform/$config/apps/lightspeed.app.trex_dev.kit",
-    "${root}/_build/$platform/$config/apps/omni.app.lightspeed.kit",
+    "${root}/source/apps/lightspeed.app.trex.kit",
+    "${root}/source/apps/lightspeed.app.trex.ingestcraft.kit",
+    "${root}/source/apps/lightspeed.app.trex.stagecraft.kit",
+    "${root}/source/apps/lightspeed.app.trex.texturecraft.kit",
+    "${root}/source/apps/lightspeed.app.trex_dev.kit",
+    "${root}/source/apps/omni.app.lightspeed.kit",
 ]
 
 
