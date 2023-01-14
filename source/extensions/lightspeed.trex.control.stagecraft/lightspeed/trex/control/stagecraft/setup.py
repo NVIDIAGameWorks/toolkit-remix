@@ -35,6 +35,12 @@ class Setup:
             "_layer_manager": None,
             "_sub_menu_workfile_save": None,
             "_sub_menu_workfile_save_as": None,
+            "_sub_menu_workfile_undo": None,
+            "_sub_menu_workfile_redo": None,
+            "_sub_key_undo": None,
+            "_sub_key_redo": None,
+            "_sub_key_save": None,
+            "_sub_key_save_as": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -56,8 +62,15 @@ class Setup:
             self._on_import_replacement_layer
         )
         self._sub_open_workfile = self._layout_instance.subscribe_open_work_file(self._on_open_workfile)
+        self._sub_key_undo = self._layout_instance.subscribe_ctrl_z_released(self._on_undo)
+        self._sub_key_redo = self._layout_instance.subscribe_ctrl_y_released(self._on_redo)
+        self._sub_key_save = self._layout_instance.subscribe_ctrl_s_released(self._on_save)
+        self._sub_key_save_as = self._layout_instance.subscribe_ctrl_shift_s_released(self._on_save_as)
+
         self._sub_menu_workfile_save = self._menu_workfile_instance.subscribe_save(self._on_save)
         self._sub_menu_workfile_save_as = self._menu_workfile_instance.subscribe_save_as(self._on_save_as)
+        self._sub_menu_workfile_undo = self._menu_workfile_instance.subscribe_undo(self._on_undo)
+        self._sub_menu_workfile_redo = self._menu_workfile_instance.subscribe_redo(self._on_redo)
 
     def _on_import_capture_layer(self, path: str):
         self._capture_core_setup.import_capture_layer(path)
@@ -126,11 +139,17 @@ class Setup:
         else:
             open_file(path)
 
+    def _on_save_as(self, on_save_done: Callable[[bool, str], None] = None):
+        self._stage_core_setup.save_as(on_save_done=on_save_done)
+
     def _on_save(self):
         self._stage_core_setup.save()
 
-    def _on_save_as(self, on_save_done: Callable[[bool, str], None] = None):
-        self._stage_core_setup.save_as(on_save_done=on_save_done)
+    def _on_undo(self):
+        self._stage_core_setup.undo()
+
+    def _on_redo(self):
+        self._stage_core_setup.redo()
 
     def destroy(self):
         _reset_default_attrs(self)

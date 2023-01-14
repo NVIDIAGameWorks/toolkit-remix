@@ -16,13 +16,14 @@ from omni.flux.header_navigator.widget import setup_ui as header_navigator_ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 _APP_NAME = "/app/name"
+_DISABLED_LAYOUT_EXTENSION = "/app/trex/disabled_layouts"
 
 
 class SetupUI:
 
     SHARED_ZSTACK = None
 
-    def __init__(self):
+    def __init__(self, ext_id):
         """Header navigator UI"""
 
         self._button_name = None
@@ -41,6 +42,13 @@ class SetupUI:
         else:
             self._header_navigator = header_navigator_ui.create_instance(top_header_instance_name)
 
+        disabled_ext_ids = settings.get(_DISABLED_LAYOUT_EXTENSION)
+        self.__enabled = True
+        if disabled_ext_ids:
+            self.__enabled = not bool(
+                [disabled_ext_id for disabled_ext_id in disabled_ext_ids if ext_id.startswith(disabled_ext_id)]
+            )
+
         self._header_navigator.register_button({self.button_name: (self._create_menu_text, self.button_priority)})
 
     @property
@@ -48,8 +56,15 @@ class SetupUI:
         return {"_root_frame": None}
 
     def _create_menu_text(self) -> ui.Widget:
-        image_widget = ui.Label(self.button_name, name="HeaderNavigatorMenuItem", alignment=ui.Alignment.LEFT, height=0)
-        image_widget.set_mouse_pressed_fn(self._on_button_clicked)
+        image_widget = ui.Label(
+            self.button_name,
+            name="HeaderNavigatorMenuItem",
+            alignment=ui.Alignment.LEFT,
+            height=0,
+            enabled=self.__enabled,
+        )
+        if self.__enabled:
+            image_widget.set_mouse_pressed_fn(self._on_button_clicked)
 
         return image_widget
 

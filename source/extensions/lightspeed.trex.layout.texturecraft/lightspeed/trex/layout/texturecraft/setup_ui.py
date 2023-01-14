@@ -71,8 +71,8 @@ class ColorToRoughnessProcessConfig(Enum):
 
 
 class SetupUI(ReplicatorLayout):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, ext_id):
+        super().__init__(ext_id)
         self.__run_batch_task = None
 
     @property

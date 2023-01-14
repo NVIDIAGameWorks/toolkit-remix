@@ -241,16 +241,18 @@ class LayerManagerCore:
             return default
         return layer.customLayerData.get(LSS_LAYER_GAME_NAME, "default")
 
-    def game_current_game_capture_folder(self) -> Tuple[Optional[str], Optional[str]]:
+    def game_current_game_capture_folder(self, show_error: bool = True) -> Tuple[Optional[str], Optional[str]]:
         """Get the current capture folder from the current capture layer"""
         layer = self.get_layer(LayerType.capture)
         # we only save stage that have a replacement layer
         if not layer:
-            carb.log_error("Can't find the capture layer in the current stage")
+            if show_error:
+                carb.log_error("Can't find the capture layer in the current stage")
             return None, None
         capture_folder = Path(layer.realPath)
         if capture_folder.parent.name != CAPTURE_FOLDER:
-            carb.log_error(f'Can\'t find the "{CAPTURE_FOLDER}" folder from the {LayerType.capture} layer')
+            if show_error:
+                carb.log_error(f'Can\'t find the "{CAPTURE_FOLDER}" folder from the {LayerType.capture} layer')
             return None, None
         game_name = layer.customLayerData.get(LSS_LAYER_GAME_NAME, "MyGame")
         return game_name, str(capture_folder.parent)

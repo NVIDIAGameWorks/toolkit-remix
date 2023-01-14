@@ -8,6 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import omni.ui as ui
+import omni.usd
 from lightspeed.trex.mod_output_details.shared.widget import SetupUI as _ModOutputDetailsWidget
 from lightspeed.trex.mod_output_file.shared.widget import SetupUI as _ModOutputFileWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -28,6 +29,7 @@ class ModOutputPane:
             "_export_details_widget": None,
             "_export_details_collapsable_frame": None,
             "_sub_directory_changed": None,
+            "_stage_event": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -38,6 +40,12 @@ class ModOutputPane:
 
         self._sub_directory_changed = self._export_widget.subscribe_directory_changed(
             self._export_details_widget.set_selected_directory
+        )
+
+        self._stage_event = (
+            omni.usd.get_context()
+            .get_stage_event_stream()
+            .create_subscription_to_pop(self._on_stage_event, name="[lightspeed.lock_xform] Stage Event")
         )
 
     def __create_ui(self):
@@ -71,6 +79,14 @@ class ModOutputPane:
                             )
                             with self._export_details_collapsable_frame:
                                 self._export_details_widget = _ModOutputDetailsWidget()
+
+    def _on_stage_event(self, event):
+        if event.type in [
+            int(omni.usd.StageEventType.SAVED),
+            int(omni.usd.StageEventType.OPENED),
+            int(omni.usd.StageEventType.CLOSED),
+        ]:
+            self.refresh()
 
     def refresh(self):
         self._export_widget.refresh()

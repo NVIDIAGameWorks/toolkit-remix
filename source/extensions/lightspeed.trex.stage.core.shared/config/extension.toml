@@ -6,6 +6,7 @@ description = "Control will connect back end and front end for Lightspeed RTX Re
 [dependencies]
 "lightspeed.layer_manager" = {}
 "omni.flux.utils.common" = {}
+"omni.kit.commands" = {}  # for omni.kit.undo (this is inside omni.kit.commands)
 "omni.kit.window.file" = {}
 "omni.usd" = {}
 

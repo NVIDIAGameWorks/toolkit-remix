@@ -10,6 +10,7 @@
 import asyncio
 from typing import Callable
 
+import omni.kit.undo
 import omni.kit.window.file
 import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
@@ -67,6 +68,12 @@ class Setup:
         camera_prim = UsdGeom.Camera(camera)
         camera_prim.ClearXformOpOrder()
         # omni.kit.commands.execute("TransformPrimCommand", path="/OmniverseKit_Persp", usd_context_name=context)
+
+    def undo(self):
+        omni.kit.undo.undo()
+
+    def redo(self):
+        omni.kit.undo.redo()
 
     def save(self):
         omni.kit.window.file.save()

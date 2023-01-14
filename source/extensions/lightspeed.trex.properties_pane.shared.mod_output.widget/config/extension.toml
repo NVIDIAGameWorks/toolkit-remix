@@ -9,6 +9,7 @@ description = "Mod Output Properties Pane widget for Lightspeed RTX Remix StageC
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
 "omni.ui" = {}
+"omni.usd" = {}
 
 [[python.module]]
 name = "lightspeed.trex.properties_pane.shared.mod_output.widget"
