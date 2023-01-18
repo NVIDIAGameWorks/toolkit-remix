@@ -1,15 +1,27 @@
 """
-* Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-License-Identifier: MIT
 *
-* NVIDIA CORPORATION and its licensors retain all intellectual property
-* and proprietary rights in and to this software, related documentation
-* and any modifications thereto.  Any use, reproduction, disclosure or
-* distribution of this software and related documentation without an express
-* license agreement from NVIDIA CORPORATION is strictly prohibited.
+* Permission is hereby granted, free of charge, to any person obtaining a
+* copy of this software and associated documentation files (the "Software"),
+* to deal in the Software without restriction, including without limitation
+* the rights to use, copy, modify, merge, publish, distribute, sublicense,
+* and/or sell copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+* THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+* DEALINGS IN THE SOFTWARE.
 """
 from pathlib import Path
 
-import carb
 import numpy as np
 from PIL import Image
 
@@ -33,7 +45,7 @@ class LightspeedOctahedralConverter:
     @staticmethod
     def convert_dx_file_to_octahedral(dx_path, oth_path):
         if not Path(dx_path).exists():
-            carb.log_error("convert_dx_to_octahedral called on non-existant path: " + dx_path)
+            print("convert_dx_to_octahedral called on non-existant path: " + dx_path)
             return
         with Image.open(dx_path) as image_file:
             img = np.array(image_file)
@@ -45,7 +57,7 @@ class LightspeedOctahedralConverter:
     @staticmethod
     def convert_ogl_file_to_octahedral(ogl_path, oth_path):
         if not Path(ogl_path).exists():
-            carb.log_error("convert_ogl_to_octahedral called on non-existant path: " + ogl_path)
+            print("convert_ogl_to_octahedral called on non-existant path: " + ogl_path)
             return
         with Image.open(ogl_path) as image_file:
             img = np.array(image_file)
@@ -70,7 +82,7 @@ class LightspeedOctahedralConverter:
         mask = image[:, :, 2] < 128
         num_negative = image[mask].shape[0]
         if num_negative > 0:
-            carb.log_error(
+            print(
                 original_path
                 + " contained "
                 + str(num_negative)
@@ -101,9 +113,6 @@ class LightspeedOctahedralConverter:
     @staticmethod
     def _convert_to_octahedral(image):
         # convert from 3 channel to 2 channel normal map
-        # vectorized implementation of hemisphereDirectionToSignedOctahedral from dxvk_rt's packing.glsli
-
-        # p = v.xy / (abs(v.x) + abs(v.y) + abs(v.z));
         abs_values = np.absolute(image)
         snorm_octahedrals = image[:, :, 0:2] / np.expand_dims(abs_values.sum(2), axis=2)
         # Hemisphere normal handling:
@@ -111,25 +120,3 @@ class LightspeedOctahedralConverter:
         result[:, :, 0] = snorm_octahedrals[:, :, 0] + snorm_octahedrals[:, :, 1]
         result[:, :, 1] = snorm_octahedrals[:, :, 0] - snorm_octahedrals[:, :, 1]
         return result * 0.5 + 0.5
-
-        # # Spherical normal handling.  Leaving this in for reference, since it does work.
-        # snorm_octahedrals = result
-
-        # # snormOctahedral = (v.z >= 0.0) ? p : octWrap(p);
-        # needs_wrap_mask = image[:, :, 2] < 0.0
-        # # vec2 wrapped = 1.0f - abs(v.yx);
-        # snorm_octahedrals[needs_wrap_mask] = -abs_values[needs_wrap_mask, 1::-1] + 1
-
-        # # wrapped.x *= signNotZero(v.x);
-        # #   create mask of normals with x < 0 and z < 0
-        # needs_xflip_mask = (needs_wrap_mask) & (image[:, :, 0] < 0.0)
-        # #   use those masks to flip the x components of snorm_octahedrals
-        # snorm_octahedrals[needs_xflip_mask, 0] = -1.0 * snorm_octahedrals[needs_xflip_mask, 0]
-
-        # # wrapped.y *= signNotZero(v.y);
-        # #   create mask of normals with y < 0 and z < 0
-        # needs_yflip_mask = (needs_wrap_mask) & (image[:, :, 1] < 0.0)
-        # #   use those masks to flip the y components of snorm_octahedrals
-        # snorm_octahedrals[needs_yflip_mask, 1] = -1.0 * snorm_octahedrals[needs_yflip_mask, 1]
-
-        # return snorm_octahedrals * 0.5 + 0.5
