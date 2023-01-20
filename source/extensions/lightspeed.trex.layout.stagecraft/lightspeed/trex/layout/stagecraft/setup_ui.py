@@ -180,8 +180,10 @@ class SetupUI(TrexLayout):
             self._components_pane.get_model().get_item_children(None)[0]
         )
 
-    def _on_open_from_storage_pad_clicked(self):
+    def _on_open_from_storage_pad_clicked(self, _x, _y, b, _m):
         """Called when we click on the 'open from storage' from the welcome pad"""
+        if b != 0:
+            return
         _open_file_picker(
             "Workfile picker",
             self._open_work_file,
