@@ -7,6 +7,7 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+from functools import partial
 from typing import Callable
 
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
@@ -82,62 +83,33 @@ class Setup:
         self._stage_core_setup.create_new_work_file()
 
     def _on_open_workfile(self, path):
-        def open_file(path):
-            self._stage_core_setup.open_stage(path)
-
-        def on_saved_okay_clicked(dialog: _TrexMessageDialog):
-            dialog.hide()
-            open_file(path)
-
-        def on_saved_cancel_clicked(dialog: _TrexMessageDialog):
-            dialog.hide()
-
         def on_save(result, error):
             if not result or error:
-                dialog = _TrexMessageDialog(
-                    message="An error occurred while saving.",
+                _TrexMessageDialog(
+                    message="An error occurred while saving the workfile.",
                     disable_cancel_button=True,
                 )
-                dialog.show()
                 return
-            message = f"Are you sure you want to open this workfile?\n{path}"
 
-            dialog = _TrexMessageDialog(
-                message=message,
-                ok_handler=on_saved_okay_clicked,
-                cancel_handler=on_saved_cancel_clicked,
-                ok_label="Yes",
-                disable_cancel_button=False,
+            _TrexMessageDialog(
+                message=f"Are you sure you want to open this workfile?\n\n{path}",
+                ok_handler=partial(self._stage_core_setup.open_stage, path),
+                ok_label="Open",
             )
-            dialog.show()
-
-        def on_okay_clicked(dialog: _TrexMessageDialog):
-            dialog.hide()
-            self._on_save_as(on_save_done=on_save)
-
-        def on_cancel_clicked(dialog: _TrexMessageDialog):
-            dialog.hide()
-            on_save(True, "")
 
         layer_capture = self._layer_manager.get_layer(_LayerType.capture)
         layer_replacement = self._layer_manager.get_layer(_LayerType.replacement)
         if self._context.has_pending_edit() and layer_capture and layer_replacement:
-            message = (
-                "There are some pending edits in your current stage.\n"
-                "Do you want to save your change before changing workfile?"
-            )
-
-            dialog = _TrexMessageDialog(
-                message=message,
-                ok_handler=on_okay_clicked,
-                cancel_handler=on_cancel_clicked,
+            _TrexMessageDialog(
+                message="There are some pending edits in your current stage.\n\n"
+                "Do you want to save your change before changing workfile?",
+                ok_handler=partial(self._on_save_as, on_save_done=on_save),
+                cancel_handler=partial(on_save, True, ""),
                 ok_label="Save",
                 cancel_label="Discard",
-                disable_cancel_button=False,
             )
-            dialog.show()
         else:
-            open_file(path)
+            self._stage_core_setup.open_stage(path)
 
     def _on_save_as(self, on_save_done: Callable[[bool, str], None] = None):
         self._stage_core_setup.save_as(on_save_done=on_save_done)

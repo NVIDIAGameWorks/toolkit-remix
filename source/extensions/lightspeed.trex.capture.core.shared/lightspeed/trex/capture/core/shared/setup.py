@@ -72,17 +72,20 @@ class Setup:
             stage_destination.SetTimeCodesPerSecond(time_codes)
 
     @staticmethod
-    def is_path_valid(path: str, error_callback: Callable[[str, str], None] = lambda *_: None) -> bool:
+    def is_path_valid(path: str, error_callback: Optional[Callable[[str, str], None]] = None) -> bool:
         error_title = "Wrong capture directory"
         if not path or not path.strip():
-            error_callback(error_title, f"{path} is not valid")
+            if error_callback is not None:
+                error_callback(error_title, f"{path} is not valid")
             return False
         _, entry = omni.client.stat(path)
         if not (entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN):  # noqa PLC0325
-            error_callback(error_title, f"{path} is not a directory")
+            if error_callback is not None:
+                error_callback(error_title, f"{path} is not a directory")
             return False
         if str(Path(path).stem) != constants.CAPTURE_FOLDER:
-            error_callback(error_title, f"{path} is not a 'capture' folder")
+            if error_callback is not None:
+                error_callback(error_title, f"{path} is not a 'capture' folder")
             return False
         return True
 

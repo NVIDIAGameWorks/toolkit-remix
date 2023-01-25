@@ -8,6 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import os
+from functools import partial
 
 import carb
 import omni
@@ -225,13 +226,17 @@ class LightspeedExporterUI:
         self._window.visible = False
         path = self._export_path_field.model.get_value_as_string()
         current_directory = path if path else None
+
+        def validate_selection(dirname, _):
+            self._core.check_export_path(dirname, self._show_error_popup)
+
         _open_file_picker(
             "Select a mod output directory",
             self._select_picked_folder_callback,
             lambda *args: None,
             current_file=current_directory,
             select_directory=True,
-            validate_selection=lambda dirname, _: self._core.check_export_path(dirname, self._show_error_popup),
+            validate_selection=partial(validate_selection),
         )
 
     def _show_progress_popup(self):

@@ -99,3 +99,5 @@ PACKAGE-DEPS.yaml
 
 # JetBrains configs
 .idea/
+
+source/logs/

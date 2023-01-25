@@ -10,6 +10,7 @@
 import asyncio
 import os
 import typing
+from functools import partial
 from typing import Callable
 
 import omni.ui as ui
@@ -166,14 +167,7 @@ class Delegate(ui.AbstractItemDelegate):
         # TODO: extract the menu from the flux.property.usd to delete overrides
         return
 
-        def on_okay_clicked(_dialog: _TrexMessageDialog):  # noqa
-            _dialog.hide()
-            self.__on_reset_released(prim)
-
-        def on_cancel_clicked(_dialog: _TrexMessageDialog):
-            _dialog.hide()
-
-        message = (
+        message = (  # noqa PLW0101
             "Are you sure that you want to reset this asset?\n"
             "Doing this will delete all your override(s) for this asset:\n"
             "- reference override(s)\n"
@@ -182,17 +176,12 @@ class Delegate(ui.AbstractItemDelegate):
             "- etc etc\n"
             "The original asset from your game capture will appear."
         )
-
-        dialog = _TrexMessageDialog(
-            width=400,
+        _TrexMessageDialog(
             message=message,
-            ok_handler=on_okay_clicked,
-            cancel_handler=on_cancel_clicked,
-            ok_label="Yes",
-            cancel_label="No",
-            disable_cancel_button=False,
+            ok_handler=partial(self.__on_reset_released, prim),
+            ok_label="Reset",
+            cancel_label="Cancel",
         )
-        dialog.show()
 
     def subscribe_reset_released(self, function: Callable[["Usd.Prim"], None]):
         """

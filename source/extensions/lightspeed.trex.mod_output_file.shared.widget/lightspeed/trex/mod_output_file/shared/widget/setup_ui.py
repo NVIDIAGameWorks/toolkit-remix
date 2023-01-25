@@ -7,6 +7,7 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+from functools import partial
 from typing import Callable
 
 import carb
@@ -150,13 +151,17 @@ class SetupUI:
         if button != 0:
             return
         current_path = self._mod_output_dir_field.model.get_value_as_string()
+
+        def validate_selection(dirname, _):
+            self._exporter.check_export_path(dirname, self._show_error_popup)
+
         _open_file_picker(
             "Select a mod output directory",
             self._on_directory_selected,
             lambda *args: None,
             current_file=current_path,
             select_directory=True,
-            validate_selection=lambda dirname, _: self._exporter.check_export_path(dirname, self._show_error_popup),
+            validate_selection=partial(validate_selection),
         )
 
     def _on_directory_selected(self, dirname):

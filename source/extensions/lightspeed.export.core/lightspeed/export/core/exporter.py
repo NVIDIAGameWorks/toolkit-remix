@@ -192,7 +192,7 @@ class LightspeedExporterCore:
         custom_layer_data[key] = value
         replacement_layer.customLayerData = custom_layer_data
 
-    def check_export_path(self, path: str, error_callback: Callable[[str, str], None] = lambda *_: None) -> bool:
+    def check_export_path(self, path: str, error_callback: Optional[Callable[[str, str], None]] = None) -> bool:
         """
         Args:
             path: The export path to validate
@@ -204,30 +204,35 @@ class LightspeedExporterCore:
         stage = omni.usd.get_context(self._context_name).get_stage()
         error_title = "Invalid Mod Export Directory"
         if not stage or stage.GetRootLayer().anonymous:
-            error_callback(error_title, "The stage must be saved before exporting")
+            if error_callback is not None:
+                error_callback(error_title, "The stage must be saved before exporting")
             return False
         if not path:
-            error_callback(error_title, "No export folder was selected")
+            if error_callback is not None:
+                error_callback(error_title, "No export folder was selected")
             return False
         result, entry = omni.client.stat(path)
         if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN:
-            error_callback(error_title, "The export path should be an existing folder")
+            if error_callback is not None:
+                error_callback(error_title, "The export path should be an existing folder")
             return False
         if Path(path).stem != constants.GAME_READY_ASSETS_FOLDER:
-            error_callback(
-                error_title,
-                f"The export path must be point to a '{constants.GAME_READY_ASSETS_FOLDER}' directory",
-            )
+            if error_callback is not None:
+                error_callback(
+                    error_title,
+                    f"The export path must be point to a '{constants.GAME_READY_ASSETS_FOLDER}' directory",
+                )
             return False
         # detect when a user tries to export into gameReadyAssets while using gameReadyAsset/replacements.usda
         replacement_layer = self._layer_manager.get_layer(LayerType.replacement)
         replacement_layer_dir_path = Path(replacement_layer.realPath).parent.resolve()
         if str(replacement_layer_dir_path) == str(Path(path).resolve()):
-            error_callback(
-                error_title,
-                "Cannot export to the same folder in which the source replacements layer resides: "
-                + str(replacement_layer_dir_path),
-            )
+            if error_callback is not None:
+                error_callback(
+                    error_title,
+                    "Cannot export to the same folder in which the source replacements layer resides: "
+                    + str(replacement_layer_dir_path),
+                )
             return False
         return True
 

@@ -17,7 +17,9 @@ import omni.client
 import omni.kit.usd.layers as _layers
 import omni.ui as ui
 import omni.usd
-from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS
+from lightspeed.common.constants import CAPTURE_FOLDER as _CAPTURE_FOLDER
+from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER as _GAME_READY_ASSETS_FOLDER
+from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS as _READ_USD_FILE_EXTENSIONS_OPTIONS
 from lightspeed.error_popup.window import ErrorPopup as _ErrorPopup
 from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCoreSetup
@@ -166,30 +168,24 @@ class ModSetupPane:
         self.refresh_mod_detail_panel()
 
     def _import_capture_layer(self, path):
-        def on_okay_clicked(dialog: TrexMessageDialog):
-            dialog.hide()
+        def on_okay_clicked():
             self.__on_import_capture_layer(path)
             self._last_capture_tree_view_window_selection = self._capture_tree_view_window.selection
 
         @_ignore_function_decorator(attrs=["_ignore_capture_window_tree_selection_changed"])
-        def on_cancel_clicked(dialog: TrexMessageDialog):
-            dialog.hide()
+        def on_cancel_clicked():
             self._capture_tree_view_window.selection = (
                 []
                 if self._last_capture_tree_view_window_selection is None
                 else self._last_capture_tree_view_window_selection
             )
 
-        message = f"Are you sure you want to load this capture layer?\n{path}"
-
-        dialog = TrexMessageDialog(
-            message=message,
+        TrexMessageDialog(
+            message=f"Are you sure you want to load this capture layer?\n\n{path}",
             ok_handler=on_okay_clicked,
             cancel_handler=on_cancel_clicked,
-            ok_label="Yes",
-            disable_cancel_button=False,
+            ok_label="Load",
         )
-        dialog.show()
 
     def subscribe_import_capture_layer(self, function):
         """
@@ -517,6 +513,14 @@ class ModSetupPane:
 
                     ui.Spacer()
 
+    def _set_mod_file_field(self, path):
+        self._mod_file_field.model.set_value(path)
+
+    def _validate_file_path(self, existing_file, dirname, filename):
+        return self._core_replacement.is_path_valid(
+            omni.client.normalize_url(omni.client.combine_urls(dirname, filename)), existing_file=existing_file
+        )
+
     def _on_load_existing_mod(self):
         value = self._mod_file_field.model.get_value_as_string()
         current_file = value if value.strip() else None
@@ -525,16 +529,16 @@ class ModSetupPane:
             if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.READABLE_FILE:
                 current_file = None
         self.__import_existing_mod_file = True
+
         _open_file_picker(
             "Select an existing mod file",
-            self.set_mod_file_field,
+            self._set_mod_file_field,
             lambda *args: None,
             current_file=current_file,
-            file_extension_options=READ_USD_FILE_EXTENSIONS_OPTIONS,
+            file_extension_options=_READ_USD_FILE_EXTENSIONS_OPTIONS,
+            validate_selection=functools.partial(self._validate_file_path, True),
+            validation_failed_callback=lambda *_: self._on_validation_error(True),
         )
-
-    def set_mod_file_field(self, path):
-        self._mod_file_field.model.set_value(path)
 
     def _on_create_mod(self):
         value = self._mod_file_field.model.get_value_as_string()
@@ -544,7 +548,26 @@ class ModSetupPane:
             if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.READABLE_FILE:
                 current_file = None
         self.__import_existing_mod_file = False
-        open_file_picker_create(self.set_mod_file_field, lambda *args: None, current_file=current_file)
+
+        open_file_picker_create(
+            self._set_mod_file_field,
+            lambda *args: None,
+            functools.partial(self._validate_file_path, False),
+            lambda *_: self._on_validation_error(True),
+            current_file=current_file,
+        )
+
+    def _on_validation_error(self, read_file: bool):
+        fill_word = "selected" if read_file else "created"
+        message = (
+            f"The {fill_word} mod file is not valid.\n\n"
+            f"Make sure the {fill_word} mod file is a writable USD file and is not located in a "
+            f'"{_GAME_READY_ASSETS_FOLDER}" or "{_CAPTURE_FOLDER}" directory.'
+        )
+        TrexMessageDialog(
+            message=message,
+            disable_cancel_button=True,
+        )
 
     def _enable_panels(self):
         value = bool(self._core_capture.get_layer())
@@ -565,12 +588,12 @@ class ModSetupPane:
         self._mod_file_details_frame.clear()
         capture_layer = self._core_replacement.get_layer()
         if capture_layer is None:
-            self.set_mod_file_field("...")
+            self._set_mod_file_field("...")
             return
         current_file = omni.client.normalize_url(capture_layer.realPath)
         if not current_file or not self._core_replacement.is_path_valid(current_file):
             return
-        self.set_mod_file_field(current_file)
+        self._set_mod_file_field(current_file)
         self._destroy_mod_properties()
 
         items = []
@@ -861,13 +884,17 @@ class ModSetupPane:
             if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN:
                 current_directory = None
         self.__ignore_current_capture_layer = True
+
+        def validate_selection(dirname, _):
+            return self._core_capture.is_path_valid(dirname, self._show_error_popup)
+
         _open_file_picker(
             "Select a capture directory",
             self.set_capture_dir_field,
             lambda *args: None,
             current_file=current_directory,
             select_directory=True,
-            validate_selection=lambda dirname, _: self._core_capture.is_path_valid(dirname, self._show_error_popup),
+            validate_selection=functools.partial(validate_selection),
         )
 
     def _show_error_popup(self, title, message):
