@@ -7,11 +7,28 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import omni.ui as ui
-from omni.kit.window.popup_dialog import MessageDialog
+from typing import Callable, Optional
+
+from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
 
 
-class TrexMessageDialog(MessageDialog):
-    WINDOW_FLAGS = ui.WINDOW_FLAGS_NO_RESIZE
-    WINDOW_FLAGS |= ui.WINDOW_FLAGS_POPUP
-    WINDOW_FLAGS |= ui.WINDOW_FLAGS_NO_SCROLLBAR
+class TrexMessageDialog:
+    def __init__(
+        self,
+        message: str,
+        title: str = "",
+        ok_label: str = "Okay",
+        cancel_label: str = "Cancel",
+        disable_ok_button: bool = False,
+        disable_cancel_button: bool = False,
+        ok_handler: Optional[Callable] = None,
+        cancel_handler: Optional[Callable] = None,
+    ):
+        PromptManager.post_simple_prompt(
+            title,
+            message,
+            ok_button_info=None if disable_ok_button else PromptButtonInfo(ok_label, ok_handler),
+            cancel_button_info=None if disable_cancel_button else PromptButtonInfo(cancel_label, cancel_handler),
+            modal=True,
+            no_title_bar=not bool(title),
+        )

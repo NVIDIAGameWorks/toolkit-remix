@@ -9,11 +9,16 @@
 """
 import functools
 
-import omni.ui as ui
+import omni.client
+from lightspeed.common.constants import CAPTURE_FOLDER as _CAPTURE_FOLDER
+from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER as _GAME_READY_ASSETS_FOLDER
 from lightspeed.trex.material_properties.shared.widget import SetupUI as _MaterialPropertiesWidget
 from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshPropertiesWidget
+from lightspeed.trex.replacement.core.shared import Setup as _AssetReplacementCore
 from lightspeed.trex.replacement.core.shared.layers import AssetReplacementLayersCore as _AssetReplacementLayersCore
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
+from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
+from omni import ui
 from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as _UsdBookmarkCollectionModel
 from omni.flux.bookmark_tree.widget import BookmarkTreeWidget as _BookmarkTreeWidget
 from omni.flux.layer_tree.usd.widget import LayerModel as _LayerModel
@@ -29,7 +34,8 @@ class AssetReplacementsPane:
         """Nvidia StageCraft Components Pane"""
 
         self._default_attr = {
-            "_core": None,
+            "_replacement_core": None,
+            "_layers_core": None,
             "_root_frame": None,
             "_layer_tree_widget": None,
             "_bookmark_tree_widget": None,
@@ -48,7 +54,8 @@ class AssetReplacementsPane:
             setattr(self, attr, value)
 
         self._context_name = context_name
-        self._core = _AssetReplacementLayersCore(context_name)
+        self._replacement_core = _AssetReplacementCore(context_name)
+        self._layers_core = _AssetReplacementLayersCore(context_name)
 
         self.__tree_selection_collapsed = False
 
@@ -90,12 +97,20 @@ class AssetReplacementsPane:
                             with self._layer_collapsable_frame:
                                 model = _LayerModel(
                                     self._context_name,
-                                    self._core.get_layers_exclude_remove,
-                                    self._core.get_layers_exclude_lock,
-                                    self._core.get_layers_exclude_mute,
-                                    self._core.get_layers_exclude_edit_target,
-                                    self._core.get_layers_exclude_add_child,
-                                    self._core.get_layers_exclude_move,
+                                    layer_creation_validation_fn=functools.partial(self.__validate_file_path, False),
+                                    layer_creation_validation_failed_callback=functools.partial(
+                                        self.__validation_error_callback, False
+                                    ),
+                                    layer_import_validation_fn=functools.partial(self.__validate_file_path, True),
+                                    layer_import_validation_failed_callback=functools.partial(
+                                        self.__validation_error_callback, True
+                                    ),
+                                    exclude_remove_fn=self._layers_core.get_layers_exclude_remove,
+                                    exclude_lock_fn=self._layers_core.get_layers_exclude_lock,
+                                    exclude_mute_fn=self._layers_core.get_layers_exclude_mute,
+                                    exclude_edit_target_fn=self._layers_core.get_layers_exclude_edit_target,
+                                    exclude_add_child_fn=self._layers_core.get_layers_exclude_add_child,
+                                    exclude_move_fn=self._layers_core.get_layers_exclude_move,
                                 )
                                 self._layer_tree_widget = _LayerTreeWidget(model=model)
                             self._layer_collapsable_frame.root.set_collapsed_changed_fn(
@@ -211,6 +226,24 @@ class AssetReplacementsPane:
             self._on_tree_selection_changed([])
         else:
             self._selection_tree_widget.refresh()
+
+    def __validate_file_path(self, existing_file, dirname, filename):
+        return self._replacement_core.is_path_valid(
+            omni.client.normalize_url(omni.client.combine_urls(dirname, filename)),
+            existing_file=existing_file,
+        )
+
+    def __validation_error_callback(self, existing_file, *_):
+        fill_word = "imported" if existing_file else "created"
+        message = (
+            f"The {fill_word} layer file is not valid.\n\n"
+            f"Make sure the {fill_word} layer is a writable USD file and is not located in a "
+            f'"{_GAME_READY_ASSETS_FOLDER}" or "{_CAPTURE_FOLDER}" directory.'
+        )
+        _TrexMessageDialog(
+            message=message,
+            disable_cancel_button=True,
+        )
 
     def _on_tree_selection_changed(self, items):
         self._refresh_mesh_properties_widget()

@@ -5,7 +5,7 @@ description = "Utils helper for Lightspeed widgets"
 
 [dependencies]
 "omni.ui" = {}
-"omni.kit.window.popup_dialog" = {}
+"omni.kit.widget.prompt" = {}
 
 [[python.module]]
 name = "lightspeed.trex.utils.widget"

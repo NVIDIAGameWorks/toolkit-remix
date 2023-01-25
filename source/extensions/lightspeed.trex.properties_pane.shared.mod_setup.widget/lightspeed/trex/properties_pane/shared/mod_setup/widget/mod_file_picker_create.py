@@ -17,26 +17,14 @@ from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as 
 
 
 def __confirm_override_dialog(path, callback):
-    def on_okay_clicked(dialog: TrexMessageDialog):
-        dialog.hide()
-        callback()
-
-    def on_cancel_clicked(dialog: TrexMessageDialog):
-        dialog.hide()
-
-    message = f"Are you sure you want to overwrite this mod file?\n\n{path}"
-
-    dialog = TrexMessageDialog(
-        message=message,
-        ok_handler=on_okay_clicked,
-        cancel_handler=on_cancel_clicked,
+    TrexMessageDialog(
+        message=f"Are you sure you want to overwrite this mod file?\n\n{path}",
+        ok_handler=callback,
         ok_label="Overwrite",
-        disable_cancel_button=False,
     )
-    dialog.show()
 
 
-def __on_click_open(full_path: str, callback: Callable):
+def __on_click_open(callback: Callable, full_path: str):
     """
     The meat of the App is done in this callback when the user clicks 'Accept'. This is
     a potentially costly operation so we implement it as an async operation.  The inputs
@@ -50,12 +38,20 @@ def __on_click_open(full_path: str, callback: Callable):
         callback(full_path)
 
 
-def open_file_picker_create(callback: Callable, callback_cancel: Callable, current_file: str = None):
+def open_file_picker_create(
+    callback: Callable[[str], None],
+    callback_cancel: Callable[[str], None],
+    callback_validate: Callable[[str, str], bool],
+    callback_validation_failed: Callable[[str, str], None],
+    current_file: str = None,
+):
     _open_file_picker(
         "Create a new mod file",
-        lambda full_path: __on_click_open(full_path, callback),
+        partial(__on_click_open, callback),
         callback_cancel,
         apply_button_label="Create",
         current_file=current_file,
         file_extension_options=SAVE_USD_FILE_EXTENSIONS_OPTIONS,
+        validate_selection=callback_validate,
+        validation_failed_callback=callback_validation_failed,
     )

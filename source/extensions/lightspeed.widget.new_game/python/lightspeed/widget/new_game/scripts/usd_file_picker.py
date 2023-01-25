@@ -15,7 +15,7 @@ from lightspeed.common.constants import CAPTURE_FOLDER
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 
 
-def __validate_selection(_: str, dirname: str):
+def __validate_selection(dirname: str, _: str):
     """
     The meat of the App is done in this callback when the user clicks 'Accept'. This is
     a potentially costly operation so we implement it as an async operation.  The inputs
