@@ -30,7 +30,7 @@ class ModSetupItem(_Item):
         return False
 
     def on_mouse_pressed(self):
-        print("Mouse pressed")
+        pass
 
     @property
     def title(self):
@@ -52,7 +52,7 @@ class AssetReplacementsItem(_Item):
         return True
 
     def on_mouse_pressed(self):
-        print("Mouse pressed")
+        pass
 
     @property
     def title(self):
@@ -74,7 +74,7 @@ class ModOutputItem(_Item):
         return True
 
     def on_mouse_pressed(self):
-        print("Mouse pressed")
+        pass
 
     @property
     def title(self):
