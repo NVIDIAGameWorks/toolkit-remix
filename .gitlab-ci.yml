@@ -10,6 +10,7 @@ stages:
   - check_lint
   - build_test
   - pkg_publish
+  - manual_package
 #  - signing
 
 include:
@@ -17,4 +18,5 @@ include:
   - local: tools/ci/gitlab/check_lint.yml
   - local: tools/ci/gitlab/build_test.yml
   - local: tools/ci/gitlab/pkg_publish.yml
+  - local: tools/ci/gitlab/manual_package.yml
 #  - local: tools/ci/gitlab/signing.yml

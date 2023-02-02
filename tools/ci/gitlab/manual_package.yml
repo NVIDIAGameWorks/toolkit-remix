@@ -1,0 +1,12 @@
+manual_package:
+  stage: manual_package
+  only:
+    - dev/dbataille/new_app
+  when: manual
+  tags:
+    - build
+  before_script:
+    - .\build.bat --clean
+  script:
+    - .\build.bat --release
+    - .\tools\package.bat -a -c release
