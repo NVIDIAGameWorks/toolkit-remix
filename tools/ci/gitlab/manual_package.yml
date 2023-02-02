@@ -10,3 +10,8 @@ manual_package:
   script:
     - .\build.bat --release
     - .\tools\package.bat -a -c release
+  artifacts:
+    when: on_success
+    name: $CI_JOB_NAME-$CI_COMMIT_SHORT_SHA
+    paths:
+      - .\_build\packages\
