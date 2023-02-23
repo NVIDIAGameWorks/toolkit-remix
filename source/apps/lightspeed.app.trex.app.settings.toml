@@ -22,6 +22,9 @@ compatibility_mode=false
 [app.exts]
 folders.'++' = ["${app}/../exts", "${app}/../extscache", "${app}/../apps"]
 
+[app.viewport]
+grid.trackCamera = true
+
 [app.window]
 width = 1700
 height = 800

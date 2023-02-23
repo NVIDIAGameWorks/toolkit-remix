@@ -82,6 +82,18 @@ _DEFAULT_DARK_PANEL_BACKGROUND_VALUE = {
 }
 
 
+ui.url.nvidia_md = _get_fonts("NVIDIASans_A_Md")
+ui.url.nvidia_rg = _get_fonts("NVIDIASans_A_Rg")
+ui.url.nvidia_bd = _get_fonts("NVIDIASans_A_Bd")
+
+
+# validation colors
+cl.validation_result_ok = cl(0.0, 0.6, 0.0, 1.0)
+cl.validation_result_failed = cl(0.6, 0.0, 0.0, 1.0)
+cl.validation_result_default = cl(0.0, 0.6, 0.0, 1.0)
+cl.validation_progress_color = cl.validation_result_default
+
+
 def update_viewport_menu_style():
     """Should be called after the creation of the menus"""
     # viewport menu
@@ -416,6 +428,7 @@ current_dict.update(
         "KeyboardKey": {"background_color": 0, "border_width": 1.5, "border_radius": 3},
         "KeyboardLabel": {},
         "Label::ProgressLabel": {"color": _WHITE_100},
+        "Label::PropertiesWidgetLabel": {"color": _WHITE_70, "font_size": 18, "font": ui.url.nvidia_rg},
         "Label::USDPropertiesWidgetValueOverlay": {"color": _WHITE_20},
         "Label::Title0": {"color": _WHITE_80, "font_size": 22},
         "Label::Title1": {"color": _WHITE_80, "font_size": 18},
@@ -424,6 +437,11 @@ current_dict.update(
         "Label::PropertiesPaneSectionTreeItem": {"color": _WHITE_80, "font_size": 14},
         "Label::PropertiesPaneSectionTreeItem60": {"color": _WHITE_40, "font_size": 14},
         "Label::PropertiesPaneSectionCaptureTreeItemNoImage": {"color": _WHITE_80, "font_size": 18},
+        "Label::PropertiesPaneSectionTitle": {
+            "color": _WHITE_70,
+            "font_size": 18,
+            "font": ui.url.nvidia_bd,
+        },
         "Label::HeaderNavigatorMenuItem": {"color": _WHITE_60, "font_size": 20},
         "Label::HeaderNavigatorMenuItem:selected": {"color": _WHITE_100, "font_size": 20},
         "Label::HeaderNavigatorMenuItem:hovered": {"color": _WHITE_80, "font_size": 20},
@@ -517,6 +535,12 @@ current_dict.update(
             "border_width": 3,
             "border_color": _WHITE_20,
             "border_radius": 16,
+        },
+        "Rectangle::BackgroundWithBorder": {
+            "background_color": 0x0,
+            "border_width": 1,
+            "border_color": _GREY_32,
+            "border_radius": 8,
         },
         "Rectangle::PreviewWindowBackground": {"background_color": _GREY_42},
         "ScrollingFrame::PreviewWindowBackground": {"background_color": _GREY_42},

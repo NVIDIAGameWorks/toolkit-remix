@@ -5,8 +5,6 @@ description = "Properties Pane for Lightspeed RTX Remix IngestCraft App"
 
 [dependencies]
 "lightspeed.trex.components_pane.ingestcraft.models" = {}
-"lightspeed.trex.properties_pane.shared.asset_export.widget" = {}
-"lightspeed.trex.properties_pane.shared.asset_import.widget" = {}
 "lightspeed.trex.properties_pane.shared.asset_validation.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.ui" = {}

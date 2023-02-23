@@ -69,13 +69,13 @@ class SetupUI:
             on_enable_fn=lambda _: self._on_menubar_camera_extension_enabled_event(),
             on_disable_fn=lambda _: self._on_menubar_camera_extension_disabled_event(),
             ext_name="lightspeed.trex.viewports.menubar.camera",
-            hook_name="lightspeed.trex.viewports.stagecraft.widget camera listener",
+            hook_name="lightspeed.trex.viewports.shared.widget camera listener",
         )
         self._extensions_render_subscription = ext_manager.subscribe_to_extension_enable(
             on_enable_fn=lambda _: self._on_menubar_render_extension_enabled_event(),
             on_disable_fn=lambda _: self._on_menubar_render_extension_disabled_event(),
             ext_name="lightspeed.trex.viewports.menubar.render",
-            hook_name="lightspeed.trex.viewports.stagecraft.widget render listener",
+            hook_name="lightspeed.trex.viewports.shared.widget render listener",
         )
 
         self._registered = []

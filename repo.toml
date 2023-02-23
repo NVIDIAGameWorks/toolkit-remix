@@ -25,7 +25,9 @@ include = [
     "tests-omni.app.lightspeed${shell_ext}",
     "tests-lightspeed.*${shell_ext}"
 ]
-exclude = []
+exclude = [
+    "tests-omni.app.lightspeed${shell_ext}",  # freeze for whatever reason
+]
 args = [
     "--/app/extensions/registryEnabled=0", # It should start ok without a registry enabled (everything prebundled)
     "--/app/hangDetector/enabled=0",

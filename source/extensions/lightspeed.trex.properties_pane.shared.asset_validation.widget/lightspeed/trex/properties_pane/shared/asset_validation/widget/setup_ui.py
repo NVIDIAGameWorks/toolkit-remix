@@ -7,12 +7,11 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import omni.kit.app
 import omni.ui as ui
 import omni.usd
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from omni.flux.utils.widget.collapsable_frame import (
-    PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
-)
+from omni.flux.validator.manager.widget import ValidatorManagerWidget as _ValidatorManagerWidget
 
 
 class AssetValidationPane:
@@ -22,6 +21,7 @@ class AssetValidationPane:
         self._default_attr = {
             "_root_frame": None,
             "_asset_validation_collapsable_frame": None,
+            "_validation_widget": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -37,20 +37,13 @@ class AssetValidationPane:
                 horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
             ):
                 with ui.VStack():
-                    ui.Spacer(height=ui.Pixel(56))
-
+                    ui.Spacer(height=ui.Pixel(24))
                     with ui.HStack():
-                        ui.Spacer(width=ui.Pixel(8), height=ui.Pixel(0))
-                        with ui.VStack():
-                            ui.Spacer(height=ui.Pixel(8))
-
-                            self._asset_validation_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
-                                "ASSET VALIDATION",
-                                info_text=("Validate and sanitize the asset to be able to use it in RTX Remix"),
-                            )
-                            with self._asset_validation_collapsable_frame:
-                                ui.Label("TODO")
-                    ui.Spacer()
+                        ui.Spacer(width=ui.Pixel(8))
+                        # use default manager. Default manager will take the
+                        # settings "omni.flux.validator.manager.widget.schema"
+                        self._validation_widget = _ValidatorManagerWidget(use_global_style=True)
+                    ui.Spacer(height=ui.Pixel(8))
 
     def show(self, value):
         self._root_frame.visible = value

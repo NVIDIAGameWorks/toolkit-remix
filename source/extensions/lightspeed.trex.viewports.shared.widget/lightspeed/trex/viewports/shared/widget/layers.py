@@ -24,7 +24,11 @@ from pxr import Sdf, Usd
 
 from .interface.i_layer_item import LayerItem as _LayerItem
 
-K_LAYER_ORDER = ["omni.kit.viewport.menubar.MenuBarLayer"]
+K_LAYER_ORDER = [
+    "omni.kit.viewport.SceneLayer",
+    "omni.kit.viewport.ViewportTools",
+    "omni.kit.viewport.menubar.MenuBarLayer",
+]
 
 
 # Class to wrap the underlying omni.kit.widget.viewport.ViewportWidget into the layer-system
@@ -96,7 +100,7 @@ class ViewportLayers:
         self.__ui_frame = None
         self.__viewport = None
         self.__zstack = None
-        self.__timeline = omni.timeline.get_timeline_interface()
+        self.__timeline = omni.timeline.acquire_timeline_interface()
         self.__timeline_sub = self.__timeline.get_timeline_event_stream().create_subscription_to_pop(  # noqa
             self.__on_timeline_event
         )
@@ -147,7 +151,9 @@ class ViewportLayers:
     def __on_timeline_event(self, e: carb.events.IEvent):
         if self.__viewport:
             event_type = e.type
-            if event_type == int(omni.timeline.TimelineEventType.CURRENT_TIME_TICKED):
+            if event_type == int(omni.timeline.TimelineEventType.CURRENT_TIME_TICKED) or event_type == int(
+                omni.timeline.TimelineEventType.CURRENT_TIME_CHANGED
+            ):
                 viewport_api = self.__viewport.viewport_api
                 self.__viewport_updated(viewport_api.camera_path, viewport_api.stage)
 

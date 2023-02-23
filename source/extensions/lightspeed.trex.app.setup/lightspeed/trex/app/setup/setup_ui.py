@@ -85,7 +85,6 @@ class SetupUI:
         main_dockspace = ui.Workspace.get_window("DockSpace")
         self._window.dock_in(main_dockspace, ui.DockPosition.SAME)
         await omni.kit.app.get_app().next_update_async()
-        self._window.flags |= ui.WINDOW_FLAGS_NO_DOCKING
         self._resize_app_window_to_multiple_two()
         await self.setup_render_settings_window()
 
@@ -112,11 +111,12 @@ class SetupUI:
 
         # Setup the docking Space:
         self._window.dock_in(main_dockspace, ui.DockPosition.SAME)
-        self._window.dock_tab_bar_visible = False
         await omni.kit.app.get_app().next_update_async()
         await self.setup_render_settings_window(hide=True)
         self._window.flags = self._flags
-        self._window.flags |= ui.WINDOW_FLAGS_NO_DOCKING
+        await omni.kit.app.get_app().next_update_async()
+        self._window.dock_tab_bar_visible = False
+        self._window.dock_tab_bar_enabled = False
 
     @omni.usd.handle_exception
     async def setup_render_settings_window(self, hide=False):

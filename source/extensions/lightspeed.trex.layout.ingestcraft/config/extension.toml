@@ -5,20 +5,29 @@ description = "Layout for Lightspeed RTX Remix IngestCraft App"
 
 [dependencies]
 "lightspeed.trex.contexts" = {}
-"lightspeed.trex.components_pane.ingestcraft.controller" = {}
-"lightspeed.trex.components_pane.ingestcraft.models" = {}
 "lightspeed.trex.layout.shared" = {}
-"lightspeed.trex.properties_pane.ingestcraft.widget" = {}
+"lightspeed.trex.properties_pane.shared.asset_validation.widget" = {}
 "lightspeed.trex.utils.common" = {}
-"lightspeed.trex.viewports.stagecraft.widget" = {}
+"lightspeed.trex.viewports.shared.widget" = {}
 "omni.ui" = {}
 
 [[test]]
 dependencies = [
     "lightspeed.trex.app.resources",
-    "lightspeed.trex.app.style"
+    "lightspeed.trex.app.style",
+    "omni.flux.validator.plugin.check.usd",
+    "omni.flux.validator.plugin.context.usd_stage",
+    "omni.flux.validator.plugin.selector.usd",
+    "omni.flux.validator.plugin.resultor.file"
 ]
-args = ["--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"]
+
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
+    "--/exts/omni.flux.validator.manager.widget/schema='${kit}/../exts/lightspeed.trex.app.resources/data/validation_schema/ingestion.json'",
+]
 
 [[python.module]]
 name = "lightspeed.trex.layout.ingestcraft"
