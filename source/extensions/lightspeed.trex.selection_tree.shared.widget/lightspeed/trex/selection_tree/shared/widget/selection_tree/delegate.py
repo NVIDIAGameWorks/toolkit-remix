@@ -264,7 +264,12 @@ class Delegate(ui.AbstractItemDelegate):
                                     elif isinstance(item, (_ItemAddNewReferenceFileMesh, _ItemAddNewLiveLight)):
                                         ui.Image("", height=ui.Pixel(16), name="Add")
                                     elif isinstance(item, _ItemInstancesMeshGroup):
-                                        ui.Image("", height=ui.Pixel(16), name="FolderClosed")
+                                        ui.Image(
+                                            "",
+                                            height=ui.Pixel(16),
+                                            name="FolderClosed",
+                                            identifier="branch_instance_group",
+                                        )
                                     elif isinstance(item, _ItemLiveLightGroup):
                                         ui.Image("", height=ui.Pixel(16), name="Light")
                                     elif isinstance(item, _ItemPrim):
@@ -320,24 +325,35 @@ class Delegate(ui.AbstractItemDelegate):
                                                         item.prim.GetName(),
                                                         name="PropertiesPaneSectionTreeItem",
                                                         tooltip=item.path,
+                                                        identifier="item_mesh",
                                                     )
                                                 elif isinstance(item, (_ItemReferenceFileMesh, _ItemPrim)):
                                                     ui.Label(
                                                         os.path.basename(item.path),
                                                         name="PropertiesPaneSectionTreeItem",
                                                         tooltip=item.path,
+                                                        identifier="item_prim",
                                                     )
                                                 elif isinstance(
                                                     item, (_ItemAddNewReferenceFileMesh, _ItemAddNewLiveLight)
                                                 ):
-                                                    ui.Label(item.display, name="PropertiesPaneSectionTreeItem60")
+                                                    ui.Label(
+                                                        item.display,
+                                                        name="PropertiesPaneSectionTreeItem60",
+                                                        identifier="item_file_mesh",
+                                                    )
                                                 elif isinstance(item, (_ItemInstancesMeshGroup, _ItemLiveLightGroup)):
-                                                    ui.Label(item.display, name="PropertiesPaneSectionTreeItem")
+                                                    ui.Label(
+                                                        item.display,
+                                                        name="PropertiesPaneSectionTreeItem",
+                                                        identifier="item_instance_group",
+                                                    )
                                                 elif isinstance(item, _ItemInstanceMesh):
                                                     ui.Label(
                                                         os.path.basename(item.path),
                                                         name="PropertiesPaneSectionTreeItem",
                                                         tooltip=item.path,
+                                                        identifier="item_instance_mesh",
                                                     )
                                                 ui.Spacer(
                                                     height=0, width=ui.Pixel(self.__gradient_width / 2)

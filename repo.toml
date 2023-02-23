@@ -35,7 +35,7 @@ args = [
     "--/exts/omni.kit.test/testExtArgs/0=\"--/app/hangDetector/enabled=0\"",
     "--/exts/omni.kit.test/testExtArgs/1=\"--/app/fastShutdown=1\"",
     "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
-    "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\""
+#    "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\""
 ]
 timeout = 1800
 
