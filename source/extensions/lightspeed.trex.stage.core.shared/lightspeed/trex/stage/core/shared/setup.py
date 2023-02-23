@@ -60,15 +60,6 @@ class Setup:
         root_layer = stage.GetRootLayer()
         self._layer_manager.set_custom_data_layer_type(root_layer, _LayerType.workfile)
 
-        # TODO, TMP
-        from pxr import Gf, UsdGeom  # noqa PLC0415
-
-        # set the camera
-        camera = stage.GetPrimAtPath("/OmniverseKit_Persp")
-        camera_prim = UsdGeom.Camera(camera)
-        camera_prim.ClearXformOpOrder()
-        # omni.kit.commands.execute("TransformPrimCommand", path="/OmniverseKit_Persp", usd_context_name=context)
-
     def undo(self):
         omni.kit.undo.undo()
 

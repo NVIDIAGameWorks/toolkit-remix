@@ -330,28 +330,21 @@ class Setup:
         # it can happen that we added the same reference multiple time. But USD can't do that.
         # As a workaround, we had to create a xform child and add the reference to it.
         prim = stage.GetPrimAtPath(prim_path)
-        refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
-        asset_path_abs = layer.ComputeAbsolutePath(asset_path)
         with omni.kit.undo.group():
-            for ref, ref_layer in refs_and_layers:
-                if omni.client.normalize_url(ref_layer.ComputeAbsolutePath(ref.assetPath)) == omni.client.normalize_url(
-                    asset_path_abs
-                ):
-                    is_remix_ref = prim.GetAttribute(constants.IS_REMIX_REF_ATTR)
-                    if is_remix_ref:
-                        prim_path = omni.usd.get_stage_next_free_path(stage, str(prim_path), False)
-                    else:
-                        prim_path = omni.usd.get_stage_next_free_path(stage, str(prim_path.AppendPath("ref")), False)
-                    omni.kit.commands.execute(
-                        "CreatePrimCommand",
-                        prim_path=prim_path,
-                        prim_type="Xform",
-                        select_new_prim=False,
-                        context_name=self._context_name,
-                    )
-                    child_prim = prim.GetStage().GetPrimAtPath(prim_path)
-                    child_prim.CreateAttribute(constants.IS_REMIX_REF_ATTR, Sdf.ValueTypeNames.Bool).Set(True)
-                    break
+            is_remix_ref = prim.GetAttribute(constants.IS_REMIX_REF_ATTR)
+            if is_remix_ref:
+                prim_path = omni.usd.get_stage_next_free_path(stage, str(prim_path), False)
+            else:
+                prim_path = omni.usd.get_stage_next_free_path(stage, str(prim_path.AppendPath("ref")), False)
+            omni.kit.commands.execute(
+                "CreatePrimCommand",
+                prim_path=prim_path,
+                prim_type="Xform",
+                select_new_prim=False,
+                context_name=self._context_name,
+            )
+            child_prim = prim.GetStage().GetPrimAtPath(prim_path)
+            child_prim.CreateAttribute(constants.IS_REMIX_REF_ATTR, Sdf.ValueTypeNames.Bool).Set(True)
 
             asset_path = omni.client.normalize_url(omni.client.make_relative_url(layer.identifier, asset_path))
             new_ref = Sdf.Reference(assetPath=asset_path.replace("\\", "/"), primPath=Sdf.Path())

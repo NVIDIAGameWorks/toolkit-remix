@@ -196,6 +196,7 @@ class SetupUI:
                                     self._on_slide_y_changed,
                                     size_manipulator_height,
                                 ),
+                                identifier="placer_scroll",
                             )
                             # Body
                             with self._slide_placer:

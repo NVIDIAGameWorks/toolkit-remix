@@ -225,6 +225,8 @@ class LightspeedExporterCore:
             return False
         # detect when a user tries to export into gameReadyAssets while using gameReadyAsset/replacements.usda
         replacement_layer = self._layer_manager.get_layer(LayerType.replacement)
+        if not replacement_layer:
+            return False
         replacement_layer_dir_path = Path(replacement_layer.realPath).parent.resolve()
         if str(replacement_layer_dir_path) == str(Path(path).resolve()):
             if error_callback is not None:
