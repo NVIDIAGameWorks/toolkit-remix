@@ -14,27 +14,7 @@ from omni.flux.tree_panel.widget.tree.model import Item as _Item
 
 
 class EnumItems(Enum):
-    IMPORT = "Import"
     VALIDATION = "Validation"
-    EXPORT = "Export"
-
-
-class ImportItem(_Item):
-    """Item of the model"""
-
-    @property
-    def component_type(self):
-        return None
-
-    def can_item_have_children(self, item):
-        return False
-
-    def on_mouse_pressed(self):
-        pass
-
-    @property
-    def title(self):
-        return EnumItems.IMPORT.value
 
 
 class ValidationItem(_Item):
@@ -52,34 +32,12 @@ class ValidationItem(_Item):
         return True
 
     def on_mouse_pressed(self):
-        pass
+        print("Mouse pressed")
 
     @property
     def title(self):
         return EnumItems.VALIDATION.value
 
 
-class ExportItem(_Item):
-    """Item of the model"""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.enabled = False
-
-    @property
-    def component_type(self):
-        return None
-
-    def can_item_have_children(self, item):
-        return True
-
-    def on_mouse_pressed(self):
-        pass
-
-    @property
-    def title(self):
-        return EnumItems.EXPORT.value
-
-
 def create_all_items() -> List[_Item]:
-    return [ImportItem(), ValidationItem(), ExportItem()]
+    return [ValidationItem()]

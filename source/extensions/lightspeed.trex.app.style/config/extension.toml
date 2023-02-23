@@ -15,7 +15,12 @@ order = -100
 dependencies = [
     "lightspeed.trex.app.resources",
 ]
-args = ["--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"]
+args = [
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window"
+]
 
 [[python.module]]
 name = "lightspeed.trex.app.style"

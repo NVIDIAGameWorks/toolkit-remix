@@ -6,6 +6,7 @@ description = "Asset Validation Properties Pane widget for Lightspeed RTX Remix 
 [dependencies]
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
+"omni.flux.validator.manager.widget" = {}
 "omni.ui" = {}
 "omni.usd" = {}
 

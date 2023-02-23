@@ -9,8 +9,6 @@
 """
 import omni.ui as ui
 from lightspeed.trex.components_pane.ingestcraft.models import EnumItems as ComponentsEnumItems
-from lightspeed.trex.properties_pane.shared.asset_export.widget import AssetExportPane as _AssetExportPane
-from lightspeed.trex.properties_pane.shared.asset_import.widget import AssetImportPane as _AssetImportPane
 from lightspeed.trex.properties_pane.shared.asset_validation.widget import AssetValidationPane as _AssetValidationPane
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
@@ -35,9 +33,7 @@ class SetupUI:
     def __create_ui(self):
         with ui.ZStack():
             ui.Rectangle(name="WorkspaceBackground")
-            self._all_frames[ComponentsEnumItems.IMPORT] = _AssetImportPane(self._context_name)
             self._all_frames[ComponentsEnumItems.VALIDATION] = _AssetValidationPane(self._context_name)
-            self._all_frames[ComponentsEnumItems.EXPORT] = _AssetExportPane(self._context_name)
 
     def show_panel(self, title: str = None, forced_value: bool = None):
         for enum_item in ComponentsEnumItems:

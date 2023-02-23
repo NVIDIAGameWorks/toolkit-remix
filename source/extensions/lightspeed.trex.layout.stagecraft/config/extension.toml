@@ -15,7 +15,7 @@ description = "Layout for Lightspeed RTX Remix StageCraft App"
 "lightspeed.trex.menu.workfile" = {}
 "lightspeed.trex.properties_pane.stagecraft.widget" = {}
 "lightspeed.trex.utils.common" = {}
-"lightspeed.trex.viewports.stagecraft.widget" = {}
+"lightspeed.trex.viewports.shared.widget" = {}
 "lightspeed.trex.welcome_pads.stagecraft.models" = {}
 "omni.flux.footer.widget" = {}
 "omni.flux.header_nvidia.widget" = {}
@@ -30,7 +30,12 @@ dependencies = [
     "lightspeed.trex.app.resources",
     "lightspeed.trex.app.style"
 ]
-args = ["--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"]
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"
+]
 
 [[python.module]]
 name = "lightspeed.trex.layout.stagecraft"

@@ -30,7 +30,7 @@ from lightspeed.trex.layout.shared import SetupUI as TrexLayout
 from lightspeed.trex.menu.workfile import get_instance as get_burger_menu_instance
 from lightspeed.trex.properties_pane.stagecraft.widget import SetupUI as PropertyPanelUI
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
-from lightspeed.trex.viewports.stagecraft.widget import SetupUI as ViewportUI
+from lightspeed.trex.viewports.shared.widget import SetupUI as ViewportUI
 from lightspeed.trex.welcome_pads.stagecraft.models import NewWorkFileItem, RecentWorkFileItem, ResumeWorkFileItem
 from omni.flux.footer.widget import FooterWidget
 from omni.flux.header_nvidia.widget import HeaderWidget
