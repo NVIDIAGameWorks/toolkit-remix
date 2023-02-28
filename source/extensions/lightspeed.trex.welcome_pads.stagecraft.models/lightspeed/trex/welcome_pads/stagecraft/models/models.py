@@ -46,11 +46,17 @@ class NewWorkFileItem(Item):
 
     @property
     def title(self):
-        return "New WorkFile"
+        return "Setup Project"
 
     @property
     def description(self):
-        return "Build a fresh Mod..."
+        return (
+            "Launch the project wizard to:\n"
+            "- Open an existing project\n"
+            "- Create a new mod\n"
+            "- Edit existing mods\n"
+            "- Remaster existing mods"
+        )
 
 
 class RecentWorkFileItem(Item):
@@ -156,8 +162,8 @@ class ResumeWorkFileItem(Item):
 
     @property
     def title(self):
-        return "Resume WorkFile"
+        return "Resume Current Project"
 
     @property
     def description(self):
-        return "Continue to work on your current opened workfile..."
+        return "Continue working on your currently opened project."

@@ -103,11 +103,7 @@ class SetupUI:
             ui.Spacer(height=ui.Pixel(8))
             self._notes_field = ui.StringField(multiline=True, height=ui.Pixel(90))
             ui.Spacer(height=ui.Pixel(8))
-            with ui.HStack():
-                ui.Spacer(height=0)
-                self._export_widget = ui.Button(
-                    "Export", name="ExportButton", width=ui.Pixel(64), clicked_fn=self._on_export_pressed
-                )
+            self._export_widget = ui.Button("Export", clicked_fn=self._on_export_pressed, height=ui.Pixel(32))
 
     def refresh(self):
         self._get_default_output_dir()
@@ -168,7 +164,7 @@ class SetupUI:
         self._mod_output_dir_field.model.set_value(dirname)
 
     def _show_error_popup(self, title, message):
-        self._error_popup = _ErrorPopup(title, message, "", window_size=(400, 120))
+        self._error_popup = _ErrorPopup(title, message, window_size=(400, 120))
         self._error_popup.show()
         carb.log_error(message)
 

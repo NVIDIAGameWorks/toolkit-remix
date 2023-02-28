@@ -39,6 +39,11 @@ LSS_NICKNAME = "nickname"
 GAME_READY_ASSETS_FOLDER = "gameReadyAssets"
 GAME_READY_REPLACEMENTS_FILE = "replacements.usda"
 FLAT_GAME_READY_REPLACEMENTS_FILE = "replacements.usd"
+REMIX_FOLDER = "rtx_remix"
+REMIX_CAPTURE_FOLDER = "captures"
+REMIX_MODS_FOLDER = "mods"
+REMIX_MOD_FILE = "mod.usda"
+REMIX_DEPENDENCIES_FOLDER = "deps"
 CAPTURE_FOLDER = "capture"
 MATERIALS_FOLDER = "materials"
 MESHES_FOLDER = "meshes"
@@ -93,6 +98,7 @@ TEXTURE_INFO = {
 
 AUTOUPSCALE_LAYER_FILENAME = "autoupscale.usda"
 
+USD_EXTENSIONS = [".usd", ".usda", ".usdc"]
 SAVE_USD_FILE_EXTENSIONS_OPTIONS = [
     ("*.usda", "Human-readable USD File"),
     ("*.usd", "Binary or Ascii USD File"),

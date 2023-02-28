@@ -6,10 +6,11 @@ description = "Control will connect back end and front end for Lightspeed RTX Re
 [dependencies]
 "lightspeed.layer_manager" = {}
 "lightspeed.trex.capture.core.shared" = {}
-"lightspeed.trex.replacement.core.shared" = {}
 "lightspeed.trex.contexts" = {}
 "lightspeed.trex.layout.stagecraft" = {}
 "lightspeed.trex.menu.workfile" = {}
+"lightspeed.trex.project_wizard.window" = {}
+"lightspeed.trex.replacement.core.shared" = {}
 "lightspeed.trex.stage.core.shared" = {}
 "lightspeed.trex.utils.widget" = {}
 "omni.flux.utils.common" = {}

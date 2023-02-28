@@ -14,7 +14,7 @@ from typing import List, Optional
 import carb
 import carb.tokens
 import omni.client
-from lightspeed.common.constants import CAPTURE_FOLDER, LSS_FOLDER
+from lightspeed.common.constants import CAPTURE_FOLDER, LSS_FOLDER, USD_EXTENSIONS
 
 if typing.TYPE_CHECKING:
     from lightspeed.widget.content_viewer.scripts.core import ContentData
@@ -25,9 +25,7 @@ def get_captures(data: "ContentData") -> List[str]:
         [
             str(file)
             for file in Path(data.path).iterdir()
-            if file.is_file()
-            and file.suffix in [".usd", ".usda", ".usdc"]
-            and str(file.stem).startswith(f"{CAPTURE_FOLDER}_")
+            if file.is_file() and file.suffix in USD_EXTENSIONS and str(file.stem).startswith(f"{CAPTURE_FOLDER}_")
         ],
         reverse=True,
     )

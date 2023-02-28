@@ -32,6 +32,7 @@ _DARK_85 = 0xD9000000
 _GREY_32 = 0xFF202020
 _GREY_42 = 0xFF2A2A2A
 _GREY_50 = 0xFF303030
+_GREY_60 = 0xFF3C3C3C
 
 _RED_05 = 0x0D0000FF
 
@@ -143,11 +144,20 @@ style = ui.Style.get_instance()
 current_dict = style.default
 current_dict.update(
     {
-        "Button::Main": {
-            "background_color": _GREY_42,
+        "Button": {
+            "background_color": 0x33000000,
             "border_width": 1,
             "border_color": _WHITE_20,
             "border_radius": 4,
+            "margin": 2,
+        },
+        "Button:disabled": {
+            "background_color": _GREY_50,
+            "border_color": _WHITE_30,
+        },
+        "Button:hovered": {
+            "background_color": _GREY_60,
+            "border_color": _WHITE_10,
         },
         "Button::NoBackground": {
             "background_color": 0x0,
@@ -158,20 +168,6 @@ current_dict.update(
         },
         "Button::NoBackground:disabled": {
             "background_color": 0x0,
-            "border_width": 1,
-            "border_color": _WHITE_30,
-            "border_radius": 4,
-            "margin": 2,
-        },
-        "Button::ExportButton:disabled": {
-            "background_color": _WHITE_10,
-            "border_width": 1,
-            "border_color": _WHITE_30,
-            "border_radius": 4,
-            "margin": 2,
-        },
-        "Button::ExportButton:hovered": {
-            "background_color": _WHITE_10,
             "border_width": 1,
             "border_color": _WHITE_30,
             "border_radius": 4,
@@ -281,6 +277,7 @@ current_dict.update(
         "Image::LayerActive": {"image_url": _get_icons("layers"), "color": _WHITE_100},
         "Image::Layer": {"image_url": _get_icons("layers"), "color": _WHITE_30},
         "Image::Layer:hovered": {"image_url": _get_icons("layers"), "color": _WHITE_60},
+        "Image::LayerStatic": {"image_url": _get_icons("layers"), "color": _WHITE_60},
         "Image::More": {"image_url": _get_icons("ellipsis"), "color": _WHITE_60},
         "Image::More:hovered": {"image_url": _get_icons("ellipsis"), "color": _WHITE_100},
         "Image::Hourglass": {"image_url": _get_icons("hourglass"), "color": _WHITE_100},
@@ -308,6 +305,15 @@ current_dict.update(
         "Image::Xform": {"image_url": _get_icons("xform"), "color": _WHITE_80},
         "Image::TrashCan": {"image_url": _get_icons("trash-can"), "color": _WHITE_60},
         "Image::TrashCan:hovered": {"image_url": _get_icons("trash-can"), "color": _WHITE_80},
+        "Image::ModCreate": {"image_url": _get_icons("mod_create"), "color": _WHITE_80},
+        "Image::ModEdit": {"image_url": _get_icons("mod_edit"), "color": _WHITE_80},
+        "Image::ModOpen": {"image_url": _get_icons("mod_open"), "color": _WHITE_80},
+        "Image::ModRemaster": {"image_url": _get_icons("mod_remaster"), "color": _WHITE_80},
+        "Image::ModCreateHovered": {"image_url": _get_icons("mod_create"), "color": _BLUE_ACTION},
+        "Image::ModEditHovered": {"image_url": _get_icons("mod_edit"), "color": _BLUE_ACTION},
+        "Image::ModOpenHovered": {"image_url": _get_icons("mod_open"), "color": _BLUE_ACTION},
+        "Image::ModRemasterHovered": {"image_url": _get_icons("mod_remaster"), "color": _BLUE_ACTION},
+        "Image::Drag": {"image_url": _get_icons("drag_handle"), "color": _WHITE_30},
         "ImagePropertiesPaneSectionTriangleCollapsed": {
             "image_url": _get_icons("disclosure-collapsed"),
             "color": _WHITE_60,
@@ -340,6 +346,39 @@ current_dict.update(
             "font_size": 16,
             "image_url": _get_fonts("NVIDIASans_A_Md"),
         },
+        "Label::WizardTitle": {
+            "color": _WHITE_80,
+            "font_size": 18,
+            "font": ui.url.nvidia_bd,
+        },
+        "Label::WizardTitleActive": {
+            "color": _BLUE_ACTION,
+            "font_size": 18,
+            "font": ui.url.nvidia_bd,
+        },
+        "Label::WizardDescription": {
+            "color": _WHITE_80,
+            "font_size": 18,
+            "font": ui.url.nvidia_md,
+        },
+        "Rectangle::WizardPageButton": {
+            "background_color": 0x0,
+            "border_radius": 16,
+        },
+        "Rectangle::WizardPageButton:hovered": {
+            "background_color": _GREY_42,
+        },
+        "Rectangle::WizardSeparator": {
+            "background_color": _WHITE_10,
+            "border_width": 0,
+        },
+        "Rectangle::WizardOverlay": {
+            "background_color": 0x80303030,  # 50% transparency background grey
+        },
+        "Rectangle::WizardBackground": {
+            "background_color": _GREY_50,
+        },
+        "Rectangle::WizardTreeBackground": {"background_color": _GREY_32},
         "ImageWithProvider::TreePanelTitle": {
             "color": _WHITE_80,
             "font_size": 18,

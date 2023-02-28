@@ -215,7 +215,7 @@ class LightspeedExporterUI:
         self._window.visible = True
 
     def _show_error_popup(self, title, message):
-        self._error_popup = ErrorPopup(title, message, "", window_size=(400, 120))
+        self._error_popup = ErrorPopup(title, message, window_size=(400, 120))
         self._error_popup.show()
         carb.log_error(message)
 

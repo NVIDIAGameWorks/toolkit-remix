@@ -22,6 +22,8 @@ from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER as _GAME_READY_
 from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS as _READ_USD_FILE_EXTENSIONS_OPTIONS
 from lightspeed.error_popup.window import ErrorPopup as _ErrorPopup
 from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
+from lightspeed.trex.capture_tree.model import CaptureTreeDelegate, CaptureTreeModel
+from lightspeed.trex.project_wizard.window import ProjectWizardWindow as _ProjectWizardWindow
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCoreSetup
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from lightspeed.trex.utils.common import ignore_function_decorator_async as _ignore_function_decorator_async
@@ -35,15 +37,12 @@ from omni.flux.property_widget_builder.widget import PropertyWidget as _Property
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from omni.flux.utils.widget.background_pattern import create_widget_with_pattern as _create_widget_with_pattern
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.flux.utils.widget.label import create_label_with_font as _create_label_with_font
 
-from .capture_tree.delegate import Delegate as CaptureTreeDelegate
-from .capture_tree.model import ListModel as CaptureTreeModel
 from .mod_file_picker_create import open_file_picker_create
 
 
@@ -129,6 +128,7 @@ class ModSetupPane:
         self.__capture_field_is_editing = False
         self._core_capture = CaptureCoreSetup(context_name)
         self._core_replacement = ReplacementCoreSetup(context_name)
+        self._wizard_window = _ProjectWizardWindow(context_name)
 
         self._sub_model_changed = self._capture_tree_model.subscribe_progress_updated(self._refresh_trees)
 
@@ -280,8 +280,22 @@ class ModSetupPane:
                     with ui.HStack():
                         ui.Spacer(width=ui.Pixel(8), height=ui.Pixel(0))
                         with ui.VStack():
+                            self._project_wizard_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
+                                "PROJECT WIZARD",
+                                info_text=(
+                                    "The project wizard allows you to:\n"
+                                    "- Create a new project\n"
+                                    "- Open an existing project\n"
+                                    "- Remaster an existing mod"
+                                ),
+                            )
+                            with self._project_wizard_collapsable_frame:
+                                ui.Button(
+                                    "Open Project Wizard",
+                                    clicked_fn=self._wizard_window.show_project_wizard,
+                                    height=ui.Pixel(32),
+                                )
                             ui.Spacer(height=ui.Pixel(8))
-
                             self._capture_file_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "CAPTURE FILE",
                                 info_text=(
@@ -449,32 +463,10 @@ class ModSetupPane:
                             )
                             with self._mod_file_collapsable_frame:
                                 with ui.VStack(spacing=ui.Pixel(8)):
-                                    with ui.HStack():
-                                        _create_widget_with_pattern(
-                                            functools.partial(
-                                                ui.Button,
-                                                "Load existing mod file",
-                                                name="NoBackground",
-                                                clicked_fn=self._on_load_existing_mod,
-                                            ),
-                                            "BackgroundButton",
-                                            height=ui.Pixel(24),
-                                            background_margin=(2, 2),
-                                        )
-
+                                    with ui.HStack(height=ui.Pixel(32)):
+                                        ui.Button("Load existing mod file", clicked_fn=self._on_load_existing_mod)
                                         ui.Spacer(width=ui.Pixel(8))
-
-                                        _create_widget_with_pattern(
-                                            functools.partial(
-                                                ui.Button,
-                                                "Create a new mod file",
-                                                name="NoBackground",
-                                                clicked_fn=self._on_create_mod,
-                                            ),
-                                            "BackgroundButton",
-                                            height=ui.Pixel(24),
-                                            background_margin=(2, 2),
-                                        )
+                                        ui.Button("Create a new mod file", clicked_fn=self._on_create_mod)
 
                                     self._mod_file_frame = ui.Frame()
                                     with self._mod_file_frame:
@@ -509,7 +501,7 @@ class ModSetupPane:
                             with self._mod_file_details_collapsable_frame:
                                 self._mod_file_details_frame = ui.Frame()
 
-                        # ui.Spacer(width=ui.Pixel(16), height=ui.Pixel(0))  # no need for spacer, scrollframe does it
+                            ui.Spacer(height=ui.Pixel(16))
 
                     ui.Spacer()
 
@@ -674,6 +666,8 @@ class ModSetupPane:
     @_ignore_function_decorator_async(attrs=["_ignore_capture_detail_refresh"])
     async def __refresh_capture_detail_panel_callback(self, capture_layer, capture_files):
         def set_game_icon(widget, image_path):
+            if not image_path:
+                return
             widget.source_url = image_path
 
         @omni.usd.handle_exception
@@ -898,7 +892,7 @@ class ModSetupPane:
         )
 
     def _show_error_popup(self, title, message):
-        self._error_popup = _ErrorPopup(title, message, "", window_size=(400, 120))
+        self._error_popup = _ErrorPopup(title, message, window_size=(400, 120))
         self._error_popup.show()
         carb.log_error(message)
 

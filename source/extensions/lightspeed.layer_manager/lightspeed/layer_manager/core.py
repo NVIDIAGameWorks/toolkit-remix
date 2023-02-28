@@ -23,7 +23,7 @@ from pxr import Sdf
 
 from .constants import LSS_LAYER_GAME_NAME
 from .layer_types import LayerType, LayerTypeKeys
-from .layers import autoupscale, capture, i_layer, replacement
+from .layers import autoupscale, capture, i_layer, replacement, workfile
 
 
 class LayerManagerCore:
@@ -36,7 +36,13 @@ class LayerManagerCore:
         self.__capture_layer = capture.CaptureLayer(self)
         self.__replacement_layer = replacement.ReplacementLayer(self)
         self.__autoupscale_layer = autoupscale.AutoUpscaleLayer(self)
-        self.__layers = [self.__capture_layer, self.__replacement_layer, self.__autoupscale_layer]
+        self.__workfile_layer = workfile.WorkfileLayer(self)
+        self.__layers = [
+            self.__capture_layer,
+            self.__replacement_layer,
+            self.__autoupscale_layer,
+            self.__workfile_layer,
+        ]
 
     def get_layer_instance(self, layer_type: LayerType) -> Optional[i_layer.ILayer]:
         for layer_obj in self.__layers:

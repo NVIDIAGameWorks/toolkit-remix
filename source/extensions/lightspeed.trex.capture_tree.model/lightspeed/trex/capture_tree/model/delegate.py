@@ -18,27 +18,30 @@ from omni.flux.utils.widget.loader import Loader as _Loader
 from .model import HEADER_DICT
 
 
-class Delegate(ui.AbstractItemDelegate):
+class CaptureTreeDelegate(ui.AbstractItemDelegate):
     """Delegate of the action lister"""
 
     DEFAULT_BIG_IMAGE_SIZE = (600, 600)
     DEFAULT_NO_IMAGE_SIZE = (400, 100)
     DEFAULT_IMAGE_ICON_SIZE = 24
 
-    def __init__(self):
+    def __init__(self, preview_on_hover: bool = True):
         super().__init__()
 
         self._default_attr = {
+            "_preview_on_hover": None,
+            "_path_scroll_frames": None,
             "_window_bigger_image": None,
             "_bigger_image": None,
             "_no_image_label": None,
-            "_path_scroll_frames": None,
             "_on_import_layer_pressed_event": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
+        self._preview_on_hover = preview_on_hover
         self._path_scroll_frames = {}
+
         self.__cancel_mouse_hovered = False
         self.__current_big_image_item = None
         self.__create_bigger_image_ui()
@@ -47,7 +50,7 @@ class Delegate(ui.AbstractItemDelegate):
         return self._path_scroll_frames
 
     def build_branch(self, model, item, column_id, level, expanded):
-        """Create a branch widget that opens or closes subtree"""
+        """Create a branch model that opens or closes subtree"""
         if column_id == 0:
             frame = ui.Frame()
             with frame:
@@ -126,7 +129,11 @@ class Delegate(ui.AbstractItemDelegate):
             and self.__current_big_image_item == item
         ):
             return
-        if hovered:
+
+        if not item or not self.__current_big_image_item:
+            return
+
+        if hovered and self._preview_on_hover:
             self._bigger_image.source_url = item.image if item.image else ""
             self._no_image_label.visible = not bool(item.image)
             if item.image:
@@ -142,11 +149,12 @@ class Delegate(ui.AbstractItemDelegate):
         elif self.__current_big_image_item.path == item.path:
             self._window_bigger_image.visible = False
             self.__cancel_mouse_hovered = False
+
         self.__current_big_image_item = item
 
     # noinspection PyUnusedLocal
     def build_widget(self, model, item, column_id, level, expanded):
-        """Create a widget per item"""
+        """Create a model per item"""
         if item is None:
             return
         with ui.HStack():
