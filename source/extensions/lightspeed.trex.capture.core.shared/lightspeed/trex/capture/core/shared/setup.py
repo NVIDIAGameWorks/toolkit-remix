@@ -83,7 +83,7 @@ class Setup:
             if error_callback is not None:
                 error_callback(error_title, f"{path} is not a directory")
             return False
-        if str(Path(path).stem) != constants.CAPTURE_FOLDER:
+        if str(Path(path).stem) != constants.CAPTURE_FOLDER and str(Path(path).stem) != constants.REMIX_CAPTURE_FOLDER:
             if error_callback is not None:
                 error_callback(error_title, f"{path} is not a 'capture' folder")
             return False
@@ -141,7 +141,8 @@ class Setup:
     def get_directory(self) -> str:
         return self.__directory
 
-    def is_capture_file(self, path: str) -> bool:
+    @staticmethod
+    def is_capture_file(path: str) -> bool:
         layer = Sdf.Layer.FindOrOpen(path)
         if not layer:
             return False
@@ -156,7 +157,8 @@ class Setup:
         if not self.__directory:
             carb.log_error("Please set the current directory")
             return False
-        if Path(self.__directory).name != constants.CAPTURE_FOLDER:
+        stem = Path(self.__directory).name
+        if stem not in [constants.CAPTURE_FOLDER, constants.REMIX_CAPTURE_FOLDER]:
             carb.log_error(f"{self.__directory} is not a capture directory")
             return False
         return True
@@ -169,7 +171,7 @@ class Setup:
 
     def get_capture_files(self) -> List[str]:
         def _get_files(_file):
-            return _file.is_file() and _file.suffix in [".usd", ".usda", ".usdc"] and self.is_capture_file(str(_file))
+            return _file.is_file() and _file.suffix in constants.USD_EXTENSIONS and self.is_capture_file(str(_file))
 
         if not self._check_directory():
             return []

@@ -248,7 +248,7 @@ class SetupUI(ReplicatorLayout):
             config, progress_callback=self._batch_set_progress, context_name=TrexContexts.STAGE_CRAFT.value
         )
         if error:
-            self._error_popup = ErrorPopup("An error occurred while processing", error, "", window_size=(350, 150))
+            self._error_popup = ErrorPopup("An error occurred while processing", error, window_size=(350, 150))
             self._error_popup.show()
         if self._progress_bar:
             self._progress_bar.hide()

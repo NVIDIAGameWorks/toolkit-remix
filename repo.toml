@@ -15,18 +15,22 @@ name = "trex"
 # Test Runner
 ########################################################################################################################
 
+# Run all test suites
 [repo_test.suites.alltests]
 kind = "glob_and_exec"
 path = "${test_root}"
 
 [[repo_test.suites.alltests.group]]
-# Run app test
+# Run all test
 include = [
     "tests-omni.app.lightspeed${shell_ext}",
     "tests-lightspeed.*${shell_ext}"
 ]
 exclude = [
     "tests-omni.app.lightspeed${shell_ext}",  # freeze for whatever reason
+]
+"platform:linux-x86_64".exclude = [
+  "tests-omni.app.precache_exts_demo*",
 ]
 args = [
     "--/app/extensions/registryEnabled=0", # It should start ok without a registry enabled (everything prebundled)
@@ -36,6 +40,56 @@ args = [
     "--/exts/omni.kit.test/testExtArgs/1=\"--/app/fastShutdown=1\"",
     "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
 #    "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\""
+]
+timeout = 1800
+
+# Run unit test suite
+[repo_test.suites.unit]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.unit.group]]
+include = [
+    "tests-lightspeed.*${shell_ext}"
+]
+exclude = []
+"platform:linux-x86_64".exclude = [
+  "tests-omni.app.precache_exts_demo*",
+]
+args = [
+    "--/app/extensions/registryEnabled=0", # It should start ok without a registry enabled (everything prebundled)
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/exts/omni.kit.test/testExtArgs/0=\"--/app/hangDetector/enabled=0\"",
+    "--/exts/omni.kit.test/testExtArgs/1=\"--/app/fastShutdown=1\"",
+    "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
+    "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\"",
+    "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.unit.*'",
+]
+timeout = 1800
+
+# Run end-to-end test suite
+[repo_test.suites.e2e]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.e2e.group]]
+include = [
+    "tests-lightspeed.*${shell_ext}"
+]
+exclude = []
+"platform:linux-x86_64".exclude = [
+  "tests-omni.app.precache_exts_demo*",
+]
+args = [
+    "--/app/extensions/registryEnabled=0", # It should start ok without a registry enabled (everything prebundled)
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--/exts/omni.kit.test/testExtArgs/0=\"--/app/hangDetector/enabled=0\"",
+    "--/exts/omni.kit.test/testExtArgs/1=\"--/app/fastShutdown=1\"",
+    "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
+    "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.e2e.*'",
 ]
 timeout = 1800
 
@@ -101,6 +155,7 @@ apps = [
     "${root}/source/apps/lightspeed.app.trex.texturecraft.kit",
     "${root}/source/apps/lightspeed.app.trex_dev.kit",
     "${root}/source/apps/omni.app.lightspeed.kit",
+    "${root}/source/extensions/lightspeed.trex.project_wizard.core/apps/lightspeed.app.trex.project_wizard_cli.kit"
 ]
 
 

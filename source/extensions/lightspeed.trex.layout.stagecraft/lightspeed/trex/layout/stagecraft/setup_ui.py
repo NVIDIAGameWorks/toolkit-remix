@@ -80,7 +80,7 @@ class SetupUI(TrexLayout):
         self._welcome_resume_item = ResumeWorkFileItem(self._resume_work_file_clicked)
         self._welcome_resume_item.enabled = self.enable_welcome_resume_item()
         self._welcome_pads_new_model.add_items(
-            [self._welcome_resume_item, NewWorkFileItem(self._new_work_file_clicked)]
+            [NewWorkFileItem(self._new_work_file_clicked), self._welcome_resume_item]
         )
 
         self._recent_saved_file = _RecentSavedFile()
@@ -364,7 +364,7 @@ class SetupUI(TrexLayout):
                                     WelcomePadWidget(
                                         model=self._welcome_pads_new_model,
                                         show_footer=False,
-                                        title="NEW",
+                                        title="PROJECT SETUP",
                                         auto_resize_list=False,
                                     )
                                 )  # hold or crash
@@ -373,9 +373,8 @@ class SetupUI(TrexLayout):
                                 ui.Spacer(height=ui.Pixel(48))
                                 self._welcome_pad_widget_recent = WelcomePadWidget(
                                     model=self._welcome_pads_recent_model,
-                                    title="RECENT",
-                                    footer="Open from storage...",
-                                    footer_callback=self._on_open_from_storage_pad_clicked,
+                                    title="RECENTLY OPENED",
+                                    show_footer=False,
                                     auto_resize_list=False,
                                     word_wrap_description=False,
                                 )  # hold or crash

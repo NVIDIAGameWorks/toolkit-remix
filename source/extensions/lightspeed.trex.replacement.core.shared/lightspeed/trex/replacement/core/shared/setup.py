@@ -98,7 +98,8 @@ class Setup:
             {LSS_LAYER_GAME_NAME: self._layer_manager.get_game_name_from_path(capture_layer.realPath)}
         )
 
-    def is_mod_file(self, path: str) -> bool:
+    @staticmethod
+    def is_mod_file(path: str) -> bool:
         try:
             layer = Sdf.Layer.FindOrOpen(path)
         except Tf.ErrorException as e:

@@ -71,7 +71,7 @@ class MaterialButtons:
             processing_config, material_prim_paths, progress_callback=self._material_upscale_set_progress
         )
         if error:
-            self._error_popup = ErrorPopup("An error occurred while upscaling", error, "", window_size=(350, 150))
+            self._error_popup = ErrorPopup("An error occurred while upscaling", error, window_size=(350, 150))
             self._error_popup.show()
         if self._upscale_progress_bar:
             self._upscale_progress_bar.hide()

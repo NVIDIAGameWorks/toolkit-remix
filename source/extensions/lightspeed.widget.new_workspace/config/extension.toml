@@ -16,6 +16,7 @@ name = "Lightspeed Widget New Workspace"
 
 [dependencies]
 "omni.client" = {}
+"lightspeed.common" = {}
 "lightspeed.layer_manager" = {}
 "lightspeed.widget.content_viewer" = {}
 "lightspeed.widget.game_captures" = {}

@@ -1,0 +1,17 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "Lightspeed RTX Remix Capture Tree Model and Delegate"
+description = "Model, Delegate and Item classes for a TreeView to display Captures"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.trex.capture.core.shared" = {}
+"lightspeed.trex.replacement.core.shared" = {}
+"omni.client" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.capture_tree.model"

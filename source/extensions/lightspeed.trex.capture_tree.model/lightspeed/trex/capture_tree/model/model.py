@@ -21,34 +21,22 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import async_wrap as _async_wrap
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
+from .items import CaptureTreeItem
+
 if TYPE_CHECKING:
     from pxr import Sdf
 
 HEADER_DICT = {0: "Path", 1: "Progress"}
 
 
-class Item(ui.AbstractItem):
-    """Item of the model"""
-
-    def __init__(self, path, image):
-        super().__init__()
-        self.path = path
-        self.image = image
-        self.path_model = ui.SimpleStringModel(self.path)
-        self.replaced_items = None
-        self.total_items = None
-
-    def __repr__(self):
-        return f'"{self.path}"'
-
-
-class ListModel(ui.AbstractItemModel):
+class CaptureTreeModel(ui.AbstractItemModel):
     """List model of actions"""
 
-    def __init__(self, context_name):
+    def __init__(self, context_name, show_progress: bool = True):
         super().__init__()
         self.default_attr = {
             "_context_name": None,
+            "_show_progress": None,
             "_core_capture": None,
             "_core_replacement": None,
             "_stage_event_sub": None,
@@ -59,31 +47,34 @@ class ListModel(ui.AbstractItemModel):
             setattr(self, attr, value)
 
         self._context_name = context_name
+        self._show_progress = show_progress
+
         self._core_capture = _CaptureCoreSetup(context_name)
         self._core_replacement = _ReplacementCoreSetup(context_name)
 
         self._stage_event_sub = None
         self._fetch_task = None
         self._cancel_token = False
+
         self.__children = []
         self.__on_progress_updated = _Event()
 
     def refresh(self, paths: List[Tuple[str, str]]):
         """Refresh the list"""
-        self.__children = [Item(path, image) for path, image in sorted(paths, key=lambda x: x[0])]
+        self.__children = [CaptureTreeItem(path, image) for path, image in sorted(paths, key=lambda x: x[0])]
         self._item_changed(None)
 
         self.fetch_progress()
 
     def get_item_children(self, item):
-        """Returns all the children when the widget asks it."""
+        """Returns all the children when the model asks it."""
         if item is None:
             return self.__children
         return []
 
     def get_item_value_model_count(self, _):
         """The number of columns"""
-        return len(HEADER_DICT.keys())
+        return 2 if self._show_progress else 1
 
     def get_item_value_model(self, item, column_id):
         """
@@ -109,7 +100,7 @@ class ListModel(ui.AbstractItemModel):
         else:
             self._stage_event_sub = None
 
-    def fetch_progress(self, items: Optional[List[Item]] = None):
+    def fetch_progress(self, items: Optional[List[CaptureTreeItem]] = None):
         self.cancel_tasks()
         wrapped_fn = _async_wrap(functools.partial(self.__fetch_progress, items))
         self._fetch_task = asyncio.ensure_future(wrapped_fn())
@@ -125,7 +116,7 @@ class ListModel(ui.AbstractItemModel):
             self._fetch_task = None
         self._cancel_token = False
 
-    def __fetch_progress(self, items: Optional[List[Item]] = None):
+    def __fetch_progress(self, items: Optional[List[CaptureTreeItem]] = None):
         collection = items if items else self.__children
         # Reset the item state
         for item in collection:

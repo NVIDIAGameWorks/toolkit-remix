@@ -31,7 +31,11 @@ class ErrorPopup:
         yes_no (bool): Show a Yes/No
     """
 
-    def __init__(self, title, message, details, yes_no=False, window_size: Tuple[int, int] = (400, 300)):
+    BUTTON_WIDTH = 64
+
+    def __init__(
+        self, title, message, details: str = None, yes_no: bool = False, window_size: Tuple[int, int] = (400, 300)
+    ):
         self.__default_attr = {
             "_title": None,
             "_message": None,
@@ -111,12 +115,6 @@ class ErrorPopup:
                 | ui.WINDOW_FLAGS_MODAL
             ),
         )
-        # self._popup.flags = (
-        #     ui.WINDOW_FLAGS_NO_COLLAPSE
-        #     # ui.WINDOW_FLAGS_NO_SCROLLBAR
-        #     # | ui.WINDOW_FLAGS_NO_RESIZE
-        #     # | ui.WINDOW_FLAGS_NO_MOVE
-        # )
 
         with self._popup.frame:
             with ui.VStack():
@@ -134,6 +132,8 @@ class ErrorPopup:
                                 CustomErrorModel(self._details), multiline=True, read_only=True
                             )
                         ui.Spacer(width=ui.Pixel(8), height=0)
+                else:
+                    ui.Spacer(width=0)
                 ui.Spacer(width=0, height=ui.Pixel(8))
                 with ui.HStack(height=24):
                     ui.Spacer(height=0)
@@ -147,12 +147,12 @@ class ErrorPopup:
                             self.hide()
                             self._no_clicked()
 
-                        self._yes_button = ui.Button("Yes", width=ui.Pixel(64))
+                        self._yes_button = ui.Button("Yes", width=ui.Pixel(self.BUTTON_WIDTH))
                         self._yes_button.set_clicked_fn(yes_clicked)
-                        self._no_button = ui.Button("No", width=ui.Pixel(64))
+                        self._no_button = ui.Button("No", width=ui.Pixel(self.BUTTON_WIDTH))
                         self._no_button.set_clicked_fn(no_clicked)
                     else:
-                        self._okay_button = ui.Button("Okay", width=ui.Pixel(64))
+                        self._okay_button = ui.Button("Okay", width=ui.Pixel(self.BUTTON_WIDTH))
                         self._okay_button.set_clicked_fn(self.hide)
                         self._buttons.append(self._okay_button)
                     ui.Spacer(height=0)

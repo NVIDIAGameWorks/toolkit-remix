@@ -1,0 +1,28 @@
+[package]
+# Semantic Versionning is used: https://semver.org/
+version = "1.0.0"
+
+# Lists people or organizations that are considered the "authors" of the package.
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+
+# The title and description fields are primarly for displaying extension info in UI
+description = "A page used to setup a project"
+title = "Lightspeed RTX Remix Project Wizard Setup Page Widget"
+
+# One of categories for UI.
+category = "Widget"
+
+# Keywords for the extension
+keywords = ["lightspeed", "rtx", "remix", "project", "wizard", "widget", "setup", "page"]
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.trex.capture_tree.model" = {}
+"lightspeed.trex.project_wizard.core" = {}
+"lightspeed.trex.project_wizard.file_picker.widget" = {}
+"omni.ui" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.wizard.widget" = {}
+
+[[python.module]]
+name = "lightspeed.trex.project_wizard.setup_page.widget"

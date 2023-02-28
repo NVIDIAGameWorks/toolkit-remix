@@ -17,6 +17,7 @@ from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 from lightspeed.trex.layout.stagecraft import get_instance as _get_layout_instance
 from lightspeed.trex.menu.workfile import get_instance as _get_menu_workfile_instance
+from lightspeed.trex.project_wizard.window import ProjectWizardWindow as _ProjectWizardWindow
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCoreSetup
 from lightspeed.trex.stage.core.shared import Setup as _StageCoreSetup
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
@@ -45,6 +46,7 @@ class Setup:
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
+
         self._context_name = _TrexContexts.STAGE_CRAFT.value
         self._context = _trex_contexts_instance().get_context(_TrexContexts.STAGE_CRAFT)
         self._layer_manager = _LayerManagerCore(context_name=_TrexContexts.STAGE_CRAFT.value)
@@ -53,8 +55,10 @@ class Setup:
         self._stage_core_setup = _StageCoreSetup(self._context_name)
         self._capture_core_setup = _CaptureCoreSetup(self._context_name)
         self._replacement_core_setup = _ReplacementCoreSetup(self._context_name)
+        self._wizard_window = _ProjectWizardWindow(self._context_name)
+
         self._sub_new_work_file_clicked = self._layout_instance.subscribe_new_work_file_clicked(
-            self._on_new_work_file_clicked
+            self._wizard_window.show_project_wizard
         )
         self._sub_import_capture_layer = self._layout_instance.subscribe_import_capture_layer(
             self._on_import_capture_layer
@@ -78,9 +82,6 @@ class Setup:
 
     def _on_import_replacement_layer(self, path: str, use_existing_layer: bool = True):
         self._replacement_core_setup.import_replacement_layer(path, use_existing_layer=use_existing_layer)
-
-    def _on_new_work_file_clicked(self):
-        self._stage_core_setup.create_new_work_file()
 
     def _on_open_workfile(self, path):
         def on_save(result, error):
