@@ -23,6 +23,8 @@ from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as _Usd
 from omni.flux.bookmark_tree.widget import BookmarkTreeWidget as _BookmarkTreeWidget
 from omni.flux.layer_tree.usd.widget import LayerModel as _LayerModel
 from omni.flux.layer_tree.usd.widget import LayerTreeWidget as _LayerTreeWidget
+from omni.flux.selection_history_tree.model.usd import UsdSelectionHistoryModel as _UsdSelectionHistoryModel
+from omni.flux.selection_history_tree.widget import SelectionHistoryWidget as _SelectionHistoryWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
@@ -39,11 +41,13 @@ class AssetReplacementsPane:
             "_root_frame": None,
             "_layer_tree_widget": None,
             "_bookmark_tree_widget": None,
+            "_selection_history_widget": None,
             "_selection_tree_widget": None,
             "_mesh_properties_widget": None,
             "_material_properties_widget": None,
             "_layer_collapsable_frame": None,
             "_bookmarks_collapsable_frame": None,
+            "_selection_history_collapsable_frame": None,
             "_selection_collapsable_frame": None,
             "_mesh_properties_collapsable_frame": None,
             "_material_properties_collapsable_frame": None,
@@ -140,6 +144,23 @@ class AssetReplacementsPane:
                                 self._bookmark_tree_widget = _BookmarkTreeWidget(model=model)
                             self._bookmarks_collapsable_frame.root.set_collapsed_changed_fn(
                                 functools.partial(self.__on_collapsable_frame_changed, self._bookmark_tree_widget)
+                            )
+
+                            ui.Spacer(height=ui.Pixel(16))
+
+                            self._selection_history_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
+                                "SELECTION HISTORY",
+                                info_text=f"- The history has a maximum length of "
+                                f"{_UsdSelectionHistoryModel.MAX_LIST_LENGTH}.\n"
+                                "- Clicking on an item will select it in the viewport.\n",
+                                collapsed=True,
+                            )
+
+                            with self._selection_history_collapsable_frame:
+                                model = _UsdSelectionHistoryModel(self._context_name)
+                                self._selection_history_widget = _SelectionHistoryWidget(model=model)
+                            self._selection_history_collapsable_frame.root.set_collapsed_changed_fn(
+                                functools.partial(self.__on_collapsable_frame_changed, self._selection_history_widget)
                             )
 
                             ui.Spacer(height=ui.Pixel(16))
@@ -274,6 +295,7 @@ class AssetReplacementsPane:
         self._root_frame.visible = value
         self._layer_tree_widget.show(value)
         self._bookmark_tree_widget.show(value)
+        self._selection_history_widget.show(value)
         self._selection_tree_widget.show(value)
         self._mesh_properties_widget.show(value)
         self._material_properties_widget.show(value)
