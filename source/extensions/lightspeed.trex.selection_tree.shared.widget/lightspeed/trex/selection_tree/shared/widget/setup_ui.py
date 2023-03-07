@@ -461,9 +461,13 @@ class SetupUI:
                 items = result
 
         # if all instances are selected, select the instance group
-        if set(instance_items).issubset(items) and (
-            (isinstance(items[0], _ItemPrim) and not items[0].from_live_light_group)
-            or isinstance(items[0], _ItemInstanceMesh)
+        if (
+            items
+            and set(instance_items).issubset(items)
+            and (
+                (isinstance(items[0], _ItemPrim) and not items[0].from_live_light_group)
+                or isinstance(items[0], _ItemInstanceMesh)
+            )
         ):
             group_instances = self._tree_model.get_item_children_type(_ItemInstancesMeshGroup)
             if group_instances:

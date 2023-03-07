@@ -35,6 +35,7 @@ _GREY_50 = 0xFF303030
 _GREY_60 = 0xFF3C3C3C
 
 _RED_05 = 0x0D0000FF
+_RED_80 = 0xCC0000FF
 
 _WHITE_10 = 0x1AFFFFFF
 _WHITE_20 = 0x33FFFFFF
@@ -507,6 +508,11 @@ current_dict.update(
         "MouseImage": {
             "image_url": _get_icons("mouse_wheel_dark"),
         },
+        "PropertiesPaneSectionTreeItem": {"color": _WHITE_80, "font_size": 14},
+        "PropertiesPaneSectionTreeItemError": {
+            "color": _RED_80,
+            "font_size": 14,
+        },
         "PropertiesWidgetField": {
             "background_color": _GREY_50,  # 01 for alpha or it will show a default color
             "color": _WHITE_80,
@@ -556,6 +562,10 @@ current_dict.update(
             "color": _WHITE_100,
             "font_size": 14,
             "image_url": _get_fonts("NVIDIASans_A_Md"),
+        },
+        "SelectionHistoryLabel": {
+            "color": _WHITE_70,
+            "font_size": 14,
         },
         "ImagePreviewCanvas": {
             "background_color": 0x0,
