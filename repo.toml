@@ -9,7 +9,7 @@ logging = "warn"
 import_configs = ["${root}/_repo/deps/repo_kit_tools/kit-template/repo.toml"]
 
 # Reposiory Name. It is used for solution name and final package name
-name = "trex"
+name = "rtx_remix"
 
 ########################################################################################################################
 # Test Runner
@@ -100,32 +100,24 @@ timeout = 1800
 [repo_package]
 windows_max_path_length = 240
 
-# package content
 [repo_package.packages.main_package]
-files = [
+# package content
+release.files = [
     ["**"],
 ]
-"windows-x86_64".files = [
-    # WAR: repo_fileutils fails to package folder starting with dot on windows unless specified explicitly. The reason is that
-    # python's std glob module doesn't support finding them. Fixing that turned out to be quite hard.
-    ["exts/lightspeed.pip_archive/pip_prebundle/numpy/.libs"],
-]
-files_exclude = [
+release.files_exclude = [
     ["**/*.pdb"],
     ["**/*.exp"],
     ["kit/**"],
-    ["apps/kit.portable"],
+    ["apps/kit.portable"]
 ]
 "linux-x86_64".files_strip = [
     ["**/*.so"],
 ]
 "linux-x86_64".files_strip_exclude = [
 ]
-
-[repo_package.packages.trex]
 omniverse_flow_version_scheme = true
-ziponly = true
-compression_level_7z = 3
+archive_format = "zip"
 strip_package_infos = true
 
 ########################################################################################################################
