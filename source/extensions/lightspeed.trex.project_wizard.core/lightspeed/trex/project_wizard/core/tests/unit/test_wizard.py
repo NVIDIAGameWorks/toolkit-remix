@@ -105,7 +105,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
         with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
             future = asyncio.Future()
-            future.set_result((Mock(), None))
+            future.set_result(None)
             mock.create_project_mock.return_value = future
 
             # Act
@@ -115,8 +115,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual(1, mock.setup_usd_mock.call_count)
         self.assertEqual(1, mock.create_symlinks_mock.call_count)
         self.assertEqual(1, mock.create_project_mock.call_count)
-        self.assertEqual(0, mock.setup_existing_mod_mock.call_count)
-        self.assertEqual(0, mock.setup_new_mod_mock.call_count)
+        self.assertEqual(0, mock.insert_capture_layer_mock.call_count)
 
         self.assertEqual(5, mock.progress_mock.call_count)
         self.assertEqual(1, mock.log_error_mock.call_count)
@@ -125,41 +124,6 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual([call(0), call(10), call(20), call(30), call(40)], mock.progress_mock.call_args_list)
 
         error_message = f"Could not open stage for the project file ({project_file})."
-
-        self.assertEqual(call(error_message), mock.log_error_mock.call_args)
-        self.assertEqual(call(False, error=error_message), mock.finished_mock.call_args)
-
-    async def test_setup_project_no_project_layer_should_quick_return_fail(self):
-        # Arrange
-        project_file = self.base_dir / "project.usda"
-
-        schema = ProjectWizardSchemaMock(
-            existing_project=False,
-            project_file=project_file,
-        )
-
-        with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
-            future = asyncio.Future()
-            future.set_result((None, Mock()))
-            mock.create_project_mock.return_value = future
-
-            # Act
-            await self.core.setup_project_async_with_exceptions({})
-
-        # Assert
-        self.assertEqual(1, mock.setup_usd_mock.call_count)
-        self.assertEqual(1, mock.create_symlinks_mock.call_count)
-        self.assertEqual(1, mock.create_project_mock.call_count)
-        self.assertEqual(0, mock.setup_existing_mod_mock.call_count)
-        self.assertEqual(0, mock.setup_new_mod_mock.call_count)
-
-        self.assertEqual(5, mock.progress_mock.call_count)
-        self.assertEqual(1, mock.log_error_mock.call_count)
-        self.assertEqual(1, mock.finished_mock.call_count)
-
-        self.assertEqual([call(0), call(10), call(20), call(30), call(40)], mock.progress_mock.call_args_list)
-
-        error_message = f"The project file ({project_file}) was not found."
 
         self.assertEqual(call(error_message), mock.log_error_mock.call_args)
         self.assertEqual(call(False, error=error_message), mock.finished_mock.call_args)
@@ -193,9 +157,10 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual(0, mock.check_call_mock.call_count)
         self.assertEqual(0, mock.path_chmod_mock.call_count)
         self.assertEqual(0, mock.save_custom_data_mock.call_count)
-        self.assertEqual(0, mock.core_mock.return_value.save_layer.call_count)
-        self.assertEqual(0, mock.core_mock.return_value.create_new_sublayer.call_count)
-        self.assertEqual(0, mock.core_mock.return_value.insert_sublayer.call_count)
+        self.assertEqual(0, mock.layer_manager_mock.save_layer.call_count)
+        self.assertEqual(0, mock.layer_manager_mock.create_new_sublayer.call_count)
+        self.assertEqual(0, mock.replacement_core_mock.import_replacement_layer.call_count)
+        self.assertEqual(0, mock.capture_core_mock.import_capture_layer.call_count)
 
         _, kwargs = mock.copy_tree_mock.call_args
         self.assertEqual(1, mock.copy_tree_mock.call_count)
@@ -242,11 +207,9 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         core_mock = Mock()
         context_mock = Mock()
         stage_mock = Mock()
-        project_mock = Mock()
         context_stage_mock = Mock()
 
         create_sublayer_mock = core_mock.create_new_sublayer
-        create_sublayer_mock.return_value = project_mock
 
         open_stage_mock = context_mock.open_stage_async
         future = asyncio.Future()
@@ -256,7 +219,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         context_mock.get_stage.return_value = context_stage_mock
 
         # Act
-        project_layer, stage = await self.core._create_project_layer(  # noqa PLW0212
+        stage = await self.core._create_project_layer(  # noqa PLW0212
             project_file, core_mock, context_mock, stage_mock, False
         )
 
@@ -270,7 +233,6 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
         self.assertEqual(call(str(project_file)), open_stage_mock.call_args)
 
-        self.assertEqual(project_mock, project_layer)
         self.assertEqual(context_stage_mock, stage)
 
     async def test_setup_existing_mod_project_should_copy_chmod_insert_and_return_file(self):
@@ -281,14 +243,12 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         project_dir = project_file.parent
         project_mod_file = project_dir / mod_file.name
 
-        project_mock = Mock()
-
         with WizardMockContext() as mock:
-            insert_sublayer_mock = mock.core_mock.insert_sublayer
+            insert_sublayer_mock = mock.replacement_core_mock.import_replacement_layer
 
             # Act
             value = await self.core._setup_existing_mod_project(  # noqa PLW0212
-                mock.core_mock, mod_file, project_dir, project_mock, False
+                mock.replacement_core_mock, mod_file, project_dir, False
             )
 
         # Assert
@@ -298,9 +258,16 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual({"dry_run": False}, copy_kwargs)
 
         self.assertEqual(1, insert_sublayer_mock.call_count)
-        insert_args, insert_kwargs = insert_sublayer_mock.call_args
-        self.assertEqual((str(project_mod_file), LayerType.replacement), insert_args)
-        self.assertEqual({"set_as_edit_target": True, "parent_layer": project_mock, "do_undo": False}, insert_kwargs)
+        self.assertEqual(
+            call(
+                str(project_mod_file),
+                use_existing_layer=True,
+                set_edit_target=True,
+                replace_existing=False,
+                sublayer_position=0,
+            ),
+            insert_sublayer_mock.call_args,
+        )
 
         self.assertEqual(1, mock.path_chmod_mock.call_count)
         self.assertEqual(call(stat.S_IREAD | stat.S_IWRITE), mock.path_chmod_mock.call_args)
@@ -313,22 +280,26 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         project_dir = project_file.parent
         mod_file = project_dir / constants.REMIX_MOD_FILE
 
-        project_mock = Mock()
-
         with WizardMockContext() as mock:
-            create_sublayer_mock = mock.core_mock.create_new_sublayer
+            create_sublayer_mock = mock.replacement_core_mock.import_replacement_layer
 
             # Act
             value = await self.core._setup_new_mod_project(  # noqa PLW0212
-                mock.core_mock, project_dir, project_mock, False
+                mock.replacement_core_mock, project_dir, False
             )
 
         # Assert
         self.assertEqual(1, create_sublayer_mock.call_count)
-
-        args, kwargs = create_sublayer_mock.call_args
-        self.assertEqual((LayerType.replacement, str(mod_file)), args)
-        self.assertEqual({"set_as_edit_target": True, "parent_layer": project_mock, "do_undo": False}, kwargs)
+        self.assertEqual(
+            call(
+                str(mod_file),
+                use_existing_layer=False,
+                set_edit_target=True,
+                replace_existing=False,
+                sublayer_position=0,
+            ),
+            create_sublayer_mock.call_args,
+        )
 
         self.assertEqual(mod_file, value)
 
@@ -353,56 +324,55 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
         mod_file = mod_1
 
-        project_mock = Mock()
-
         with WizardMockContext() as mock:
-            insert_mock = mock.core_mock.insert_sublayer
+            insert_mock = mock.replacement_core_mock.import_replacement_layer
 
             # Act
             await self.core._insert_existing_mods(  # noqa PLW0212
-                mock.core_mock, existing_mods, mod_file, project_mods_dir, project_mock
+                mock.replacement_core_mock, existing_mods, mod_file, project_mods_dir, False
             )
 
         # Assert
         self.assertEqual(2, insert_mock.call_count)
+        self.assertEqual(
+            call(
+                str(project_mods_dir / mod_3.parent.stem / mod_3.name),
+                use_existing_layer=True,
+                set_edit_target=False,
+                replace_existing=False,
+                sublayer_position=0,
+            ),
+            insert_mock.call_args_list[0],
+        )
+        self.assertEqual(
+            call(
+                str(project_mods_dir / mod_2.parent.stem / mod_2.name),
+                use_existing_layer=True,
+                set_edit_target=False,
+                replace_existing=False,
+                sublayer_position=0,
+            ),
+            insert_mock.call_args_list[1],
+        )
 
-        args_0, kwargs_0 = insert_mock.call_args_list[0]
-        self.assertEqual((str(project_mods_dir / mod_2.parent.stem / mod_2.name), LayerType.replacement), args_0)
-        self.assertEqual({"set_as_edit_target": False, "parent_layer": project_mock, "do_undo": False}, kwargs_0)
-
-        args_1, kwargs_1 = insert_mock.call_args_list[1]
-        self.assertEqual((str(project_mods_dir / mod_3.parent.stem / mod_3.name), LayerType.replacement), args_1)
-        self.assertEqual({"set_as_edit_target": False, "parent_layer": project_mock, "do_undo": False}, kwargs_1)
-
-    async def test_insert_capture_layer_should_insert_sublayer_and_lock(self):
+    async def test_insert_capture_layer_should_insert_sublayer(self):
         # Arrange
         project_dir = self.base_dir / "MyProject"
         project_capture_dir = project_dir / constants.REMIX_DEPENDENCIES_FOLDER / constants.REMIX_CAPTURE_FOLDER
 
         capture_file = project_capture_dir / "capture.usd"
 
-        project_mock = Mock()
-
         with WizardMockContext() as mock:
-            insert_mock = mock.core_mock.insert_sublayer
-            lock_mock = mock.core_mock.lock_layer
+            insert_mock = mock.capture_core_mock.import_capture_layer
 
             # Act
             await self.core._insert_capture_layer(  # noqa PLW0212
-                mock.core_mock, project_capture_dir, capture_file, project_mock
+                mock.capture_core_mock, project_capture_dir, capture_file, False
             )
 
         # Assert
         self.assertEqual(1, insert_mock.call_count)
-        self.assertEqual(1, lock_mock.call_count)
-
-        insert_args, insert_kwargs = insert_mock.call_args
-        self.assertEqual((str(project_capture_dir / capture_file.name), LayerType.capture), insert_args)
-        self.assertEqual({"set_as_edit_target": False, "parent_layer": project_mock, "do_undo": False}, insert_kwargs)
-
-        lock_args, lock_kwargs = lock_mock.call_args
-        self.assertEqual((LayerType.capture,), lock_args)
-        self.assertEqual({"do_undo": False}, lock_kwargs)
+        self.assertEqual(call(str(project_capture_dir / capture_file.name)), insert_mock.call_args)
 
     async def test_save_authoring_layer_no_stage_quick_return(self):
         # Arrange
@@ -431,10 +401,10 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         # Arrange
 
         with WizardMockContext() as mock:
-            save_mock = mock.core_mock.save_layer
+            save_mock = mock.layer_manager_mock.save_layer
 
             # Act
-            await self.core._save_project_layer(mock.core_mock, False)  # noqa PLW0212
+            await self.core._save_project_layer(mock.layer_manager_mock, False)  # noqa PLW0212
 
         # Assert
         self.assertEqual(1, save_mock.call_count)
@@ -442,6 +412,8 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
     async def __run_test_setup_project_should_setup_project(self, existing_or_new: bool):
         # Arrange
+        dry_run = False
+
         project_file = self.base_dir / "projects" / "MyProject" / "my_project.usda"
         remix_dir = self.base_dir / "rtx_remix"
         captures_dir = remix_dir / constants.REMIX_CAPTURE_FOLDER
@@ -464,10 +436,11 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             capture_file=capture_file,
         )
 
-        core_mock = Mock()
+        layer_manager_mock = Mock()
+        capture_core_mock = Mock()
+        replacement_core_mock = Mock()
         context_mock = Mock()
         stage_mock = Mock()
-        project_mock = Mock()
         project_stage_mock = Mock()
 
         if existing_or_new:
@@ -476,14 +449,16 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             final_mod_file = project_dir / constants.REMIX_MOD_FILE
 
         with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
-            mock.core_mock.return_value = core_mock
+            mock.layer_manager_mock.return_value = layer_manager_mock
+            mock.capture_core_mock.return_value = capture_core_mock
+            mock.replacement_core_mock.return_value = replacement_core_mock
 
             setup_usd_future = asyncio.Future()
             setup_usd_future.set_result((context_mock, stage_mock))
             mock.setup_usd_mock.return_value = setup_usd_future
 
             create_project_future = asyncio.Future()
-            create_project_future.set_result((project_mock, project_stage_mock))
+            create_project_future.set_result(project_stage_mock)
             mock.create_project_mock.return_value = create_project_future
 
             setup_existing_future = asyncio.Future()
@@ -502,40 +477,41 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual(call(), mock.setup_usd_mock.call_args)
 
         self.assertEqual(1, mock.create_symlinks_mock.call_count)
-        self.assertEqual(call(project_dir, deps_dir, remix_dir, False), mock.create_symlinks_mock.call_args)
+        self.assertEqual(call(project_dir, deps_dir, remix_dir, dry_run), mock.create_symlinks_mock.call_args)
 
         self.assertEqual(1, mock.create_project_mock.call_count)
         self.assertEqual(
-            call(project_file, core_mock, context_mock, stage_mock, False), mock.create_project_mock.call_args
-        )
-
-        self.assertEqual(1, mock.insert_existing_mods_mock.call_count)
-        self.assertEqual(
-            call(core_mock, existing_mods, mod_file if existing_or_new else None, deps_mods_dir, project_mock),
-            mock.insert_existing_mods_mock.call_args,
+            call(project_file, layer_manager_mock, context_mock, stage_mock, dry_run),
+            mock.create_project_mock.call_args,
         )
 
         self.assertEqual(1, mock.insert_capture_layer_mock.call_count)
         self.assertEqual(
-            call(core_mock, deps_captures_dir, capture_file, project_mock), mock.insert_capture_layer_mock.call_args
+            call(capture_core_mock, deps_captures_dir, capture_file, dry_run), mock.insert_capture_layer_mock.call_args
         )
 
-        self.assertEqual(1, mock.save_authoring_layer_mock.call_count)
-        self.assertEqual(call(final_mod_file, project_stage_mock, False), mock.save_authoring_layer_mock.call_args)
-
-        self.assertEqual(1, mock.save_project_layer_mock.call_count)
-        self.assertEqual(call(core_mock, False), mock.save_project_layer_mock.call_args)
+        self.assertEqual(1, mock.insert_existing_mods_mock.call_count)
+        self.assertEqual(
+            call(replacement_core_mock, existing_mods, mod_file if existing_or_new else None, deps_mods_dir, dry_run),
+            mock.insert_existing_mods_mock.call_args,
+        )
 
         if existing_or_new:
             self.assertEqual(1, mock.setup_existing_mod_mock.call_count)
             self.assertEqual(0, mock.setup_new_mod_mock.call_count)
             self.assertEqual(
-                call(core_mock, mod_file, project_dir, project_mock, False), mock.setup_existing_mod_mock.call_args
+                call(replacement_core_mock, mod_file, project_dir, dry_run), mock.setup_existing_mod_mock.call_args
             )
         else:
             self.assertEqual(0, mock.setup_existing_mod_mock.call_count)
             self.assertEqual(1, mock.setup_new_mod_mock.call_count)
-            self.assertEqual(call(core_mock, project_dir, project_mock, False), mock.setup_new_mod_mock.call_args)
+            self.assertEqual(call(replacement_core_mock, project_dir, dry_run), mock.setup_new_mod_mock.call_args)
+
+        self.assertEqual(1, mock.save_authoring_layer_mock.call_count)
+        self.assertEqual(call(final_mod_file, project_stage_mock, dry_run), mock.save_authoring_layer_mock.call_args)
+
+        self.assertEqual(1, mock.save_project_layer_mock.call_count)
+        self.assertEqual(call(layer_manager_mock, dry_run), mock.save_project_layer_mock.call_args)
 
         self.assertEqual(11, mock.progress_mock.call_count)
         self.assertEqual(
@@ -615,11 +591,11 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         # Arrange
 
         with WizardMockContext() as mock:
-            insert_mock = mock.core_mock.insert_sublayer
+            insert_mock = mock.replacement_core_mock.import_replacement_layer
 
             # Act
             await self.core._insert_existing_mods(  # noqa PLW0212
-                mock.core_mock, existing_mods, self.base_dir, self.base_dir, project_layer
+                mock.replacement_core_mock, existing_mods, self.base_dir, self.base_dir, project_layer
             )
 
         # Assert

@@ -18,6 +18,8 @@ import omni.usd
 from lightspeed.common import constants as _constants
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManager
 from lightspeed.layer_manager.core import LayerType as _LayerType
+from lightspeed.trex.capture.core.shared import Setup as _CaptureCore
+from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.kit.usd.layers import LayerUtils as _LayerUtils
@@ -107,7 +109,9 @@ class ProjectWizardCore:
             self._on_run_progress(10)
 
             self._log_info("Setup core and validated schema")
-            core = _LayerManager(self.CONTEXT_NAME)
+            layer_manager = _LayerManager(self.CONTEXT_NAME)
+            capture_core = _CaptureCore(self.CONTEXT_NAME)
+            replacement_core = _ReplacementCore(self.CONTEXT_NAME)
             model = _ProjectWizardSchema(**schema)
             self._on_run_progress(20)
 
@@ -132,39 +136,35 @@ class ProjectWizardCore:
                 self._on_run_finished(True)
                 return
 
-            project_layer, stage = await self._create_project_layer(model.project_file, core, context, stage, dry_run)
+            stage = await self._create_project_layer(model.project_file, layer_manager, context, stage, dry_run)
             self._on_run_progress(40)
 
-            if not dry_run:
-                if not stage:
-                    error_message = f"Could not open stage for the project file ({model.project_file})."
-                    self._log_error(error_message)
-                    self._on_run_finished(False, error=error_message)
-                    return
-                if not project_layer:
-                    error_message = f"The project file ({model.project_file}) was not found."
-                    self._log_error(error_message)
-                    self._on_run_finished(False, error=error_message)
-                    return
+            if not dry_run and not stage:
+                error_message = f"Could not open stage for the project file ({model.project_file})."
+                self._log_error(error_message)
+                self._on_run_finished(False, error=error_message)
+                return
+
+            await self._insert_capture_layer(capture_core, captures_directory, model.capture_file, dry_run)
+            self._on_run_progress(50)
+
+            await self._insert_existing_mods(
+                replacement_core, model.existing_mods, model.mod_file, mods_directory, dry_run
+            )
+            self._on_run_progress(60)
 
             if model.mod_file:
                 mod_file = await self._setup_existing_mod_project(
-                    core, model.mod_file, project_directory, project_layer, dry_run
+                    replacement_core, model.mod_file, project_directory, dry_run
                 )
             else:
-                mod_file = await self._setup_new_mod_project(core, project_directory, project_layer, dry_run)
-            self._on_run_progress(50)
-
-            await self._insert_existing_mods(core, model.existing_mods, model.mod_file, mods_directory, project_layer)
-            self._on_run_progress(60)
-
-            await self._insert_capture_layer(core, captures_directory, model.capture_file, project_layer)
+                mod_file = await self._setup_new_mod_project(replacement_core, project_directory, dry_run)
             self._on_run_progress(70)
 
             await self._save_authoring_layer(mod_file, stage, dry_run)
             self._on_run_progress(80)
 
-            await self._save_project_layer(core, dry_run)
+            await self._save_project_layer(layer_manager, dry_run)
             self._on_run_progress(90)
 
             self._log_info(f"Project is ready: {model.project_file}")
@@ -229,19 +229,49 @@ class ProjectWizardCore:
 
         return None
 
-    async def _create_project_layer(self, project_file, core, context, stage, dry_run):
+    async def _create_project_layer(self, project_file, layer_manager, context, stage, dry_run):
         self._log_info(f"Create project file: {project_file}")
-        project_layer = None
 
         if dry_run:
-            return project_layer, stage
+            return stage
 
-        project_layer = core.create_new_sublayer(_LayerType.workfile, str(project_file), do_undo=False)
+        layer_manager.create_new_sublayer(_LayerType.workfile, str(project_file), do_undo=False)
         await context.open_stage_async(str(project_file))
 
-        return project_layer, context.get_stage()
+        return context.get_stage()
 
-    async def _setup_existing_mod_project(self, core, mod_file, project_directory, project_layer, dry_run):
+    async def _insert_capture_layer(self, capture_core, deps_captures_directory, capture_file, dry_run):
+        if not capture_file:
+            return
+
+        deps_capture_file = deps_captures_directory / capture_file.name
+        self._log_info(f"Add Sub-Layer to Project: {deps_capture_file}")
+
+        if not dry_run:
+            capture_core.import_capture_layer(str(deps_capture_file))
+
+    async def _insert_existing_mods(self, replacement_core, existing_mods, mod_file, mods_directory, dry_run):
+        if not existing_mods:
+            return
+
+        # Reverse the order since replacement layers will be inserted at index 0
+        for mod in reversed(existing_mods):
+            if mod == mod_file:
+                continue
+
+            mod_path = mods_directory / mod.parent.stem / mod.name
+            self._log_info(f"Add Sub-Layer to Project: {mod_path}")
+
+            if not dry_run:
+                replacement_core.import_replacement_layer(
+                    str(mod_path),
+                    use_existing_layer=True,
+                    set_edit_target=False,
+                    replace_existing=False,
+                    sublayer_position=0,
+                )
+
+    async def _setup_existing_mod_project(self, replacement_core, mod_file, project_directory, dry_run):
         self._log_info(f"Copy content of '{mod_file.parent}' to '{project_directory}'")
 
         copy_tree(str(mod_file.parent), str(project_directory), dry_run=dry_run)
@@ -249,67 +279,30 @@ class ProjectWizardCore:
 
         if not dry_run:
             project_mod_file.chmod(stat.S_IREAD | stat.S_IWRITE)
-
-            core.insert_sublayer(
+            replacement_core.import_replacement_layer(
                 str(project_mod_file),
-                _LayerType.replacement,
-                set_as_edit_target=True,
-                parent_layer=project_layer,
-                do_undo=False,
+                use_existing_layer=True,
+                set_edit_target=True,
+                replace_existing=False,
+                sublayer_position=0,
             )
 
         return project_mod_file
 
-    async def _setup_new_mod_project(self, core, project_directory, project_layer, dry_run):
+    async def _setup_new_mod_project(self, replacement_core, project_directory, dry_run):
         mod_file = project_directory / _constants.REMIX_MOD_FILE
         self._log_info(f"Create replacement layer: {mod_file}")
 
         if not dry_run:
-            core.create_new_sublayer(
-                _LayerType.replacement,
+            replacement_core.import_replacement_layer(
                 str(mod_file),
-                set_as_edit_target=True,
-                parent_layer=project_layer,
-                do_undo=False,
+                use_existing_layer=False,
+                set_edit_target=True,
+                replace_existing=False,
+                sublayer_position=0,
             )
+
         return mod_file
-
-    async def _insert_existing_mods(self, core, existing_mods, mod_file, mods_directory, project_layer):
-        if not existing_mods or not project_layer:
-            return
-
-        for mod in existing_mods:
-            if mod == mod_file:
-                continue
-
-            mod_path = mods_directory / mod.parent.stem / mod.name
-            self._log_info(f"Add Sub-Layer to Project: {mod_path}")
-
-            core.insert_sublayer(
-                str(mod_path),
-                _LayerType.replacement,
-                set_as_edit_target=False,
-                parent_layer=project_layer,
-                do_undo=False,
-            )
-
-    async def _insert_capture_layer(self, core, deps_captures_directory, capture_file, project_layer):
-        if not capture_file or not project_layer:
-            return
-
-        deps_capture_file = deps_captures_directory / capture_file.name
-        self._log_info(f"Add Sub-Layer to Project: {deps_capture_file}")
-
-        core.insert_sublayer(
-            str(deps_capture_file),
-            _LayerType.capture,
-            set_as_edit_target=False,
-            parent_layer=project_layer,
-            do_undo=False,
-        )
-
-        self._log_info(f"Lock Capture Layer: {deps_capture_file}")
-        core.lock_layer(_LayerType.capture, do_undo=False)
 
     async def _save_authoring_layer(self, mod_file, stage, dry_run):
         self._log_info(f"Save Active Edit Target to Project: {mod_file}")
@@ -319,10 +312,10 @@ class ProjectWizardCore:
 
         _LayerUtils.save_authoring_layer_to_custom_data(stage)
 
-    async def _save_project_layer(self, core, dry_run):
+    async def _save_project_layer(self, layer_manager, dry_run):
         self._log_info("Save the project file content")
 
         if dry_run:
             return
 
-        core.save_layer(_LayerType.workfile)
+        layer_manager.save_layer(_LayerType.workfile)

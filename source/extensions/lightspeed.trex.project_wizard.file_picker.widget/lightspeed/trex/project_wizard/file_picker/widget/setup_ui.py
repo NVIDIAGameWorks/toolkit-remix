@@ -131,7 +131,7 @@ class FilePickerWidget:
             self.__path_selected_callback,
             lambda *_: None,
             apply_button_label=self._apply_button_label,
-            file_extension_options=_constants.SAVE_USD_FILE_EXTENSIONS_OPTIONS,
+            file_extension_options=[] if self._select_directory else _constants.SAVE_USD_FILE_EXTENSIONS_OPTIONS,
             select_directory=self._select_directory,
             validate_selection=self.__validate_dialog_selection,
             validation_failed_callback=self.__show_validation_failed_dialog,

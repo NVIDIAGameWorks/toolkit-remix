@@ -55,9 +55,10 @@ class LayerManagerCore:
         layer_type: LayerType,
         path: str = None,
         set_as_edit_target: bool = True,
-        sublayer_create_position=0,
-        parent_layer=None,
-        do_undo=True,
+        sublayer_create_position: int = 0,
+        parent_layer: Optional[Sdf.Layer] = None,
+        do_undo: bool = True,
+        replace_existing: bool = True,
     ):
         if do_undo:
             omni.kit.undo.begin_group()
@@ -68,6 +69,7 @@ class LayerManagerCore:
                     sublayer_create_position=sublayer_create_position,
                     parent_layer=parent_layer,
                     do_undo=False,
+                    replace_existing=replace_existing,
                 )
                 if set_as_edit_target:
                     self.set_edit_target_layer(

@@ -61,19 +61,30 @@ class Setup:
             return False
         return True
 
-    def import_replacement_layer(self, path: str, use_existing_layer: bool = True):
+    def import_replacement_layer(
+        self,
+        path: str,
+        use_existing_layer: bool = True,
+        set_edit_target: bool = False,
+        replace_existing: bool = True,
+        sublayer_position: int = -1,
+    ):
         capture_layer = self._layer_manager.get_layer(LayerType.capture)
         if not capture_layer:
-            carb.log_error(
-                "A capture layer has to be in the stage before to create a replacement layer.\n"
-                "Please import a capture layer."
-            )
+            carb.log_error("A capture layer must be imported in the stage before a replacement layer can be imported.")
             return
 
-        self._layer_manager.remove_layer(LayerType.replacement)
+        if replace_existing:
+            self._layer_manager.remove_layer(LayerType.replacement)
+
         if use_existing_layer:
             carb.log_info(f"Importing mod layer {path}")
-            layer = self._layer_manager.insert_sublayer(path, LayerType.replacement, sublayer_insert_position=0)
+            layer = self._layer_manager.insert_sublayer(
+                path,
+                LayerType.replacement,
+                set_as_edit_target=set_edit_target,
+                sublayer_insert_position=sublayer_position,
+            )
             carb.log_info("Ok")
         else:
             carb.log_info(f"Creating a new mod layer {path}")
@@ -81,22 +92,36 @@ class Setup:
             if existing_layer:
                 existing_layer.Clear()
             layer = self._layer_manager.create_new_sublayer(
-                LayerType.replacement, path=path, sublayer_create_position=0
+                LayerType.replacement,
+                path=path,
+                set_as_edit_target=set_edit_target,
+                replace_existing=replace_existing,
+                sublayer_create_position=sublayer_position,
             )
             carb.log_info("Ok")
+
         # replacement layer needs to have the same TimeCodesPerSecond as the capture layer
         # for reference deletion to work. See OM-42663 for more info.
         capture_stage = Usd.Stage.Open(capture_layer.realPath)
         time_codes = capture_stage.GetTimeCodesPerSecond()
         replacement_stage = Usd.Stage.Open(layer.realPath)
         replacement_stage.SetTimeCodesPerSecond(time_codes)
+
         layer_instance = self._layer_manager.get_layer_instance(LayerType.replacement)
         if layer_instance is None:
             carb.log_error(f"Can't find a layer schema type {LayerType.replacement.value}")
             return
+
         layer_instance.set_custom_layer_data(
             {LSS_LAYER_GAME_NAME: self._layer_manager.get_game_name_from_path(capture_layer.realPath)}
         )
+        custom_layer_data = layer.customLayerData
+        custom_data_layer_inst = layer_instance.get_custom_layer_data()
+        if custom_data_layer_inst:
+            custom_layer_data.update(custom_data_layer_inst)
+        layer.customLayerData = custom_layer_data
+
+        layer.Save()
 
     @staticmethod
     def is_mod_file(path: str) -> bool:

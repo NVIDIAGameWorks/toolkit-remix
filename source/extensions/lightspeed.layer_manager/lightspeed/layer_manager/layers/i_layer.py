@@ -8,7 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import abc
-from typing import Dict
+from typing import TYPE_CHECKING, Dict, Optional
 
 import omni.kit.commands
 import omni.kit.undo
@@ -17,6 +17,9 @@ import six
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 from ..layer_types import LayerType, LayerTypeKeys
+
+if TYPE_CHECKING:
+    from pxr import Sdf
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -57,12 +60,20 @@ class ILayer:
                     continue
                 omni.client.delete(layer.realPath)
 
-    def create_sublayer(self, path: str = None, sublayer_create_position=0, parent_layer=None, do_undo=True):
+    def create_sublayer(
+        self,
+        path: str = None,
+        sublayer_create_position: int = 0,
+        parent_layer: Optional["Sdf.Layer"] = None,
+        do_undo: bool = True,
+        replace_existing: bool = True,
+    ):
         if do_undo:
             omni.kit.undo.begin_group()
-        need_new_layer = self._core.get_layer(self.layer_type)
-        if need_new_layer is not None:
-            self._core.remove_layer(self.layer_type, do_undo=False)
+        if replace_existing:
+            need_new_layer = self._core.get_layer(self.layer_type)
+            if need_new_layer is not None:
+                self._core.remove_layer(self.layer_type, do_undo=False)
         usd_context = omni.usd.get_context(self._core.context_name or "")
         stage = usd_context.get_stage()
         if not parent_layer:
