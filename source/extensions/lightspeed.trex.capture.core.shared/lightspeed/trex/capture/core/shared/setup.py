@@ -126,7 +126,7 @@ class Setup:
         capture_stage = Usd.Stage.Open(path)
         self.__copy_metadata_from_stage_to_stage(capture_stage, stage)
 
-        # delete existing one is exist
+        # delete existing one if exists
         self._layer_manager.remove_layer(LayerType.capture)
         # add the capture layer
         self._layer_manager.insert_sublayer(

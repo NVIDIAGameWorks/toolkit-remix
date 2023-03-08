@@ -64,7 +64,9 @@ class WizardMockContext:
             self._progress_mock = patch.object(ProjectWizardCore, "_on_run_progress")
             self._finished_mock = patch.object(ProjectWizardCore, "_on_run_finished")
         self._schema_mock = patch("lightspeed.trex.project_wizard.core.wizard._ProjectWizardSchema")
-        self._core_mock = patch("lightspeed.trex.project_wizard.core.wizard._LayerManager")
+        self._layer_manager_mock = patch("lightspeed.trex.project_wizard.core.wizard._LayerManager")
+        self._capture_core_mock = patch("lightspeed.trex.project_wizard.core.wizard._CaptureCore")
+        self._replacement_core_mock = patch("lightspeed.trex.project_wizard.core.wizard._ReplacementCore")
         self._log_error_mock = patch.object(carb, "log_error")
         self._save_custom_data_mock = patch.object(LayerUtils, "save_authoring_layer_to_custom_data")
         self._copy_tree_mock = patch("lightspeed.trex.project_wizard.core.wizard.copy_tree")
@@ -89,7 +91,9 @@ class WizardMockContext:
             self.progress_mock = self._progress_mock.start()
             self.finished_mock = self._finished_mock.start()
         self.schema_mock = self._schema_mock.start()
-        self.core_mock = self._core_mock.start()
+        self.layer_manager_mock = self._layer_manager_mock.start()
+        self.capture_core_mock = self._capture_core_mock.start()
+        self.replacement_core_mock = self._replacement_core_mock.start()
         self.log_error_mock = self._log_error_mock.start()
         self.save_custom_data_mock = self._save_custom_data_mock.start()
         self.copy_tree_mock = self._copy_tree_mock.start()
@@ -102,22 +106,25 @@ class WizardMockContext:
         # Setup mocks
         if self.__mock_wizard_methods:
             generic_wizard_future = asyncio.Future()
-            generic_wizard_future.set_result(None)
-            self.create_symlinks_mock.return_value = generic_wizard_future
+            generic_wizard_future.set_result(Mock())
+            self.create_project_mock.return_value = generic_wizard_future
             self.insert_existing_mods_mock.return_value = generic_wizard_future
             self.insert_capture_layer_mock.return_value = generic_wizard_future
             self.save_authoring_layer_mock.return_value = generic_wizard_future
             self.save_project_layer_mock.return_value = generic_wizard_future
 
-            tuple_wizard_future = asyncio.Future()
-            tuple_wizard_future.set_result((Mock(), Mock()))
-            self.setup_usd_mock.return_value = tuple_wizard_future
-            self.create_project_mock.return_value = tuple_wizard_future
+            symlink_error_future = asyncio.Future()
+            symlink_error_future.set_result(None)
+            self.create_symlinks_mock.return_value = symlink_error_future
 
-            mod_wizard_future = asyncio.Future()
-            mod_wizard_future.set_result(Mock())
-            self.setup_existing_mod_mock.return_value = mod_wizard_future
-            self.setup_new_mod_mock.return_value = mod_wizard_future
+            setup_usd_future = asyncio.Future()
+            setup_usd_future.set_result((Mock(), Mock()))
+            self.setup_usd_mock.return_value = setup_usd_future
+
+            setup_mod_future = asyncio.Future()
+            setup_mod_future.set_result(Mock())
+            self.setup_existing_mod_mock.return_value = setup_mod_future
+            self.setup_new_mod_mock.return_value = setup_mod_future
 
         self.schema_mock.return_value = self.__schema_mock
 
@@ -148,7 +155,9 @@ class WizardMockContext:
             self._progress_mock.stop()
             self._finished_mock.stop()
         self._schema_mock.stop()
-        self._core_mock.stop()
+        self._layer_manager_mock.stop()
+        self._capture_core_mock.stop()
+        self._replacement_core_mock.stop()
         self._save_custom_data_mock.stop()
         self._copy_tree_mock.stop()
         self._check_call_mock.stop()
