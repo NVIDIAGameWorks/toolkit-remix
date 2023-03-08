@@ -36,6 +36,7 @@ class SetupUI:
         for component_type, frame in self._all_frames.items():  # noqa: R503
             if component_type == component_type_value:
                 return frame
+        return None
 
     def __create_ui(self):
         with ui.ZStack():
