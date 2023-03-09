@@ -17,15 +17,13 @@ keywords = ["lightspeed", "rtx", "remix", "project", "wizard", "core"]
 
 [dependencies]
 "lightspeed.common" = {}
+"lightspeed.layer_manager" = {}
+"lightspeed.pip_archive" = {}  # for pydantic
 "lightspeed.trex.capture.core.shared" = {}
 "lightspeed.trex.replacement.core.shared" = {}
-"lightspeed.layer_manager" = {}
 "omni.client" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.usd.layers" = {}
 
 [[python.module]]
 name = "lightspeed.trex.project_wizard.core"
-
-[[python.module]]
-path = "pip_prebundle"

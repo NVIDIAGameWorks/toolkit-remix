@@ -7,7 +7,6 @@ project_ext (ext)
         { "apps", ext.target_dir.."/apps" },
         { "bin", ext.target_dir.."/bin" },
         { "lightspeed", ext.target_dir.."/lightspeed" },
-        { "%{root}/_build/target-deps/pip_prebundle", ext.target_dir.."/pip_prebundle" },
     }
 
 local args_cli = args or {}
