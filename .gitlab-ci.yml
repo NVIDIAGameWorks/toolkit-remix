@@ -1,4 +1,5 @@
 .defaults:
+  interruptible: true
   only:
     - merge_requests
   dependencies: []
