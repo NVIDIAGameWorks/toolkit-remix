@@ -19,7 +19,7 @@ import omni.usd
 from lightspeed.common import constants
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.layer_types import LayerType, LayerTypeKeys
-from lightspeed.upscale.core import UpscalerCore
+from lightspeed.upscale.core import UpscaleModels, UpscalerCore
 from omni.flux.utils.common import async_wrap as _async_wrap
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from PIL import Image
@@ -110,7 +110,7 @@ class Setup:
             im1.save(png_file)
             im1.close()
             # we upscale
-            UpscalerCore().perform_upscale(png_file, str(upscaled_path))
+            UpscalerCore.perform_upscale(UpscaleModels.ESRGAN.value, png_file, str(upscaled_path))
         return str(upscaled_path)
 
     @omni.usd.handle_exception

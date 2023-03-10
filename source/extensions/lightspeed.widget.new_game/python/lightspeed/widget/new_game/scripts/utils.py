@@ -14,7 +14,7 @@ from typing import Optional
 import carb
 import carb.tokens
 import omni.client
-from lightspeed.upscale.core import UpscalerCore
+from lightspeed.upscale.core import UpscaleModels, UpscalerCore
 from PIL import Image
 
 
@@ -95,7 +95,7 @@ def get_upscaled_game_icon_from_capture_folder(capture_folder_path: str) -> Opti
         im1.save(png_file)
         im1.close()
         # we upscale
-        UpscalerCore().perform_upscale(png_file, str(upscaled_path))
+        UpscalerCore.perform_upscale(UpscaleModels.ESRGAN.value, png_file, str(upscaled_path))
     return str(upscaled_path)
 
 
