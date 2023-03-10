@@ -1,4 +1,5 @@
 import asyncio
+from functools import partial
 from pathlib import Path
 from typing import List
 
@@ -9,7 +10,7 @@ from lightspeed.common import constants
 from lightspeed.error_popup.window import ErrorPopup
 from lightspeed.layer_helpers import LightspeedTextureProcessingCore
 from lightspeed.progress_popup.window import ProgressPopup
-from lightspeed.upscale.core import UpscalerCore
+from lightspeed.upscale.core import UpscaleModels, UpscalerCore
 from omni.kit.window.toolbar.widget_group import WidgetGroup
 from pxr import UsdShade
 
@@ -62,7 +63,7 @@ class MaterialButtons:
         self._upscale_progress_bar.set_progress(0)
         self._upscale_progress_bar.show()
         processing_config = (
-            UpscalerCore.perform_upscale,
+            partial(UpscalerCore.perform_upscale, UpscaleModels.ESRGAN.value),
             constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
             constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
             "_upscaled4x.png",

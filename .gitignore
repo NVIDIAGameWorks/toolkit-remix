@@ -103,3 +103,6 @@ PACKAGE-DEPS.yaml
 
 # kit logs
 source/logs/
+
+# Upscale log output
+outputs/
