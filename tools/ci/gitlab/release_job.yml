@@ -6,7 +6,6 @@ release_job:
     - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == "dev/kupu/add_release_capabilties" 
   needs:
     - job: prepare_job
-      artifacts: true
   tags:
     - agent02
   script:
