@@ -6,7 +6,7 @@ release_job:
     - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps" 
   needs:
     - job: prepare_job
-      artifacts: false
+      artifacts: true
   tags:
     - agent02
   script:
