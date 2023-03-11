@@ -99,8 +99,6 @@ timeout = 1800
 
 [repo_package]
 windows_max_path_length = 240
-repo_id = 51138
-private_token = "${GITLAB_PRIVATE_TOKEN}"
 
 [repo_package.packages.main_package]
 # package content
@@ -121,8 +119,6 @@ release.files_exclude = [
 omniverse_flow_version_scheme = true
 archive_format = "zip"
 strip_package_infos = true
-repo_id = 51138
-private_token = "${GITLAB_PRIVATE_TOKEN}"
 
 ########################################################################################################################
 # Changelog generation
@@ -133,20 +129,6 @@ changelog_gitlab_repo_id = 51138
 
 [repo_changelog.packages.main_package]
 enabled = true
-
-########################################################################################################################
-# Publishing
-########################################################################################################################
-
-[repo_kit_publish]
-default_remote = "gitlab"
-search_for_labels = false
-
-[repo_kit_publish.packages.main_package]
-enabled = true
-changelog_gitlab_write = true
-changelog_gitlab_repo_id = 51138
-
 
 ########################################################################################################################
 # Extensions publisher

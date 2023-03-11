@@ -12,8 +12,6 @@ prepare_job:
     - .\build.bat --clean
     - .\build.bat --release
     - .\repo.bat package -m main_package
-  artifacts:
-    paths:
-      - \_build\packages\
+    - .\repo.bat publish
     reports:
       dotenv: variables.env
