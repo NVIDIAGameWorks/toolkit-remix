@@ -17,5 +17,5 @@ release_job:
     description: 'version ${RELEASE_VERSION}'
     assets:
       links:
-        - name: '${RELEASE_VERSION}'
+        - name: 'v${RELEASE_VERSION}'
           url: 'http://packman.ov.nvidia.com/packages/rtx_remix/'
