@@ -1,0 +1,19 @@
+prepare_job:
+  stage: prepare                                              # This stage must run before the release stage
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
+      when: manual
+  script:
+    - $rel_version = Get-Content -Path ".\VERSION.md"         # Set release version variable
+    - $env:REL_VERSION = $rel_version
+    - echo "RELEASE_VERSION=$rel_version" | Set-Content variables.env
+    - $env:GITLAB_PRIVATE_TOKEN = ${GITLAB_PRIVATE_TOKEN}
+    - $env:GITLAB_PROJECT = ${GITLAB_PROJECT}
+    - .\build.bat --clean
+    - .\build.bat --release
+    - .\repo.bat package -m main_package
+  artifacts:
+    paths:
+      - \_build\packages\
+    reports:
+      dotenv: variables.env
