@@ -13,5 +13,6 @@ prepare_job:
     - .\build.bat --release
     - .\repo.bat package -m main_package
     - .\repo.bat publish
+  artifacts:
     reports:
       dotenv: variables.env
