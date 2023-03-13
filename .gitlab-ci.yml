@@ -22,6 +22,6 @@ include:
   - local: tools/ci/gitlab/build_test.yml
   - local: tools/ci/gitlab/pkg_publish.yml
   - local: tools/ci/gitlab/manual_package.yml
-  - local: tools/ci/gitlab/prepare_job.yml
-  - local: tools/ci/gitlab/release_job.yml
+  #- local: tools/ci/gitlab/prepare_job.yml
+  - local: tools/ci/gitlab/prep_release.yml
 #  - local: tools/ci/gitlab/signing.yml

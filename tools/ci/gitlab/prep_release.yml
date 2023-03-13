@@ -1,0 +1,50 @@
+prepare_job:
+  stage: prepare                                              
+  rules:                                      
+    - if: $CI_PIPELINE_SOURCE == "web"
+#    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
+#      changes:
+#        - VERSION.md
+#      when: manual
+#      allow_failure: false
+  script:
+    - $rel_version = Get-Content -Path ".\VERSION.md"
+    - $env:REL_VERSION = $rel_version
+    - echo "RELEASE_VERSION=$rel_version" | Set-Content variables.env
+    - $env:GITLAB_AUTH_TOKEN = ${GITLAB_PRIVATE_TOKEN}
+    - echo "GITLAB_AUTH_TOKEN=${GITLAB_PRIVATE_TOKEN}" | Set-Content variables.env
+    - $env:GITLAB_PROJECT = ${GITLAB_PROJECT}
+    - echo "GITLAB_PROJECT=${GITLAB_PROJECT}" | Set-Content variables.env
+#    - .\build.bat --clean
+#    - .\build.bat --release
+#    - .\repo.bat changelog --source gitlab --target changelog_db --version_source version_file
+#    - .\repo.bat package -m main_package
+#    - .\repo.bat publish
+  artifacts:
+    when: always
+    reports:
+      dotenv: variables.env
+
+release_job:
+  stage: release
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+#    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
+  needs:
+    - job: prepare_job
+      artifacts: true
+  tags:
+    - rmx-agent01
+  script:
+    - echo "Creating release for Test version v.${RELEASE_VERSION}"
+  variables:
+    RELEASE_VERSION: ${RELEASE_VERSION}
+  release:
+    name: 'Test Release v.${RELEASE_VERSION}'
+    tag_name: v.${RELEASE_VERSION}
+    description: "Test version v.${RELEASE_VERSION}"
+    assets:
+      links:
+        - name: "v.${RELEASE_VERSION}"
+          url: "http://packman.ov.nvidia.com/packages/rtx_remix/"
+          linktype: "package"
