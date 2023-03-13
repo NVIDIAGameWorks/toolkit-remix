@@ -1,8 +1,8 @@
 prepare_job:
   stage: prepare                                              
   rules:                                      
-    - if: $CI_PIPELINE_SOURCE == "web"
-#    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
+#    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
 #      changes:
 #        - VERSION.md
 #      when: manual
@@ -21,15 +21,14 @@ prepare_job:
 #    - .\repo.bat package -m main_package
 #    - .\repo.bat publish
   artifacts:
-    when: always
     reports:
       dotenv: variables.env
 
 release_job:
   stage: release
   rules:
-    - if: $CI_PIPELINE_SOURCE == "web"
-#    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
+#    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
   needs:
     - job: prepare_job
       artifacts: true
