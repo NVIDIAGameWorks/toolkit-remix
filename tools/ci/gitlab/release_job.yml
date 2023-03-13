@@ -11,11 +11,13 @@ release_job:
     - agent02
   script:
     - echo "${RELEASE_VERSION}"
-  release:
-    name: 'Test Release ${RELEASE_VERSION}' 
-    tag_name: 'v${RELEASE_VERSION}'
-    description: 'version ${RELEASE_VERSION}'
-    assets:
-      links:
-        - name: 'v${RELEASE_VERSION}'
-          url: 'http://packman.ov.nvidia.com/packages/rtx_remix/'
+#  release:
+#    name: 'Test Release ${RELEASE_VERSION}' 
+#    tag_name: 'v${RELEASE_VERSION}'
+#    description: 'version ${RELEASE_VERSION}'
+#    assets:
+#      links:
+#        - name: 'v${RELEASE_VERSION}'
+#          url: 'http://packman.ov.nvidia.com/packages/rtx_remix/'
+#          linktype: 'package'
+#
