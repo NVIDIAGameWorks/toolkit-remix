@@ -4,7 +4,7 @@ prepare_job:
     - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
       when: manual
   script:
-    - echo "${CI_MERGE_REQUEST_TARGET_BRANCH_SHA}"
+    - echo "The target branch head SHA is ${CI_MERGE_REQUEST_TARGET_BRANCH_SHA}"
 #    - $rel_version = Get-Content -Path ".\VERSION.md"         # Set release version variable
 #    - $env:REL_VERSION = $rel_version
 #    - echo "RELEASE_VERSION=$rel_version" | Set-Content variables.env
