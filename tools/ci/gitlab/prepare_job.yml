@@ -1,13 +1,13 @@
 prepare_job:
   stage: prepare                                              
   rules:                                      
-    - if: $CI_COMMIT_SOURCE == "web"
+    - if: $CI_COMMIT_SOURCE == "web" && $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
       when: manual
-    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
-      changes:
-        - VERSION.md
-      when: manual
-      allow_failure: false
+#    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
+#      changes:
+#        - VERSION.md
+#      when: manual
+#      allow_failure: false
   script:
     - $rel_version = Get-Content -Path ".\VERSION.md"
     - $env:REL_VERSION = $rel_version
@@ -22,5 +22,6 @@ prepare_job:
 #    - .\repo.bat package -m main_package
 #    - .\repo.bat publish
   artifacts:
+    when: always
     reports:
       dotenv: variables.env

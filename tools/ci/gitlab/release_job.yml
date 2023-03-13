@@ -1,7 +1,7 @@
 release_job:
   stage: release
   rules:                                      # Do not run this job when a tag is created manually
-    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
+    - if: $CI_COMMIT_SOURCE == "web" && $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
   needs:
     - job: prepare_job
       artifacts: true
