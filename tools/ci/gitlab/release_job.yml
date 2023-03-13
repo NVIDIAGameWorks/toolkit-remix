@@ -6,15 +6,15 @@ release_job:
     - job: prepare_job
       artifacts: true
   tags:
-    - rmx-agent01
+    - agent02
   script:
     - echo "Creating release for Test version v.${RELEASE_VERSION}"
   release:
-    name: 'Test Release v.$RELEASE_VERSION' 
-    tag_name: 'v.$RELEASE_VERSION'
-    description: 'Test version v.$RELEASE_VERSION'
+    name: "Test Release v.${RELEASE_VERSION}" 
+    tag_name: "v.${RELEASE_VERSION}"
+    description: "Test version v.${RELEASE_VERSION}"
     assets:
       links:
-        - name: 'v.$RELEASE_VERSION'
-          url: 'http://packman.ov.nvidia.com/packages/rtx_remix/'
-          linktype: 'package'
+        - name: "v.${RELEASE_VERSION}"
+          url: "http://packman.ov.nvidia.com/packages/rtx_remix/"
+          linktype: "package"
