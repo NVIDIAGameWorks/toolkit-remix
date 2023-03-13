@@ -9,9 +9,11 @@ release_job:
     - agent02
   script:
     - echo "Creating release for Test version v.${RELEASE_VERSION}"
+  variables:
+    RELEASE_VERSION: ${RELEASE_VERSION}
   release:
-    name: "Test Release v.${RELEASE_VERSION}" 
-    tag_name: "v.${RELEASE_VERSION}"
+    name: 'Test Release v.${RELEASE_VERSION}'
+    tag_name: v.${RELEASE_VERSION}
     description: "Test version v.${RELEASE_VERSION}"
     assets:
       links:
