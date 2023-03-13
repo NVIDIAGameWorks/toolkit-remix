@@ -1,8 +1,9 @@
 prepare_job:
   stage: prepare                                              
   rules:                                      
-#    - if: $CI_PIPELINE_SOURCE == "web"
-    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+#    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
 #      changes:
 #        - VERSION.md
 #      when: manual
@@ -10,17 +11,18 @@ prepare_job:
   script:
     - $rel_version = Get-Content -Path ".\VERSION.md"
     - $env:REL_VERSION = $rel_version
-    - echo "RELEASE_VERSION=$rel_version" | Out-File -FilePath variables.env
-#    - $env:GITLAB_AUTH_TOKEN = ${GITLAB_PRIVATE_TOKEN}
-#    - echo "GITLAB_AUTH_TOKEN=${GITLAB_PRIVATE_TOKEN}" | Out-File -FilePath variables.env -Append
-#    - $env:GITLAB_PROJECT = ${GITLAB_PROJECT}
-#    - echo "GITLAB_PROJECT=${GITLAB_PROJECT}" | Out-File -FilePath variables.env -Append
+    - echo "RELEASE_VERSION=$rel_version" | Set-Content variables.env
+    - $env:GITLAB_AUTH_TOKEN = ${GITLAB_PRIVATE_TOKEN}
+    - echo "GITLAB_AUTH_TOKEN=${GITLAB_PRIVATE_TOKEN}" | Set-Content variables.env
+    - $env:GITLAB_PROJECT = ${GITLAB_PROJECT}
+    - echo "GITLAB_PROJECT=${GITLAB_PROJECT}" | Set-Content variables.env
 #    - .\build.bat --clean
 #    - .\build.bat --release
 #    - .\repo.bat changelog --source gitlab --target changelog_db --version_source version_file
 #    - .\repo.bat package -m main_package
 #    - .\repo.bat publish
   artifacts:
+    when: always
     reports:
       dotenv: variables.env
 
