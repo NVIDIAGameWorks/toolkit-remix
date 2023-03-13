@@ -1,7 +1,7 @@
 prepare_job:
   stage: prepare                                              
   rules:                                      
-    - if: $CI_COMMIT_SOURCE == "web" && $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
+    - if: $CI_COMMIT_SOURCE == "web"
       when: manual
 #    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
 #      changes:
