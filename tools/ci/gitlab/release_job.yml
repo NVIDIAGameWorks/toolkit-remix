@@ -6,7 +6,7 @@ release_job:
     - job: prepare_job
       artifacts: true
   tags:
-    - agent02
+    - rmx-agent01
   script:
     - echo "Creating release for Test version v.${RELEASE_VERSION}"
   release:

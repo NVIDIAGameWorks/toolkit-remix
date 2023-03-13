@@ -1,6 +1,8 @@
 prepare_job:
   stage: prepare                                              
   rules:                                      
+    - if: $CI_COMMIT_SOURCE == "web"
+      when: manual
     - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
       changes:
         - VERSION.md
@@ -14,11 +16,11 @@ prepare_job:
     - echo "GITLAB_AUTH_TOKEN=${GITLAB_PRIVATE_TOKEN}" | Set-Content variables.env
     - $env:GITLAB_PROJECT = ${GITLAB_PROJECT}
     - echo "GITLAB_PROJECT=${GITLAB_PROJECT}" | Set-Content variables.env
-    - .\build.bat --clean
-    - .\build.bat --release
-    - .\repo.bat changelog --source gitlab --target changelog_db --version_source version_file
-    - .\repo.bat package -m main_package
-    - .\repo.bat publish
+#    - .\build.bat --clean
+#    - .\build.bat --release
+#    - .\repo.bat changelog --source gitlab --target changelog_db --version_source version_file
+#    - .\repo.bat package -m main_package
+#    - .\repo.bat publish
   artifacts:
     reports:
       dotenv: variables.env
