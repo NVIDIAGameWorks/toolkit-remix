@@ -119,6 +119,7 @@ release.files_exclude = [
 omniverse_flow_version_scheme = true
 archive_format = "zip"
 strip_package_infos = true
+private_token = "${GITLAB_AUTH_TOKEN}"
 
 ########################################################################################################################
 # Changelog generation
@@ -126,6 +127,7 @@ strip_package_infos = true
 
 [repo_changelog]
 changelog_gitlab_repo_id = 51138
+private_token = "${GITLAB_AUTH_TOKEN}"
 
 [repo_changelog.packages.main_package]
 enabled = true

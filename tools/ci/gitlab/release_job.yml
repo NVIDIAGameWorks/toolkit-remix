@@ -1,23 +1,20 @@
 release_job:
   stage: release
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: never                                             # Do not run this job when a tag is created manually
-    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps" 
+  rules:                                      # Do not run this job when a tag is created manually
+    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
   needs:
     - job: prepare_job
       artifacts: true
   tags:
     - agent02
   script:
-    - echo "${RELEASE_VERSION}"
-#  release:
-#    name: 'Test Release ${RELEASE_VERSION}' 
-#    tag_name: 'v${RELEASE_VERSION}'
-#    description: 'version ${RELEASE_VERSION}'
-#    assets:
-#      links:
-#        - name: 'v${RELEASE_VERSION}'
-#          url: 'http://packman.ov.nvidia.com/packages/rtx_remix/'
-#          linktype: 'package'
-#
+    - echo "Creating release for Test version v.${RELEASE_VERSION}"
+  release:
+    name: 'Test Release v.${RELEASE_VERSION}' 
+    tag_name: 'v.${RELEASE_VERSION}'
+    description: 'Test version v.${RELEASE_VERSION}'
+    assets:
+      links:
+        - name: 'v.${RELEASE_VERSION}'
+          url: 'http://packman.ov.nvidia.com/packages/rtx_remix/'
+          linktype: 'package'
