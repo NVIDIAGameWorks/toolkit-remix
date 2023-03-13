@@ -12,9 +12,9 @@ prepare_job:
     - $env:REL_VERSION = $rel_version
     - echo "RELEASE_VERSION=$rel_version" | Out-File -FilePath variables.env
     - $env:GITLAB_AUTH_TOKEN = ${GITLAB_PRIVATE_TOKEN}
-    - echo "GITLAB_AUTH_TOKEN=${GITLAB_PRIVATE_TOKEN}" | Out-File -FilePath variables.env
+    - echo "GITLAB_AUTH_TOKEN=${GITLAB_PRIVATE_TOKEN}" | Out-File -FilePath variables.env -Append
     - $env:GITLAB_PROJECT = ${GITLAB_PROJECT}
-    - echo "GITLAB_PROJECT=${GITLAB_PROJECT}" | Out-File -FilePath variables.env
+    - echo "GITLAB_PROJECT=${GITLAB_PROJECT}" | Out-File -FilePath variables.env -Append
 #    - .\build.bat --clean
 #    - .\build.bat --release
 #    - .\repo.bat changelog --source gitlab --target changelog_db --version_source version_file
