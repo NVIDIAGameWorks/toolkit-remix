@@ -3,6 +3,8 @@ release_job:
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
 #    - if: $CI_COMMIT_BRANCH == "dev/kupu/add_release_caps"
+  dependencies:
+    - prepare_job
   tags:
     - rmx-agent01
   script:
