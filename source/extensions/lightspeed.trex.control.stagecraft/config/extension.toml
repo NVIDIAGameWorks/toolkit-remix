@@ -1,0 +1,31 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix control for the StageCraft"
+description = "Control will connect back end and front end for Lightspeed RTX Remix StageCraft App"
+
+[dependencies]
+"lightspeed.layer_manager" = {}
+"lightspeed.trex.capture.core.shared" = {}
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.layout.stagecraft" = {}
+"lightspeed.trex.menu.workfile" = {}
+"lightspeed.trex.project_wizard.window" = {}
+"lightspeed.trex.replacement.core.shared" = {}
+"lightspeed.trex.stage.core.shared" = {}
+"lightspeed.trex.utils.widget" = {}
+"omni.flux.utils.common" = {}
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style"
+]
+args = [
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window"
+]
+
+[[python.module]]
+name = "lightspeed.trex.control.stagecraft"

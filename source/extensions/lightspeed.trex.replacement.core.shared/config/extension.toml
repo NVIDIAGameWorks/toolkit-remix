@@ -1,0 +1,23 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix replacement/mod extension for the StageCraft"
+description = "Extension that works on replacement data for Lightspeed RTX Remix StageCraft App"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.layer_manager" = {}
+"omni.client" = {}
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+[[test]]
+stdoutFailPatterns.exclude = [
+    "*' is not valid*",  # Exclude error log for invalid replacement layer path
+    "*' is not a USD path*",  # Exclude error log for non-usd replacement layer path
+    "*' is not writeable*",  # Exclude error log for non-writable replacement layer path
+    "*' is in the * directory*",  # Exclude error log for replacement layer in capture directory
+    "*' is in a * directory*",  # Exclude error log for replacement layer in gameReadyAssets directory
+]
+
+[[python.module]]
+name = "lightspeed.trex.replacement.core.shared"

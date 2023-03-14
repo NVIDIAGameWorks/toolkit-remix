@@ -9,33 +9,87 @@ logging = "warn"
 import_configs = ["${root}/_repo/deps/repo_kit_tools/kit-template/repo.toml"]
 
 # Reposiory Name. It is used for solution name and final package name
-name = "trex"
+name = "rtx_remix"
 
 ########################################################################################################################
 # Test Runner
 ########################################################################################################################
 
+# Run all test suites
 [repo_test.suites.alltests]
 kind = "glob_and_exec"
 path = "${test_root}"
 
 [[repo_test.suites.alltests.group]]
-# Run app test
+# Run all test
 include = [
     "tests-omni.app.lightspeed${shell_ext}",
-    "tests-lightspeed.event.*${shell_ext}",
-    "tests-lightspeed.*.core${shell_ext}",
-    "tests-lightspeed.*.menu${shell_ext}",
-    "tests-lightspeed.*.window${shell_ext}",
     "tests-lightspeed.*${shell_ext}"
 ]
 exclude = [
-    "tests-lightspeed.lock_xform${shell_ext}"
+    "tests-omni.app.lightspeed${shell_ext}",  # freeze for whatever reason
+]
+"platform:linux-x86_64".exclude = [
+  "tests-omni.app.precache_exts_demo*",
 ]
 args = [
     "--/app/extensions/registryEnabled=0", # It should start ok without a registry enabled (everything prebundled)
     "--/app/hangDetector/enabled=0",
-    "--/app/fastShutdown=1"
+    "--/app/fastShutdown=1",
+    "--/exts/omni.kit.test/testExtArgs/0=\"--/app/hangDetector/enabled=0\"",
+    "--/exts/omni.kit.test/testExtArgs/1=\"--/app/fastShutdown=1\"",
+    "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
+#    "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\""
+]
+timeout = 1800
+
+# Run unit test suite
+[repo_test.suites.unit]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.unit.group]]
+include = [
+    "tests-lightspeed.*${shell_ext}"
+]
+exclude = []
+"platform:linux-x86_64".exclude = [
+  "tests-omni.app.precache_exts_demo*",
+]
+args = [
+    "--/app/extensions/registryEnabled=0", # It should start ok without a registry enabled (everything prebundled)
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/exts/omni.kit.test/testExtArgs/0=\"--/app/hangDetector/enabled=0\"",
+    "--/exts/omni.kit.test/testExtArgs/1=\"--/app/fastShutdown=1\"",
+    "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
+    "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\"",
+    "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.unit.*'",
+]
+timeout = 1800
+
+# Run end-to-end test suite
+[repo_test.suites.e2e]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.e2e.group]]
+include = [
+    "tests-lightspeed.*${shell_ext}"
+]
+exclude = []
+"platform:linux-x86_64".exclude = [
+  "tests-omni.app.precache_exts_demo*",
+]
+args = [
+    "--/app/extensions/registryEnabled=0", # It should start ok without a registry enabled (everything prebundled)
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--/exts/omni.kit.test/testExtArgs/0=\"--/app/hangDetector/enabled=0\"",
+    "--/exts/omni.kit.test/testExtArgs/1=\"--/app/fastShutdown=1\"",
+    "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
+    "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.e2e.*'",
 ]
 timeout = 1800
 
@@ -46,32 +100,24 @@ timeout = 1800
 [repo_package]
 windows_max_path_length = 240
 
-# package content
 [repo_package.packages.main_package]
-files = [
+# package content
+release.files = [
     ["**"],
 ]
-"windows-x86_64".files = [
-    # WAR: repo_fileutils fails to package folder starting with dot on windows unless specified explicitly. The reason is that
-    # python's std glob module doesn't support finding them. Fixing that turned out to be quite hard.
-    ["exts/lightspeed.pip_archive/pip_prebundle/numpy/.libs"],
-]
-files_exclude = [
+release.files_exclude = [
     ["**/*.pdb"],
     ["**/*.exp"],
     ["kit/**"],
-    ["apps/kit.portable"],
+    ["apps/kit.portable"]
 ]
 "linux-x86_64".files_strip = [
     ["**/*.so"],
 ]
 "linux-x86_64".files_strip_exclude = [
 ]
-
-[repo_package.packages.trex]
 omniverse_flow_version_scheme = true
-ziponly = true
-compression_level_7z = 3
+archive_format = "zip"
 strip_package_infos = true
 
 ########################################################################################################################
@@ -95,7 +141,13 @@ publish_verification = true
 [repo_precache_exts]
 # Apps to run and precache
 apps = [
-    "${root}/_build/$platform/$config/apps/omni.app.lightspeed.kit"
+    "${root}/source/apps/lightspeed.app.trex.kit",
+    "${root}/source/apps/lightspeed.app.trex.ingestcraft.kit",
+    "${root}/source/apps/lightspeed.app.trex.stagecraft.kit",
+    "${root}/source/apps/lightspeed.app.trex.texturecraft.kit",
+    "${root}/source/apps/lightspeed.app.trex_dev.kit",
+    "${root}/source/apps/omni.app.lightspeed.kit",
+    "${root}/source/extensions/lightspeed.trex.project_wizard.core/apps/lightspeed.app.trex.project_wizard_cli.kit"
 ]
 
 

@@ -1,0 +1,12 @@
+[package]
+authors = ["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix Setup Extension"
+description = "This Extension does the final setup of the Lightspeed RTX Remix Apps"
+
+[dependencies]
+"omni.kit.mainwindow" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.app.setup"

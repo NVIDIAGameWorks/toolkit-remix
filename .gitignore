@@ -76,6 +76,7 @@ CON
 
 # kit user config
 deps/**/user.toml
+deps/kit-sdk.packman.xml.user*
 
 # allow anything in data, docs/images, ext data (under Git LFS management)
 !data/**
@@ -99,3 +100,9 @@ PACKAGE-DEPS.yaml
 
 # JetBrains configs
 .idea/
+
+# kit logs
+source/logs/
+
+# Upscale log output
+outputs/

@@ -15,8 +15,5 @@ preview_image = "data/preview.png"
 "lightspeed.common" = {}
 "lightspeed.layer_manager" = {}
 
-[[test]]
-args = ["--no-window"]
-
 [[python.module]]
 name = "lightspeed.layer_helpers"

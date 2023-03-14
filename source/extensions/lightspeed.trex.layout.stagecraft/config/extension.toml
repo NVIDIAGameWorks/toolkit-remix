@@ -1,0 +1,41 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix layout for the StageCraft"
+description = "Layout for Lightspeed RTX Remix StageCraft App"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.event.save_recent" = {}
+"lightspeed.layer_manager" = {}
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.components_pane.stagecraft.controller" = {}
+"lightspeed.trex.components_pane.stagecraft.models" = {}
+"lightspeed.trex.footer.stagecraft.models" = {}
+"lightspeed.trex.layout.shared" = {}
+"lightspeed.trex.menu.workfile" = {}
+"lightspeed.trex.properties_pane.stagecraft.widget" = {}
+"lightspeed.trex.utils.common" = {}
+"lightspeed.trex.viewports.shared.widget" = {}
+"lightspeed.trex.welcome_pads.stagecraft.models" = {}
+"omni.flux.footer.widget" = {}
+"omni.flux.header_nvidia.widget" = {}
+"omni.flux.utils.widget" = {}
+"omni.flux.welcome_pad.widget" = {}
+"omni.kit.widget.filebrowser" = {}
+"omni.kit.window.filepicker" = {}
+"omni.ui" = {}
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style"
+]
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"
+]
+
+[[python.module]]
+name = "lightspeed.trex.layout.stagecraft"

@@ -1,0 +1,95 @@
+[package]
+version = "2023.1.0"
+category = "Application"
+title = "Lightspeed RTX Remix Base"
+description = "Base app that regroups all extensions shared between all Lightspeed RTX Remix experiences"
+authors = ["Damien Bataille <dbataille@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+keywords = ["lightspeed", "rtx", "remix", "app", "base"]
+changelog = """
+# Lightspeed RTX Remix
+
+## [2022.0.0] - 2022-06-14
+- Publishing first version.
+"""
+readme = """
+# Lightspeed RTX Remix Base Experience
+
+This base experience regroup all extensions shared between all Lightspeed RTX Remix experiences
+"""
+
+[dependencies]
+# The Main UI App
+"omni.kit.uiapp" = {}
+"omni.kit.renderer.core" = {}
+"omni.kit.splash" = { order = -5000}
+
+"omni.hydra.rtx" = {}
+"omni.hydra.pxr" = {}
+# "omni.hydra.pxr.settings" = {}
+"omni.rtx.settings.core" = {} # this is the new Render Settings 2.0
+"omni.rtx.window.settings" = {}
+
+# Trex shared extensions
+"lightspeed.trex.contexts" = {} # contexts used for each Flux App
+"lightspeed.trex.app.resources" = {order = -1000}  # should start first because of "default_resources_ext"
+"lightspeed.trex.app.setup" = { order = 1000 } # layout setup, we are running that at the end
+"lightspeed.trex.app.style" = {order = -100}  # global style
+
+"lightspeed.event.save_recent" = {}  # for recent saved file
+
+# Windows
+"omni.kit.window.title" = {}
+# Windows only extensions. For all of them set exact=true to not be included into generated version lock.
+# That will break linux otherwise, as version lock is platform agnostic currently.
+[dependencies."filter:platform"."windows-x86_64"]
+"omni.kit.window.modifier.titlebar" = { version = "104.0.13", exact = true }
+
+# Viewport and Renderer
+"omni.kit.renderer.capture" = {}
+"omni.hydra.rtx" = {}
+
+"omni.kit.window.extensions" = {}
+
+[settings]
+# Splash Setup
+################################
+exts."omni.kit.window.splash".imagePath = "${lightspeed.trex.app.resources}/data/images/background_images_small/8.9.C.png"
+exts.'omni.kit.splash'.splash_app = "${lightspeed.trex.app.setup}/apps/lightspeed.trex.app.splash.kit"
+
+
+[settings.exts."omni.kit.window.modifier.titlebar"]
+showFileFullPath = true
+icon.size = 256
+defaultFont.name = "Arial"
+defaultFont.size = 16
+defaultFont.color = 0xD0D0D0
+separator.color = 0x00B976
+separator.width = 1
+windowBorder.color = 0x0F0F0F
+windowBorder.width = 0
+colors.caption = 0x0F0F0F
+colors.client = 0x0F0F0F
+
+[settings.ext."omni.kit.mainwindow"]
+margin.width = 0
+margin.height = 0
+backgroundColor = 0xFF0F0F0F
+
+[settings.exts."lightspeed.trex.app.setup"]
+hide_menu = true
+
+[settings.exts."omni.flux.utils.widget"]
+default_resources_ext = "lightspeed.trex.app.resources"
+hide_menu = true
+
+[settings.exts."omni.kit.viewport.menubar.camera"]
+createMenuAtStartup = false
+
+[settings.exts."omni.kit.viewport.menubar.render"]
+createMenuAtStartup = false
+
+[settings.exts."omni.kit.widget.toolbar"]
+Grab.enabled = false
+PlayButton.enabled = false
+SelectionButton.SelectMode.enabled = false

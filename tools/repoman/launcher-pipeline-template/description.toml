@@ -1,6 +1,6 @@
-name = "TRex"
+name = "RTX Remix"
 #displayed application name in smaller card and library view
-shortName = "TRex"
+shortName = "Remix"
 version = "${version}"
 #boolean for if this version is the latest version
 latest = true
@@ -25,7 +25,7 @@ tags = [
 kind = "app"
 #string array, each line is a new line, keep lines under 256 char and keep lines under 4
 description = [
-  "Omniverse TRex."
+  "Omniverse RTX Remix."
 ]
 
 #array of links for more info on product

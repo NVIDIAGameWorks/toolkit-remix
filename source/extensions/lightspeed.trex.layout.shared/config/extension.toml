@@ -1,0 +1,13 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix shared layout"
+description = "Shared layout for Lightspeed RTX Remix App"
+
+[dependencies]
+"lightspeed.trex.app.setup" = {}
+"omni.flux.header_navigator.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.layout.shared"

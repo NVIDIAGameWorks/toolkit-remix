@@ -1,4 +1,4 @@
-name = "TRex"
+name = "RTX Remix"
 slug = "trex"
 kind = "app"
 version = "${version}"

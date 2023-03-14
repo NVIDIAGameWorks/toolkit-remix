@@ -37,13 +37,11 @@ icon = "data/icon.png"
 "lightspeed.export.core" = {}
 "lightspeed.layer_manager" = {}
 "lightspeed.progress_popup.window" = {}
+"omni.client" = {}
+"omni.flux.utils.widget" = {}
 "omni.kit.menu.utils" = {}
-
-[[test]]
-args = ["--no-window"]
-dependencies = [
-	"omni.kit.test"
-]
+"omni.kit.tool.collect" = {}
+"omni.kit.window.content_browser" = {}
 
 [[python.module]]
 name = "lightspeed.export.window"

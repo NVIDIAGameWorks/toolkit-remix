@@ -1,0 +1,18 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix capture extension for the StageCraft"
+description = "Extension that works on capture data for Lightspeed RTX Remix StageCraft App"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.layer_manager" = {}
+"lightspeed.upscale.core" = {}
+"omni.client" = {}
+# omni.kit.pip_archive has Pillow and numpy. Adding Pillow in requirements will not work, because Pillow needs to
+# import PIL, not import Pillow.
+"omni.kit.pip_archive" = {}
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.capture.core.shared"

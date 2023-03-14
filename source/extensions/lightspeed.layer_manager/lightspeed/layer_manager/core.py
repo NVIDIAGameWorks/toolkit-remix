@@ -7,22 +7,23 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import re
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import carb
 import omni.client
 import omni.kit.commands
 import omni.kit.undo
 import omni.usd
-from lightspeed.common.constants import CAPTURE_FOLDER
+from lightspeed.common.constants import CAPTURE_FOLDER, REGEX_HASH, REGEX_INSTANCE_PATH
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.usd.layers import LayerUtils
 from pxr import Sdf
 
 from .constants import LSS_LAYER_GAME_NAME
 from .layer_types import LayerType, LayerTypeKeys
-from .layers import autoupscale, capture, i_layer, replacement
+from .layers import autoupscale, capture, i_layer, replacement, workfile
 
 
 class LayerManagerCore:
@@ -35,7 +36,13 @@ class LayerManagerCore:
         self.__capture_layer = capture.CaptureLayer(self)
         self.__replacement_layer = replacement.ReplacementLayer(self)
         self.__autoupscale_layer = autoupscale.AutoUpscaleLayer(self)
-        self.__layers = [self.__capture_layer, self.__replacement_layer, self.__autoupscale_layer]
+        self.__workfile_layer = workfile.WorkfileLayer(self)
+        self.__layers = [
+            self.__capture_layer,
+            self.__replacement_layer,
+            self.__autoupscale_layer,
+            self.__workfile_layer,
+        ]
 
     def get_layer_instance(self, layer_type: LayerType) -> Optional[i_layer.ILayer]:
         for layer_obj in self.__layers:
@@ -48,9 +55,10 @@ class LayerManagerCore:
         layer_type: LayerType,
         path: str = None,
         set_as_edit_target: bool = True,
-        sublayer_create_position=0,
-        parent_layer=None,
-        do_undo=True,
+        sublayer_create_position: int = 0,
+        parent_layer: Optional[Sdf.Layer] = None,
+        do_undo: bool = True,
+        replace_existing: bool = True,
     ):
         if do_undo:
             omni.kit.undo.begin_group()
@@ -61,6 +69,7 @@ class LayerManagerCore:
                     sublayer_create_position=sublayer_create_position,
                     parent_layer=parent_layer,
                     do_undo=False,
+                    replace_existing=replace_existing,
                 )
                 if set_as_edit_target:
                     self.set_edit_target_layer(
@@ -161,11 +170,26 @@ class LayerManagerCore:
         for layer in stage.GetLayerStack():
             if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
                 return layer
+        for layer_identifier in stage.GetMutedLayers():
+            layer = LayerUtils.find_layer(layer_identifier)
+            if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
+                return layer
         return None
 
     @staticmethod
     def get_custom_data(layer: Sdf.Layer) -> Dict[str, str]:
         return layer.customLayerData
+
+    @staticmethod
+    def set_custom_data_layer_type(layer: Sdf.Layer, layer_type: LayerType):
+        custom_layer_data = layer.customLayerData
+        custom_layer_data.update({LayerTypeKeys.layer_type.value: layer_type.value})
+        layer.customLayerData = custom_layer_data
+        return layer.customLayerData
+
+    @staticmethod
+    def get_custom_data_layer_type(layer: Sdf.Layer):
+        return layer.customLayerData.get(LayerTypeKeys.layer_type.value)
 
     def set_edit_target_layer(self, layer_type: LayerType, force_layer_identifier: str = None, do_undo=True):
         if do_undo:
@@ -225,19 +249,58 @@ class LayerManagerCore:
             return default
         return layer.customLayerData.get(LSS_LAYER_GAME_NAME, "default")
 
-    def game_current_game_capture_folder(self) -> Tuple[Optional[str], Optional[str]]:
+    def game_current_game_capture_folder(self, show_error: bool = True) -> Tuple[Optional[str], Optional[str]]:
         """Get the current capture folder from the current capture layer"""
         layer = self.get_layer(LayerType.capture)
         # we only save stage that have a replacement layer
         if not layer:
-            carb.log_error("Can't find the capture layer in the current stage")
+            if show_error:
+                carb.log_error("Can't find the capture layer in the current stage")
             return None, None
         capture_folder = Path(layer.realPath)
         if capture_folder.parent.name != CAPTURE_FOLDER:
-            carb.log_error(f'Can\'t find the "{CAPTURE_FOLDER}" folder from the {LayerType.capture} layer')
+            if show_error:
+                carb.log_error(f'Can\'t find the "{CAPTURE_FOLDER}" folder from the {LayerType.capture} layer')
             return None, None
         game_name = layer.customLayerData.get(LSS_LAYER_GAME_NAME, "MyGame")
         return game_name, str(capture_folder.parent)
+
+    def get_layer_hashes_no_comp_arcs(self, layer: Sdf.Layer) -> Dict[str, Sdf.Path]:
+        """
+        This function does not take in consideration the layer composition arcs.
+        It only evaluates the given layer and no sub-layers.
+
+        Args:
+            layer: The layer to traverse
+
+        Returns:
+            A dictionary of the various hashes found and their respective prims
+        """
+
+        def get_prims_recursive_no_comp_arcs(parents: List[Sdf.PrimSpec]):
+            """
+            Composition Arcs are not taken in consideration when fetching the prims.
+            The prims will therefore all belong to the same layer but prims in
+            sub-layers will be ignored.
+            """
+            prims = set()
+            for prim in parents:
+                prims.add(prim)
+                prims = prims.union(get_prims_recursive_no_comp_arcs(prim.nameChildren))
+            return prims
+
+        hashes = {}
+        regex_hash = re.compile(REGEX_HASH)
+        regex_instance = re.compile(REGEX_INSTANCE_PATH)
+        for prim in get_prims_recursive_no_comp_arcs(layer.rootPrims):
+            match = regex_hash.match(str(prim.path))
+            if not match:
+                continue
+            if regex_instance.match(str(prim.path)):
+                continue
+            if match.group(3) not in hashes:
+                hashes[match.group(3)] = prim.path
+        return hashes
 
     def destroy(self):
         _reset_default_attrs(self)

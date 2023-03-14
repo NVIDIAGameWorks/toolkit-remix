@@ -17,6 +17,7 @@ import omni.appwindow
 import omni.client
 import omni.kit.menu.utils
 import omni.ui as ui
+from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS
 from lightspeed.event.save_recent.recent_saved_file_utils import get_instance
 from lightspeed.widget.content_viewer.scripts.core import ContentData, ContentDataAdd
 from lightspeed.widget.new_game.scripts.core import GameCore
@@ -25,13 +26,13 @@ from lightspeed.widget.new_workspace.scripts.core import GameWorkspaceCore
 from lightspeed.widget.new_workspace.scripts.new_core import NewGameWorkspaceCore
 from lightspeed.widget.new_workspace.scripts.ui import GameWorkspaceViewer
 from lightspeed.workspace import get_instance as lightspeed_workspace_instance
+from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.kit.menu.utils import MenuItemDescription
 from omni.usd import handle_exception
 from PIL import Image
 
 from .recent_delegate import RecentDelegate
 from .recent_model import RecentModel
-from .usd_file_picker import open_file_picker
 
 
 class WelcomeWindow:
@@ -388,7 +389,12 @@ class WelcomeWindow:
         self._game_core.set_selection(None)
 
     def _on_open_game_workspace(self):
-        open_file_picker(functools.partial(self._on_load_this_game_workspace), lambda *args: None)
+        _open_file_picker(
+            "Open Game Workspace",
+            functools.partial(self._on_load_this_game_workspace),
+            lambda *args: None,
+            file_extension_options=READ_USD_FILE_EXTENSIONS_OPTIONS,
+        )
 
     def _end_new_game_workspace_creation(self):
         asyncio.ensure_future(self.__deferred_load_window_loading(False))

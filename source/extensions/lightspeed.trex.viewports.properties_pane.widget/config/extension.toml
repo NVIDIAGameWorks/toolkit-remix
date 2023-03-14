@@ -1,0 +1,14 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix Viewports Properties Pane implementation"
+description = "Viewports Properties Pane implementation for Lightspeed RTX Remix App"
+
+[dependencies]
+"lightspeed.trex.properties_pane.shared.camera.widget" = {}
+"lightspeed.trex.properties_pane.shared.render.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+
+
+[[python.module]]
+name = "lightspeed.trex.viewports.properties_pane.widget"

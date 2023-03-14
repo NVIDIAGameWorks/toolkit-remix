@@ -76,5 +76,57 @@
                 ]
             },
         },
+        {
+            "name": "lightspeed.app.trex_dev (debug)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/_build/windows-x86_64/debug/kit/kit.exe",
+            "args": ["${workspaceFolder}/_build/windows-x86_64/debug/apps/lightspeed.app.trex_dev.kit"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "internalConsole",
+            "internalConsoleOptions": "openOnSessionStart",
+            "linux": {
+                "type": "cppdbg",
+                "program": "${workspaceFolder}/_build/target-deps/kit_sdk_release/kit",
+                "cwd": "${workspaceFolder}/_build/linux-x86_64/debug/",
+                "externalConsole": false,
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    }
+                ]
+            },
+        },
+        {
+            "name": "lightspeed.app.trex_dev (release)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/_build/windows-x86_64/release/kit/kit.exe",
+            "args": ["${workspaceFolder}/_build/windows-x86_64/release/apps/lightspeed.app.trex_dev.kit"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "internalConsole",
+            "internalConsoleOptions": "openOnSessionStart",
+            "linux": {
+                "type": "cppdbg",
+                "program": "${workspaceFolder}/_build/target-deps/kit_sdk_release/kit",
+                "cwd": "${workspaceFolder}/_build/linux-x86_64/release/",
+                "externalConsole": false,
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    }
+                ]
+            },
+        },
     ]
 }

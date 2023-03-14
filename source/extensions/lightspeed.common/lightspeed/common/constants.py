@@ -3,6 +3,7 @@ from pathlib import Path
 
 from .texture_info import CompressionFormat, TextureInfo
 
+MATERIAL_RELATIONSHIP = "material:binding"
 MATERIAL_INPUTS_DIFFUSE_TEXTURE = "inputs:diffuse_texture"
 MATERIAL_INPUTS_NORMALMAP_TEXTURE = "inputs:normalmap_texture"
 MATERIAL_INPUTS_NORMALMAP_ENCODING = "inputs:encoding"
@@ -20,8 +21,13 @@ ROOTNODE_LOOKS = ROOTNODE + "/Looks"
 ROOTNODE_INSTANCES = ROOTNODE + "/instances"
 ROOTNODE_MESHES = ROOTNODE + "/meshes"
 ROOTNODE_LIGHTS = ROOTNODE + "/lights"
-INSTANCE_PATH = ROOTNODE_INSTANCES + "/inst_"
-MESH_PATH = ROOTNODE_MESHES + "/mesh_"
+LIGHT_NAME_PREFIX = "light_"
+LIGHT_PATH = ROOTNODE_LIGHTS + "/" + LIGHT_NAME_PREFIX
+INSTANCE_NAME_PREFIX = "inst_"
+INSTANCE_PATH = ROOTNODE_INSTANCES + "/" + INSTANCE_NAME_PREFIX
+MESH_NAME_PREFIX = "mesh_"
+MESH_PATH = ROOTNODE_MESHES + "/" + MESH_NAME_PREFIX
+MATERIAL_NAME_PREFIX = "mat_"
 SHADER = "Shader"
 MATERIAL = "Material"
 SCOPE = "Scope"
@@ -33,6 +39,12 @@ LSS_NICKNAME = "nickname"
 GAME_READY_ASSETS_FOLDER = "gameReadyAssets"
 GAME_READY_REPLACEMENTS_FILE = "replacements.usda"
 FLAT_GAME_READY_REPLACEMENTS_FILE = "replacements.usd"
+REMIX_ENV_INTERNAL = "RTX_REMIX_INTERNAL"
+REMIX_FOLDER = "rtx_remix"
+REMIX_CAPTURE_FOLDER = "captures"
+REMIX_MODS_FOLDER = "mods"
+REMIX_MOD_FILE = "mod.usda"
+REMIX_DEPENDENCIES_FOLDER = "deps"
 CAPTURE_FOLDER = "capture"
 MATERIALS_FOLDER = "materials"
 MESHES_FOLDER = "meshes"
@@ -43,10 +55,31 @@ MATERIAL_FILE_PREFIX = "mat_"
 CAPTURE_FILE_PREFIX = "capture_"
 NVTT_PATH = str(Path(__file__).parent.joinpath("tools", "nvtt", "nvtt_export.exe"))
 PIX2PIX_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "pytorch-CycleGAN-and-pix2pix"))
+REAL_ESRGAN_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "realesrgan-ncnn-vulkan-20210901-windows"))
+MAT_SR_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "mat-sr"))
+MAT_SR_ARTIFACTS_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "mat-sr-artifacts"))
 PIX2PIX_TEST_SCRIPT_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("test.py"))
 PIX2PIX_CHECKPOINTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("checkpoints"))
 PIX2PIX_RESULTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("results"))
+IS_REMIX_REF_ATTR = "IsRemixRef"
 
+REGEX_IN_INSTANCE_PATH = (
+    f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa PLW1401
+)
+REGEX_MESH_PATH = f"^(.*)({MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
+REGEX_INSTANCE_PATH = f"^(.*)({INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
+REGEX_HASH = f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX}|{MATERIAL_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*(.*)$"  # noqa E501
+REGEX_MESH_TO_INSTANCE_SUB = (
+    f"^((.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*)"  # noqa E501
+)
+REGEX_INSTANCE_TO_MESH_SUB = f"({LIGHT_PATH}|{INSTANCE_PATH}|{MESH_PATH})([A-Z0-9]{{16}})(_[0-9]+)"  # noqa E501
+REGEX_LIGHT_PATH = f"^(.*)({LIGHT_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
+REGEX_MESH_INST_LIGHT_PATH = (
+    f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
+)
+REGEX_SUB_LIGHT_PATH = (
+    f"^(.*)({LIGHT_NAME_PREFIX}|{MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa
+)
 BAD_EXPORT_LOG_PREFIX = "Export is not release ready: "
 EXPORT_STATUS_NAME = "remix_replacement_status"
 EXPORT_STATUS_RELEASE_READY = "Release Ready"
@@ -68,6 +101,14 @@ TEXTURE_INFO = {
 }
 
 AUTOUPSCALE_LAYER_FILENAME = "autoupscale.usda"
+
+USD_EXTENSIONS = [".usd", ".usda", ".usdc"]
+SAVE_USD_FILE_EXTENSIONS_OPTIONS = [
+    ("*.usda", "Human-readable USD File"),
+    ("*.usd", "Binary or Ascii USD File"),
+    ("*.usdc", "Binary USD File"),
+]
+READ_USD_FILE_EXTENSIONS_OPTIONS = [("*.usd*", "USD Files"), *SAVE_USD_FILE_EXTENSIONS_OPTIONS]
 
 
 # This should match the `normalmap_encoding` in AperturePBR_normal.mdl

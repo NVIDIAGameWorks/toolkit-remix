@@ -18,6 +18,7 @@ name = "Lightspeed New Game Widget"
 "lightspeed.common" = {}
 "lightspeed.upscale.core" = {}
 "omni.client" = {}
+"omni.flux.utils.widget" = {}
 "omni.kit.window.popup_dialog" = {}
 "omni.kit.widget.filebrowser" = {}
 "omni.kit.window.filepicker" = {}
@@ -27,9 +28,6 @@ name = "Lightspeed New Game Widget"
 # import PIL, not import Pillow.
 "omni.kit.pip_archive" = {}
 "lightspeed.pip_archive" = {}
-
-[[test]]
-args = ["--no-window"]
 
 [[python.module]]
 name = "lightspeed.widget.new_game"

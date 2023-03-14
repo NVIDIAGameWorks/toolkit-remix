@@ -21,8 +21,5 @@ name = "Lightspeed Event Switch to Replacement"
 "omni.kit.notification_manager" = {}
 "omni.usd" = {}
 
-[[test]]
-args = ["--no-window"]
-
 [[python.module]]
 name = "lightspeed.event.switch_to_replacement"

@@ -15,7 +15,7 @@ import stat
 import uuid
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 import carb
 import carb.tokens
@@ -50,7 +50,6 @@ class DependencyErrorTypes(Enum):
 
 
 class LightspeedExporterCore:
-
     EXPORT_START_MARKER = "*********************** Export Start ***********************"
     EXPORT_END_MARKER = "*********************** Export End ***********************"
 
@@ -60,6 +59,7 @@ class LightspeedExporterCore:
             "_post_exporter": None,
             "_collector": None,
             "_context_name": None,
+            "_error_popup": None,
         }
         for attr, value in self.__default_attr.items():
             setattr(self, attr, value)
@@ -177,8 +177,8 @@ class LightspeedExporterCore:
         os.remove(self._temp_stage_path)
         os.remove(self._temp_replacements_path)
 
-    def get_default_export_path(self, create_if_not_exist: bool = False) -> Optional[str]:
-        game_name, capture_folder = self._layer_manager.game_current_game_capture_folder()
+    def get_default_export_path(self, create_if_not_exist: bool = False, show_error: bool = True) -> Optional[str]:
+        game_name, capture_folder = self._layer_manager.game_current_game_capture_folder(show_error=show_error)
         if not game_name:
             return None
         path = str(Path(capture_folder).parent.joinpath(constants.GAME_READY_ASSETS_FOLDER)) + os.sep
@@ -186,26 +186,55 @@ class LightspeedExporterCore:
             Path(path).mkdir(parents=True, exist_ok=True)
         return path
 
-    def check_export_path(self, path) -> bool:
+    def set_layer_custom_data(self, key, value, layer_type=LayerType.replacement):
+        replacement_layer = self._layer_manager.get_layer(layer_type)
+        custom_layer_data = replacement_layer.customLayerData
+        custom_layer_data[key] = value
+        replacement_layer.customLayerData = custom_layer_data
+
+    def check_export_path(self, path: str, error_callback: Optional[Callable[[str, str], None]] = None) -> bool:
+        """
+        Args:
+            path: The export path to validate
+            error_callback: A callback with arguments (title, message) for when the path is invalid
+
+        Returns:
+            Whether the export path is valid or not
+        """
         stage = omni.usd.get_context(self._context_name).get_stage()
-        if stage.GetRootLayer().anonymous:
-            carb.log_error("Please save your stage first")
+        error_title = "Invalid Mod Export Directory"
+        if not stage or stage.GetRootLayer().anonymous:
+            if error_callback is not None:
+                error_callback(error_title, "The stage must be saved before exporting")
             return False
         if not path:
-            carb.log_error("Please set a folder for the export")
+            if error_callback is not None:
+                error_callback(error_title, "No export folder was selected")
             return False
         result, entry = omni.client.stat(path)
         if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN:
-            carb.log_error("The export path should be an existing folder")
+            if error_callback is not None:
+                error_callback(error_title, "The export path should be an existing folder")
+            return False
+        if Path(path).stem != constants.GAME_READY_ASSETS_FOLDER:
+            if error_callback is not None:
+                error_callback(
+                    error_title,
+                    f"The export path must be point to a '{constants.GAME_READY_ASSETS_FOLDER}' directory",
+                )
             return False
         # detect when a user tries to export into gameReadyAssets while using gameReadyAsset/replacements.usda
         replacement_layer = self._layer_manager.get_layer(LayerType.replacement)
+        if not replacement_layer:
+            return False
         replacement_layer_dir_path = Path(replacement_layer.realPath).parent.resolve()
         if str(replacement_layer_dir_path) == str(Path(path).resolve()):
-            carb.log_error(
-                "Cannot export to the same folder in which the source replacements layer resides: "
-                + str(replacement_layer_dir_path)
-            )
+            if error_callback is not None:
+                error_callback(
+                    error_title,
+                    "Cannot export to the same folder in which the source replacements layer resides: "
+                    + str(replacement_layer_dir_path),
+                )
             return False
         return True
 

@@ -1,0 +1,11 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix widget utils"
+description = "Utils helper for Lightspeed widgets"
+
+[dependencies]
+"omni.ui" = {}
+"omni.kit.widget.prompt" = {}
+
+[[python.module]]
+name = "lightspeed.trex.utils.widget"

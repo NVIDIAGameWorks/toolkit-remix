@@ -24,6 +24,8 @@ class CaptureLayer(ILayer):
 
     def get_textures(self, texture_attribute):
         layer = self.get_sdf_layer()
+        if not layer:
+            return [], [], []
         capture_stage = Usd.Stage.Open(layer.realPath)
         collected_prim_paths = []
         collected_asset_absolute_paths = []

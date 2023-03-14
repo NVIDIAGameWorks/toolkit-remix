@@ -8,7 +8,7 @@ lightspeed.export.window
    CHANGELOG
 
 
-.. automodule:: example.python_ext
+.. automodule:: lightspeed.export.window
     :platform: Windows-x86_64, Linux-x86_64
     :members:
     :undoc-members:
