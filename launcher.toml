@@ -2,7 +2,7 @@
 name = "RTX Remix"
 #displayed before application name in launcher
 productArea = "Omniverse"
-version = "2023.1.1"
+version = "2023.1.2"
 # A filter of release types
 # 3 filter types [ "alpha", "beta", "release "]
 channel = "alpha"
@@ -15,11 +15,11 @@ slug = "rtx_remix"
 ## install and launch instructions by environment
 [defaults.windows-x86_64]
 url = ""
-entrypoint = "${productRoot}/_build/windows-x86_64/release/lightspeed.app.trex.bat"
+entrypoint = "${productRoot}/lightspeed.app.trex.bat"
 args = []
 
 [defaults.windows-x86_64.open]
-command = "${productRoot}/_build/windows-x86_64/release/lightspeed.app.trex.bat"
+command = "${productRoot}/lightspeed.app.trex.bat"
 args = ['--exec "open_stage.py ${file}"', "--/app/environment/name='launcher'", "--/app/content/emptyStageOnStart=true"]
 
 [defaults.windows-x86_64.environment]
@@ -29,7 +29,7 @@ pre-install = ""
 pre-install-args = []
 install = ""
 install-args = []
-post-install = "${productRoot}/_build/windows-x86_64/release/lightspeed.app.trex.warmup.bat"
+post-install = "${productRoot}/lightspeed.app.trex.warmup.bat"
 post-install-args = ["--/app/environment/name='launcher_warmup'"]
 
 [defaults.windows-x86_64.uninstall]
