@@ -1,7 +1,7 @@
 manual_package:
   stage: manual_package
   only:
-    - dev/dbataille/new_app
+    - master
   when: manual
   tags:
     - build
