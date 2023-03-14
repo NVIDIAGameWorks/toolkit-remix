@@ -12,7 +12,7 @@ import omni.client
 import omni.ui as ui
 from lightspeed.event.save_recent.recent_saved_file_utils import get_instance
 
-HEADER_DICT = {0: "Recent scenarios"}
+HEADER_DICT = {0: "Recent workfile"}
 
 
 class RecentItem(ui.AbstractItem):

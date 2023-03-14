@@ -1,0 +1,14 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix Components Pane implementation for the StageCraft"
+description = "Components Pane implmentation for Lightspeed RTX Remix StageCraft App"
+
+[dependencies]
+"lightspeed.layer_manager" = {}
+"lightspeed.trex.components_pane.stagecraft.models" = {}
+"omni.flux.tree_panel.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.components_pane.stagecraft.controller"

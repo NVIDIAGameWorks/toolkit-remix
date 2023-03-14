@@ -39,9 +39,6 @@ icon = "data/icon.png"
 # import PIL, not import Pillow.
 "omni.kit.pip_archive" = {}
 
-[[test]]
-args = ["--no-window"]
-
 # Main python module this extension provides, it will be publicly available as "import omni.example.hello".
 [[python.module]]
 name = "lightspeed.tool.octahedral_converter"

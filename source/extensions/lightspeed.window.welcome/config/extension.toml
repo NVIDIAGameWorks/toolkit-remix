@@ -16,15 +16,14 @@ name = "lightspeed Welcome Window"
 
 [dependencies]
 "omni.client" = {}
+"lightspeed.common" = {}
 "lightspeed.event.save_recent" = {}
 "lightspeed.widget.content_viewer" = {}
 "lightspeed.widget.new_game" = {}
 "lightspeed.widget.new_workspace" = {}
 "lightspeed.workspace" = {}
+"omni.flux.utils.widget" = {}
 "omni.ui" = {}
-
-[[test]]
-args = ["--no-window"]
 
 [[python.module]]
 name = "lightspeed.window.welcome"

@@ -27,10 +27,6 @@ from .relink.delegate import Delegate as RelinkTreeDelegate
 from .relink.model import ListModel as RelinkTreeModel
 from .usd_file_picker import open_file_picker
 
-DEFAULT_CUSTOM_SENSOR_ENABLED = "/exts/omni.drivesim.scenario.tool.content_type_sensor/default_custom_sensor_enabled"
-DEFAULT_CUSTOM_SENSOR_USD = "/exts/omni.drivesim.scenario.tool.content_type_sensor/default_custom_sensor_usd"
-DEFAULT_CUSTOM_SENSOR_USD_PRIM = "/exts/omni.drivesim.scenario.tool.content_type_sensor/default_custom_sensor_usd_prim"
-
 
 class GameContentItem(ContentItem):
     MULTI_SELECTION = False

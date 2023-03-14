@@ -38,13 +38,6 @@ icon = "data/icon.png"
 "omni.client" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.tool.collect" = {}
-"omni.kit.test" = {}
-
-[[test]]
-args = ["--no-window"]
-dependencies = [
-	"omni.kit.test"
-]
 
 [[python.module]]
 name = "lightspeed.export.core"

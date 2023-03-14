@@ -1,0 +1,12 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix Welcome Pads implementation for the StageCraft"
+description = "Welcome Pads implementation for Lightspeed RTX Remix StageCraft App"
+
+[dependencies]
+"omni.flux.utils.widget" = {}
+"omni.flux.welcome_pad.widget" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.welcome_pads.stagecraft.models"

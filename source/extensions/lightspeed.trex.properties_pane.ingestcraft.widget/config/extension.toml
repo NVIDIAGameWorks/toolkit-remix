@@ -1,0 +1,13 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix Properties Pane for the IngestCraft"
+description = "Properties Pane for Lightspeed RTX Remix IngestCraft App"
+
+[dependencies]
+"lightspeed.trex.components_pane.ingestcraft.models" = {}
+"lightspeed.trex.properties_pane.shared.asset_validation.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.properties_pane.ingestcraft.widget"

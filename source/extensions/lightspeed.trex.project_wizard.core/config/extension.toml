@@ -1,0 +1,29 @@
+[package]
+# Semantic Versionning is used: https://semver.org/
+version = "1.0.0"
+
+# Lists people or organizations that are considered the "authors" of the package.
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+
+# The title and description fields are primarly for displaying extension info in UI
+description = "This is the core of the project wizard extension"
+title = "Remix Project Wizard Core"
+
+# One of categories for UI.
+category = "Core"
+
+# Keywords for the extension
+keywords = ["lightspeed", "rtx", "remix", "project", "wizard", "core"]
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.layer_manager" = {}
+"lightspeed.pip_archive" = {}  # for pydantic
+"lightspeed.trex.capture.core.shared" = {}
+"lightspeed.trex.replacement.core.shared" = {}
+"omni.client" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.usd.layers" = {}
+
+[[python.module]]
+name = "lightspeed.trex.project_wizard.core"

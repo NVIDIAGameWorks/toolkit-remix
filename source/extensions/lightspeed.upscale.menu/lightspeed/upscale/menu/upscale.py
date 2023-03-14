@@ -11,29 +11,27 @@
 import asyncio
 import functools
 
-import omni
-import omni.ext
 import omni.kit.menu.utils as omni_utils
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.error_popup.window import ErrorPopup
 from lightspeed.layer_helpers import LightspeedTextureProcessingCore
 from lightspeed.progress_popup.window import ProgressPopup
-from lightspeed.upscale.core import UpscalerCore
+from lightspeed.upscale.core import UpscaleModels, UpscalerCore
 from omni.kit.menu.utils import MenuItemDescription
 
-# processing_method = UpscalerCore.perform_upscale
+# processing_method = UpscalerCore.perform_upscale -> UpscaleModels.ESRGAN
 # input_texture_type = constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE
 # output_texture_type = constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE
 # output_suffix = "_upscaled4x.png"
 processing_config = (
-    UpscalerCore.perform_upscale,
+    functools.partial(UpscalerCore.perform_upscale, UpscaleModels.ESRGAN.value),
     constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
     constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
     "_upscaled4x.png",
 )
 processing_config_overwrite = (
-    functools.partial(UpscalerCore.perform_upscale, overwrite=True),
+    functools.partial(UpscalerCore.perform_upscale, UpscaleModels.ESRGAN.value, overwrite=True),
     constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
     constants.MATERIAL_INPUTS_DIFFUSE_TEXTURE,
     "_upscaled4x.png",
@@ -82,7 +80,7 @@ class LightspeedUpscalerMenuExtension(omni.ext.IExt):
             config, progress_callback=self._batch_upscale_set_progress
         )
         if error:
-            self._error_popup = ErrorPopup("An error occurred while upscaling", error, "", window_size=(350, 150))
+            self._error_popup = ErrorPopup("An error occurred while upscaling", error, window_size=(350, 150))
             self._error_popup.show()
         if self._progress_bar:
             self._progress_bar.hide()

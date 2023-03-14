@@ -18,10 +18,9 @@ name = "Lightspeed Event Save recent"
 [dependencies]
 "lightspeed.events_manager" = {}
 "lightspeed.layer_manager" = {}
+"omni.flux.utils.common" = {}
 "omni.client" = {}
-
-[[test]]
-args = ["--no-window"]
+"omni.usd" = {}
 
 [[python.module]]
 name = "lightspeed.event.save_recent"

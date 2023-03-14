@@ -8,6 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import os
+from functools import partial
 
 import carb
 import omni
@@ -20,10 +21,9 @@ from lightspeed.export.core import LightspeedExporterCore
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from lightspeed.progress_popup.window import ProgressPopup
 from omni import ui
+from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.kit.menu.utils import MenuItemDescription
 from omni.kit.tool.collect.icons import Icons
-
-from .usd_file_picker import open_file_picker
 
 
 class LightspeedExporterUI:
@@ -118,7 +118,7 @@ class LightspeedExporterUI:
         self._on_export_button_clicked(validate_dependencies=False)
 
     def __create_save_menu(self):
-        """Create the menu to Save scenario"""
+        """Create the menu to Save runtime mod"""
         self._tools_manager_menus = [
             MenuItemDescription(
                 name="Export to Lightspeed Runtime", onclick_fn=self.__clicked, glyph="none.svg", appear_after="Save"
@@ -200,7 +200,7 @@ class LightspeedExporterUI:
 
     def _on_export_button_clicked(self, validate_dependencies=True):
         export_dir = self._export_path_field.model.get_value_as_string()
-        if not self._core.check_export_path(export_dir):
+        if not self._core.check_export_path(export_dir, lambda _, message: carb.log_error(message)):
             return
         self._show_progress_popup()
         self._core.export(export_dir, validate_dependencies=validate_dependencies)
@@ -210,9 +210,14 @@ class LightspeedExporterUI:
     def _on_cancel_button_clicked(self):
         self._window.visible = False
 
-    def _select_picked_folder_callback(self, path):
-        self._export_path_field.model.set_value(path)
+    def _select_picked_folder_callback(self, dirname):
+        self._export_path_field.model.set_value(dirname)
         self._window.visible = True
+
+    def _show_error_popup(self, title, message):
+        self._error_popup = ErrorPopup(title, message, window_size=(400, 120))
+        self._error_popup.show()
+        carb.log_error(message)
 
     def _cancel_picked_folder_callback(self):
         self._window.visible = True
@@ -221,7 +226,18 @@ class LightspeedExporterUI:
         self._window.visible = False
         path = self._export_path_field.model.get_value_as_string()
         current_directory = path if path else None
-        open_file_picker(self._select_picked_folder_callback, lambda *args: None, current_directory=current_directory)
+
+        def validate_selection(dirname, _):
+            self._core.check_export_path(dirname, self._show_error_popup)
+
+        _open_file_picker(
+            "Select a mod output directory",
+            self._select_picked_folder_callback,
+            lambda *args: None,
+            current_file=current_directory,
+            select_directory=True,
+            validate_selection=partial(validate_selection),
+        )
 
     def _show_progress_popup(self):
         if not self._progress_popup:

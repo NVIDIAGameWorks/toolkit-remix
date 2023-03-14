@@ -38,6 +38,7 @@ packages = [
     "pydantic==1.9.1",              # TODO
     "torch==1.11.0",                # TODO
     "torchvision==0.12.0",          # TODO
+    "toml==0.10.1",                 # http://nvbugs/3060676
     "wandb==0.12.17",               # TODO
     "watchdog==0.10.4",             # SWIPAT filed under: http://nvbugs/3194408
 ]

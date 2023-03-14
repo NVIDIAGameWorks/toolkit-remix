@@ -1,0 +1,15 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix Properties Pane for the StageCraft"
+description = "Properties Pane for Lightspeed RTX Remix StageCraft App"
+
+[dependencies]
+"lightspeed.trex.components_pane.stagecraft.controller" = {}
+"lightspeed.trex.properties_pane.shared.asset_replacements.widget" = {}
+"lightspeed.trex.properties_pane.shared.mod_output.widget" = {}
+"lightspeed.trex.properties_pane.shared.mod_setup.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.properties_pane.stagecraft.widget"

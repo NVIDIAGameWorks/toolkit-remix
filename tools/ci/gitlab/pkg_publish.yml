@@ -9,7 +9,7 @@ pkg_publish:
     - .\build.bat --clean
   script:
     - .\build.bat --release
-    - .\tools\package.bat -a -c release
+    - .\tools\package.bat -m main_package -c release
     - .\tools\ci\publishing\publish\step.bat
     - whoami
     - .\tools\ci\publishing\publish-launcher-packages\step.bat

@@ -1,0 +1,33 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix Viewports implementation"
+description = "Viewports implementation for Lightspeed RTX Remix App"
+
+[dependencies]
+"lightspeed.trex.app.style" = {}
+"lightspeed.trex.utils.common" = {}
+"lightspeed.trex.viewports.manipulators" = {}
+"lightspeed.trex.viewports.properties_pane.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.viewport.utility" = {}
+# start before to be sure to apply settings from the app .kit
+"omni.kit.widget.toolbar" = {order = -10}
+"omni.ui" = {}
+
+[settings]
+# Default legacy display options for any consumers (all visible but Skeletons)
+persistent.app.viewport.displayOptions = 32255
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.app.resources",
+]
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"
+]
+
+[[python.module]]
+name = "lightspeed.trex.viewports.shared.widget"

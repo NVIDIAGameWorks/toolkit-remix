@@ -13,6 +13,7 @@ from typing import Optional
 
 import carb
 import omni.client
+from lightspeed.common import constants as _constants
 from lightspeed.widget.game_captures.scripts.core import GameCapturesCore
 
 
@@ -117,7 +118,7 @@ class GameWorkspaceCore(GameCapturesCore):
         result, entry = omni.client.stat(directory)
         if result == omni.client.Result.OK and entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN:
             valid_ext = False
-            for ext in [".usd", ".usda", ".usdc"]:
+            for ext in _constants.USD_EXTENSIONS:
                 if replacement_layer_path.endswith(ext):
                     valid_ext = True
                     break

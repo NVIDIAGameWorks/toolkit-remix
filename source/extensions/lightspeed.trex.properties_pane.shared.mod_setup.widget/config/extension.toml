@@ -1,0 +1,27 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix Properties Pane Mod Setup widget for the StageCraft"
+description = "Mod Setup Properties Pane widget for Lightspeed RTX Remix StageCraft App"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.error_popup.window" = {}
+"lightspeed.trex.capture.core.shared" = {}
+"lightspeed.trex.capture_tree.model" = {}
+"lightspeed.trex.project_wizard.window" = {}
+"lightspeed.trex.replacement.core.shared" = {}
+"lightspeed.trex.utils.common" = {}
+"lightspeed.trex.utils.widget" = {}
+"omni.client" = {}
+"omni.kit.widget.filebrowser" = {}
+"omni.kit.window.filepicker" = {}
+"omni.flux.property_widget_builder.model.file" = {}
+"omni.flux.property_widget_builder.widget" = {version = "2.0"}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.kit.usd.layers" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.properties_pane.shared.mod_setup.widget"

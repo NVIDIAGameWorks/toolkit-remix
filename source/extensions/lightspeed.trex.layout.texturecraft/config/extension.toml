@@ -1,0 +1,21 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix layout for the StageCraft"
+description = "Layout for Lightspeed RTX Remix StageCraft App"
+
+[dependencies]
+"lightspeed.color_to_normal.core" = {}
+"lightspeed.color_to_roughness.core" = {}
+"lightspeed.common" = {}
+"lightspeed.error_popup.window" = {}
+"lightspeed.layer_helpers" = {}
+"lightspeed.progress_popup.window" = {}
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.layout.shared" = {}
+"lightspeed.trex.utils.widget" = {}
+"lightspeed.upscale.core" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.layout.texturecraft"
