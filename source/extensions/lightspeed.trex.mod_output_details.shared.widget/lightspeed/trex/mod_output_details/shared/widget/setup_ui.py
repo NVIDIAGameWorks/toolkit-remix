@@ -20,7 +20,6 @@ from omni.flux.property_widget_builder.model.file import FileModel as _FileModel
 from omni.flux.property_widget_builder.widget import PropertyWidget as _PropertyWidget
 from omni.flux.utils.common import async_wrap as _async_wrap
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from omni.flux.utils.widget.label import create_label_with_font as _create_label_with_font
 
 
 class SetupUI:
@@ -28,7 +27,7 @@ class SetupUI:
         self._default_attr = {
             "_refresh_task": None,
             "_replacement_core": None,
-            "_properties_frame": None,
+            "_mod_output_properties_frame": None,
             "_file_properties_widget": None,
             "_selected_directory": None,
         }
@@ -45,7 +44,7 @@ class SetupUI:
     def __create_ui(self):
         with ui.VStack():
             ui.Spacer(height=ui.Pixel(16))
-            self._properties_frame = ui.Frame()
+            self._mod_output_properties_frame = ui.Frame()
             ui.Spacer(height=ui.Pixel(16))
 
     def set_selected_directory(self, value):
@@ -57,7 +56,10 @@ class SetupUI:
         self.refresh()
 
     def refresh(self):
-        self.__create_text_ui("Reading existing mod file...")
+        if self._mod_output_properties_frame:
+            self._mod_output_properties_frame.clear()
+            with self._mod_output_properties_frame:
+                ui.Label("Reading existing mod file...", name="PropertiesWidgetLabel", alignment=ui.Alignment.CENTER)
         if self._refresh_task:
             self._refresh_task.cancel()
         self._refresh_task = asyncio.ensure_future(_async_wrap(self._refresh_async)())
@@ -66,7 +68,6 @@ class SetupUI:
         file_attributes = []
         mod_file_model = None
         mod_file_delegate = None
-        no_file_message = "No existing mod file was found..."
 
         existing_mod_file = self._replacement_core.get_existing_mod_file(self._selected_directory)
         layer_notes = self._replacement_core.get_layer_notes(existing_mod_file) or "No notes"
@@ -84,20 +85,14 @@ class SetupUI:
             mod_file_model.set_items(file_attributes)
 
         # If we find a mod file, display the attributes
-        if file_attributes:
-            self._properties_frame.clear()
-            with self._properties_frame:
+        self._mod_output_properties_frame.clear()
+        with self._mod_output_properties_frame:
+            if file_attributes:
                 self._file_properties_widget = _PropertyWidget(mod_file_model, mod_file_delegate)
-        else:
-            self.__create_text_ui(no_file_message)
-
-    def __create_text_ui(self, message):
-        self._properties_frame.clear()
-        with self._properties_frame:
-            with ui.HStack():
-                ui.Spacer()
-                _create_label_with_font(message, "PropertiesWidgetLabel", remove_offset=False)
-                ui.Spacer()
+            else:
+                ui.Label(
+                    "No existing mod file was found...", name="PropertiesWidgetLabel", alignment=ui.Alignment.CENTER
+                )
 
     def destroy(self):
         _reset_default_attrs(self)
