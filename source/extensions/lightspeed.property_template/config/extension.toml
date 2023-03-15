@@ -16,7 +16,7 @@ name = "Lightspeed Property template"
 
 [dependencies]
 "lightspeed.common" = {}
-"lightspeed.tool.material" = {}
+"lightspeed.tool.material.widget" = {}
 "omni.client" = {}
 "omni.kit.property.bundle" = {optional=true}  # to be sure that we are the last registering property delegate
 "omni.kit.property.material" = {}

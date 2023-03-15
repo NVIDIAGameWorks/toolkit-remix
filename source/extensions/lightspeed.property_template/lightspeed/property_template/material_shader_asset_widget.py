@@ -8,7 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import omni.ui as ui
-from lightspeed.tool.material.ui import MaterialButtons
+from lightspeed.tool.material.widget import MaterialButtons
 from omni.kit.property.material.scripts.usd_attribute_widget import UsdMaterialAttributeWidget
 from pxr import UsdShade
 

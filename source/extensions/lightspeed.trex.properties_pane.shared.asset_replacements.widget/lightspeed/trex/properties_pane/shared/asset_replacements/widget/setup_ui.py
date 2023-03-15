@@ -44,6 +44,7 @@ class AssetReplacementsPane:
             "_selection_history_widget": None,
             "_selection_tree_widget": None,
             "_mesh_properties_widget": None,
+            "_material_converted_sub": None,
             "_material_properties_widget": None,
             "_layer_collapsable_frame": None,
             "_bookmarks_collapsable_frame": None,
@@ -61,6 +62,7 @@ class AssetReplacementsPane:
         self._replacement_core = _AssetReplacementCore(context_name)
         self._layers_core = _AssetReplacementLayersCore(context_name)
 
+        self._material_converted_sub = None
         self.__tree_selection_collapsed = False
 
         self.__create_ui()
@@ -218,6 +220,11 @@ class AssetReplacementsPane:
                             )
                             with self._material_properties_collapsable_frame:
                                 self._material_properties_widget = _MaterialPropertiesWidget(self._context_name)
+                                self._material_converted_sub = (
+                                    self._material_properties_widget.subscribe_on_material_converted(
+                                        self._refresh_material_properties_widget
+                                    )
+                                )
                             self._material_properties_collapsable_frame.root.set_collapsed_changed_fn(
                                 functools.partial(self.__on_collapsable_frame_changed, self._material_properties_widget)
                             )
