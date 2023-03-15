@@ -12,7 +12,7 @@ import weakref
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
-from lightspeed.tool.material.ui import MaterialButtons
+from lightspeed.tool.material.widget import MaterialButtons
 from omni.kit.property.material.scripts.usd_attribute_widget import UsdMaterialAttributeWidget
 from omni.kit.property.usd.prim_selection_payload import PrimSelectionPayload
 from omni.kit.property.usd.usd_property_widget import UsdPropertiesWidget

@@ -12,15 +12,19 @@ MATERIAL_INPUTS_REFLECTIONROUGHNESS_TEXTURE = "inputs:reflectionroughness_textur
 MATERIAL_INPUTS_EMISSIVE_MASK_TEXTURE = "inputs:emissive_mask_texture"
 MATERIAL_INPUTS_METALLIC_TEXTURE = "inputs:metallic_texture"
 MATERIAL_INPUTS_TRANSMITTANCE_TEXTURE = "inputs:transmittance_texture"
+
 PRESERVE_ORIGINAL_ATTRIBUTE = "preserveOriginalDrawCall"
+
 CAPTURED_MAT_PATH_PREFIX = "/Looks/"
 CAPTURED_MESH_PATH_PREFIX = "/"
 CAPTURED_LIGHT_PATH_PREFIX = "/"
+
 ROOTNODE = "/RootNode"
 ROOTNODE_LOOKS = ROOTNODE + "/Looks"
 ROOTNODE_INSTANCES = ROOTNODE + "/instances"
 ROOTNODE_MESHES = ROOTNODE + "/meshes"
 ROOTNODE_LIGHTS = ROOTNODE + "/lights"
+
 LIGHT_NAME_PREFIX = "light_"
 LIGHT_PATH = ROOTNODE_LIGHTS + "/" + LIGHT_NAME_PREFIX
 INSTANCE_NAME_PREFIX = "inst_"
@@ -28,31 +32,43 @@ INSTANCE_PATH = ROOTNODE_INSTANCES + "/" + INSTANCE_NAME_PREFIX
 MESH_NAME_PREFIX = "mesh_"
 MESH_PATH = ROOTNODE_MESHES + "/" + MESH_NAME_PREFIX
 MATERIAL_NAME_PREFIX = "mat_"
+
 SHADER = "Shader"
 MATERIAL = "Material"
 SCOPE = "Scope"
 AUTO = "auto"
 RAW = "raw"
 SRGB = "sRGB"
+
 LSS_FOLDER = "lss"
 LSS_NICKNAME = "nickname"
+
 GAME_READY_ASSETS_FOLDER = "gameReadyAssets"
 GAME_READY_REPLACEMENTS_FILE = "replacements.usda"
 FLAT_GAME_READY_REPLACEMENTS_FILE = "replacements.usd"
+
 REMIX_ENV_INTERNAL = "RTX_REMIX_INTERNAL"
 REMIX_FOLDER = "rtx_remix"
 REMIX_CAPTURE_FOLDER = "captures"
 REMIX_MODS_FOLDER = "mods"
 REMIX_MOD_FILE = "mod.usda"
 REMIX_DEPENDENCIES_FOLDER = "deps"
+
 CAPTURE_FOLDER = "capture"
 MATERIALS_FOLDER = "materials"
 MESHES_FOLDER = "meshes"
 LIGHTS_FOLDER = "lights"
+
 MESHES_FILE_PREFIX = "mesh_"
 LIGHT_FILE_PREFIX = "light_"
 MATERIAL_FILE_PREFIX = "mat_"
 CAPTURE_FILE_PREFIX = "capture_"
+
+IS_REMIX_REF_ATTR = "IsRemixRef"
+
+SHADER_NAME_OPAQUE = "AperturePBR_Opacity.mdl"
+SHADER_NAME_TRANSLUCENT = "AperturePBR_Translucent.mdl"
+
 NVTT_PATH = str(Path(__file__).parent.joinpath("tools", "nvtt", "nvtt_export.exe"))
 PIX2PIX_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "pytorch-CycleGAN-and-pix2pix"))
 REAL_ESRGAN_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "realesrgan-ncnn-vulkan-20210901-windows"))
@@ -61,7 +77,6 @@ MAT_SR_ARTIFACTS_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "mat-sr
 PIX2PIX_TEST_SCRIPT_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("test.py"))
 PIX2PIX_CHECKPOINTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("checkpoints"))
 PIX2PIX_RESULTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("results"))
-IS_REMIX_REF_ATTR = "IsRemixRef"
 
 REGEX_IN_INSTANCE_PATH = (
     f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa PLW1401
@@ -80,6 +95,7 @@ REGEX_MESH_INST_LIGHT_PATH = (
 REGEX_SUB_LIGHT_PATH = (
     f"^(.*)({LIGHT_NAME_PREFIX}|{MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa
 )
+
 BAD_EXPORT_LOG_PREFIX = "Export is not release ready: "
 EXPORT_STATUS_NAME = "remix_replacement_status"
 EXPORT_STATUS_RELEASE_READY = "Release Ready"

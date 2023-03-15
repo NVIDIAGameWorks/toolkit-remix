@@ -10,11 +10,10 @@ from lightspeed.common import constants
 from lightspeed.error_popup.window import ErrorPopup
 from lightspeed.layer_helpers import LightspeedTextureProcessingCore
 from lightspeed.progress_popup.window import ProgressPopup
+from lightspeed.tool.material.core import ToolMaterialCore
 from lightspeed.upscale.core import UpscaleModels, UpscalerCore
 from omni.kit.window.toolbar.widget_group import WidgetGroup
 from pxr import UsdShade
-
-from .core import ToolMaterialCore
 
 
 class MaterialButtons:

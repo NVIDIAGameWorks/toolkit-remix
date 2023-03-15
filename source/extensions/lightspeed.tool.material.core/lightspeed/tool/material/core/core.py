@@ -25,8 +25,8 @@ class ToolMaterialCore:
     @staticmethod
     def copy_default_mat_reference() -> List[str]:
         material_files = []
-        current_path = Path(__file__).parent
-        for _ in range(3):
+        current_path = Path(__file__)
+        for _ in range(5):
             current_path = current_path.parent
         material_usd_dir = current_path.joinpath("data", "material_usd")
 
@@ -55,7 +55,7 @@ class ToolMaterialCore:
         return shader if shader else None
 
     @staticmethod
-    def get_materials_from_prim_paths(prim_paths: List[str]):
+    def get_materials_from_prim_paths(prim_paths: List[str], context_name: str = ""):
         def get_mat_from_geo(_prim):
             if _prim.IsA(UsdGeom.Subset) or _prim.IsA(UsdGeom.Mesh):
                 _material, _ = UsdShade.MaterialBindingAPI(_prim).ComputeBoundMaterial()
@@ -63,8 +63,9 @@ class ToolMaterialCore:
                     return _material
             return None
 
-        usd_context = omni.usd.get_context()
+        usd_context = omni.usd.get_context(context_name)
         stage = usd_context.get_stage()
+
         material_prims = []
         for prim_path in prim_paths:  # noqa PLR1702
             prim = stage.GetPrimAtPath(prim_path)
@@ -161,3 +162,20 @@ class ToolMaterialCore:
                 )
                 # normally we only have 1 material reference.
                 break
+
+    @staticmethod
+    def convert_materials(prims: List[Usd.Prim], mdl_file_name: str, context_name: str = ""):
+        usd_context = omni.usd.get_context(context_name)
+        stage = usd_context.get_stage()
+
+        prim_paths = [p.GetPath() for p in prims]
+        material_prims = ToolMaterialCore.get_materials_from_prim_paths(prim_paths, context_name=context_name)
+        shaders = [ToolMaterialCore.get_shader_from_material(material_prim) for material_prim in material_prims]
+
+        for prim in prims:
+            if prim.IsValid() and prim.IsA(UsdShade.Shader):
+                shaders.append(UsdShade.Shader(prim))
+
+        carb.log_info(f"Convert selection Materials to use: {mdl_file_name}")
+        carb.log_verbose(str(shaders))
+        ToolMaterialCore.set_new_mdl_to_shaders(shaders, material_prims, stage, mdl_file_name)

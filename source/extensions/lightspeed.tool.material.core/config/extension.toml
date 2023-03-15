@@ -1,12 +1,12 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.1.0"
+version = "1.0.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
-authors = ["Alex Dunn <adunn@nvidia.com>", "Damien Bataille <dbataille@nvidia.com>"]
+authors = ["Alex Dunn <adunn@nvidia.com>", "Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 
 # The title and description fields are primarly for displaying extension info in UI
-title = "Lightspeed Tool Material"
+title = "Lightspeed Tool Material Core"
 description="Add tools related to materials."
 
 # Path (relative to the root) or content of readme markdown file for UI.
@@ -16,10 +16,10 @@ readme  = "docs/README.md"
 repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.setup"
 
 # One of categories for UI.
-category = "Setup"
+category = "Core"
 
 # Keywords for the extension
-keywords = ["lightspeed", "material", "tool"]
+keywords = ["lightspeed", "material", "tool", "core"]
 
 # Location of change log file in target (final) folder of extension, relative to the root.
 # More info on writing changelog: https://keepachangelog.com/en/1.0.0/
@@ -33,17 +33,11 @@ preview_image = "data/preview.png"
 icon = "data/icon.png"
 
 [dependencies]
-"omni.client" = {}
-"omni.ui" = {}
-"omni.usd" = {}
-"omni.kit.window.toolbar" = {}
 "lightspeed.common" = {}
-"lightspeed.layer_helpers" = {}
 "lightspeed.layer_manager" = {}
-"lightspeed.upscale.core" = {}
-"lightspeed.error_popup.window" = {}
-"lightspeed.progress_popup.window" = {}
+"omni.client" = {}
+"omni.kit.commands" = {}
+"omni.usd" = {}
 
-# Main python module this extension provides, it will be publicly available as "import omni.example.hello".
 [[python.module]]
-name = "lightspeed.tool.material"
+name = "lightspeed.tool.material.core"
