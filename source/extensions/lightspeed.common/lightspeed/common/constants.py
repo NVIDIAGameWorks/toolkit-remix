@@ -48,7 +48,7 @@ GAME_READY_REPLACEMENTS_FILE = "replacements.usda"
 FLAT_GAME_READY_REPLACEMENTS_FILE = "replacements.usd"
 
 REMIX_ENV_INTERNAL = "RTX_REMIX_INTERNAL"
-REMIX_FOLDER = "rtx_remix"
+REMIX_FOLDER = "rtx-remix"
 REMIX_CAPTURE_FOLDER = "captures"
 REMIX_MODS_FOLDER = "mods"
 REMIX_MOD_FILE = "mod.usda"

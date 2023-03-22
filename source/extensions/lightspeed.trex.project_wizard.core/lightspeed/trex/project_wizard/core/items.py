@@ -38,11 +38,11 @@ class ProjectWizardSchema(BaseModel):
     @classmethod
     def are_project_symlinks_valid(cls, project_path: Path) -> bool:
         # TODO Feature OM-72437 - Should use omni.client when symlinks become supported
-        # Invalid /deps directory means we need to select the 'rtx_remix' directory
+        # Invalid /deps directory means we need to select the 'rtx-remix' directory
         deps_symlink = project_path.parent / _constants.REMIX_DEPENDENCIES_FOLDER
         if not deps_symlink.exists():
             return False
-        # Make sure the project is also symlinked in the 'rtx_remix/mods/' directory
+        # Make sure the project is also symlinked in the 'rtx-remix/mods/' directory
         mod_symlink = deps_symlink / _constants.REMIX_MODS_FOLDER / project_path.parent.name
         if not mod_symlink.exists():
             return False
