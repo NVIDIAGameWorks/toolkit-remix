@@ -34,7 +34,7 @@ class ModSelectionItem(ui.AbstractItem):
         """
         Will return the mod directory + mod file.
 
-        For example: C:/rtx_remix/mods/Mod1/mod.usda -> Mod1/mod.usda
+        For example: C:/rtx-remix/mods/Mod1/mod.usda -> Mod1/mod.usda
         """
         return str(Path(self.path.parent.stem) / self.path.name)
 

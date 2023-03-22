@@ -79,12 +79,12 @@ class ProjectWizardCore:
             >>>    {
             >>>         "existing_project": False,
             >>>         "project_path": Path("R:\Remix\projects\MyProject\my_project.usda")
-            >>>         "remix_directory": Path("R:\Remix\rtx_remix"),
-            >>>         "mod_file": Path("R:\Remix\rtx_remix\mods\ExistingMod1\existing_mod_1.usda"),
+            >>>         "remix_directory": Path("R:\Remix\rtx-remix"),
+            >>>         "mod_file": Path("R:\Remix\rtx-remix\mods\ExistingMod1\existing_mod_1.usda"),
             >>>         "existing_mods": [
-            >>>             Path("R:\Remix\rtx_remix\mods\ExistingMod1\existing_mod_1.usda")
+            >>>             Path("R:\Remix\rtx-remix\mods\ExistingMod1\existing_mod_1.usda")
             >>>         ],
-            >>>         "capture_file": Path("R:\Remix\rtx_remix\captures\capture_1.usda"),
+            >>>         "capture_file": Path("R:\Remix\rtx-remix\captures\capture_1.usda"),
             >>>    }
             >>>)
         """

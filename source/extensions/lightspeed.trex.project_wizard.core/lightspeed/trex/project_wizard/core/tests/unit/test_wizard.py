@@ -131,7 +131,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
     async def test_setup_project_dry_run_should_not_call_io_functions(self):
         # Arrange
         project_file = self.base_dir / "projects" / "MyProject" / "my_project.usda"
-        remix_dir = self.base_dir / "rtx_remix"
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
         captures_dir = remix_dir / constants.REMIX_CAPTURE_FOLDER
         existing_mod_dir = remix_dir / constants.REMIX_MODS_FOLDER / "ExistingMod"
 
@@ -415,7 +415,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         dry_run = False
 
         project_file = self.base_dir / "projects" / "MyProject" / "my_project.usda"
-        remix_dir = self.base_dir / "rtx_remix"
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
         captures_dir = remix_dir / constants.REMIX_CAPTURE_FOLDER
         mods_dir = remix_dir / constants.REMIX_MODS_FOLDER
         project_dir = project_file.parent
