@@ -529,7 +529,7 @@ class SetupUI(TrexLayout):
             details = {"Path": path}
             details.update(self._recent_saved_file.get_path_detail(path))
             items.append(
-                RecentWorkFileItem(title, details, partial(_get_image, path), partial(self._open_work_file, path))
+                RecentWorkFileItem(title, details, partial(_get_image, path), partial(self._open_work_file, path), path)
             )
         self._welcome_pads_recent_model.set_items(reversed(items))
 

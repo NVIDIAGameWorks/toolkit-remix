@@ -6,6 +6,7 @@ description = "Welcome Pads implementation for Lightspeed RTX Remix StageCraft A
 [dependencies]
 "omni.flux.utils.widget" = {}
 "omni.flux.welcome_pad.widget" = {}
+"omni.client" = {}
 "omni.ui" = {}
 
 [[python.module]]

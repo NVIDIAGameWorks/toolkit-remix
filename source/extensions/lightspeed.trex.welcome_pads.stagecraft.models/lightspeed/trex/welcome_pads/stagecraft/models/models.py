@@ -9,6 +9,7 @@
 """
 from typing import Callable, Dict
 
+import omni.client
 import omni.ui as ui
 from omni.flux.utils.widget.resources import get_icons as _get_icons
 from omni.flux.welcome_pad.widget.model import Item
@@ -63,9 +64,10 @@ class RecentWorkFileItem(Item):
     """Item of the model"""
 
     def __init__(
-        self, title: str, description: Dict[str, str], image_fn: Callable, on_mouse_pressed_callback: Callable
+        self, title: str, description: Dict[str, str], image_fn: Callable, on_mouse_pressed_callback: Callable, path
     ):
         self.__title = title
+        self.__path = path
         self.__description = description
         self.__image_fn = image_fn
         super().__init__()
@@ -73,6 +75,11 @@ class RecentWorkFileItem(Item):
         self.__is_scrolled = False
         self.use_description_override_delegate = True
         self._on_mouse_pressed_callback = on_mouse_pressed_callback
+        self.__init_enabled()
+
+    def __init_enabled(self):
+        result, entry = omni.client.stat(self.__path)
+        self.enabled = result == omni.client.Result.OK and entry.flags & omni.client.ItemFlags.READABLE_FILE
 
     def get_image(self) -> str:
         return self.__image_fn()
@@ -81,6 +88,8 @@ class RecentWorkFileItem(Item):
         return
 
     def on_mouse_released(self):
+        if not self.enabled:
+            return
         if self.__is_scrolled:
             self.__is_scrolled = False
             return
@@ -111,17 +120,32 @@ class RecentWorkFileItem(Item):
         """
         stack = ui.VStack()
         with stack:
+            ui.Spacer(height=ui.Pixel(8))
+            if not self.enabled:
+                with ui.HStack(height=ui.Pixel(20)):
+                    ui.Label(
+                        "Status:",
+                        width=ui.Pixel(80),
+                        alignment=ui.Alignment.RIGHT,
+                        style_type_name_override="FieldError",
+                        height=0,
+                    )
+                    ui.Spacer(width=ui.Pixel(8), height=0)
+                    ui.Label(
+                        "Invalid file. Deleted?", enabled=self.enabled, style_type_name_override="FieldError", height=0
+                    )
             for detail_key, detail_value in self.__description.items():
-                with ui.HStack():
+                with ui.HStack(height=ui.Pixel(20)):
                     ui.Label(
                         f"{detail_key}:",
                         name="WelcomePadItemDescription",
                         checked=not self.enabled,
                         width=ui.Pixel(80),
                         alignment=ui.Alignment.RIGHT,
+                        height=0,
                     )
-                    ui.Spacer(width=ui.Pixel(8))
-                    ui.Label(str(detail_value), name="WelcomePadItemDescription", checked=not self.enabled)
+                    ui.Spacer(width=ui.Pixel(8), height=0)
+                    ui.Label(str(detail_value), name="WelcomePadItemDescription", checked=not self.enabled, height=0)
         return stack
 
     @property

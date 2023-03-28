@@ -6,6 +6,7 @@ description = "Components Pane implmentation for Lightspeed RTX Remix StageCraft
 [dependencies]
 "lightspeed.layer_manager" = {}
 "lightspeed.trex.components_pane.stagecraft.models" = {}
+"lightspeed.trex.utils.common" = {}
 "omni.flux.tree_panel.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.usd" = {}

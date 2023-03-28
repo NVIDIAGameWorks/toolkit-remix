@@ -13,6 +13,8 @@ import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.layer_types import LayerType
 from lightspeed.trex.components_pane.stagecraft.models import create_all_items as _create_all_items
+from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
+from lightspeed.trex.utils.common import sandwich_attrs_function_decorator as _sandwich_attrs_function_decorator
 from omni.flux.tree_panel.widget import PanelOutlinerWidget as _PanelOutlinerWidget
 from omni.flux.tree_panel.widget.tree.model import Model as _Model
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -31,10 +33,13 @@ class SetupUI:
             "_model": None,
             "_layer_manager": None,
             "_sub_stage_event": None,
+            "_sub_title_updated": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
+        self._from_user = False
+        self.__init_title = False
         self._context = omni.usd.get_context(context_name)
         self._layer_manager = _LayerManagerCore(context_name=context_name)
 
@@ -47,6 +52,8 @@ class SetupUI:
         self._model.set_items(self._items)
         self._ui = _PanelOutlinerWidget(tree_model=self._model)  # hold or crash
         self._ui.set_title(self.DEFAULT_TITLE)
+
+        self._sub_title_updated = self._ui.subscribe_title_updated(self._on_title_updated)
 
     def __on_stage_event(self, event):
         if event.type in [
@@ -63,6 +70,11 @@ class SetupUI:
     def get_model(self):
         return self._model
 
+    @_sandwich_attrs_function_decorator(attrs=["_from_user"])
+    def _on_title_updated(self, title: str):
+        self.refresh()
+
+    @_ignore_function_decorator(attrs=["_ignore_refresh"])
     def refresh(self):
         capture_layer = self._layer_manager.get_layer(LayerType.capture)
         replacement_layer = self._layer_manager.get_layer(LayerType.replacement)
@@ -80,7 +92,8 @@ class SetupUI:
         root_layer = stage.GetRootLayer() if stage else None
         if stage_url and stage and root_layer and not root_layer.anonymous:
             self._ui.set_title(Path(stage_url).stem)
-        else:
+        elif not self._from_user and not self.__init_title:
+            self.__init_title = True
             self._ui.set_title(self.DEFAULT_TITLE)
 
     def destroy(self):
