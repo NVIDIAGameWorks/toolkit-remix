@@ -31,7 +31,6 @@ from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _P
 from omni.flux.properties_pane.transformation.usd.widget import TransformPropertyWidget as _TransformPropertyWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
-from omni.flux.utils.widget.label import create_label_with_font as _create_label_with_font
 
 if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
@@ -47,13 +46,10 @@ class SetupUI:
         self._default_attr = {
             "_frame_none": None,
             "_mesh_properties_frames": None,
-            "_mesh_none_provider_label": None,
             "_frame_mesh_ref": None,
             "_frame_mesh_prim": None,
-            "_mesh_ref_provider_label": None,
             "_mesh_ref_field": None,
             "_overlay_mesh_ref_label": None,
-            "_mesh_ref_default_prim_provider_label": None,
             "_mesh_ref_prim_field": None,
             "_mesh_ref_default_prim_checkbox": None,
             "_mesh_ref_default_prim_label": None,
@@ -98,9 +94,7 @@ class SetupUI:
                         ui.Spacer(height=0)
                         with ui.VStack(width=0):
                             ui.Spacer()
-                            self._mesh_none_provider_label, _, _ = _create_label_with_font(
-                                "None", "PropertiesWidgetLabel", remove_offset=False
-                            )
+                            ui.Label("None", name="PropertiesWidgetLabel")
                             ui.Spacer()
                         ui.Spacer(height=0)
             self._frame_mesh_ref = ui.Frame(visible=False)
@@ -111,15 +105,12 @@ class SetupUI:
                     with ui.HStack(height=ui.Pixel(24), spacing=ui.Pixel(8)):
                         with ui.HStack(width=ui.Pixel(160)):
                             ui.Spacer()
-                            with ui.VStack(width=0):
-                                ui.Spacer()
-                                self._mesh_ref_provider_label, _, _ = _create_label_with_font(
-                                    "Reference USD path",
-                                    "PropertiesWidgetLabel",
-                                    remove_offset=False,
-                                    tooltip="Path of the USD reference",
-                                )
-                                ui.Spacer()
+                            ui.Label(
+                                "Reference USD path",
+                                name="PropertiesWidgetLabel",
+                                tooltip="Path of the USD reference",
+                                width=0,
+                            )
                         with ui.HStack():
                             ui.Spacer(width=ui.Pixel(4))
                             with ui.ZStack():
@@ -161,11 +152,9 @@ class SetupUI:
                         with ui.HStack(width=ui.Pixel(160)):
                             ui.Spacer()
                             with ui.VStack(width=0):
-                                ui.Spacer(height=ui.Pixel(4))
-                                self._mesh_ref_default_prim_provider_label, _, _ = _create_label_with_font(
+                                ui.Label(
                                     "Reference prim",
-                                    "PropertiesWidgetLabel",
-                                    remove_offset=False,
+                                    name="PropertiesWidgetLabel",
                                     tooltip="Prim path of the USD reference",
                                 )
                                 ui.Spacer()
