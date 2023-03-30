@@ -331,20 +331,7 @@ class Setup:
         # As a workaround, we had to create a xform child and add the reference to it.
         prim = stage.GetPrimAtPath(prim_path)
         with omni.kit.undo.group():
-            is_remix_ref = prim.GetAttribute(constants.IS_REMIX_REF_ATTR)
-            if is_remix_ref:
-                prim_path = omni.usd.get_stage_next_free_path(stage, str(prim_path), False)
-            else:
-                prim_path = omni.usd.get_stage_next_free_path(stage, str(prim_path.AppendPath("ref")), False)
-            omni.kit.commands.execute(
-                "CreatePrimCommand",
-                prim_path=prim_path,
-                prim_type="Xform",
-                select_new_prim=False,
-                context_name=self._context_name,
-            )
-            child_prim = prim.GetStage().GetPrimAtPath(prim_path)
-            child_prim.CreateAttribute(constants.IS_REMIX_REF_ATTR, Sdf.ValueTypeNames.Bool).Set(True)
+            prim_path = self.__create_child_ref_prim(stage, prim)
 
             asset_path = omni.client.normalize_url(omni.client.make_relative_url(layer.identifier, asset_path))
             new_ref = Sdf.Reference(assetPath=asset_path.replace("\\", "/"), primPath=Sdf.Path())
@@ -422,6 +409,24 @@ class Setup:
             paths=paths,
             context_name=self._context_name,
         )
+
+    def __create_child_ref_prim(self, stage: Usd.Stage, prim: Usd.Prim) -> str:
+        prim_path = prim.GetPath()
+        is_remix_ref = prim.GetAttribute(constants.IS_REMIX_REF_ATTR)
+        if is_remix_ref:
+            prim_path = omni.usd.get_stage_next_free_path(stage, str(prim_path), False)
+        else:
+            prim_path = omni.usd.get_stage_next_free_path(stage, str(prim_path.AppendPath("ref")), False)
+        omni.kit.commands.execute(
+            "CreatePrimCommand",
+            prim_path=prim_path,
+            prim_type="Xform",
+            select_new_prim=False,
+            context_name=self._context_name,
+        )
+        child_prim = prim.GetStage().GetPrimAtPath(prim_path)
+        child_prim.CreateAttribute(constants.IS_REMIX_REF_ATTR, Sdf.ValueTypeNames.Bool).Set(True)
+        return prim_path
 
     def on_reference_edited(
         self,
