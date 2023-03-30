@@ -461,30 +461,36 @@ class SetupUI:
         return True
 
     def set_new_usd_reference(self):
-        asset_path = self._mesh_ref_field.model.get_value_as_string()
-        prim_path = self._mesh_ref_prim_field.model.get_value_as_string()
-        stage = self._context.get_stage()
-        new_ref = self._core.on_reference_edited(
-            stage,
-            self._current_reference_file_mesh_items[-1].prim.GetPath(),
-            self._current_reference_file_mesh_items[-1].ref,
-            asset_path,
-            prim_path,
-            self._current_reference_file_mesh_items[-1].layer,
-        )
-        if new_ref:
-            carb.log_info(
-                (
-                    f"Set new ref {new_ref.assetPath} {new_ref.primPath},"
-                    f" layer {self._context.get_stage().GetEditTarget().GetLayer()}"
+        with omni.kit.undo.group():
+            stage = self._context.get_stage()
+            prim_path = self._current_reference_file_mesh_items[-1].prim.GetPath()
+            current_ref = self._current_reference_file_mesh_items[-1].ref
+            current_layer = self._current_reference_file_mesh_items[-1].layer
+
+            # first we delete the ref
+            self._core.remove_reference(stage, prim_path, current_ref, current_layer)
+
+            # second we add the new one
+            asset_path = self._mesh_ref_field.model.get_value_as_string()
+            new_ref, prim_path = self._core.add_new_reference(
+                stage,
+                prim_path,
+                asset_path,
+                stage.GetEditTarget().GetLayer(),
+            )
+            if new_ref:
+                carb.log_info(
+                    (
+                        f"Set new ref {new_ref.assetPath} {new_ref.primPath}, "
+                        f"layer {self._context.get_stage().GetEditTarget().GetLayer()}"
+                    )
                 )
-            )
-            # select the new prim of the new added ref
-            self._core.select_child_from_instance_item_and_ref(
-                stage, self._current_reference_file_mesh_items[-1].prim, new_ref.assetPath, self._current_instance_items
-            )
-        else:
-            carb.log_info("No ref set")
+                # select the new prim of the new added ref
+                self._core.select_child_from_instance_item_and_ref(
+                    stage, stage.GetPrimAtPath(prim_path), new_ref.assetPath, self._current_instance_items
+                )
+            else:
+                carb.log_info("No reference set")
 
     def show(self, value):
         self._transformation_widget.show(value)
