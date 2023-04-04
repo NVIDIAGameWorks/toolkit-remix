@@ -1,0 +1,13 @@
+build_doc_publish:
+  extends: .defaults
+  stage: build_doc_publish
+  only:
+    - master
+  tags:
+    - linux
+  before_script:
+    - ./build.sh --clean
+    - ./build.sh --release
+    - ./build_docs.sh
+  script:
+    - ./build_docs.sh --publish-as-latest -s publish --edition s3web

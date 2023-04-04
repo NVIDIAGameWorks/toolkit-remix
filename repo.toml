@@ -168,46 +168,67 @@ apps = [
 [repo_docs]
 enabled = true
 
+name = "RTX Remix"
 project = "${conf:repo.name}"
-name = "Kit Extension Template"
+
 copyright_start = 2021
-
-config = "release"
-
-doxygen_input = [
-    "include/omni/example/IBattleSimulator.h",
-]
-
-doxygen_aliases = [
-]
-
-extra_sys_paths = [
-    "${root}/_build/${platform_target}/release/kit/exts/*/bin",
-    "${root}/_build/${platform_target}/release/kit/exts/*",
-    "${root}/_build/${platform_target}/release/kit/extscore/*",
-    "${root}/_build/${platform_target}/release/kit",
-    "${root}/_build/${platform_target}/release/kit/plugins",
-    "${root}/_build/${platform_target}/release/kit/plugins/bindings-python",
-]
 
 sphinx_exclude_patterns = [
     "include",
     "tools",
     "_build",
     "VERSION.md",
+    ".cache",
+    "source/extensions/lightspeed.asset*",
+    "source/extensions/lightspeed.color*",
+    "source/extensions/lightspeed.common*",
+    "source/extensions/lightspeed.error*",
+    "source/extensions/lightspeed.event*",
     "source/extensions/lightspeed_example*",
+    "source/extensions/lightspeed.export*",
+    "source/extensions/lightspeed.layer*",
+    "source/extensions/lightspeed.lock*",
+    "source/extensions/lightspeed.paths*",
+    "source/extensions/lightspeed.pip*",
+    "source/extensions/lightspeed.property*",
+    "source/extensions/lightspeed.stage*",
+    "source/extensions/lightspeed.tool*",
+    "source/extensions/lightspeed.upscale*",
+    "source/extensions/lightspeed.widget*",
+    "source/extensions/lightspeed.window*",
+    "source/extensions/lightspeed.workspace*",
 ]
 
-repo_url = "https://gitlab-master.nvidia.com/omniverse/kit-extensions/kit-template/-/blob/master"
-
-deps = [
-    [ "repo_docs", "${root}/_repo/deps/repo_docs/_build/docs/repo_docs/latest"]
+python_paths = [
+    "${root}/_build/${platform_target}/release/exts/*",
+    "${root}/_build/${platform_target}/release/extscache/*",
+    "${root}/_build/${platform_target}/release/kit/kernel/py",
+    "${root}/_build/${platform_target}/release/kit/exts/*",
+    "${root}/_build/${platform_target}/release/kit/extPhysics/*",
+    "${root}/_build/${platform_target}/release/kit/extscore/*",
+    "${root}/_build/${platform_target}/release/kit/extscore/omni.kit.pip_archive/pip_prebundle",
+    "${root}/_build/${platform_target}/release/kit/extensions/extensions-bundled",
+    "${root}/_build/${platform_target}/release/kit",
+    "${root}/_build/${platform_target}/release/kit/plugins",
+    "${root}/_build/${platform_target}/release/kit/plugins/bindings-python",
+]
+library_paths = [
+    "${root}/_build/${platform_target}/release/exts/*/bin",
+    "${root}/_build/${platform_target}/release/kit/exts/*/bin",
+    "${root}/_build/${platform_target}/release/kit/extsPhysics/*/bin",
+    "${root}/_build/${platform_target}/release/kit/extscore/*/bin",
+    "${root}/_build/${platform_target}/release/kit/extscore/*/bin/deps",
+    "${root}/_build/${platform_target}/release/kit",
+    "${root}/_build/${platform_target}/release/kit/kernel/plugins",
+    "${root}/_build/${platform_target}/release/kit/plugins",
+    "${root}/_build/${platform_target}/release/kit/plugins/gpu.foundation",
+    "${root}/_build/${platform_target}/release/kit/plugins/usd",
+    "${root}/_build/${platform_target}/release/kit/plugins/rtx",
 ]
 
-[repo_docs.editions.s3web]
-protocol = "s3"
-bucket_name = "omniverse-docs"
-bucket_dir = "${project}/${version}"
+repo_url = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/blob/master"
+
+enable_dark_theme_switcher = true
 
 ########################################################################################################################
 # Code Format Tool

@@ -1,5 +1,5 @@
-example.python_ext
-###########################
+lightspeed_example.app.resources
+################################
 
 Example of Python only extension
 
@@ -9,12 +9,3 @@ Example of Python only extension
 
    README
    CHANGELOG
-
-
-.. automodule:: example.python_ext
-    :platform: Windows-x86_64, Linux-x86_64
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :imported-members:
-    :exclude-members: contextmanager

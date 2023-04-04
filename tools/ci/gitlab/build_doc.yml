@@ -1,0 +1,12 @@
+build_doc:
+  extends: .defaults
+  stage: build_doc
+  tags:
+    - linux
+  needs:
+    - build_test
+  before_script:
+    - ./build.sh --clean
+    - ./build.sh --release
+  script:
+    - ./build_docs.sh
