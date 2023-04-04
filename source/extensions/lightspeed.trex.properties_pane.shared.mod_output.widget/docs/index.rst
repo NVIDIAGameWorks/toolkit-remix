@@ -8,7 +8,7 @@ lightspeed.trex.properties_pane.shared.export.widget
    CHANGELOG
 
 
-.. automodule:: lightspeed.trex.properties_pane.shared.export.widget
+.. automodule:: lightspeed.trex.properties_pane.shared.mod_output.widget
     :platform: Windows-x86_64, Linux-x86_64
     :members:
     :undoc-members:

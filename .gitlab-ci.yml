@@ -6,10 +6,16 @@
   variables:
     GIT_STRATEGY: fetch
 
+variables:
+  AWS_ACCESS_KEY_ID: $AWS_OMNIVERSEDOCS_ACCESS_KEY_ID
+  AWS_SECRET_ACCESS_KEY: $AWS_OMNIVERSEDOCS_SECRET_ACCESS_KEY
+
 stages:
   - check_format
   - check_lint
   - build_test
+  - build_doc
+  - build_doc_publish
   - pkg_publish
   - manual_package
 #  - signing
@@ -18,6 +24,8 @@ include:
   - local: tools/ci/gitlab/check_format.yml
   - local: tools/ci/gitlab/check_lint.yml
   - local: tools/ci/gitlab/build_test.yml
+  - local: tools/ci/gitlab/build_doc.yml
+  - local: tools/ci/gitlab/build_doc_publish.yml
   - local: tools/ci/gitlab/pkg_publish.yml
   - local: tools/ci/gitlab/manual_package.yml
 #  - local: tools/ci/gitlab/signing.yml

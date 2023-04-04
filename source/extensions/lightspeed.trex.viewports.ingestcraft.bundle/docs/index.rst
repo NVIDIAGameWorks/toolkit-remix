@@ -1,5 +1,5 @@
-omni.kit.viewport.bundle
-###########################
+lightspeed.trex.viewports.ingestcraft.bundle
+############################################
 
 Viewport Bundle
 
@@ -9,11 +9,3 @@ Viewport Bundle
 
    README
    CHANGELOG
-
-
-.. automodule:: omni.kit.viewport.bundle
-    :platform: Windows-x86_64, Linux-x86_64
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :imported-members:
