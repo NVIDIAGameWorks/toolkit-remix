@@ -41,7 +41,6 @@ class CopyRefToPrimCore(ILSSEvent):
         default_context = settings.get(_CONTEXT) or ""
         self._context = omni.usd.get_context(default_context)
         self._layer_manager = _LayerManagerCore(default_context)
-        self.__capture_baker_layer = None
 
     @property
     def name(self) -> str:
@@ -60,13 +59,9 @@ class CopyRefToPrimCore(ILSSEvent):
         )
 
     def __create_capture_package_layer(self):
-        if self.__capture_baker_layer is not None:
-            return self.__capture_baker_layer
-
         replacement_layer = self._layer_manager.get_layer(_LayerType.replacement)
         if not replacement_layer:
             carb.log_verbose("CopyRefToPrimCore: Mod layer doesn't exist!")
-            self.__capture_baker_layer = None
             return None
         partition_replacement_layer = replacement_layer.realPath.rpartition(".")
         layer_path = (
@@ -103,8 +98,7 @@ class CopyRefToPrimCore(ILSSEvent):
             # be sure to re-open the layer
             capture_package_layer = find_capture_package_layer
             capture_package_layer.Reload()
-        self.__capture_baker_layer = capture_package_layer
-        return self.__capture_baker_layer
+        return capture_package_layer
 
     def __get_all_replacement_layers(self, replacements_layer):
         # We grab all the sublayers of the replacements_layer
