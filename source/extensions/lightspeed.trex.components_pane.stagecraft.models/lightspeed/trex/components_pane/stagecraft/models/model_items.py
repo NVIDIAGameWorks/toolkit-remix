@@ -16,7 +16,7 @@ from omni.flux.tree_panel.widget.tree.model import Item as _Item
 class EnumItems(Enum):
     MOD_SETUP = "Mod Setup"
     ASSET_REPLACEMENTS = "Asset Replacements"
-    MOD_OUTPUT = "Mod Output"
+    # MOD_OUTPUT = "Mod Output"
 
 
 class ModSetupItem(_Item):
@@ -59,27 +59,27 @@ class AssetReplacementsItem(_Item):
         return EnumItems.ASSET_REPLACEMENTS.value
 
 
-class ModOutputItem(_Item):
-    """Item of the model"""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.enabled = False
-
-    @property
-    def component_type(self):
-        return None
-
-    def can_item_have_children(self, item):
-        return True
-
-    def on_mouse_pressed(self):
-        pass
-
-    @property
-    def title(self):
-        return EnumItems.MOD_OUTPUT.value
+# class ModOutputItem(_Item):
+#     """Item of the model"""
+#
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.enabled = False
+#
+#     @property
+#     def component_type(self):
+#         return None
+#
+#     def can_item_have_children(self, item):
+#         return True
+#
+#     def on_mouse_pressed(self):
+#         pass
+#
+#     @property
+#     def title(self):
+#         return EnumItems.MOD_OUTPUT.value
 
 
 def create_all_items() -> List[_Item]:
-    return [ModSetupItem(), AssetReplacementsItem(), ModOutputItem()]
+    return [ModSetupItem(), AssetReplacementsItem()]
