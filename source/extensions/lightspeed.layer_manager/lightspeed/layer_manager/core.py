@@ -23,7 +23,7 @@ from pxr import Sdf
 
 from .constants import LSS_LAYER_GAME_NAME
 from .layer_types import LayerType, LayerTypeKeys
-from .layers import autoupscale, capture, i_layer, replacement, workfile
+from .layers import autoupscale, capture, capture_baker, i_layer, replacement, workfile
 
 
 class LayerManagerCore:
@@ -34,11 +34,13 @@ class LayerManagerCore:
         self.context_name = context_name
         self.__context = omni.usd.get_context(context_name or "")
         self.__capture_layer = capture.CaptureLayer(self)
+        self.__capture_baker_layer = capture_baker.CaptureBakerLayer(self)
         self.__replacement_layer = replacement.ReplacementLayer(self)
         self.__autoupscale_layer = autoupscale.AutoUpscaleLayer(self)
         self.__workfile_layer = workfile.WorkfileLayer(self)
         self.__layers = [
             self.__capture_layer,
+            self.__capture_baker_layer,
             self.__replacement_layer,
             self.__autoupscale_layer,
             self.__workfile_layer,
@@ -132,7 +134,7 @@ class LayerManagerCore:
     def create_new_anonymous_layer():
         return Sdf.Layer.CreateAnonymous()
 
-    def save_layer(self, layer_type: LayerType, comment: str = None):
+    def save_layer(self, layer_type: LayerType, comment: str = None, show_checkpoint_error: bool = True):
         layer = self.get_layer(layer_type)
         if layer is None:
             carb.log_error(f'Can\'t find the layer type "{layer_type.value}" in the stage')
@@ -141,7 +143,7 @@ class LayerManagerCore:
         result, _ = omni.client.stat(layer.realPath)
         if result == omni.client.Result.OK:
             result, _ = omni.client.create_checkpoint(layer.realPath, "" if comment is None else comment, force=True)
-            if result != omni.client.Result.OK:
+            if result != omni.client.Result.OK and show_checkpoint_error:
                 carb.log_error(f"Can't create a checkpoint for file {layer.realPath}")
 
     def save_layer_as(self, layer_type: LayerType, path: str, comment: str = None) -> bool:
@@ -216,6 +218,26 @@ class LayerManagerCore:
             if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
                 omni.kit.commands.execute(
                     "LockLayer", usd_context=self.__context, layer_identifier=layer.identifier, locked=value
+                )
+        if do_undo:
+            omni.kit.undo.end_group()
+
+    def mute_layer(self, layer_type: LayerType, value: bool = True, do_undo: bool = True):
+        """
+        Mute the giving layer
+
+        Args:
+            layer_type: the layer type to mute
+            value: the value of the mute
+            do_undo: set the undo or not
+        """
+        if do_undo:
+            omni.kit.undo.begin_group()
+        stage = self.__context.get_stage()
+        for layer in stage.GetLayerStack():
+            if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
+                omni.kit.commands.execute(
+                    "SetLayerMuteness", layer_identifier=layer.identifier, muted=value, usd_context=self.__context
                 )
         if do_undo:
             omni.kit.undo.end_group()

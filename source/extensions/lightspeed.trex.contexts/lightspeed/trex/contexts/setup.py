@@ -18,7 +18,7 @@ class Contexts(Enum):
     INGEST_CRAFT = "ingestcraft"
     TEXTURE_CRAFT = "texturecraft"
     # STAGE_CRAFT = "stagecraft"
-    STAGE_CRAFT = ""  # TODO: wait for OM-77651
+    STAGE_CRAFT = ""  # TODO. Don't forget to change the value also in lightspeed.app.trex.stagecraft.kit
 
 
 class _Setup:

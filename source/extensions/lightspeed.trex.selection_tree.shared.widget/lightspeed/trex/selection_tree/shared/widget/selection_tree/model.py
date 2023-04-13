@@ -108,7 +108,7 @@ class ItemLiveLightGroup(ui.AbstractItem):
     def get_live_lights(self) -> List[Usd.Prim]:
         """Get lights that are not from a ref"""
         core = _AssetReplacementsCore(self._context_name)
-        return core.get_children_from_prim(self.parent.prim, only_prim_not_from_ref=True, level=1)
+        return core.get_children_from_prim(self.parent.prim, only_prim_not_from_ref=True, level=1, skip_remix_ref=True)
 
     @property
     def parent(self):

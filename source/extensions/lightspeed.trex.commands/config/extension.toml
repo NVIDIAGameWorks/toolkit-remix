@@ -1,0 +1,15 @@
+[package]
+authors = ["Damien Bataille <dbataille@nvidia.com>"]
+title = "Lightspeed RTX Remix Commands Extension"
+description = "This Extension create custom commands used by the Lightspeed RTX Remix Apps"
+
+[core]
+# Load as early as possible
+order = -100
+
+[dependencies]
+"omni.kit.commands" = {}
+"omni.usd" = {}  # for usd
+
+[[python.module]]
+name = "lightspeed.trex.commands"

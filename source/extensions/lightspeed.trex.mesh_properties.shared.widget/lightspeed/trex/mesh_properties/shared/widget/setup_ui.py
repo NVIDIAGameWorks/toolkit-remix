@@ -468,15 +468,12 @@ class SetupUI:
             current_layer = self._current_reference_file_mesh_items[-1].layer
 
             # first we delete the ref
-            self._core.remove_reference(stage, prim_path, current_ref, current_layer)
+            self._core.remove_reference(stage, prim_path, current_ref, current_layer, remove_if_remix_ref=False)
 
             # second we add the new one
             asset_path = self._mesh_ref_field.model.get_value_as_string()
             new_ref, prim_path = self._core.add_new_reference(
-                stage,
-                prim_path,
-                asset_path,
-                stage.GetEditTarget().GetLayer(),
+                stage, prim_path, asset_path, stage.GetEditTarget().GetLayer(), create_if_remix_ref=False
             )
             if new_ref:
                 carb.log_info(
