@@ -5,6 +5,7 @@ description = "Extension that works on asset replacement data for Lightspeed RTX
 
 [dependencies]
 "lightspeed.common" = {}
+"lightspeed.trex.commands" = {}  # for omni.kit.undo (this is inside omni.kit.commands)
 "omni.client" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.commands" = {}  # for omni.kit.undo (this is inside omni.kit.commands)

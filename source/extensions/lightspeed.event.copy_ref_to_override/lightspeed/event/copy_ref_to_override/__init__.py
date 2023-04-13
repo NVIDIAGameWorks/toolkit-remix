@@ -7,16 +7,4 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-from enum import Enum
-
-
-class LayerType(Enum):
-    autoupscale = "autoupscale"
-    capture_baker = "capture_baker"
-    capture = "capture"
-    replacement = "replacement"
-    workfile = "workfile"
-
-
-class LayerTypeKeys(Enum):
-    layer_type = "lightspeed_layer_type"
+from .extension import EventCopyRefToPrimExtension

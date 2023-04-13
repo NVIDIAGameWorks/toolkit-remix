@@ -9,6 +9,7 @@
 """
 import re
 import typing
+import uuid
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -19,6 +20,7 @@ import omni.usd
 from lightspeed.common import constants
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.usd.commands import remove_prim_spec as _remove_prim_spec
 from pxr import Sdf, Usd, UsdGeom
 
 if typing.TYPE_CHECKING:
@@ -320,18 +322,14 @@ class Setup:
         return False
 
     def add_new_reference(
-        self,
-        stage: Usd.Stage,
-        prim_path: Sdf.Path,
-        asset_path: str,
-        layer: Sdf.Layer,
+        self, stage: Usd.Stage, prim_path: Sdf.Path, asset_path: str, layer: Sdf.Layer, create_if_remix_ref: bool = True
     ) -> Sdf.Reference:
 
         # it can happen that we added the same reference multiple time. But USD can't do that.
         # As a workaround, we had to create a xform child and add the reference to it.
         prim = stage.GetPrimAtPath(prim_path)
         with omni.kit.undo.group():
-            prim_path = self.__create_child_ref_prim(stage, prim)
+            prim_path = self.__create_child_ref_prim(stage, prim, create_if_remix_ref=create_if_remix_ref)
 
             asset_path = omni.client.normalize_url(omni.client.make_relative_url(layer.identifier, asset_path))
             new_ref = Sdf.Reference(assetPath=asset_path.replace("\\", "/"), primPath=Sdf.Path())
@@ -364,7 +362,12 @@ class Setup:
         return ref
 
     def remove_reference(
-        self, stage: Usd.Stage, prim_path: Sdf.Path, ref: Sdf.Reference, intro_layer: Sdf.Layer
+        self,
+        stage: Usd.Stage,
+        prim_path: Sdf.Path,
+        ref: Sdf.Reference,
+        intro_layer: Sdf.Layer,
+        remove_if_remix_ref: bool = True,
     ) -> Sdf.Reference:
         edit_target_layer = stage.GetEditTarget().GetLayer()
         # When removing a reference on a different layer, the deleted assetPath should be relative to edit target layer,
@@ -374,9 +377,19 @@ class Setup:
         with omni.kit.undo.group():
             # get prim
             prim = stage.GetPrimAtPath(prim_path)
+            is_remix_ref = prim.GetAttribute(constants.IS_REMIX_REF_ATTR)
             # if prim_path is mesh_*, we want to get his children and remove overrides later
             # if not, we just remove the ref xform added for duplicated refs
-            prims = [prim]
+            if is_remix_ref and not remove_if_remix_ref:
+                prims = []
+                parent_prim = prim.GetParent()
+            else:
+                prims = [prim]
+                if is_remix_ref:
+                    parent_prim = prim.GetParent()
+                else:
+                    parent_prim = None
+
             regex_is_mesh = re.compile(constants.REGEX_MESH_PATH)
             if regex_is_mesh.match(str(prim_path)):
                 # we grab the children, but we skip remix ref
@@ -387,10 +400,11 @@ class Setup:
                 ]
 
             omni.kit.commands.execute(
-                "RemoveReference",
+                "SetExplicitReferencesCommand",
                 stage=stage,
                 prim_path=str(prim_path),
                 reference=ref,
+                to_set=[],
             )
 
             # we should never delete /mesh_* or /light_* or /inst_*
@@ -403,6 +417,12 @@ class Setup:
             if prims:
                 self.delete_prim(prims)
 
+            # but if the prim is empty with no override, nothing, we should delete the override
+            if parent_prim:
+                prim_spec = edit_target_layer.GetPrimAtPath(parent_prim.GetPath())
+                if prim_spec and not prim_spec.hasReferences and not prim_spec.nameChildren:
+                    _remove_prim_spec(edit_target_layer, prim_spec.path)
+
     def delete_prim(self, paths: List[str]):
         omni.kit.commands.execute(
             "DeletePrims",
@@ -410,13 +430,16 @@ class Setup:
             context_name=self._context_name,
         )
 
-    def __create_child_ref_prim(self, stage: Usd.Stage, prim: Usd.Prim) -> str:
+    def __create_child_ref_prim(self, stage: Usd.Stage, prim: Usd.Prim, create_if_remix_ref: bool = True) -> str:
         prim_path = prim.GetPath()
         is_remix_ref = prim.GetAttribute(constants.IS_REMIX_REF_ATTR)
+        if is_remix_ref and not create_if_remix_ref:
+            return str(prim_path)
         if is_remix_ref:
-            prim_path = omni.usd.get_stage_next_free_path(stage, str(prim_path), False)
-        else:
-            prim_path = omni.usd.get_stage_next_free_path(stage, str(prim_path.AppendPath("ref")), False)
+            prim_path = prim_path.GetParentPath()
+        prim_path = omni.usd.get_stage_next_free_path(
+            stage, str(prim_path.AppendPath(f"ref_{str(uuid.uuid4()).replace('-', '')}")), False
+        )
         omni.kit.commands.execute(
             "CreatePrimCommand",
             prim_path=prim_path,
