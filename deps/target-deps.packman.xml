@@ -20,4 +20,7 @@
   <dependency name="omni_core_materials" linkPath="../_build/${platform}/${config}/omni_core_materials">
     <package name="omni_core_materials" version="224e85c456b8f7af2ef5babd14c6f8f424b10889"/>
   </dependency>
+  <dependency name="remix_runtime" linkPath="../_build/${platform}/${config}/remix_runtime">
+    <package name="remix_runtime" version="9854c105" />
+  </dependency>
 </project>
