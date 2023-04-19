@@ -6,6 +6,7 @@ build_test:
   needs:
     - check-code-lint
   before_script:
+    - If (Test-Path ".\portable\"){ Remove-Item ".\portable\" -Recurse -Force }
     - .\build.bat --clean
   script:
     - .\build.bat --release
