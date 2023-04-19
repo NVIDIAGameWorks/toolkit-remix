@@ -106,3 +106,6 @@ source/logs/
 
 # Upscale log output
 outputs/
+
+# Portable Kit SDK
+portable/
