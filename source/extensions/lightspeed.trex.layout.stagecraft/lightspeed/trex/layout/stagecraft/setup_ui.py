@@ -565,8 +565,8 @@ class SetupUI(TrexLayout):
     @omni.usd.handle_exception
     async def __deferred_on_property_viewport_splitter_change(self, x):
         await omni.kit.app.get_app_interface().next_update_async()
-        if x.value < 0:
-            x = 0
+        if x.value < self.WIDTH_COMPONENT_PANEL + self.WIDTH_PROPERTY_PANEL:
+            x = ui.Pixel(self.WIDTH_COMPONENT_PANEL + self.WIDTH_PROPERTY_PANEL)
         self._property_panel_frame.width = ui.Pixel(x - self.WIDTH_COMPONENT_PANEL)
         self._last_property_viewport_splitter_x = x
 

@@ -4,6 +4,7 @@ title = "Lightspeed RTX Remix Properties Pane for the IngestCraft"
 description = "Properties Pane for Lightspeed RTX Remix IngestCraft App"
 
 [dependencies]
+"lightspeed.common" = {}
 "lightspeed.trex.components_pane.ingestcraft.models" = {}
 "lightspeed.trex.properties_pane.shared.asset_validation.widget" = {}
 "omni.flux.utils.common" = {}

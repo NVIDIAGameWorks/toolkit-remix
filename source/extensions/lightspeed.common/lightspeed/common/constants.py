@@ -132,6 +132,11 @@ SAVE_USD_FILE_EXTENSIONS_OPTIONS = [
 ]
 READ_USD_FILE_EXTENSIONS_OPTIONS = [("*.usd*", "USD Files"), *SAVE_USD_FILE_EXTENSIONS_OPTIONS]
 
+MODEL_INGESTION_SCHEMA_PATH = "${kit}/../exts/lightspeed.trex.app.resources/data/validation_schema/model_ingestion.json"
+TEXTURE_INGESTION_SCHEMA_PATH = (
+    "${kit}/../exts/lightspeed.trex.app.resources/data/validation_schema/texture_ingestion.json"
+)
+
 
 # This should match the `normalmap_encoding` in AperturePBR_normal.mdl
 class NormalMapEncodings(IntEnum):

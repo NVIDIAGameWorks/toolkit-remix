@@ -23,7 +23,6 @@ args = [
     "--/app/fastShutdown=1",
     "--no-window",
     "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
-    "--/exts/omni.flux.validator.manager.widget/schema='${kit}/../exts/lightspeed.trex.app.resources/data/validation_schema/ingestion.json'",
     "--/exts/omni.kit.material.library/lib_paths=['${kit}/../omni_core_materials/Base']",
 ]
 
