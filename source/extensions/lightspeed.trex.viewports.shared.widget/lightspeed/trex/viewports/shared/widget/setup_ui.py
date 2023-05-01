@@ -289,8 +289,10 @@ class SetupUI:
         await omni.kit.app.get_app_interface().next_update_async()
         if x.value < 0:
             x = ui.Pixel(0)
-        result = 100 - (
-            (x.value / (self._root_frame.computed_width / 100)) + (12 / (self._root_frame.computed_width / 100))
+        result = (
+            100 - ((x.value / (self._root_frame.computed_width / 100)) + (12 / (self._root_frame.computed_width / 100)))
+            if self._root_frame.computed_width > 0
+            else 0
         )
         self._property_panel_frame.width = ui.Percent(result)
 

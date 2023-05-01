@@ -1,0 +1,12 @@
+[package]
+authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "Lightspeed RTX Remix Components Pane implementation for the IngestCraft"
+description = "Components Pane implementation for Lightspeed RTX Remix IngestCraft App"
+
+[dependencies]
+"lightspeed.trex.components_pane.ingestcraft.models" = {}
+"omni.flux.tree_panel.widget" = {}
+"omni.flux.utils.common" = {}
+
+[[python.module]]
+name = "lightspeed.trex.components_pane.ingestcraft.controller"

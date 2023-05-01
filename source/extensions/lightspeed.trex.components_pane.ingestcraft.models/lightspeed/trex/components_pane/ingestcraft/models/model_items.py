@@ -14,15 +14,30 @@ from omni.flux.tree_panel.widget.tree.model import Item as _Item
 
 
 class EnumItems(Enum):
-    VALIDATION = "Validation"
+    MODEL_INGESTION = "Model Ingestion"
+    TEXTURE_INGESTION = "Texture Ingestion"
 
 
-class ValidationItem(_Item):
+class ModelIngestionItem(_Item):
     """Item of the model"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.enabled = False
+    @property
+    def component_type(self):
+        return None
+
+    def can_item_have_children(self, item):
+        return False
+
+    def on_mouse_pressed(self):
+        pass
+
+    @property
+    def title(self):
+        return EnumItems.MODEL_INGESTION.value
+
+
+class TextureIngestionItem(_Item):
+    """Item of the model"""
 
     @property
     def component_type(self):
@@ -32,12 +47,12 @@ class ValidationItem(_Item):
         return True
 
     def on_mouse_pressed(self):
-        print("Mouse pressed")
+        pass
 
     @property
     def title(self):
-        return EnumItems.VALIDATION.value
+        return EnumItems.TEXTURE_INGESTION.value
 
 
 def create_all_items() -> List[_Item]:
-    return [ValidationItem()]
+    return [ModelIngestionItem(), TextureIngestionItem()]

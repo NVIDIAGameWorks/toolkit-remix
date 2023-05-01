@@ -8,6 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import omni.ui as ui
+from lightspeed.common import constants as _constants
 from lightspeed.trex.components_pane.ingestcraft.models import EnumItems as ComponentsEnumItems
 from lightspeed.trex.properties_pane.shared.asset_validation.widget import AssetValidationPane as _AssetValidationPane
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -34,7 +35,12 @@ class SetupUI:
     def __create_ui(self):
         with ui.ZStack():
             ui.Rectangle(name="WorkspaceBackground")
-            self._all_frames[ComponentsEnumItems.VALIDATION] = _AssetValidationPane(self._context_name)
+            self._all_frames[ComponentsEnumItems.MODEL_INGESTION] = _AssetValidationPane(
+                self._context_name, _constants.MODEL_INGESTION_SCHEMA_PATH
+            )
+            self._all_frames[ComponentsEnumItems.TEXTURE_INGESTION] = _AssetValidationPane(
+                self._context_name, _constants.TEXTURE_INGESTION_SCHEMA_PATH
+            )
 
     def show_panel(self, title: str = None, forced_value: bool = None):
         for enum_item in ComponentsEnumItems:

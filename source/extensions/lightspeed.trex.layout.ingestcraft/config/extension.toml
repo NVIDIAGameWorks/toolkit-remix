@@ -4,9 +4,10 @@ title = "Lightspeed RTX Remix layout for the IngestCraft"
 description = "Layout for Lightspeed RTX Remix IngestCraft App"
 
 [dependencies]
+"lightspeed.trex.components_pane.ingestcraft.controller" = {}
 "lightspeed.trex.contexts" = {}
 "lightspeed.trex.layout.shared" = {}
-"lightspeed.trex.properties_pane.shared.asset_validation.widget" = {}
+"lightspeed.trex.properties_pane.ingestcraft.widget" = {}
 "lightspeed.trex.utils.common" = {}
 "lightspeed.trex.viewports.shared.widget" = {}
 "omni.ui" = {}
@@ -26,7 +27,6 @@ args = [
     "--/app/fastShutdown=1",
     "--no-window",
     "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
-    "--/exts/omni.flux.validator.manager.widget/schema='${kit}/../exts/lightspeed.trex.app.resources/data/validation_schema/ingestion.json'",
     "--/exts/omni.kit.material.library/lib_paths=['${kit}/../omni_core_materials/Base']",
 ]
 
