@@ -1,6 +1,6 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed RTX Remix common utils"
+title = "NVIDIA RTX Remix common utils"
 description = "Common utils helper for Lightspeed widgets"
 
 [dependencies]

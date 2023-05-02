@@ -7,7 +7,7 @@ authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 
 # The title and description fields are primarly for displaying extension info in UI
 description = "The widget generates project configuration that's then fed to the core to setup a project"
-title = "Lightspeed RTX Remix Project Wizard Widget"
+title = "NVIDIA RTX Remix Project Wizard Widget"
 
 # One of categories for UI.
 category = "Core"

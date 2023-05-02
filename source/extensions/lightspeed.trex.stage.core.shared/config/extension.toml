@@ -1,7 +1,7 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed RTX Remix control for the StageCraft"
-description = "Control will connect back end and front end for Lightspeed RTX Remix StageCraft App"
+title = "NVIDIA RTX Remix control for the StageCraft"
+description = "Control will connect back end and front end for NVIDIA RTX Remix StageCraft App"
 
 [dependencies]
 "lightspeed.layer_manager" = {}

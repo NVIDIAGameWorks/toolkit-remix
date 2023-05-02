@@ -1,4 +1,4 @@
-# RTX Remix
+# NVIDIA RTX Remix
 
 ```{include} ./docs/overview.md
 :relative-docs: docs/

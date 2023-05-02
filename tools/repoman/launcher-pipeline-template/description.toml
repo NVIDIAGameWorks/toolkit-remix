@@ -1,6 +1,6 @@
-name = "RTX Remix"
+name = "NVIDIA RTX Remix"
 #displayed application name in smaller card and library view
-shortName = "Remix"
+shortName = "RTX Remix"
 version = "${version}"
 #boolean for if this version is the latest version
 latest = true
@@ -14,8 +14,6 @@ category = "Apps"
 #values for filtering content, not implemented yet
 tags = [
   "Media & Entertainment",
-  "Manufacturing",
-  "Product Design",
   "Scene Composition",
   "Visualization",
   "Rendering"
@@ -25,11 +23,10 @@ tags = [
 kind = "app"
 #string array, each line is a new line, keep lines under 256 char and keep lines under 4
 description = [
-  "Omniverse RTX Remix."
+  "NVIDIA RTX Remix."
 ]
 
 #array of links for more info on product
-
 [[links]]
 title = "Release Notes"
 url = "https://gitlab-master.nvidia.com/omniverse/kit-apps/code/-/blob/main/CHANGELOG.md"

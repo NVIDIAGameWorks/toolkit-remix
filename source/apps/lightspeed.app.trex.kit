@@ -1,21 +1,21 @@
 [package]
 version = "2023.2.4"
 category = "Application"
-title = "Lightspeed RTX Remix"
-description = "App that regroups all extensions shared between all Lightspeed RTX Remix experiences"
+title = "NVIDIA RTX Remix"
+description = "App that regroups all extensions shared between all NVIDIA RTX Remix experiences"
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 keywords = ["lightspeed", "rtx", "remix", "app", "remix"]
 changelog = """
-# Lightspeed RTX Remix
+# NVIDIA RTX Remix
 
 ## [2022.0.0] - 2022-06-14
 - Publishing first version.
 """
 readme = """
-# Lightspeed RTX Remix Experience
+# NVIDIA RTX Remix Experience
 
-This experience regroup all extensions shared between all Lightspeed RTX Remix experiences
+This experience regroup all extensions shared between all NVIDIA RTX Remix experiences
 """
 
 [dependencies]
@@ -31,10 +31,10 @@ This experience regroup all extensions shared between all Lightspeed RTX Remix e
 
 # Basic Kit App
 ################################
-app.name = "Lightspeed RTX Remix"
+app.name = "NVIDIA RTX Remix"
 
 [settings.app.window]
-title = "Lightspeed RTX Remix"
+title = "NVIDIA RTX Remix"
 iconPath = "${lightspeed.trex.app.resources}/data/icons/nvidia-omniverse-create.ico"
 
 [settings.app.trex]
@@ -42,7 +42,7 @@ default_layout_extension = "lightspeed.trex.layout.stagecraft"
 disabled_layouts = []
 
 [settings.exts."omni.kit.window.modifier.titlebar"]
-titleFormatString = "  Lightspeed RTX Remix  {verKey:/app/version,font_color=0x909090,font_size=16} {separator} {file, board=true}"
+titleFormatString = "  NVIDIA RTX Remix  {verKey:/app/version,font_color=0x909090,font_size=16} {separator} {file, board=true}"
 icon.file = "${lightspeed.trex.app.resources}/data/icons/nvidia-omniverse-create.ico"
 
 [[test]]

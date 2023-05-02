@@ -1,6 +1,6 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
-title = "Lightspeed RTX Remix Capture Tree Model and Delegate"
+title = "NVIDIA RTX Remix Capture Tree Model and Delegate"
 description = "Model, Delegate and Item classes for a TreeView to display Captures"
 
 [dependencies]

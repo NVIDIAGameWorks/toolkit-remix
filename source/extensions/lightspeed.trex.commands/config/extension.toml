@@ -1,7 +1,7 @@
 [package]
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed RTX Remix Commands Extension"
-description = "This Extension create custom commands used by the Lightspeed RTX Remix Apps"
+title = "NVIDIA RTX Remix Commands Extension"
+description = "This Extension create custom commands used by the NVIDIA RTX Remix Apps"
 
 [core]
 # Load as early as possible
