@@ -1,7 +1,7 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed RTX Remix Selection Tree implementation for the StageCraft"
-description = "Selection Tree implementation for Lightspeed RTX Remix StageCraft App"
+title = "NVIDIA RTX Remix Selection Tree implementation for the StageCraft"
+description = "Selection Tree implementation for NVIDIA RTX Remix StageCraft App"
 
 [dependencies]
 "omni.flux.light_creator.widget" = {}

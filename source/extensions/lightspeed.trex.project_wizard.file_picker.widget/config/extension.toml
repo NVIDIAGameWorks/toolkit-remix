@@ -7,7 +7,7 @@ authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 
 # The title and description fields are primarly for displaying extension info in UI
 description = "A filepicker widget with a string field"
-title = "Lightspeed RTX Remix Project Wizard Filepicker Widget"
+title = "NVIDIA RTX Remix Project Wizard Filepicker Widget"
 
 # One of categories for UI.
 category = "Widget"

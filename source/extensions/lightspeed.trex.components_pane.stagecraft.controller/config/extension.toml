@@ -1,7 +1,7 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed RTX Remix Components Pane implementation for the StageCraft"
-description = "Components Pane implmentation for Lightspeed RTX Remix StageCraft App"
+title = "NVIDIA RTX Remix Components Pane implementation for the StageCraft"
+description = "Components Pane implmentation for NVIDIA RTX Remix StageCraft App"
 
 [dependencies]
 "lightspeed.layer_manager" = {}

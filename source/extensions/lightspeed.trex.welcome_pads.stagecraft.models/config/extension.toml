@@ -1,7 +1,7 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed RTX Remix Welcome Pads implementation for the StageCraft"
-description = "Welcome Pads implementation for Lightspeed RTX Remix StageCraft App"
+title = "NVIDIA RTX Remix Welcome Pads implementation for the StageCraft"
+description = "Welcome Pads implementation for NVIDIA RTX Remix StageCraft App"
 
 [dependencies]
 "omni.flux.utils.widget" = {}

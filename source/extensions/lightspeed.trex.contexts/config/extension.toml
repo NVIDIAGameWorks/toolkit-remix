@@ -1,7 +1,7 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed RTX Remix contexts"
-description = "Contexts for Lightspeed RTX Remix App(s). Each sub-app has his own context. Meaning that each viewports can show different stage(s)"
+title = "NVIDIA RTX Remix contexts"
+description = "Contexts for NVIDIA RTX Remix App(s). Each sub-app has his own context. Meaning that each viewports can show different stage(s)"
 
 [dependencies]
 "omni.usd" = {}

@@ -1,7 +1,7 @@
 [package]
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
-title = "Lightspeed RTX Remix Mod Output File Widget implementation for the StageCraft"
-description = "Trex Mod Output File Widget implementation for Lightspeed RTX Remix StageCraft App"
+title = "NVIDIA RTX Remix Mod Output File Widget implementation for the StageCraft"
+description = "Trex Mod Output File Widget implementation for NVIDIA RTX Remix StageCraft App"
 
 [dependencies]
 "lightspeed.error_popup.window" = {}

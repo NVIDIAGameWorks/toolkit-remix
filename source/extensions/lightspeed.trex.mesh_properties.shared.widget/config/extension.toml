@@ -1,7 +1,7 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed RTX Remix Mesh Properties implementation for the StageCraft"
-description = "Mesh Properties implementation for Lightspeed RTX Remix StageCraft App"
+title = "NVIDIA RTX Remix Mesh Properties implementation for the StageCraft"
+description = "Mesh Properties implementation for NVIDIA RTX Remix StageCraft App"
 
 [dependencies]
 "lightspeed.trex.asset_replacements.core.shared" = {}

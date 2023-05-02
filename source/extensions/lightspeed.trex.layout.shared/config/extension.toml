@@ -1,7 +1,7 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed RTX Remix shared layout"
-description = "Shared layout for Lightspeed RTX Remix App"
+title = "NVIDIA RTX Remix shared layout"
+description = "Shared layout for NVIDIA RTX Remix App"
 
 [dependencies]
 "lightspeed.trex.app.setup" = {}

@@ -1,7 +1,7 @@
 [package]
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "Lightspeed RTX Remix Properties Pane for the IngestCraft"
-description = "Properties Pane for Lightspeed RTX Remix IngestCraft App"
+title = "NVIDIA RTX Remix Properties Pane for the IngestCraft"
+description = "Properties Pane for NVIDIA RTX Remix IngestCraft App"
 
 [dependencies]
 "lightspeed.common" = {}
