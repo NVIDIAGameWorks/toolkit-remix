@@ -294,7 +294,9 @@ class SetupPage(_WizardPage):
                     self.__validate_project_path,
                     self.__update_payload_project,
                     current_path=self.payload.get(_ProjectWizardKeys.PROJECT_FILE.value, None),
-                    apply_button_label="Save As",
+                    apply_button_label=(
+                        "Open" if self.payload.get(_ProjectWizardKeys.EXISTING_PROJECT.value, False) else "Save As"
+                    ),
                     placeholder_label=save_label,
                 )
 
