@@ -25,7 +25,7 @@ from omni.flux.wizard.widget import WizardPage as _WizardPage
 
 
 class SetupPage(_WizardPage):
-    LABEL_WIDTH = 130
+    LABEL_WIDTH = 140
     TREE_HEIGHT = 100
 
     def __init__(
@@ -280,14 +280,14 @@ class SetupPage(_WizardPage):
 
             with ui.HStack():
                 ui.Label(
-                    "Project Location",
+                    "Project File Location",
                     name="WizardDescription",
                     alignment=ui.Alignment.RIGHT_CENTER,
                     width=self.LABEL_WIDTH,
                 )
                 ui.Spacer(width=ui.Pixel(8), height=0)
 
-                save_label = "Select a project location"
+                save_label = "Select a project file location"
                 self._project_path_picker = _FilePickerWidget(
                     save_label,
                     False,

@@ -117,9 +117,14 @@ class FilePickerWidget:
         else:
             self._selected_callback(model.get_value_as_string())
 
-    def __show_validation_failed_dialog(self, *_):
+    def __show_validation_failed_dialog(self, dirname, filename):
+        message = (
+            f"The selected {'directory' if self._select_directory else 'file'} is invalid: {self._validation_error}"
+        )
+        if not self._select_directory and filename.strip() == "":
+            message = "Please add a file name to proceed."
         _TrexMessageDialog(
-            f"The selected {'directory' if self._select_directory else 'file'} is invalid: {self._validation_error}",
+            message,
             disable_cancel_button=True,
         )
 
