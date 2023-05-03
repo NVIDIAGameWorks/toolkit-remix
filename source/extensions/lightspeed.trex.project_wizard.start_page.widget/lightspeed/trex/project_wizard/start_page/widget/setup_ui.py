@@ -15,6 +15,7 @@ from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWiz
 from lightspeed.trex.project_wizard.core import ProjectWizardSchema as _ProjectWizardSchema
 from lightspeed.trex.project_wizard.existing_mods_page.widget import ExistingModsPage as _ExistingModsPage
 from lightspeed.trex.project_wizard.setup_page.widget import SetupPage as _SetupPage
+from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui
 from omni.flux.utils.widget.file_pickers import open_file_picker as _open_file_picker
 from omni.flux.wizard.widget import WizardPage as _WizardPage
@@ -80,6 +81,8 @@ class WizardStartPage(_WizardPage):
             return
         self._setup_page.open_or_create = True
 
+        validation_error = "The selected path is invalid: An unknown error occurred."
+
         def on_file_selected(project_path):
             self.payload = {
                 _ProjectWizardKeys.EXISTING_PROJECT.value: True,
@@ -92,11 +95,14 @@ class WizardStartPage(_WizardPage):
             is_valid = True
             project_path = Path(dirname) / filename
 
+            nonlocal validation_error
+
             try:
                 _ProjectWizardSchema.is_project_file_valid(
                     project_path, {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
                 )
-            except ValueError:
+            except ValueError as e:
+                validation_error = str(e)
                 is_valid = False
 
             if is_valid:
@@ -107,6 +113,12 @@ class WizardStartPage(_WizardPage):
 
             return is_valid
 
+        def show_validation_failed_dialog(*_):
+            _TrexMessageDialog(
+                validation_error,
+                disable_cancel_button=True,
+            )
+
         # TODO Feature OM-45888 - File Picker will appear behind the modal
         _open_file_picker(
             "Open an RTX Remix project",
@@ -116,7 +128,7 @@ class WizardStartPage(_WizardPage):
             file_extension_options=_constants.SAVE_USD_FILE_EXTENSIONS_OPTIONS,
             select_directory=False,
             validate_selection=validate_path,
-            validation_failed_callback=print,
+            validation_failed_callback=show_validation_failed_dialog,
         )
 
     def _create_mod(self, _x, _y, button, _m):

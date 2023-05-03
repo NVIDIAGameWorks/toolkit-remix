@@ -1,0 +1,21 @@
+[package]
+version = "1.0.0"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["event", "save", "manager", "mod"]
+title = "Lightspeed Event Save Root Mod"
+description = "Extension that saves the root mod layer whenever a layer is saved"
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.events_manager" = {}
+"lightspeed.layer_manager" = {}
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.event.save_root_mod"
