@@ -36,7 +36,7 @@ from .selection_tree.model import ItemReferenceFileMesh as _ItemReferenceFileMes
 from .selection_tree.model import ListModel as _ListModel
 
 if typing.TYPE_CHECKING:
-    from pxr import Usd
+    from pxr import Sdf, Usd
 
 
 class SetupUI:
@@ -209,8 +209,8 @@ class SetupUI:
     def refresh(self):
         self._tree_model.refresh()
 
-    def _on_reset_asset(self, prim: "Usd.Prim"):
-        self._core.reset_asset(prim)
+    def _on_reset_asset(self, prim_path: "Sdf.Path"):
+        self._core.remove_prim_overrides(prim_path)
 
     def _on_duplicate_reference(self, item: _ItemReferenceFileMesh):
         self._add_new_ref_mesh(item, item.path)

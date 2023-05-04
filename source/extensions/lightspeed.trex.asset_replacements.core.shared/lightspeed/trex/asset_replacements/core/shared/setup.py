@@ -15,9 +15,13 @@ from typing import List, Optional, Union
 
 import carb
 import omni.client
+import omni.kit.commands
 import omni.kit.undo
 import omni.usd
 from lightspeed.common import constants
+from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
+from lightspeed.layer_manager.layer_types import LayerType as _LayerType
+from lightspeed.tool.material.core import ToolMaterialCore as _ToolMaterialCore
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.usd.commands import remove_prim_spec as _remove_prim_spec
@@ -34,11 +38,16 @@ _DEFAULT_PRIM_TAG = "<Default Prim>"
 
 class Setup:
     def __init__(self, context_name: str):
-        self._default_attr = {}
+        self._default_attr = {
+            "_context_name": None,
+            "_context": None,
+            "_layer_manager": None,
+        }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
         self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
+        self._layer_manager = _LayerManagerCore()
 
     def get_children_from_prim(
         self,
@@ -196,8 +205,33 @@ class Setup:
         prims = [stage.GetPrimAtPath(path) for path in paths]
         return self.get_corresponding_prototype_prims(prims)
 
-    def reset_asset(self, prim):
-        pass
+    def remove_prim_overrides(self, prim_path: Union[Sdf.Path, str]):
+        # Recursively remove prim specs from given layer and all its sublayers
+        def remove_prim_specs_recursive(layer, prim_spec_paths):
+            for prim_spec_path in prim_spec_paths:
+                if layer.GetPrimAtPath(prim_spec_path):
+                    omni.kit.commands.execute(
+                        "RemovePrimSpecCommand",
+                        layer_identifier=layer.identifier,
+                        prim_spec_path=prim_spec_path,
+                        usd_context=self._context_name,
+                    )
+            for sublayer_path in layer.subLayerPaths:
+                sublayer = Sdf.Layer.FindOrOpen(layer.ComputeAbsolutePath(sublayer_path))
+                if sublayer:
+                    remove_prim_specs_recursive(sublayer, prim_spec_paths)
+
+        # Get the root-level replacement layer
+        replacement_layer = self._layer_manager.get_layer(_LayerType.replacement)
+        if not replacement_layer:
+            return
+
+        # Since we're expecting a mesh prim, make sure to grab the related material prims
+        material_prims = _ToolMaterialCore.get_materials_from_prim_paths([prim_path], self._context_name) or []
+        material_prim_paths = [m.GetPath() for m in material_prims]
+
+        with omni.kit.undo.group():
+            remove_prim_specs_recursive(replacement_layer, [prim_path, *material_prim_paths])
 
     def get_selected_prim_paths(self) -> List[Union[str]]:
         return self._context.get_selection().get_selected_prim_paths()

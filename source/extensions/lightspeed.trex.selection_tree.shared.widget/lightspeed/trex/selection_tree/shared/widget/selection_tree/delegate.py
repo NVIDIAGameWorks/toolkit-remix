@@ -164,21 +164,17 @@ class Delegate(ui.AbstractItemDelegate):
 
     def _reset_released(self, prim: "Usd.Prim"):
         """Call the event object that has the list of functions"""
-        # TODO: extract the menu from the flux.property.usd to delete overrides
-        return
-
         message = (  # noqa PLW0101
-            "Are you sure that you want to reset this asset?\n"
-            "Doing this will delete all your override(s) for this asset:\n"
-            "- reference override(s)\n"
-            "- material override(s)\n"
-            "- positions\n"
-            "- etc etc\n"
-            "The original asset from your game capture will appear."
+            "Are you sure that you want to reset this asset?\n\n"
+            "Doing this will delete all your override(s):\n"
+            "    -  Reference override(s)\n"
+            "    -  Material override(s)\n"
+            "    -  Transform\n"
+            "    -  etc."
         )
         _TrexMessageDialog(
             message=message,
-            ok_handler=partial(self.__on_reset_released, prim),
+            ok_handler=partial(self.__on_reset_released, prim.GetPath()),
             ok_label="Reset",
             cancel_label="Cancel",
         )
@@ -370,14 +366,13 @@ class Delegate(ui.AbstractItemDelegate):
                                     content_clipping=True,
                                 ):
                                     ui.Spacer(width=0)
-                                    # ui.Image(
-                                    #     "",
-                                    #     height=ui.Pixel(16),
-                                    #     name="Restore",
-                                    #     tooltip="Restore the original asset",
-                                    #     mouse_released_fn=lambda x, y, b, m: self._on_reset_mouse_released(b, item),
-                                    # )
-                                    ui.Frame(height=ui.Pixel(16))  # todo to remove
+                                    ui.Image(
+                                        "",
+                                        height=ui.Pixel(16),
+                                        name="Restore",
+                                        tooltip="Restore the original asset",
+                                        mouse_released_fn=lambda x, y, b, m: self._on_reset_mouse_released(b, item),
+                                    )
                                     ui.Spacer(width=0)
                             elif isinstance(item, _ItemReferenceFileMesh):
                                 ui.Spacer(height=0, width=ui.Pixel(8))
