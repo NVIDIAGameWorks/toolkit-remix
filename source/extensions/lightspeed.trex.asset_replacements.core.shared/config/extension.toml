@@ -5,6 +5,8 @@ description = "Extension that works on asset replacement data for NVIDIA RTX Rem
 
 [dependencies]
 "lightspeed.common" = {}
+"lightspeed.layer_manager" = {}
+"lightspeed.tool.material.core" = {}
 "lightspeed.trex.commands" = {}  # for omni.kit.undo (this is inside omni.kit.commands)
 "omni.client" = {}
 "omni.flux.utils.common" = {}
