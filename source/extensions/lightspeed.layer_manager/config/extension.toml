@@ -17,6 +17,7 @@ name = "Lightspeed Layer Manager"
 [dependencies]
 "lightspeed.common" = {}
 "omni.client" = {}
+"omni.flux.layer_tree.usd.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.usd.layers" = {}
 

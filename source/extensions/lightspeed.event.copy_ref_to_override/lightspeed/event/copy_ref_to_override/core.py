@@ -71,10 +71,10 @@ class CopyRefToPrimCore(ILSSEvent):
         find_capture_package_layer = Sdf.Layer.FindOrOpen(layer_path)
 
         # check if the layer is in the current stage, or it is but doesn't exist (user error?)
-        capture_package_layer = self._layer_manager.get_layer(_LayerType.capture_baker)
-        if not capture_package_layer or (capture_package_layer and not find_capture_package_layer):
+        capture_baker_layer = self._layer_manager.get_layer(_LayerType.capture_baker)
+        if not capture_baker_layer or (capture_baker_layer and not find_capture_package_layer):
             if find_capture_package_layer:
-                capture_package_layer = self._layer_manager.insert_sublayer(
+                capture_baker_layer = self._layer_manager.insert_sublayer(
                     layer_path,
                     _LayerType.capture_baker,
                     set_as_edit_target=False,
@@ -83,7 +83,7 @@ class CopyRefToPrimCore(ILSSEvent):
                 )
                 carb.log_info(f"CopyRefToPrimCore: inserted layer {layer_path}")
             else:
-                capture_package_layer = self._layer_manager.create_new_sublayer(
+                capture_baker_layer = self._layer_manager.create_new_sublayer(
                     _LayerType.capture_baker,
                     path=layer_path,
                     set_as_edit_target=False,
@@ -94,11 +94,21 @@ class CopyRefToPrimCore(ILSSEvent):
                 carb.log_info(f"CopyRefToPrimCore: created layer {layer_path}")
             self._layer_manager.mute_layer(_LayerType.capture_baker, do_undo=False)
             self._layer_manager.lock_layer(_LayerType.capture_baker, do_undo=False)
+
+            # Update custom data for the Capture Baker
+            custom_layer_data = capture_baker_layer.customLayerData
+            custom_layer_data_instance = self._layer_manager.get_layer_instance(
+                _LayerType.capture_baker
+            ).get_custom_layer_data()
+            if custom_layer_data_instance:
+                custom_layer_data.update(custom_layer_data_instance)
+            capture_baker_layer.customLayerData = custom_layer_data
+            capture_baker_layer.Save()  # because of new customLayerData
         else:
             # be sure to re-open the layer
-            capture_package_layer = find_capture_package_layer
-            capture_package_layer.Reload()
-        return capture_package_layer
+            capture_baker_layer = find_capture_package_layer
+            capture_baker_layer.Reload()
+        return capture_baker_layer
 
     def __get_all_replacement_layers(self, replacements_layer):
         # We grab all the sublayers of the replacements_layer
