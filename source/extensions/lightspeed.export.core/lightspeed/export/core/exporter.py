@@ -437,7 +437,7 @@ class LightspeedExporterCore:
             last_chk_parent = chk_path
             to_continue = False
             for parent in last_chk_parent.parents:
-                if parent.stem == constants.CAPTURE_FOLDER:
+                if parent.stem in [constants.CAPTURE_FOLDER, constants.REMIX_CAPTURE_FOLDER]:
                     to_continue = True
                     break
 
@@ -502,7 +502,7 @@ class LightspeedExporterCore:
                                 # last_p_value = p_value
                                 # to_ignore = False
                                 # for parent in last_p_value.parents:
-                                #     if parent.stem == constants.CAPTURE_FOLDER:
+                                #     if parent.stem in [constants.CAPTURE_FOLDER, constants.REMIX_CAPTURE_FOLDER]:
                                 #         to_ignore = True
                                 #         break
                                 #

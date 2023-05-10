@@ -10,8 +10,8 @@
 import functools
 
 import omni.client
-from lightspeed.common.constants import CAPTURE_FOLDER as _CAPTURE_FOLDER
 from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER as _GAME_READY_ASSETS_FOLDER
+from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
 from lightspeed.trex.material_properties.shared.widget import SetupUI as _MaterialPropertiesWidget
 from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshPropertiesWidget
 from lightspeed.trex.replacement.core.shared import Setup as _AssetReplacementCore
@@ -266,7 +266,7 @@ class AssetReplacementsPane:
         message = (
             f"The {fill_word} layer file is not valid.\n\n"
             f"Make sure the {fill_word} layer is a writable USD file and is not located in a "
-            f'"{_GAME_READY_ASSETS_FOLDER}" or "{_CAPTURE_FOLDER}" directory.'
+            f'"{_GAME_READY_ASSETS_FOLDER}" or "{_REMIX_CAPTURE_FOLDER}" directory.'
         )
         _TrexMessageDialog(
             message=message,

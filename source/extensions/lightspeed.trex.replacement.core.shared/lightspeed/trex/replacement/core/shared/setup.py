@@ -53,8 +53,8 @@ class Setup:
                 entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN
             ):  # noqa PLC0325
                 return False
-        if constants.CAPTURE_FOLDER in Path(path).parts:
-            carb.log_error(f"'{path}' is in the {constants.CAPTURE_FOLDER} directory")
+        if constants.CAPTURE_FOLDER in Path(path).parts or constants.REMIX_CAPTURE_FOLDER in Path(path).parts:
+            carb.log_error(f"'{path}' is in the {constants.REMIX_CAPTURE_FOLDER} directory")
             return False
         if constants.GAME_READY_ASSETS_FOLDER in Path(path).parts:
             carb.log_error(f"'{path}' is in a {constants.GAME_READY_ASSETS_FOLDER} directory")

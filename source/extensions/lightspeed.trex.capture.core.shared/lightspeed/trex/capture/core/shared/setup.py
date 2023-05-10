@@ -83,7 +83,7 @@ class Setup:
             if error_callback is not None:
                 error_callback(error_title, f"{path} is not a directory")
             return False
-        if str(Path(path).stem) != constants.CAPTURE_FOLDER and str(Path(path).stem) != constants.REMIX_CAPTURE_FOLDER:
+        if str(Path(path).stem) not in [constants.CAPTURE_FOLDER, constants.REMIX_CAPTURE_FOLDER]:
             if error_callback is not None:
                 error_callback(error_title, f"{path} is not a 'capture' folder")
             return False
