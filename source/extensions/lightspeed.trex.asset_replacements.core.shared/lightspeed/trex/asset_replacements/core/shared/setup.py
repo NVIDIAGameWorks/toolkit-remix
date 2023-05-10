@@ -171,7 +171,9 @@ class Setup:
         if stacks:
             for stack in stacks:
                 layer_path = Path(stack.layer.realPath)
-                if constants.CAPTURE_FOLDER in layer_path.parts and constants.MESHES_FOLDER in layer_path.parts:
+                if (
+                    constants.CAPTURE_FOLDER in layer_path.parts or constants.REMIX_CAPTURE_FOLDER in layer_path.parts
+                ) and constants.MESHES_FOLDER in layer_path.parts:
                     # this is a mesh from the capture folder
                     return True
         return False

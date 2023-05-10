@@ -17,9 +17,9 @@ import omni.client
 import omni.kit.usd.layers as _layers
 import omni.ui as ui
 import omni.usd
-from lightspeed.common.constants import CAPTURE_FOLDER as _CAPTURE_FOLDER
 from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER as _GAME_READY_ASSETS_FOLDER
 from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS as _READ_USD_FILE_EXTENSIONS_OPTIONS
+from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
 from lightspeed.error_popup.window import ErrorPopup as _ErrorPopup
 from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
 from lightspeed.trex.capture_tree.model import CaptureTreeDelegate, CaptureTreeModel
@@ -554,7 +554,7 @@ class ModSetupPane:
         message = (
             f"The {fill_word} mod file is not valid.\n\n"
             f"Make sure the {fill_word} mod file is a writable USD file and is not located in a "
-            f'"{_GAME_READY_ASSETS_FOLDER}" or "{_CAPTURE_FOLDER}" directory.'
+            f'"{_GAME_READY_ASSETS_FOLDER}" or "{_REMIX_CAPTURE_FOLDER}" directory.'
         )
         TrexMessageDialog(
             message=message,

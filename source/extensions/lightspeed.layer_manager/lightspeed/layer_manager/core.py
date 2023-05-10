@@ -16,7 +16,7 @@ import omni.client
 import omni.kit.commands
 import omni.kit.undo
 import omni.usd
-from lightspeed.common.constants import CAPTURE_FOLDER, REGEX_HASH, REGEX_INSTANCE_PATH
+from lightspeed.common.constants import CAPTURE_FOLDER, REGEX_HASH, REGEX_INSTANCE_PATH, REMIX_CAPTURE_FOLDER
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.usd.layers import LayerUtils
 from pxr import Sdf
@@ -280,9 +280,12 @@ class LayerManagerCore:
                 carb.log_error("Can't find the capture layer in the current stage")
             return None, None
         capture_folder = Path(layer.realPath)
-        if capture_folder.parent.name != CAPTURE_FOLDER:
+        if capture_folder.parent.name not in [CAPTURE_FOLDER, REMIX_CAPTURE_FOLDER]:
             if show_error:
-                carb.log_error(f'Can\'t find the "{CAPTURE_FOLDER}" folder from the {LayerType.capture} layer')
+                carb.log_error(
+                    f'Can\'t find the "{CAPTURE_FOLDER}|{REMIX_CAPTURE_FOLDER}" folder from the {LayerType.capture}'
+                    f" layer"
+                )
             return None, None
         game_name = layer.customLayerData.get(LSS_LAYER_GAME_NAME, "MyGame")
         return game_name, str(capture_folder.parent)
