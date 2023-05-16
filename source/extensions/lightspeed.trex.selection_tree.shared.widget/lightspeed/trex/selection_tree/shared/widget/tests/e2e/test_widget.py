@@ -192,7 +192,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         _window, _wid = await self.__setup_widget()  # Keep in memory during test
         usd_context = omni.usd.get_context()
 
-        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_BAC90CAA733B0859/mesh"], False)
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)

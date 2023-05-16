@@ -14,3 +14,20 @@ description = "Extension that works on asset replacement data for NVIDIA RTX Rem
 
 [[python.module]]
 name = "lightspeed.trex.asset_replacements.core.shared"
+
+[[test]]
+
+args = [
+    "--/app/extensions/registryEnabled=1",
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
+    "--no-window"
+]
+
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style",
+    "omni.kit.ui_test",
+    "omni.kit.test_suite.helpers",
+]

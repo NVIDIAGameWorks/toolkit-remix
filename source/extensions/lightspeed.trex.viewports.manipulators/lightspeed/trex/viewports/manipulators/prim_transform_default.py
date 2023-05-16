@@ -16,7 +16,9 @@ from .interface.i_manipulator import IManipulator
 
 class PrimTransformDefault(IManipulator):
     def _create_manipulator(self):
-        manipulator_prim_transform_model = _ManipulatorPrimTransformModel(self.viewport_api.usd_context_name)
+        manipulator_prim_transform_model = _ManipulatorPrimTransformModel(
+            usd_context_name=self.viewport_api.usd_context_name
+        )
         return _PrimTransformManipulator(
             usd_context_name=self.viewport_api.usd_context_name,
             viewport_api=self.viewport_api,
