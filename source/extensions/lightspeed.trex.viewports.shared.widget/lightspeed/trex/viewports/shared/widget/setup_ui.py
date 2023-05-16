@@ -16,24 +16,13 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.trex.app.style import update_viewport_menu_style
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
-from lightspeed.trex.viewports.manipulators import camera_default_factory as _manipulator_camera_default
-from lightspeed.trex.viewports.manipulators import grid_default_factory as _manipulator_grid_default
-from lightspeed.trex.viewports.manipulators import light_factory as _manipulator_light_default
-from lightspeed.trex.viewports.manipulators import prim_transform_default_factory as _prim_transform_manipulator
-from lightspeed.trex.viewports.manipulators import selection_default_factory as _manipulator_selection_default
 from lightspeed.trex.viewports.properties_pane.widget import EnumItems as _PropertiesPaneEnumItems
 from lightspeed.trex.viewports.properties_pane.widget import SetupUI as _PropertiesPaneSetupUI
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from omni.kit.viewport.registry import RegisterScene, RegisterViewportLayer
 from omni.kit.viewport.utility import frame_viewport_prims as _frame_viewport_prims
 from omni.kit.viewport.utility import frame_viewport_selection as _frame_viewport_selection
 
 from .layers import ViewportLayers
-from .scene.layer import ViewportSceneLayer
-from .scene.scenes import camera_axis_default_factory as _camera_axis_default_factory
-from .scene.scenes import origin_default_factory as _origin_default_factory
-from .stats.layer import ViewportStatsLayer
-from .tools.layer import ViewportToolsLayer
 
 
 class SetupUI:
@@ -98,49 +87,6 @@ class SetupUI:
                         viewport_id = f"{self._context_name}/Viewport0" if self._context_name else "Viewport0"
                         self._viewport_layers = ViewportLayers(
                             viewport_id=viewport_id, usd_context_name=self._context_name
-                        )
-
-                        # scenes. But scenes are filtered in ViewportSceneLayer
-                        self._registered.append(
-                            RegisterScene(_manipulator_selection_default, "omni.kit.viewport.manipulator.Selection")
-                        )
-                        self._registered.append(
-                            RegisterScene(_manipulator_camera_default, "omni.kit.viewport.manipulator.Camera")
-                        )
-                        self._registered.append(
-                            RegisterScene(_prim_transform_manipulator, "omni.kit.lss.viewport.manipulator.prim")
-                        )
-
-                        # self._registered.append(
-                        #     RegisterScene(_grid_default_factory, "omni.kit.viewport.scene.SimpleGrid")
-                        # )  # use legacy grid for now
-                        self._registered.append(
-                            RegisterScene(_origin_default_factory, "omni.kit.viewport.scene.SimpleOrigin")
-                        )
-                        self._registered.append(
-                            RegisterViewportLayer(
-                                _camera_axis_default_factory, "omni.kit.viewport.scene.CameraAxisLayer"
-                            )
-                        )
-
-                        # legacy light
-                        self._registered.append(
-                            RegisterScene(_manipulator_light_default, "omni.kit.viewport.scene.LegacyLight")
-                        )
-                        # legacy grid
-                        self._registered.append(
-                            RegisterScene(_manipulator_grid_default, "omni.kit.viewport.scene.LegacyGrid")
-                        )
-
-                        # layers
-                        self._registered.append(
-                            RegisterViewportLayer(ViewportStatsLayer, "omni.kit.viewport.ViewportStats")
-                        )
-                        self._registered.append(
-                            RegisterViewportLayer(ViewportSceneLayer, "omni.kit.viewport.SceneLayer")
-                        )
-                        self._registered.append(
-                            RegisterViewportLayer(ViewportToolsLayer, "omni.kit.viewport.ViewportTools")
                         )
 
                     self._property_panel_frame_spacer = ui.Spacer(width=ui.Pixel(12))
