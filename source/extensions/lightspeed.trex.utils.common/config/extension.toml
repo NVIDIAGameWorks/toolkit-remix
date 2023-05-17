@@ -4,7 +4,9 @@ title = "NVIDIA RTX Remix common utils"
 description = "Common utils helper for Lightspeed widgets"
 
 [dependencies]
+"lightspeed.common" = {}
 "omni.client" = {}
+"omni.flux.utils.common" = {}
 
 [[python.module]]
 name = "lightspeed.trex.utils.common"

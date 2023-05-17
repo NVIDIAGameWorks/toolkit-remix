@@ -19,6 +19,10 @@ import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
+from lightspeed.trex.utils.common.file_path import (
+    is_usd_file_path_valid_for_filepicker as _is_usd_file_path_valid_for_filepicker,
+)
+from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni.flux.light_creator.widget import LightCreatorWidget as _LightCreatorWidget
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
@@ -519,11 +523,19 @@ class SetupUI:
                 functools.partial(self._add_new_ref_mesh, add_item_selected[0]),
                 lambda *args: None,
                 file_extension_options=constants.READ_USD_FILE_EXTENSIONS_OPTIONS,
+                validate_selection=_is_usd_file_path_valid_for_filepicker,
+                validation_failed_callback=self.__show_error_not_usd_file,
             )
         elif add_light_selected:  # if add light was clicked
             self.__show_light_creator_window(add_light_selected[0], items)
 
         self._tree_selection_changed(items)
+
+    def __show_error_not_usd_file(self, dirname: str, filename: str):
+        _TrexMessageDialog(
+            message=f"{dirname}/{filename} is not an USD file",
+            disable_cancel_button=True,
+        )
 
     def __show_light_creator_window(self, add_item: _ItemAddNewLiveLight, selected_items: List[_ItemPrim]):
         def _hide():

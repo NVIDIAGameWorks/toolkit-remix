@@ -27,6 +27,10 @@ from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
     ItemReferenceFileMesh as _ItemReferenceFileMesh,
 )
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
+from lightspeed.trex.utils.common.file_path import (
+    is_usd_file_path_valid_for_filepicker as _is_usd_file_path_valid_for_filepicker,
+)
+from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
 from omni.flux.properties_pane.transformation.usd.widget import TransformPropertyWidget as _TransformPropertyWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -342,6 +346,14 @@ class SetupUI:
             current_file=navigate_to,
             fallback=fallback,
             file_extension_options=constants.READ_USD_FILE_EXTENSIONS_OPTIONS,
+            validate_selection=_is_usd_file_path_valid_for_filepicker,
+            validation_failed_callback=self.__show_error_not_usd_file,
+        )
+
+    def __show_error_not_usd_file(self, dirname: str, filename: str):
+        _TrexMessageDialog(
+            message=f"{dirname}/{filename} is not an USD file",
+            disable_cancel_button=True,
         )
 
     def _on_mesh_ref_field_begin(self, _model):
