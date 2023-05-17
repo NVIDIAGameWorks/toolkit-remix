@@ -15,6 +15,7 @@ from typing import List, Optional
 import carb
 import omni.client
 import omni.kit.commands
+import omni.kit.undo
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
@@ -147,21 +148,23 @@ class ToolMaterialCore:
         # make the path relative to current edit target layer
         if not edit_layer.anonymous:
             final_path = omni.client.make_relative_url(edit_layer.realPath, new_mat_ref_path)
-        for mat, _ in material_dict.items():
-            refs_and_layers = omni.usd.get_composed_references_from_prim(mat.GetPrim())
-            for (ref, layer) in refs_and_layers:
-                new_ref = Sdf.Reference(assetPath=final_path, primPath=default_ref_prim.GetPath())
-                ref_remove = ToolMaterialCore.anchor_reference_asset_path_to_layer(ref, layer, edit_layer)
+        with omni.kit.undo.group():
+            for mat, _ in material_dict.items():
+                refs_and_layers = omni.usd.get_composed_references_from_prim(mat.GetPrim())
+                for (ref, layer) in refs_and_layers:
+                    new_ref = Sdf.Reference(assetPath=final_path, primPath=default_ref_prim.GetPath())
+                    ref_remove = ToolMaterialCore.anchor_reference_asset_path_to_layer(ref, layer, edit_layer)
 
-                omni.kit.commands.execute(
-                    "ReplaceReference",
-                    stage=stage,
-                    prim_path=mat.GetPath(),
-                    old_reference=ref_remove,
-                    new_reference=new_ref,
-                )
-                # normally we only have 1 material reference.
-                break
+                    omni.kit.commands.execute(
+                        "SetExplicitReferencesCommand",
+                        stage=stage,
+                        prim_path=str(mat.GetPath()),
+                        reference=ref_remove,
+                        to_set=[new_ref],
+                    )
+
+                    # normally we only have 1 material reference.
+                    break
 
     @staticmethod
     def convert_materials(prims: List[Usd.Prim], mdl_file_name: str, context_name: str = ""):
