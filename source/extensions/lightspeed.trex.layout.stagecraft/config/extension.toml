@@ -15,6 +15,7 @@ description = "Layout for NVIDIA RTX Remix StageCraft App"
 "lightspeed.trex.menu.workfile" = {}
 "lightspeed.trex.properties_pane.stagecraft.widget" = {}
 "lightspeed.trex.utils.common" = {}
+"lightspeed.trex.utils.widget" = {}
 "lightspeed.trex.viewports.shared.widget" = {}
 "lightspeed.trex.welcome_pads.stagecraft.models" = {}
 "omni.flux.footer.widget" = {}

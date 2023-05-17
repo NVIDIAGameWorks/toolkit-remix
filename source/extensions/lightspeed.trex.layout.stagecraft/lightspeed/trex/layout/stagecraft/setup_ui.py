@@ -30,6 +30,10 @@ from lightspeed.trex.layout.shared import SetupUI as TrexLayout
 from lightspeed.trex.menu.workfile import get_instance as get_burger_menu_instance
 from lightspeed.trex.properties_pane.stagecraft.widget import SetupUI as PropertyPanelUI
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
+from lightspeed.trex.utils.common.file_path import (
+    is_usd_file_path_valid_for_filepicker as _is_usd_file_path_valid_for_filepicker,
+)
+from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.viewports.shared.widget import SetupUI as ViewportUI
 from lightspeed.trex.welcome_pads.stagecraft.models import NewWorkFileItem, RecentWorkFileItem, ResumeWorkFileItem
 from omni.flux.footer.widget import FooterWidget
@@ -189,6 +193,14 @@ class SetupUI(TrexLayout):
             self._open_work_file,
             lambda *args: None,
             file_extension_options=READ_USD_FILE_EXTENSIONS_OPTIONS,
+            validate_selection=_is_usd_file_path_valid_for_filepicker,
+            validation_failed_callback=self.__show_error_not_usd_file,
+        )
+
+    def __show_error_not_usd_file(self, dirname: str, filename: str):
+        _TrexMessageDialog(
+            message=f"{dirname}/{filename} is not an USD file",
+            disable_cancel_button=True,
         )
 
     def subscribe_open_work_file(self, function):
