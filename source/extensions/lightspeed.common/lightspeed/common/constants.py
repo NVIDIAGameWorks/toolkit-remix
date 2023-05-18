@@ -130,7 +130,7 @@ SAVE_USD_FILE_EXTENSIONS_OPTIONS = [
     ("*.usd", "Binary or Ascii USD File"),
     ("*.usdc", "Binary USD File"),
 ]
-READ_USD_FILE_EXTENSIONS_OPTIONS = [("*.usd*", "USD Files"), *SAVE_USD_FILE_EXTENSIONS_OPTIONS]
+READ_USD_FILE_EXTENSIONS_OPTIONS = [("*.usd, *.usda, *.usdc", "USD Files"), *SAVE_USD_FILE_EXTENSIONS_OPTIONS]
 
 MODEL_INGESTION_SCHEMA_PATH = "${kit}/../exts/lightspeed.trex.app.resources/data/validation_schema/model_ingestion.json"
 TEXTURE_INGESTION_SCHEMA_PATH = (
