@@ -23,7 +23,7 @@ args = [
     "--/app/fastShutdown=1",
     "--no-window",
     "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
-    "--/exts/omni.kit.material.library/lib_paths=['${kit}/../omni_core_materials/Base']",
+    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 ]
 
 [[python.module]]
