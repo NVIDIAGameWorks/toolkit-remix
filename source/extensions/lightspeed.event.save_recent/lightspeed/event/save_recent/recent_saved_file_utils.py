@@ -49,13 +49,11 @@ class RecentSavedFile:
         if path in current_data:
             del current_data[path]
         current_data[path] = {"game": game, "capture": capture}
-
-        current_data_max = list(current_data.keys())[:40]
-
         result = {}
-        for current_path, current_data in current_data.items():  # noqa B020
-            if current_path in current_data_max:
-                result[current_path] = current_data  # noqa B020
+        for i, (current_path, current_data) in enumerate(current_data.items()):  # noqa B020
+            result[current_path] = current_data  # noqa B020
+            if i == 40:
+                break
         if save:
             self.save_recent_file(result)
         return result

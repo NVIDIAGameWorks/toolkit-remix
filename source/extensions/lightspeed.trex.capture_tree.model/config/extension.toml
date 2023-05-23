@@ -1,7 +1,15 @@
 [package]
+version = "1.0.0"
 authors =["Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Capture Tree Model and Delegate"
 description = "Model, Delegate and Item classes for a TreeView to display Captures"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["remix", "capture", "tree", "model"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
 
 [dependencies]
 "lightspeed.common" = {}
@@ -15,3 +23,20 @@ description = "Model, Delegate and Item classes for a TreeView to display Captur
 
 [[python.module]]
 name = "lightspeed.trex.capture_tree.model"
+
+[[test]]
+
+args = [
+    "--/app/extensions/registryEnabled=1",
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
+    "--no-window"
+]
+
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style",
+    "omni.kit.ui_test",
+    "omni.kit.test_suite.helpers",
+]

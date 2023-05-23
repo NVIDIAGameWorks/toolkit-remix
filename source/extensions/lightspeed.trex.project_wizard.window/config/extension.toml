@@ -14,6 +14,8 @@ category = "Core"
 
 # Keywords for the extension
 keywords = ["lightspeed", "rtx", "remix", "project", "wizard", "core"]
+icon = "data/icon.png"
+preview_image = "data/preview.png"
 
 [dependencies]
 "lightspeed.error_popup.window" = {}

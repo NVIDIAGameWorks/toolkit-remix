@@ -66,4 +66,5 @@ class IManipulator:
         self.__model_changed_sub = None  # noqa
         self.__manipulator = None
         self.__viewport_api = None
-        _reset_default_attrs(self)
+        if self._default_attr:
+            _reset_default_attrs(self)
