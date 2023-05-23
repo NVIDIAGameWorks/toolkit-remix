@@ -56,10 +56,17 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
             with frame:
                 if item.image:
                     image_widget = ui.Image(
-                        item.image, height=self.DEFAULT_IMAGE_ICON_SIZE, width=self.DEFAULT_IMAGE_ICON_SIZE
+                        item.image,
+                        height=self.DEFAULT_IMAGE_ICON_SIZE,
+                        width=self.DEFAULT_IMAGE_ICON_SIZE,
+                        identifier="item_thumbnail",
                     )
                 else:
-                    image_widget = ui.Rectangle(height=self.DEFAULT_IMAGE_ICON_SIZE, width=self.DEFAULT_IMAGE_ICON_SIZE)
+                    image_widget = ui.Rectangle(
+                        height=self.DEFAULT_IMAGE_ICON_SIZE,
+                        width=self.DEFAULT_IMAGE_ICON_SIZE,
+                        identifier="item_no_thumbnail",
+                    )
             frame.set_mouse_hovered_fn(functools.partial(self._on_image_hovered, image_widget, item))
 
     def get_window_bigger_image(self):
@@ -83,6 +90,7 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
             height=self.DEFAULT_BIG_IMAGE_SIZE[1],
             visible=False,
             flags=flags,
+            identifier="big_thumbnail",
         )
         with self._window_bigger_image.frame:
             stack = ui.ZStack()
@@ -107,12 +115,13 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
                                     )
                 with ui.Frame(separate_window=True):  # to keep the Z depth order
                     with ui.ZStack():
-                        self._bigger_image = ui.Image("")
+                        self._bigger_image = ui.Image("", identifier="big_image")
                         self._no_image_label = ui.Label(
                             "No image",
                             alignment=ui.Alignment.CENTER,
                             name="PropertiesPaneSectionCaptureTreeItemNoImage",
                             visible=False,
+                            identifier="no_image",
                         )
             stack.set_mouse_hovered_fn(self.__on_bigger_image_hovered)
 
@@ -130,7 +139,7 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
         ):
             return
 
-        if not item or not self.__current_big_image_item:
+        if not item:
             return
 
         if hovered and self._preview_on_hover:
@@ -146,7 +155,7 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
             self._window_bigger_image.position_y = image_widget.screen_position_y
             self._window_bigger_image.visible = True
             self.__cancel_mouse_hovered = True
-        elif self.__current_big_image_item.path == item.path:
+        elif self.__current_big_image_item and self.__current_big_image_item.path == item.path:
             self._window_bigger_image.visible = False
             self.__cancel_mouse_hovered = False
 
@@ -171,7 +180,10 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
                         )
                         with self._path_scroll_frames[id(item)]:
                             ui.Label(
-                                os.path.basename(item.path), name="PropertiesPaneSectionTreeItem", tooltip=item.path
+                                os.path.basename(item.path),
+                                name="PropertiesPaneSectionTreeItem",
+                                tooltip=item.path,
+                                identifier="item_title",
                             )
                     ui.Spacer(height=0, width=ui.Pixel(8))
             if column_id == 1:

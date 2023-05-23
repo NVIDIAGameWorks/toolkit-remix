@@ -7,8 +7,6 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import asyncio
-import contextlib
 import functools
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
@@ -23,7 +21,7 @@ from lightspeed.upscale.core import UpscaleModels, UpscalerCore
 from omni.flux.utils.common import async_wrap as _async_wrap
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from PIL import Image
-from pxr import Gf, Sdf, Usd, UsdGeom
+from pxr import Sdf, Usd, UsdGeom
 
 
 class Setup:
@@ -37,31 +35,6 @@ class Setup:
 
     def get_layer(self):
         return self._layer_manager.get_layer(LayerType.capture)
-
-    @omni.usd.handle_exception
-    async def ___deferred_setup_perspective_camera(self):
-        await omni.kit.app.get_app().next_update_async()
-        # setup the session camera to match the capture camera
-        stage = self._context.get_stage()
-        capture_layer = self._layer_manager.get_layer(LayerType.capture)
-        if capture_layer is None:
-            carb.log_warn("Can't find a capture layer, won't be setting up the default camera to match game")
-            return
-        session_layer = stage.GetSessionLayer()
-        with contextlib.suppress(Exception):
-            with Usd.EditContext(stage, session_layer):
-                carb.log_info("Setting up perspective camera from capture")
-                camera_path = "/OmniverseKit_Persp"
-                Sdf.CopySpec(capture_layer, "/RootNode/Camera", session_layer, camera_path)
-
-                camera_prim = stage.GetPrimAtPath(camera_path)
-                xf_tr = camera_prim.GetProperty("xformOp:translate")
-                translate = xf_tr.Get()
-                zlen = Gf.Vec3d(translate[0], translate[1], translate[2]).GetLength()
-                center_of_interest = Gf.Vec3d(0, 0, -zlen)
-                camera_prim.CreateAttribute(
-                    "omni:kit:centerOfInterest", Sdf.ValueTypeNames.Vector3d, True, Sdf.VariabilityUniform
-                ).Set(center_of_interest)
 
     def __copy_metadata_from_stage_to_stage(self, stage_source, stage_destination):
         # copy over layer-meta-data from capture layer
@@ -133,7 +106,6 @@ class Setup:
             path, LayerType.capture, add_custom_layer_data=False, set_as_edit_target=False
         )
         self._layer_manager.lock_layer(LayerType.capture)
-        asyncio.ensure_future(self.___deferred_setup_perspective_camera())
 
     def set_directory(self, path: str):
         self.__directory = path

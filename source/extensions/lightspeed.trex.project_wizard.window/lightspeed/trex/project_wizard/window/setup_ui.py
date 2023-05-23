@@ -7,9 +7,11 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import asyncio
 from functools import partial
 from typing import Dict, Optional
 
+import omni.kit.app
 from lightspeed.error_popup.window import ErrorPopup as _ErrorPopup
 from lightspeed.trex.project_wizard.core import ProjectWizardCore as _ProjectWizardCore
 from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys
@@ -49,6 +51,10 @@ class ProjectWizardWindow:
         )
 
         self._wizard_completed_sub = self._wizard_window.widget.subscribe_wizard_completed(self._on_wizard_completed)
+
+    @usd.handle_exception
+    async def __reset_setup_finished_sub(self):
+        await omni.kit.app.get_app().next_update_async()
         self._setup_finished_sub = None
 
     def _on_wizard_completed(self, payload: Dict):
@@ -65,7 +71,8 @@ class ProjectWizardWindow:
             ).show()
             return
         usd.get_context(self._context_name).open_stage(str(payload.get(_ProjectWizardKeys.PROJECT_FILE.value, "")))
-        self._setup_finished_sub = None
+        # reset in async after 1 frame because we can't reset a sub from the sub itself
+        asyncio.ensure_future(self.__reset_setup_finished_sub())
 
     def show_project_wizard(self, reset_page: bool = True):
         self._wizard_window.show_wizard(reset_page=reset_page)

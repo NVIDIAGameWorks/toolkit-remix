@@ -1,7 +1,15 @@
 [package]
+version = "1.0.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
-title = "NVIDIA RTX Remix capture extension for the StageCraft"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["capture", "core", "shared"]
+title = "NVIDIA RTX Remix capture core extension for the StageCraft"
 description = "Extension that works on capture data for NVIDIA RTX Remix StageCraft App"
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
 
 [dependencies]
 "lightspeed.common" = {}

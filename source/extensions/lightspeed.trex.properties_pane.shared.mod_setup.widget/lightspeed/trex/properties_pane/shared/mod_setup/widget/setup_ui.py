@@ -41,7 +41,6 @@ from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
-from omni.flux.utils.widget.label import create_label_with_font as _create_label_with_font
 
 from .mod_file_picker_create import open_file_picker_create
 
@@ -65,7 +64,6 @@ class ModSetupPane:
             "_capture_details_model": None,
             "_capture_details_scroll_frame": None,
             "_capture_dir_field": None,
-            "_capture_directory_provider": None,
             "_capture_file_collapsable_frame": None,
             "_capture_manip_frame": None,
             "_capture_manipulator_frame": None,
@@ -87,7 +85,6 @@ class ModSetupPane:
             "_mod_file_details_collapsable_frame": None,
             "_mod_file_frame": None,
             "_mod_file_details_frame": None,
-            "_mod_file_label_path": None,
             "_mod_file_field": None,
             "_core_capture": None,
             "_core_replacement": None,
@@ -309,12 +306,12 @@ class ModSetupPane:
                                     with ui.HStack(height=ui.Pixel(24), spacing=ui.Pixel(8)):
                                         with ui.HStack(width=ui.Percent(40)):
                                             ui.Spacer()
-                                            with ui.VStack(width=0):
-                                                ui.Spacer()
-                                                self._capture_directory_provider, _, _ = _create_label_with_font(
-                                                    "Capture ", "PropertiesWidgetLabel", remove_offset=False
-                                                )
-                                                ui.Spacer()
+                                            ui.Label(
+                                                "Capture",
+                                                name="PropertiesWidgetLabel",
+                                                tooltip="Path of the capture",
+                                                width=0,
+                                            )
                                         with ui.HStack():
                                             ui.Spacer(width=ui.Pixel(4))
                                             with ui.ZStack():
@@ -473,13 +470,12 @@ class ModSetupPane:
                                         with ui.HStack():
                                             with ui.HStack(width=ui.Percent(40)):
                                                 ui.Spacer()
-                                                with ui.VStack(width=0):
-                                                    ui.Spacer()
-                                                    self._mod_file_label_path, _, _ = _create_label_with_font(
-                                                        "Current path", "PropertiesWidgetLabel", remove_offset=False
-                                                    )
-                                                    ui.Spacer()
-                                                ui.Spacer(width=ui.Pixel(8))
+                                                ui.Label(
+                                                    "Current path",
+                                                    name="PropertiesWidgetLabel",
+                                                    tooltip="Path of the mod",
+                                                    width=0,
+                                                )
                                             with ui.HStack():
                                                 ui.Spacer(width=ui.Pixel(8))
                                                 self._mod_file_field = ui.StringField(read_only=True, height=0)

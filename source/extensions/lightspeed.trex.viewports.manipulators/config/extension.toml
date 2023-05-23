@@ -1,7 +1,15 @@
 [package]
-authors =["Damien Bataille <dbataille@nvidia.com>"]
+version = "1.0.0"
+authors = ["dbataille@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["remix", "viewport", "manipulators"]
 title = "NVIDIA RTX Remix Viewports implementation for the StageCraft"
 description = "Viewports implementation for NVIDIA RTX Remix StageCraft App"
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
 
 [dependencies]
 "lightspeed.common" = {}

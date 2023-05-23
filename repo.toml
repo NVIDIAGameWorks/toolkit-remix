@@ -193,6 +193,7 @@ sphinx_exclude_patterns = [
     "source/extensions/lightspeed.property*",
     "source/extensions/lightspeed.stage*",
     "source/extensions/lightspeed.tool*",
+    "source/extensions/lightspeed.trex.viewports.*",
     "source/extensions/lightspeed.upscale*",
     "source/extensions/lightspeed.widget*",
     "source/extensions/lightspeed.window*",

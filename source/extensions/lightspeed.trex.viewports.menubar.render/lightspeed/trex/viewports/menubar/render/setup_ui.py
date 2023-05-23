@@ -53,4 +53,5 @@ class SetupUI:
     def destroy(self):
         if self.__extension:
             self.__extension.register_menu_item_type(_SingleRenderMenuItem)
-        _reset_default_attrs(self)
+        if self._default_attr:
+            _reset_default_attrs(self)
