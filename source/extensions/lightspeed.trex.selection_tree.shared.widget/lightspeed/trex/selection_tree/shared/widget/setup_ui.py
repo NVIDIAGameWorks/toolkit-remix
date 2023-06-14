@@ -14,6 +14,7 @@ import typing
 from typing import Any, Callable, List, Union
 
 import carb
+import omni.kit.app
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
@@ -96,6 +97,17 @@ class SetupUI:
         self.__create_ui()
 
         self.__on_tree_selection_changed = _Event()
+        self.__on_go_to_ingest_tab = _Event()
+
+    def _go_to_ingest_tab(self):
+        """Call the event object that has the list of functions"""
+        self.__on_go_to_ingest_tab()
+
+    def subscribe_go_to_ingest_tab(self, func):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_go_to_ingest_tab, func)
 
     def _tree_selection_changed(
         self,
@@ -520,7 +532,7 @@ class SetupUI:
         if add_item_selected:
             _open_file_picker(
                 "Select a reference file",
-                functools.partial(self._add_new_ref_mesh, add_item_selected[0]),
+                functools.partial(self._add_new_unique_ref_mesh, add_item_selected[0]),
                 lambda *args: None,
                 file_extension_options=constants.READ_USD_FILE_EXTENSIONS_OPTIONS,
                 validate_selection=_is_usd_file_path_valid_for_filepicker,
@@ -566,6 +578,34 @@ class SetupUI:
                 self._context_name, create_under_path=under_path, callback=_hide
             )
 
+    def __ignore_warning_ingest_asset(
+        self, add_reference_item: Union[_ItemAddNewReferenceFileMesh, _ItemReferenceFileMesh], asset_path: str
+    ):
+        self._add_new_ref_mesh(add_reference_item, asset_path)
+
+    def _add_new_unique_ref_mesh(
+        self, add_reference_item: Union[_ItemAddNewReferenceFileMesh, _ItemReferenceFileMesh], asset_path: str
+    ):
+        if not self._core.was_the_asset_ingested(asset_path):
+            ingest_enabled = bool(
+                omni.kit.app.get_app()
+                .get_extension_manager()
+                .get_enabled_extension_id("lightspeed.trex.control.ingestcraft")
+            )
+            _TrexMessageDialog(
+                title=constants.ASSET_NEED_INGEST_WINDOW_TITLE,
+                message=constants.ASSET_NEED_INGEST_MESSAGE,
+                ok_handler=functools.partial(self.__ignore_warning_ingest_asset, add_reference_item, asset_path),
+                ok_label=constants.ASSET_NEED_INGEST_WINDOW_OK_LABEL,
+                disable_cancel_button=False,
+                disable_middle_button=not ingest_enabled,
+                middle_handler=self._go_to_ingest_tab,
+                middle_label=constants.ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL,
+            )
+
+            return
+        self._add_new_ref_mesh(add_reference_item, asset_path)
+
     def _add_new_ref_mesh(
         self, add_reference_item: Union[_ItemAddNewReferenceFileMesh, _ItemReferenceFileMesh], asset_path: str
     ):
@@ -574,6 +614,7 @@ class SetupUI:
             stage,
             add_reference_item.prim.GetPath(),
             asset_path,
+            self._core.get_ref_default_prim_tag(),
             stage.GetEditTarget().GetLayer(),
         )
         if new_ref:
@@ -588,7 +629,12 @@ class SetupUI:
                 item for item in self._previous_tree_selection if isinstance(item, _ItemInstanceMesh)
             ]
             self._core.select_child_from_instance_item_and_ref(
-                stage, stage.GetPrimAtPath(prim_path), new_ref.assetPath, current_instance_items
+                stage,
+                stage.GetPrimAtPath(prim_path),
+                new_ref.assetPath,
+                current_instance_items,
+                only_imageable=True,
+                filter_scope_prim_without_imageable=True,
             )
         else:
             carb.log_info("No reference set")

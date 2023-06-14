@@ -1,7 +1,14 @@
 [package]
+version = "1.0.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix widget utils"
 description = "Utils helper for Lightspeed widgets"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["trex", "utils", "widget"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
 
 [dependencies]
 "omni.ui" = {}

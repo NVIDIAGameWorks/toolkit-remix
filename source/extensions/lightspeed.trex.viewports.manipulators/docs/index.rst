@@ -14,4 +14,4 @@ lightspeed.trex.viewports.manipulators
     :undoc-members:
     :show-inheritance:
     :imported-members:
-    :exclude-members:
+    :exclude-members: PrimTransformManipulator,_PrimTransformManipulator

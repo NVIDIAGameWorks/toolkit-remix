@@ -1,7 +1,5 @@
-example.python_ext
-###########################
-
-Example of Python only extension
+lightspeed.common
+##################
 
 
 .. toctree::
@@ -11,10 +9,10 @@ Example of Python only extension
    CHANGELOG
 
 
-.. automodule:: example.python_ext
+.. automodule:: lightspeed.common
     :platform: Windows-x86_64, Linux-x86_64
     :members:
     :undoc-members:
     :show-inheritance:
     :imported-members:
-    :exclude-members: contextmanager
+    :exclude-members:

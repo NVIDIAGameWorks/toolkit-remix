@@ -1,7 +1,14 @@
 [package]
+version = "1.0.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Asset Replacements extension for the StageCraft"
 description = "Extension that works on asset replacement data for NVIDIA RTX Remix StageCraft App"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["asset", "replacement", "core"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
 
 [dependencies]
 "lightspeed.common" = {}
@@ -10,6 +17,7 @@ description = "Extension that works on asset replacement data for NVIDIA RTX Rem
 "lightspeed.trex.commands" = {}  # for omni.kit.undo (this is inside omni.kit.commands)
 "omni.client" = {}
 "omni.flux.utils.common" = {}
+"omni.flux.validator.factory" = {}
 "omni.kit.commands" = {}  # for omni.kit.undo (this is inside omni.kit.commands)
 
 [[python.module]]

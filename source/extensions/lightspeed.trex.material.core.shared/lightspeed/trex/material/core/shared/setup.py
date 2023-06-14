@@ -55,4 +55,5 @@ class Setup:
         return result
 
     def destroy(self):
-        _reset_default_attrs(self)
+        if self._default_attr:
+            _reset_default_attrs(self)

@@ -60,6 +60,7 @@ REMIX_DEPENDENCIES_FOLDER = "deps"
 CAPTURE_FOLDER = "capture"
 MATERIALS_FOLDER = "materials"
 MESHES_FOLDER = "meshes"
+TEXTURES_FOLDER = "textures"
 LIGHTS_FOLDER = "lights"
 
 MESHES_FILE_PREFIX = "mesh_"
@@ -136,6 +137,14 @@ MODEL_INGESTION_SCHEMA_PATH = "${kit}/../exts/lightspeed.trex.app.resources/data
 TEXTURE_INGESTION_SCHEMA_PATH = (
     "${kit}/../exts/lightspeed.trex.app.resources/data/validation_schema/texture_ingestion.json"
 )
+
+ASSET_NEED_INGEST_MESSAGE = (
+    "The selected asset was not ingested or modified since it was last ingested.\n\n"
+    "Assets are expected to be ingested."
+)
+ASSET_NEED_INGEST_WINDOW_TITLE = "##Ingestion"
+ASSET_NEED_INGEST_WINDOW_OK_LABEL = "Ignore and import the asset"
+ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL = "Go to ingest tab"
 
 
 # This should match the `normalmap_encoding` in AperturePBR_normal.mdl

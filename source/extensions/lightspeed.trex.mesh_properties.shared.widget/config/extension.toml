@@ -1,7 +1,14 @@
 [package]
+version = "1.0.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Mesh Properties implementation for the StageCraft"
 description = "Mesh Properties implementation for NVIDIA RTX Remix StageCraft App"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["mesh", "properties", "widget"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
 
 [dependencies]
 "lightspeed.trex.asset_replacements.core.shared" = {}
@@ -20,3 +27,25 @@ description = "Mesh Properties implementation for NVIDIA RTX Remix StageCraft Ap
 
 [[python.module]]
 name = "lightspeed.trex.mesh_properties.shared.widget"
+
+[[test]]
+
+args = [
+    "--/app/extensions/registryEnabled=1",
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--/app/file/ignoreUnsavedOnExit=1",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"
+]
+
+dependencies = [
+    "lightspeed.common",
+    "lightspeed.layer_manager",
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style",
+    "lightspeed.trex.selection_tree.shared.widget",  # selection tree control this widget
+    "omni.flux.utils.widget",
+    "omni.kit.ui_test",
+    "omni.kit.test_suite.helpers",
+    "omni.usd"
+]

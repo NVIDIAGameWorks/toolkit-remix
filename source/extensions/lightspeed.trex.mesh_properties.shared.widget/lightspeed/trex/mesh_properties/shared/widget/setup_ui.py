@@ -7,6 +7,7 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import functools
 import os
 import re
 import typing
@@ -14,6 +15,7 @@ from typing import List, Union
 
 import carb
 import omni.client
+import omni.kit.app
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
@@ -33,6 +35,8 @@ from lightspeed.trex.utils.common.file_path import (
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
 from omni.flux.properties_pane.transformation.usd.widget import TransformPropertyWidget as _TransformPropertyWidget
+from omni.flux.utils.common import Event as _Event
+from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 
@@ -53,6 +57,7 @@ class SetupUI:
             "_frame_mesh_ref": None,
             "_frame_mesh_prim": None,
             "_mesh_ref_field": None,
+            "_mesh_ref_field_valid": True,
             "_overlay_mesh_ref_label": None,
             "_mesh_ref_prim_field": None,
             "_mesh_ref_default_prim_checkbox": None,
@@ -81,15 +86,28 @@ class SetupUI:
         self._context = omni.usd.get_context(context_name)
         self._core = _AssetReplacementsCore(context_name)
         self._mesh_properties_frames = {}
+        self.__ignore_ingest_check = False
         self.__ref_mesh_field_is_editing = False
         self._current_reference_file_mesh_items = []
         self._current_instance_items = []
 
         self.__create_ui()
 
+        self.__on_go_to_ingest_tab = _Event()
+
+    def _go_to_ingest_tab(self):
+        """Call the event object that has the list of functions"""
+        self.__on_go_to_ingest_tab()
+
+    def subscribe_go_to_ingest_tab(self, func):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_go_to_ingest_tab, func)
+
     def __create_ui(self):
         with ui.ZStack():
-            self._frame_none = ui.Frame(visible=True)
+            self._frame_none = ui.Frame(visible=True, identifier="frame_none")
             self._mesh_properties_frames[None] = self._frame_none
             with self._frame_none:
                 with ui.VStack():
@@ -101,7 +119,7 @@ class SetupUI:
                             ui.Label("None", name="PropertiesWidgetLabel")
                             ui.Spacer()
                         ui.Spacer(height=0)
-            self._frame_mesh_ref = ui.Frame(visible=False)
+            self._frame_mesh_ref = ui.Frame(visible=False, identifier="frame_mesh_ref")
             self._mesh_properties_frames[_ItemReferenceFileMesh] = self._frame_mesh_ref
             with self._frame_mesh_ref:
                 with ui.VStack():
@@ -119,7 +137,7 @@ class SetupUI:
                             ui.Spacer(width=ui.Pixel(4))
                             with ui.ZStack():
                                 self._mesh_ref_field = ui.StringField(
-                                    height=ui.Pixel(18), style_type_name_override="Field"
+                                    height=ui.Pixel(18), style_type_name_override="Field", identifier="mesh_ref_field"
                                 )
                                 with ui.HStack():
                                     ui.Spacer(width=ui.Pixel(8))
@@ -148,6 +166,7 @@ class SetupUI:
                                     name="OpenFolder",
                                     height=ui.Pixel(20),
                                     mouse_pressed_fn=lambda x, y, b, m: self._on_ref_mesh_dir_pressed(b),
+                                    identifier="replace_ref_open_folder",
                                 )
                                 ui.Spacer()
 
@@ -166,7 +185,9 @@ class SetupUI:
                             ui.Spacer(width=ui.Pixel(4))
                             with ui.VStack():
                                 self._mesh_ref_prim_field = ui.StringField(
-                                    height=ui.Pixel(18), style_type_name_override="Field"
+                                    height=ui.Pixel(18),
+                                    style_type_name_override="Field",
+                                    identifier="mesh_ref_prim_field",
                                 )
                                 self._sub_mesh_ref_prim_field_begin_edit = (
                                     self._mesh_ref_prim_field.model.subscribe_begin_edit_fn(
@@ -183,7 +204,9 @@ class SetupUI:
                                 )
                                 ui.Spacer(height=ui.Pixel(8))
                                 with ui.HStack(height=ui.Pixel(18)):
-                                    self._mesh_ref_default_prim_checkbox = ui.CheckBox(width=0)
+                                    self._mesh_ref_default_prim_checkbox = ui.CheckBox(
+                                        width=0, identifier="mesh_ref_default_prim_checkbox"
+                                    )
                                     self._sub_mesh_ref_default_prim_checkbox_changed = (
                                         self._mesh_ref_default_prim_checkbox.model.subscribe_value_changed_fn(
                                             self._on_mesh_ref_default_prim_checkbox_changed
@@ -192,7 +215,7 @@ class SetupUI:
                                     ui.Spacer(width=ui.Pixel(8))
                                     self._mesh_ref_default_prim_label = ui.Label("Use default prim instead", width=0)
 
-            self._frame_mesh_prim = ui.Frame(visible=False)
+            self._frame_mesh_prim = ui.Frame(visible=False, identifier="frame_mesh_prim")
             self._mesh_properties_frames[_ItemPrim] = self._frame_mesh_prim
             with self._frame_mesh_prim:
                 with ui.VStack(spacing=8):
@@ -371,6 +394,9 @@ class SetupUI:
             value = path
         else:
             value = path.replace("\\", "/")
+            if not self.__ignore_ingest_check and not self.__was_asset_ingested(value):
+                return
+
         self._mesh_ref_field.model.set_value(value)
         if change_prim_field:
             self.__set_ref_mesh_prim_field()
@@ -409,12 +435,62 @@ class SetupUI:
             self._mesh_ref_prim_field.model.set_value(ref_prim_path)
         self._from_mesh_ref_checkbox = False
 
+    def __reset_ingest_asset(self, go_to_ingest: bool = False):
+        self._ignore_mesh_ref_field_changed = True
+        self._only_read_mesh_ref = True
+        self.set_ref_mesh_field(self._current_reference_file_mesh_items[-1].path, change_prim_field=False)
+        self._ignore_mesh_ref_field_changed = False
+        self._only_read_mesh_ref = False
+        if go_to_ingest:
+            self._go_to_ingest_tab()
+
+    def __ignore_warning_ingest_asset(self, path):
+        self.__ignore_ingest_check = True
+        self._ignore_mesh_ref_field_changed = False
+        # we trigger the ref field by hand. Because if the value in the field is the same, this is not triggered
+        self._sub_mesh_ref_field_changed = None
+        self.set_ref_mesh_field(path)
+        self._do_mesh_ref_field_changed()
+        # add it back
+        self._sub_mesh_ref_field_changed = self._mesh_ref_field.model.subscribe_value_changed_fn(
+            self._on_mesh_ref_field_changed
+        )
+        self.__ignore_ingest_check = False
+
+    def __was_asset_ingested(self, path) -> bool:
+        if not self._only_read_mesh_ref and not self.__ref_mesh_field_is_editing and not self._from_mesh_ref_checkbox:
+            layer = self._context.get_stage().GetEditTarget().GetLayer()
+            abs_new_asset_path = omni.client.normalize_url(layer.ComputeAbsolutePath(path))
+            if not self._core.was_the_asset_ingested(abs_new_asset_path):
+                ingest_enabled = bool(
+                    omni.kit.app.get_app()
+                    .get_extension_manager()
+                    .get_enabled_extension_id("lightspeed.trex.control.ingestcraft")
+                )
+
+                _TrexMessageDialog(
+                    title=constants.ASSET_NEED_INGEST_WINDOW_TITLE,
+                    message=constants.ASSET_NEED_INGEST_MESSAGE,
+                    ok_handler=functools.partial(self.__ignore_warning_ingest_asset, path),
+                    ok_label=constants.ASSET_NEED_INGEST_WINDOW_OK_LABEL,
+                    cancel_handler=self.__reset_ingest_asset,
+                    on_window_closed_fn=self.__reset_ingest_asset,
+                    disable_cancel_button=False,
+                    disable_middle_button=not ingest_enabled,
+                    middle_label=constants.ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL,
+                    middle_handler=functools.partial(self.__reset_ingest_asset, go_to_ingest=True),
+                )
+                return False
+        return True
+
     @_ignore_function_decorator(attrs=["_ignore_mesh_ref_field_changed"])
     def _do_mesh_ref_field_changed(self):
         # check asset path
         path = self._mesh_ref_field.model.get_value_as_string()
         self._overlay_mesh_ref_label.visible = not bool(path.strip())
         is_abs = self._core.is_absolute_path(path)
+        layer = self._current_reference_file_mesh_items[0].layer
+        abs_path = omni.client.normalize_url(layer.ComputeAbsolutePath(path))
         set_new_ref = True
         # If read mode, we don't change the path.
         # If this is from the checkbox, because the checkbox will apply on the edit layer,
@@ -423,20 +499,33 @@ class SetupUI:
             if is_abs:  # if it is absolute, generate relative path.
                 path = self._core.switch_ref_abs_to_rel_path(self._context.get_stage(), path)
             else:  # If the path is relative, we regenerate it relative to the edit layer
-                layer = self._current_reference_file_mesh_items[0].layer
+                if self._from_mesh_ref_checkbox and self._mesh_ref_field_valid:
+                    layer = self._current_reference_file_mesh_items[0].layer
+                else:
+                    layer = self._context.get_stage().GetEditTarget().GetLayer()
                 abs_path = omni.client.normalize_url(layer.ComputeAbsolutePath(path))
                 path = self._core.switch_ref_abs_to_rel_path(self._context.get_stage(), abs_path)
         if not self.__is_ref_field_path_valid(path):
             set_new_ref = False
-        self.set_ref_mesh_field(path, change_prim_field=False)
 
-        # check prim path
-        prim_path = self._mesh_ref_prim_field.model.get_value_as_string()
-        if not self.__is_ref_prim_field_path_valid(path, prim_path):
-            set_new_ref = False
+        # disable mesh ref field
+        ref_from_capture = self._core.ref_path_is_from_capture(abs_path)
+        self._mesh_ref_prim_field.enabled = not ref_from_capture
+        self._mesh_ref_default_prim_checkbox.enabled = not ref_from_capture
+
+        # check if the asset was ingested
+        if set_new_ref and not self.__ignore_ingest_check and not self.__was_asset_ingested(path):
+            return
+
+        self.set_ref_mesh_field(path, change_prim_field=False)
 
         if self.__ref_mesh_field_is_editing:
             return
+
+        # check prim path
+        prim_path = self._mesh_ref_prim_field.model.get_value_as_string()
+        if set_new_ref and not self.__is_ref_prim_field_path_valid(path, prim_path):
+            set_new_ref = False
 
         if set_new_ref and not self._only_read_mesh_ref:
             self.set_new_usd_reference()
@@ -457,8 +546,10 @@ class SetupUI:
             layer = self._context.get_stage().GetEditTarget().GetLayer()
         if not self._core.is_file_path_valid(path, layer, log_error=False):
             self._mesh_ref_field.style_type_name_override = "FieldError"
+            self._mesh_ref_field_valid = False
             return False
         self._mesh_ref_field.style_type_name_override = "Field"
+        self._mesh_ref_field_valid = True
         return True
 
     def __is_ref_prim_field_path_valid(self, path, prim_path) -> bool:
@@ -478,14 +569,16 @@ class SetupUI:
             prim_path = self._current_reference_file_mesh_items[-1].prim.GetPath()
             current_ref = self._current_reference_file_mesh_items[-1].ref
             current_layer = self._current_reference_file_mesh_items[-1].layer
+            ref_prim_path = self._mesh_ref_prim_field.model.get_value_as_string()
 
             # first we delete the ref
             self._core.remove_reference(stage, prim_path, current_ref, current_layer, remove_if_remix_ref=False)
 
             # second we add the new one
             asset_path = self._mesh_ref_field.model.get_value_as_string()
+
             new_ref, prim_path = self._core.add_new_reference(
-                stage, prim_path, asset_path, stage.GetEditTarget().GetLayer(), create_if_remix_ref=False
+                stage, prim_path, asset_path, ref_prim_path, stage.GetEditTarget().GetLayer(), create_if_remix_ref=False
             )
             if new_ref:
                 carb.log_info(
@@ -496,7 +589,12 @@ class SetupUI:
                 )
                 # select the new prim of the new added ref
                 self._core.select_child_from_instance_item_and_ref(
-                    stage, stage.GetPrimAtPath(prim_path), new_ref.assetPath, self._current_instance_items
+                    stage,
+                    stage.GetPrimAtPath(prim_path),
+                    new_ref.assetPath,
+                    self._current_instance_items,
+                    only_imageable=True,
+                    filter_scope_prim_without_imageable=True,
                 )
             else:
                 carb.log_info("No reference set")

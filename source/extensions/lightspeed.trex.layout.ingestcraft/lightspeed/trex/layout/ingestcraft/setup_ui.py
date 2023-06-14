@@ -55,7 +55,7 @@ class SetupUI(TrexLayout):
 
     @property
     def button_name(self) -> str:
-        return "IngestCraft"
+        return "Ingest"
 
     @property
     def button_priority(self) -> int:

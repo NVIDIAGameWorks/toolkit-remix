@@ -272,7 +272,7 @@ class SetupUI(ReplicatorLayout):
 
     @property
     def button_name(self) -> str:
-        return "TextureCraft"
+        return "Texture"
 
     @property
     def button_priority(self) -> int:

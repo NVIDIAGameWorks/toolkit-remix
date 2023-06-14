@@ -1,0 +1,279 @@
+"""
+* Copyright (c) 2023, NVIDIA CORPORATION.  All rights reserved.
+*
+* NVIDIA CORPORATION and its licensors retain all intellectual property
+* and proprietary rights in and to this software, related documentation
+* and any modifications thereto.  Any use, reproduction, disclosure or
+* distribution of this software and related documentation without an express
+* license agreement from NVIDIA CORPORATION is strictly prohibited.
+"""
+from unittest.mock import patch
+
+import carb
+import carb.input
+import omni.ui as ui
+import omni.usd
+from carb.input import KeyboardInput
+from lightspeed.common import constants as _constants
+from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
+from lightspeed.layer_manager.core import LayerType as _LayerType
+from lightspeed.trex.material_properties.shared.widget import SetupUI as _MaterialPropertiesWidget
+from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
+from omni.flux.utils.widget.resources import get_test_data as _get_test_data
+from omni.kit import ui_test
+from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test_suite.helpers import arrange_windows, open_stage, wait_stage_loading
+
+
+class TestSelectionTreeWidget(AsyncTestCase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__sub_tree_selection_changed = []
+
+    # Before running each test
+    async def setUp(self):
+        await arrange_windows()
+        await open_stage(_get_test_data("usd/project_example/combined.usda"))
+        # be sure that the replacement layer is the target layer
+        layer_manager = _LayerManagerCore()
+        layer_manager.set_edit_target_layer(_LayerType.replacement)
+
+    # After running each test
+    async def tearDown(self):
+        await wait_stage_loading()
+
+    async def __setup_widget(self):
+        window = ui.Window("TestSelectionTreeUI", height=800, width=400)
+        with window.frame:
+            with ui.VStack():
+                selection_wid = _SelectionTreeWidget("")
+                selection_wid.show(True)
+                mesh_property_wid = _MaterialPropertiesWidget("")
+                mesh_property_wid.show(True)
+
+        def _on_tree_selection_changed(items):
+            items = selection_wid.get_selection()
+            mesh_property_wid.refresh(items)
+
+        self.__sub_tree_selection_changed.append(
+            selection_wid.subscribe_tree_selection_changed(_on_tree_selection_changed)
+        )
+
+        await ui_test.human_delay(human_delay_speed=1)
+
+        return window, selection_wid, mesh_property_wid
+
+    async def __destroy(self, window, selection_wid, mesh_property_wid):
+        mesh_property_wid.destroy()
+        selection_wid.destroy()
+        window.destroy()
+
+    async def test_select_one_prim_mesh(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # the frame material is visible
+        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
+        self.assertFalse(frame_none.widget.visible)
+        self.assertTrue(frame_material.widget.visible)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_select_instance_mesh_prim(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+        )
+
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # the frame material is visible
+        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
+        self.assertFalse(frame_none.widget.visible)
+        self.assertTrue(frame_material.widget.visible)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_select_nothing(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths([], False)
+
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # the frame material is not visible
+        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
+        self.assertTrue(frame_none.widget.visible)
+        self.assertFalse(frame_material.widget.visible)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_override_texture_ingested_texture(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+
+        await ui_test.human_delay(human_delay_speed=10)
+
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+        self.assertFalse(texture_file_fields)  # because we didnt expend
+        self.assertTrue(property_branches)
+
+        # we expend
+        await property_branches[0].click()
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        await ui_test.human_delay(1)
+        self.assertTrue(texture_file_fields)
+
+        # we add a new texture
+        asset_path = _get_test_data("usd/project_example/sources/textures/ingested/16px_Diffuse.dds")
+        await texture_file_fields[0].click()
+        await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
+        await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
+        with patch.object(carb, "log_error"):
+            await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(3)
+
+        # no ingestion window warning
+        ignore_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+        cancel_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNone(ignore_ingestion_button)
+        self.assertIsNone(cancel_ingestion_button)
+
+        # text should be the asset path
+        self.assertEquals(asset_path, texture_file_fields[0].widget.model.get_value_as_string())
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_override_texture_not_ingested_texture_cancel(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+
+        await ui_test.human_delay(human_delay_speed=10)
+
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+        self.assertFalse(texture_file_fields)  # because we didnt expend
+        self.assertTrue(property_branches)
+
+        # we expend
+        await property_branches[0].click()
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        await ui_test.human_delay(1)
+        self.assertTrue(texture_file_fields)
+
+        # we add a new texture
+        original_text = texture_file_fields[0].widget.model.get_value_as_string()
+        asset_path = _get_test_data("usd/project_example/sources/textures/not_ingested/16px_Diffuse.dds")
+        await texture_file_fields[0].click()
+        await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
+        await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
+        with patch.object(carb, "log_error"):
+            await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(3)
+
+        # no ingestion window warning
+        ignore_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+        cancel_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNotNone(ignore_ingestion_button)
+        self.assertIsNotNone(cancel_ingestion_button)
+
+        await cancel_ingestion_button.click()
+        await ui_test.human_delay()
+
+        # text should go back like before
+        self.assertEquals(original_text, texture_file_fields[0].widget.model.get_value_as_string())
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_override_texture_not_ingested_texture_ignore(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+
+        await ui_test.human_delay(human_delay_speed=10)
+
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+        self.assertFalse(texture_file_fields)  # because we didnt expend
+        self.assertTrue(property_branches)
+
+        # we expend
+        await property_branches[0].click()
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        await ui_test.human_delay(1)
+        self.assertTrue(texture_file_fields)
+
+        # we add a new texture
+        asset_path = _get_test_data("usd/project_example/sources/textures/not_ingested/16px_Diffuse.dds")
+        await texture_file_fields[0].click()
+        await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
+        await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
+        with patch.object(carb, "log_error"):
+            await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(3)
+
+        # no ingestion window warning
+        ignore_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+        cancel_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNotNone(ignore_ingestion_button)
+        self.assertIsNotNone(cancel_ingestion_button)
+
+        await ignore_ingestion_button.click()
+        await ui_test.human_delay()
+
+        # text should be the asset path
+        self.assertEquals(asset_path, texture_file_fields[0].widget.model.get_value_as_string())
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)

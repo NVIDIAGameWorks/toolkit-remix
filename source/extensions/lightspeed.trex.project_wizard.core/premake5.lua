@@ -7,6 +7,8 @@ project_ext (ext)
         { "apps", ext.target_dir.."/apps" },
         { "bin", ext.target_dir.."/bin" },
         { "lightspeed", ext.target_dir.."/lightspeed" },
+        { "docs", ext.target_dir.."/docs" },
+        { "data", ext.target_dir.."/data" },
     }
 
 local args_cli = args or {}
