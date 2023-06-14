@@ -1,7 +1,14 @@
 [package]
+version = "1.0.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Material Core extension for the StageCraft"
 description = "Extension that works on material data for NVIDIA RTX Remix StageCraft App"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["material", "core"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
 
 [dependencies]
 "omni.flux.utils.common" = {}

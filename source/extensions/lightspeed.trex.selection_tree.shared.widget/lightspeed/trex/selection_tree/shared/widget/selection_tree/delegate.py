@@ -18,6 +18,7 @@ import omni.usd
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.common import deferred_destroy_tasks as _deferred_destroy_tasks
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.color import hex_to_color as _hex_to_color
 from omni.flux.utils.widget.gradient import create_gradient as _create_gradient
@@ -59,6 +60,9 @@ class Delegate(ui.AbstractItemDelegate):
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
+
+        self.__refresh_gradient_color_task = None
+        self.__add_gradient_or_not_task = None
 
         self._current_selection = []
         self._hovered_items = {}
@@ -173,6 +177,7 @@ class Delegate(ui.AbstractItemDelegate):
             "    -  etc."
         )
         _TrexMessageDialog(
+            title="##restore",
             message=message,
             ok_handler=partial(self.__on_reset_released, prim.GetPath()),
             ok_label="Reset",
@@ -372,6 +377,7 @@ class Delegate(ui.AbstractItemDelegate):
                                         name="Restore",
                                         tooltip="Restore the original asset",
                                         mouse_released_fn=lambda x, y, b, m: self._on_reset_mouse_released(b, item),
+                                        identifier="restore",
                                     )
                                     ui.Spacer(width=0)
                             elif isinstance(item, _ItemReferenceFileMesh):
@@ -434,7 +440,7 @@ class Delegate(ui.AbstractItemDelegate):
                                     ui.Spacer(width=0)
                         ui.Spacer(height=0, width=ui.Pixel(8))
 
-        asyncio.ensure_future(self._add_gradient_or_not(item))
+        self.__add_gradient_or_not_task = asyncio.ensure_future(self._add_gradient_or_not(item))
 
     def _on_item_hovered(self, hovered, item):
         self._hovered_items[id(item)] = hovered
@@ -483,7 +489,7 @@ class Delegate(ui.AbstractItemDelegate):
 
     def refresh_gradient_color(self, item, deferred=True):
         if deferred:
-            asyncio.ensure_future(self.__deferred_refresh_gradient_color(item))
+            self.__refresh_gradient_color_task = asyncio.ensure_future(self.__deferred_refresh_gradient_color(item))
         else:
             self.__do_refresh_gradient_color(item)
 
@@ -556,4 +562,9 @@ class Delegate(ui.AbstractItemDelegate):
             ui.Label(HEADER_DICT[column_id], style_type_name_override=style_type_name)
 
     def destroy(self):
+        asyncio.ensure_future(self._deferred_destroy())
+
+    @omni.usd.handle_exception
+    async def _deferred_destroy(self):
+        await _deferred_destroy_tasks([self.__refresh_gradient_color_task, self.__add_gradient_or_not_task])
         _reset_default_attrs(self)

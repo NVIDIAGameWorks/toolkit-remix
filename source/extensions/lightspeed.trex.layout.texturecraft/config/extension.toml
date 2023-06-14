@@ -1,7 +1,14 @@
 [package]
+version = "1.0.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix layout for the StageCraft"
 description = "Layout for NVIDIA RTX Remix StageCraft App"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["trex", "layout", "texturecraft", "texture"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
 
 [dependencies]
 "lightspeed.color_to_normal.core" = {}

@@ -417,17 +417,17 @@ current_dict.update(
         "ImageWithProvider::PropertiesWidgetLabel": {
             "color": _WHITE_70,
             "font_size": 14,
-            "image_url": _get_fonts("NVIDIASans_A_Md"),
+            "image_url": ui.url.nvidia_md,
         },
         "ImageWithProvider::PropertiesWidgetLabel:disabled": {
             "color": _WHITE_30,
             "font_size": 14,
-            "image_url": _get_fonts("NVIDIASans_A_Md"),
+            "image_url": ui.url.nvidia_md,
         },
         "ImageWithProvider::PropertiesPaneSectionTitle": {
             "color": _WHITE_70,
             "font_size": 13,
-            "image_url": _get_fonts("NVIDIASans_A_Bd"),
+            "image_url": ui.url.nvidia_bd,
         },
         "ImageWithProvider::PropertiesPaneSectionTitle:disabled": {
             "color": _WHITE_30,
@@ -468,7 +468,7 @@ current_dict.update(
         "KeyboardKey": {"background_color": 0, "border_width": 1.5, "border_radius": 3},
         "KeyboardLabel": {},
         "Label::ProgressLabel": {"color": _WHITE_100},
-        "Label::PropertiesWidgetLabel": {"color": _WHITE_70, "font_size": 18, "font": ui.url.nvidia_rg},
+        "Label::PropertiesWidgetLabel": {"color": _WHITE_70, "font_size": 18, "font": ui.url.nvidia_md},
         "Label::USDPropertiesWidgetValueOverlay": {"color": _WHITE_20},
         "Label::Title0": {"color": _WHITE_80, "font_size": 22},
         "Label::Title1": {"color": _WHITE_80, "font_size": 18},

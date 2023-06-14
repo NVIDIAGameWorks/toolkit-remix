@@ -24,6 +24,8 @@ from lightspeed.layer_manager.layer_types import LayerType as _LayerType
 from lightspeed.tool.material.core import ToolMaterialCore as _ToolMaterialCore
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.validator.factory import BASE_HASH_KEY as _BASE_HASH_KEY
+from omni.flux.validator.factory import VALIDATION_PASSED as _VALIDATION_PASSED
 from omni.usd.commands import remove_prim_spec as _remove_prim_spec
 from pxr import Sdf, Usd, UsdGeom
 
@@ -106,7 +108,14 @@ class Setup:
         return list(traverse_instanced_children(prim, _level, _skip_remix_ref=skip_remix_ref))
 
     def select_child_from_instance_item_and_ref(
-        self, stage, from_prim, from_reference_layer_path, instance_items: List["_ItemInstanceMesh"]
+        self,
+        stage,
+        from_prim,
+        from_reference_layer_path,
+        instance_items: List["_ItemInstanceMesh"],
+        only_xformable: bool = False,
+        only_imageable: bool = False,
+        filter_scope_prim_without_imageable: bool = False,
     ):
         """
         Select the first prim of a ref corresponding to the selected instance items
@@ -136,9 +145,19 @@ class Setup:
             children = self.get_children_from_prim(
                 prim, from_reference_layer_path=self.switch_ref_rel_to_abs_path(stage, from_reference_layer_path)
             )
+            if only_xformable:
+                # get the first xformable from the list
+                children = self.filter_xformable_prims(children)
+            if only_imageable:
+                # get the first xformable from the list
+                children = self.filter_imageable_prims(children)
+            if filter_scope_prim_without_imageable:
+                scope_without = self.get_scope_prims_without_imageable_children(children)
+                children = [child for child in children if child not in scope_without]
             # select the first children
             if children:
                 selection.append(str(children[0].GetPath()))
+
         if selection:
             self.select_prim_paths(selection)
 
@@ -165,15 +184,11 @@ class Setup:
             result.extend(self.get_next_xform_children(children_prim))
         return result
 
-    @staticmethod
-    def prim_is_from_a_capture_reference(prim) -> bool:
+    def prim_is_from_a_capture_reference(self, prim) -> bool:
         stacks = prim.GetPrimStack()
         if stacks:
             for stack in stacks:
-                layer_path = Path(stack.layer.realPath)
-                if (
-                    constants.CAPTURE_FOLDER in layer_path.parts or constants.REMIX_CAPTURE_FOLDER in layer_path.parts
-                ) and constants.MESHES_FOLDER in layer_path.parts:
+                if self.ref_path_is_from_capture(stack.layer.realPath):
                     # this is a mesh from the capture folder
                     return True
         return False
@@ -188,7 +203,8 @@ class Setup:
         return [prim for prim in prims if UsdGeom.Imageable(prim)]
 
     def get_corresponding_prototype_prims(self, prims) -> List[str]:
-        """Give a list of instance prims (inst_/*), and get the corresponding prims inside the prototypes (mesh_/*)"""
+        """Give a list of instance prims (inst_123456789/*), and get the corresponding prims inside the prototypes
+        (mesh_123456789/*)"""
         paths = []
         for prim in prims:
             if not prim.IsValid():
@@ -202,7 +218,8 @@ class Setup:
         return paths
 
     def get_corresponding_prototype_prims_from_path(self, paths) -> List[str]:
-        """Give a list of instance prims (inst_/*), and get the corresponding prims inside the prototypes (mesh_/*)"""
+        """Give a list of instance prims (inst_123456789/*), and get the corresponding prims inside the prototypes
+        (mesh_123456789/*)"""
         stage = self._context.get_stage()
         prims = [stage.GetPrimAtPath(path) for path in paths]
         return self.get_corresponding_prototype_prims(prims)
@@ -289,6 +306,32 @@ class Setup:
                 result.append(scope)
         return result
 
+    def texture_path_is_from_capture(self, path: str):
+        path_p = Path(path)
+        return (
+            bool(constants.CAPTURE_FOLDER in path_p.parts or constants.REMIX_CAPTURE_FOLDER in path_p.parts)
+            and constants.TEXTURES_FOLDER in path_p.parts
+        )
+
+    def ref_path_is_from_capture(self, path: str):
+        path_p = Path(path)
+        return (
+            bool(constants.CAPTURE_FOLDER in path_p.parts or constants.REMIX_CAPTURE_FOLDER in path_p.parts)
+            and constants.MESHES_FOLDER in path_p.parts
+        )
+
+    def was_the_asset_ingested(self, path: str) -> bool:
+        # invalid paths are ignored
+        if not _path_utils.is_file_path_valid(path, log_error=False):
+            return True
+        # ignore assets from captures
+        if self.ref_path_is_from_capture(path) or self.texture_path_is_from_capture(path):
+            return True
+        return bool(
+            _path_utils.hash_match_metadata(path, key=_BASE_HASH_KEY)
+            and _path_utils.read_metadata(path, _VALIDATION_PASSED)
+        )
+
     @staticmethod
     def switch_ref_abs_to_rel_path(stage, path):
         edit_layer = stage.GetEditTarget().GetLayer()
@@ -358,7 +401,13 @@ class Setup:
         return False
 
     def add_new_reference(
-        self, stage: Usd.Stage, prim_path: Sdf.Path, asset_path: str, layer: Sdf.Layer, create_if_remix_ref: bool = True
+        self,
+        stage: Usd.Stage,
+        prim_path: Sdf.Path,
+        asset_path: str,
+        new_ref_prim_path: str,
+        layer: Sdf.Layer,
+        create_if_remix_ref: bool = True,
     ) -> Sdf.Reference:
 
         # it can happen that we added the same reference multiple time. But USD can't do that.
@@ -368,7 +417,10 @@ class Setup:
             prim_path = self.__create_child_ref_prim(stage, prim, create_if_remix_ref=create_if_remix_ref)
 
             asset_path = omni.client.normalize_url(omni.client.make_relative_url(layer.identifier, asset_path))
-            new_ref = Sdf.Reference(assetPath=asset_path.replace("\\", "/"), primPath=Sdf.Path())
+            new_ref_prim_path = (
+                Sdf.Path() if new_ref_prim_path.strip() == _DEFAULT_PRIM_TAG else Sdf.Path(new_ref_prim_path.strip())
+            )
+            new_ref = Sdf.Reference(assetPath=asset_path.replace("\\", "/"), primPath=new_ref_prim_path)
             omni.kit.commands.execute(
                 "AddReference",
                 stage=stage,

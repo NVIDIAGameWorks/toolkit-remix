@@ -25,6 +25,8 @@ from omni.flux.layer_tree.usd.widget import LayerModel as _LayerModel
 from omni.flux.layer_tree.usd.widget import LayerTreeWidget as _LayerTreeWidget
 from omni.flux.selection_history_tree.model.usd import UsdSelectionHistoryModel as _UsdSelectionHistoryModel
 from omni.flux.selection_history_tree.widget import SelectionHistoryWidget as _SelectionHistoryWidget
+from omni.flux.utils.common import Event as _Event
+from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
@@ -53,6 +55,9 @@ class AssetReplacementsPane:
             "_mesh_properties_collapsable_frame": None,
             "_material_properties_collapsable_frame": None,
             "_sub_tree_selection_changed": None,
+            "_sub_go_to_ingest_tab1": None,
+            "_sub_go_to_ingest_tab2": None,
+            "_sub_go_to_ingest_tab3": None,
             "_sub_stage_event": None,
         }
         for attr, value in self._default_attr.items():
@@ -66,6 +71,18 @@ class AssetReplacementsPane:
         self.__tree_selection_collapsed = False
 
         self.__create_ui()
+
+        self.__on_go_to_ingest_tab = _Event()
+
+    def _go_to_ingest_tab(self):
+        """Call the event object that has the list of functions"""
+        self.__on_go_to_ingest_tab()
+
+    def subscribe_go_to_ingest_tab(self, func):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_go_to_ingest_tab, func)
 
     def __create_ui(self):
         self._root_frame = ui.Frame()
@@ -234,6 +251,13 @@ class AssetReplacementsPane:
         self._sub_tree_selection_changed = self._selection_tree_widget.subscribe_tree_selection_changed(
             self._on_tree_selection_changed
         )
+
+        self._sub_go_to_ingest_tab1 = self._mesh_properties_widget.subscribe_go_to_ingest_tab(self._go_to_ingest_tab)
+        self._sub_go_to_ingest_tab2 = self._selection_tree_widget.subscribe_go_to_ingest_tab(self._go_to_ingest_tab)
+        self._sub_go_to_ingest_tab3 = self._material_properties_widget.subscribe_go_to_ingest_tab(
+            self._go_to_ingest_tab
+        )
+
         self._refresh_mesh_properties_widget()
         self._refresh_material_properties_widget()
 

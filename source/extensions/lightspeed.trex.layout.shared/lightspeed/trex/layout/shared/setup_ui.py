@@ -8,15 +8,18 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import abc
+from typing import List
 
 import carb.settings
 import omni.ui as ui
-from lightspeed.trex.app.setup.extension import get_instance as get_main_instance
-from omni.flux.header_navigator.widget import setup_ui as header_navigator_ui
+from lightspeed.trex.app.setup.extension import get_instance as _get_main_instance
+from omni.flux.header_navigator.widget import setup_ui as _header_navigator_ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 _APP_NAME = "/app/name"
 _DISABLED_LAYOUT_EXTENSION = "/app/trex/disabled_layouts"
+
+_LAYOUT_INSTANCES: List["SetupUI"] = []
 
 
 class SetupUI:
@@ -25,6 +28,7 @@ class SetupUI:
 
     def __init__(self, ext_id):
         """Header navigator UI"""
+        global _LAYOUT_INSTANCES  # noqa PLW0602
 
         self._button_name = None
         self._button_priority = None
@@ -36,11 +40,11 @@ class SetupUI:
         top_header_instance_name = settings.get(_APP_NAME)
         if not top_header_instance_name:
             top_header_instance_name = "App name"
-        headers_navigator = header_navigator_ui.get_instances()
+        headers_navigator = _header_navigator_ui.get_instances()
         if headers_navigator.get(top_header_instance_name):
             self._header_navigator = headers_navigator.get(top_header_instance_name)
         else:
-            self._header_navigator = header_navigator_ui.create_instance(top_header_instance_name)
+            self._header_navigator = _header_navigator_ui.create_instance(top_header_instance_name)
 
         disabled_ext_ids = settings.get(_DISABLED_LAYOUT_EXTENSION)
         self.__enabled = True
@@ -50,6 +54,7 @@ class SetupUI:
             )
 
         self._header_navigator.register_button({self.button_name: (self._create_menu_text, self.button_priority)})
+        _LAYOUT_INSTANCES.append(self)
 
     @property
     def default_attr(self):
@@ -81,12 +86,21 @@ class SetupUI:
     def _on_button_clicked(self, x, y, b, m):  # noqa PLC0103
         if b != 0:
             return
+        self._show_layout(self)
+
+    def _show_layout(self, cls: "SetupUI"):
         for frame in ui.Inspector.get_children(SetupUI.SHARED_ZSTACK):
-            frame.visible = frame == self._root_frame
-        if self._root_frame is None:
-            self.create_layout()
+            frame.visible = frame == cls._root_frame  # noqa PLW0212
+        if cls._root_frame is None:  # noqa PLW0212
+            cls.create_layout()
         else:
-            self._header_navigator.select_button(self.button_name)
+            cls._header_navigator.select_button(cls.button_name)  # noqa PLW0212
+
+    def show_layout_by_name(self, name: str):
+        for layout in _LAYOUT_INSTANCES:
+            if layout.button_name == name:
+                self._show_layout(layout)
+                return
 
     def create_layout(self):
         self.create_shared_layout()
@@ -102,7 +116,7 @@ class SetupUI:
 
     def create_shared_layout(self):
         if SetupUI.SHARED_ZSTACK is None:
-            main_window = get_main_instance()
+            main_window = _get_main_instance()
             with main_window.frame:
                 with ui.VStack():
                     self._header_navigator.create_ui()
@@ -110,6 +124,8 @@ class SetupUI:
                     SetupUI.SHARED_ZSTACK = ui.ZStack()
 
     def destroy(self):
+        global _LAYOUT_INSTANCES  # noqa PLW0602
         SetupUI.SHARED_ZSTACK = None
         self._header_navigator.unregister_button(self.button_name)
+        _LAYOUT_INSTANCES.remove(self)
         _reset_default_attrs(self)

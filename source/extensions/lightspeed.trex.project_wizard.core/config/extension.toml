@@ -8,6 +8,10 @@ authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 # The title and description fields are primarly for displaying extension info in UI
 description = "This is the core of the project wizard extension"
 title = "Remix Project Wizard Core"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+icon = "data/icon.png"
+preview_image = "data/preview.png"
 
 # One of categories for UI.
 category = "Core"

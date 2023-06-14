@@ -278,7 +278,7 @@ class SetupUI(TrexLayout):
 
     @property
     def button_name(self) -> str:
-        return "StageCraft"
+        return "Layout"
 
     @property
     def button_priority(self) -> int:
@@ -476,6 +476,11 @@ class SetupUI(TrexLayout):
         self._sub_frame_prim_selection_panel = self._properties_pane.get_frame(
             ComponentsEnumItems.ASSET_REPLACEMENTS
         ).selection_tree_widget.subscribe_frame_prim(self._frame_prim)
+
+        # connect the go to ingest
+        self._sub_frame_prim_selection_panel = self._properties_pane.get_frame(
+            ComponentsEnumItems.ASSET_REPLACEMENTS
+        ).subscribe_go_to_ingest_tab(partial(self.show_layout_by_name, "Ingest"))
 
         if self.__background_switcher_task:
             self.__background_switcher_task.cancel()

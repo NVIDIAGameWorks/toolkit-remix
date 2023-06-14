@@ -11,7 +11,6 @@ import omni.ui as ui
 import omni.usd
 from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from omni.flux.utils.widget.label import create_label_with_font as _create_label_with_font
 from pxr import UsdGeom
 
 
@@ -22,7 +21,6 @@ class SetupUI:
         self._default_attr = {
             "_frame_none": None,
             "_properties_frames": None,
-            "_mesh_none_provider_label": None,
             "_property_widget": None,
         }
         for attr, value in self._default_attr.items():
@@ -44,9 +42,7 @@ class SetupUI:
                         ui.Spacer(height=0)
                         with ui.VStack(width=0):
                             ui.Spacer()
-                            self._mesh_none_provider_label, _, _ = _create_label_with_font(
-                                "None", "PropertiesWidgetLabel", remove_offset=False
-                            )
+                            ui.Label("None", name="PropertiesWidgetLabel")
                             ui.Spacer()
                         ui.Spacer(height=0)
             self._frame_mesh_prim = ui.Frame(visible=False)
@@ -75,31 +71,6 @@ class SetupUI:
             self._properties_frames[None].visible = True
         else:
             self._property_widget.show(True)
-
-            # # set specific attributes
-            # specific_attrs = [
-            #     "angle",
-            #     "color",
-            #     "colorTemperature",
-            #     "enableColorTemperature",
-            #     "exposure",
-            #     "height",
-            #     "intensity",
-            #     "length",
-            #     "radius",
-            #     "width",
-            # ]
-            # self._property_widget.set_specific_attributes(specific_attrs)
-            #
-            # # set lookup table for lights
-            # lookup_table = {attr: {"name": attr.capitalize(), "group": None} for attr in specific_attrs}
-            # lookup_table.update(
-            #     {
-            #         "colorTemperature": {"name": "Color Temperature", "group": None},
-            #         "enableColorTemperature": {"name": "Enable Color Temperature", "group": None},
-            #     }
-            # )
-            # self._property_widget.set_lookup_table(lookup_table)
 
             self._property_widget.refresh([path])
 

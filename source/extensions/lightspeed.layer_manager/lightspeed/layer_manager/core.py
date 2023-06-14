@@ -328,4 +328,5 @@ class LayerManagerCore:
         return hashes
 
     def destroy(self):
-        _reset_default_attrs(self)
+        if self.__default_attr:
+            _reset_default_attrs(self)
