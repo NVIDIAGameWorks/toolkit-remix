@@ -2,6 +2,8 @@
   interruptible: true
   only:
     - merge_requests
+    - schedules
+    - web
   dependencies: []
   variables:
     GIT_STRATEGY: fetch
