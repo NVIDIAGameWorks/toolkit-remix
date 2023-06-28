@@ -6,7 +6,7 @@ description = "Properties Pane for NVIDIA RTX Remix StageCraft App"
 [dependencies]
 "lightspeed.trex.components_pane.stagecraft.controller" = {}
 "lightspeed.trex.properties_pane.shared.asset_replacements.widget" = {}
-#"lightspeed.trex.properties_pane.shared.mod_output.widget" = {}
+"lightspeed.trex.properties_pane.shared.mod_packaging.widget" = {}
 "lightspeed.trex.properties_pane.shared.mod_setup.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.ui" = {}

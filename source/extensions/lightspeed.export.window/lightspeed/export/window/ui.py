@@ -231,7 +231,7 @@ class LightspeedExporterUI:
             self._core.check_export_path(dirname, self._show_error_popup)
 
         _open_file_picker(
-            "Select a mod output directory",
+            "Select a mod package output directory",
             self._select_picked_folder_callback,
             lambda *args: None,
             current_file=current_directory,

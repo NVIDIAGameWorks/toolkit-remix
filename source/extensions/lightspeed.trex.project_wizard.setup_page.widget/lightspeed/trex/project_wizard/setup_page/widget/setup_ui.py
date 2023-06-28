@@ -346,7 +346,7 @@ class SetupPage(_WizardPage):
                             with self._capture_frame:
                                 pass
                     with ui.Frame(separate_window=True):  # Keep the Z order
-                        self._capture_overlay_widget = ui.Rectangle(name="WizardOverlay")
+                        self._capture_overlay_widget = ui.Rectangle(name="DisabledOverlay")
 
         self.__validate_project_path(self.payload.get(_ProjectWizardKeys.PROJECT_FILE.value, None))
         self.__validate_remix_path(self.payload.get(_ProjectWizardKeys.REMIX_DIRECTORY.value, None))

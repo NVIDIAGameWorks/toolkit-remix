@@ -375,7 +375,7 @@ class SetupUI:
 
     def __show_error_not_usd_file(self, dirname: str, filename: str):
         _TrexMessageDialog(
-            message=f"{dirname}/{filename} is not an USD file",
+            message=f"{dirname}/{filename} is not a USD file",
             disable_cancel_button=True,
         )
 

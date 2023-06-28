@@ -1,0 +1,41 @@
+[package]
+version = "1.0.0"
+authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "Mod Packaging Core"
+description = "Mod Packaging Core implementation"
+readme = "docs/README.md"
+category = "Core"
+keywords = ["kit", "lightspeed", "packaging", "core"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/images/preview.png"
+icon = "data/images/icon.png"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.layer_manager" = {}
+"lightspeed.pip_archive" = {}  # for pydantic
+"lightspeed.trex.replacement.core.shared" = {}
+"omni.client" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.material_converter" = {}
+"omni.kit.commands" = {}
+"omni.kit.tool.collect" = {}
+"omni.kit.usd.layers" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.packaging.core"
+
+[[test]]
+args = [
+    "--/app/extensions/registryEnabled=1",
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl",
+]
+
+dependencies = [
+    "omni.kit.material.library",
+    "omni.kit.test_suite.helpers",
+]

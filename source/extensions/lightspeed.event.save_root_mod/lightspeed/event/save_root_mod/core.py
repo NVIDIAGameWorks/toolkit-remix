@@ -8,7 +8,6 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import carb
-import omni.client
 import omni.kit.usd.layers as _layers
 import omni.usd
 from lightspeed.events_manager.i_ds_event import ILSSEvent

@@ -1,0 +1,33 @@
+[package]
+version = "1.0.0"
+authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "Mod Packaging Details Widget"
+description = "Mod Packaging Details Widget implementation"
+readme = "docs/README.md"
+category = "Widget"
+keywords = ["kit", "lightspeed", "packaging", "details", "widget"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/images/preview.png"
+icon = "data/images/icon.png"
+
+[dependencies]
+"lightspeed.layer_manager" = {}
+"lightspeed.trex.packaging.core" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.mod_packaging_details.widget"
+
+[[test]]
+dependencies = [
+    "omni.kit.ui_test",
+    "omni.kit.test_suite.helpers"
+]
+
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+]

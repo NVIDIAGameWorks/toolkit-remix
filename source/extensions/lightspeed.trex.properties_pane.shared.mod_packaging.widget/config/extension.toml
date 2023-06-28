@@ -1,0 +1,23 @@
+[package]
+authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "NVIDIA RTX Remix Properties Pane Mod Packaging widget for the StageCraft"
+description = "Mod Packaging Properties Pane widget for NVIDIA RTX Remix StageCraft App"
+
+[dependencies]
+"lightspeed.error_popup.window" = {}
+"lightspeed.layer_manager" = {}
+"lightspeed.progress_popup.window" = {}
+"lightspeed.trex.mod_packaging_details.widget" = {}
+"lightspeed.trex.mod_packaging_layers.widget" = {}
+"lightspeed.trex.mod_packaging_output.widget" = {}
+"lightspeed.trex.packaging.core" = {}
+"lightspeed.trex.utils.widget" = {}
+"omni.appwindow" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.kit.window.file" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.properties_pane.shared.mod_packaging.widget"
