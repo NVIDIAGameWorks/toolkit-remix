@@ -1,0 +1,34 @@
+[package]
+version = "1.0.0"
+authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "Mod Packaging Layers Widget"
+description = "Mod Packaging Details Layers implementation"
+readme = "docs/README.md"
+category = "Widget"
+keywords = ["kit", "lightspeed", "packaging", "layers", "widget"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/images/preview.png"
+icon = "data/images/icon.png"
+
+[dependencies]
+"lightspeed.layer_manager" = {}
+"omni.flux.layer_tree.usd.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.usd.layers" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.mod_packaging_layers.widget"
+
+[[test]]
+dependencies = [
+    "omni.kit.ui_test",
+    "omni.kit.test_suite.helpers"
+]
+
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+]

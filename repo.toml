@@ -156,7 +156,8 @@ apps = [
     "${root}/source/apps/lightspeed.app.trex.texturecraft.kit",
     "${root}/source/apps/lightspeed.app.trex_dev.kit",
     "${root}/source/apps/omni.app.lightspeed.kit",
-    "${root}/source/extensions/lightspeed.trex.project_wizard.core/apps/lightspeed.app.trex.project_wizard_cli.kit"
+    "${root}/source/extensions/lightspeed.trex.project_wizard.core/apps/lightspeed.app.trex.project_wizard_cli.kit",
+    "${root}/source/extensions/lightspeed.trex.packaging.core/apps/lightspeed.app.trex.project_packaging_cli.kit"
 ]
 
 

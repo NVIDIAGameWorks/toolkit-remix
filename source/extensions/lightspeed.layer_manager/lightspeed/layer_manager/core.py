@@ -28,8 +28,8 @@ from .layers import autoupscale, capture, capture_baker, i_layer, replacement, w
 
 class LayerManagerCore:
     def __init__(self, context_name=None):
-        self.__default_attr = {}
-        for attr, value in self.__default_attr.items():
+        self._default_attr = {}
+        for attr, value in self._default_attr.items():
             setattr(self, attr, value)
         self.context_name = context_name
         self.__context = omni.usd.get_context(context_name or "")
@@ -165,18 +165,50 @@ class LayerManagerCore:
                 carb.log_error(f"Can't create a checkpoint for file {path}")
         return True
 
-    def get_layer(self, layer_type: LayerType) -> Optional[Sdf.Layer]:
+    def get_layers(self, layer_type: LayerType, max_results: int = -1) -> List[Sdf.Layer]:
+        """
+        Get all layers of a given layer type.
+
+        Args:
+            layer_type: The type of layer to look for
+            max_results: The maximum number of results to return. Will quick return when the max is reached
+
+        Returns:
+            A list of layers with the given layer type
+        """
+        layers = []
+
         stage = self.__context.get_stage()
         if stage is None:
-            return None
+            return layers
+
         for layer in stage.GetLayerStack():
             if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
-                return layer
+                layers.append(layer)
+                if 0 < max_results == len(layers):
+                    return layers
+
         for layer_identifier in stage.GetMutedLayers():
             layer = LayerUtils.find_layer(layer_identifier)
             if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == layer_type.value:
-                return layer
-        return None
+                layers.append(layer)
+                if 0 < max_results == len(layers):
+                    return layers
+
+        return layers
+
+    def get_layer(self, layer_type: LayerType) -> Optional[Sdf.Layer]:
+        """
+        Get the top-most layer of a given layer type
+
+        Args:
+            layer_type: The type of layer to look for
+
+        Returns:
+            The top-most layer  with the given layer type if found, otherwise None
+        """
+        layers = self.get_layers(layer_type, max_results=1)
+        return layers[0] if layers else None
 
     @staticmethod
     def get_custom_data(layer: Sdf.Layer) -> Dict[str, str]:
@@ -328,5 +360,5 @@ class LayerManagerCore:
         return hashes
 
     def destroy(self):
-        if self.__default_attr:
+        if self._default_attr:
             _reset_default_attrs(self)

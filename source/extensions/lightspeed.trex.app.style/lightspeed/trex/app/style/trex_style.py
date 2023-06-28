@@ -373,7 +373,7 @@ current_dict.update(
             "background_color": _WHITE_10,
             "border_width": 0,
         },
-        "Rectangle::WizardOverlay": {
+        "Rectangle::DisabledOverlay": {
             "background_color": 0x80303030,  # 50% transparency background grey
         },
         "Rectangle::WizardBackground": {

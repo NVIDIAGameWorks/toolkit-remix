@@ -56,6 +56,8 @@ REMIX_MODS_FOLDER = "mods"
 REMIX_MOD_FILE = "mod.usda"
 REMIX_CAPTURE_BAKER_SUFFIX = "capture_baker"
 REMIX_DEPENDENCIES_FOLDER = "deps"
+REMIX_SUBUSD_RELATIVE_PATH = "./SubUSDs/"
+REMIX_PACKAGE_FOLDER = "package"
 
 CAPTURE_FOLDER = "capture"
 MATERIALS_FOLDER = "materials"
@@ -102,6 +104,9 @@ REGEX_SUB_LIGHT_PATH = (
 REGEX_MAT_MESH_LIGHT_PATH = (
     f"^(.*)({LIGHT_NAME_PREFIX}|{MESH_NAME_PREFIX}|{MATERIAL_NAME_PREFIX})([A-Z0-9]{{16}})$"  # noqa E501
 )
+
+# Based on: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#file-and-directory-names
+REGEX_VALID_PATH = r'(?!^.*[\\/]*(?:CON|PRN|AUX|NUL|COM\d|LPT\d)(?:\.[\w\d]+)*$)^((?:\w:)?[^\0-\31"&*:<>?|]+[^\0-\31"&*\.:<>?|])$'  # noqa E501
 
 BAD_EXPORT_LOG_PREFIX = "Export is not release ready: "
 EXPORT_STATUS_NAME = "remix_replacement_status"
