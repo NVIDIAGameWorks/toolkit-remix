@@ -1,4 +1,21 @@
-# Publishing a new App Version to the OV Launcher
+## Getting Started
+
+1. Building the project for the first time:
+   1. Build project: `build.bat -r`
+   2. If required (recommended after switching branches) clean using: `build.bat -c`
+2. Run:
+   1. `_build\windows-x86_64\release\lightspeed.app.trex_dev.bat` for the dev version that has menus.
+   2. `_build\windows-x86_64\release\lightspeed.app.trex.bat` for the end-user version.
+   3. If you work on a specific sub-app (IngestCraft, TextureCraft...), you can run the sub-app directly like `_build\windows-x86_64\release\lightspeed.app.trex.ingestcraft.bat`
+
+## Tests
+Several tests will run in CI/CD, but to run them all locally: `repo.bat test`
+
+## Using Pycharm IDE
+
+For into on developing with Pycharm, see the following [guide](PYCHARM_GUIDE.md).
+
+## Publishing a new App Version to the OV Launcher
 
 To bump the RTX Remix app version number, there are 3 files that need to be updated.
 ***Attempts to publish to the OV launcher without first making sure that these***
@@ -44,17 +61,6 @@ This README file provides a quick overview.  In-depth documentation can be found
 
 [Teamcity Project](https://teamcity.nvidia.com/project/Omniverse_KitExtensions_KitTemplate?mode=builds)
 
-
-## Getting Started
-
-1. build: `build.bat -c release`
-2. run: `_build\windows-x86_64\release\lightspeed.app.trex_dev.bat` (for the dev version that has menus) or
-`_build\windows-x86_64\release\lightspeed.app.trex.bat` for the regular version.
-If you work on a specific sub-app (IngestCraft, TextureCraft...), you can run the sub-app directly like `_build\windows-x86_64\release\lightspeed.app.trex.ingestcraft.bat`
-
-To run tests: `repo.bat test`
-
-To clean up your build (before to re-run build again): `build.bat --clean`
 
 ## Using a Local Build of Kit SDK
 
@@ -113,6 +119,9 @@ Other options:
 
 You can always find out where extension is coming from in _Extension Manager_ by selecting an extension and hovering over open button or in the log (search for e.g. `[ext: omni.kit.tool.asset_importer`).
 
+## Tips for Adding to README
+
+If you add a new MD file, please also add it to the `sphinx_exclude_patterns` in `repo.toml`.  Otherwise the doc builder will complain.
 
 # Other Useful Links
 
