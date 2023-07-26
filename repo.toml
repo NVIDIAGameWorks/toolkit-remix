@@ -179,6 +179,7 @@ sphinx_exclude_patterns = [
     "tools",
     "_build",
     "VERSION.md",
+    "PYCHARM_GUIDE.md",
     ".cache",
     "source/extensions/lightspeed.asset*",
     "source/extensions/lightspeed.color*",
