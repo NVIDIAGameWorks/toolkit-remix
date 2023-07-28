@@ -614,7 +614,7 @@ class Setup:
             for instance_path in instance_paths:
                 if Setup.get_prim_hash(instance_path) != Setup.get_prim_hash(mesh_path):
                     continue
-                instances.add(re.sub(constants.REGEX_MESH_TO_INSTANCE_SUB, instance_path, mesh_path))
+                instances.add(constants.COMPILED_REGEX_MESH_TO_INSTANCE_SUB.sub(instance_path, mesh_path))
         return list(instances)
 
     def destroy(self):

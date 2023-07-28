@@ -45,3 +45,8 @@ icon = "data/icon.png"
 
 [[python.module]]
 name = "lightspeed.tool.material.widget"
+
+[[test]]
+stdoutFailPatterns.exclude = [
+    "*[gpu.foundation.plugin] Failed to*",
+]

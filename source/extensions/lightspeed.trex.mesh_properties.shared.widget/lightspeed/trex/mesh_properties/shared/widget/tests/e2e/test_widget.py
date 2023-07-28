@@ -229,17 +229,30 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
 
         select_button = ui_test.find(f"{window_name}//Frame/**/Button[*].text=='Select'")
-        dir_path_field = ui_test.find(f"{window_name}//Frame/**/StringField[*].identifier=='filepicker_directory_path'")
+        toolbar_field = ui_test.find(f"{window_name}//Frame/**/Rectangle[*].style_type_name_override=='ToolBar.Field'")
 
         self.assertIsNotNone(select_button)
-        self.assertIsNotNone(dir_path_field)
+        self.assertIsNotNone(toolbar_field)
 
         # It takes a while for the tree to update
-        await ui_test.human_delay(1)
-        asset_path = _get_test_data("usd/ingested_assets/output/good/cube.usda")
-        await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay(1)
+        await ui_test.human_delay(10)
 
+        asset_path = _get_test_data("usd/ingested_assets/output/good/cube.usda")
+
+        # This doesn't work! Because there is a combobox stacked over the input field, on the CI, it will click on
+        # the arrow of the combobox and input nothing!
+        # dir_path_field = ui_test.find(f"{window_name}//Frame/**/StringField[*].identifier=='filepicker_directory_path'")  # noqa
+        # await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
+
+        # work around
+        field_position = toolbar_field.position
+        await toolbar_field.click(pos=ui_test.Vec2(field_position.x + 1, field_position.y + 1))
+        await ui_test.human_delay(1)
+        await ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+        await ui_test.human_delay(1)
+        await ui_test.emulate_char_press(asset_path)
+        await ui_test.human_delay(1)
+        await ui_test.emulate_keyboard_press(KeyboardInput.ENTER)
         await select_button.click()
         await ui_test.human_delay()
         # the new asset give us 4 prims

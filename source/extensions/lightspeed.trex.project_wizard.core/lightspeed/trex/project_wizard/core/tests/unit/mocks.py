@@ -9,6 +9,7 @@
 """
 import asyncio
 import subprocess
+import sys
 from pathlib import Path
 from typing import List, Optional
 from unittest.mock import Mock, patch
@@ -69,7 +70,7 @@ class WizardMockContext:
         self._replacement_core_mock = patch("lightspeed.trex.project_wizard.core.wizard._ReplacementCore")
         self._log_error_mock = patch.object(carb, "log_error")
         self._save_custom_data_mock = patch.object(LayerUtils, "save_authoring_layer_to_custom_data")
-        self._copy_tree_mock = patch("lightspeed.trex.project_wizard.core.wizard.copy_tree")
+        self._copy_tree_mock = patch("lightspeed.trex.project_wizard.core.wizard.copytree")
         self._check_call_mock = patch.object(subprocess, "check_call")
         self._path_exists_mock = patch.object(Path, "exists")
         self._path_chmod_mock = patch.object(Path, "chmod")
@@ -105,24 +106,36 @@ class WizardMockContext:
 
         # Setup mocks
         if self.__mock_wizard_methods:
-            generic_wizard_future = asyncio.Future()
-            generic_wizard_future.set_result(Mock())
+            if sys.version_info.minor > 7:
+                generic_wizard_future = Mock()
+            else:
+                generic_wizard_future = asyncio.Future()
+                generic_wizard_future.set_result(Mock())
             self.create_project_mock.return_value = generic_wizard_future
             self.insert_existing_mods_mock.return_value = generic_wizard_future
             self.insert_capture_layer_mock.return_value = generic_wizard_future
             self.save_authoring_layer_mock.return_value = generic_wizard_future
             self.save_project_layer_mock.return_value = generic_wizard_future
 
-            symlink_error_future = asyncio.Future()
-            symlink_error_future.set_result(None)
-            self.create_symlinks_mock.return_value = symlink_error_future
+            if sys.version_info.minor > 7:
+                self.create_symlinks_mock.return_value = None
+            else:
+                symlink_error_future = asyncio.Future()
+                symlink_error_future.set_result(None)
+                self.create_symlinks_mock.return_value = symlink_error_future
 
-            setup_usd_future = asyncio.Future()
-            setup_usd_future.set_result((Mock(), Mock()))
-            self.setup_usd_mock.return_value = setup_usd_future
+            if sys.version_info.minor > 7:
+                self.setup_usd_mock.return_value = (Mock(), Mock())
+            else:
+                setup_usd_future = asyncio.Future()
+                setup_usd_future.set_result((Mock(), Mock()))
+                self.setup_usd_mock.return_value = setup_usd_future
 
-            setup_mod_future = asyncio.Future()
-            setup_mod_future.set_result(Mock())
+            if sys.version_info.minor > 7:
+                setup_mod_future = Mock()
+            else:
+                setup_mod_future = asyncio.Future()
+                setup_mod_future.set_result(Mock())
             self.setup_existing_mod_mock.return_value = setup_mod_future
             self.setup_new_mod_mock.return_value = setup_mod_future
 

@@ -38,6 +38,7 @@ args = [
     "--/app/hangDetector/enabled=0",
     "--/app/fastShutdown=1",
     "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
+    "--no-window"
 ]
 
 dependencies = [

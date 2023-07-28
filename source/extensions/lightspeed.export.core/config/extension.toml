@@ -37,7 +37,7 @@ icon = "data/icon.png"
 "lightspeed.tool.octahedral_converter" = {}
 "omni.client" = {}
 "omni.flux.utils.common" = {}
-"omni.kit.tool.collect" = {}
+"omni.kit.usd.collect" = {}
 
 [[python.module]]
 name = "lightspeed.export.core"

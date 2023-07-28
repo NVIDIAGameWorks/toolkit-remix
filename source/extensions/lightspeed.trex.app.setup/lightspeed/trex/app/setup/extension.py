@@ -22,6 +22,7 @@ class TrexSetupExtension(omni.ext.IExt):
     """Create Final Configuration"""
 
     def __init__(self):
+        super().__init__()
         self._setup = None
 
     def on_startup(self, ext_id):

@@ -222,7 +222,7 @@ class ItemPrim(ui.AbstractItem):
         return self._from_live_light_group
 
     def is_usd_light(self):
-        return self._prim.IsA(UsdLux.Light)
+        return self._prim.HasAPI(UsdLux.LightAPI) if hasattr(UsdLux, "LightAPI") else self._prim.IsA(UsdLux.Light)
 
     @property
     def reference_item(self):
@@ -581,6 +581,9 @@ class ListModel(ui.AbstractItemModel):
     @_ignore_function_decorator(attrs=["_ignore_refresh"])
     def refresh(self):
         """Refresh the list"""
+
+        split_re = re.compile(r"(\d+)")
+
         # analyze the selected path
         def atoi(text):
             return int(text) if text.isdigit() else text
@@ -595,7 +598,7 @@ class ListModel(ui.AbstractItemModel):
             Returns:
                 Sorted items
             """
-            return [atoi(c) for c in re.split(r"(\d+)", text)]
+            return [atoi(c) for c in split_re.split(text)]
 
         mesh_items = []
         if self.stage:

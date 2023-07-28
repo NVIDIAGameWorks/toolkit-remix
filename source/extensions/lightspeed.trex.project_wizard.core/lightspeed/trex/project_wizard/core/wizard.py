@@ -10,7 +10,7 @@
 import asyncio
 import stat
 import subprocess
-from distutils.dir_util import copy_tree
+from shutil import copytree
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
 
 import carb
@@ -274,10 +274,10 @@ class ProjectWizardCore:
     async def _setup_existing_mod_project(self, replacement_core, mod_file, project_directory, dry_run):
         self._log_info(f"Copy content of '{mod_file.parent}' to '{project_directory}'")
 
-        copy_tree(str(mod_file.parent), str(project_directory), dry_run=dry_run)
         project_mod_file = project_directory / mod_file.name
 
         if not dry_run:
+            copytree(str(mod_file.parent), str(project_directory), dirs_exist_ok=True)
             project_mod_file.chmod(stat.S_IREAD | stat.S_IWRITE)
             replacement_core.import_replacement_layer(
                 str(project_mod_file),

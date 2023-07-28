@@ -35,7 +35,7 @@
 python = "../_build/target-deps/python"
 packages = [
     "dominate==2.6.0",              # TODO
-    "pydantic==1.9.1",              # TODO
+    "pydantic==1.10.7",              # TODO
     "torch==1.11.0",                # TODO
     "torchvision==0.12.0",          # TODO
     "toml==0.10.1",                 # http://nvbugs/3060676

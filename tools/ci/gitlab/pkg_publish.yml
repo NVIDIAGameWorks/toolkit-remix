@@ -6,7 +6,7 @@ pkg_publish:
   tags:
     - build
   before_script:
-    - .\build.bat --clean
+    - .\build.bat --clean --release
   script:
     - .\build.bat --release
     - .\tools\package.bat -m main_package -c release
