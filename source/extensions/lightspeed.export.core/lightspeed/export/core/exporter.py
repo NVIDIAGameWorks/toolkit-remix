@@ -26,7 +26,7 @@ from lightspeed.common import constants
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from omni.kit.tool.collect.collector import Collector
+from omni.kit.usd.collect import Collector
 from pxr import Sdf, Usd, UsdGeom, UsdUtils
 
 from .post_process import LightspeedPostProcessExporter
@@ -327,7 +327,7 @@ class LightspeedExporterCore:
             return
 
         self._progress_text_changed(f"Analyzing USD {os.path.basename(usd_path)}...")
-        self._collector = Collector(self._temp_replacements_path, export_folder, False, True, False)
+        self._collector = Collector(self._temp_replacements_path, export_folder, False, True, material_only=False)
 
         def progress_callback(step, total):
             self._progress_text_changed(f"Collecting USD {os.path.basename(usd_path)}...")

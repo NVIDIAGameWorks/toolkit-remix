@@ -27,3 +27,8 @@ name = "Lightspeed Property template"
 
 [[python.module]]
 name = "lightspeed.property_template"
+
+[[test]]
+stdoutFailPatterns.exclude = [
+    "*[gpu.foundation.plugin] Failed to*",
+]

@@ -33,7 +33,7 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.flux.utils.material_converter.utils import MaterialConverterUtils as _MaterialConverterUtils
-from omni.kit.tool.collect.omni_client_wrapper import OmniClientWrapper as _OmniClientWrapper
+from omni.kit.usd.collect.omni_client_wrapper import OmniClientWrapper as _OmniClientWrapper
 from omni.kit.usd.layers import LayerUtils as _LayerUtils
 from pxr import Sdf, UsdUtils
 

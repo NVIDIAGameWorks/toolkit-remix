@@ -1,13 +1,11 @@
 build_test:
   extends: .defaults
   stage: build_test
-  tags:
-    - build
   needs:
     - check-code-lint
   before_script:
     - If (Test-Path ".\portable\"){ Remove-Item ".\portable\" -Recurse -Force }
-    - .\build.bat --clean
+    - .\build.bat --clean --release
   script:
     - .\build.bat --release
     - .\tools\ci\testing\windows-x86_64\step.bat

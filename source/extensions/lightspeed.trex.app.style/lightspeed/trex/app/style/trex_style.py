@@ -6,7 +6,10 @@
 # distribution of this software and related documentation without an express
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 #
-import carb.imgui
+import asyncio
+
+import carb
+import omni.kit.imgui
 import omni.ui as ui
 from omni.flux.utils.widget.resources import get_fonts as _get_fonts
 from omni.flux.utils.widget.resources import get_icons as _get_icons
@@ -15,9 +18,18 @@ from omni.kit.window.popup_dialog import message_dialog
 from omni.ui import color as cl
 from omni.ui import constant as fl
 
+
 # override global imgui style
-imgui = carb.imgui.acquire_imgui()
-imgui.push_style_color(carb.imgui.StyleColor.WindowShadow, carb.Float4(0, 0, 0, 0))
+@omni.usd.handle_exception
+async def __override_imgui_style():
+    """Wait 3 frames or it will crash"""
+    for _ in range(3):
+        await omni.kit.app.get_app().next_update_async()
+    imgui = omni.kit.imgui.acquire_imgui()
+    imgui.push_style_color(omni.kit.imgui.StyleColor.WindowShadow, carb.Float4(0.0, 0.0, 0.0, 0.0))
+
+
+asyncio.ensure_future(__override_imgui_style())
 
 # default values
 _BLUE_SELECTED = 0x66FFC700
@@ -479,13 +491,21 @@ current_dict.update(
         "Label::PropertiesPaneSectionCaptureTreeItemNoImage": {"color": _WHITE_80, "font_size": 18},
         "Label::PropertiesPaneSectionTitle": {
             "color": _WHITE_70,
-            "font_size": 18,
+            "font_size": 16,
             "font": ui.url.nvidia_bd,
+        },
+        "Label::PropertiesPaneSectionTitle:disabled": {
+            "color": _WHITE_30,
+            "font_size": 16,
+            "image_url": ui.url.nvidia_bd,
         },
         "Label::HeaderNavigatorMenuItem": {"color": _WHITE_60, "font_size": 20},
         "Label::HeaderNavigatorMenuItem:selected": {"color": _WHITE_100, "font_size": 20},
         "Label::HeaderNavigatorMenuItem:hovered": {"color": _WHITE_80, "font_size": 20},
         "Label::MenuBurgerHotkey": {"color": _WHITE_60, "font_size": 12},
+        "Label::TreePanelTitle": {"color": _WHITE_80, "font_size": 23, "font": ui.url.nvidia_md},
+        "Label::TreePanelTitle:hovered": {"color": _WHITE_100, "font_size": 23, "font": ui.url.nvidia_md},
+        "Label::TreePanelTitle:selected": {"color": _WHITE_100, "font_size": 23, "font": ui.url.nvidia_md},
         "Label::Warning": {"color": _YELLOW, "font_size": 18},
         "Label::WelcomePadFooter": {"color": _WHITE_100, "font_size": 18},
         "Line::PropertiesPaneSectionTitle": {"color": _WHITE_20, "border_width": 1},

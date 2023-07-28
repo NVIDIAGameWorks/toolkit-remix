@@ -1,3 +1,4 @@
+import re
 from enum import IntEnum
 from pathlib import Path
 
@@ -107,6 +108,9 @@ REGEX_MAT_MESH_LIGHT_PATH = (
 
 # Based on: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#file-and-directory-names
 REGEX_VALID_PATH = r'(?!^.*[\\/]*(?:CON|PRN|AUX|NUL|COM\d|LPT\d)(?:\.[\w\d]+)*$)^((?:\w:)?[^\0-\31"&*:<>?|]+[^\0-\31"&*\.:<>?|])$'  # noqa E501
+
+# REGEX
+COMPILED_REGEX_MESH_TO_INSTANCE_SUB = re.compile(REGEX_MESH_TO_INSTANCE_SUB)
 
 BAD_EXPORT_LOG_PREFIX = "Export is not release ready: "
 EXPORT_STATUS_NAME = "remix_replacement_status"

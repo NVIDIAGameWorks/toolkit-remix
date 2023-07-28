@@ -9,6 +9,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import asyncio
+import sys
 from pathlib import Path
 from unittest.mock import Mock, PropertyMock, call, patch
 
@@ -24,7 +25,7 @@ from lightspeed.layer_manager.constants import (
 from lightspeed.trex.packaging.core import PackagingCore
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.material_converter.utils import MaterialConverterUtils
-from omni.kit.tool.collect.omni_client_wrapper import OmniClientWrapper
+from omni.kit.usd.collect.omni_client_wrapper import OmniClientWrapper
 from omni.kit.usd.layers import LayerUtils
 from pxr import Sdf, UsdUtils
 
@@ -77,9 +78,6 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         root_mod_mock = Mock()
         context_name_mock = Mock()
 
-        none_future = asyncio.Future()
-        none_future.set_result(None)
-
         with patch("lightspeed.trex.packaging.core.packaging._ModPackagingSchema") as model_mock, patch.object(
             PackagingCore, "_initialize_usd_stage"
         ) as init_usd_mock, patch.object(PackagingCore, "_packaging_completed") as completed_mock:
@@ -87,7 +85,12 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             model_mock.return_value.selected_layer_paths = [root_mod_mock]
             model_mock.return_value.context_name = context_name_mock
 
-            init_usd_mock.return_value = none_future
+            if sys.version_info.minor > 7:
+                init_usd_mock.return_value = None
+            else:
+                none_future = asyncio.Future()
+                none_future.set_result(None)
+                init_usd_mock.return_value = none_future
 
             # Act
             await packaging_core.package_async_with_exceptions({})
@@ -105,9 +108,6 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
 
         root_mod_mock = Mock()
 
-        stage_future = asyncio.Future()
-        stage_future.set_result(Mock())
-
         with patch("lightspeed.trex.packaging.core.packaging._ModPackagingSchema") as model_mock, patch.object(
             PackagingCore, "_initialize_usd_stage"
         ) as init_usd_mock, patch.object(PackagingCore, "_packaging_completed") as completed_mock, patch.object(
@@ -116,7 +116,12 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             model_mock.return_value.mod_layer_paths = [root_mod_mock]
             model_mock.return_value.selected_layer_paths = [root_mod_mock]
 
-            init_usd_mock.return_value = stage_future
+            if sys.version_info.minor > 7:
+                init_usd_mock.return_value = Mock()
+            else:
+                stage_future = asyncio.Future()
+                stage_future.set_result(Mock())
+                init_usd_mock.return_value = stage_future
 
             find_open_mock.return_value = None
 
@@ -139,21 +144,6 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         root_mod_mock = Mock(name="root_mod")
         temp_root_mod_mock = Mock(name="temp_root_mod")
 
-        none_future = asyncio.Future()
-        none_future.set_result(None)
-
-        make_temp_future = asyncio.Future()
-        make_temp_future.set_result(temp_root_mod_mock)
-
-        stage_future = asyncio.Future()
-        stage_future.set_result(Mock())
-
-        filter_future = asyncio.Future()
-        filter_future.set_result([])
-
-        collect_future = asyncio.Future()
-        collect_future.set_result([])
-
         mod_layer_mock = Mock()
         mod_layer_mock.customLayerData = {}
 
@@ -175,10 +165,28 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             model_mock.return_value.mod_layer_paths = [root_mod_mock]
             model_mock.return_value.selected_layer_paths = [root_mod_mock]
 
-            init_usd_mock.return_value = stage_future
-            make_temp_mock.return_value = make_temp_future
-            filter_mock.return_value = filter_future
-            collect_mock.return_value = collect_future
+            if sys.version_info.minor > 7:
+                init_usd_mock.return_value = Mock()
+                make_temp_mock.return_value = temp_root_mod_mock
+                filter_mock.return_value = []
+                collect_mock.return_value = []
+            else:
+                stage_future = asyncio.Future()
+                stage_future.set_result(Mock())
+                init_usd_mock.return_value = stage_future
+
+                make_temp_future = asyncio.Future()
+                make_temp_future.set_result(temp_root_mod_mock)
+                make_temp_mock.return_value = make_temp_future
+
+                filter_future = asyncio.Future()
+                filter_future.set_result([])
+                filter_mock.return_value = filter_future
+
+                collect_future = asyncio.Future()
+                collect_future.set_result([])
+                collect_mock.return_value = collect_future
+
             update_metadata_mock.return_value = []
             redirect_mock.return_value = ([], [])
 
@@ -199,18 +207,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         context_name_mock = Mock()
         output_directory_mock = Mock()
 
-        none_future = asyncio.Future()
-        none_future.set_result(None)
-
-        stage_future = asyncio.Future()
-        stage_future.set_result(Mock())
-
         temp_layers_mock = [Mock()]
-        filter_future = asyncio.Future()
-        filter_future.set_result(temp_layers_mock)
-
-        collect_future = asyncio.Future()
-        collect_future.set_result([])
 
         mod_layer_mock = Mock(name="mod_layer")
         mod_layer_mock.customLayerData = {}
@@ -243,10 +240,23 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             model_mock.return_value.context_name = context_name_mock
             model_mock.return_value.output_directory = output_directory_mock
 
-            init_usd_mock.return_value = stage_future
-            filter_mock.return_value = filter_future
-            collect_mock.return_value = collect_future
-            update_metadata_mock.return_value = []
+            if sys.version_info.minor > 7:
+                init_usd_mock.return_value = Mock()
+                filter_mock.return_value = temp_layers_mock
+                collect_mock.return_value = []
+            else:
+                stage_future = asyncio.Future()
+                stage_future.set_result(Mock())
+                init_usd_mock.return_value = stage_future
+
+                filter_future = asyncio.Future()
+                filter_future.set_result(temp_layers_mock)
+                filter_mock.return_value = filter_future
+
+                collect_future = asyncio.Future()
+                collect_future.set_result([])
+                collect_mock.return_value = collect_future
+
             redirect_mock.return_value = (dependencies_mock, redirected_mock)
 
             find_open_mock.side_effect = [mod_layer_mock, temp_mod_layer_mock, exported_mod_layer_mock]
@@ -421,26 +431,18 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         layer_1_temp_identifier = Mock()
         layer_1_temp_mock = Mock()
         layer_1_temp_mock.identifier = layer_1_temp_identifier
-        layer_1_temp_future = asyncio.Future()
-        layer_1_temp_future.set_result(layer_1_temp_mock)
 
         layer_2_temp_identifier = Mock()
         layer_2_temp_mock = Mock()
         layer_2_temp_mock.identifier = layer_2_temp_identifier
-        layer_2_temp_future = asyncio.Future()
-        layer_2_temp_future.set_result(layer_2_temp_mock)
 
         layer_3_temp_identifier = Mock()
         layer_3_temp_mock = Mock()
         layer_3_temp_mock.identifier = layer_3_temp_identifier
-        layer_3_temp_future = asyncio.Future()
-        layer_3_temp_future.set_result(layer_3_temp_mock)
 
         layer_4_temp_identifier = Mock()
         layer_4_temp_mock = Mock()
         layer_4_temp_mock.identifier = layer_4_temp_identifier
-        layer_4_temp_future = asyncio.Future()
-        layer_4_temp_future.set_result(layer_4_temp_mock)
 
         with patch.object(PackagingCore, "_make_temp_layer") as make_temp_mock, patch.object(
             PackagingCore, "_get_original_path"
@@ -452,12 +454,33 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             Sdf.Layer, "FindOrOpen"
         ) as find_open_mock:
             get_position_mock.return_value = position_mock
-            make_temp_mock.side_effect = [
-                layer_1_temp_future,
-                layer_3_temp_future,
-                layer_4_temp_future,
-                layer_2_temp_future,
-            ]
+
+            if sys.version_info.minor > 7:
+                make_temp_mock.side_effect = [
+                    layer_1_temp_mock,
+                    layer_2_temp_mock,
+                    layer_3_temp_mock,
+                    layer_4_temp_mock,
+                ]
+            else:
+                layer_1_temp_future = asyncio.Future()
+                layer_1_temp_future.set_result(layer_1_temp_mock)
+
+                layer_2_temp_future = asyncio.Future()
+                layer_2_temp_future.set_result(layer_2_temp_mock)
+
+                layer_3_temp_future = asyncio.Future()
+                layer_3_temp_future.set_result(layer_3_temp_mock)
+
+                layer_4_temp_future = asyncio.Future()
+                layer_4_temp_future.set_result(layer_4_temp_mock)
+
+                make_temp_mock.side_effect = [
+                    layer_1_temp_future,
+                    layer_3_temp_future,
+                    layer_4_temp_future,
+                    layer_2_temp_future,
+                ]
             get_original_mock.side_effect = [
                 layer_0_identifier_mock,
                 layer_1_identifier_mock,
@@ -504,9 +527,9 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         self.assertListEqual(
             [
                 call(layer_1_temp_mock),
+                call(layer_2_temp_mock),
                 call(layer_3_temp_mock),
                 call(layer_4_temp_mock),
-                call(layer_2_temp_mock),
             ],
             find_open_mock.call_args_list,
         )
@@ -838,12 +861,6 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         output_directory_mock = "S:/mods/ProjectMod"
         redirected_dependencies_mock = {asset_1_mock}
 
-        make_temp_future = asyncio.Future()
-        make_temp_future.set_result(layer_1_temp_path_mock)
-
-        none_future = asyncio.Future()
-        none_future.set_result(None)
-
         with patch.object(PackagingCore, "_get_original_path") as get_original_mock, patch.object(
             PackagingCore, "_make_temp_layer"
         ) as make_temp_mock, patch.object(Sdf.Layer, "FindOrOpen") as find_open_mock, patch.object(
@@ -881,13 +898,25 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                 layer_1_path_mock,
                 None,
             ]
-            make_temp_mock.side_effect = [make_temp_future]
+
             find_open_mock.side_effect = [layer_0_temp_mock, layer_1_temp_mock]
             exists_mock.side_effect = [True, False, True, True, False]
 
-            delete_folder_mock.return_value = none_future
-            create_folder_mock.return_value = none_future
-            copy_mock.return_value = none_future
+            if sys.version_info.minor > 7:
+                make_temp_mock.side_effect = layer_1_temp_path_mock
+                delete_folder_mock.return_value = None
+                create_folder_mock.return_value = None
+                copy_mock.return_value = None
+            else:
+                make_temp_future = asyncio.Future()
+                make_temp_future.set_result(layer_1_temp_path_mock)
+                make_temp_mock.side_effect = [make_temp_future]
+
+                none_future = asyncio.Future()
+                none_future.set_result(None)
+                delete_folder_mock.return_value = none_future
+                create_folder_mock.return_value = none_future
+                copy_mock.return_value = none_future
 
             # Act
             errors = await packaging_core._collect(  # noqa PLW0212

@@ -23,15 +23,11 @@ path = "${test_root}"
 [[repo_test.suites.alltests.group]]
 # Run all test
 include = [
-    "tests-omni.app.lightspeed${shell_ext}",
     "tests-lightspeed.*${shell_ext}"
 ]
-exclude = [
-    "tests-omni.app.lightspeed${shell_ext}",  # freeze for whatever reason
-]
-"platform:linux-x86_64".exclude = [
-  "tests-omni.app.precache_exts_demo*",
-]
+exclude = []
+
+"platform:linux-x86_64".exclude = []
 args = [
     "--portable",
     "--portable-root",
@@ -42,7 +38,8 @@ args = [
     "--/exts/omni.kit.test/testExtArgs/0=\"--/app/hangDetector/enabled=0\"",
     "--/exts/omni.kit.test/testExtArgs/1=\"--/app/fastShutdown=1\"",
     "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
-#    "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\""
+    "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\"",
+    "--no-window"
 ]
 timeout = 1800
 
@@ -56,9 +53,7 @@ include = [
     "tests-lightspeed.*${shell_ext}"
 ]
 exclude = []
-"platform:linux-x86_64".exclude = [
-  "tests-omni.app.precache_exts_demo*",
-]
+"platform:linux-x86_64".exclude = []
 args = [
     "--portable",
     "--portable-root",
@@ -72,6 +67,7 @@ args = [
     "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
     "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\"",
     "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.unit.*'",
+    "--no-window"
 ]
 timeout = 1800
 
@@ -85,9 +81,7 @@ include = [
     "tests-lightspeed.*${shell_ext}"
 ]
 exclude = []
-"platform:linux-x86_64".exclude = [
-  "tests-omni.app.precache_exts_demo*",
-]
+"platform:linux-x86_64".exclude = []
 args = [
     "--portable",
     "--portable-root",
@@ -98,6 +92,8 @@ args = [
     "--/exts/omni.kit.test/testExtArgs/0=\"--/app/hangDetector/enabled=0\"",
     "--/exts/omni.kit.test/testExtArgs/1=\"--/app/fastShutdown=1\"",
     "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
+    "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\"",
+    "--no-window",
     "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.e2e.*'",
 ]
 timeout = 1800
@@ -155,7 +151,6 @@ apps = [
     "${root}/source/apps/lightspeed.app.trex.stagecraft.kit",
     "${root}/source/apps/lightspeed.app.trex.texturecraft.kit",
     "${root}/source/apps/lightspeed.app.trex_dev.kit",
-    "${root}/source/apps/omni.app.lightspeed.kit",
     "${root}/source/extensions/lightspeed.trex.project_wizard.core/apps/lightspeed.app.trex.project_wizard_cli.kit",
     "${root}/source/extensions/lightspeed.trex.packaging.core/apps/lightspeed.app.trex.project_packaging_cli.kit"
 ]
@@ -172,8 +167,6 @@ enabled = true
 name = "NVIDIA RTX Remix"
 project = "${conf:repo.name}"
 
-copyright_start = 2021
-
 sphinx_exclude_patterns = [
     "include",
     "tools",
@@ -181,6 +174,7 @@ sphinx_exclude_patterns = [
     "VERSION.md",
     "PYCHARM_GUIDE.md",
     ".cache",
+    ".local",
     "source/extensions/lightspeed.asset*",
     "source/extensions/lightspeed.color*",
     "source/extensions/lightspeed.common*",
@@ -208,24 +202,25 @@ python_paths = [
     "${root}/_build/${platform_target}/release/extscache/*",
     "${root}/_build/${platform_target}/release/kit/kernel/py",
     "${root}/_build/${platform_target}/release/kit/exts/*",
-    "${root}/_build/${platform_target}/release/kit/extPhysics/*",
+    "${root}/_build/${platform_target}/release/kit/extsPhysics/*",
     "${root}/_build/${platform_target}/release/kit/extscore/*",
-    "${root}/_build/${platform_target}/release/kit/extscore/omni.kit.pip_archive/pip_prebundle",
-    "${root}/_build/${platform_target}/release/kit/extensions/extensions-bundled",
+    "${root}/_build/${platform_target}/release/kit/exts/omni.kit.pip_archive/pip_prebundle",
     "${root}/_build/${platform_target}/release/kit",
+    "${root}/_build/${platform_target}/release/kit/kernel/py",
     "${root}/_build/${platform_target}/release/kit/plugins",
     "${root}/_build/${platform_target}/release/kit/plugins/bindings-python",
 ]
 library_paths = [
     "${root}/_build/${platform_target}/release/exts/*/bin",
     "${root}/_build/${platform_target}/release/kit/exts/*/bin",
+    "${root}/_build/${platform_target}/release/kit/exts/*/bin/deps",
     "${root}/_build/${platform_target}/release/kit/extsPhysics/*/bin",
     "${root}/_build/${platform_target}/release/kit/extscore/*/bin",
     "${root}/_build/${platform_target}/release/kit/extscore/*/bin/deps",
     "${root}/_build/${platform_target}/release/kit",
     "${root}/_build/${platform_target}/release/kit/kernel/plugins",
     "${root}/_build/${platform_target}/release/kit/plugins",
-    "${root}/_build/${platform_target}/release/kit/plugins/gpu.foundation",
+    "${root}/_build/${platform_target}/release/kit/plugins/carb_gfx",
     "${root}/_build/${platform_target}/release/kit/plugins/usd",
     "${root}/_build/${platform_target}/release/kit/plugins/rtx",
 ]
@@ -250,6 +245,8 @@ files.exclude = [
     ".eggs/*",
     ".venv/*",
     "tools/*",
+    "source/pythonapps/*",
+    "source/extensions/example.*",
 ]
 
 # python is formatted with black+isort:
@@ -264,9 +261,11 @@ files.exclude = [
     ".eggs/*",
     ".venv/*",
     "tools/*",
+    "source/pythonapps/*",
+    "source/extensions/example.*",
     "source/*/lightspeed/common/tools/*"
 ]
-python_version = "py37"
+python_version = "py310"
 job_count = 1
 
 
@@ -285,6 +284,8 @@ files.exclude = [
     ".eggs/*",
     ".venv/*",
     "tools/*",
+    "source/pythonapps/*",
+    "source/extensions/example.*",
     "source/*/lightspeed/common/tools/*"
 ]
 

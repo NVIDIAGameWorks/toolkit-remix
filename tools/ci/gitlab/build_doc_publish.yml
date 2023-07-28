@@ -1,3 +1,9 @@
+include:
+  - project: 'omniverse/sectools/vault'
+    file:
+        - '/templates/v2/omni-packman-s3-creds.yml'
+  # ^^^ includes above are needed for the vault invocation.
+
 build_doc_publish:
   extends: .defaults
   stage: build_doc_publish
@@ -6,8 +12,16 @@ build_doc_publish:
   tags:
     - linux
   before_script:
-    - ./build.sh --clean
+    - ./build.sh --clean --release
+  script:
+    - set -eu
+    - |
+      mkdir tempbin
+      curl -fsSL https://urm.nvidia.com/artifactory/sw-kaizen-data-generic/com/nvidia/vault/vault-agent/1.5.2/nvidia_vault_agent_v1.5.2_linux_amd64.zip \
+      | bsdtar -xvf- -C tempbin
+      chmod +x tempbin/vault
+      export PATH="$PWD/tempbin:$PATH"
+    - !reference [ .omni_s3_write_get_secrets, omni_s3_write_get_secrets ]
     - ./build.sh --release
     - ./build_docs.sh
-  script:
     - ./build_docs.sh --publish-as-latest -s publish --edition s3web

@@ -17,6 +17,7 @@ from .ui import MaterialButtonGroup
 
 class LightspeedSetupExtension(omni.ext.IExt):
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._material_tools = None
 
     def on_startup(self, ext_id):

@@ -19,7 +19,7 @@ icon = "data/images/icon.png"
 "omni.flux.utils.common" = {}
 "omni.flux.utils.material_converter" = {}
 "omni.kit.commands" = {}
-"omni.kit.tool.collect" = {}
+"omni.kit.usd.collect" = {}
 "omni.kit.usd.layers" = {}
 "omni.usd" = {}
 
@@ -32,7 +32,10 @@ args = [
     "--/app/hangDetector/enabled=0",
     "--/app/fastShutdown=1",
     "--no-window",
-    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl",
+#    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl",
+    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+    # Need to use a .kit file
+    "--merge-config=${kit}/../exts/lightspeed.trex.packaging.core/data/tests/lightspeed.trex.packaging.core_material.kit"
 ]
 
 dependencies = [

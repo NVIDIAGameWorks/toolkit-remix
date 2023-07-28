@@ -9,6 +9,7 @@
 """
 import asyncio
 import stat
+import sys
 from pathlib import Path
 from typing import List, Optional
 from unittest.mock import Mock, call
@@ -69,9 +70,12 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         symlink_error = "Test Error"
 
         with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
-            future = asyncio.Future()
-            future.set_result(symlink_error)
-            mock.create_symlinks_mock.return_value = future
+            if sys.version_info.minor > 7:
+                mock.create_symlinks_mock.return_value = symlink_error
+            else:
+                future = asyncio.Future()
+                future.set_result(symlink_error)
+                mock.create_symlinks_mock.return_value = future
 
             # Act
             await self.core.setup_project_async_with_exceptions({})
@@ -104,9 +108,12 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         )
 
         with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
-            future = asyncio.Future()
-            future.set_result(None)
-            mock.create_project_mock.return_value = future
+            if sys.version_info.minor > 7:
+                mock.create_project_mock.return_value = None
+            else:
+                future = asyncio.Future()
+                future.set_result(None)
+                mock.create_project_mock.return_value = future
 
             # Act
             await self.core.setup_project_async_with_exceptions({})
@@ -162,9 +169,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual(0, mock.replacement_core_mock.import_replacement_layer.call_count)
         self.assertEqual(0, mock.capture_core_mock.import_capture_layer.call_count)
 
-        _, kwargs = mock.copy_tree_mock.call_args
-        self.assertEqual(1, mock.copy_tree_mock.call_count)
-        self.assertEqual({"dry_run": True}, kwargs)
+        self.assertEqual(0, mock.copy_tree_mock.call_count)
 
         self.assertEqual(1, mock.finished_mock.call_count)
         self.assertEqual(call(True), mock.finished_mock.call_args)
@@ -255,7 +260,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual(1, mock.copy_tree_mock.call_count)
         copy_args, copy_kwargs = mock.copy_tree_mock.call_args
         self.assertEqual((str(mod_file.parent), str(project_dir)), copy_args)
-        self.assertEqual({"dry_run": False}, copy_kwargs)
+        self.assertEqual({"dirs_exist_ok": True}, copy_kwargs)
 
         self.assertEqual(1, insert_sublayer_mock.call_count)
         self.assertEqual(
@@ -453,21 +458,27 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             mock.capture_core_mock.return_value = capture_core_mock
             mock.replacement_core_mock.return_value = replacement_core_mock
 
-            setup_usd_future = asyncio.Future()
-            setup_usd_future.set_result((context_mock, stage_mock))
-            mock.setup_usd_mock.return_value = setup_usd_future
+            if sys.version_info.minor > 7:
+                mock.setup_usd_mock.return_value = (context_mock, stage_mock)
+                mock.create_project_mock.return_value = project_stage_mock
+                mock.setup_existing_mod_mock.return_value = final_mod_file
+                mock.setup_new_mod_mock.return_value = final_mod_file
+            else:
+                setup_usd_future = asyncio.Future()
+                setup_usd_future.set_result((context_mock, stage_mock))
+                mock.setup_usd_mock.return_value = setup_usd_future
 
-            create_project_future = asyncio.Future()
-            create_project_future.set_result(project_stage_mock)
-            mock.create_project_mock.return_value = create_project_future
+                create_project_future = asyncio.Future()
+                create_project_future.set_result(project_stage_mock)
+                mock.create_project_mock.return_value = create_project_future
 
-            setup_existing_future = asyncio.Future()
-            setup_existing_future.set_result(final_mod_file)
-            mock.setup_existing_mod_mock.return_value = setup_existing_future
+                setup_existing_future = asyncio.Future()
+                setup_existing_future.set_result(final_mod_file)
+                mock.setup_existing_mod_mock.return_value = setup_existing_future
 
-            setup_new_future = asyncio.Future()
-            setup_new_future.set_result(final_mod_file)
-            mock.setup_new_mod_mock.return_value = setup_new_future
+                setup_new_future = asyncio.Future()
+                setup_new_future.set_result(final_mod_file)
+                mock.setup_new_mod_mock.return_value = setup_new_future
 
             # Act
             await self.core.setup_project_async_with_exceptions({})
