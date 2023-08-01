@@ -8,12 +8,11 @@
    2. `_build\windows-x86_64\release\lightspeed.app.trex.bat` for the end-user version.
    3. If you work on a specific sub-app (IngestCraft, TextureCraft...), you can run the sub-app directly like `_build\windows-x86_64\release\lightspeed.app.trex.ingestcraft.bat`
 
-## Tests
-Several tests will run in CI/CD, but to run them all locally: `repo.bat test`
+## Developer Guides
 
-## Using Pycharm IDE
-
-For into on developing with Pycharm, see the following [guide](PYCHARM_GUIDE.md).
+- **[Using Pycharm IDE](PYCHARM_GUIDE.md)**: For an intro on developing with Pycharm.
+- **[Automated Testing](TESTING_GUIDELINES.md)**: Process for writing/deploying tests in lightspeed for kit applications.
+- **[Omniverse Dev Tips](OMNIVERSE_TIPS.md)**: Tips and tricks for developing on Omniverse from engineers.
 
 ## Publishing a new App Version to the OV Launcher
 

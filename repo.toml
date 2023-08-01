@@ -172,6 +172,8 @@ sphinx_exclude_patterns = [
     "tools",
     "_build",
     "VERSION.md",
+    "TESTING_GUIDELINES.md",
+    "OMNIVERSE_TIPS.md",
     "PYCHARM_GUIDE.md",
     ".cache",
     ".local",
