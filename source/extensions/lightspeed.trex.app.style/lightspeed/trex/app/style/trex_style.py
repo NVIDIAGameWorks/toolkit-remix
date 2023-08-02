@@ -354,11 +354,6 @@ current_dict.update(
             "font_size": 16,
             "image_url": _get_fonts("NVIDIASans_A_Md"),
         },  # checked == hovered
-        "ImageWithProviderTreePanelTitleItemTitleDisabled": {
-            "color": _WHITE_30,
-            "font_size": 16,
-            "image_url": _get_fonts("NVIDIASans_A_Md"),
-        },
         "Label::WizardTitle": {
             "color": _WHITE_80,
             "font_size": 18,
@@ -506,6 +501,17 @@ current_dict.update(
         "Label::TreePanelTitle": {"color": _WHITE_80, "font_size": 23, "font": ui.url.nvidia_md},
         "Label::TreePanelTitle:hovered": {"color": _WHITE_100, "font_size": 23, "font": ui.url.nvidia_md},
         "Label::TreePanelTitle:selected": {"color": _WHITE_100, "font_size": 23, "font": ui.url.nvidia_md},
+        "Label::TreePanelTitleItemTitle": {"color": _WHITE_60, "font_size": 20, "font": ui.url.nvidia_md},
+        "Label::TreePanelTitleItemTitle:checked": {
+            "color": _WHITE_80,
+            "font_size": 20,
+            "font": ui.url.nvidia_md,
+        },  # checked == hovered
+        "TreePanelTitleItemTitleDisabled": {
+            "color": _WHITE_30,
+            "font_size": 20,
+            "font": ui.url.nvidia_md,
+        },
         "Label::Warning": {"color": _YELLOW, "font_size": 18},
         "Label::WelcomePadFooter": {"color": _WHITE_100, "font_size": 18},
         "Line::PropertiesPaneSectionTitle": {"color": _WHITE_20, "border_width": 1},

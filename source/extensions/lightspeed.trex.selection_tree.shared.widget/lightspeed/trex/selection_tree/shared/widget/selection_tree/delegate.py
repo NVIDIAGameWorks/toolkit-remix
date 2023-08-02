@@ -47,7 +47,6 @@ class Delegate(ui.AbstractItemDelegate):
 
         self._default_attr = {
             "_path_scroll_frames": None,
-            "_gradient_frame": None,
             "_zstack_scroll": None,
             "_gradient_image_provider": None,
             "_gradient_image_with_provider": None,
@@ -62,15 +61,12 @@ class Delegate(ui.AbstractItemDelegate):
             setattr(self, attr, value)
 
         self.__refresh_gradient_color_task = None
-        self.__add_gradient_or_not_task = None
-
         self._current_selection = []
         self._hovered_items = {}
         self._background_rectangle = {}
 
         self._path_scroll_frames = {}
         self._zstack_scroll = {}
-        self._gradient_frame = {}
         self._gradient_image_provider = {}
         self._gradient_image_with_provider = {}
 
@@ -105,6 +101,7 @@ class Delegate(ui.AbstractItemDelegate):
             self.__gradient_color2,
             (True, True, True, True),
         )
+        self._gradient_array_list = self._gradient_array.ravel().tolist()
         self._gradient_array_hovered = _create_gradient(
             self.__gradient_width,
             self.__gradient_height,
@@ -112,6 +109,7 @@ class Delegate(ui.AbstractItemDelegate):
             self.__gradient_color2_hovered,
             (True, True, True, True),
         )
+        self._gradient_array_hovered_list = self._gradient_array_hovered.ravel().tolist()
         self._gradient_array_selected = _create_gradient(
             self.__gradient_width,
             self.__gradient_height,
@@ -119,6 +117,7 @@ class Delegate(ui.AbstractItemDelegate):
             self.__gradient_color2_selected,
             (True, True, True, True),
         )
+        self._gradient_array_selected_list = self._gradient_array_selected.ravel().tolist()
 
         self.__on_delete_reference = _Event()
         self.__on_delete_prim = _Event()
@@ -196,7 +195,6 @@ class Delegate(ui.AbstractItemDelegate):
 
         self._path_scroll_frames = {}
         self._zstack_scroll = {}
-        self._gradient_frame = {}
         self._gradient_image_provider = {}
         self._gradient_image_with_provider = {}
         self._background_rectangle = {}
@@ -361,9 +359,22 @@ class Delegate(ui.AbstractItemDelegate):
                                                 )  # because of gradiant
                                         with ui.HStack():
                                             ui.Spacer()
-                                            self._gradient_frame[id(item)] = ui.Frame(
-                                                separate_window=True, width=ui.Pixel(self.__gradient_width)
-                                            )
+                                            with ui.Frame(
+                                                separate_window=True,
+                                                width=ui.Pixel(self.__gradient_width),
+                                            ):
+                                                # add gradient
+                                                self._gradient_image_provider[id(item)] = ui.ByteImageProvider()
+                                                self._gradient_image_with_provider[id(item)] = ui.ImageWithProvider(
+                                                    self._gradient_image_provider[id(item)],
+                                                    height=self.__gradient_height,
+                                                    fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
+                                                    name="HeaderNvidiaBackground",
+                                                )
+                                                self._gradient_image_provider[id(item)].set_bytes_data(
+                                                    self._gradient_array_list,
+                                                    [self.__gradient_width, self.__gradient_height],
+                                                )
                             if isinstance(item, _ItemMesh):
                                 ui.Spacer(height=0, width=ui.Pixel(8))
                                 with ui.VStack(
@@ -439,8 +450,6 @@ class Delegate(ui.AbstractItemDelegate):
                                     )
                                     ui.Spacer(width=0)
                         ui.Spacer(height=0, width=ui.Pixel(8))
-
-        self.__add_gradient_or_not_task = asyncio.ensure_future(self._add_gradient_or_not(item))
 
     def _on_item_hovered(self, hovered, item):
         self._hovered_items[id(item)] = hovered
@@ -518,15 +527,15 @@ class Delegate(ui.AbstractItemDelegate):
         is_selected = item in self._current_selection
         if is_selected:
             self._gradient_image_provider[id(item)].set_bytes_data(
-                self._gradient_array_selected.ravel().tolist(), [self.__gradient_width, self.__gradient_height]
+                self._gradient_array_selected_list, [self.__gradient_width, self.__gradient_height]
             )
         elif is_hovered and not is_selected:
             self._gradient_image_provider[id(item)].set_bytes_data(
-                self._gradient_array_hovered.ravel().tolist(), [self.__gradient_width, self.__gradient_height]
+                self._gradient_array_hovered_list, [self.__gradient_width, self.__gradient_height]
             )
         else:
             self._gradient_image_provider[id(item)].set_bytes_data(
-                self._gradient_array.ravel().tolist(), [self.__gradient_width, self.__gradient_height]
+                self._gradient_array_list, [self.__gradient_width, self.__gradient_height]
             )
 
     def on_item_selected(self, selected_items, all_items):
@@ -536,23 +545,6 @@ class Delegate(ui.AbstractItemDelegate):
             for rectangle in self._background_rectangle.get(id(item), []):
                 rectangle.style_type_name_override = (
                     "TreeView.Item.selected" if item in selected_items else "TreeView.Item"
-                )
-
-    @omni.usd.handle_exception
-    async def _add_gradient_or_not(self, item):
-        await omni.kit.app.get_app().next_update_async()
-        if id(item) in self._path_scroll_frames and self._path_scroll_frames[id(item)].scroll_x_max > 0:
-            with self._gradient_frame[id(item)]:
-                # add gradient
-                self._gradient_image_provider[id(item)] = ui.ByteImageProvider()
-                self._gradient_image_with_provider[id(item)] = ui.ImageWithProvider(
-                    self._gradient_image_provider[id(item)],
-                    height=self.__gradient_height,
-                    fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
-                    name="HeaderNvidiaBackground",
-                )
-                self._gradient_image_provider[id(item)].set_bytes_data(
-                    self._gradient_array.ravel().tolist(), [self.__gradient_width, self.__gradient_height]
                 )
 
     def build_header(self, column_id):
@@ -566,5 +558,5 @@ class Delegate(ui.AbstractItemDelegate):
 
     @omni.usd.handle_exception
     async def _deferred_destroy(self):
-        await _deferred_destroy_tasks([self.__refresh_gradient_color_task, self.__add_gradient_or_not_task])
+        await _deferred_destroy_tasks([self.__refresh_gradient_color_task])
         _reset_default_attrs(self)
