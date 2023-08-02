@@ -10,7 +10,7 @@
 from typing import List
 
 import omni.kit.commands
-from pxr import Sdf
+from pxr import Sdf, Usd
 
 __registered = [False]  # match the number of commands to register
 
@@ -62,3 +62,26 @@ def __register():
 
 
 __register()
+
+
+class SetPrimTypeName(omni.kit.commands.Command):
+    """
+    Set the type of a prim
+
+    Args:
+        prim (Usd.Prim): Prim to be changed.
+        type_name (str): the type to set the prim to (i.e. "Xform")
+    """
+
+    def __init__(self, prim: Usd.Prim, type_name: str):
+        self._prim = prim
+        self._type_name = type_name
+        self._old_type_name = None
+
+    def do(self):
+        if self._prim:
+            self._old_type_name = self._prim.GetTypeName()
+            self._prim.SetTypeName(self._type_name)
+
+    def undo(self):
+        self._prim.SetTypeName(self._old_type_name)

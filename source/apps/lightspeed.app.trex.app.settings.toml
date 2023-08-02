@@ -31,6 +31,12 @@ height = 800
 x = -1
 y = -1
 
+[app.renderer]
+skipWhileMinimized = true
+
+[app.runLoops.present]
+rateLimitFrequency = 60
+
 # Basic Kit App
 ################################
 [persistent.app.window]
