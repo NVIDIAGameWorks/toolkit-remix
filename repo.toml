@@ -177,6 +177,7 @@ sphinx_exclude_patterns = [
     "TESTING_GUIDELINES.md",
     "OMNIVERSE_TIPS.md",
     "PYCHARM_GUIDE.md",
+    "REVIEW_CHECKLIST.md",
     ".cache",
     ".local",
     "source/extensions/lightspeed.asset*",
