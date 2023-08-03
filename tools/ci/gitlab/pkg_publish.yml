@@ -1,15 +1,31 @@
+include:
+  - project: 'omniverse/sectools/vault'
+    file: '/templates/v2/omni-packman-s3-creds.yml'
+  - project: 'omniverse/sectools/vault'
+    file: '/templates/v2/omni-codesign-creds.yml'
+  # ^^^ includes above are needed for the vault invocation.
+
 pkg_publish:
+  extends: .defaults
   stage: pkg_publish
-  only:
-    - master
   when: manual
   tags:
-    - build
-  before_script:
-    - .\build.bat --clean --release
+    - linux
+  needs:
+    - job: build_test
+      artifacts: true
   script:
-    - .\build.bat --release
-    - .\tools\package.bat -m main_package -c release
-    - .\tools\ci\publishing\publish\step.bat
-    - whoami
-    - .\tools\ci\publishing\publish-launcher-packages\step.bat
+    - set -eu
+    - |
+      mkdir tempbin
+      curl -fsSL https://urm.nvidia.com/artifactory/sw-kaizen-data-generic/com/nvidia/vault/vault-agent/1.5.2/nvidia_vault_agent_v1.5.2_linux_amd64.zip \
+      | bsdtar -xvf- -C tempbin
+      chmod +x tempbin/vault
+      export PATH="$PWD/tempbin:$PATH"
+    - !reference [.omni_codesign_get_secrets, omni_codesign_get_secrets]
+    - !reference [.omni_s3_write_get_secrets, omni_s3_write_get_secrets]
+    - ./build.sh --fetch-only --release --no-docker
+    - fail_wr=0
+    - ./repo.sh ci publish_to_launcher || fail_wr=1
+    - echo "WinRel=${fail_wr}"
+    - '[ "$fail_wr" -eq 0 ] || exit 1'

@@ -130,6 +130,8 @@ strip_package_infos = true
 ########################################################################################################################
 
 [repo_publish_exts]
+configs = ["release"]
+platforms = ["windows-x86_64"]
 
 # Extensions to publish, include and exclude among those discovered by kit. Wildcards are supported.
 exts.include = []

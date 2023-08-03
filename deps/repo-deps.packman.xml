@@ -1,30 +1,30 @@
 <project toolsVersion="5.6">
   <dependency name="repo_man" linkPath="../_repo/deps/repo_man">
-    <package name="repo_man" version="1.41.0" />
+    <package name="repo_man" version="1.42.3" />
   </dependency>
   <dependency name="repo_build" linkPath="../_repo/deps/repo_build">
-    <package name="repo_build" version="0.44.9" />
+    <package name="repo_build" version="0.46.0" />
   </dependency>
   <dependency name="repo_format" linkPath="../_repo/deps/repo_format">
     <package name="repo_format" version="2.7.0" />
   </dependency>
   <dependency name="repo_package" linkPath="../_repo/deps/repo_package">
-    <package name="repo_package" version="5.8.9" />
+    <package name="repo_package" version="5.9.0" />
   </dependency>
   <dependency name="repo_licensing" linkPath="../_repo/deps/repo_licensing" tags="non-redist">
     <package name="repo_licensing" version="1.12.0" />
   </dependency>
   <dependency name="repo_codesign" linkPath="../_repo/deps/repo_codesign">
-    <package name="repo_codesign" version="3.9" />
+    <package name="repo_codesign" version="7.0.10" />
   </dependency>
   <dependency name="repo_source" linkPath="../_repo/deps/repo_source" tags="non-redist">
     <package name="repo_source" version="0.4.2" />
   </dependency>
   <dependency name="repo_test" linkPath="../_repo/deps/repo_test">
-    <package name="repo_test" version="0.1.22" />
+    <package name="repo_test" version="2.12.1" />
   </dependency>
   <dependency name="repo_kit_tools" linkPath="../_repo/deps/repo_kit_tools">
-    <package name="repo_kit_tools" version="0.13.12" />
+    <package name="repo_kit_tools" version="0.13.17" />
   </dependency>
   <dependency name="repo_lint" linkPath="../_repo/deps/repo_lint">
     <package name="repo_lint" version="0.1.9" />
@@ -34,5 +34,8 @@
   </dependency>
    <dependency name="repo_docs" linkPath="../_repo/deps/repo_docs">
     <package name="repo_docs" version="0.38.0" />
+  </dependency>
+  <dependency name="repo_ci" linkPath="../_repo/deps/repo_ci">
+    <package name="repo_ci" version="0.5.2" />
   </dependency>
 </project>
