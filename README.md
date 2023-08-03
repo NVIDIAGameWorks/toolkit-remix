@@ -11,6 +11,7 @@
 ## Developer Guides
 
 - **[Using Pycharm IDE](PYCHARM_GUIDE.md)**: For an intro on developing with Pycharm.
+- **[Review Checklist](REVIEW_CHECKLIST.md)**: What to do as an engineer submitting merge requests.
 - **[Automated Testing](TESTING_GUIDELINES.md)**: Process for writing/deploying tests in lightspeed for kit applications.
 - **[Omniverse Dev Tips](OMNIVERSE_TIPS.md)**: Tips and tricks for developing on Omniverse from engineers.
 
