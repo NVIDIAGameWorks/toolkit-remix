@@ -1,14 +1,7 @@
 <project toolsVersion="5.6">
-  <!-- Import Kit SDk target-deps xml file to steal some deps from it: -->
-  <import path="../_build/${platform}/${config}/kit/dev/all-deps.packman.xml">
-	<filter include="python" />
-  </import>
-
-  <!-- Pull those deps of the same version as in Kit SDK. Override linkPath to point correctly, other properties can also be override, including version. -->
-  <dependency name="carb_sdk_plugins" linkPath="../_build/target-deps/carb_sdk_plugins" tags="non-redist" />
-  <dependency name="pybind11" linkPath="../_build/target-deps/pybind11" />
-  <dependency name="fmt" linkPath="../_build/target-deps/fmt" />
-  <dependency name="python" linkPath="../_build/target-deps/python" />
+  <dependency name="python" linkPath="../_build/target-deps/python">
+    <package name="python" version="3.10.10+nv1-${platform}" />
+  </dependency>
   <dependency name="omni_core_materials" linkPath="../_build/${platform}/${config}/omni_core_materials">
     <package name="omni_core_materials" version="224e85c456b8f7af2ef5babd14c6f8f424b10889"/>
   </dependency>

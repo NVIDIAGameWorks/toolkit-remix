@@ -4,13 +4,14 @@ build_test:
   needs:
     - check-code-lint
   before_script:
-    - If (Test-Path ".\portable\"){ Remove-Item ".\portable\" -Recurse -Force }
     - .\build.bat --clean --release
+    - .\build.bat --clean --debug
   script:
     - .\build.bat --release
     - .\tools\ci\testing\windows-x86_64\step.bat
+    - .\repo.bat package --mode main_package --platform windows-x86_64 --config release
+  # Artifacts required to make the publishing step work
   artifacts:
-    when: always
-    name: $CI_JOB_NAME-$CI_COMMIT_SHORT_SHA-$CI_JOB_ID
+    when: on_success
     paths:
-      - .\_testoutput\
+    - _build/packages
