@@ -124,6 +124,8 @@ release.files_exclude = [
 omniverse_flow_version_scheme = true
 archive_format = "zip"
 strip_package_infos = true
+# Do not package extensions that can be pulled (using http).
+exclude_kit_extensions_for_thin_packaging = false
 
 ########################################################################################################################
 # Extensions publisher
