@@ -1,11 +1,10 @@
 .defaults:
   interruptible: true
-  only:
-    - merge_requests
-    - schedules
-    - web
+  allow_failure: false
   variables:
     GIT_STRATEGY: fetch
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_REF_NAME != "master"
 
 variables:
   AWS_ACCESS_KEY_ID: $AWS_OMNIVERSEDOCS_ACCESS_KEY_ID
@@ -18,8 +17,6 @@ stages:
   - build_doc
   - build_doc_publish
   - pkg_publish
-  - manual_package
-#  - signing
 
 include:
   - local: tools/ci/gitlab/check_format.yml
@@ -28,5 +25,3 @@ include:
   - local: tools/ci/gitlab/build_doc.yml
   - local: tools/ci/gitlab/build_doc_publish.yml
   - local: tools/ci/gitlab/pkg_publish.yml
-  - local: tools/ci/gitlab/manual_package.yml
-#  - local: tools/ci/gitlab/signing.yml

@@ -5,7 +5,4 @@ check-code-lint:
       - check-code-format
   script:
     - .\lint_code.bat
-  except:
-    variables:
-      - $CI_MERGE_REQUEST_TITLE =~ /\[pipeline:lint:skip\]/
   timeout: 10m

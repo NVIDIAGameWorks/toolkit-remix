@@ -8,7 +8,4 @@ check-code-format:
   script:
     - git remote set-head origin --auto
     - .\format_code.bat --verify
-  except:
-    variables:
-      - $CI_MERGE_REQUEST_TITLE =~ /\[pipeline:format:skip\]/
   timeout: 10m
