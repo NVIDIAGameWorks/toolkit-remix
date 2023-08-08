@@ -8,8 +8,6 @@ include:
 build_publish:
   extends: .defaults
   stage: pkg_publish
-  needs:
-    - check-code-lint
   before_script:
     - .\build.bat --clean --release
   script:
