@@ -5,10 +5,11 @@ include:
   # ^^^ includes above are needed for the vault invocation.
 
 build_doc_publish:
-  extends: .defaults
+  interruptible: true
+  allow_failure: false
+  variables:
+    GIT_STRATEGY: fetch
   stage: build_doc_publish
-  only:
-    - master
   tags:
     - linux
   before_script:
@@ -25,3 +26,10 @@ build_doc_publish:
     - ./build.sh --release
     - ./build_docs.sh
     - ./build_docs.sh --publish-as-latest -s publish --edition s3web
+  rules:
+    ## Automatically run publish job only on merge commit to master
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
+      when: always
+    - when: never

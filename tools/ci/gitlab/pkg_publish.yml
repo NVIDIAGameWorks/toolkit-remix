@@ -5,6 +5,29 @@ include:
     file: '/templates/v2/omni-codesign-creds.yml'
   # ^^^ includes above are needed for the vault invocation.
 
+build_publish:
+  extends: .defaults
+  stage: pkg_publish
+  needs:
+    - check-code-lint
+  before_script:
+    - .\build.bat --clean --release
+  script:
+    - .\build.bat --release
+    - .\repo.bat package --mode main_package --platform windows-x86_64 --config release
+  # Artifacts required to make the publishing step work
+  artifacts:
+    when: on_success
+    paths:
+    - _build/packages
+  rules:
+    ## Automatically run publish job only on merge commit to master
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
+      when: always
+    - when: never
+
 pkg_publish:
   extends: .defaults
   stage: pkg_publish
@@ -12,7 +35,7 @@ pkg_publish:
   tags:
     - linux
   needs:
-    - job: build_test
+    - job: build_publish
       artifacts: true
   script:
     - set -eu
@@ -29,3 +52,10 @@ pkg_publish:
     - ./repo.sh ci publish_to_launcher || fail_wr=1
     - echo "WinRel=${fail_wr}"
     - '[ "$fail_wr" -eq 0 ] || exit 1'
+  rules:
+    ## Automatically run publish job only on merge commit to master
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
+      when: always
+    - when: never
