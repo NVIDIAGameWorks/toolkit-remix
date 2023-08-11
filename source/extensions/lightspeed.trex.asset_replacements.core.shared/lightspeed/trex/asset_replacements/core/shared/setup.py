@@ -201,7 +201,7 @@ class Setup:
         return [prim for prim in prims if UsdGeom.Scope(prim)]
 
     def filter_imageable_prims(self, prims: List[Usd.Prim]):
-        return [prim for prim in prims if UsdGeom.Imageable(prim)]
+        return [prim for prim in prims if UsdGeom.Imageable(prim) or prim.IsA(UsdGeom.Subset)]
 
     def get_corresponding_prototype_prims(self, prims) -> List[str]:
         """Give a list of instance prims (inst_123456789/*), and get the corresponding prims inside the prototypes

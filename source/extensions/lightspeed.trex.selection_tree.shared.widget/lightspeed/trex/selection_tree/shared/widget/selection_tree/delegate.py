@@ -258,8 +258,10 @@ class Delegate(ui.AbstractItemDelegate):
                                 ui.Spacer(height=0, width=ui.Pixel(8))
                                 with ui.VStack(width=ui.Pixel(16)):
                                     ui.Spacer(width=0)
-                                    if isinstance(item, (_ItemMesh, _ItemReferenceFileMesh)):
-                                        ui.Image("", height=ui.Pixel(16), name="Hexagon")
+                                    if isinstance(item, _ItemReferenceFileMesh):
+                                        ui.Image("", height=ui.Pixel(16), name="Collection")
+                                    elif isinstance(item, _ItemMesh):
+                                        ui.Image("", height=ui.Pixel(16), name="Mesh")
                                     elif isinstance(item, (_ItemAddNewReferenceFileMesh, _ItemAddNewLiveLight)):
                                         ui.Image("", height=ui.Pixel(16), name="Add")
                                     elif isinstance(item, _ItemInstancesMeshGroup):
@@ -273,7 +275,11 @@ class Delegate(ui.AbstractItemDelegate):
                                         ui.Image("", height=ui.Pixel(16), name="Light")
                                     elif isinstance(item, _ItemPrim):
                                         icon = ""
-                                        if item.is_xformable():
+                                        if item.is_geomsubset():
+                                            icon = "GeomSubset"
+                                        elif item.is_mesh():
+                                            icon = "Mesh"
+                                        elif item.is_xformable():
                                             icon = "Xform"
                                         elif item.is_scope():
                                             icon = "Scope"
