@@ -1,5 +1,6 @@
 import os
 import shutil
+import subprocess
 
 # import subprocess
 import tempfile
@@ -38,6 +39,9 @@ class TestComponents(Enum):
     CAPTURE_TREE = 12
     AVAILABLE_MODS_TREE = 13
     SELECTED_MODS_TREE = 14
+    FILE_PICKER_DIRECTORY = 15
+    FILE_PICKER_FILENAME = 16
+    FILE_PICKER_OPEN = 17
 
 
 class TestWizardWindow(AsyncTestCase):
@@ -56,6 +60,8 @@ class TestWizardWindow(AsyncTestCase):
         if usd.get_context().get_stage():
             await usd.get_context().close_stage_async()
 
+        self.window.destroy()
+
         await self.__cleanup_directories()
         self.temp_dir.cleanup()
 
@@ -69,9 +75,9 @@ class TestWizardWindow(AsyncTestCase):
     async def __setup_widget(self) -> Tuple[ui.Window, ProjectWizardWindow]:
         await arrange_windows(topleft_window="Stage")
 
-        window = ui.Window("TestWizardWindow", width=700, height=500)
+        window = ui.Window("TestWizardWindow", width=1000, height=800)
         with window.frame:
-            wizard = ProjectWizardWindow()
+            wizard = ProjectWizardWindow(width=1000, height=800)
 
         await ui_test.human_delay()
 
@@ -82,9 +88,9 @@ class TestWizardWindow(AsyncTestCase):
 
     async def __setup_directories(self):
         project_dir = Path(self.temp_dir.name) / "projects" / "MyProject"
-        project_path = project_dir / "my_project.usda"
+        project_path = (project_dir / "my_project.usda").resolve()
 
-        remix_dir = Path(self.temp_dir.name) / constants.REMIX_FOLDER
+        remix_dir = (Path(self.temp_dir.name) / constants.REMIX_FOLDER).resolve()
         captures_dir = remix_dir / constants.REMIX_CAPTURE_FOLDER
         mods_dir = remix_dir / constants.REMIX_MODS_FOLDER
         lib_dir = remix_dir / "lib"
@@ -109,27 +115,40 @@ class TestWizardWindow(AsyncTestCase):
 
         return project_path, remix_dir
 
-    # TODO Feature OM-45888 - File Picker will appear behind the modal
-    # async def __create_project(self):
-    #     test_mod_path = Path(get_test_data_path(__name__, "usd/mod.usda")).resolve()
-    #     test_project_path = Path(get_test_data_path(__name__, "usd/project.usda"))
-    #
-    #     shutil.copy(str(test_project_path), str(self.project_path))
-    #     shutil.copy(str(test_mod_path), str(self.project_path.parent / constants.REMIX_MOD_FILE))
-    #
-    #     remix_project = self.remix_dir / constants.REMIX_MODS_FOLDER / self.project_path.parent.stem
-    #     subprocess.check_call(
-    #         f'mklink /J "{remix_project}" "{self.project_path.parent}"',
-    #         shell=True,
-    #     )
-    #     subprocess.check_call(
-    #         f'mklink /J "{self.project_path.parent / constants.REMIX_DEPENDENCIES_FOLDER}" "{self.remix_dir}"',
-    #         shell=True,
-    #     )
+    async def __create_project(self, create_symlinks: bool):
+        test_project_path = Path(get_test_data_path(__name__, "usd/project.usda"))
+        shutil.copy(str(test_project_path), str(self.project_path))
+
+        if create_symlinks:
+            remix_project = self.remix_dir / constants.REMIX_MODS_FOLDER / self.project_path.parent.stem
+            subprocess.check_call(
+                f'mklink /J "{remix_project}" "{self.project_path.parent}"',
+                shell=True,
+            )
+            subprocess.check_call(
+                f'mklink /J "{self.project_path.parent / constants.REMIX_DEPENDENCIES_FOLDER}" "{self.remix_dir}"',
+                shell=True,
+            )
 
     async def __cleanup_directories(self):
         shutil.rmtree(self.remix_dir / constants.REMIX_MODS_FOLDER / self.project_path.parent.stem, ignore_errors=True)
         shutil.rmtree(self.project_path.parent / constants.REMIX_DEPENDENCIES_FOLDER, ignore_errors=True)
+
+    async def __find_file_picker_buttons(self, window_title):
+        components = {
+            TestComponents.FILE_PICKER_DIRECTORY: ui_test.find(
+                f"{window_title}//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
+            ),
+            TestComponents.FILE_PICKER_FILENAME: ui_test.find(
+                f"{window_title}//Frame/**/StringField[*].style_type_name_override=='Field'"
+            ),
+            TestComponents.FILE_PICKER_OPEN: ui_test.find(f"{window_title}//Frame/**/Button[*].text=='Open'"),
+        }
+
+        for component, button in components.items():
+            self.assertIsNotNone(button, msg=f"Unexpectedly None: {component}")
+
+        return components
 
     async def __find_navigation_buttons(self, window, should_exist: bool = True):
         components = {
@@ -212,7 +231,61 @@ class TestWizardWindow(AsyncTestCase):
         ###############################################################################
         # Open
         ###############################################################################
-        # TODO Feature OM-45888 - File Picker will appear behind the modal
+
+        # Create a project to open
+        await self.__create_project(False)
+
+        await components[TestComponents.OPEN_OPTION].click()
+        await ui_test.human_delay()
+
+        # Select a project in the File Picker
+        picker_buttons = await self.__find_file_picker_buttons("Open an RTX Remix project")
+
+        await ui_test.human_delay(50)
+        await picker_buttons[TestComponents.FILE_PICKER_DIRECTORY].input(
+            str(self.project_path.parent), end_key=KeyboardInput.ENTER
+        )
+        await ui_test.human_delay(50)
+        await picker_buttons[TestComponents.FILE_PICKER_FILENAME].input(
+            str(self.project_path.name), end_key=KeyboardInput.ENTER
+        )
+        await ui_test.human_delay()
+
+        # Make sure we are selecting the right file
+        self.assertEqual(
+            str(self.project_path.parent),
+            picker_buttons[  # noqa PLW0212
+                TestComponents.FILE_PICKER_DIRECTORY
+            ].model._field.model.get_value_as_string(),
+        )
+        self.assertEqual(
+            str(self.project_path.name), picker_buttons[TestComponents.FILE_PICKER_FILENAME].model.get_value_as_string()
+        )
+
+        # Open the project without symlinks, expect to open the setup page
+        await picker_buttons[TestComponents.FILE_PICKER_OPEN].click()
+        await ui_test.human_delay()
+
+        _ = await self.__find_setup_page_components(wizard_window)
+        nav_buttons = await self.__find_navigation_buttons(wizard_window)
+
+        self.assertEqual("Open", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
+
+        # "Open" button should be blocked
+        await nav_buttons[TestComponents.NEXT_BUTTON].click()
+        await ui_test.human_delay()
+
+        _ = await self.__find_setup_page_components(wizard_window)
+
+        # Go back to the main page
+        await nav_buttons[TestComponents.PREVIOUS_BUTTON].click()
+        await ui_test.human_delay()
+
+        components = await self.__find_start_page_components(wizard_window)
+        _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
+
+        # Cleanup created project
+        self.project_path.unlink()
 
         ###############################################################################
         # Create
@@ -225,7 +298,7 @@ class TestWizardWindow(AsyncTestCase):
 
         self.assertEqual("Create", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
 
-        # "Done" button should be blocked
+        # "Create" button should be blocked
         await nav_buttons[TestComponents.NEXT_BUTTON].click()
         await ui_test.human_delay()
 
@@ -249,7 +322,7 @@ class TestWizardWindow(AsyncTestCase):
 
         self.assertEqual("Select Mods", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
 
-        # "Next" button should be blocked
+        # "Select Mods" button should be blocked
         await nav_buttons[TestComponents.NEXT_BUTTON].click()
         await ui_test.human_delay()
 
@@ -274,7 +347,7 @@ class TestWizardWindow(AsyncTestCase):
 
         self.assertEqual("Create", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
 
-        # "Done" button should be blocked
+        # "Create" button should be blocked
         await nav_buttons[TestComponents.NEXT_BUTTON].click()
         await ui_test.human_delay()
 
@@ -314,7 +387,7 @@ class TestWizardWindow(AsyncTestCase):
 
         self.assertEqual("Create", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
 
-        # "Done" button should be blocked
+        # "Create" button should be blocked
         await nav_buttons[TestComponents.NEXT_BUTTON].click()
         await ui_test.human_delay()
 
@@ -334,14 +407,123 @@ class TestWizardWindow(AsyncTestCase):
         _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
 
     async def test_open_project_valid_symlinks_should_open_project(self):
-        # TODO Feature OM-45888 - File Picker will appear behind the modal
-        # await self.__create_project()
-        pass
+        # Setup the test
+        wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
+
+        # Start the test
+        self.wizard.show_project_wizard(reset_page=True)
+
+        await ui_test.human_delay()
+
+        components = await self.__find_start_page_components(wizard_window)
+        _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
+
+        # Create a project to open with symlinks
+        await self.__create_project(True)
+
+        await components[TestComponents.OPEN_OPTION].click()
+        await ui_test.human_delay()
+
+        # Select a project in the File Picker
+        picker_buttons = await self.__find_file_picker_buttons("Open an RTX Remix project")
+
+        await ui_test.human_delay(50)
+        await picker_buttons[TestComponents.FILE_PICKER_DIRECTORY].input(
+            str(self.project_path.parent), end_key=KeyboardInput.ENTER
+        )
+        await ui_test.human_delay(50)
+        await picker_buttons[TestComponents.FILE_PICKER_FILENAME].input(
+            str(self.project_path.name), end_key=KeyboardInput.ENTER
+        )
+        await ui_test.human_delay()
+
+        # Make sure we are selecting the right file
+        self.assertEqual(
+            str(self.project_path.parent),
+            picker_buttons[  # noqa PLW0212
+                TestComponents.FILE_PICKER_DIRECTORY
+            ].model._field.model.get_value_as_string(),
+        )
+        self.assertEqual(
+            str(self.project_path.name), picker_buttons[TestComponents.FILE_PICKER_FILENAME].model.get_value_as_string()
+        )
+
+        # Open the project without symlinks, expect to open the setup page
+        await picker_buttons[TestComponents.FILE_PICKER_OPEN].click()
+        await ui_test.human_delay()
+
+        # Make sure the loaded stage is the project file
+        self.assertEqual(self.project_path.as_posix(), usd.get_context().get_stage().GetRootLayer().identifier)
 
     async def test_open_project_invalid_symlinks_should_show_setup_and_open_project(self):
-        # TODO Feature OM-45888 - File Picker will appear behind the modal
-        # await self.__create_project()
-        pass
+        # Setup the test
+        wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
+
+        # Start the test
+        self.wizard.show_project_wizard(reset_page=True)
+
+        await ui_test.human_delay()
+
+        components = await self.__find_start_page_components(wizard_window)
+        _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
+
+        # Create a project to open without symlinks
+        await self.__create_project(False)
+
+        await components[TestComponents.OPEN_OPTION].click()
+        await ui_test.human_delay()
+
+        # Select a project in the File Picker
+        picker_buttons = await self.__find_file_picker_buttons("Open an RTX Remix project")
+
+        await ui_test.human_delay(50)
+        await picker_buttons[TestComponents.FILE_PICKER_DIRECTORY].input(
+            str(self.project_path.parent), end_key=KeyboardInput.ENTER
+        )
+        await ui_test.human_delay(50)
+        await picker_buttons[TestComponents.FILE_PICKER_FILENAME].input(
+            str(self.project_path.name), end_key=KeyboardInput.ENTER
+        )
+        await ui_test.human_delay()
+
+        # Make sure we are selecting the right file
+        self.assertEqual(
+            str(self.project_path.parent),
+            picker_buttons[  # noqa PLW0212
+                TestComponents.FILE_PICKER_DIRECTORY
+            ].model._field.model.get_value_as_string(),
+        )
+        self.assertEqual(
+            str(self.project_path.name), picker_buttons[TestComponents.FILE_PICKER_FILENAME].model.get_value_as_string()
+        )
+
+        # Open the project without symlinks, expect to open the setup page
+        await picker_buttons[TestComponents.FILE_PICKER_OPEN].click()
+        await ui_test.human_delay()
+
+        components = await self.__find_setup_page_components(wizard_window)
+        nav_buttons = await self.__find_navigation_buttons(wizard_window)
+
+        self.assertEqual("Open", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
+
+        # "Open" button should be blocked
+        await nav_buttons[TestComponents.NEXT_BUTTON].click()
+        await ui_test.human_delay()
+
+        _ = await self.__find_setup_page_components(wizard_window)
+
+        await components[TestComponents.PROJECT_STRING_FIELD].input(str(self.project_path), end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay()
+
+        await components[TestComponents.REMIX_STRING_FIELD].input(str(self.remix_dir), end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay()
+
+        # Open the project
+        await nav_buttons[TestComponents.NEXT_BUTTON].click()
+        await ui_test.human_delay()
+
+        # Make sure the loaded stage is the project file
+        self.assertEqual(self.project_path.as_posix(), usd.get_context().get_stage().GetRootLayer().identifier)
 
     async def test_create_project_should_create_project(self):
         # Setup the test

@@ -84,10 +84,11 @@ class WizardStartPage(_WizardPage):
         validation_error = "The selected path is invalid: An unknown error occurred."
 
         def on_file_selected(project_path):
-            self.payload = {
-                _ProjectWizardKeys.EXISTING_PROJECT.value: True,
-                _ProjectWizardKeys.PROJECT_FILE.value: Path(project_path),
-            }
+            self.payload = {_ProjectWizardKeys.PROJECT_FILE.value: Path(project_path)}
+            # Only update the payload if we're completing the wizard process
+            if self.next_page is None:
+                self.payload = {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
+            self._setup_page.open_or_create = True
             self._setup_page.project_path = project_path
             self.request_next()
 

@@ -117,7 +117,7 @@ class FilePickerWidget:
         else:
             self._selected_callback(model.get_value_as_string())
 
-    def __show_validation_failed_dialog(self, dirname, filename):
+    def __show_validation_failed_dialog(self, _, filename):
         message = (
             f"The selected {'directory' if self._select_directory else 'file'} is invalid: {self._validation_error}"
         )
