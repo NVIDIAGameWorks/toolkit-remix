@@ -23,7 +23,7 @@ from omni.flux.wizard.window import WizardWindow as _WizardWindow
 
 
 class ProjectWizardWindow:
-    def __init__(self, context_name: str = ""):
+    def __init__(self, context_name: str = "", width: int = 700, height: int = 400):
         self._default_attrs = {
             "_context_name": None,
             "_wizard_core": None,
@@ -40,8 +40,8 @@ class ProjectWizardWindow:
         self._wizard_window = _WizardWindow(
             _WizardModel(_WizardStartPage(context_name=self._context_name)),
             title="RTX Remix Project Wizard",
-            width=700,
-            height=400,
+            width=width,
+            height=height,
             flags=ui.WINDOW_FLAGS_NO_DOCKING
             | ui.WINDOW_FLAGS_NO_COLLAPSE
             | ui.WINDOW_FLAGS_NO_SCROLLBAR
