@@ -53,7 +53,7 @@ pkg_publish:
   rules:
     ## Add manual job on merge commit to master
     - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: manual
+      when: on_success
     - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
-      when: manual
+      when: on_success
     - when: never
