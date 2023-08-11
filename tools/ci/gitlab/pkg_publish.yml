@@ -19,11 +19,11 @@ build_publish:
     paths:
     - _build/packages
   rules:
-    ## Automatically run publish job only on merge commit to master
+    ## Add manual job on merge commit to master
     - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: always
+      when: manual
     - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
-      when: always
+      when: manual
     - when: never
 
 pkg_publish:
@@ -51,9 +51,9 @@ pkg_publish:
     - echo "WinRel=${fail_wr}"
     - '[ "$fail_wr" -eq 0 ] || exit 1'
   rules:
-    ## Automatically run publish job only on merge commit to master
+    ## Add manual job on merge commit to master
     - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: always
+      when: manual
     - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
-      when: always
+      when: manual
     - when: never
