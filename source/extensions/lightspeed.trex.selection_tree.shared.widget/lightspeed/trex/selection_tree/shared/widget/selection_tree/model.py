@@ -248,6 +248,12 @@ class ItemPrim(ui.AbstractItem):
     def child_prim_items(self):
         return self._child_prim_items
 
+    def is_mesh(self) -> bool:
+        return bool(self.prim.IsA(UsdGeom.Mesh))
+
+    def is_geomsubset(self) -> bool:
+        return bool(self.prim.IsA(UsdGeom.Subset))
+
     def is_xformable(self) -> bool:
         return bool(UsdGeom.Xformable(self.prim))
 

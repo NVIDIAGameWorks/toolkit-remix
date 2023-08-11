@@ -271,7 +271,6 @@ current_dict.update(
         "Image::Frame": {"image_url": _get_icons("frame"), "color": _WHITE_60},
         "Image::Frame:hovered": {"image_url": _get_icons("frame"), "color": _WHITE_100},
         "Image::Bookmark": {"image_url": _get_icons("bookmark"), "color": _WHITE_80},
-        "Image::Hexagon": {"image_url": _get_icons("shape-hexagon"), "color": _WHITE_80},
         "Image::Nickname": {"image_url": _get_icons("nickname"), "color": _WHITE_60},
         "Image::Nickname:hovered": {"image_url": _get_icons("nickname"), "color": _WHITE_100},
         "Image::SubtractDisabled": {"image_url": _get_icons("subtract"), "color": _WHITE_30},
@@ -327,6 +326,9 @@ current_dict.update(
         "Image::ModOpenHovered": {"image_url": _get_icons("mod_open"), "color": _BLUE_ACTION},
         "Image::ModRemasterHovered": {"image_url": _get_icons("mod_remaster"), "color": _BLUE_ACTION},
         "Image::Drag": {"image_url": _get_icons("drag_handle"), "color": _WHITE_30},
+        "Image::Collection": {"image_url": _get_icons("link"), "color": _WHITE_80},
+        "Image::Mesh": {"image_url": _get_icons("hexagon-outline"), "color": _WHITE_80},
+        "Image::GeomSubset": {"image_url": _get_icons("hexagon-multiple-outline"), "color": _WHITE_80},
         "ImagePropertiesPaneSectionTriangleCollapsed": {
             "image_url": _get_icons("disclosure-collapsed"),
             "color": _WHITE_60,
