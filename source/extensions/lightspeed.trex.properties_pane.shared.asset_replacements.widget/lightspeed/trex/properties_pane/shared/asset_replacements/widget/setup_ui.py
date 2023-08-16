@@ -238,7 +238,7 @@ class AssetReplacementsPane:
                             with self._material_properties_collapsable_frame:
                                 self._material_properties_widget = _MaterialPropertiesWidget(self._context_name)
                                 self._material_converted_sub = (
-                                    self._material_properties_widget.subscribe_on_material_converted(
+                                    self._material_properties_widget.subscribe_on_material_changed(
                                         self._refresh_material_properties_widget
                                     )
                                 )

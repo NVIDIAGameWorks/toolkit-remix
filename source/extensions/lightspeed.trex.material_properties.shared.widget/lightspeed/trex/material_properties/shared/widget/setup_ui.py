@@ -9,9 +9,7 @@
 """
 import functools
 import typing
-from asyncio import ensure_future
 from functools import partial
-from pathlib import Path
 from typing import List, Union
 
 import omni.kit.app
@@ -21,13 +19,13 @@ from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplac
 from lightspeed.trex.material.core.shared import Setup as _MaterialCore
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemPrim as _ItemPrim
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
-from omni import kit, ui, usd
+from omni import ui, usd
 from omni.flux.properties_pane.materials.usd.widget import MaterialPropertyWidget as _MaterialPropertyWidget
 from omni.flux.property_widget_builder.model.usd import utils as usd_properties_utils
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from pxr import Sdf
+from pxr import Sdf, Usd
 
 if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
@@ -75,11 +73,9 @@ class SetupUI:
         self._selected_prims = []
         self._material_properties_frames = {}
 
-        self.__conversion_buttons_task = None
-
         self.__create_ui()
 
-        self.__on_material_converted = _Event()
+        self.__on_material_changed = _Event()
         self.__on_go_to_ingest_tab = _Event()
 
     def _go_to_ingest_tab(self):
@@ -91,6 +87,9 @@ class SetupUI:
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__on_go_to_ingest_tab, func)
+
+    def __show_material_menu(self):
+        self.__menu.show()
 
     def __create_ui(self):
         with ui.ZStack():
@@ -106,25 +105,31 @@ class SetupUI:
                 with ui.VStack():
                     ui.Spacer(height=ui.Pixel(8))
                     with ui.HStack(height=ui.Pixel(24)):
+                        ui.Spacer(width=ui.Pixel(50), height=0)
                         ui.Label(
-                            "Material",
+                            "Material:",
                             name="PropertiesWidgetLabel",
                             alignment=ui.Alignment.RIGHT_CENTER,
-                            width=ui.Percent(self.COLUMN_WIDTH_PERCENT),
+                            width=ui.Pixel(30),
                         )
                         ui.Spacer(width=ui.Pixel(8), height=0)
-                        self._frame_combobox_materials = ui.Frame()
-                    ui.Spacer(height=ui.Pixel(8))
-                    self._convert_opaque_button = ui.Button(
-                        "Convert to Opaque",
-                        height=ui.Pixel(32),
-                        clicked_fn=partial(self.__convert_material, _constants.SHADER_NAME_OPAQUE),
-                    )
-                    self._convert_translucent_button = ui.Button(
-                        "Convert to Translucent",
-                        height=ui.Pixel(32),
-                        clicked_fn=partial(self.__convert_material, _constants.SHADER_NAME_TRANSLUCENT),
-                    )
+                        with ui.ZStack(width=ui.Percent(60)):
+                            ui.Rectangle(width=ui.Percent(100))
+                            with ui.HStack(height=ui.Pixel(24)):
+                                ui.Spacer(width=ui.Pixel(8), height=0)
+                                self._current_material_label = ui.Label(
+                                    "",
+                                    name="PropertiesWidgetLabel",
+                                    alignment=ui.Alignment.LEFT_CENTER,
+                                    tooltip="",
+                                    width=ui.Percent(80),
+                                )
+                        ui.Image(
+                            "",
+                            name="MenuBurger",
+                            height=ui.Pixel(24),
+                            mouse_pressed_fn=lambda x, y, b, m: self.__show_material_menu(),
+                        )
                     ui.Spacer(height=ui.Pixel(8))
                     self._material_properties_widget = _MaterialPropertyWidget(
                         self._context_name, tree_column_widths=[ui.Percent(self.COLUMN_WIDTH_PERCENT)]
@@ -176,34 +181,41 @@ class SetupUI:
             return
         callback(value)
 
-    def __show_material(self, materials, model, _):
-        current_index = model.get_item_value_model().as_int
-        current_selection = materials[current_index]
+    def __remove_material_override(self, prims: List[Usd.Prim]):
+        with omni.kit.undo.group():
+            for prim in prims:
+                if self._has_material_override([prim]):
+                    _ToolMaterialCore.remove_material_override(self._context_name, prim)
 
-        self.__update_conversion_buttons(usd.get_shader_from_material(self._stage.GetPrimAtPath(current_selection)))
+            self.__on_material_changed()
 
-        self._material_properties_widget.refresh([str(current_selection)])
+    def __new_material_override(self, mdl_file_name: str, prims: List[Usd.Prim]):
+        with omni.kit.undo.group():
+            for prim in prims:
+                if self._has_material_override([prim]):
+                    self.__remove_material_override([prim])
+                _ToolMaterialCore.create_new_material_override(
+                    self._context_name,
+                    _constants.MATERIAL_OVERRIDE_PATH.format(prim_node=str(prim.GetPath())),
+                    mdl_file_name,
+                    mdl_file_name.split(".")[0],
+                    prim,
+                )
 
-    def __convert_material(self, mdl_file_name: str):
-        _ToolMaterialCore.convert_materials(self._selected_prims, mdl_file_name, context_name=self._context_name)
-        self.__on_material_converted()
+            self.__on_material_changed()
 
-    def __update_conversion_buttons(self, shader):
-        if self.__conversion_buttons_task:
-            self.__conversion_buttons_task.cancel()
-        self.__conversion_buttons_task = ensure_future(
-            kit.material.library.get_subidentifier_from_material(
-                shader, on_complete_fn=self.__update_conversion_buttons_callback
-            )
-        )
+    def __convert_material(self, mdl_file_name: str, prims: List[Usd.Prim]):
+        with omni.kit.undo.group():
+            _ToolMaterialCore.convert_materials(prims, mdl_file_name, context_name=self._context_name)
+            self.__on_material_changed()
 
-    def __update_conversion_buttons_callback(self, identifiers: str):
-        identifier = str(identifiers[0]) if identifiers else None
+    @staticmethod
+    def _shorten_string(input_string, size, delimiter):
+        return input_string[-size:].partition(delimiter)[-1] if delimiter in input_string else input_string
 
-        if self._convert_opaque_button:
-            self._convert_opaque_button.visible = identifier != Path(_constants.SHADER_NAME_OPAQUE).stem
-        if self._convert_translucent_button:
-            self._convert_translucent_button.visible = identifier != Path(_constants.SHADER_NAME_TRANSLUCENT).stem
+    @staticmethod
+    def _concat_list_to_string(items):
+        return "\n".join([str(item) for item in items])
 
     def refresh(
         self,
@@ -227,34 +239,98 @@ class SetupUI:
             frame.visible = value
             if value:
                 found = True
-        if not found:
-            self._material_properties_frames[None].visible = True
-        self._material_properties_widget.show(found)  # to disable the listener
 
         if found:
             # we select the material
             self._selected_prims = [item.prim for item in items if isinstance(item, _ItemPrim)]
             if self._selected_prims:
-                # TODO: select only the first selection for now, and select the material that match the selected usd ref
-                materials = self._core.get_materials_from_prim(self._selected_prims[0])
+                materials = set()
+                for prim in self._selected_prims:
+                    for mat in self._core.get_materials_from_prim(prim):
+                        materials.add(mat)
+                materials = list(materials)
                 if materials:
-                    self._frame_combobox_materials.clear()
-                    default_idx = 0
-                    with self._frame_combobox_materials:
-                        material_list_combobox = ui.ComboBox(
-                            default_idx,
-                            *[str(material) for material in materials],
-                            style_type_name_override="PropertiesWidgetField",
-                        )
-                        material_list_combobox.model.add_item_changed_fn(partial(self.__show_material, materials))
-                        self.__update_conversion_buttons(
-                            usd.get_shader_from_material(self._stage.GetPrimAtPath(materials[default_idx]))
-                        )
-                    self._material_properties_widget.refresh([materials[default_idx]])
+                    self._refresh_material_menu()
+                    if len(materials) == 1:
+                        # when we have just one material available, show properties
+                        self._material_properties_widget.show(True)
+                        self._material_properties_widget.refresh(materials)
+                        self._set_material_label(str(materials[0]))
+                    else:
+                        # hide properties when multiple prims selected as this isnt supported yet
+                        self._material_properties_widget.show(False)  # to disable the listener
+                        self._set_material_label("Multiple Selected", SetupUI._concat_list_to_string(materials))
+
                     return
         self._material_properties_widget.show(False)  # to disable the listener
         self._material_properties_frames[None].visible = True
         self._material_properties_frames[_ItemPrim].visible = False
+        self._set_material_label("None")
+
+    def _set_material_label(self, label, tooltip=None):
+        self._current_material_label.text = SetupUI._shorten_string(label, 32, "/")
+        self._current_material_label.tooltip = label if tooltip is None else tooltip
+
+    def _has_material_override(self, prims: List[Usd.Prim]) -> bool:
+        for prim in prims:
+            rel = prim.GetRelationship(_constants.MATERIAL_RELATIONSHIP)
+            if not rel.IsValid():
+                continue
+            targets = rel.GetForwardedTargets()
+            for target in targets:
+                stage = prim.GetStage()
+                if targets and not omni.usd.check_ancestral(stage.GetPrimAtPath(target)):
+                    return True
+        return False
+
+    def _refresh_material_menu(self):
+        # for instance materials, we allow the user to override the reference in stage
+        def refresh_instance_items(prims, num_prims):
+            if num_prims > 0:
+                omni.ui.MenuItem(
+                    "Bound to: " + (prims[0].GetName() if num_prims == 1 else f"Multiple ({num_prims})"),
+                    hide_on_click=False,
+                    tooltip=SetupUI._concat_list_to_string([prim.GetPath() for prim in prims]),
+                )
+                omni.ui.Separator()
+                item = omni.ui.MenuItem("\tRemove Material Override")
+                item.enabled = self._has_material_override(prims)
+                item.set_triggered_fn(partial(self.__remove_material_override, prims))
+                item = omni.ui.MenuItem("\tCreate Material Override (Opaque)")
+                item.set_triggered_fn(partial(self.__new_material_override, _constants.SHADER_NAME_OPAQUE, prims))
+                item = omni.ui.MenuItem("\tCreate Material Override (Translucent)")
+                item.set_triggered_fn(partial(self.__new_material_override, _constants.SHADER_NAME_TRANSLUCENT, prims))
+
+        # for shared (i.e. capture) materials, we only show the ability to convert the material type
+        def refresh_shared_items(prims, num_prims):
+            if num_prims > 0:
+                omni.ui.MenuItem(
+                    "Bound to: " + (prims[0].GetName() if num_prims == 1 else f"Multiple ({num_prims})"),
+                    checkable=False,
+                    tooltip=SetupUI._concat_list_to_string([prim.GetPath() for prim in prims]),
+                )
+                omni.ui.Separator()
+                item = omni.ui.MenuItem("\tConvert to Opaque")
+                item.set_triggered_fn(partial(self.__convert_material, _constants.SHADER_NAME_OPAQUE, prims))
+                item = omni.ui.MenuItem("\tConvert to Translucent")
+                item.set_triggered_fn(partial(self.__convert_material, _constants.SHADER_NAME_TRANSLUCENT, prims))
+
+        # menu_compatibility required to get tooltip and hide_on_click working
+        self.__menu = omni.ui.Menu(menu_compatibility=False)
+        with self.__menu:
+            shared_material_items = []
+            instance_material_items = []
+            # sort prims into buckets with independent controls
+            for prim in self._selected_prims:
+                if _AssetReplacementsCore.prim_is_from_a_capture_reference(prim):
+                    shared_material_items.append(prim)
+                else:
+                    instance_material_items.append(prim)
+            # build the menus
+            refresh_instance_items(instance_material_items, len(instance_material_items))
+            if shared_material_items:
+                omni.ui.Separator()
+            refresh_shared_items(shared_material_items, len(shared_material_items))
 
     def show(self, value):
         if value:
@@ -262,16 +338,13 @@ class SetupUI:
 
         self._material_properties_widget.show(value)  # to disable the listener
 
-    def subscribe_on_material_converted(self, function):
+    def subscribe_on_material_changed(self, function):
         """
         Return the object that will automatically unsubscribe when destroyed.
         Called when we click on a tool (change of the selected tool)
         """
-        return _EventSubscription(self.__on_material_converted, function)
+        return _EventSubscription(self.__on_material_changed, function)
 
     def destroy(self):
         self._selected_prims = None
-        if self.__conversion_buttons_task:
-            self.__conversion_buttons_task.cancel()
-        self.__conversion_buttons_task = None
         _reset_default_attrs(self)

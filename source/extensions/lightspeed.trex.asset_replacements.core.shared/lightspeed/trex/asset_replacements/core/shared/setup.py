@@ -185,11 +185,12 @@ class Setup:
             result.extend(self.get_next_xform_children(children_prim))
         return result
 
-    def prim_is_from_a_capture_reference(self, prim) -> bool:
+    @staticmethod
+    def prim_is_from_a_capture_reference(prim) -> bool:
         stacks = prim.GetPrimStack()
         if stacks:
             for stack in stacks:
-                if self.ref_path_is_from_capture(stack.layer.realPath):
+                if Setup.ref_path_is_from_capture(stack.layer.realPath):
                     # this is a mesh from the capture folder
                     return True
         return False
@@ -314,7 +315,8 @@ class Setup:
             and constants.TEXTURES_FOLDER in path_p.parts
         )
 
-    def ref_path_is_from_capture(self, path: str):
+    @staticmethod
+    def ref_path_is_from_capture(path: str):
         path_p = Path(path)
         return (
             bool(constants.CAPTURE_FOLDER in path_p.parts or constants.REMIX_CAPTURE_FOLDER in path_p.parts)
@@ -326,7 +328,7 @@ class Setup:
         if not _path_utils.is_file_path_valid(path, log_error=False):
             return True
         # ignore assets from captures
-        if self.ref_path_is_from_capture(path) or self.texture_path_is_from_capture(path):
+        if Setup.ref_path_is_from_capture(path) or self.texture_path_is_from_capture(path):
             return True
         return bool(
             _path_utils.hash_match_metadata(path, key=_BASE_HASH_KEY)

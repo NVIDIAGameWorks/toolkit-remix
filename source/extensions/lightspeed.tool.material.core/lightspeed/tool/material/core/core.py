@@ -162,9 +162,59 @@ class ToolMaterialCore:
                         reference=ref_remove,
                         to_set=[new_ref],
                     )
-
                     # normally we only have 1 material reference.
-                    break
+
+    @staticmethod
+    def remove_material_override(context_name: str, prim: Usd.Prim) -> bool:
+        mat_prim = ToolMaterialCore.get_materials_from_prim_paths([prim.GetPath()], context_name=context_name)[0]
+        if mat_prim:
+            omni.kit.commands.execute(
+                "RemoveProperty",
+                prop_path=prim.GetRelationship(constants.MATERIAL_RELATIONSHIP).GetPath(),
+                context_name=context_name,
+            )
+            omni.kit.commands.execute("DeletePrims", paths=[mat_prim.GetPath()], context_name=context_name)
+            return True
+        return False
+
+    @staticmethod
+    def create_new_material_override(
+        context_name: str,
+        desired_prim_path: str,
+        default_material_mdl_url: str,
+        default_material_mdl_name: str,
+        prim: Usd.Prim,
+    ) -> bool:
+        stage = omni.usd.get_context(context_name).get_stage()
+
+        # create a unique valid prim path based on the filename
+        mtl_path = omni.usd.get_stage_next_free_path(stage, desired_prim_path, False)
+
+        # create a new OmniPBR node
+        omni.kit.commands.execute(
+            "CreateMdlMaterialPrim",
+            mtl_url=default_material_mdl_url,
+            mtl_name=default_material_mdl_name,
+            mtl_path=mtl_path,
+            stage=stage,
+            context_name=context_name,
+        )
+
+        # validate the new material was created
+        output_material_prim = stage.GetPrimAtPath(mtl_path)
+        if not omni.usd.get_shader_from_material(output_material_prim, get_prim=True):
+            return False
+
+        # bind newly created material to desired prim
+        omni.kit.commands.execute(
+            "BindMaterial",
+            prim_path=prim.GetPath(),
+            material_path=output_material_prim.GetPath(),
+            strength=UsdShade.Tokens.strongerThanDescendants,
+            context_name=context_name,
+        )
+
+        return True
 
     @staticmethod
     def convert_materials(prims: List[Usd.Prim], mdl_file_name: str, context_name: str = ""):
