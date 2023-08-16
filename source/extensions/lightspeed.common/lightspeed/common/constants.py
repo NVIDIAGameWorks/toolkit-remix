@@ -155,6 +155,8 @@ ASSET_NEED_INGEST_WINDOW_TITLE = "##Ingestion"
 ASSET_NEED_INGEST_WINDOW_OK_LABEL = "Ignore and import the asset"
 ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL = "Go to ingest tab"
 
+MATERIAL_OVERRIDE_PATH = "{prim_node}/Looks"
+
 
 # This should match the `normalmap_encoding` in AperturePBR_normal.mdl
 class NormalMapEncodings(IntEnum):
