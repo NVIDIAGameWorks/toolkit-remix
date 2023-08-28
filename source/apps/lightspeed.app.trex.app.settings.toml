@@ -50,3 +50,8 @@ pickingMode = "prims"
 noPadding = true
 ui.background.opacity = 0.7
 ui.background.brightness = 0.9
+
+# Enable sending stack traces to Sentry
+[telemetry]
+enableSentry = true
+dsn = "https://df3fec669240482a8e6e1323b818d631@o4505230501543936.ingest.sentry.io/4505230654308352"
