@@ -19,5 +19,16 @@ stdoutFailPatterns.exclude = [
     "*' is in a * directory*",  # Exclude error log for replacement layer in gameReadyAssets directory
 ]
 
+dependencies = [
+    "omni.kit.test_suite.helpers"
+]
+
+args = [
+    "--/app/extensions/registryEnabled=0",
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window"
+]
+
 [[python.module]]
 name = "lightspeed.trex.replacement.core.shared"
