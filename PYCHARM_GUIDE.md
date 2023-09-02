@@ -26,7 +26,7 @@ This guide provides instructions on how to use PyCharm Pro for Python live code 
 
 #### Step 3: Running Kit
 
-1.  Run the following command in your terminal or command prompt: `omni.app.lightspeed.bat --enable omni.kit.debug.pycharm --/exts/omni.kit.debug.pycharm/pycharm_location="C:/Program Files/JetBrains/PyCharm 2023.1.3"`
+1.  Run the following command in your terminal or command prompt: `lightspeed.app.trex.bat --/app/extensions/registryEnabled=1 --enable omni.kit.debug.pycharm --/exts/omni.kit.debug.pycharm/pycharm_location="C:/Program Files/JetBrains/PyCharm 2023.1.3"`
 
 In this command, replace `C:/Program Files/JetBrains/PyCharm 2023.1.3` with the actual path where your PyCharm is installed.
 
