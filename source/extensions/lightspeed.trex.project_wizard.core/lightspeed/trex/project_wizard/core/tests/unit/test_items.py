@@ -239,13 +239,9 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_is_in_rtx_remix_dir_throws(self):
         # Arrange
-        project_file = (
-            Path(self.temp_dir.name)
-            / constants.REMIX_FOLDER
-            / constants.REMIX_MODS_FOLDER
-            / "MyProject"
-            / "project.usda"
-        )
+        project_file = Path(self.temp_dir.name) / constants.REMIX_FOLDER / "project.usda"
+
+        project_file.parent.mkdir(parents=True)
 
         # Act
         with self.assertRaises(ValueError) as cm:
@@ -253,7 +249,45 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(
-            f"The project should not be created in the '{constants.REMIX_FOLDER}' directory", str(cm.exception)
+            f"The project should not be created in the '{constants.REMIX_FOLDER}' root directory", str(cm.exception)
+        )
+
+    async def test_schema_is_project_file_valid_is_in_rtx_remix_mods_dir_throws(self):
+        # Arrange
+        project_file = Path(self.temp_dir.name) / constants.REMIX_FOLDER / constants.REMIX_MODS_FOLDER / "project.usda"
+
+        project_file.parent.mkdir(parents=True)
+
+        # Act
+        with self.assertRaises(ValueError) as cm:
+            ProjectWizardSchema.is_project_file_valid(project_file, {ProjectWizardKeys.EXISTING_PROJECT.value: False})
+
+        # Assert
+        self.assertEqual(
+            f"The project should not be created directly in the '{constants.REMIX_MODS_FOLDER}' directory. "
+            f"It should be created in a unique subdirectory.",
+            str(cm.exception),
+        )
+
+    async def test_schema_is_project_file_valid_is_in_rtx_remix_captures_dir_throws(self):
+        # Arrange
+        project_file = (
+            Path(self.temp_dir.name)
+            / constants.REMIX_FOLDER
+            / constants.REMIX_CAPTURE_FOLDER
+            / "TestProject"
+            / "project.usda"
+        )
+
+        project_file.parent.mkdir(parents=True)
+
+        # Act
+        with self.assertRaises(ValueError) as cm:
+            ProjectWizardSchema.is_project_file_valid(project_file, {ProjectWizardKeys.EXISTING_PROJECT.value: False})
+
+        # Assert
+        self.assertEqual(
+            f"The project should not be created in the '{constants.REMIX_CAPTURE_FOLDER}' directory", str(cm.exception)
         )
 
     async def test_schema_is_project_file_valid_non_empty_directory_throws(self):

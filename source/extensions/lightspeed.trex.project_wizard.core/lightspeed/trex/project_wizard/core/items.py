@@ -7,6 +7,7 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import re
 from enum import Enum
 from pathlib import Path
 from typing import List, Optional
@@ -51,28 +52,53 @@ class ProjectWizardSchema(BaseModel):
     @validator(ProjectWizardKeys.PROJECT_FILE.value, allow_reuse=True)
     def is_project_file_valid(cls, v, values):  # noqa
         """Check that the path is a valid project file"""
+        # Make sure we have a path
         if not v or not str(v).strip():
             raise ValueError(f"'{str(v)}' is not valid")
+        # Make sure the path points to a USD file
         if v.suffix not in _constants.USD_EXTENSIONS:
             raise ValueError(f"The path '{str(v)}' is not a USD file")
+        # If we are opening a project:
         if values.get(ProjectWizardKeys.EXISTING_PROJECT.value, False):
             _, entry = omni.client.stat(str(v))
+            # Make sure the project is not read-only
             if not (entry.flags & omni.client.ItemFlags.WRITEABLE_FILE):  # noqa PLC0325
                 raise ValueError(f"The path '{str(v)}' is not a writable file")
+            # Make sure the project is not a replacement file
             if _ReplacementCore.is_mod_file(str(v)):
                 raise ValueError(f"The path '{str(v)}' is a mod file")
+            # Make sure the project is not a capture file
             if _CaptureCore.is_capture_file(str(v)):
                 raise ValueError(f"The path '{str(v)}' is a capture file")
+        # If we are creating a project:
         else:
-            if str(Path(_constants.REMIX_FOLDER) / _constants.REMIX_MODS_FOLDER) in str(v):
-                raise ValueError(f"The project should not be created in the '{_constants.REMIX_FOLDER}' directory")
+            # Make sure the project is not in the root of the rtx-remix directory
+            if v.parent.name == _constants.REMIX_FOLDER:
+                raise ValueError(f"The project should not be created in the '{_constants.REMIX_FOLDER}' root directory")
+            # Make sure the project is not in the capture directory
+            if str(Path(_constants.REMIX_FOLDER) / _constants.REMIX_CAPTURE_FOLDER) in str(v):
+                raise ValueError(
+                    f"The project should not be created in the '{_constants.REMIX_CAPTURE_FOLDER}' directory"
+                )
+            # Make sure the project is in a subdirectory if it is in the mods directory
+            if str(Path(_constants.REMIX_FOLDER) / _constants.REMIX_MODS_FOLDER) in str(v) and not re.search(
+                rf"{_constants.REMIX_FOLDER}/{_constants.REMIX_MODS_FOLDER}/.*?/.*\.usd\w?$",
+                v.as_posix(),
+                re.IGNORECASE,
+            ):
+                raise ValueError(
+                    f"The project should not be created directly in the '{_constants.REMIX_MODS_FOLDER}' directory. "
+                    f"It should be created in a unique subdirectory."
+                )
+            # Make sure the parent directory is not read-only
             result, entry = omni.client.stat(str(v.parent))
             if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN:
                 raise ValueError(f"The path's parent directory '{str(v.parent)}' is not writable")
+            # Make sure the project directory is empty
             result, entries = omni.client.list(str(v.parent))
             if result != omni.client.Result.OK or entries:
                 raise ValueError("The project should be created in a valid empty directory")
-            # Try to validate the project doesn't exist if possible
+            # Try to validate the project doesn't already exist in rtx-remix if possible
             remix_dir = values.get(ProjectWizardKeys.REMIX_DIRECTORY.value, None)
             if remix_dir:
                 project_path = Path(remix_dir) / _constants.REMIX_MODS_FOLDER / v.parent.name
