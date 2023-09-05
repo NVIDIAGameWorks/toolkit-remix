@@ -205,6 +205,25 @@ class TestWizard(omni.kit.test.AsyncTestCase):
     async def test_create_symlinks_remix_symlink_exists_should_not_symlink(self):
         await self.__run_test_create_symlinks_exists_should_not_symlink(True)
 
+    async def test_create_symlinks_remix_symlink_exists_same_project_should_return_none(self):
+        # Arrange
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
+        project_file = remix_dir / constants.REMIX_MODS_FOLDER / Path("MyProject") / "project.usda"
+        deps_dir = project_file.parent / constants.REMIX_DEPENDENCIES_FOLDER
+
+        with WizardMockContext() as mock:
+            mock.path_exists_mock.side_effect = [False, True]
+
+            # Act
+            value = await self.core._create_symlinks(project_file.parent, deps_dir, remix_dir, False)  # noqa PLW0212
+
+        # Assert
+        self.assertEqual(2, mock.path_exists_mock.call_count)
+        self.assertEqual(1, mock.check_call_mock.call_count)
+
+        self.assertEqual(None, value)
+        self.assertEqual(call(f'mklink /J "{deps_dir}" "{remix_dir}"', shell=True), mock.check_call_mock.call_args)
+
     async def test_create_project_layer_should_create_new_sublayer_open_stage_and_return_layer_and_stage(self):
         # Arrange
         project_file = self.base_dir / "projects" / "MyProject" / "my_project.usda"

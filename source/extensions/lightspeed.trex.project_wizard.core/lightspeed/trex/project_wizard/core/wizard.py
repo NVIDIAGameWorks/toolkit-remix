@@ -219,13 +219,20 @@ class ProjectWizardCore:
             else:
                 self._log_info(f"Symlink from '{remix_directory}' to '{deps_directory}'")
 
+        # If the project already exists in the rtx-remix dir
         if remix_project_directory.exists():
-            return f"A project with the same name already exists: '{remix_project_directory}'"
-
-        if not dry_run:
-            subprocess.check_call(f'mklink /J "{remix_project_directory}" "{project_directory}"', shell=True)
+            # Don't allow creating a new project with the same name as an existing project.
+            # If OPENING a project from the rtx-remix dir it will have the same path.
+            if remix_project_directory != project_directory:
+                return (
+                    f"A project with the same name already exists in the '{_constants.REMIX_FOLDER}' directory: "
+                    f"'{remix_project_directory}'"
+                )
         else:
-            self._log_info(f"Symlink from '{project_directory}' to '{remix_project_directory}'")
+            if not dry_run:
+                subprocess.check_call(f'mklink /J "{remix_project_directory}" "{project_directory}"', shell=True)
+            else:
+                self._log_info(f"Symlink from '{project_directory}' to '{remix_project_directory}'")
 
         return None
 

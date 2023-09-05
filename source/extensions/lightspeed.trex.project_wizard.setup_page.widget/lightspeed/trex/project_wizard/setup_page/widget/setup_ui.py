@@ -88,6 +88,8 @@ class SetupPage(_WizardPage):
         self._open_or_create = value
         self._done_text = "Open" if self.open_or_create else "Create"
 
+        self.payload = {_ProjectWizardKeys.EXISTING_PROJECT.value: value}
+
     def __validate_project_path(self, project_path: str):
         validation_error = None
         try:
