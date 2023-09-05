@@ -32,7 +32,7 @@ from .asset_hasher import LightspeedAssetHasher
 class LightspeedPostProcessExporter:
     def __init__(self, context_name: str = ""):
         self._context_name = context_name
-        self._nvtt_path = Path(constants.NVTT_PATH)
+        self._nvtt_path = Path(carb.tokens.get_tokens_interface().resolve(constants.NVTT_PATH))
         self.__layer_manager = LayerManagerCore(self._context_name)
         self._asset_hasher = None
 

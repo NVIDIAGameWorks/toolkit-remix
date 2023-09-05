@@ -76,7 +76,7 @@ IS_REMIX_REF_ATTR = "IsRemixRef"
 SHADER_NAME_OPAQUE = "AperturePBR_Opacity.mdl"
 SHADER_NAME_TRANSLUCENT = "AperturePBR_Translucent.mdl"
 
-NVTT_PATH = str(Path(__file__).parent.joinpath("tools", "nvtt", "nvtt_export.exe"))
+NVTT_PATH = "${kit}/../tools/nvtt/nvtt_export.exe"
 PIX2PIX_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "pytorch-CycleGAN-and-pix2pix"))
 REAL_ESRGAN_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "realesrgan-ncnn-vulkan-20210901-windows"))
 MAT_SR_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "mat-sr"))
