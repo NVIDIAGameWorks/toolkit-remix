@@ -40,7 +40,7 @@ class ColorToRoughnessCore:
         if os.path.exists(output_texture) and overwrite:
             # delete
             os.remove(output_texture)
-        nvtt_path = constants.NVTT_PATH
+        nvtt_path = carb.tokens.get_tokens_interface().resolve(constants.NVTT_PATH)
         converter_path = Path(constants.PIX2PIX_TEST_SCRIPT_PATH)
         converter_dir = Path(constants.PIX2PIX_ROOT_PATH)
         # Copy the neural net data files over to the driver if they don't already exist

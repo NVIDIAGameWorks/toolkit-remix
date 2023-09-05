@@ -56,7 +56,12 @@ class UpscalerCore:
 
         output_path = (temp_path / input_texture.stem).with_suffix(".png")
         with subprocess.Popen(
-            [constants.NVTT_PATH, str(input_texture), "--output", str(output_path)],
+            [
+                carb.tokens.get_tokens_interface().resolve(constants.NVTT_PATH),
+                str(input_texture),
+                "--output",
+                str(output_path),
+            ],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.STDOUT,
         ) as convert_png_process:
@@ -106,7 +111,7 @@ class UpscalerCore:
 
         with subprocess.Popen(
             [
-                constants.NVTT_PATH,
+                carb.tokens.get_tokens_interface().resolve(constants.NVTT_PATH),
                 str(converted_output_texture),
                 "--output",
                 str(output_texture),

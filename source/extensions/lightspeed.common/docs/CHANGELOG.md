@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.3.0] - 2022-09-01
+### Changed
+- Changed NVTT path to point to Packman dependency
+
 ## [0.2.0] - 2022-06-09
 ### Added
 - Added `TEXTURES_FOLDER `, `ASSET_NEED_INGEST_MESSAGE`, `ASSET_NEED_INGEST_WINDOW_TITLE`, `ASSET_NEED_INGEST_WINDOW_OK_LABEL`, `ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL`
