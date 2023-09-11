@@ -48,6 +48,7 @@ class SetupPage(_WizardPage):
                 "_open_or_create": None,
                 "_project_path_valid": None,
                 "_remix_path_valid": None,
+                "_capture_selected": None,
                 "_project_path_picker": None,
                 "_capture_overlay_widget": None,
                 "_capture_frame": None,
@@ -66,6 +67,7 @@ class SetupPage(_WizardPage):
 
         self._project_path_valid = False
         self._remix_path_valid = False
+        self._capture_selected = False
 
         self._project_path_picker = None
         self._capture_overlay_widget = None
@@ -120,13 +122,22 @@ class SetupPage(_WizardPage):
 
         return validation_error
 
-    def __update_validity(self, project_path_valid: bool = None, remix_path_valid: bool = None):
+    def __update_validity(
+        self, project_path_valid: bool = None, remix_path_valid: bool = None, capture_selected: bool = None
+    ):
         if project_path_valid is not None:
             self._project_path_valid = project_path_valid
         if remix_path_valid is not None:
             self._remix_path_valid = remix_path_valid
+        if capture_selected is not None:
+            self._capture_selected = capture_selected
 
-        self.blocked = not self._project_path_valid or not self._remix_path_valid
+        # Only block capture selected when creating a project
+        self.blocked = (
+            not self._project_path_valid
+            or not self._remix_path_valid
+            or (not self._capture_selected and not self._open_or_create)
+        )
 
     def __update_payload_project(self, project_path: Optional[str]):
         if not project_path:
@@ -153,6 +164,7 @@ class SetupPage(_WizardPage):
         self.payload = {
             _ProjectWizardKeys.CAPTURE_FILE.value: Path(selection[0].path),
         }
+        self.__update_validity(capture_selected=bool(self.payload.get(_ProjectWizardKeys.CAPTURE_FILE.value, False)))
 
     def __enable_capture_picker(self, enable: bool):
         if self.open_or_create:
@@ -205,9 +217,6 @@ class SetupPage(_WizardPage):
         return captures
 
     def __update_capture_picker_ui(self, capture_files: List[str]):
-        if self._capture_background:
-            self._capture_background.visible = True
-
         if not self._capture_frame:
             return
 
@@ -215,8 +224,13 @@ class SetupPage(_WizardPage):
 
         if not capture_files:
             with self._capture_frame:
-                ui.Label("None available", height=0)
+                with ui.VStack():
+                    ui.Label("No capture available.", name="WizardDescription", height=0)
+                    ui.Label("Create a capture in the runtime before creating a project.", height=0)
             return
+
+        if self._capture_background:
+            self._capture_background.visible = True
 
         self._capture_model.refresh([(path, self._capture_core.get_capture_image(path)) for path in capture_files])
 

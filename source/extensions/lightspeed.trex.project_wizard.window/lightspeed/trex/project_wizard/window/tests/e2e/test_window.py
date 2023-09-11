@@ -338,7 +338,18 @@ class TestWizardWindow(AsyncTestCase):
         # Capture tree should now be rendered
         _ = await self.__find_setup_page_components(wizard_window, validate_capture_tree=True)
 
-        # Go to the mod selection page
+        capture_labels = ui_test.find_all(f"{wizard_window.title}//Frame/**/Label[*].identifier=='item_title'")
+        self.assertGreater(len(capture_labels), 0)
+
+        # "Select Mods" button should still be blocked
+        await nav_buttons[TestComponents.NEXT_BUTTON].click()
+        await ui_test.human_delay()
+
+        # Select a capture
+        await capture_labels[0].click()
+        await ui_test.human_delay()
+
+        # Go to the mod selection page, should be unblocked not that a capture is selected
         await nav_buttons[TestComponents.NEXT_BUTTON].click()
         await ui_test.human_delay()
 
@@ -521,6 +532,8 @@ class TestWizardWindow(AsyncTestCase):
         # Open the project
         await nav_buttons[TestComponents.NEXT_BUTTON].click()
         await ui_test.human_delay()
+
+        await wait_stage_loading()
 
         # Make sure the loaded stage is the project file
         self.assertEqual(self.project_path.as_posix(), usd.get_context().get_stage().GetRootLayer().identifier)

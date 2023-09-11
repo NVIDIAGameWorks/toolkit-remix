@@ -248,9 +248,6 @@ class ProjectWizardCore:
         return context.get_stage()
 
     async def _insert_capture_layer(self, capture_core, deps_captures_directory, capture_file, dry_run):
-        if not capture_file:
-            return
-
         deps_capture_file = deps_captures_directory / capture_file.name
         self._log_info(f"Add Sub-Layer to Project: {deps_capture_file}")
 

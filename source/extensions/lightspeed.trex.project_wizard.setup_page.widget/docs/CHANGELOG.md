@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.2] - 2023-09-06
+### Fixed
+- Fixed ability to create project without a capture selected
+
 ## [1.1.1] - 2023-09-05
 ### Fixed
 - Fixed existing project metadata not being set when opening a project
