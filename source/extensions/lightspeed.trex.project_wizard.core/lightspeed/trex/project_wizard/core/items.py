@@ -165,7 +165,10 @@ class ProjectWizardSchema(BaseModel):
     @validator(ProjectWizardKeys.CAPTURE_FILE.value, allow_reuse=True)
     def is_capture_file_valid(cls, v, values):  # noqa
         """Check that the file is a valid capture file or None"""
-        if v:
+        if not v:
+            if not values.get(ProjectWizardKeys.EXISTING_PROJECT.value, False):
+                raise ValueError("A capture must be selected when creating a project")
+        else:
             captures_directory = (
                 values.get(ProjectWizardKeys.REMIX_DIRECTORY.value, Path("")) / _constants.REMIX_CAPTURE_FOLDER
             )

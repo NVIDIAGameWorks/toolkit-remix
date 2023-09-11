@@ -675,15 +675,26 @@ class TestItems(omni.kit.test.AsyncTestCase):
         self.assertEqual(str(capture_file), args[0])
         self.assertEqual("The path is not a valid capture file", str(cm.exception))
 
-    async def test_schema_is_capture_file_valid_no_value_returns_val(self):
+    async def test_schema_is_capture_file_valid_no_value_opening_returns_val(self):
         # Arrange
         pass
 
         # Act
-        value = ProjectWizardSchema.is_capture_file_valid(None, {})
+        value = ProjectWizardSchema.is_capture_file_valid(None, {ProjectWizardKeys.EXISTING_PROJECT.value: True})
 
         # Assert
         self.assertEqual(None, value)
+
+    async def test_schema_is_capture_file_valid_no_value_creating_throws(self):
+        # Arrange
+        pass
+
+        # Act
+        with self.assertRaises(ValueError) as cm:
+            ProjectWizardSchema.is_capture_file_valid(None, {ProjectWizardKeys.EXISTING_PROJECT.value: False})
+
+        # Assert
+        self.assertEqual("A capture must be selected when creating a project", str(cm.exception))
 
     async def test_schema_is_capture_file_valid_accepted_returns_val(self):
         # Arrange
