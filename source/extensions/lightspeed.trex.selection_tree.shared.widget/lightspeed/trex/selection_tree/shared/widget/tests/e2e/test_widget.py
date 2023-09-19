@@ -68,7 +68,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         self.assertEqual(len(item_prims), 2)  # the ref item + the prim item
         self.assertEqual(len(item_meshes), 1)
-        self.assertEqual(len(item_file_meshes), 1)
+        self.assertEqual(len(item_file_meshes), 2)
         self.assertEqual(len(item_instance_groups), 1)
         self.assertEqual(len(item_instance_meshes), 0)  # we didn't expand the instance group
 
@@ -92,9 +92,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
         item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
 
-        self.assertEqual(len(item_prims), 1)  # the ref item
+        self.assertEqual(len(item_prims), 0)  # the ref item
         self.assertEqual(len(item_meshes), 1)
-        self.assertEqual(len(item_file_meshes), 2)  # add ref + add light
+        self.assertEqual(len(item_file_meshes), 1)  # add ref + add light
         self.assertEqual(len(item_instance_groups), 1)
         self.assertEqual(len(item_instance_meshes), 1)  # for light, instance are selected by default
 
@@ -120,7 +120,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         self.assertEqual(len(item_prims), 2)  # the ref item + the prim item
         self.assertEqual(len(item_meshes), 1)
-        self.assertEqual(len(item_file_meshes), 1)
+        self.assertEqual(len(item_file_meshes), 2)
         self.assertEqual(len(item_instance_groups), 1)
         self.assertEqual(len(item_instance_meshes), 1)  # because we selected the instance, the instance is shown
 
@@ -151,7 +151,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
         item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
 
-        self.assertEqual(len(item_prims), 3)  # the ref item + the prim item
+        self.assertEqual(len(item_prims), 2)  # the ref item + the prim item
         self.assertEqual(len(item_meshes), 2)
         self.assertEqual(len(item_file_meshes), 3)
         self.assertEqual(len(item_instance_groups), 2)
@@ -181,7 +181,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         self.assertEqual(len(item_prims), 4)  # the ref item + the prim item
         self.assertEqual(len(item_meshes), 2)
-        self.assertEqual(len(item_file_meshes), 2)
+        self.assertEqual(len(item_file_meshes), 4)
         self.assertEqual(len(item_instance_groups), 2)
         self.assertEqual(len(item_instance_meshes), 0)  # we didn't expand the instance group
 
@@ -231,7 +231,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
         item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
         self.assertEqual(len(item_prims), 0)
-        self.assertEqual(len(item_file_meshes), 1)
+        self.assertEqual(len(item_file_meshes), 2)
         self.assertEqual(len(item_instance_groups), 1)
 
         await self.__destroy(_window, _wid)
@@ -262,7 +262,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
         item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 1)
+        self.assertEqual(len(item_file_meshes), 2)
 
         await item_file_meshes[0].click()
 
@@ -329,7 +329,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
         item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 1)
+        self.assertEqual(len(item_file_meshes), 2)
 
         await item_file_meshes[0].click()
 
@@ -381,7 +381,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
         item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 1)
+        self.assertEqual(len(item_file_meshes), 2)
 
         await item_file_meshes[0].click()
 
