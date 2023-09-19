@@ -39,6 +39,7 @@ from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
+from pxr import UsdLux
 
 if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
@@ -303,16 +304,19 @@ class SetupUI:
 
             # set specific attributes
             specific_attrs = [
-                "angle",
-                "color",
-                "colorTemperature",
-                "enableColorTemperature",
-                "exposure",
-                "height",
-                "intensity",
-                "length",
-                "radius",
-                "width",
+                UsdLux.Tokens.inputsAngle,
+                UsdLux.Tokens.inputsColor,
+                UsdLux.Tokens.inputsEnableColorTemperature,
+                UsdLux.Tokens.inputsColorTemperature,
+                UsdLux.Tokens.inputsExposure,
+                UsdLux.Tokens.inputsHeight,
+                UsdLux.Tokens.inputsIntensity,
+                UsdLux.Tokens.inputsLength,
+                UsdLux.Tokens.inputsRadius,
+                UsdLux.Tokens.inputsWidth,
+                UsdLux.Tokens.inputsShapingConeAngle,
+                UsdLux.Tokens.inputsShapingConeSoftness,
+                UsdLux.Tokens.inputsShapingFocus,
             ]
             self._property_widget.set_specific_attributes(specific_attrs)
 
@@ -320,8 +324,19 @@ class SetupUI:
             lookup_table = {attr: {"name": attr.capitalize(), "group": None} for attr in specific_attrs}
             lookup_table.update(
                 {
-                    "colorTemperature": {"name": "Color Temperature", "group": None},
-                    "enableColorTemperature": {"name": "Enable Color Temperature", "group": None},
+                    UsdLux.Tokens.inputsAngle: {"name": "Angle", "group": None},
+                    UsdLux.Tokens.inputsColor: {"name": "Color", "group": None},
+                    UsdLux.Tokens.inputsEnableColorTemperature: {"name": "Enable Color Temp.", "group": None},
+                    UsdLux.Tokens.inputsColorTemperature: {"name": "Color Temp.", "group": None},
+                    UsdLux.Tokens.inputsExposure: {"name": "Exposure", "group": None},
+                    UsdLux.Tokens.inputsHeight: {"name": "Height", "group": None},
+                    UsdLux.Tokens.inputsIntensity: {"name": "Intensity", "group": None},
+                    UsdLux.Tokens.inputsLength: {"name": "Length", "group": None},
+                    UsdLux.Tokens.inputsRadius: {"name": "Radius", "group": None},
+                    UsdLux.Tokens.inputsWidth: {"name": "Width", "group": None},
+                    UsdLux.Tokens.inputsShapingConeAngle: {"name": "Shaping: Cone Angle", "group": None},
+                    UsdLux.Tokens.inputsShapingConeSoftness: {"name": "Shaping: Cone Softness", "group": None},
+                    UsdLux.Tokens.inputsShapingFocus: {"name": "Shaping: Focus", "group": None},
                 }
             )
             self._property_widget.set_lookup_table(lookup_table)

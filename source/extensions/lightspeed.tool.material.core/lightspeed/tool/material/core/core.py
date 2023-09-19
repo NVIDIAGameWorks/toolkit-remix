@@ -171,7 +171,7 @@ class ToolMaterialCore:
             omni.kit.commands.execute(
                 "RemoveProperty",
                 prop_path=prim.GetRelationship(constants.MATERIAL_RELATIONSHIP).GetPath(),
-                context_name=context_name,
+                usd_context_name=context_name,
             )
             omni.kit.commands.execute("DeletePrims", paths=[mat_prim.GetPath()], context_name=context_name)
             return True

@@ -346,11 +346,8 @@ class ItemMesh(ui.AbstractItem):
         self._value_model = ui.SimpleStringModel(self._path)
 
         self._add_new_reference_item = ItemAddNewReferenceFileMesh(self._prim, self)
-        self._add_new_live_light = None
-        self._live_light_group = None
-        if self.is_light():
-            self._add_new_live_light = ItemAddNewLiveLight(self._prim, self)
-            self._live_light_group = ItemLiveLightGroup(self, context_name)
+        self._add_new_live_light = ItemAddNewLiveLight(self._prim, self)
+        self._live_light_group = ItemLiveLightGroup(self, context_name)
         # instance also for light, to have a selected itme to show properties
         self._instance_group_item = ItemInstancesMeshGroup(instance_prims, self)
         prim_paths, total_ref = self.__reference_file_paths(self._prim)
@@ -361,6 +358,10 @@ class ItemMesh(ui.AbstractItem):
 
     def is_light(self):
         regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
+        return bool(regex_pattern.match(self._path))
+
+    def is_mesh(self) -> bool:
+        regex_pattern = re.compile(constants.REGEX_MESH_PATH)
         return bool(regex_pattern.match(self._path))
 
     @property
@@ -683,11 +684,12 @@ class ListModel(ui.AbstractItemModel):
         if item is None:
             return self.__children
         if isinstance(item, ItemMesh):
-            result = item.reference_items + [item.add_new_reference_item]
-            if item.is_light():
-                if item.live_light_group and item.live_light_group.lights:
-                    result.append(item.live_light_group)
-                result.append(item.add_new_live_light)
+            result = []
+            if not item.is_light():
+                result = item.reference_items + [item.add_new_reference_item]
+            if item.live_light_group and item.live_light_group.lights:
+                result.append(item.live_light_group)
+            result.append(item.add_new_live_light)
             # instance also for light, to have a selected itme to show properties
             result.append(item.instance_group_item)
             return result
