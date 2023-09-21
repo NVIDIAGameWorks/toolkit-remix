@@ -39,7 +39,7 @@ from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
-from pxr import UsdLux
+from pxr import UsdGeom, UsdLux
 
 if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
@@ -284,16 +284,44 @@ class SetupUI:
                 [i.path for i in item_prims], [i.path for i in self._current_instance_items]
             )
             transformable_prim_paths = self._core.filter_transformable_prims(instances)
+            mesh_prims = self._core.filter_imageable_prims([item.prim for item in item_prims])
             # Refresh of the transform
             self._transformation_widget.show(bool(transformable_prim_paths))
             if transformable_prim_paths:
                 self._transformation_widget.refresh([transformable_prim_paths[0]])
+                # for a regular prim, we don't show others properties
+                self._property_widget.show(False)
+            if mesh_prims:
+                # show properties panel
+                self._mesh_properties_frames[_ItemPrim].visible = True
+                self._mesh_properties_frames[None].visible = False
+                self._property_widget.show(True)
+                # set specific attributes
+                specific_attrs = [
+                    UsdGeom.Tokens.doubleSided,
+                ]
+                self._property_widget.set_specific_attributes(specific_attrs)
+                # set lookup table for meshes
+                lookup_table = {
+                    attr: {"name": attr.capitalize(), "group": None, "read_only": False} for attr in specific_attrs
+                }
+                lookup_table.update(
+                    {
+                        UsdGeom.Tokens.doubleSided: {
+                            "name": "Double Sided",
+                            "group": None,
+                            "read_only": self._core.prim_is_from_a_capture_reference(mesh_prims[0]),
+                        },
+                    }
+                )
+                self._property_widget.set_lookup_table(lookup_table)
+                self._property_widget.refresh([mesh_prims[0].GetPath()])
             else:
                 # we show the none panel
                 self._mesh_properties_frames[_ItemPrim].visible = False
                 self._mesh_properties_frames[None].visible = True
-            # for a regular prim, we don't show others properties
-            self._property_widget.show(False)
+                # for a regular prim, we don't show others properties
+                self._property_widget.show(False)
         elif item_light_instance_groups or item_light_prims:  # light
             # if this is a light, we can transform the light by itself. So we should show the transform frame
             prims = [item.parent.prim for item in item_light_instance_groups]
@@ -321,7 +349,9 @@ class SetupUI:
             self._property_widget.set_specific_attributes(specific_attrs)
 
             # set lookup table for lights
-            lookup_table = {attr: {"name": attr.capitalize(), "group": None} for attr in specific_attrs}
+            lookup_table = {
+                attr: {"name": attr.capitalize(), "group": None, "read_only": False} for attr in specific_attrs
+            }
             lookup_table.update(
                 {
                     UsdLux.Tokens.inputsAngle: {"name": "Angle", "group": None},
