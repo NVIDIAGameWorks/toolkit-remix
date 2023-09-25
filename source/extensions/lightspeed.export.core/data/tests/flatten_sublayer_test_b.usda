@@ -1,3 +1,16 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:71444fab7f3ede41e6a8e4e7b48a033347394afae1eb3bf9c6dca3f6417aef63
-size 313
+#usda 1.0
+(
+    upAxis = "Y"
+)
+
+over "World"
+{
+    def Xform "B"
+    {
+        double3 xformOp:rotateXYZ = (0, 0, 0)
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+    }
+}
+

@@ -1,3 +1,35 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:67b2f02ef0c4284b0925582eddbc4a7100766e747f1196cffcf4d38c8544ec3a
-size 945
+#usda 1.0
+(
+    defaultPrim = "World"
+    endTimeCode = 100
+    metersPerUnit = 0.01
+    startTimeCode = 0
+    timeCodesPerSecond = 30
+    upAxis = "Y"
+)
+
+def Xform "World"
+{
+    def Xform "CubeWithRef" (
+        instanceable = false
+        kind = "component"
+        references = @./InnerUSD/Cube.usda@
+    )
+    {
+        float3 xformOp:rotateXYZ = (0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+        def Cube "Cube"
+        {
+            float3[] extent = [(-50, -50, -50), (50, 50, 50)]
+            double size = 100
+            double3 xformOp:rotateXYZ = (0, 0, 0)
+            double3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (0, 100, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+        }
+    }
+}
+

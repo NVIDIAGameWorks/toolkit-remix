@@ -1,3 +1,16 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:290451f3e7e2e7a3fe5e4a71bb11357f3626e64c1d70776ba27d55ca3b7d376c
-size 397
+#usda 1.0
+(
+    customLayerData = {
+        dictionary flux_layer_widget_exclusions = {
+            bool exclude_add_child = 1
+            bool exclude_edit_target = 1
+            bool exclude_lock = 1
+            bool exclude_move = 1
+            bool exclude_mute = 1
+            bool exclude_remove = 1
+        }
+        string lightspeed_layer_type = "capture_baker"
+    }
+    upAxis = "Z"
+)
+

@@ -1,3 +1,91 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:082fdbbd083d11597e33bcd881e3983fc083f23cee38cb36c3cd5eb6720f7134
-size 3180
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_game_name = "testGame"
+        string lightspeed_layer_type = "replacement"
+        dictionary omni_layer = {
+            dictionary muteness = {
+            }
+        }
+    }
+    upAxis = "Z"
+)
+
+over "RootNode"
+{
+    over "Camera"
+    {
+        custom uniform vector3d omni:kit:centerOfInterest = (0, 0, -1148.7331652567711)
+        float3 xformOp:rotateXYZ = (51.877254, 0.000037718302, -6.3825345)
+        float3 xformOp:scale = (0.99997497, 0.99996805, 1.0000205)
+        double3 xformOp:translate = (-109.073, 411.363, 962.962)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+    }
+
+    over "meshes"
+    {
+        over "mesh_BAC90CAA733B0859" (
+            references = None
+        )
+        {
+            def Xform "ref_c89e0497f4ff4dc4a7b70b79c85692da" (
+                prepend references = @./sources/cube.usda@
+            )
+            {
+                custom bool IsRemixRef = 1
+                double3 xformOp:rotateXYZ = (0, 0, 0)
+                double3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+                over "Cube"
+                {
+                    float3 xformOp:rotateXYZ = (0, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (40.97617494664862, -14.462177889626224, -0.000003471705639412903)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+                }
+            }
+        }
+    }
+
+    over "Looks"
+    {
+        token visibility = "invisible"
+
+        over "mat_BC868CE5A075ABB1"
+        {
+            over "Shader"
+            {
+                asset inputs:metallic_texture = @./sources/textures/T_MetalPanelWall_HeavyRust_metallic.png@ (
+                    colorSpace = "raw"
+                    customData = {
+                        asset default = @@
+                    }
+                    displayGroup = "Specular"
+                    displayName = "Metallic Map"
+                    hidden = false
+                )
+                asset inputs:normalmap_texture = @./sources/textures/T_MetalPanelWall_HeavyRust_normal.png@ (
+                    colorSpace = "sRGB"
+                    customData = {
+                        asset default = @@
+                    }
+                    displayGroup = "Normal"
+                    displayName = "Normal Map"
+                    hidden = false
+                )
+                asset inputs:reflectionroughness_texture = @./sources/textures/T_MetalPanelWall_HeavyRust_roughness.png@ (
+                    colorSpace = "raw"
+                    customData = {
+                        asset default = @@
+                    }
+                    displayGroup = "Specular"
+                    displayName = "Roughness Map"
+                    hidden = false
+                )
+            }
+        }
+    }
+}
+

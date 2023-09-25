@@ -1,3 +1,30 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:08905c3d449ead6e35821784f9dab4d7a837da613485e57118cb566c8add1e07
-size 806
+#usda 1.0
+(
+    defaultPrim = "Looks"
+    metersPerUnit = 1
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+
+def Scope "Looks"
+{
+    def Material "mat_CC76669780A210D2"
+    {
+        append token outputs:mdl:surface.connect = </Looks/mat_CC76669780A210D2/Shader.outputs:out>
+
+        def Shader "Shader" (
+            kind = "Material"
+        )
+        {
+            uniform bool enable_opacity = 1
+            uniform token info:implementationSource = "sourceAsset"
+            uniform asset info:mdl:sourceAsset = @AperturePBR_Opacity.mdl@
+            uniform token info:mdl:sourceAsset:subIdentifier = "AperturePBR_Opacity"
+            asset inputs:diffuse_texture = @../textures/CC76669780A210D2.dds@ (
+                colorSpace = "auto"
+            )
+            token outputs:out
+        }
+    }
+}
+

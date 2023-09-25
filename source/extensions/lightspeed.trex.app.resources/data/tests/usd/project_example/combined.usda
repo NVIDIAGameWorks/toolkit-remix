@@ -1,3 +1,39 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:e5c4b4d9a6bf1e6a8be76389d2916110c838d57672e5a76686da9d9f18177ac8
-size 1303
+#usda 1.0
+(
+    customLayerData = {
+        dictionary cameraSettings = {
+            dictionary Front = {
+                double3 position = (7.464625848867054e21, -1777647190.0953894, 2363566333.8704176)
+                double radius = 500
+            }
+            dictionary Perspective = {
+                double3 position = (184.5756087135047, 3776.5930178578087, 364.85853895111865)
+                double3 target = (-5.845431944253846, 1356.7017598803368, -101.12970137197505)
+            }
+            dictionary Right = {
+                double3 position = (0, -3.049823947513222e38, -9.677144465750397e25)
+                double radius = 500
+            }
+            dictionary Top = {
+                double3 position = (0, 0, 2.6498112818018524e38)
+                double radius = 500
+            }
+            string boundCamera = "/OmniverseKit_Persp"
+        }
+        dictionary omni_layer = {
+            string authoring_layer = "./replacements.usda"
+            dictionary locked = {
+                bool "./capture.usda" = 1
+            }
+        }
+    }
+    endTimeCode = 500
+    metersPerUnit = 1
+    subLayers = [
+        @./replacements.usda@,
+        @./.deps/captures/capture.usda@
+    ]
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+

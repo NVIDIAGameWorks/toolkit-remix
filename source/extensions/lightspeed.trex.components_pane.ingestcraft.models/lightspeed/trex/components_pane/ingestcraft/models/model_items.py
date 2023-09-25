@@ -15,7 +15,7 @@ from omni.flux.tree_panel.widget.tree.model import Item as _Item
 
 class EnumItems(Enum):
     MODEL_INGESTION = "Model Ingestion"
-    TEXTURE_INGESTION = "Texture Ingestion"
+    MATERIAL_INGESTION = "Material Ingestion"
 
 
 class ModelIngestionItem(_Item):
@@ -51,7 +51,7 @@ class TextureIngestionItem(_Item):
 
     @property
     def title(self):
-        return EnumItems.TEXTURE_INGESTION.value
+        return EnumItems.MATERIAL_INGESTION.value
 
 
 def create_all_items() -> List[_Item]:

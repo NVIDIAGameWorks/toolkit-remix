@@ -93,14 +93,15 @@ class ViewportLayers:
         viewport_id: str,
         *ui_args,
         usd_context_name: str = "",
-        get_frame_parent=Optional[Callable],
+        get_frame_parent: Optional[Callable] = None,
+        hydra_engine_options: Optional[dict] = None,
         **ui_kwargs,
     ):
         self.__viewport_layers = {}
         self.__ui_frame = None
         self.__viewport = None
         self.__zstack = None
-        self.__timeline = omni.timeline.acquire_timeline_interface()
+        self.__timeline = omni.timeline.get_timeline_interface()
         self.__timeline_sub = self.__timeline.get_timeline_event_stream().create_subscription_to_pop(  # noqa
             self.__on_timeline_event
         )
@@ -129,6 +130,7 @@ class ViewportLayers:
                 usd_context_name,
                 resolution=resolution,
                 viewport_api=ViewportAPI(usd_context_name, viewport_id, self.__viewport_updated),
+                hydra_engine_options=hydra_engine_options,
             )
 
         # Expose the viewport itself into the layer system (factory is the key, so use the contructor)
@@ -151,9 +153,7 @@ class ViewportLayers:
     def __on_timeline_event(self, e: carb.events.IEvent):
         if self.__viewport:
             event_type = e.type
-            if event_type == int(omni.timeline.TimelineEventType.CURRENT_TIME_TICKED) or event_type == int(
-                omni.timeline.TimelineEventType.CURRENT_TIME_CHANGED
-            ):
+            if event_type == int(omni.timeline.TimelineEventType.CURRENT_TIME_TICKED):
                 viewport_api = self.__viewport.viewport_api
                 self.__viewport_updated(viewport_api.camera_path, viewport_api.stage)
 

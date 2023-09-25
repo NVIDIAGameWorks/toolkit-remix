@@ -40,6 +40,7 @@ _BLUE_ACTION = 0xFFFFC734
 _DARK_00 = 0x01000000  # 01 for alpha or it will show a default color
 _DARK_40 = 0x66000000
 _DARK_85 = 0xD9000000
+_TRUE_DARK = 0xFF000000
 
 _GREY_32 = 0xFF202020
 _GREY_42 = 0xFF2A2A2A
@@ -47,7 +48,10 @@ _GREY_50 = 0xFF303030
 _GREY_60 = 0xFF3C3C3C
 
 _RED_05 = 0x0D0000FF
+_RED_20 = 0x330000FF
+_RED_60 = 0x990000FF
 _RED_80 = 0xCC0000FF
+_RED_100 = 0xFF0000FF
 
 _WHITE_10 = 0x1AFFFFFF
 _WHITE_20 = 0x33FFFFFF
@@ -99,6 +103,7 @@ _DEFAULT_DARK_PANEL_BACKGROUND_VALUE = {
 ui.url.nvidia_md = _get_fonts("NVIDIASans_A_Md")
 ui.url.nvidia_rg = _get_fonts("NVIDIASans_A_Rg")
 ui.url.nvidia_bd = _get_fonts("NVIDIASans_A_Bd")
+ui.url.nvidia_lt = _get_fonts("NVIDIASans_A_Lt")
 
 
 # validation colors
@@ -116,7 +121,7 @@ def update_viewport_menu_style():
     cl.viewport_menubar_selection_border_button = cl.shade(cl("#2B87AA"))
     cl.viewport_menubar_background = cl.shade(cl("#25282ACC"))
     cl.viewport_menubar_title_background = 0x0
-    cl.viewport_menubar_selection_border = 0x0
+    cl.viewport_menubar_selection_border = cl.shade(cl("#34C7FF"))
     cl.viewport_menubar_selection_border_button = 0x0
     fl.viewport_menubar_border_radius = fl.shade(0)
 
@@ -224,6 +229,60 @@ current_dict.update(
         "Button.Label::NoBackground:disabled": {
             "color": _WHITE_30,
         },
+        "Button.Image::ShowValidation": {
+            "image_url": _get_icons("v-box"),
+            "color": _WHITE_20,
+            "margin": 0,
+            "margin_width": 1,
+            "border_radius": 4,
+        },
+        "Button.Image::ShowValidation:checked": {
+            "image_url": _get_icons("v-box"),
+            "color": _WHITE_60,
+            "margin": 0,
+            "margin_width": 1,
+            "border_radius": 4,
+        },
+        "Button.Image::ShowValidation:hovered": {
+            "image_url": _get_icons("v-box"),
+            "color": _WHITE_100,
+            "margin": 0,
+            "margin_width": 1,
+            "border_radius": 4,
+        },
+        "Button.Image::ShowValidationFailed": {
+            "image_url": _get_icons("v-box"),
+            "color": _RED_20,
+            "margin": 0,
+            "margin_width": 1,
+            "border_radius": 4,
+        },
+        "Button.Image::ShowValidationFailed:checked": {
+            "image_url": _get_icons("v-box"),
+            "color": _RED_60,
+            "margin": 0,
+            "margin_width": 1,
+            "border_radius": 4,
+        },
+        "Button.Image::ShowValidationFailed:hovered": {
+            "image_url": _get_icons("v-box"),
+            "color": _RED_100,
+            "margin": 0,
+            "margin_width": 1,
+            "border_radius": 4,
+        },
+        "Button::ShowValidationFailed": {
+            "background_color": _RED_20,
+            "margin": 2,
+            "margin_width": 1,
+            "border_radius": 4,
+        },
+        "Button::ShowValidationFailed:checked": {
+            "background_color": _RED_60,
+            "margin": 2,
+            "margin_width": 1,
+            "border_radius": 4,
+        },
         "CollapsableFrame::PropertiesPaneSection": {
             "background_color": 0x0,
             "secondary_color": 0x0,
@@ -245,6 +304,7 @@ current_dict.update(
         "FieldError": _DEFAULT_FIELD_READ_ERROR_VALUE,
         "Field:hovered": _DEFAULT_FIELD_READ_HOVERED_VALUE,
         "FreeBezierCurve::HeaderNvidiaLine": {"border_width": 1, "color": _WHITE_30},
+        "FreeBezierCurve::TabLineIndicator": {"color": _BLUE_SELECTED, "border_width": 2},
         "IconSeparator": {
             "border_width": 45,
         },
@@ -329,6 +389,16 @@ current_dict.update(
         "Image::Collection": {"image_url": _get_icons("link"), "color": _WHITE_80},
         "Image::Mesh": {"image_url": _get_icons("hexagon-outline"), "color": _WHITE_80},
         "Image::GeomSubset": {"image_url": _get_icons("hexagon-multiple-outline"), "color": _WHITE_80},
+        "Image::ShowInViewport": {
+            "image_url": _get_icons("axis-arrow"),
+            "color": _WHITE_20,
+            "margin": 4,
+        },
+        "Image::ShowInViewport:hovered": {
+            "image_url": _get_icons("axis-arrow"),
+            "color": _WHITE_100,
+            "margin": 4,
+        },
         "ImagePropertiesPaneSectionTriangleCollapsed": {
             "image_url": _get_icons("disclosure-collapsed"),
             "color": _WHITE_60,
@@ -476,6 +546,16 @@ current_dict.update(
         },
         "KeyboardKey": {"background_color": 0, "border_width": 1.5, "border_radius": 3},
         "KeyboardLabel": {},
+        "Label::FooterLabel": {
+            "color": _WHITE_80,
+            "font_size": 18,
+            "font": ui.url.nvidia_lt,
+        },
+        "Label::FooterLabel:hovered": {
+            "color": _WHITE_100,
+            "font_size": 18,
+            "font": ui.url.nvidia_lt,
+        },
         "Label::ProgressLabel": {"color": _WHITE_100},
         "Label::PropertiesWidgetLabel": {"color": _WHITE_70, "font_size": 18, "font": ui.url.nvidia_md},
         "Label::USDPropertiesWidgetValueOverlay": {"color": _WHITE_20},
@@ -517,7 +597,6 @@ current_dict.update(
         "Label::Warning": {"color": _YELLOW, "font_size": 18},
         "Label::WelcomePadFooter": {"color": _WHITE_100, "font_size": 18},
         "Line::PropertiesPaneSectionTitle": {"color": _WHITE_20, "border_width": 1},
-        "Line::PropertiesPaneSectionSeparator": {"color": _WHITE_10, "border_width": 1},
         "Line::WelcomePadTop": {"color": _WHITE_20, "border_width": 1},
         "Line::TreeSpacer": {"color": _BLUE_SELECTED, "border_width": 2},
         "Menu.Separator": {
@@ -566,6 +645,8 @@ current_dict.update(
             "background_color": _WHITE_10,
             "border_width": 0,
         },
+        "Rectangle::SelectableToolTipBackground": _DEFAULT_FIELD_READ_VALUE,
+        "Rectangle::SelectableToolTipBackground:hovered": _DEFAULT_FIELD_READ_HOVERED_VALUE,
         "PropertiesWidgetFieldRead": _DEFAULT_FIELD_READ_VALUE,
         "PropertiesWidgetFieldRead:hovered": _DEFAULT_FIELD_READ_HOVERED_VALUE,
         "PropertiesWidgetFieldSelected": {
@@ -619,11 +700,33 @@ current_dict.update(
             "border_color": _GREY_32,
             "border_radius": 8,
         },
+        "Rectangle::BackgroundWithWhiteBorder": {
+            "background_color": 0x33000000,
+            "border_width": 1,
+            "border_color": _WHITE_20,
+            "border_radius": 4,
+        },
         "Rectangle::PreviewWindowBackground": {"background_color": _GREY_42},
         "ScrollingFrame::PreviewWindowBackground": {"background_color": _GREY_42},
         "Rectangle::PropertiesPaneSectionWindowBackground": _DEFAULT_DARK_PANEL_BACKGROUND_VALUE,
         "Rectangle::TreePanelBackground": {"background_color": 0x33000000},
+        "Rectangle::DarkBackgroound": {"background_color": _TRUE_DARK},
         "Rectangle::WorkspaceBackground": {"background_color": _GREY_50},
+        "Rectangle::TreePanelBackgroundSplitter": {
+            "background_color": 0x0,
+            "border_width": 2,
+            "border_color": _WHITE_20,
+        },
+        "Rectangle::TreePanelBackgroundSplitter:hovered": {
+            "background_color": _WHITE_10,
+            "border_width": 2,
+            "border_color": _WHITE_60,
+        },
+        "Rectangle::TreePanelBackgroundSplitter:disabled": {
+            "background_color": _GREY_50,
+            "border_width": 2,
+            "border_color": _GREY_50,
+        },
         "ScrollingFrame::WorkspaceBackground": {"background_color": _GREY_50},
         "Rectangle::FooterBackground": {"background_color": 0x99000000},
         "Rectangle::PropertiesPaneSectionWindowImageBackground": _DEFAULT_DARK_PANEL_BACKGROUND_VALUE,

@@ -71,6 +71,10 @@ class SetupUI:
         self.__create_ui()
         update_viewport_menu_style()
 
+    @property
+    def viewport_api(self) -> ViewportLayers:
+        return self._viewport_layers.viewport_api
+
     def __create_ui(self):
         self._root_frame = ui.Frame(computed_content_size_changed_fn=self.__root_size_changed)
         with self._root_frame:
@@ -104,26 +108,19 @@ class SetupUI:
                     mouse_released_fn=lambda x, y, b, m: self._on_splitter_property_viewport_mouse_released(b),
                 )
                 with self._splitter_property_viewport:
-                    with ui.Frame(separate_window=True, build_fn=self.__init_splitter):  # to keep the Z depth order
-                        with ui.ZStack(width=ui.Pixel(12)):
+                    with ui.Frame(build_fn=self.__init_splitter):  # to keep the Z depth order
+                        with ui.ZStack(width=ui.Pixel(12), opaque_for_mouse_events=True):
                             ui.Rectangle(name="WorkspaceBackground")
-                            with ui.ScrollingFrame(
-                                name="TreePanelBackground",
-                                vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                                horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                                scroll_y_max=0,
-                            ):
-                                with ui.VStack():
-                                    for _ in range(3):
-                                        ui.Image(
-                                            "",
-                                            name="TreePanelLinesBackground",
-                                            fill_policy=ui.FillPolicy.PRESERVE_ASPECT_FIT,
-                                            height=ui.Pixel(256),
-                                            width=ui.Pixel(256),
-                                        )
-                            with ui.Frame(separate_window=True):
-                                ui.Rectangle(name="TreePanelBackground")
+                            with ui.VStack():
+                                for _ in range(3):
+                                    ui.Image(
+                                        "",
+                                        name="TreePanelLinesBackground",
+                                        fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP,
+                                        width=ui.Pixel(12),
+                                    )
+
+                            ui.Rectangle(name="TreePanelBackgroundSplitter")
 
         self.toggle_viewport_property_panel(forced_value=True, value=False)
 
@@ -189,6 +186,8 @@ class SetupUI:
         print((engine_name, render_mode))
 
     def __init_splitter(self):
+        if self._splitter_property_viewport is None:
+            return
         self._splitter_property_viewport.offset_x = self._viewport_frame.computed_width
 
     @_ignore_function_decorator(attrs=["_ignore_root_size_changed"])

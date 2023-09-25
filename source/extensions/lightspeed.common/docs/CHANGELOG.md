@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.4.0] - 2023-09-11
+### Add
+- Add `INGESTION_SCHEMA_PATHS`
+
 ## [0.3.0] - 2022-09-01
 ### Changed
 - Changed NVTT path to point to Packman dependency

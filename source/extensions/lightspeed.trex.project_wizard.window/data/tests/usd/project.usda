@@ -1,3 +1,18 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:08d6371c1eeafa78ddb895fe9cbd62b9c7a75e507410ce97bb35b01697663317
-size 395
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_layer_type = "workfile"
+        dictionary omni_layer = {
+            string authoring_layer = "./mod.usda"
+            dictionary locked = {
+                bool "./deps/captures/capture.usda" = 1
+            }
+        }
+    }
+    subLayers = [
+        @./mod.usda@,
+        @./deps/captures/capture.usda@
+    ]
+    upAxis = "Y"
+)
+

@@ -1,3 +1,40 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:e822814c3e06f19dd26751421121552e563e62cd43736cdb4e4433e527b7f7a3
-size 710
+#usda 1.0
+(
+    customLayerData = {
+        dictionary flux_layer_widget_exclusions = {
+            bool exclude_add_child = 1
+            bool exclude_edit_target = 1
+            bool exclude_lock = 1
+            bool exclude_move = 1
+            bool exclude_mute = 1
+            bool exclude_remove = 1
+        }
+        string lightspeed_layer_type = "capture_baker"
+    }
+    upAxis = "Z"
+)
+
+def "RootNode"
+{
+    def "lights"
+    {
+        def "light_2E59B0ACAE5F2EEB" (
+            references = @./deps/captures/lights/light_2E59B0ACAE5F2EEB.usda@</light_2E59B0ACAE5F2EEB>
+        )
+        {
+        }
+    }
+
+    def "meshes"
+    {
+    }
+
+    def "Looks"
+    {
+    }
+
+    def "instances"
+    {
+    }
+}
+

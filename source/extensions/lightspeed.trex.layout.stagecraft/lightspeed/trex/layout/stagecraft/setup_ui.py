@@ -428,26 +428,18 @@ class SetupUI(TrexLayout):
                             offset_x_changed_fn=self._on_property_viewport_splitter_change,
                         )
                         with self._splitter_property_viewport:
-                            with ui.Frame(separate_window=True, width=ui.Pixel(12)):  # to keep the Z depth order
-                                with ui.ZStack():
-                                    ui.Rectangle(name="WorkspaceBackground")
-                                    with ui.ScrollingFrame(
-                                        name="TreePanelBackground",
-                                        vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                                        horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                                        scroll_y_max=0,
-                                    ):
-                                        with ui.VStack():
-                                            for _ in range(3):
-                                                ui.Image(
-                                                    "",
-                                                    name="TreePanelLinesBackground",
-                                                    fill_policy=ui.FillPolicy.PRESERVE_ASPECT_FIT,
-                                                    height=ui.Pixel(256),
-                                                    width=ui.Pixel(256),
-                                                )
-                                    with ui.Frame(separate_window=True):
-                                        ui.Rectangle(name="TreePanelBackground")
+                            with ui.ZStack(width=ui.Pixel(12), opaque_for_mouse_events=True):
+                                ui.Rectangle(name="WorkspaceBackground")
+                                with ui.VStack():
+                                    for _ in range(3):
+                                        ui.Image(
+                                            "",
+                                            name="TreePanelLinesBackground",
+                                            fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP,
+                                            width=ui.Pixel(12),
+                                        )
+
+                                ui.Rectangle(name="TreePanelBackgroundSplitter")
                     with ui.Frame(separate_window=False):
                         self._viewport = ViewportUI(self._context_name)
 

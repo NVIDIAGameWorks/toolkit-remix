@@ -1,6 +1,9 @@
 [app]
 fastShutdown = true
 
+[app.audio]
+enabled = false  # OM-105157
+
 [app.content]
 emptyStageOnStart = true
 

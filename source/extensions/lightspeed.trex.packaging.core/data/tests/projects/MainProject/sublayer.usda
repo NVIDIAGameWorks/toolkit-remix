@@ -1,3 +1,42 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:b74300ba87236f6a4289f351b413ef9fd7e24e2b3b1a4f8d64b226a07d3a1135
-size 1249
+#usda 1.0
+(
+    upAxis = "Z"
+)
+
+over "RootNode"
+{
+    over "meshes"
+    {
+        over "mesh_ZB98945ABC2E27F5" (
+            references = None
+        )
+        {
+            def Xform "ref_edff04ef146e4bd793ea26d15cf4aadd" (
+                references = @./../shared_assets/primitives/Cone.usda@
+            )
+            {
+                custom bool IsRemixRef = 1
+                double3 xformOp:rotateXYZ = (0, 0, 0)
+                double3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+            }
+        }
+        over "mesh_0000B678749A7809" (
+            references = None
+        )
+        {
+            def Xform "ref_edff04ef146e4bd793ea26d15cf4a000" (
+                references = @./deps/mods/SubProject/assets/Cube.usda@
+            )
+            {
+                custom bool IsRemixRef = 1
+                double3 xformOp:rotateXYZ = (0, 0, 0)
+                double3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+            }
+        }
+    }
+}
+

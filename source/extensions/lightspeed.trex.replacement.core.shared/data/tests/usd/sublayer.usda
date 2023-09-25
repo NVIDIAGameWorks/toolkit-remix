@@ -1,3 +1,5 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:64858ea279d72e7a6f92cbf1e31d57b7c6b5adf669b6d441e12671fd170feb38
-size 32
+#usda 1.0
+(
+    upAxis = "Z"
+)
+

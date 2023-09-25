@@ -1,3 +1,44 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2875c41ed05ca6c68253d286a7043878af7d65d39607284582b9142b47e21ad7
-size 1293
+#usda 1.0
+(
+    defaultPrim = "mesh_0000B678749A7809"
+    metersPerUnit = 1
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+
+def Xform "mesh_0000B678749A7809" (
+    kind = "assembly"
+)
+{
+    rel material:binding = </Looks/mat_CC76669780A210D2>
+    token visibility = "inherited"
+
+    def Mesh "mesh" (
+        always_pick_model = true
+        hide_in_stage_window = true
+        no_delete = true
+    )
+    {
+        uniform bool doubleSided = 0
+        int[] faceVertexCounts = [3, 3, 3, 3]
+        int[] faceVertexIndices = [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]
+        normal3f[] normals
+        uniform token orientation = "leftHanded"
+        point3f[] points = [(131, 1240, 0), (131, 1240, 124), (131, 1296, 124), (131, 1296, 0), (131, 1296, -4), (131, 1296, -16), (131, 1240, -16), (131, 1240, -4)]
+        texCoord2f[] primvars:st = [(9.1875, 1), (9.1875, 1.96875), (9.625, 1.96875), (9.625, 1), (9.625, 0.96875), (9.625, 0.875), (9.1875, 0.875), (9.1875, 0.96875)] (
+            interpolation = "vertex"
+        )
+        uniform token subdivisionScheme = "none"
+        token visibility = "inherited"
+    }
+}
+
+def "Looks"
+{
+    def Material "mat_CC76669780A210D2" (
+        prepend references = @../materials/mat_CC76669780A210D2.usda@</Looks/mat_CC76669780A210D2>
+    )
+    {
+    }
+}
+

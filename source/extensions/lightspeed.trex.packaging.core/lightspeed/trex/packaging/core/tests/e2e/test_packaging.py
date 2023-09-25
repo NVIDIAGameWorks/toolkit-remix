@@ -18,6 +18,16 @@ from lightspeed.trex.packaging.core import PackagingCore
 from omni.kit.test_suite.helpers import get_test_data_path
 
 
+def compare_files(fn1, fn2):
+    try:  # try to compare the content to ignore CRLF/LF stuffs
+        with open(fn1, "rt", newline=None, encoding="utf8") as file1, open(
+            fn2, "rt", newline=None, encoding="utf8"
+        ) as file2:
+            return file1.read() == file2.read()
+    except UnicodeDecodeError:  # not a text file
+        return filecmp.cmp(fn1, fn2)
+
+
 class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
     # Before running each test
     async def setUp(self):
@@ -90,7 +100,7 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
                     actual_path.exists(), msg=f"The file was not found in the actual package: {expected_path}"
                 )
                 self.assertTrue(
-                    filecmp.cmp(expected_path, actual_path),
+                    compare_files(expected_path, actual_path),
                     msg=f"The contents of the expected and actual files don't match: {expected_path}",
                 )
 

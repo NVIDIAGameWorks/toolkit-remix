@@ -1,3 +1,16 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:bed6043a05f9b90c5eabb7b840aee7efbd8fa964a9df59d30296367c664370b7
-size 238
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_game_name = "TestGame2"
+        string lightspeed_layer_type = "replacement"
+    }
+    subLayers = [
+    ]
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+
+over "RootNode"
+{
+}
+
