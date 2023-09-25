@@ -1,3 +1,17 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:e99dbf5f0a4e335dce6d7071541fbef2259feb0f8af976c2b87cc00fdb3fb239
-size 330
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_layer_type = "workfile"
+        dictionary omni_layer = {
+            string authoring_layer = "./mod.usda"
+        }
+    }
+    metersPerUnit = 1
+    subLayers = [
+        @./mod.usda@,
+        @./dependency.usda@
+    ]
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+

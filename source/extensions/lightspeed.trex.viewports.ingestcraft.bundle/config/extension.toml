@@ -34,12 +34,22 @@ category = "Viewport"
 "lightspeed.trex.viewports.menubar.render" = {}  # to be able to toggle it
 ## Load the view-from-camera menu
 "lightspeed.trex.viewports.menubar.camera" = {}  # to be able to toggle it
+# Lighting
+"omni.kit.viewport.menubar.lighting" = {}
 
 [settings]
 # Collapse the additional camera control area
 persistent.exts."omni.kit.viewport.menubar.camera".expand = false
 # Set the default perspective camera focalLength
 persistent.app.primCreation.typedDefaults.camera.focalLength = 18.147562
+
+# String or Array of strings with directories that contain usd files to pupoluate lighting menu
+exts."omni.kit.viewport.menubar.lighting".rigs = "${kit}/../deps/content/rtx-remix-lookdev-lighting/presets"
+# When set to 0 or above, will scan the satge on open and automatically assign a light rig
+exts."omni.kit.viewport.menubar.lighting".defaultRig = "Bush Restaurant"
+exts."omni.flux.lookdev.core".rigs = "${kit}/../deps/content/rtx-remix-lookdev-modeling/presets/omniverse_logo.usda"
+exts."omni.flux.lookdev.core".default_material_path = "/OmniKit_Viewport_LightRigGeo/Xform/Looks/defaultMaterial"
+
 
 [[test]]
 # This is just a collection of extensions, they should be tested indivdiually for now

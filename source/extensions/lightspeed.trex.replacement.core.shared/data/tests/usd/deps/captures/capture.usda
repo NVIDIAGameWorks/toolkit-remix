@@ -1,3 +1,9 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:a69abbbfcd0657bbcf0772199e68f1217659ad1030bb0393c63a61a7413db796
-size 139
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_layer_type = "capture"
+    }
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+

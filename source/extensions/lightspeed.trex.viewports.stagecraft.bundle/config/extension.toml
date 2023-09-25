@@ -34,6 +34,8 @@ category = "Viewport"
 "lightspeed.trex.viewports.menubar.render" = {}  # to be able to toggle it
 ## Load the view-from-camera menu
 "lightspeed.trex.viewports.menubar.camera" = {}  # to be able to toggle it
+# Lighting
+"omni.kit.viewport.menubar.lighting" = {}
 
 [settings]
 # Collapse the additional camera control area

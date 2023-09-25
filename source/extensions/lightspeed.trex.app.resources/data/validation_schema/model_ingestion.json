@@ -1,3 +1,98 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:99e3bb3ba1cb3b4987dfed6c3c9b235b3ade25669f328ee7fa9d4dc7564fff37
-size 3921
+{
+    "name": "Model(s)",
+    "context_plugin":
+        {
+            "name": "AssetImporter",
+            "data": {
+                "context_name": "ingestcraft",
+                "input_files": [],
+                "output_directory": "",
+                "allow_empty_input_files_list": true,
+                "data_flows": [{"name": "InOutData", "push_input_data": true, "push_output_data": true}],
+                "output_usd_extension": "usda",
+                "hide_context_ui": true,
+                "ignore_unbound_bones": false,
+                "expose_mass_ui": true,
+                "expose_mass_queue_action_ui": true,
+                "cook_mass_template": true
+            }
+        },
+    "check_plugins": [
+        {
+            "name": "DefaultMaterial",
+            "selector_plugins": [{"name": "AllMeshes", "data": {}}],
+            "data": {},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+        },
+        {
+            "name": "MaterialShaders",
+            "selector_plugins": [{"name": "AllMaterials", "data": {}}],
+            "data": {"shader_subidentifiers": {"AperturePBR_Translucent": "translucent|glass|trans", "AperturePBR_Opacity": ".*"}},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+        },
+        {
+            "name": "EmissiveIntensity",
+            "selector_plugins": [{"name": "AllShaders", "data": {}}],
+            "data": {},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+        },
+        {
+            "name": "ConvertToOctahedral",
+            "selector_plugins": [{"name": "AllShaders", "data": {}}],
+            "data": {},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+        },
+        {
+            "name": "ConvertToDDS",
+            "selector_plugins": [{"name": "AllShaders", "data": {}}],
+            "data": {"data_flows": [{"name": "InOutData", "push_output_data": true}]},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+        },
+        {
+            "name": "RelativeAssetPaths",
+            "selector_plugins": [{"name": "AllPrims", "data": {}}],
+            "data": {},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+        },
+        {
+            "name": "RelativeReferences",
+            "selector_plugins": [{"name": "AllPrims", "data": {}}],
+            "data": {},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+        },
+        {
+            "name": "WrapRootPrims",
+            "selector_plugins": [{"name": "Nothing", "data": {}}],
+            "data": {"wrap_prim_name": "XForms"},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true}}
+        },
+        {
+            "name": "ApplyUnitScale",
+            "selector_plugins": [{"name": "RootPrims", "data": {}}],
+            "data": {"meters_per_unit_target":  1, "expose_mass_ui": true},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true}}
+        },
+        {
+            "name": "WrapRootPrims",
+            "selector_plugins": [{"name": "Nothing", "data": {}}],
+            "data": {"wrap_prim_name": "ReferenceTarget"},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true}}
+        }
+    ],
+    "resultor_plugins": [
+        {
+            "name": "FileMetadataWritter",
+            "data": {}
+        }
+    ]
+}

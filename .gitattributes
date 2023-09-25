@@ -6,11 +6,15 @@
 # Linux machine (the default behavior on GitHub)
 *.bat text eol=crlf
 *.cmd text eol=crlf
+*.kit text eol=crlf
 # Make sure shell scripts have LF line endings, even when checked out on a Windows client with autocrlf=true
 *.sh text eol=lf
 # All files under data go into Git LFS
 data/** filter=lfs diff=lfs merge=lfs -text
 source/extensions/**/data/** filter=lfs diff=lfs merge=lfs -text
+*.json !filter !diff !merge text
+*.usda !filter !diff !merge text
+*.usda text eol=lf
 *.exe filter=lfs diff=lfs merge=lfs -text
 *.dll filter=lfs diff=lfs merge=lfs -text
 *.bin filter=lfs diff=lfs merge=lfs -text

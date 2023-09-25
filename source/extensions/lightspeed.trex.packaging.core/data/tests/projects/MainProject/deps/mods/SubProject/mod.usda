@@ -1,3 +1,34 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:1607ef982e72da83459447cb6afc74c2bac9340231ab3a8c674f0c800f44ef47
-size 956
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_game_name = "default"
+        string lightspeed_layer_type = "replacement"
+        string lightspeed_mod_name = "SubProject"
+        string lightspeed_mod_version = "0.0.1"
+        string lightspeed_mod_notes = "SubProject Test"
+    }
+    subLayers = [
+    ]
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+
+over "RootNode"
+{
+    over "mesh_AB98945ABC2E27F5" (
+            references = None
+        )
+        {
+            def Xform "ref_8eda0efa6cbd46118395c1a2c5e8d739" (
+                prepend references = @./assets/Cube.usda@
+            )
+            {
+                custom bool IsRemixRef = 1
+                double3 xformOp:rotateXYZ = (0, 0, 0)
+                double3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+            }
+        }
+}
+

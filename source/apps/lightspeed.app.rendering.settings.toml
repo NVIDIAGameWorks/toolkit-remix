@@ -27,7 +27,6 @@ indirectDiffuse.maxBounces = 16
 indirectDiffuse.restir = 0
 directLighting.sampledLighting.autoEnable = 0
 directLighting.sampledLighting.enabled = 1
-directLighting.sampledLighting.maxRayIntensity = 0.15
 
 [rtx.hydra]
 TBNFrameMode = 0 # Auto-mode
@@ -35,7 +34,7 @@ TBNFrameMode = 0 # Auto-mode
 [rtx.post]
 tonemap.op = 6
 tonemap.cm2Factor = 1155
-histogram.enabled = false
+histogram.enabled = true # auto exposure on
 dlss.enableDenoiser = 1
 
 [rtx-transient]

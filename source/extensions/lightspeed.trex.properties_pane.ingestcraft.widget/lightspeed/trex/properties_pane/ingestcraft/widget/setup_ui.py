@@ -38,8 +38,8 @@ class SetupUI:
             self._all_frames[ComponentsEnumItems.MODEL_INGESTION] = _AssetValidationPane(
                 self._context_name, _constants.MODEL_INGESTION_SCHEMA_PATH
             )
-            self._all_frames[ComponentsEnumItems.TEXTURE_INGESTION] = _AssetValidationPane(
-                self._context_name, _constants.TEXTURE_INGESTION_SCHEMA_PATH
+            self._all_frames[ComponentsEnumItems.MATERIAL_INGESTION] = _AssetValidationPane(
+                self._context_name, _constants.MATERIAL_INGESTION_SCHEMA_PATH
             )
 
     def show_panel(self, title: str = None, forced_value: bool = None):

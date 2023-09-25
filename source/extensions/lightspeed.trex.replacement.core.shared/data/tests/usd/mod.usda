@@ -1,3 +1,14 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:6e68bcd817ccc95c15b8087f5aa487ba54fb228effb621d2485a8cea6d8f204b
-size 279
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_game_name = "Test Game"
+        string lightspeed_layer_type = "replacement"
+    }
+    subLayers = [
+        @./mod_capture_baker.usda@,
+        @./sublayer.usda@
+    ]
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+

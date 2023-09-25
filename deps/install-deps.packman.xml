@@ -1,8 +1,14 @@
 <project toolsVersion="5.6">
-  <dependency name="remix_runtime" linkPath="../_build/${platform}/${config}/remix_runtime">
+  <dependency name="remix_runtime" linkPath="../../deps/remix_runtime">
     <package name="remix_runtime" version="78517176" />
   </dependency>
-  <dependency name="nvtt-exporter-standalone" linkPath="../_build/${platform}/${config}/tools/nvtt">
+  <dependency name="nvtt-exporter-standalone" linkPath="../../deps/tools/nvtt">
     <package name="nvtt-exporter-standalone" version="2023.3.1.2-windows-x86_64" />
+  </dependency>
+  <dependency name="rtx-remix-lookdev-lighting" linkPath="../../deps/content/rtx-remix-lookdev-lighting">
+    <package name="rtx-remix-lookdev-lighting" version="2023.0.0" />
+  </dependency>
+  <dependency name="rtx-remix-lookdev-modeling" linkPath="../../deps/content/rtx-remix-lookdev-modeling">
+    <package name="rtx-remix-lookdev-modeling" version="2023.0.0" />
   </dependency>
 </project>

@@ -16,23 +16,12 @@ import omni.kit.app
 import omni.ui as ui
 from omni.flux.footer.widget.model import FooterModel
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from omni.flux.utils.widget.label import create_label_with_font
 
 
 class StageCraftFooterModel(FooterModel):
     def __init__(self):
         super().__init__()
-        self._default_attr = {
-            "_image_provider_about_trex": None,
-            "_image_provider_account": None,
-            "_image_provider_app_build_number": None,
-            "_image_provider_documentation": None,
-            "_image_provider_help": None,
-            "_image_provider_kit_build_number": None,
-            "_image_provider_license_agreement": None,
-            "_image_provider_report_issue": None,
-            "_image_provider_technical_support": None,
-        }
+        self._default_attr = {}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
@@ -59,28 +48,22 @@ class StageCraftFooterModel(FooterModel):
     def __about_sdg(self):
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer()
-            self._image_provider_about_trex, _, _ = create_label_with_font(
-                "About RTX Remix", "FooterLabel", remove_offset=True, quality_multiplier=1
-            )
+            ui.Label("About RTX Remix", name="FooterLabel")
             ui.Spacer()
 
     def __account(self):
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer()
-            self._image_provider_account, _, _ = create_label_with_font(
-                "Account", "FooterLabel", remove_offset=True, quality_multiplier=1
-            )
+            ui.Label("Account", name="FooterLabel")
             ui.Spacer()
 
     def __license_agreement(self):
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer()
-            self._image_provider_license_agreement, image, _ = create_label_with_font(
-                "License agreement", "FooterLabel", remove_offset=True, quality_multiplier=1
-            )
+            label = ui.Label("License agreement", name="FooterLabel")
             ui.Spacer()
 
-        image.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url())
+        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url())
 
     def __open_nvidia_url(self):
         url = "https://www.nvidia.com/"
@@ -90,48 +73,36 @@ class StageCraftFooterModel(FooterModel):
         with ui.HStack(height=ui.Pixel(24)):
             with ui.VStack():
                 ui.Spacer()
-                self._image_provider_technical_support, _, _ = create_label_with_font(
-                    "Technical Support", "FooterLabel", remove_offset=True, quality_multiplier=1
-                )
+                ui.Label("Technical Support", name="FooterLabel")
                 ui.Spacer()
             ui.Spacer()
             with ui.VStack(width=ui.Pixel(0)):
                 ui.Spacer()
-                self._image_provider_kit_build_number, _, _ = create_label_with_font(
-                    self.__kit_version, "FooterLabel", remove_offset=True, quality_multiplier=1
-                )
+                ui.Label(str(self.__kit_version), name="FooterLabel")
                 ui.Spacer()
 
     def __report_issue(self):
         with ui.HStack(height=ui.Pixel(24)):
             with ui.VStack():
                 ui.Spacer()
-                self._image_provider_report_issue, _, _ = create_label_with_font(
-                    "Report an issue", "FooterLabel", remove_offset=True, quality_multiplier=1
-                )
+                ui.Label("Report an issue", name="FooterLabel")
                 ui.Spacer()
             ui.Spacer()
             with ui.VStack(width=ui.Pixel(0)):
                 ui.Spacer()
-                self._image_provider_app_build_number, _, _ = create_label_with_font(
-                    self.__app_version, "FooterLabel", remove_offset=True, quality_multiplier=1
-                )
+                ui.Label(str(self.__app_version), name="FooterLabel")
                 ui.Spacer()
 
     def __help(self):
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer()
-            self._image_provider_help, _, _ = create_label_with_font(
-                "Help", "FooterLabel", remove_offset=True, quality_multiplier=1
-            )
+            ui.Label("Help", name="FooterLabel")
             ui.Spacer()
 
     def __documentation(self):
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer()
-            self._image_provider_documentation, _, _ = create_label_with_font(
-                "Documentation", "FooterLabel", remove_offset=True, quality_multiplier=1
-            )
+            ui.Label("Documentation", name="FooterLabel")
             ui.Spacer()
 
     def destroy(self):

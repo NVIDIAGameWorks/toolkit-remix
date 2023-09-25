@@ -29,8 +29,8 @@ pre-install = ""
 pre-install-args = []
 install = ""
 install-args = []
-post-install = "${productRoot}/lightspeed.app.trex.warmup.bat"
-post-install-args = ["--/app/environment/name='launcher_warmup'"]
+post-install = "${productRoot}/install.bat"
+post-install-args = []
 
 [defaults.windows-x86_64.uninstall]
 pre-uninstall = ""

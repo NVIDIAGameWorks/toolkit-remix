@@ -114,6 +114,7 @@ release.files_exclude = [
     ["**/*.pdb"],
     ["**/*.exp"],
     ["kit/**"],
+    ["deps/**"],
     ["apps/kit.portable"]
 ]
 "linux-x86_64".files_strip = [
@@ -126,6 +127,23 @@ archive_format = "zip"
 strip_package_infos = true
 # Do not package extensions that can be pulled (using http).
 exclude_kit_extensions_for_thin_packaging = false
+
+#######################################################################################################################
+# Section for "post build" step configuration.
+#######################################################################################################################
+[repo_build]
+
+# Multiple commands (processes) can be executed in order after build.
+# These have the same behavior as repo_build.pre_build.commands, except that they run after the build.
+post_build.commands = [
+    ["${root}/repo${shell_ext}", "stubgen", "-c", "${config}"],
+    ["${root}/_build/${platform}/${config}/pull_dependencies${shell_ext}"]
+]
+post_build."platform:windows-x86_64".commands = [
+    ["${root}/repo${shell_ext}", "stubgen", "-c", "${config}"],
+    ["${root}/_build/${platform}/${config}/lightspeed.app.trex.warmup${shell_ext}"],
+    ["${root}/_build/${platform}/${config}/pull_dependencies${shell_ext}"]
+]
 
 ########################################################################################################################
 # Extensions publisher

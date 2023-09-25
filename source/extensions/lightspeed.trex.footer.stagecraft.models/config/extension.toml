@@ -6,7 +6,6 @@ description = "This is the data used by the StageCraft footer"
 [dependencies]
 "omni.flux.footer.widget" = {}
 "omni.flux.utils.common" = {}
-"omni.flux.utils.widget" = {}
 "omni.ui" = {}
 
 [[python.module]]

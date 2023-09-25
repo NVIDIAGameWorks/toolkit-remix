@@ -223,9 +223,7 @@ class SetupUI:
                     self._transformation_widget = _TransformPropertyWidget(self._context_name)
                     with ui.HStack():
                         ui.Spacer(height=0)
-                        self._object_property_line = ui.Line(
-                            name="PropertiesPaneSectionSeparator", width=ui.Percent(60)
-                        )
+                        self._object_property_line = ui.Line(name="PropertiesPaneSectionTitle", width=ui.Percent(60))
                     self._property_widget = _PropertyWidget(self._context_name)
 
     def refresh(

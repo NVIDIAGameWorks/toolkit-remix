@@ -1,3 +1,10 @@
+include:
+  - project: 'omniverse/sectools/vault'
+    file: '/templates/v2/windows/packman-s3-creds.gitlab-ci.yml'
+  - project: 'omniverse/sectools/vault'
+    file: '/templates/v2/windows/repo-codesign-creds.yml'
+  # ^^^ includes above are needed for the vault invocation.
+
 build_test:
   extends: .defaults
   stage: build_test
@@ -7,6 +14,9 @@ build_test:
     - .\build.bat --clean --release
     - .\build.bat --clean --debug
   script:
+    - powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command .\tools\ci\vault\download_vault.ps1
+    - !reference [ .repo_codesign_get_secrets_windows_powershell, repo_codesign_get_secrets_windows_powershell ]
+    - !reference [ .windows_packman_s3_creds_get_powershell, windows_packman_s3_creds_get_powershell ]
     - .\build.bat --release
     - .\tools\ci\testing\windows-x86_64\step.bat
     - .\repo.bat package --mode main_package --platform windows-x86_64 --config release
