@@ -47,6 +47,13 @@ class ToolMaterialCore:
         return material_files
 
     @staticmethod
+    async def get_shader_subidentifier(shader: UsdShade.Shader):
+        subid_list = await omni.kit.material.library.get_subidentifier_from_material(
+            shader, lambda x: x, use_functions=False
+        )
+        return str(subid_list[0]) if subid_list else None
+
+    @staticmethod
     def get_shader_from_material(material: Usd.Prim):
         shader, _, _ = material.ComputeSurfaceSource()
         if not shader:

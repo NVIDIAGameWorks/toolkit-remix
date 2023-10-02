@@ -7,9 +7,11 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import asyncio
 import functools
 import typing
 from functools import partial
+from pathlib import Path
 from typing import List, Union
 
 import omni.kit.app
@@ -245,12 +247,12 @@ class SetupUI:
             self._selected_prims = [item.prim for item in items if isinstance(item, _ItemPrim)]
             if self._selected_prims:
                 materials = set()
-                for prim in self._selected_prims:
+                for prim in self._selected_prims or []:
                     for mat in self._core.get_materials_from_prim(prim):
                         materials.add(mat)
                 materials = list(materials)
                 if materials:
-                    self._refresh_material_menu()
+                    asyncio.ensure_future(self._refresh_material_menu())
                     if len(materials) == 1:
                         # when we have just one material available, show properties
                         self._material_properties_widget.show(True)
@@ -283,37 +285,90 @@ class SetupUI:
                     return True
         return False
 
-    def _refresh_material_menu(self):
+    @omni.usd.handle_exception
+    async def _refresh_material_menu(self):
         # for instance materials, we allow the user to override the reference in stage
         def refresh_instance_items(prims, num_prims):
             if num_prims > 0:
-                omni.ui.MenuItem(
-                    "Bound to: " + (prims[0].GetName() if num_prims == 1 else f"Multiple ({num_prims})"),
-                    hide_on_click=False,
+
+                omni.ui.Separator(
+                    text=" Override Material ("
+                    + (prims[0].GetName() if num_prims == 1 else f"Multiple ({num_prims})")
+                    + ") ",
                     tooltip=SetupUI._concat_list_to_string([prim.GetPath() for prim in prims]),
                 )
-                omni.ui.Separator()
-                item = omni.ui.MenuItem("\tRemove Material Override")
-                item.enabled = self._has_material_override(prims)
+
+                item = omni.ui.MenuItem(
+                    "\tRemove Material Override",
+                    visible=self._has_material_override(prims),
+                    tooltip="Removes the material override instance (if it exists) from this specific object only.\n"
+                    "This does not apply to shared materials.",
+                )
                 item.set_triggered_fn(partial(self.__remove_material_override, prims))
-                item = omni.ui.MenuItem("\tCreate Material Override (Opaque)")
+                item = omni.ui.MenuItem(
+                    "\tCreate Material Override (Opaque)",
+                    tooltip="Creates an opaque material override and applies to this prim only.\n"
+                    "Unlike shared materials, this will create a new unique material for each selected object.",
+                )
                 item.set_triggered_fn(partial(self.__new_material_override, _constants.SHADER_NAME_OPAQUE, prims))
-                item = omni.ui.MenuItem("\tCreate Material Override (Translucent)")
+                item = omni.ui.MenuItem(
+                    "\tCreate Material Override (Translucent)",
+                    tooltip="Creates a translucent material override and applies to this prim only.\n"
+                    "Unlike shared materials, this will create a new unique material for each selected object.",
+                )
                 item.set_triggered_fn(partial(self.__new_material_override, _constants.SHADER_NAME_TRANSLUCENT, prims))
 
         # for shared (i.e. capture) materials, we only show the ability to convert the material type
-        def refresh_shared_items(prims, num_prims):
+        async def refresh_shared_items(prims, num_prims):
             if num_prims > 0:
-                omni.ui.MenuItem(
-                    "Bound to: " + (prims[0].GetName() if num_prims == 1 else f"Multiple ({num_prims})"),
-                    checkable=False,
+                omni.ui.Separator(
+                    text=" Shared Material ("
+                    + (prims[0].GetName() if num_prims == 1 else f"Multiple ({num_prims})")
+                    + ") ",
                     tooltip=SetupUI._concat_list_to_string([prim.GetPath() for prim in prims]),
                 )
-                omni.ui.Separator()
-                item = omni.ui.MenuItem("\tConvert to Opaque")
-                item.set_triggered_fn(partial(self.__convert_material, _constants.SHADER_NAME_OPAQUE, prims))
-                item = omni.ui.MenuItem("\tConvert to Translucent")
-                item.set_triggered_fn(partial(self.__convert_material, _constants.SHADER_NAME_TRANSLUCENT, prims))
+
+                # only do conversion for materials when the conversion target type is different from the current type,
+                # so we must separate the incoming prims into the two type buckets
+                opaque_prims = []
+                translucent_prims = []
+                for p in prims:
+                    prim_path = p.GetPath()
+                    material_prims = _ToolMaterialCore.get_materials_from_prim_paths(
+                        [prim_path], context_name=self._context_name
+                    )
+                    shaders = [usd.get_shader_from_material(material_prim) for material_prim in material_prims]
+                    for shader in shaders:
+                        identifier = await _ToolMaterialCore.get_shader_subidentifier(shader)
+                        if identifier is None:
+                            continue
+                        if identifier == Path(_constants.SHADER_NAME_OPAQUE).stem:
+                            opaque_prims.append(p)
+                            break
+                        if identifier == Path(_constants.SHADER_NAME_TRANSLUCENT).stem:
+                            translucent_prims.append(p)
+                            break
+
+                item = omni.ui.MenuItem(
+                    "\tConvert to Opaque",
+                    enabled=bool(translucent_prims),
+                    tooltip="Convert the selected shared material(s) to opaque (if not already opaque).\n"
+                    "This will update all usages of this material, even if it's shared between multiple "
+                    "objects.",
+                )
+                item.set_triggered_fn(
+                    partial(self.__convert_material, _constants.SHADER_NAME_OPAQUE, translucent_prims)
+                )
+                item = omni.ui.MenuItem(
+                    "\tConvert to Translucent",
+                    enabled=bool(opaque_prims),
+                    tooltip="Convert the selected shared material(s) to translucent (if not already translucent).\n"
+                    "This will update all usages of this material, even if it's shared between multiple "
+                    "objects.",
+                )
+                item.set_triggered_fn(
+                    partial(self.__convert_material, _constants.SHADER_NAME_TRANSLUCENT, opaque_prims)
+                )
 
         # menu_compatibility required to get tooltip and hide_on_click working
         self.__menu = omni.ui.Menu(menu_compatibility=False)
@@ -321,16 +376,14 @@ class SetupUI:
             shared_material_items = []
             instance_material_items = []
             # sort prims into buckets with independent controls
-            for prim in self._selected_prims:
+            for prim in self._selected_prims or []:
                 if _AssetReplacementsCore.prim_is_from_a_capture_reference(prim):
                     shared_material_items.append(prim)
                 else:
                     instance_material_items.append(prim)
             # build the menus
             refresh_instance_items(instance_material_items, len(instance_material_items))
-            if shared_material_items:
-                omni.ui.Separator()
-            refresh_shared_items(shared_material_items, len(shared_material_items))
+            await refresh_shared_items(shared_material_items, len(shared_material_items))
 
     def show(self, value):
         if value:
