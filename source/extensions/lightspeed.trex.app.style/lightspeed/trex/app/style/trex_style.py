@@ -354,6 +354,7 @@ current_dict.update(
         "Image::More": {"image_url": _get_icons("ellipsis"), "color": _WHITE_60},
         "Image::More:hovered": {"image_url": _get_icons("ellipsis"), "color": _WHITE_100},
         "Image::Hourglass": {"image_url": _get_icons("hourglass"), "color": _WHITE_100},
+        "Image::ArrowRight": {"image_url": _get_icons("arrow-right-bold"), "color": _WHITE_100},
         "Image::TreePanelLinesBackground": {
             "image_url": _get_image("45deg-256x256-1px-2px-sp-black"),
             "color": _WHITE_30,

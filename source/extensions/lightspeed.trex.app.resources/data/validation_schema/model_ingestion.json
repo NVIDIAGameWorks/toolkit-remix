@@ -33,10 +33,11 @@
             "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
         },
         {
-            "name": "EmissiveIntensity",
+            "name": "ValueMapping",
             "selector_plugins": [{"name": "AllShaders", "data": {}}],
-            "data": {},
-            "stop_if_fix_failed": true,
+            "data": {
+                "attributes":  {"inputs:emissive_intensity":  [{"operator": "=", "input_value": 10000.0, "output_value": 1.0}]}
+            },
             "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
         },
         {
