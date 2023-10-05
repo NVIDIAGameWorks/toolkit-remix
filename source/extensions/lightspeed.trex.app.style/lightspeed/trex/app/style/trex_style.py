@@ -46,6 +46,7 @@ _GREY_32 = 0xFF202020
 _GREY_42 = 0xFF2A2A2A
 _GREY_50 = 0xFF303030
 _GREY_60 = 0xFF3C3C3C
+_GREY_70 = 0xFF464646
 
 _RED_05 = 0x0D0000FF
 _RED_20 = 0x330000FF
@@ -649,6 +650,10 @@ current_dict.update(
         "Rectangle::SelectableToolTipBackground:hovered": _DEFAULT_FIELD_READ_HOVERED_VALUE,
         "PropertiesWidgetFieldRead": _DEFAULT_FIELD_READ_VALUE,
         "PropertiesWidgetFieldRead:hovered": _DEFAULT_FIELD_READ_HOVERED_VALUE,
+        "PropertiesWidgetFieldBoolRead": {
+            "background_color": _GREY_70,
+            "color": _WHITE_30,
+        },
         "PropertiesWidgetFieldSelected": {
             "background_color": _WHITE_30,
             "color": _WHITE_100,
