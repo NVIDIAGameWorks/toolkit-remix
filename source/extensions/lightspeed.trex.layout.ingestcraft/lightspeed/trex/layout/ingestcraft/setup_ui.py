@@ -236,6 +236,8 @@ class SetupUI(TrexLayout):
 
     @_ignore_function_decorator(attrs=["_ignore_set_frame_property_widget_width"])
     def __set_frame_property_widget_width(self):
+        if self._frame_viewport is None:
+            return
         if self._frame_viewport.visible:
             if not self.__frame_property_widget_visibility:
                 value = 50

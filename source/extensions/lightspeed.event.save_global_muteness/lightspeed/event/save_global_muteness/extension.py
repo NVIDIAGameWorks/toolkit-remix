@@ -12,10 +12,10 @@ import omni.ext
 from lightspeed.events_manager.core import EVENTS_MANAGER_INSTANCE
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
-from .core import EventLayersCleanupCore
+from .core import EventLayersSaveCustomDataCore
 
 
-class EventLayersCleanupExtension(omni.ext.IExt):
+class EventLayersSaveCustomDataExtension(omni.ext.IExt):
     """Standard extension support class, necessary for extension management"""
 
     def __init__(self, *args, **kwargs):
@@ -26,11 +26,11 @@ class EventLayersCleanupExtension(omni.ext.IExt):
 
     # noinspection PyUnusedLocal
     def on_startup(self, ext_id):
-        carb.log_info("[lightspeed.event.layers_cleanup] Lightspeed Event Layer Cleanup startup")
-        self._core = EventLayersCleanupCore()
+        carb.log_info("[lightspeed.event.save_global_muteness] Lightspeed Event Save Global Muteness startup")
+        self._core = EventLayersSaveCustomDataCore()
         EVENTS_MANAGER_INSTANCE.register_event(self._core)
 
     def on_shutdown(self):
-        carb.log_info("[lightspeed.event.layers_cleanup] Lightspeed Events Layer Cleanup shutdown")
+        carb.log_info("[lightspeed.event.save_global_muteness] Lightspeed Events Save Global Muteness shutdown")
         EVENTS_MANAGER_INSTANCE.unregister_event(self._core)
         _reset_default_attrs(self)
