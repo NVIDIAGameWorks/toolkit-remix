@@ -70,6 +70,8 @@ class AssetReplacementLayersCore:
         # Only allow the mod layer and its sub-layers to be set as edit targets
         def get_layer_paths_recursive(layer: Sdf.Layer) -> List[str]:
             sublayers = []
+            if layer is None:
+                return []
             sublayers.append(layer.identifier)
             for sublayer in layer.subLayerPaths:
                 sublayers.extend(get_layer_paths_recursive(Sdf.Layer.FindOrOpenRelativeToLayer(layer, sublayer)))

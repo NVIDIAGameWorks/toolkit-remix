@@ -1,5 +1,5 @@
 [package]
-version = "0.1.0"
+version = "1.0.0"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -18,6 +18,7 @@ name = "Lightspeed Event Layers Cleanup"
 [dependencies]
 "lightspeed.events_manager" = {}
 "lightspeed.layer_manager" = {}
+"omni.flux.utils.common" = {}
 "omni.usd" = {}
 
 [[python.module]]

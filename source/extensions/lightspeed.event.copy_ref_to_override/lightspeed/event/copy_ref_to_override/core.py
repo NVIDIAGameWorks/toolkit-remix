@@ -22,6 +22,7 @@ from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.kit.usd.layers import LayerUtils as _LayerUtils
 from omni.usd.commands import remove_prim_spec as _remove_prim_spec
 from pxr import Sdf, Usd
 
@@ -38,9 +39,9 @@ class CopyRefToPrimCore(ILSSEvent):
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
         settings = carb.settings.get_settings()
-        default_context = settings.get(_CONTEXT) or ""
-        self._context = omni.usd.get_context(default_context)
-        self._layer_manager = _LayerManagerCore(default_context)
+        self._context_name = settings.get(_CONTEXT) or ""
+        self._context = omni.usd.get_context(self._context_name)
+        self._layer_manager = _LayerManagerCore(self._context_name)
 
     @property
     def name(self) -> str:
@@ -108,7 +109,37 @@ class CopyRefToPrimCore(ILSSEvent):
             # be sure to re-open the layer
             capture_baker_layer = find_capture_package_layer
             capture_baker_layer.Reload()
+        # be sure to mute
+        self._layer_manager.mute_layer(_LayerType.capture_baker, do_undo=False)
+        self.__move_capture_baker_at_bottom()
         return capture_baker_layer
+
+    def __move_capture_baker_at_bottom(self):
+        replacement_layer = self._layer_manager.get_layer(_LayerType.replacement)
+        if not replacement_layer:
+            carb.log_verbose("CopyRefToPrimCore: Mod layer doesn't exist!")
+            return
+        capture_baker_layer = self._layer_manager.get_layer(_LayerType.capture_baker)
+        if not capture_baker_layer:
+            carb.log_verbose("CopyRefToPrimCore: Capture baker layer doesn't exist!")
+            return
+        # be sure to move the layer at the end of the stack
+        source_parent_layer_identifier = replacement_layer.identifier
+        source_layer_position = _LayerUtils.get_sublayer_position_in_parent(
+            source_parent_layer_identifier, capture_baker_layer.identifier
+        )
+
+        if source_layer_position != len(replacement_layer.subLayerPaths) - 1:
+            # we move it at the bottom of the stack
+            omni.kit.commands.execute(
+                "MoveSublayer",
+                from_parent_layer_identifier=source_parent_layer_identifier,
+                from_sublayer_position=source_layer_position,
+                to_parent_layer_identifier=source_parent_layer_identifier,
+                to_sublayer_position=-1,
+                remove_source=False,
+                usd_context=self._context_name,
+            )
 
     def __get_all_replacement_layers(self, replacements_layer):
         # We grab all the sublayers of the replacements_layer
@@ -410,6 +441,9 @@ class CopyRefToPrimCore(ILSSEvent):
             if not intersection:
                 with omni.kit.undo.group():
                     self.__process_layer()
+
+        if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
+            self.__move_capture_baker_at_bottom()
 
     def _uninstall(self):
         """Function that will delete the behavior"""

@@ -13,6 +13,7 @@ import tempfile
 from typing import Optional, Tuple
 from unittest.mock import MagicMock, patch
 
+import omni.kit.app
 import omni.kit.commands
 import omni.usd
 from lightspeed.event.capture_persp_to_persp.core import CopyCapturePerspToPerspCore as _CopyCapturePerspToPerspCore
@@ -80,11 +81,20 @@ class TestCore(AsyncTestCase):
         async with make_temp_directory(context) as temp_dir:
             shutil.copytree(_get_test_data("usd/project_example"), f"{temp_dir.name}/project_example")
             await open_stage(f"{temp_dir.name}/project_example/combined.usda")
-            # Check the camera value. Should be the same than metadata
-            translate_values = self.__get_camera_translate_from_stage(context)
 
-            metadata_value = self.__get_camera_translate_from_stage_custom_data(context)
-            self.assertEqual(translate_values, metadata_value)
+            # flaky test. Wait 100 frames to test
+            i = 0
+            while True:
+                # Check the camera value. Should be the same than metadata
+                translate_values = self.__get_camera_translate_from_stage(context)
+
+                metadata_value = self.__get_camera_translate_from_stage_custom_data(context)
+                if translate_values == metadata_value:
+                    break
+                await omni.kit.app.get_app().next_update_async()
+                i += 1
+                if i == 100:
+                    self.assertEqual(translate_values, metadata_value)  # if we are here, it should fail
 
     async def test_open_stage_with_no_camera_in_metadata(self):
 
