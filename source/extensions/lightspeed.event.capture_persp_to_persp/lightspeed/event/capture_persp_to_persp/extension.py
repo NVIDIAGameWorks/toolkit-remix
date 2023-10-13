@@ -9,7 +9,7 @@
 """
 import carb
 import omni.ext
-from lightspeed.events_manager.core import EVENTS_MANAGER_INSTANCE as _EVENTS_MANAGER_INSTANCE
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 from .core import CopyCapturePerspToPerspCore as _CopyCapturePerspToPerspCore
@@ -28,9 +28,9 @@ class EventCopyCapturePerspToPerspExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.event.capture_persp_to_persp] Lightspeed Event Copy Capture Persp to Persp startup")
         self._core = _CopyCapturePerspToPerspCore()
-        _EVENTS_MANAGER_INSTANCE.register_event(self._core)
+        _get_event_manager_instance().register_event(self._core)
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.event.capture_persp_to_persp] Lightspeed Event Copy Capture Persp to Persp shutdown")
-        _EVENTS_MANAGER_INSTANCE.unregister_event(self._core)
+        _get_event_manager_instance().unregister_event(self._core)
         _reset_default_attrs(self)

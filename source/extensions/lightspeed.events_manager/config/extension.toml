@@ -1,5 +1,5 @@
 [package]
-version = "0.1.0"
+version = "1.0.0"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -19,3 +19,19 @@ name = "Lightspeed Events manager"
 
 [[python.module]]
 name = "lightspeed.events_manager"
+
+
+[[test]]
+
+args = [
+    "--/app/extensions/registryEnabled=1",
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--/app/file/ignoreUnsavedOnExit=true",
+    "--no-window"
+]
+
+dependencies = [
+    "omni.kit.test_suite.helpers",
+    "omni.kit.ui_test",
+]

@@ -19,6 +19,7 @@ import omni.usd
 from lightspeed.event.capture_persp_to_persp.core import CopyCapturePerspToPerspCore as _CopyCapturePerspToPerspCore
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
+from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
 from lightspeed.trex.viewports.shared.widget import SetupUI as ViewportUI
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit.test.async_unittest import AsyncTestCase
@@ -94,7 +95,14 @@ class TestCore(AsyncTestCase):
                 await omni.kit.app.get_app().next_update_async()
                 i += 1
                 if i == 100:
-                    self.assertEqual(translate_values, metadata_value)  # if we are here, it should fail
+                    raise ValueError("Camera is in the wrong position")
+
+            # now wait 100 frames and test again that the camera didnt moved
+            translate_values = self.__get_camera_translate_from_stage(context)
+            metadata_value = self.__get_camera_translate_from_stage_custom_data(context)
+            for _ in range(100):
+                await omni.kit.app.get_app().next_update_async()
+            self.assertEqual(translate_values, metadata_value)  # if we are here, it should fail
 
     async def test_open_stage_with_no_camera_in_metadata(self):
 
@@ -165,9 +173,8 @@ class TestCore(AsyncTestCase):
             self.assertEqual(random_value, translate_values1)
 
             # add a new capture
-            layer_manager.insert_sublayer(
-                new_capture, _LayerType.capture, add_custom_layer_data=False, set_as_edit_target=False
-            )
+            capture_core_setup = _CaptureCoreSetup(_CONTEXT_NAME)
+            capture_core_setup.import_capture_layer(new_capture)
             for _ in range(2):  # 1 frame for the layer, 1 for the camera event
                 await omni.kit.app.get_app().next_update_async()
 

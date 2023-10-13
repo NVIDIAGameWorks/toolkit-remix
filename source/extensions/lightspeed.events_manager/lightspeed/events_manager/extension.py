@@ -7,10 +7,19 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+from typing import Optional
+
 import carb
 import omni.ext
+from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
-from .core import EventsManagerCore
+from .core import EventsManagerCore as _EventsManagerCore
+
+_EVENTS_MANAGER_INSTANCE = None
+
+
+def get_instance() -> Optional[_EventsManagerCore]:
+    return _EVENTS_MANAGER_INSTANCE
 
 
 class EventsManagerExtension(omni.ext.IExt):
@@ -24,21 +33,13 @@ class EventsManagerExtension(omni.ext.IExt):
 
     # noinspection PyUnusedLocal
     def on_startup(self, ext_id):
+        global _EVENTS_MANAGER_INSTANCE
         carb.log_info("[lightspeed.events_manager] Lightspeed Events Manager startup")
-        extension_path = omni.kit.app.get_app().get_extension_manager().get_extension_path(ext_id)
-        self._events_manager = EventsManagerCore(extension_path)
+        self._events_manager = _EventsManagerCore()
+        _EVENTS_MANAGER_INSTANCE = self._events_manager
 
     def on_shutdown(self):
+        global _EVENTS_MANAGER_INSTANCE
         carb.log_info("[lightspeed.events_manager] Lightspeed Events Manager shutdown")
-        for attr, value in self.default_attr.items():
-            m_attr = getattr(self, attr)
-            if isinstance(m_attr, list):
-                m_attrs = m_attr
-            else:
-                m_attrs = [m_attr]
-            for m_attr in m_attrs:
-                destroy = getattr(m_attr, "destroy", None)
-                if callable(destroy):
-                    destroy()
-                del m_attr
-                setattr(self, attr, value)
+        _reset_default_attrs(self)
+        _EVENTS_MANAGER_INSTANCE = None

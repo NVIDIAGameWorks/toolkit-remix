@@ -11,13 +11,14 @@ import carb
 import omni.client
 import omni.kit.notification_manager as nm
 import omni.usd
-from lightspeed.events_manager.i_ds_event import ILSSEvent
+from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
+from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.usd.layers import LayerEventType, get_layer_event_payload, get_layers
 from pxr import Sdf
 
 
-class SwitchToReplacementCore(ILSSEvent):
+class SwitchToReplacementCore(_ILSSEvent):
     def __init__(self):
         super().__init__()
         self.default_attr = {
@@ -120,15 +121,4 @@ class SwitchToReplacementCore(ILSSEvent):
     def destroy(self):
         self.__current_notification = None
         self._notification_manager.on_shutdown()
-        for attr, value in self.default_attr.items():
-            m_attr = getattr(self, attr)
-            if isinstance(m_attr, list):
-                m_attrs = m_attr
-            else:
-                m_attrs = [m_attr]
-            for m_attr in m_attrs:
-                destroy = getattr(m_attr, "destroy", None)
-                if callable(destroy):
-                    destroy()
-                del m_attr
-                setattr(self, attr, value)
+        _reset_default_attrs(self)

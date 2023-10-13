@@ -1,5 +1,5 @@
 [package]
-version = "1.0.0"
+version = "1.1.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -13,6 +13,7 @@ preview_image = "data/preview.png"
 
 [dependencies]
 "lightspeed.common" = {}
+"lightspeed.events_manager" = {}
 "lightspeed.layer_manager" = {}
 "lightspeed.upscale.core" = {}
 "omni.client" = {}
@@ -24,3 +25,19 @@ preview_image = "data/preview.png"
 
 [[python.module]]
 name = "lightspeed.trex.capture.core.shared"
+
+
+[[test]]
+
+dependencies = [
+    "lightspeed.layer_manager",
+    "omni.kit.test_suite.helpers"
+]
+
+args = [
+    "--/app/extensions/registryEnabled=0",
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--/app/file/ignoreUnsavedOnExit=1",
+    "--no-window"
+]

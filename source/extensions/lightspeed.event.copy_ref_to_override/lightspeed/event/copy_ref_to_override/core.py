@@ -16,7 +16,7 @@ import omni.kit.undo
 import omni.kit.usd.layers as _layers
 import omni.usd
 from lightspeed.common import constants as _constants
-from lightspeed.events_manager.i_ds_event import ILSSEvent
+from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
@@ -29,7 +29,7 @@ from pxr import Sdf, Usd
 _CONTEXT = "/exts/lightspeed.event.copy_ref_to_override/context"
 
 
-class CopyRefToPrimCore(ILSSEvent):
+class CopyRefToPrimCore(_ILSSEvent):
     def __init__(self):
         super().__init__()
         self.default_attr = {

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.1] - 2023-10-10
+### Fixed
+- remove layer: check is the layer is expired
+
 ## [1.0.0] - 2023-06-06
 ### Added
 - Added `get_layers` to allow getting multiple layers of a given type

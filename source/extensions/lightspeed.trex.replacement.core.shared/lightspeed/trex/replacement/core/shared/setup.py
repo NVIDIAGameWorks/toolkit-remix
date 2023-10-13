@@ -8,8 +8,9 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import os
+import re
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Set, Tuple, Union
 
 import carb
 import omni.client
@@ -19,7 +20,7 @@ from lightspeed.layer_manager.constants import LSS_LAYER_GAME_NAME, LSS_LAYER_MO
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.layer_types import LayerType, LayerTypeKeys
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from pxr import Sdf, Tf, Usd
+from pxr import Sdf, Tf
 
 
 class Setup:
@@ -79,7 +80,7 @@ class Setup:
 
         if use_existing_layer:
             carb.log_info(f"Importing mod layer {path}")
-            layer = self._layer_manager.insert_sublayer(
+            replacement_layer = self._layer_manager.insert_sublayer(
                 path,
                 LayerType.replacement,
                 set_as_edit_target=set_edit_target,
@@ -88,10 +89,10 @@ class Setup:
             carb.log_info("Ok")
         else:
             carb.log_info(f"Creating a new mod layer {path}")
-            existing_layer = Sdf.Layer.Find(path)
+            existing_layer = Sdf.Layer.FindOrOpen(path)
             if existing_layer:
                 existing_layer.Clear()
-            layer = self._layer_manager.create_new_sublayer(
+            replacement_layer = self._layer_manager.create_new_sublayer(
                 LayerType.replacement,
                 path=path,
                 set_as_edit_target=set_edit_target,
@@ -102,10 +103,8 @@ class Setup:
 
         # replacement layer needs to have the same TimeCodesPerSecond as the capture layer
         # for reference deletion to work. See OM-42663 for more info.
-        capture_stage = Usd.Stage.Open(capture_layer.realPath)
-        time_codes = capture_stage.GetTimeCodesPerSecond()
-        replacement_stage = Usd.Stage.Open(layer.realPath)
-        replacement_stage.SetTimeCodesPerSecond(time_codes)
+        time_codes = capture_layer.timeCodesPerSecond
+        replacement_layer.timeCodesPerSecond = time_codes
 
         layer_instance = self._layer_manager.get_layer_instance(LayerType.replacement)
         if layer_instance is None:
@@ -115,13 +114,13 @@ class Setup:
         layer_instance.set_custom_layer_data(
             {LSS_LAYER_GAME_NAME: self._layer_manager.get_game_name_from_path(capture_layer.realPath)}
         )
-        custom_layer_data = layer.customLayerData
+        custom_layer_data = replacement_layer.customLayerData
         custom_data_layer_inst = layer_instance.get_custom_layer_data()
         if custom_data_layer_inst:
             custom_layer_data.update(custom_data_layer_inst)
-        layer.customLayerData = custom_layer_data
+        replacement_layer.customLayerData = custom_layer_data
 
-        layer.Save()
+        replacement_layer.Save()
 
     @staticmethod
     def is_mod_file(path: str) -> bool:
@@ -174,6 +173,31 @@ class Setup:
         existing_mod_layer = Sdf.Layer.FindOrOpen(str(mod_file_path))
         custom_layer_data = existing_mod_layer.customLayerData
         return custom_layer_data[LSS_LAYER_MOD_NOTES] if LSS_LAYER_MOD_NOTES in custom_layer_data else None
+
+    @staticmethod
+    def group_replaced_hashes(args: Tuple["Sdf.Layer", Dict[str, "Sdf.Path"]]) -> Set[str]:
+        """
+        Filter the hashes so that meshes and their associate materials count as a single entry
+        """
+        layer, hashes = args
+        filtered_hashes = set()
+        regex_mesh = re.compile(constants.REGEX_MESH_PATH)
+        regex_hash = re.compile(constants.REGEX_HASH)
+        for prim_hash, prim_path in hashes.items():
+            # If not a mesh, then no need to group
+            if not regex_mesh.match(str(prim_path)):
+                filtered_hashes.add(prim_hash)
+                continue
+            # If prim is a mesh, get the associated material instead to group them up
+            mesh_prim = layer.GetPrimAtPath(prim_path)
+            if constants.MATERIAL_RELATIONSHIP in mesh_prim.relationships:
+                materials = mesh_prim.relationships[constants.MATERIAL_RELATIONSHIP].targetPathList.explicitItems
+                # Always take the first material as there should never be more than 1 material here
+                match = regex_hash.match(str(materials[0]))
+                filtered_hashes.add(match.group(3) if match else prim_hash)
+            else:
+                filtered_hashes.add(prim_hash)
+        return filtered_hashes
 
     def get_replaced_hashes(self, path: Optional[Union[str, Path]] = None) -> Dict[Sdf.Layer, Dict[str, Sdf.Path]]:
         def get_sublayers_recursive(path: Sdf.Path):
