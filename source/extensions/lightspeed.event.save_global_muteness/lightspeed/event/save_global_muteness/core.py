@@ -10,14 +10,14 @@
 import carb.settings
 import omni.kit.usd.layers as _layers
 import omni.usd
-from lightspeed.events_manager.i_ds_event import ILSSEvent
+from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 _CONTEXT = "/exts/lightspeed.event.save_global_muteness/context"
 
 
-class EventLayersSaveCustomDataCore(ILSSEvent):
+class EventLayersSaveCustomDataCore(_ILSSEvent):
     def __init__(self):
         super().__init__()
         self.default_attr = {"_subscription_layer": None, "_subscription_stage": None}
@@ -30,7 +30,7 @@ class EventLayersSaveCustomDataCore(ILSSEvent):
     @property
     def name(self) -> str:
         """Name of the event"""
-        return "LayerSaveCustomDataCore"
+        return "LayerGlobalMuteness"
 
     def _install(self):
         """Function that will create the behavior"""

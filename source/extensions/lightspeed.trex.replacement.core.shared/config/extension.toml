@@ -1,7 +1,15 @@
 [package]
+version = "1.0.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix replacement/mod extension for the StageCraft"
 description = "Extension that works on replacement data for NVIDIA RTX Remix StageCraft App"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["remix", "replacement", "core", "mod"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
 
 [dependencies]
 "lightspeed.common" = {}
@@ -20,6 +28,7 @@ stdoutFailPatterns.exclude = [
 ]
 
 dependencies = [
+    "lightspeed.layer_manager",
     "omni.kit.test_suite.helpers"
 ]
 
@@ -27,6 +36,7 @@ args = [
     "--/app/extensions/registryEnabled=0",
     "--/app/hangDetector/enabled=0",
     "--/app/fastShutdown=1",
+    "--/app/file/ignoreUnsavedOnExit=1",
     "--no-window"
 ]
 

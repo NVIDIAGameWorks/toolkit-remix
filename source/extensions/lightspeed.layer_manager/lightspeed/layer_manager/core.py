@@ -279,6 +279,8 @@ class LayerManagerCore:
             omni.kit.undo.begin_group()
         stage = self.__context.get_stage()
         for layer in stage.GetLayerStack():
+            if layer.expired:
+                continue
             for sublayerpath in layer.subLayerPaths:
                 sublayer = Sdf.Layer.FindOrOpen(layer.ComputeAbsolutePath(sublayerpath))
                 if not sublayer:

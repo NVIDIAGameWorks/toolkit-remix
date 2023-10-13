@@ -164,23 +164,23 @@ class ModSetupPane:
         self.refresh_capture_detail_panel()
         self.refresh_mod_detail_panel()
 
+    @_ignore_function_decorator(attrs=["_ignore_capture_window_tree_selection_changed"])
+    def _on_cancel_clicked(self):
+        self._capture_tree_view_window.selection = (
+            []
+            if self._last_capture_tree_view_window_selection is None
+            else self._last_capture_tree_view_window_selection
+        )
+
     def _import_capture_layer(self, path):
         def on_okay_clicked():
             self.__on_import_capture_layer(path)
             self._last_capture_tree_view_window_selection = self._capture_tree_view_window.selection
 
-        @_ignore_function_decorator(attrs=["_ignore_capture_window_tree_selection_changed"])
-        def on_cancel_clicked():
-            self._capture_tree_view_window.selection = (
-                []
-                if self._last_capture_tree_view_window_selection is None
-                else self._last_capture_tree_view_window_selection
-            )
-
         TrexMessageDialog(
             message=f"Are you sure you want to load this capture layer?\n\n{path}",
             ok_handler=on_okay_clicked,
-            cancel_handler=on_cancel_clicked,
+            cancel_handler=self._on_cancel_clicked,
             ok_label="Load",
         )
 

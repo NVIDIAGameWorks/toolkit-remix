@@ -1,5 +1,5 @@
 import re
-from enum import IntEnum
+from enum import Enum, IntEnum
 from pathlib import Path
 
 from .texture_info import CompressionFormat, TextureInfo
@@ -120,6 +120,7 @@ EXPORT_STATUS_PRECHECK_ERRORS = "Precheck Failed"
 EXPORT_STATUS_PRECHECK_MEMORY_ERRORS = "Precheck Memory Failed"
 EXPORT_STATUS_POSTPROCESS_ERRORS = "PostProcess Errors"
 
+
 # Texture information describing various aspects of a class of textures such as its encoding and desired export
 # format.
 TEXTURE_INFO = {
@@ -164,3 +165,7 @@ class NormalMapEncodings(IntEnum):
     OCTAHEDRAL = 0
     TANGENT_SPACE_OGL = 1
     TANGENT_SPACE_DX = 2
+
+
+class GlobalEventNames(Enum):
+    IMPORT_CAPTURE_LAYER = "Import capture layer"

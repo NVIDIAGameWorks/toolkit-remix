@@ -13,9 +13,10 @@ import contextlib
 import carb
 import carb.settings
 import omni.kit.undo
-import omni.kit.usd.layers as _layers
 import omni.usd
-from lightspeed.events_manager.i_ds_event import ILSSEvent
+from lightspeed.common import constants
+from lightspeed.events_manager import ILSSEvent as _ILSSEvent
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
@@ -25,7 +26,7 @@ from pxr import Gf, Sdf, Usd
 _CONTEXT = "/exts/lightspeed.event.capture_persp_to_persp/context"
 
 
-class CopyCapturePerspToPerspCore(ILSSEvent):
+class CopyCapturePerspToPerspCore(_ILSSEvent):
 
     _PERSP_PATH = "/OmniverseKit_Persp"
 
@@ -34,6 +35,9 @@ class CopyCapturePerspToPerspCore(ILSSEvent):
         self.default_attr = {
             "_subscription_layer": None,
             "_layer_manager": None,
+            "_sub_global_event_registered": None,
+            "_sub_global_event_unregistered": None,
+            "_sub_capture_layer_imported": None,
         }
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
@@ -54,10 +58,12 @@ class CopyCapturePerspToPerspCore(ILSSEvent):
         self._install_layer_listener()
 
     def _install_layer_listener(self):
-        self._uninstall_layer_listener()
-        layers = _layers.get_layers()
-        self._subscription_layer = layers.get_event_stream().create_subscription_to_pop(
-            self.__on_layer_event, name="LayerChange"
+        self._uninstall()
+        self._sub_global_event_registered = _get_event_manager_instance().subscribe_global_custom_event_register(
+            self._on_global_event_registered
+        )
+        self._sub_global_event_unregistered = _get_event_manager_instance().subscribe_global_custom_event_unregister(
+            self._on_global_event_unregistered
         )
 
     @omni.usd.handle_exception
@@ -93,11 +99,18 @@ class CopyCapturePerspToPerspCore(ILSSEvent):
                     variability=Sdf.VariabilityUniform,
                 )
 
+    def _on_global_event_registered(self, name: str):
+        if name == constants.GlobalEventNames.IMPORT_CAPTURE_LAYER.value:
+            self._sub_capture_layer_imported = _get_event_manager_instance().subscribe_global_custom_event(
+                constants.GlobalEventNames.IMPORT_CAPTURE_LAYER.value, self._on_capture_layer_imported
+            )
+
+    def _on_global_event_unregistered(self, name: str):
+        if name == constants.GlobalEventNames.IMPORT_CAPTURE_LAYER.value:
+            self._sub_capture_layer_imported = None
+
     @_ignore_function_decorator(attrs=["_ignore_on_event"])
-    def __on_layer_event(self, event):
-        payload = _layers.get_layer_event_payload(event)
-        if not payload:
-            return
+    def _on_capture_layer_imported(self):
         stage = self._context.get_stage()
         if not stage:
             return
@@ -105,31 +118,31 @@ class CopyCapturePerspToPerspCore(ILSSEvent):
         if not root_layer:
             return
         session_layer = stage.GetSessionLayer()
-        if self.__last_session_layer != session_layer.identifier and root_layer.customLayerData.get("cameraSettings"):
+        if (
+            self.__last_session_layer is not None
+            and self.__last_session_layer != session_layer.identifier
+            and root_layer.customLayerData.get("cameraSettings")
+        ):
             self.__last_session_layer = session_layer.identifier
             return
         self.__last_session_layer = session_layer.identifier
 
-        if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
-            capture_layer = self._layer_manager.get_layer(_LayerType.capture)
-            if not capture_layer:
-                self.__last_capture_layer = None
-                return
-            if (
-                self.__last_capture_layer is not None
-                and not self.__last_capture_layer.expired
-                and capture_layer.identifier == self.__last_capture_layer.identifier
-            ):
-                return
-            self.__last_capture_layer = capture_layer
-            asyncio.ensure_future(self._deferred_setup_perspective_camera())
+        capture_layer = self._layer_manager.get_layer(_LayerType.capture)
+        if not capture_layer:
+            self.__last_capture_layer = None
+            return
+        if (
+            self.__last_capture_layer is not None
+            and not self.__last_capture_layer.expired
+            and capture_layer.identifier == self.__last_capture_layer.identifier
+        ):
+            return
+        self.__last_capture_layer = capture_layer
+        asyncio.ensure_future(self._deferred_setup_perspective_camera())
 
     def _uninstall(self):
         """Function that will delete the behavior"""
-        self._uninstall_layer_listener()
-
-    def _uninstall_layer_listener(self):
-        self._subscription_layer = None
+        self._sub_capture_layer_imported = None
 
     def destroy(self):
         self._uninstall()

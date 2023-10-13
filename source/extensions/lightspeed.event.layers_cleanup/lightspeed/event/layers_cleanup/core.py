@@ -10,11 +10,12 @@
 import carb
 import omni.client
 import omni.usd
-from lightspeed.events_manager.i_ds_event import ILSSEvent
+from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
+from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 
-class EventLayersCleanupCore(ILSSEvent):
+class EventLayersCleanupCore(_ILSSEvent):
     def __init__(self):
         super().__init__()
         self.default_attr = {"_subscription": None}
@@ -50,15 +51,4 @@ class EventLayersCleanupCore(ILSSEvent):
             layer_replacement.ClearEndTimeCode()
 
     def destroy(self):
-        for attr, value in self.default_attr.items():
-            m_attr = getattr(self, attr)
-            if isinstance(m_attr, list):
-                m_attrs = m_attr
-            else:
-                m_attrs = [m_attr]
-            for m_attr in m_attrs:
-                destroy = getattr(m_attr, "destroy", None)
-                if callable(destroy):
-                    destroy()
-                del m_attr
-                setattr(self, attr, value)
+        _reset_default_attrs(self)
