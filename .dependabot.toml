@@ -1,0 +1,68 @@
+########################################################################################################################
+# Branches
+########################################################################################################################
+
+# By default only run dependabot on a default branch
+branches = [
+    "${default}" # master/main
+]
+
+########################################################################################################################
+# Updaters
+########################################################################################################################
+
+## Options for `schedule` are daily or weekly only. No other options available at this time.
+## More details at https://gitlab-master.nvidia.com/omniverse/repo/services/dependabot/
+
+# packman updater
+[updater.packman]
+enabled = true
+type = "packman_update"
+schedule = "daily"
+mr_title = "bump packman"
+required_paths = ["tools/packman/packman.cmd"]
+dependabot_branch_name = "update-packman"
+
+# repo tools updater (all at once, to major version)
+[updater.repo_tools]
+enabled = true
+type = "repo_update"
+schedule = "daily"
+mr_title = "bump repo tools"
+repo_update_args = ["repo_", "--major"]
+dependabot_branch_name = "update-repo-tools"
+
+[updater.repo_tools]
+enabled = true
+type = "repo_update"
+schedule = "daily"
+mr_title = "bump rtx-remix-omni_core_materials"
+repo_update_args = ["rtx-remix-omni_core_materials", "--major"]
+required_paths = ["deps/target-deps.packman.xml"]
+dependabot_branch_name = "update-rtx-remix-omni_core_materials"
+
+## Kit SDK updater
+#[updater.kit_sdk]
+#enabled = true
+#type = "repo_update"
+#schedule = "weekly"
+#mr_title = "bump kit-sdk"
+#repo_update_args = ["kit-"]
+#required_paths = ["deps/kit-sdk.packman.xml"]
+#dependabot_branch_name = "update-kit-sdk"
+
+
+
+########################################################################################################################
+# An example of a custom updater for other repos to place in their .dependabot.toml
+########################################################################################################################
+
+# Specific dependency (kit-kernel-base) daily updater
+# [updater.kit_kernel_base]
+# type = "repo_update"
+# schedule = "daily"
+# mr_title = "bump kit-kernel-base"
+# repo_update_args = ["kit-kernel-base"]
+
+
+########################################################################################################################
