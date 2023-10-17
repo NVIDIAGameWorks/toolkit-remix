@@ -32,7 +32,7 @@ mr_title = "bump repo tools"
 repo_update_args = ["repo_", "--major"]
 dependabot_branch_name = "update-repo-tools"
 
-[updater.repo_tools]
+[updater.rtx_remix_omni_core_materials]
 enabled = true
 type = "repo_update"
 schedule = "daily"
