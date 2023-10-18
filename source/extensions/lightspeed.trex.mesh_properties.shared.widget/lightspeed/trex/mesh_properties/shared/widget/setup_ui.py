@@ -251,17 +251,26 @@ class SetupUI:
         if not found:
             self._mesh_properties_frames[None].visible = True
 
-        self._current_reference_file_mesh_items = [item for item in items if isinstance(item, _ItemReferenceFileMesh)]
-        self._current_instance_items = [item for item in items if isinstance(item, _ItemInstanceMesh)]
+        self._current_reference_file_mesh_items = [
+            item for item in items if isinstance(item, _ItemReferenceFileMesh) and item.prim.IsValid()
+        ]
+        self._current_instance_items = [
+            item for item in items if isinstance(item, _ItemInstanceMesh) and item.prim.IsValid()
+        ]
         item_prims = [
             item
             for item in items
-            if isinstance(item, _ItemPrim) and not item.from_live_light_group and not item.is_usd_light()
+            if isinstance(item, _ItemPrim)
+            and item.prim.IsValid()
+            and not item.from_live_light_group
+            and not item.is_usd_light()
         ]
         item_light_prims = [
             item
             for item in items
-            if isinstance(item, _ItemPrim) and (item.from_live_light_group or item.is_usd_light())
+            if isinstance(item, _ItemPrim)
+            and item.prim.IsValid()
+            and (item.from_live_light_group or item.is_usd_light())
         ]
         regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
         item_light_instance_groups = [
@@ -322,9 +331,9 @@ class SetupUI:
                 self._property_widget.show(False)
         elif item_light_instance_groups or item_light_prims:  # light
             # if this is a light, we can transform the light by itself. So we should show the transform frame
-            prims = [item.parent.prim for item in item_light_instance_groups]
-            prims.extend([item.prim for item in item_light_prims])
-            xformable_prims = self._core.filter_xformable_prims(prims)
+            prim_paths = [item.parent.path for item in item_light_instance_groups]
+            prim_paths.extend([item.path for item in item_light_prims])
+            xformable_prims = self._core.filter_transformable_prims(prim_paths)
             self._transformation_widget.show(bool(xformable_prims))
             self._property_widget.show(bool(xformable_prims))
 
@@ -372,8 +381,8 @@ class SetupUI:
             if xformable_prims:
                 self._mesh_properties_frames[_ItemPrim].visible = True
                 self._mesh_properties_frames[None].visible = False
-                self._transformation_widget.refresh([xformable_prims[0].GetPath()])
-                self._property_widget.refresh([xformable_prims[0].GetPath()])
+                self._transformation_widget.refresh([xformable_prims[0]])
+                self._property_widget.refresh([xformable_prims[0]])
             else:
                 # we show the none panel
                 self._mesh_properties_frames[_ItemPrim].visible = False

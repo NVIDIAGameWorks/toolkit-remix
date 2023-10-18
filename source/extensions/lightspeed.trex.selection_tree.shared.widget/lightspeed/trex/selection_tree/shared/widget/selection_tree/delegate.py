@@ -93,7 +93,7 @@ class Delegate(ui.AbstractItemDelegate):
             style.default["ImageWithProvider::SelectionGradient_selected"]["background_gradient_color"]
         )
         self.__gradient_width = 48
-        self.__gradient_height = self.DEFAULT_IMAGE_ICON_SIZE
+        self.__gradient_height = 1
         self._gradient_array = _create_gradient(
             self.__gradient_width,
             self.__gradient_height,
@@ -373,14 +373,11 @@ class Delegate(ui.AbstractItemDelegate):
                                                 self._gradient_image_provider[id(item)] = ui.ByteImageProvider()
                                                 self._gradient_image_with_provider[id(item)] = ui.ImageWithProvider(
                                                     self._gradient_image_provider[id(item)],
-                                                    height=self.__gradient_height,
+                                                    height=self.DEFAULT_IMAGE_ICON_SIZE,
                                                     fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
                                                     name="HeaderNvidiaBackground",
                                                 )
-                                                self._gradient_image_provider[id(item)].set_bytes_data(
-                                                    self._gradient_array_list,
-                                                    [self.__gradient_width, self.__gradient_height],
-                                                )
+                                                self.__do_refresh_gradient_color(item)
                             if isinstance(item, _ItemMesh):
                                 ui.Spacer(height=0, width=ui.Pixel(8))
                                 with ui.VStack(
@@ -463,7 +460,7 @@ class Delegate(ui.AbstractItemDelegate):
             rectangle.style_type_name_override = (
                 "TreeView.Item.IsHovered" if hovered and item not in self._current_selection else "TreeView.Item"
             )
-        self.refresh_gradient_color(item, deferred=False)
+        self.refresh_gradient_color(item)
 
     def _on_reset_mouse_released(self, button, item):
         if button != 0:
@@ -502,28 +499,7 @@ class Delegate(ui.AbstractItemDelegate):
         self.__item_is_pressed = False  # noqa PLW0238
         self.refresh_gradient_color(item)
 
-    def refresh_gradient_color(self, item, deferred=True):
-        if deferred:
-            self.__refresh_gradient_color_task = asyncio.ensure_future(self.__deferred_refresh_gradient_color(item))
-        else:
-            self.__do_refresh_gradient_color(item)
-
-    @omni.usd.handle_exception
-    async def __deferred_refresh_gradient_color(self, item):
-        """Wait for the delegate to generate the gradient"""
-        if id(item) not in self._gradient_image_provider:
-            # wait for the gradient to generate?
-            # at least 10 frames
-            found = False
-            for _ in range(10):
-                await omni.kit.app.get_app().next_update_async()
-                if not self._gradient_image_provider:
-                    continue
-                if id(item) in self._gradient_image_provider:
-                    found = True
-                    break
-            if not found:
-                return
+    def refresh_gradient_color(self, item):
         self.__do_refresh_gradient_color(item)
 
     def __do_refresh_gradient_color(self, item):

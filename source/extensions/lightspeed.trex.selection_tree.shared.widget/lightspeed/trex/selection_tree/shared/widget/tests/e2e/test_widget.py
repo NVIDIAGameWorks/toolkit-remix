@@ -33,9 +33,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
     async def tearDown(self):
         await wait_stage_loading()
 
-    async def __setup_widget(self):
-        window = ui.Window("TestSelectionTreeUI", height=800, width=400)
-        _SetupUI.DEFAULT_TREE_FRAME_HEIGHT = 700
+    async def __setup_widget(self, height=800):
+        window = ui.Window("TestSelectionTreeUI", height=height, width=400)
+        _SetupUI.DEFAULT_TREE_FRAME_HEIGHT = height - 100
         with window.frame:
             wid = _SetupUI("")
             wid.show(True)
@@ -236,6 +236,68 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await self.__destroy(_window, _wid)
 
+    async def test_append_and_delete_one_ref(self):
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 2)
+
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        self.assertEqual(len(item_file_meshes), 2)
+
+        await item_file_meshes[0].click()
+
+        window_name = "Select a reference file"
+
+        # The file picker window should now be opened (0 < len(widgets))
+        self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
+
+        select_button = ui_test.find(f"{window_name}//Frame/**/Button[*].text=='Select'")
+        dir_path_field = ui_test.find(f"{window_name}//Frame/**/StringField[*].identifier=='filepicker_directory_path'")
+
+        self.assertIsNotNone(select_button)
+        self.assertIsNotNone(dir_path_field)
+
+        # It takes a while for the tree to update
+        await ui_test.human_delay(1)
+        asset_path = _get_test_data("usd/ingested_assets/output/good/cube.usda")
+        await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(1)
+
+        await select_button.click()
+        await ui_test.human_delay()
+
+        ignore_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+
+        cancel_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNone(ignore_ingestion_button)
+        self.assertIsNone(cancel_ingestion_button)
+
+        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+
+        # delete
+        await delete_ref_images[1].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+
+        self.assertEqual(len(item_prims), 2)
+        self.assertEqual(len(item_file_meshes), 2)
+        self.assertEqual(len(item_instance_groups), 1)
+
+        await self.__destroy(_window, _wid)
+
     async def test_append_no_metadata_ref_ignore_ingest(self):
         await self.__ingest_wrong_asset_ignore_ingestion(
             _get_test_data("usd/ingested_assets/output/no_metadata/cube.usda")
@@ -415,6 +477,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNone(ignore_ingestion_button)
         self.assertIsNone(cancel_ingestion_button)
 
+        await ui_test.human_delay(3)
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        # the new added ref (with 4 sub prims) will be selected.
+        self.assertEqual(len(item_prims), 6)
+
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
         await ui_test.human_delay(3)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
@@ -435,10 +502,57 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await confirm_button.click()
         await ui_test.human_delay(3)
-        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
-        await ui_test.human_delay(3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
+
+        await self.__destroy(_window, _wid)
+
+    async def test_item_centered(self):
+        # setup
+        _window, _wid = await self.__setup_widget(height=300)  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+
+        number_items = 20
+        for _ in range(number_items):
+            item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+            await item_file_meshes[0].click()
+
+            window_name = "Select a reference file"
+
+            select_button = ui_test.find(f"{window_name}//Frame/**/Button[*].text=='Select'")
+            dir_path_field = ui_test.find(
+                f"{window_name}//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
+            )
+
+            # It takes a while for the tree to update
+            await ui_test.human_delay(1)
+            asset_path = _get_test_data("usd/ingested_assets/output/good/cube.usda")
+            await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
+            await ui_test.human_delay(1)
+
+            await select_button.click()
+            await ui_test.human_delay()
+
+        stage = usd_context.get_stage()
+        parent = stage.GetPrimAtPath("/RootNode/instances/inst_0AB745B8BEE1F16B_0")
+        sub_parent = parent.GetAllChildren()[10].GetAllChildren()[0]
+
+        usd_context.get_selection().set_selected_prim_paths([str(sub_parent.GetPath())], False)
+        await ui_test.human_delay(10)
+
+        tree_selection_scroll_frame = ui_test.find(
+            f"{_window.title}//Frame/**/ScrollingFrame[*].identifier=='TreeSelectionScrollFrame'"
+        )
+        items = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertIsNotNone(tree_selection_scroll_frame)
+        self.assertEqual(len(items), number_items + 5)  # ref has 4 prims + previous original mesh
+
+        # 2 pixels delta. 11 because we select the sub prim of the ref. 10 is the ref
+        self.assertTrue(
+            tree_selection_scroll_frame.center.y - 2 < items[11].center.y < tree_selection_scroll_frame.center.y + 2
+        )
 
         await self.__destroy(_window, _wid)

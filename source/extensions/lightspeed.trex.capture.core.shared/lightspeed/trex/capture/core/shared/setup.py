@@ -248,6 +248,8 @@ class Setup:
         async with self._semaphore_fetch_capture_progress:
             wrapped_fn = _async_wrap(functools.partial(Sdf.Layer.FindOrOpen, layer_path))
             _layer = await wrapped_fn()
+        if _layer is None:
+            return set(), set()
         hashes, grouped_hashes = self.get_captured_hashes(_layer, ignore_capture_check=True)
         captured_items = set()
         if hashes:
