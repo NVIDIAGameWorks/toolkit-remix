@@ -8,6 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import functools
+from typing import Any, Callable
 
 import omni.client
 from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER as _GAME_READY_ASSETS_FOLDER
@@ -219,7 +220,11 @@ class AssetReplacementsPane:
                             with self._mesh_properties_collapsable_frame:
                                 self._mesh_properties_widget = _MeshPropertiesWidget(self._context_name)
                             self._mesh_properties_collapsable_frame.root.set_collapsed_changed_fn(
-                                functools.partial(self.__on_collapsable_frame_changed, self._mesh_properties_widget)
+                                functools.partial(
+                                    self.__on_collapsable_frame_changed,
+                                    self._mesh_properties_widget,
+                                    refresh_fn=self._refresh_mesh_properties_widget,
+                                )
                             )
 
                             ui.Spacer(height=ui.Pixel(16))
@@ -243,7 +248,11 @@ class AssetReplacementsPane:
                                     )
                                 )
                             self._material_properties_collapsable_frame.root.set_collapsed_changed_fn(
-                                functools.partial(self.__on_collapsable_frame_changed, self._material_properties_widget)
+                                functools.partial(
+                                    self.__on_collapsable_frame_changed,
+                                    self._material_properties_widget,
+                                    refresh_fn=self._refresh_material_properties_widget,
+                                )
                             )
 
                             ui.Spacer(height=ui.Pixel(16))
@@ -261,8 +270,11 @@ class AssetReplacementsPane:
         self._refresh_mesh_properties_widget()
         self._refresh_material_properties_widget()
 
-    def __on_collapsable_frame_changed(self, widget, collapsed):
-        widget.show(not collapsed)
+    def __on_collapsable_frame_changed(self, widget, collapsed, refresh_fn: Callable[[], Any] = None):
+        value = not collapsed
+        widget.show(value)
+        if refresh_fn is not None and value:
+            refresh_fn()
 
     @property
     def selection_tree_widget(self):
@@ -298,8 +310,10 @@ class AssetReplacementsPane:
         )
 
     def _on_tree_selection_changed(self, items):
-        self._refresh_mesh_properties_widget()
-        self._refresh_material_properties_widget()
+        if not self._mesh_properties_collapsable_frame.root.collapsed:
+            self._refresh_mesh_properties_widget()
+        if not self._material_properties_collapsable_frame.root.collapsed:
+            self._refresh_material_properties_widget()
         self._mesh_properties_collapsable_frame.root.rebuild()
 
     def _refresh_mesh_properties_widget(self):

@@ -435,6 +435,10 @@ class ListModel(ui.AbstractItemModel):
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
         self.__children = []
+        self.__children_last_get_all_items = []
+        self.__children_last_get_all_items_last_result = []
+        self.__children_last_get_all_items_by_type = []
+        self.__children_last_get_all_items_by_type_result = {}
         self._stage = None
         self._ignore_refresh = False
         self._context_name = context_name
@@ -669,6 +673,9 @@ class ListModel(ui.AbstractItemModel):
         return result
 
     def get_all_items(self):
+        # opti cache
+        if self.__children == self.__children_last_get_all_items:
+            return self.__children_last_get_all_items_last_result
         result = []
 
         def get_children(_items):
@@ -677,6 +684,27 @@ class ListModel(ui.AbstractItemModel):
                 get_children(self.get_item_children(item))
 
         get_children(self.__children)
+        self.__children_last_get_all_items = self.__children
+        self.__children_last_get_all_items_last_result = result
+        return result
+
+    def get_all_items_by_type(self):
+        # opti cache
+        if self.__children == self.__children_last_get_all_items_by_type:
+            return self.__children_last_get_all_items_by_type_result
+        result = {}
+
+        def get_children(_items):
+            for item in _items:
+                typ = type(item)
+                if typ not in result:
+                    result[typ] = []
+                result[typ].append(item)
+                get_children(self.get_item_children(item))
+
+        get_children(self.__children)
+        self.__children_last_get_all_items_by_type = self.__children
+        self.__children_last_get_all_items_by_type_result = result
         return result
 
     def get_item_children(self, item):

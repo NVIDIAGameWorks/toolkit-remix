@@ -1,5 +1,5 @@
 [package]
-version = "1.0.0"
+version = "1.1.0"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -33,3 +33,24 @@ preview_image = "data/preview.png"
 
 [[python.module]]
 name = "lightspeed.trex.properties_pane.shared.mod_setup.widget"
+
+
+[[test]]
+
+args = [
+    "--/app/extensions/registryEnabled=1",
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--/app/file/ignoreUnsavedOnExit=1",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
+    "--no-window"
+]
+
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style",
+    "omni.flux.utils.widget",
+    "omni.kit.ui_test",
+    "omni.kit.test_suite.helpers",
+    "omni.usd"
+]

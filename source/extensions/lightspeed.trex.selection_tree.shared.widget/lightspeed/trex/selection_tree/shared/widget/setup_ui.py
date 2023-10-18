@@ -70,6 +70,7 @@ class SetupUI:
             "_sub_tree_delegate_delete_prim": None,
             "_light_creator_window": None,
             "_light_creator_widget": None,
+            "_fake_frame_for_scroll": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -170,17 +171,22 @@ class SetupUI:
                             name="PropertiesPaneSection",
                             horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,  # noqa E501
                             height=ui.Pixel(self.DEFAULT_TREE_FRAME_HEIGHT),
+                            identifier="TreeSelectionScrollFrame",
                         )
                         with self._tree_scroll_frame:
-                            self._tree_view = ui.TreeView(
-                                self._tree_model,
-                                delegate=self._tree_delegate,
-                                root_visible=False,
-                                header_visible=False,
-                                columns_resizable=False,
-                                style_type_name_override="TreeView.Selection",
-                            )
-                            self._tree_view.set_selection_changed_fn(self._on_tree_selection_changed)
+                            with ui.ZStack():
+                                self._tree_view = ui.TreeView(
+                                    self._tree_model,
+                                    delegate=self._tree_delegate,
+                                    root_visible=False,
+                                    header_visible=False,
+                                    columns_resizable=False,
+                                    style_type_name_override="TreeView.Selection",
+                                )
+                                self._tree_view.set_selection_changed_fn(self._on_tree_selection_changed)
+
+                                self._fake_frame_for_scroll = ui.Frame()
+
                         self._tree_scroll_frame.set_build_fn(
                             functools.partial(
                                 self._resize_tree_columns,
@@ -325,21 +331,23 @@ class SetupUI:
         stage_selection = self._context.get_selection().get_selected_prim_paths()
 
         selection = []
+        all_items_by_types = self._tree_model.get_all_items_by_type()
+
+        # select the item prim
+        prototypes_stage_selected_paths = self._core.get_corresponding_prototype_prims_from_path(stage_selection)
+        item_prims = all_items_by_types.get(_ItemPrim, [])
+        item_group_instances = all_items_by_types.get(_ItemInstancesMeshGroup, [])
+        for item in item_prims:
+            if item.path in prototypes_stage_selected_paths:
+                selection.append(item)
+
         # we select the instance in the tree
-        for item in self._tree_model.get_item_children_type(_ItemInstanceMesh):
+        for item in all_items_by_types.get(_ItemInstanceMesh, []):
             if item in selection:
                 continue
             for stage_selection_path in stage_selection:
                 if stage_selection_path.startswith(item.path) and item not in selection:
                     selection.append(item)
-
-        # select the item prim
-        prototypes_stage_selected_paths = self._core.get_corresponding_prototype_prims_from_path(stage_selection)
-        item_prims = self._tree_model.get_item_children_type(_ItemPrim)
-        item_group_instances = self._tree_model.get_item_children_type(_ItemInstancesMeshGroup)
-        for item in item_prims:
-            if item.path in prototypes_stage_selected_paths:
-                selection.append(item)
 
         # if this is a light, there is no instance/prototype
         regex_sub_light_pattern = re.compile(constants.REGEX_SUB_LIGHT_PATH)
@@ -354,7 +362,7 @@ class SetupUI:
                 selection.extend(item_group_instances)
 
         if self._previous_tree_selection:
-            current_ref_mesh_file = self._tree_model.get_item_children_type(_ItemReferenceFileMesh)
+            current_ref_mesh_file = all_items_by_types.get(_ItemReferenceFileMesh, [])
             # we remove instance because they are base on stage selection
             ref_file_mesh_items = []
             # if the last selection if a prim, we don't select the previous ref
@@ -378,15 +386,36 @@ class SetupUI:
 
         # we select the corresponding prim instance
         self._ignore_select_instance_prim_from_selected_items = True
-        await self.__deferred_expand(selection)
+        # we remove duplicated but keep the order
+        selection = list(dict.fromkeys(selection))
+
+        all_visible_items = await self.__deferred_expand(selection)
         if self._tree_view is not None:
             self._tree_view.selection = selection
+            first_item_prim = sorted([item for item in selection if isinstance(item, _ItemPrim)], key=lambda x: x.path)
+            if first_item_prim:
+                await self.scroll_to_item(first_item_prim[0], all_visible_items)
         self._previous_tree_selection = selection
-        self._tree_selection_changed(selection)
+        # no need to call it because we change the selection, _on_tree_selection_changed() will call it
+        # self._tree_selection_changed(selection)
         self._ignore_select_instance_prim_from_selected_items = False
         # for _ in range(2):
         #     await omni.kit.app.get_app().next_update_async()
         self.__refresh_delegate_gradients()
+
+    @omni.usd.handle_exception
+    async def scroll_to_item(self, item, all_visible_items):
+        idx_item = all_visible_items.index(item)
+        self._fake_frame_for_scroll.clear()
+        with self._fake_frame_for_scroll:
+            with ui.VStack():
+                ui.Spacer(height=idx_item * self._tree_delegate.DEFAULT_IMAGE_ICON_SIZE)
+                ui.Spacer(height=1)  # or bug
+                ui.Spacer(height=self._tree_delegate.DEFAULT_IMAGE_ICON_SIZE)
+                fake_spacer_for_scroll = ui.Spacer(height=self._tree_delegate.DEFAULT_IMAGE_ICON_SIZE)
+                ui.Spacer()
+
+        fake_spacer_for_scroll.scroll_here_y(0.5)
 
     def __refresh_delegate_gradients(self):
         for item in self._tree_view.selection if self._tree_view is not None else []:
@@ -426,8 +455,9 @@ class SetupUI:
                 }
             )
 
+        all_items_by_types = self._tree_model.get_all_items_by_type()
         # grab all current instance
-        instance_items = self._tree_model.get_item_children_type(_ItemInstanceMesh)
+        instance_items = all_items_by_types.get(_ItemInstanceMesh, [])
 
         # if we select a mesh ref or prim item, we keep the instance
         if len(items) == 1 and (
@@ -441,9 +471,13 @@ class SetupUI:
                         if instance_item.prim == item.prim:
                             items.append(instance_item)
                             break
+        # if there is no previous selection, check if there is an instance selected
+        if not [item for item in items if isinstance(item, _ItemInstanceMesh)] and instance_items:
+            # add the first instance
+            items.append(instance_items[0])
 
         # grab all current prims
-        prim_items = self._tree_model.get_item_children_type(_ItemPrim)
+        prim_items = all_items_by_types.get(_ItemPrim, [])
         # but if we select an instance, and a prim is selected, we keep the prim selected
         if len(items) == 1 and isinstance(items[0], _ItemInstanceMesh) and not items[0].parent.parent.is_light():
             for item in self._previous_tree_selection:
@@ -485,14 +519,14 @@ class SetupUI:
                 or isinstance(items[0], _ItemInstanceMesh)
             )
         ):
-            group_instances = self._tree_model.get_item_children_type(_ItemInstancesMeshGroup)
+            group_instances = all_items_by_types.get(_ItemInstancesMeshGroup, [])
             if group_instances:
                 items.append(group_instances[0])
 
         # but if we select the instance group, we select all instances
-        group_instances = self._tree_model.get_item_children_type(_ItemInstancesMeshGroup)
+        group_instances = all_items_by_types.get(_ItemInstancesMeshGroup, [])
         if set(group_instances).issubset(items) and not set(instance_items).issubset(items):
-            instance_items = self._tree_model.get_item_children_type(_ItemInstanceMesh)
+            instance_items = all_items_by_types.get(_ItemInstanceMesh, [])
             for instance_item in instance_items:
                 if instance_item not in items:
                     items.append(instance_item)
@@ -648,6 +682,7 @@ class SetupUI:
                     yield from get_items_to_expand([sel.parent])
 
         items_to_expand = list(set(get_items_to_expand(selection)))
+        all_visible_items = []
 
         def set_expanded(items):
             for item_ in items:
@@ -655,15 +690,20 @@ class SetupUI:
                 if item_ not in items_to_expand and not isinstance(item_, _ItemMesh):
                     continue
                 self._tree_view.set_expanded(item_, True, False)
-                set_expanded(self._tree_model.get_item_children(item_))
+                all_visible_items.append(item_)
+                children = self._tree_model.get_item_children(item_)
+                all_visible_items.extend(children)
+                set_expanded(children)
 
         if self._tree_view is None:
-            return
-        await omni.kit.app.get_app().next_update_async()
+            return []
         if self._tree_model is None:
-            return
+            return []
+        await omni.kit.app.get_app().next_update_async()  # for tests...
         set_expanded(self._tree_model.get_item_children(None))
-        return
+
+        result = [item for item in self._tree_model.get_all_items() if item in all_visible_items]
+        return result
 
     def _resize_tree_columns(self, tree_view, frame):
         tree_view.column_widths = [ui.Pixel(self._tree_scroll_frame.computed_width - 12)]

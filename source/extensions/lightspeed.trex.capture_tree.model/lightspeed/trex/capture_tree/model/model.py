@@ -15,6 +15,7 @@ from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCoreSet
 from omni import ui, usd
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.common import deferred_destroy_tasks as _deferred_destroy_tasks
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 from .items import CaptureTreeItem
@@ -160,5 +161,10 @@ class CaptureTreeModel(ui.AbstractItemModel):
         return _EventSubscription(self.__on_progress_updated, func)
 
     def destroy(self):
+        asyncio.ensure_future(self._deferred_destroy())
+
+    @usd.handle_exception
+    async def _deferred_destroy(self):
+        await _deferred_destroy_tasks([self._fetch_task])
         self.cancel_tasks()
         _reset_default_attrs(self)

@@ -2,6 +2,11 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.1.0] - 2022-10-16
+### Added
+- Refresh only when the frame is no collapsed
+- Added tests
+
 ## [1.0.1] - 2022-08-10
 ### Changed
 - Rename function

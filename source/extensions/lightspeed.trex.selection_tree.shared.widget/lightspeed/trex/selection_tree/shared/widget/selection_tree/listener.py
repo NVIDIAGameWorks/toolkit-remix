@@ -7,9 +7,11 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import re
 import typing
 from typing import Dict, List
 
+from lightspeed.common.constants import REGEX_HASH
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from pxr import Tf, Usd
 
@@ -25,6 +27,7 @@ class USDListener:
             setattr(self, attr, value)
         self.__models: List["ListModel"] = []
         self._listeners: Dict[Usd.Stage, Tf.Listener] = {}
+        self.__regex_hash = re.compile(REGEX_HASH)
 
     def _enable_listener(self, stage: Usd.Stage):
         """Enable the USD listener to see if an attribute is changed"""
@@ -43,16 +46,14 @@ class USDListener:
                 continue
 
             should_refresh = False
-            all_items = None
             for resynced_path in notice.GetResyncedPaths():
                 if "." in str(resynced_path):  # an attribute
                     continue
+                match = self.__regex_hash.match(str(resynced_path))
+                if not match:
+                    continue
                 prim = stage.GetPrimAtPath(resynced_path)
                 if not prim.IsValid():
-                    continue
-                if all_items is None:
-                    all_items = [item_prim.prim for item_prim in model.get_all_items() if hasattr(item_prim, "prim")]
-                if prim not in all_items:
                     continue
 
                 should_refresh = True

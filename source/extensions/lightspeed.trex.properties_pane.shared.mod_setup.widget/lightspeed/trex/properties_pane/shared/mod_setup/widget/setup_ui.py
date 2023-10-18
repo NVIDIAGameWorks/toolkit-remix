@@ -101,6 +101,7 @@ class ModSetupPane:
             "_capture_loading_frame": None,
             "_refresh_capture_detail_panel_callback_task": None,
             "_error_popup": None,
+            "_fake_frame_for_scroll": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -367,17 +368,20 @@ class ModSetupPane:
                                                                 name="PropertiesPaneSection",
                                                                 # height=ui.Pixel(self.DEFAULT_CAPTURE_TREE_FRAME_HEIGHT),
                                                                 horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,  # noqa E501
+                                                                identifier="TreeCaptureScrollFrame",
                                                             )
                                                             with self._tree_capture_scroll_frame:
-                                                                self._capture_tree_view = ui.TreeView(
-                                                                    self._capture_tree_model,
-                                                                    delegate=self._capture_tree_delegate,
-                                                                    root_visible=False,
-                                                                    header_visible=False,
-                                                                    columns_resizable=False,
-                                                                    mouse_hovered_fn=self._on_capture_tree_hovered,
-                                                                    selection_changed_fn=self._on_capture_tree_selection_changed,  # noqa E501
-                                                                )
+                                                                with ui.ZStack():
+                                                                    self._capture_tree_view = ui.TreeView(
+                                                                        self._capture_tree_model,
+                                                                        delegate=self._capture_tree_delegate,
+                                                                        root_visible=False,
+                                                                        header_visible=False,
+                                                                        columns_resizable=False,
+                                                                        mouse_hovered_fn=self._on_capture_tree_hovered,
+                                                                        selection_changed_fn=self._on_capture_tree_selection_changed,  # noqa E501
+                                                                    )
+                                                                    self._fake_frame_for_scroll = ui.Frame()
                                                             self._tree_capture_scroll_frame.set_build_fn(
                                                                 functools.partial(
                                                                     self._resize_capture_tree_columns,
@@ -703,7 +707,7 @@ class ModSetupPane:
                 self.__ignore_import_capture_layer = True
                 self._capture_tree_view_window.selection = [item]
                 self._capture_tree_view.selection = self._capture_tree_view_window.selection
-                await self.deferred_scroll_to_the_capture_item(item)
+                await self.scroll_to_item(item)
                 self.__ignore_import_capture_layer = False
                 found_current_layer = True
                 break
@@ -743,19 +747,20 @@ class ModSetupPane:
                 )
 
     @omni.usd.handle_exception
-    async def deferred_scroll_to_the_capture_item(self, item):
-        for _ in range(3):
-            await omni.kit.app.get_app().next_update_async()
-        items = self._capture_tree_model.get_item_children(None)
-        delta_scroll = self._tree_capture_scroll_frame.scroll_y_max / (len(items)) + 1
-        if item in items:
-            idx_item = items.index(item)
-            value = delta_scroll * idx_item
-            if self._tree_capture_window_scroll_frame:
-                # moving the scroll frame of the window will move the regular scroll frame
-                self._tree_capture_window_scroll_frame.scroll_y = value
-            else:
-                self._tree_capture_scroll_frame.scroll_y = value
+    async def scroll_to_item(self, item):
+        all_visible_items = self._capture_tree_model.get_item_children(None)
+        idx_item = all_visible_items.index(item)
+        await omni.kit.app.get_app().next_update_async()
+        self._fake_frame_for_scroll.clear()
+        with self._fake_frame_for_scroll:
+            with ui.VStack():
+                ui.Spacer(height=idx_item * self._capture_tree_delegate.DEFAULT_IMAGE_ICON_SIZE)
+                ui.Spacer(height=1)  # or bug
+                ui.Spacer(height=self._capture_tree_delegate.DEFAULT_IMAGE_ICON_SIZE)
+                fake_spacer_for_scroll = ui.Spacer(height=self._capture_tree_delegate.DEFAULT_IMAGE_ICON_SIZE)
+                ui.Spacer()
+
+        fake_spacer_for_scroll.scroll_here_y(0.5)
 
     @_ignore_function_decorator(attrs=["_ignore_capture_window_tree_selection_changed"])
     def _on_capture_window_tree_selection_changed(self, items):
