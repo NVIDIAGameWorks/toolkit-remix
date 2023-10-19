@@ -1,8 +1,45 @@
 ## Getting Started
 
+### Overview
+RTX Remix app is built using the Kit SDK: https://docs.omniverse.nvidia.com/kit/docs/kit-manual/latest/guide/kit_overview.html
+
+You need to read what is the Kit SDK (what is an extension, what is USD, and so on).
+
+You can learn Pixar USD with those websites:
+- https://learnusd.github.io/index.html
+- https://lucascheller.github.io/VFX-UsdSurvivalGuide/index.html
+- https://remedy-entertainment.github.io/USDBook/index.html
+
+RTX Remix app uses a "barebone" Kit that we extend with extensions that we code. Those extensions come from
+different repos (this one, Flux, etc etc...)
+
+
+### Repos
+The RTX Remix App is mainly built using 2 repos:
+- this one
+- Flux: https://gitlab-master.nvidia.com/omniverse/kit-extensions/kit-flux
+
+#### Flux
+Flux is a set of extensions that are not specific to the RTX Remix app, that can also be used anywhere else.
+
+Meaning that there is no specific implementation of any app into Flux.
+
+Example: we want the RTX Remix app to show a list of USD prims. What we can do here is:
+- create an extension in Flux that will show a list of things (with no implementation of USD)
+- create an extension in the RTX Remix app repo that will set the extension from Flux as a dependency, and implement
+the USD stuffs.
+
+Flux is like an "interface". Sometime Flux can also have some implementation when we see that those implementations
+are "common use/general".
+
+When there is something that we want to add to the RTX Remix app, and this thing is really specific to the RTX Remix
+app, we code the extension directly into this repo (like the layout of the app).
+
+#### Building
 1. Building the project for the first time:
-   1. Build project: `build.bat -r`
-   2. If required (recommended after switching branches) clean using: `build.bat -c`
+   1. Clone this repo
+   2. Build project: `build.bat -r`
+   3. If required (recommended after switching branches) clean using: `build.bat -c`
 2. Run:
    1. `_build\windows-x86_64\release\lightspeed.app.trex_dev.bat` for the dev version that has menus.
    2. `_build\windows-x86_64\release\lightspeed.app.trex.bat` for the end-user version.
@@ -10,7 +47,18 @@
 
 ## Developer Guides
 
-- **[Using Pycharm IDE](PYCHARM_GUIDE.md)**: For an intro on developing with Pycharm.
+### Quick start
+When you have to code something:
+1. Create a branch (generally we do `dev/your_name/your_branch_name`)
+2. Code
+3. Commit and push
+4. Create your MR
+5. Advertise your MR into the RTX Remix channels
+
+### More links
+
+- **[Using Pycharm IDE + debug](PYCHARM_GUIDE.md)**: For an intro on developing with Pycharm + how to debug.
+- **[How to profile](PROFILE_GUIDE.md)**: For an intro on how to profile.
 - **[Review Checklist](REVIEW_CHECKLIST.md)**: What to do as an engineer submitting merge requests.
 - **[Automated Testing](TESTING_GUIDELINES.md)**: Process for writing/deploying tests in lightspeed for kit applications.
 - **[Omniverse Dev Tips](OMNIVERSE_TIPS.md)**: Tips and tricks for developing on Omniverse from engineers.
@@ -129,3 +177,11 @@ If you add a new MD file, please also add it to the `sphinx_exclude_patterns` in
 + See [Nathan Cournia's repo tools example](https://gitlab-master.nvidia.com/omniverse/repo/repo_example)
 + See [Anton's Video Tutorials](https://drive.google.com/drive/folders/1XAmdhYQkTQlLwDqHOlxJD7k6waUxYAo7?usp=sharing) for Anton’s videos about the build systems.
 + See [Carbonite documentation](https://nv/carb-docs/latest)
+
+# Questions?
+If you have any question, please use the channels and not try to ask in private message to some people.
+
+Why?
+
+- Because any answer can be useful for others
+- You will have more help because multiple people are in those channels
