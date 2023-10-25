@@ -34,12 +34,12 @@
 [[dependency]]
 python = "../_build/target-deps/python"
 packages = [
-    "dominate==2.6.0",              # TODO
-    "pydantic==1.10.7",              # TODO
-    "torch==1.11.0",                # TODO
-    "torchvision==0.12.0",          # TODO
-    "toml==0.10.1",                 # http://nvbugs/3060676
-    "wandb==0.12.17",               # TODO
+    "dominate==2.6.0",              # SWIPAT filed under: http://nvbugs/4345466
+    "pydantic==1.10.7",             # SWIPAT filed under: http://nvbugs/4345470
+    "torch==1.11.0",                # SWIPAT filed under: http://nvbugs/4345475
+    "torchvision==0.12.0",          # SWIPAT filed under: http://nvbugs/4345478
+    "toml==0.10.1",                 # SWIPAT filed under: http://nvbugs/3060676
+    "wandb==0.12.17",               # SWIPAT filed under: http://nvbugs/4345481
     "watchdog==0.10.4",             # SWIPAT filed under: http://nvbugs/3194408
 ]
 target = "../_build/target-deps/pip_prebundle" # This folder will be linked into 'example.mixed_ext' extension (see premake file)
@@ -47,4 +47,3 @@ platforms = ["*-x86_64"]
 download_only = false
 append_to_install_folder = true
 gather_licenses_path = "../_build/PACKAGE-LICENSES/PIP-prebundled-LICENSES.txt"
-
