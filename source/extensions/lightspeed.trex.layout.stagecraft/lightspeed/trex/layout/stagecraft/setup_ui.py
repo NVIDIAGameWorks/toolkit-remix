@@ -103,28 +103,28 @@ class SetupUI(TrexLayout):
         self.__on_ctrl_y = _Event()
         self.__on_ctrl_z = _Event()
 
-    def subscribe_ctrl_s_released(self, fn):
+    def subscribe_ctrl_s_pressed(self, fn):
         """
         Return the object that will automatically unsubscribe when destroyed.
         Called when we click on a tool (change of the selected tool)
         """
         return _EventSubscription(self.__on_ctrl_s, fn)
 
-    def subscribe_ctrl_shift_s_released(self, fn):
+    def subscribe_ctrl_shift_s_pressed(self, fn):
         """
         Return the object that will automatically unsubscribe when destroyed.
         Called when we click on a tool (change of the selected tool)
         """
         return _EventSubscription(self.__on_ctrl_shift_s, fn)
 
-    def subscribe_ctrl_z_released(self, fn):
+    def subscribe_ctrl_z_pressed(self, fn):
         """
         Return the object that will automatically unsubscribe when destroyed.
         Called when we click on a tool (change of the selected tool)
         """
         return _EventSubscription(self.__on_ctrl_z, fn)
 
-    def subscribe_ctrl_y_released(self, fn):
+    def subscribe_ctrl_y_pressed(self, fn):
         """
         Return the object that will automatically unsubscribe when destroyed.
         Called when we click on a tool (change of the selected tool)
@@ -488,25 +488,25 @@ class SetupUI(TrexLayout):
         if (
             key == int(carb.input.KeyboardInput.Z)
             and modifiers == carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL
-            and not is_down
+            and is_down
         ):
             self.__on_ctrl_z()
         elif (
             key == int(carb.input.KeyboardInput.Y)
             and modifiers == carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL
-            and not is_down
+            and is_down
         ):
             self.__on_ctrl_y()
         elif (
             key == int(carb.input.KeyboardInput.S)
             and modifiers == carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL
-            and not is_down
+            and is_down
         ):
             self.__on_ctrl_s()
         elif (
             key == int(carb.input.KeyboardInput.S)
             and modifiers == carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL + carb.input.KEYBOARD_MODIFIER_FLAG_SHIFT
-            and not is_down
+            and is_down
         ):
             self.__on_ctrl_shift_s()
 

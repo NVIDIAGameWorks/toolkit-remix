@@ -247,7 +247,7 @@ class TestWizardWindow(AsyncTestCase):
         )
         await ui_test.human_delay(50)
         await picker_buttons[TestComponents.FILE_PICKER_FILENAME].input(
-            str(self.project_path.name), end_key=KeyboardInput.ENTER
+            str(self.project_path.name), end_key=KeyboardInput.DOWN
         )
         await ui_test.human_delay()
 
@@ -444,7 +444,7 @@ class TestWizardWindow(AsyncTestCase):
         )
         await ui_test.human_delay(50)
         await picker_buttons[TestComponents.FILE_PICKER_FILENAME].input(
-            str(self.project_path.name), end_key=KeyboardInput.ENTER
+            str(self.project_path.name), end_key=KeyboardInput.DOWN
         )
         await ui_test.human_delay()
 
@@ -493,7 +493,7 @@ class TestWizardWindow(AsyncTestCase):
         )
         await ui_test.human_delay(50)
         await picker_buttons[TestComponents.FILE_PICKER_FILENAME].input(
-            str(self.project_path.name), end_key=KeyboardInput.ENTER
+            str(self.project_path.name), end_key=KeyboardInput.DOWN
         )
         await ui_test.human_delay()
 

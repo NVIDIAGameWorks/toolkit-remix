@@ -23,7 +23,9 @@ from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
 from lightspeed.trex.viewports.shared.widget import SetupUI as ViewportUI
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit.test.async_unittest import AsyncTestCase
-from omni.kit.test_suite.helpers import arrange_windows, open_stage, wait_stage_loading
+from omni.kit.test_suite.helpers import arrange_windows, open_stage
+
+# from omni.kit.test_suite.helpers wait_stage_loading
 from pxr import Gf, Usd
 
 _CONTEXT_NAME = ""
@@ -53,7 +55,10 @@ class TestCore(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
+        # If the wait is not disabled, `test_open_stage_with_camera_in_metadata` freezes here when executed after
+        # another test in the suite.
+        # await wait_stage_loading()
+        pass
 
     def __get_camera_translate_from_stage(self, context) -> Optional[Tuple[float, float, float]]:
         stage = context.get_stage()
@@ -86,7 +91,7 @@ class TestCore(AsyncTestCase):
             # flaky test. Wait 100 frames to test
             i = 0
             while True:
-                # Check the camera value. Should be the same than metadata
+                # Check the camera value. Should be the same as metadata
                 translate_values = self.__get_camera_translate_from_stage(context)
 
                 metadata_value = self.__get_camera_translate_from_stage_custom_data(context)
@@ -96,8 +101,7 @@ class TestCore(AsyncTestCase):
                 i += 1
                 if i == 100:
                     raise ValueError("Camera is in the wrong position")
-
-            # now wait 100 frames and test again that the camera didnt moved
+            # now wait 100 frames and test again that the camera didn't move
             translate_values = self.__get_camera_translate_from_stage(context)
             metadata_value = self.__get_camera_translate_from_stage_custom_data(context)
             for _ in range(100):
