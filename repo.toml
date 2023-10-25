@@ -216,6 +216,7 @@ sphinx_exclude_patterns = [
     "source/extensions/lightspeed.stage*",
     "source/extensions/lightspeed.tool*",
     "source/extensions/lightspeed.trex.layout.*",
+    "source/extensions/lightspeed.trex.stage_view.shared.widget", # Kit is Executing extension-logic at the module-level which crashes docs generation
     "source/extensions/lightspeed.trex.viewports.*",
     "source/extensions/lightspeed.upscale*",
     "source/extensions/lightspeed.widget*",

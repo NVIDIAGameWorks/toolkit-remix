@@ -696,36 +696,46 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
 
         stage_mock = Mock()
 
-        stage_future = asyncio.Future()
-        stage_future.set_result(None)
-
         context_mock = Mock()
         context_mock.get_stage.return_value = stage_mock
-        context_mock.open_stage_async.return_value = stage_future
+
+        create_context_mock = Mock()
+        create_context_stage_mock = Mock()
+        create_context_mock.get_stage.return_value = create_context_stage_mock
 
         with patch.object(omni.usd, "get_context") as get_context_mock, patch.object(
             omni.usd, "create_context"
-        ) as create_context_mock:
+        ) as create_mock:
             get_context_mock.side_effect = [context_mock] if existing_context else [None, context_mock]
+            create_mock.return_value = create_context_mock
 
             # Act
             val = await packaging_core._initialize_usd_stage(context_name, root_mod_layer_path_mock)  # noqa PLW0212
 
         # Assert
-        self.assertEqual(stage_mock, val)
+        self.assertEqual(stage_mock if existing_context else create_context_stage_mock, val)
 
-        self.assertEqual(1 if existing_context else 2, get_context_mock.call_count)
-        self.assertEqual(0 if existing_context else 1, create_context_mock.call_count)
-        self.assertEqual(1, context_mock.get_stage.call_count)
-        self.assertEqual(1, context_mock.open_stage_async.call_count)
+        self.assertEqual(1, get_context_mock.call_count)
+        self.assertEqual(call(context_name), get_context_mock.call_args)
 
         if existing_context:
-            self.assertEqual(call(context_name), get_context_mock.call_args)
-        else:
-            self.assertListEqual([call(context_name), call(context_name)], get_context_mock.call_args_list)
-            self.assertEqual(call(context_name), create_context_mock.call_args)
+            self.assertEqual(0, create_mock.call_count)
+            self.assertEqual(1, context_mock.get_stage.call_count)
+            self.assertEqual(1, context_mock.open_stage.call_count)
+            self.assertEqual(0, create_context_mock.get_stage.call_count)
+            self.assertEqual(0, create_context_mock.open_stage.call_count)
 
-        self.assertEqual(call(root_mod_layer_path_mock), context_mock.open_stage_async.call_args)
+            self.assertEqual(call(root_mod_layer_path_mock), context_mock.open_stage.call_args)
+
+        else:
+            self.assertEqual(1, create_mock.call_count)
+            self.assertEqual(0, context_mock.get_stage.call_count)
+            self.assertEqual(0, context_mock.open_stage.call_count)
+            self.assertEqual(1, create_context_mock.get_stage.call_count)
+            self.assertEqual(1, create_context_mock.open_stage.call_count)
+
+            self.assertEqual(call(context_name), create_mock.call_args)
+            self.assertEqual(call(root_mod_layer_path_mock), create_context_mock.open_stage.call_args)
 
     async def __run_redirect_inside_package_directory(self, is_absolute: bool, is_outside: bool):
         # Arrange

@@ -29,7 +29,11 @@ args = [
     "--/app/hangDetector/enabled=0",
     "--/app/fastShutdown=1",
     "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
-    "--no-window"
+    "--no-window",
+    # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+    # Need to use a .kit file
+    "--merge-config=${kit}/../exts/lightspeed.event.capture_persp_to_persp/data/tests/lightspeed.event.capture_persp_to_persp.core_material.kit"
 ]
 
 dependencies = [

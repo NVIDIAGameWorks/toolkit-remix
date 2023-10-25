@@ -7,7 +7,6 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import asyncio
 import functools
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Set, Tuple
@@ -31,14 +30,10 @@ class Setup:
         self._default_attr = {
             "_layer_manager": None,
             "_subscription_stage_event": None,
-            "_semaphore_fetch_capture_progress": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
         self.__directory = None
-        self._semaphore_fetch_capture_progress = asyncio.Semaphore(
-            1
-        )  # TODO: to change when we don't have the Python threading deadlock
         self._context = omni.usd.get_context(context_name)
         self._layer_manager = _LayerManagerCore(context_name=context_name)
 
@@ -245,9 +240,8 @@ class Setup:
         Returns:
             Replaced hash from the current layer path, all hashes from the current layer path
         """
-        async with self._semaphore_fetch_capture_progress:
-            wrapped_fn = _async_wrap(functools.partial(Sdf.Layer.FindOrOpen, layer_path))
-            _layer = await wrapped_fn()
+        wrapped_fn = _async_wrap(functools.partial(Sdf.Layer.FindOrOpen, layer_path))
+        _layer = await wrapped_fn()
         if _layer is None:
             return set(), set()
         hashes, grouped_hashes = self.get_captured_hashes(_layer, ignore_capture_check=True)

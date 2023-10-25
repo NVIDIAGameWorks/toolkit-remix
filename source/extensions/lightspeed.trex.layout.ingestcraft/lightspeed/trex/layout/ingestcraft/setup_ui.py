@@ -281,10 +281,10 @@ class SetupUI(TrexLayout):
                 self.__set_frame_property_widget_width()
             self.__last_show_viewport_item = item
         elif action_name == _MassQueueTreeActions.SHOW_VALIDATION.value:
-            show_validation = kwargs.get("show_validation_checked", False)
-            if show_validation:
-                self._properties_panel.selection = [self._VALIDATION_TAB_NAME]
-                self._properties_panel.force_toggle(self._properties_panel.selection[0], True)
+            self._properties_panel.selection = [self._VALIDATION_TAB_NAME]
+            self._properties_panel.force_toggle(
+                self._properties_panel.selection[0], kwargs.get("show_validation_checked", False)
+            )
 
     def _on_mass_ingest_core_added(self, core: "_ManagerCore"):
         self._sub_mass_cores_started.append(

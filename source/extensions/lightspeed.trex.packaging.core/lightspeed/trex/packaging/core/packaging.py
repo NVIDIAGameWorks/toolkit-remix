@@ -231,17 +231,15 @@ class PackagingCore:
         # Make sure the context exists
         context = omni.usd.get_context(context_name)
         if not context:
-            omni.usd.create_context(context_name)
-            context = omni.usd.get_context(context_name)
+            context = omni.usd.create_context(context_name)
 
         if not context:
             return None
 
-        await context.open_stage_async(root_mod_layer_path)
+        # Using `open_stage_async` causes a crash here
+        context.open_stage(root_mod_layer_path)
 
-        stage = context.get_stage()
-
-        return stage
+        return context.get_stage()
 
     @omni.usd.handle_exception
     async def _filter_sublayers(

@@ -1,0 +1,10 @@
+[package]
+title = "Extension Test Material Environment"
+version = "1.0.0"
+keywords = ["app"]
+
+# Test Settings overrides used only in kit repo. Applied for ALL extension tests.
+# For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+# Need to use a .kit file
+[settings]
+renderer.mdl.searchPaths.templates = "${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"

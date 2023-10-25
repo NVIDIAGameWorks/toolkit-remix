@@ -67,10 +67,10 @@ class Setup:
             self._on_import_replacement_layer
         )
         self._sub_open_workfile = self._layout_instance.subscribe_open_work_file(self._on_open_workfile)
-        self._sub_key_undo = self._layout_instance.subscribe_ctrl_z_released(self._on_undo)
-        self._sub_key_redo = self._layout_instance.subscribe_ctrl_y_released(self._on_redo)
-        self._sub_key_save = self._layout_instance.subscribe_ctrl_s_released(self._on_save)
-        self._sub_key_save_as = self._layout_instance.subscribe_ctrl_shift_s_released(self._on_save_as)
+        self._sub_key_undo = self._layout_instance.subscribe_ctrl_z_pressed(self._on_undo)
+        self._sub_key_redo = self._layout_instance.subscribe_ctrl_y_pressed(self._on_redo)
+        self._sub_key_save = self._layout_instance.subscribe_ctrl_s_pressed(self._on_save)
+        self._sub_key_save_as = self._layout_instance.subscribe_ctrl_shift_s_pressed(self._on_save_as)
 
         self._sub_menu_workfile_save = self._menu_workfile_instance.subscribe_save(self._on_save)
         self._sub_menu_workfile_save_as = self._menu_workfile_instance.subscribe_save_as(self._on_save_as)
