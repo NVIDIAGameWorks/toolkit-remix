@@ -1,5 +1,5 @@
 [package]
-version = "1.1.0"
+version = "2.0.0"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -11,15 +11,26 @@ icon = "data/icon.png"
 category = "other"
 preview_image = "data/preview.png"
 
-
 [ui]
 name = "Lightspeed Event Layers Cleanup"
 
 [dependencies]
 "lightspeed.events_manager" = {}
-"lightspeed.layer_manager" = {}
 "omni.flux.utils.common" = {}
+"omni.kit.notification_manager" = {}
+"omni.kit.usd.layers" = {}
 "omni.usd" = {}
 
 [[python.module]]
 name = "lightspeed.event.layers_cleanup"
+
+[[test]]
+dependencies = [
+    "omni.kit.test_suite.helpers"
+]
+
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+]

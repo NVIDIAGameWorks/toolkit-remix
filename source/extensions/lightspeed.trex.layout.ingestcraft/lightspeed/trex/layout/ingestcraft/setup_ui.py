@@ -34,9 +34,6 @@ if TYPE_CHECKING:
     from omni.flux.validator.mass.core import Item as _MassCoreItem
 
 
-_SETTINGS_DISABLE_NOTIFICATIONS = "/exts/omni.kit.notification_manager/disable_notifications"
-
-
 class Pages(Enum):
     WORKSPACE_PAGE = "WorkspacePage"
 
@@ -62,8 +59,6 @@ class SetupUI(TrexLayout):
         self.__last_show_viewport_item = None
         self.__frame_property_widget_visibility = False
         self.__mass_frame_widget_visibility = True
-        self.__settings = carb.settings.get_settings()
-        self.__settings.set(_SETTINGS_DISABLE_NOTIFICATIONS, True)
 
         appwindow_stream = omni.appwindow.get_default_app_window().get_window_resize_event_stream()
         self._subcription_app_window_size_changed = appwindow_stream.create_subscription_to_pop(
@@ -271,7 +266,6 @@ class SetupUI(TrexLayout):
             if self.__last_show_viewport_item == item or self.__last_show_viewport_item is None:
                 value = not self._frame_viewport.visible
                 self._frame_viewport.visible = value
-                self.__settings.set(_SETTINGS_DISABLE_NOTIFICATIONS, not value)
                 self._splitter_viewport_highlight.enabled = any(
                     [self.__frame_property_widget_visibility, self._frame_viewport.visible]
                 )

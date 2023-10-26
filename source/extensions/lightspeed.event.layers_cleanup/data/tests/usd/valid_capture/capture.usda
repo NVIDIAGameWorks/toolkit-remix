@@ -1,0 +1,11 @@
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_layer_type = "capture"
+    }
+    subLayers = [
+    ]
+    timeCodesPerSecond = 24
+    upAxis = "Y"
+)
+
