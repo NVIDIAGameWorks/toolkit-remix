@@ -7,22 +7,42 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+from typing import List
+
 import carb
 import omni.client
+import omni.kit.app
+import omni.kit.notification_manager as _nm
+import omni.kit.usd.layers as _layers
 import omni.usd
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
-from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from pxr import Sdf
+
+_CONTEXT = "/exts/lightspeed.event.layers_cleanup/context"
 
 
 class EventLayersCleanupCore(_ILSSEvent):
     def __init__(self):
         super().__init__()
-        self.default_attr = {"_subscription": None}
+        self.default_attr = {
+            "_context_name": None,
+            "_context": None,
+            "_notification_manager": None,
+            "_stage_event_sub": None,
+            "_layer_event_sub": None,
+        }
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
-        self._context = omni.usd.get_context()
-        self.__layer_manager = LayerManagerCore()
+
+        settings = carb.settings.get_settings()
+        self._context_name = settings.get(_CONTEXT) or ""
+        self._context = omni.usd.get_context(self._context_name)
+
+        self._notification_manager = _nm.manager.NotificationManager()
+        self._notification_manager.on_startup()
+
+        self.__current_notification = None
 
     @property
     def name(self) -> str:
@@ -31,24 +51,68 @@ class EventLayersCleanupCore(_ILSSEvent):
 
     def _install(self):
         """Function that will create the behavior"""
-        self._subscription = self._context.get_stage_event_stream().create_subscription_to_pop(
-            self.__on_load_event, name="Recent file loaded"
+        self._uninstall()
+
+        self._stage_event_sub = self._context.get_stage_event_stream().create_subscription_to_pop(
+            self.__on_stage_event, name="StageEventListener"
+        )
+
+        layers = _layers.get_layers()
+        self._layer_event_sub = layers.get_event_stream().create_subscription_to_pop(
+            self.__on_layer_event, name="LayerEventListener"
         )
 
     def _uninstall(self):
         """Function that will delete the behavior"""
-        self._subscription = None
+        self._stage_event_sub = None
+        self._layer_event_sub = None
 
-    def __on_load_event(self, event):
+    def __on_stage_event(self, event):
         if event.type in [int(omni.usd.StageEventType.OPENED)]:
-            layer_replacement = self.__layer_manager.get_layer(LayerType.replacement)
-            # we only save stage that have a replacement layer
-            if not layer_replacement:
-                carb.log_verbose("Can't find the replacement layer in the current stage")
-                return
-            layer_replacement.ClearTimeCodesPerSecond()
-            layer_replacement.ClearStartTimeCode()
-            layer_replacement.ClearEndTimeCode()
+            self.__cleaup_layers()
+
+    def __on_layer_event(self, event):
+        payload = _layers.get_layer_event_payload(event)
+        if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
+            self.__cleaup_layers()
+
+    def __cleaup_layers(self):
+        root_layer = self._context.get_stage().GetRootLayer()
+        sublayer_paths = root_layer.subLayerPaths.copy()
+
+        invalid_paths = []
+        for sublayer_path in sublayer_paths:
+            # Make sure the sublayer path is pointing to a valid layer file
+            sublayer = Sdf.Layer.FindOrOpenRelativeToLayer(root_layer, sublayer_path)
+            if not sublayer:
+                invalid_paths.append(sublayer_path)
+
+        for invalid_path in invalid_paths:
+            sublayer_paths.remove(invalid_path)
+
+        root_layer.subLayerPaths = sublayer_paths
+
+        self._post_notification(invalid_paths)
+
+    def _post_notification(self, invalid_paths: List[str]):
+        if not invalid_paths:
+            return
+
+        if self.__current_notification:
+            self._notification_manager.remove_notification(self.__current_notification)
+            self.__current_notification.dismiss()
+
+        message_details = "\n".join([f"- {p}" for p in invalid_paths])
+        if len(invalid_paths) > 1:
+            message = f"The following sublayer paths are invalid and were cleaned up:\n{message_details}"
+        else:
+            message = f"The following sublayer path is invalid and was cleaned up:\n{message_details}"
+
+        notification = _nm.notification_info.NotificationInfo(
+            message, hide_after_timeout=False, status=_nm.NotificationStatus.WARNING
+        )
+        self.__current_notification = self._notification_manager.post_notification(notification)
+        carb.log_warn(message)
 
     def destroy(self):
         _reset_default_attrs(self)
