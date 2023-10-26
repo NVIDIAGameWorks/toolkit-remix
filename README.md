@@ -45,6 +45,17 @@ app, we code the extension directly into this repo (like the layout of the app).
    2. `_build\windows-x86_64\release\lightspeed.app.trex.bat` for the end-user version.
    3. If you work on a specific sub-app (IngestCraft, TextureCraft...), you can run the sub-app directly like `_build\windows-x86_64\release\lightspeed.app.trex.ingestcraft.bat`
 
+##### Commonly-Used Flags
+
+- Disable Sentry for local development *(Avoid creating Sentry tickets when working on bugs or features)*:
+  - `--/telemetry/enableSentry=false` 
+- Disable Driver-Version check *(Avoid Kit crashing on startup when an unsupported driver version is detected)*
+  - `--/rtx/verifyDriverVersion/enabled=false`
+- Enable the PyCharm Debugger *(See the [PYCHARM_GUIDE](PYCHARM_GUIDE.md) for more details)*:  
+  - `--/app/extensions/registryEnabled=1 `
+  - `--enable omni.kit.debug.pycharm`
+  - `--/exts/omni.kit.debug.pycharm/pycharm_location="C:\Program Files\JetBrains\PyCharm 2023.2"` *(The file path should be modified to point to your PyCharm Installation)*
+
 ## Developer Guides
 
 ### Quick start
