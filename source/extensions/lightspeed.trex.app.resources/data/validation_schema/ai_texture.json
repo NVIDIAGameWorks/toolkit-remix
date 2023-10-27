@@ -1,0 +1,53 @@
+{
+    "name": "Color to PBR",
+    "context_plugin":
+        {
+            "name": "TextureImporter",
+            "data": {
+                "context_name": "texturecraft",
+                "input_files": [],
+                "output_directory": "",
+                "allow_empty_input_files_list": true,
+                "data_flows": [{"name": "InOutData", "push_input_data": true}],
+                "hide_context_ui": true,
+                "expose_mass_ui": true,
+                "cook_mass_template": true
+            }
+        },
+    "check_plugins": [
+        {
+            "name": "MaterialShaders",
+            "selector_plugins": [{"name": "AllMaterials", "data": {}}],
+            "data": {"shader_subidentifiers": {"AperturePBR_Translucent": "translucent|glass|trans", "AperturePBR_Opacity": ".*"}},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "CurrentStage", "data": {}}
+        },
+        {
+            "name": "ConvertToOctahedral",
+            "selector_plugins": [{"name": "AllShaders", "data": {}}],
+            "data": {},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "CurrentStage", "data": {}}
+        },
+        {
+            "name": "ConvertToDDS",
+            "selector_plugins": [{"name": "AllShaders", "data": {}}],
+            "data": {"data_flows": [{"name": "InOutData", "push_output_data": true}]},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "CurrentStage", "data": {}}
+        },
+        {
+            "name": "MassTexturePreview",
+            "selector_plugins": [{"name": "Nothing", "data": {}}],
+            "data": {"expose_mass_queue_action_ui":  true},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "CurrentStage", "data": {}}
+        }
+    ],
+    "resultor_plugins": [
+        {
+            "name": "FileMetadataWritter",
+            "data": {}
+        }
+    ]
+}

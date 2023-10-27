@@ -1,5 +1,5 @@
 [package]
-version = "1.0.0"
+version = "2.0.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix layout for the StageCraft"
 description = "Layout for NVIDIA RTX Remix StageCraft App"
@@ -11,18 +11,30 @@ category = "other"
 preview_image = "data/preview.png"
 
 [dependencies]
-"lightspeed.color_to_normal.core" = {}
-"lightspeed.color_to_roughness.core" = {}
 "lightspeed.common" = {}
-"lightspeed.error_popup.window" = {}
-"lightspeed.layer_helpers" = {}
-"lightspeed.progress_popup.window" = {}
 "lightspeed.trex.contexts" = {}
-"lightspeed.trex.layout.shared" = {}
-"lightspeed.trex.utils.widget" = {}
-"lightspeed.upscale.core" = {}
-"omni.ui" = {}
-"omni.usd" = {}
+"lightspeed.trex.layout.shared.mass_ingestion" = {}
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style",
+    "omni.flux.validator.plugin.check.usd",
+    "omni.flux.validator.plugin.context.usd_stage",
+    "omni.flux.validator.plugin.selector.usd",
+    "omni.flux.validator.plugin.resultor.file"
+]
+
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
+    # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+    # Need to use a .kit file
+    "--merge-config=${kit}/../exts/lightspeed.trex.layout.texturecraft/data/tests/lightspeed.trex.layout.texturecraft.core_material.kit"
+]
 
 [[python.module]]
 name = "lightspeed.trex.layout.texturecraft"

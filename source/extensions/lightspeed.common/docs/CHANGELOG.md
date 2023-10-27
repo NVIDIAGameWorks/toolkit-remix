@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.0] - 2023-10-25
+### Added
+- Added texture constant
+
 ## [0.5.0] - 2023-10-10
 ### Add
 - Add global event key(s)

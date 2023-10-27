@@ -26,7 +26,7 @@ from lightspeed.trex.components_pane.stagecraft.models import EnumItems as Compo
 from lightspeed.trex.contexts import get_instance as trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as TrexContexts
 from lightspeed.trex.footer.stagecraft.models import StageCraftFooterModel
-from lightspeed.trex.layout.shared import SetupUI as TrexLayout
+from lightspeed.trex.layout.shared.base import SetupUI as TrexLayout
 from lightspeed.trex.menu.workfile import get_instance as get_burger_menu_instance
 from lightspeed.trex.properties_pane.stagecraft.widget import SetupUI as PropertyPanelUI
 from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator

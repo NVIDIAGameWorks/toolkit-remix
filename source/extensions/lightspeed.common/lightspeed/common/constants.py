@@ -147,7 +147,10 @@ MODEL_INGESTION_SCHEMA_PATH = "${kit}/../exts/lightspeed.trex.app.resources/data
 MATERIAL_INGESTION_SCHEMA_PATH = (
     "${kit}/../exts/lightspeed.trex.app.resources/data/validation_schema/material_ingestion.json"
 )
+TEXTURE_SCHEMA_PATH = "${kit}/../exts/lightspeed.trex.app.resources/data/validation_schema/ai_texture.json"
+
 INGESTION_SCHEMA_PATHS = [MODEL_INGESTION_SCHEMA_PATH, MATERIAL_INGESTION_SCHEMA_PATH]
+TEXTURE_SCHEMA_PATHS = [TEXTURE_SCHEMA_PATH]
 
 ASSET_NEED_INGEST_MESSAGE = (
     "The selected asset was not ingested or modified since it was last ingested.\n\n"
