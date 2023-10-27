@@ -23,7 +23,10 @@ args = [
     "--/app/fastShutdown=1",
     "--no-window",
     "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
-    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+    # Need to use a .kit file
+    "--merge-config=${kit}/../exts/lightspeed.trex.control.ingestcraft/data/tests/lightspeed.trex.control.ingestcraft.core_material.kit"
 ]
 
 [[python.module]]

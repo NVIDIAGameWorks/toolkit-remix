@@ -10,4 +10,4 @@ description = "Shared layout for NVIDIA RTX Remix App"
 "omni.ui" = {}
 
 [[python.module]]
-name = "lightspeed.trex.layout.shared"
+name = "lightspeed.trex.layout.shared.base"
