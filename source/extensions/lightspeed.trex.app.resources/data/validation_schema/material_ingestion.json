@@ -25,14 +25,27 @@
         {
             "name": "ConvertToOctahedral",
             "selector_plugins": [{"name": "AllShaders", "data": {}}],
-            "data": {},
+            "resultor_plugins": [{
+                "name": "FileCleanup",
+                "data": {"channel": "cleanup_files_normal", "cleanup_output": false}
+            }],
+            "data": {"data_flows": [
+                {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files_normal"}
+            ]},
             "stop_if_fix_failed": true,
             "context_plugin": {"name": "CurrentStage", "data": {}}
         },
         {
             "name": "ConvertToDDS",
             "selector_plugins": [{"name": "AllShaders", "data": {}}],
-            "data": {"data_flows": [{"name": "InOutData", "push_output_data": true}]},
+            "resultor_plugins": [{
+                "name": "FileCleanup",
+                "data": {"channel": "cleanup_files", "cleanup_output": false}
+            }],
+            "data": {"data_flows": [
+                {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files"},
+                {"name": "InOutData", "push_output_data": true, "channel": "write_metadata"}
+            ]},
             "stop_if_fix_failed": true,
             "context_plugin": {"name": "CurrentStage", "data": {}}
         },
@@ -47,7 +60,7 @@
     "resultor_plugins": [
         {
             "name": "FileMetadataWritter",
-            "data": {}
+            "data": {"channel": "write_metadata"}
         }
     ]
 }
