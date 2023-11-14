@@ -9,12 +9,13 @@
                 "output_directory": "",
                 "allow_empty_input_files_list": true,
                 "data_flows": [{"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "write_metadata"}],
-                "output_usd_extension": "usda",
+                "output_usd_extension": "usd",
                 "hide_context_ui": true,
                 "ignore_unbound_bones": false,
                 "expose_mass_ui": true,
                 "expose_mass_queue_action_ui": true,
-                "cook_mass_template": true
+                "cook_mass_template": true,
+                "close_stage_on_exit": true
             }
         },
     "check_plugins": [
@@ -23,14 +24,14 @@
             "selector_plugins": [{"name": "AllMeshes", "data": {}}],
             "data": {},
             "stop_if_fix_failed": true,
-            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
         },
         {
             "name": "MaterialShaders",
             "selector_plugins": [{"name": "AllMaterials", "data": {}}],
             "data": {"shader_subidentifiers": {"AperturePBR_Translucent": "translucent|glass|trans", "AperturePBR_Opacity": ".*"}},
             "stop_if_fix_failed": true,
-            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
         },
         {
             "name": "ValueMapping",
@@ -38,7 +39,7 @@
             "data": {
                 "attributes":  {"inputs:emissive_intensity":  [{"operator": "=", "input_value": 10000.0, "output_value": 1.0}]}
             },
-            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
         },
         {
             "name": "ConvertToOctahedral",
@@ -51,7 +52,7 @@
                 {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files_normal"}
             ]},
             "stop_if_fix_failed": true,
-            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
         },
         {
             "name": "ConvertToDDS",
@@ -65,42 +66,42 @@
                 {"name": "InOutData", "push_output_data": true, "channel": "write_metadata"}
             ]},
             "stop_if_fix_failed": true,
-            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
         },
         {
             "name": "RelativeAssetPaths",
             "selector_plugins": [{"name": "AllPrims", "data": {}}],
             "data": {},
             "stop_if_fix_failed": true,
-            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
         },
         {
             "name": "RelativeReferences",
             "selector_plugins": [{"name": "AllPrims", "data": {}}],
             "data": {},
             "stop_if_fix_failed": true,
-            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true}}
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": false}}
         },
         {
             "name": "WrapRootPrims",
             "selector_plugins": [{"name": "Nothing", "data": {}}],
             "data": {"wrap_prim_name": "XForms"},
             "stop_if_fix_failed": true,
-            "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true}}
+            "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true, "close_stage_on_exit": false}}
         },
         {
             "name": "ApplyUnitScale",
             "selector_plugins": [{"name": "RootPrims", "data": {}}],
             "data": {"meters_per_unit_target":  1, "expose_mass_ui": true},
             "stop_if_fix_failed": true,
-            "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true}}
+            "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true, "close_stage_on_exit": false}}
         },
         {
             "name": "WrapRootPrims",
             "selector_plugins": [{"name": "Nothing", "data": {}}],
             "data": {"wrap_prim_name": "ReferenceTarget"},
             "stop_if_fix_failed": true,
-            "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true}}
+            "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true, "close_stage_on_exit": false}}
         }
     ],
     "resultor_plugins": [
