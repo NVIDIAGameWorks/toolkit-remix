@@ -13,11 +13,11 @@ import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.layer_types import LayerType
 from lightspeed.trex.components_pane.stagecraft.models import create_all_items as _create_all_items
-from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
-from lightspeed.trex.utils.common import sandwich_attrs_function_decorator as _sandwich_attrs_function_decorator
 from omni.flux.tree_panel.widget import PanelOutlinerWidget as _PanelOutlinerWidget
 from omni.flux.tree_panel.widget.tree.model import Model as _Model
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
+from omni.flux.utils.common.decorators import sandwich_attrs_function_decorator as _sandwich_attrs_function_decorator
 
 
 class SetupUI:

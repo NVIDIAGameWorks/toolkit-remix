@@ -19,8 +19,8 @@ from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
-from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from pxr import Gf, Sdf, Usd
 
 _CONTEXT = "/exts/lightspeed.event.capture_persp_to_persp/context"

@@ -22,9 +22,9 @@ from lightspeed.trex.contexts import get_instance as trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as TrexContexts
 from lightspeed.trex.layout.shared.base import SetupUI as _BaseLayout
 from lightspeed.trex.stage_view.shared.widget import SetupUI as _StageViewWidget
-from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from lightspeed.trex.viewports.shared.widget import SetupUI as ViewportUI
 from omni.flux.tabbed.widget import SetupUI as _TabbedFrame
+from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.validator.mass.queue.widget import Actions as _MassQueueTreeActions
 from omni.flux.validator.mass.widget import ValidatorMassWidget as _ValidatorMassWidget
 

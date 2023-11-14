@@ -25,9 +25,6 @@ from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
 from lightspeed.trex.capture_tree.model import CaptureTreeDelegate, CaptureTreeModel
 from lightspeed.trex.project_wizard.window import ProjectWizardWindow as _ProjectWizardWindow
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCoreSetup
-from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
-from lightspeed.trex.utils.common import ignore_function_decorator_async as _ignore_function_decorator_async
-from lightspeed.trex.utils.common import sandwich_attrs_function_decorator as _sandwich_attrs_function_decorator
 from lightspeed.trex.utils.widget import TrexMessageDialog
 from omni.flux.property_widget_builder.model.file import FileAttributeItem as _FileAttributeItem
 from omni.flux.property_widget_builder.model.file import FileDelegate as _FileDelegate
@@ -37,6 +34,9 @@ from omni.flux.property_widget_builder.widget import PropertyWidget as _Property
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
+from omni.flux.utils.common.decorators import ignore_function_decorator_async as _ignore_function_decorator_async
+from omni.flux.utils.common.decorators import sandwich_attrs_function_decorator as _sandwich_attrs_function_decorator
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
