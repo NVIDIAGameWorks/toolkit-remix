@@ -672,6 +672,45 @@ class ListModel(ui.AbstractItemModel):
         get_children(self.__children)
         return result
 
+    def get_first_item_parent_type(
+        self,
+        item: Union[
+            ItemMesh,
+            ItemReferenceFileMesh,
+            ItemAddNewReferenceFileMesh,
+            ItemInstancesMeshGroup,
+            ItemInstanceMesh,
+            ItemPrim,
+        ],
+        item_type: Type[
+            Union[
+                ItemMesh,
+                ItemReferenceFileMesh,
+                ItemAddNewReferenceFileMesh,
+                ItemInstancesMeshGroup,
+                ItemInstanceMesh,
+                ItemPrim,
+            ]
+        ],
+    ) -> Optional[
+        Union[
+            ItemMesh,
+            ItemReferenceFileMesh,
+            ItemAddNewReferenceFileMesh,
+            ItemInstancesMeshGroup,
+            ItemInstanceMesh,
+            ItemPrim,
+        ]
+    ]:
+        def get_parent(_item):
+            if isinstance(_item, item_type):
+                return _item
+            if hasattr(_item, "parent"):
+                return get_parent(_item.parent)
+            return None
+
+        return get_parent(item)
+
     def get_all_items(self):
         # opti cache
         if self.__children == self.__children_last_get_all_items:

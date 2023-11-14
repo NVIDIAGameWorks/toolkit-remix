@@ -88,6 +88,7 @@ PIX2PIX_RESULTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("results"))
 REGEX_IN_INSTANCE_PATH = (
     f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa PLW1401
 )
+REGEX_IN_MESH_PATH = f"^(.*)({MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa PLW1401
 REGEX_MESH_PATH = f"^(.*)({MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
 REGEX_INSTANCE_PATH = f"^(.*)({INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
 REGEX_HASH = f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX}|{MATERIAL_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*(.*)$"  # noqa E501

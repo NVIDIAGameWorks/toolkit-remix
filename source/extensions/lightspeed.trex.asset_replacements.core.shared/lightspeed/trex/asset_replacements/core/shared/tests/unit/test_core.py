@@ -7,6 +7,7 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import omni.kit.commands
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit.test.async_unittest import AsyncTestCase
@@ -79,4 +80,46 @@ class TestAssetReplacementsCoreWidget(AsyncTestCase):
                 ]
             ),
             ["/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"],
+        )
+
+    async def test_filter_transformable_stage_light(self):
+        core = _AssetReplacementsCore("")
+        # create random light under light
+        omni.kit.commands.execute(
+            "CreatePrim",
+            prim_type="CylinderLight",
+            prim_path="/RootNode/lights/light_9907D0B07D040077/Cylinder01",
+            select_new_prim=False,
+        )
+        # create random light under mesh
+        omni.kit.commands.execute(
+            "CreatePrim",
+            prim_type="CylinderLight",
+            prim_path="/RootNode/meshes/mesh_BAC90CAA733B0859/Cylinder02",
+            select_new_prim=False,
+        )
+        # create random light under instance
+        omni.kit.commands.execute(
+            "CreatePrim",
+            prim_type="CylinderLight",
+            prim_path="/RootNode/instances/inst_BAC90CAA733B0859_0/Cylinder03",
+            select_new_prim=False,
+        )
+
+        # under light
+        self.assertEqual(
+            core.filter_transformable_prims([Sdf.Path("/RootNode/lights/light_9907D0B07D040077/Cylinder01")]),
+            ["/RootNode/lights/light_9907D0B07D040077/Cylinder01"],
+        )
+
+        # under mesh
+        self.assertEqual(
+            core.filter_transformable_prims([Sdf.Path("/RootNode/meshes/mesh_BAC90CAA733B0859/Cylinder02")]),
+            ["/RootNode/meshes/mesh_BAC90CAA733B0859/Cylinder02"],
+        )
+
+        # under instance
+        self.assertEqual(
+            core.filter_transformable_prims([Sdf.Path("/RootNode/instances/inst_BAC90CAA733B0859_0/Cylinder03")]),
+            [],
         )
