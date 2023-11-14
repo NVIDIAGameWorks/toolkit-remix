@@ -262,7 +262,12 @@ class SetupUI:
             if not prim.IsValid():
                 continue
             to_select.append(item_mesh.path)
-        self._core.select_prim_paths(to_select)
+
+        if self._core.get_selected_prim_paths() == to_select:
+            # we force the refresh of the tree
+            self.refresh()
+        else:
+            self._core.select_prim_paths(to_select)
 
     def _on_delete_reference(self, item: _ItemReferenceFileMesh):
         stage = self._context.get_stage()
@@ -573,7 +578,7 @@ class SetupUI:
                 validation_failed_callback=self.__show_error_not_usd_file,
             )
         elif add_light_selected:  # if add light was clicked
-            self.__show_light_creator_window(add_light_selected[0], items)
+            self.__show_light_creator_window(add_light_selected[0])
 
         self._tree_selection_changed(items)
 
@@ -583,11 +588,15 @@ class SetupUI:
             disable_cancel_button=True,
         )
 
-    def __show_light_creator_window(self, add_item: _ItemAddNewLiveLight, selected_items: List[_ItemPrim]):
-        def _hide():
+    def __show_light_creator_window(self, add_item: _ItemAddNewLiveLight):
+        async def _deferred_hide():
+            await omni.kit.app.get_app().next_update_async()
             if self._light_creator_window:
                 self._light_creator_window.frame.clear()
                 self._light_creator_window.visible = False
+
+        def _hide():
+            asyncio.ensure_future(_deferred_hide())
 
         self._light_creator_window = ui.Window(
             "Light creator",
@@ -603,10 +612,7 @@ class SetupUI:
                 | ui.WINDOW_FLAGS_MODAL
             ),
         )
-        if selected_items:
-            under_path = selected_items[0].path  # we take the first selection
-        else:
-            under_path = add_item.parent.path
+        under_path = add_item.parent.path
         with self._light_creator_window.frame:
             self._light_creator_widget = _LightCreatorWidget(
                 self._context_name, create_under_path=under_path, callback=_hide

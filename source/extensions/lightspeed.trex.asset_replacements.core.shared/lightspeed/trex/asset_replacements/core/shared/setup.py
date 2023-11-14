@@ -28,7 +28,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.validator.factory import BASE_HASH_KEY as _BASE_HASH_KEY
 from omni.flux.validator.factory import VALIDATION_PASSED as _VALIDATION_PASSED
 from omni.usd.commands import remove_prim_spec as _remove_prim_spec
-from pxr import Sdf, Usd, UsdGeom, UsdSkel
+from pxr import Sdf, Usd, UsdGeom, UsdLux, UsdSkel
 
 if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
@@ -686,6 +686,7 @@ class Setup:
     def filter_transformable_prims(self, paths: Optional[List[Sdf.Path]]):
         transformable = []
         regex_in_instance = re.compile(constants.REGEX_IN_INSTANCE_PATH)
+        regex_in_mesh = re.compile(constants.REGEX_IN_MESH_PATH)
         regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
         for path in paths:
             prim = self._context.get_stage().GetPrimAtPath(path)
@@ -695,10 +696,15 @@ class Setup:
                 # if this is a light instance, we add it. We can move light instance directly
                 transformable.append(str(path))
                 continue
-            if regex_in_instance.match(str(prim.GetPath())):
+            if regex_in_instance.match(str(prim.GetPath())) or (
+                regex_in_mesh.match(str(prim.GetPath())) and prim.HasAPI(UsdLux.LightAPI)
+                if hasattr(UsdLux, "LightAPI")
+                else prim.IsA(UsdLux.Light)
+            ):
                 # enable the transform manip only for lights and prim in instances (and light instance)
                 # we don't allow moving prim in mesh directly, a prim in an instance has to be selected
                 # we don't allow moving an instance directly
+                # enable also for live light in mesh
                 if self.prim_is_from_a_capture_reference(prim):
                     # prim from capture can't be moved
                     continue

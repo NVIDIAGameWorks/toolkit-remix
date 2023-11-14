@@ -298,6 +298,166 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await self.__destroy(_window, _wid)
 
+    async def test_append_and_delete_two_stage_lights_on_mesh(self):
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 2)
+
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        self.assertEqual(len(item_file_meshes), 2)
+
+        await item_file_meshes[1].click()
+
+        window_name = "Light creator"
+
+        # The file picker window should now be opened (0 < len(widgets))
+        self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
+
+        light_disk_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDisk'")
+        light_distant_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDistant'")
+
+        self.assertIsNotNone(light_disk_button)
+        self.assertIsNotNone(light_distant_button)
+
+        # create the light
+        await light_disk_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+
+        self.assertEqual(len(item_prims), 2)
+        self.assertEqual(item_prims[1].widget.text, "DiskLight")
+        self.assertEqual(len(item_file_meshes), 2)
+        self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
+
+        # we add another light
+        await item_file_meshes[1].click()
+        light_distant_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDistant'")
+        # create the light
+        await light_distant_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        self.assertEqual(len(item_prims), 3)
+        self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
+
+        # now remove 1 light
+        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+        self.assertEqual(len(delete_ref_images), 3)
+
+        # delete
+        await delete_ref_images[1].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 2)
+
+        # now remove 1 light
+        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+        self.assertEqual(len(delete_ref_images), 2)
+
+        # delete
+        await delete_ref_images[1].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 1)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_append_and_delete_two_stage_lights_on_light(self):
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/lights/light_9907D0B07D040077"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+
+        self.assertEqual(len(item_prims), 0)
+
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        self.assertEqual(len(item_file_meshes), 1)
+
+        await item_file_meshes[0].click()
+
+        window_name = "Light creator"
+
+        # The file picker window should now be opened (0 < len(widgets))
+        self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
+
+        light_disk_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDisk'")
+        light_distant_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDistant'")
+
+        self.assertIsNotNone(light_disk_button)
+        self.assertIsNotNone(light_distant_button)
+
+        # create the light
+        await light_disk_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+
+        self.assertEqual(len(item_prims), 1)
+        self.assertEqual(item_prims[0].widget.text, "DiskLight")
+        self.assertEqual(len(item_file_meshes), 1)
+        self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
+
+        # we add another light
+        await item_file_meshes[0].click()
+        light_distant_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDistant'")
+        # create the light
+        await light_distant_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        self.assertEqual(len(item_prims), 2)
+        self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
+
+        # now remove 1 light
+        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+        self.assertEqual(len(delete_ref_images), 2)
+
+        # delete
+        await delete_ref_images[0].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+
+        self.assertEqual(len(item_prims), 1)
+
+        # now remove 1 light
+        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+        self.assertEqual(len(delete_ref_images), 1)
+
+        # delete
+        await delete_ref_images[0].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 0)
+
+        await self.__destroy(_window, _wid)
+
     async def test_append_no_metadata_ref_ignore_ingest(self):
         await self.__ingest_wrong_asset_ignore_ingestion(
             _get_test_data("usd/ingested_assets/output/no_metadata/cube.usda")
