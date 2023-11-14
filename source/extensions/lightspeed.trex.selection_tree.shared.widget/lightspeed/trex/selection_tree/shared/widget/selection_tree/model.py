@@ -19,8 +19,8 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
-from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.kit.usd.layers import LayerEventType, get_layer_event_payload, get_layers
 from pxr import Usd, UsdGeom, UsdLux
 

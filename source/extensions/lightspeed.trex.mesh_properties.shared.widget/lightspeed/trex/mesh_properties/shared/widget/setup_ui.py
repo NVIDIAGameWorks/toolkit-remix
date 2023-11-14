@@ -28,7 +28,6 @@ from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import It
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
     ItemReferenceFileMesh as _ItemReferenceFileMesh,
 )
-from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from lightspeed.trex.utils.common.file_path import (
     is_usd_file_path_valid_for_filepicker as _is_usd_file_path_valid_for_filepicker,
 )
@@ -38,6 +37,7 @@ from omni.flux.properties_pane.transformation.usd.widget import TransformPropert
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from pxr import UsdGeom, UsdLux
 

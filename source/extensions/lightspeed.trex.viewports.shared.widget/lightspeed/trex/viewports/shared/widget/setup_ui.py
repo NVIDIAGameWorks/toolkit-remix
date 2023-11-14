@@ -15,10 +15,10 @@ import omni.kit.app
 import omni.ui as ui
 import omni.usd
 from lightspeed.trex.app.style import update_viewport_menu_style
-from lightspeed.trex.utils.common import ignore_function_decorator as _ignore_function_decorator
 from lightspeed.trex.viewports.properties_pane.widget import EnumItems as _PropertiesPaneEnumItems
 from lightspeed.trex.viewports.properties_pane.widget import SetupUI as _PropertiesPaneSetupUI
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.kit.viewport.utility import frame_viewport_prims as _frame_viewport_prims
 from omni.kit.viewport.utility import frame_viewport_selection as _frame_viewport_selection
 

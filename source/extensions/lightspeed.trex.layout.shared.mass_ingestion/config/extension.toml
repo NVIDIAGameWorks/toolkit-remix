@@ -17,6 +17,7 @@ preview_image = "data/preview.png"
 "lightspeed.trex.utils.common" = {}
 "lightspeed.trex.viewports.shared.widget" = {}
 "omni.flux.tabbed.widget" = {}
+"omni.flux.utils.common" = {}
 "omni.flux.validator.mass.queue.widget" = {}
 "omni.flux.validator.mass.widget" = {}
 "omni.appwindow" = {}
