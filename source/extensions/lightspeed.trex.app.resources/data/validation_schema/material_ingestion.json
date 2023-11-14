@@ -18,7 +18,7 @@
         {
             "name": "MaterialShaders",
             "selector_plugins": [{"name": "AllMaterials", "data": {}}],
-            "data": {"shader_subidentifiers": {"AperturePBR_Translucent": "translucent|glass|trans", "AperturePBR_Opacity": ".*"}},
+            "data": {"shader_subidentifiers": {"AperturePBR_Opacity": ".*"}},
             "stop_if_fix_failed": true,
             "context_plugin": {"name": "CurrentStage", "data": {}}
         },
