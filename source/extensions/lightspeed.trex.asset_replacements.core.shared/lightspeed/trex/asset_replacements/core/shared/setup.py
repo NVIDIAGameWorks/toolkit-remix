@@ -260,7 +260,9 @@ class Setup:
     def select_prim_paths(self, paths: List[Union[str]]):
         current_selection = self._context.get_selection().get_selected_prim_paths()
         if sorted(paths) != sorted(current_selection):
-            self._context.get_selection().set_selected_prim_paths(paths, True)
+            omni.kit.commands.execute(
+                "SelectPrims", old_selected_paths=current_selection, new_selected_paths=paths, expand_in_stage=True
+            )
 
     def get_prim_from_ref_items(
         self,
@@ -418,120 +420,119 @@ class Setup:
         # it can happen that we added the same reference multiple time. But USD can't do that.
         # As a workaround, we had to create a xform child and add the reference to it.
         prim = stage.GetPrimAtPath(prim_path)
-        with omni.kit.undo.group():
-            child_prim_path = self.__create_child_ref_prim(stage, prim, create_if_remix_ref=create_if_remix_ref)
+        child_prim_path = self.__create_child_ref_prim(stage, prim, create_if_remix_ref=create_if_remix_ref)
 
-            asset_path = omni.client.normalize_url(omni.client.make_relative_url(layer.identifier, asset_path))
-            new_ref_prim_path = (
-                Sdf.Path() if new_ref_prim_path.strip() == _DEFAULT_PRIM_TAG else Sdf.Path(new_ref_prim_path.strip())
-            )
-            new_ref = Sdf.Reference(assetPath=asset_path.replace("\\", "/"), primPath=new_ref_prim_path)
-            omni.kit.commands.execute(
-                "AddReference",
-                stage=stage,
-                prim_path=child_prim_path,
-                reference=new_ref,
-            )
+        asset_path = omni.client.normalize_url(omni.client.make_relative_url(layer.identifier, asset_path))
+        new_ref_prim_path = (
+            Sdf.Path() if new_ref_prim_path.strip() == _DEFAULT_PRIM_TAG else Sdf.Path(new_ref_prim_path.strip())
+        )
+        new_ref = Sdf.Reference(assetPath=asset_path.replace("\\", "/"), primPath=new_ref_prim_path)
+        omni.kit.commands.execute(
+            "AddReference",
+            stage=stage,
+            prim_path=child_prim_path,
+            reference=new_ref,
+        )
 
-            if UsdSkel.Root(prim):
-                child_prim = prim.GetStage().GetPrimAtPath(child_prim_path)
-                skeleton_prim = prim.GetStage().GetPrimAtPath(prim_path.AppendPath("skel"))
-                skeleton = UsdSkel.Skeleton(skeleton_prim)
+        if UsdSkel.Root(prim):
+            child_prim = prim.GetStage().GetPrimAtPath(child_prim_path)
+            skeleton_prim = prim.GetStage().GetPrimAtPath(prim_path.AppendPath("skel"))
+            skeleton = UsdSkel.Skeleton(skeleton_prim)
 
-                # The Joints Attr contains full paths to each bone, we only care about the actual bone's name.
-                skel_joints = [joint.split("/")[-1] for joint in skeleton.GetJointsAttr().Get()]
+            # The Joints Attr contains full paths to each bone, we only care about the actual bone's name.
+            skel_joints = [joint.split("/")[-1] for joint in skeleton.GetJointsAttr().Get()]
 
-                for ref_prim in Usd.PrimRange(child_prim):
-                    # Nested SkelRoot prims cause problems, so override their type to XForm
-                    root_api = UsdSkel.Root(ref_prim)
-                    if root_api:
-                        omni.kit.commands.execute(
-                            "SetPrimTypeName",
-                            prim=ref_prim,
-                            type_name="Xform",
-                        )
-                        continue
-
-                    binding_api = UsdSkel.BindingAPI(ref_prim)
-                    if not binding_api:
-                        continue
-
-                    indices_primvar = binding_api.GetJointIndicesPrimvar()
-                    indices = indices_primvar.Get()
-                    original_joints = binding_api.GetJointsAttr().Get()
-                    if not indices or not original_joints:
-                        continue
-
-                    # Force the mesh to bind to the captured skeleton
+            for ref_prim in Usd.PrimRange(child_prim):
+                # Nested SkelRoot prims cause problems, so override their type to XForm
+                root_api = UsdSkel.Root(ref_prim)
+                if root_api:
                     omni.kit.commands.execute(
-                        "SetRelationshipTargetsCommand",
-                        relationship=binding_api.GetSkeletonRel(),
-                        targets=[skeleton_prim.GetPath()],
+                        "SetPrimTypeName",
+                        prim=ref_prim,
+                        type_name="Xform",
                     )
+                    continue
 
-                    original_joints = binding_api.GetJointsAttr().Get()
-                    mesh_joints = [joint.split("/")[-1] for joint in original_joints]
-                    if not mesh_joints:
-                        continue
+                binding_api = UsdSkel.BindingAPI(ref_prim)
+                if not binding_api:
+                    continue
 
-                    # First, check if the joint arrays match
-                    needs_remapping = not all(m == s for m, s in zip(mesh_joints, skel_joints))
-                    if needs_remapping:
-                        carb.log_info(
-                            f"Replacement mesh {ref_prim.GetPath()} joint names don't match skeleton.  Attempting to"
-                            " automatically remap the joint indices."
-                        )
-                        joint_map = [-1] * len(mesh_joints)
-                        try:
-                            for (index, joint_name) in enumerate(mesh_joints):
-                                joint_map[index] = skel_joints.index(joint_name)
-                        except ValueError:
-                            # mesh contains a joint name not in the skeleton, auto remapping by name isn't safe.
-                            # TODO (REMIX-1811) this should prompt the user to launch a remapping utility.
-                            joint_map = None
-                            carb.log_error(
-                                f"Replacement mesh at {ref_prim.GetPath()} contains joint names that are not in the"
-                                " captured skeleton and could not be remapped."
-                                f" - Skeleton: {skel_joints}\n"
-                                f" - Mesh: {mesh_joints}\n"
-                            )
-                            detail_message += (
-                                f"{ref_prim.GetPath()}\n"
-                                f" - Contains joint names that are not in the captured skeleton.  The joints will"
-                                f" need to be manually remapped.\n"
-                                f" - Skeleton: {skel_joints}\n"
-                                f" - Mesh: {mesh_joints}\n"
-                            )
+                indices_primvar = binding_api.GetJointIndicesPrimvar()
+                indices = indices_primvar.Get()
+                original_joints = binding_api.GetJointsAttr().Get()
+                if not indices or not original_joints:
+                    continue
 
-                        if joint_map and indices:
-                            remapped_indices = [joint_map[index] for index in indices]
-                            omni.kit.commands.execute(
-                                "ChangePropertyCommand",
-                                usd_context_name=stage,
-                                prop_path=binding_api.GetJointIndicesAttr().GetPath(),
-                                value=remapped_indices,
-                                prev=indices,
-                            )
-                            carb.log_info(f"joint indices successfully remapped for {ref_prim.GetPath()}")
-
-                    # Set skel:joints property to None.
-                    omni.kit.commands.execute(
-                        "ChangePropertyCommand",
-                        usd_context_name=stage,
-                        prop_path=binding_api.GetJointsAttr().GetPath(),
-                        value=Sdf.ValueBlock(),
-                        prev=original_joints,
-                    )
-
-            if detail_message:
-                popup = ErrorPopup(
-                    "Add Reference Errors",
-                    "Content problem(s) when adding a reference.",
-                    detail_message,
-                    window_size=(900, 300),
+                # Force the mesh to bind to the captured skeleton
+                omni.kit.commands.execute(
+                    "SetRelationshipTargetsCommand",
+                    relationship=binding_api.GetSkeletonRel(),
+                    targets=[skeleton_prim.GetPath()],
                 )
-                popup.show()
-            return new_ref, child_prim_path
+
+                original_joints = binding_api.GetJointsAttr().Get()
+                mesh_joints = [joint.split("/")[-1] for joint in original_joints]
+                if not mesh_joints:
+                    continue
+
+                # First, check if the joint arrays match
+                needs_remapping = not all(m == s for m, s in zip(mesh_joints, skel_joints))
+                if needs_remapping:
+                    carb.log_info(
+                        f"Replacement mesh {ref_prim.GetPath()} joint names don't match skeleton.  Attempting to"
+                        " automatically remap the joint indices."
+                    )
+                    joint_map = [-1] * len(mesh_joints)
+                    try:
+                        for (index, joint_name) in enumerate(mesh_joints):
+                            joint_map[index] = skel_joints.index(joint_name)
+                    except ValueError:
+                        # mesh contains a joint name not in the skeleton, auto remapping by name isn't safe.
+                        # TODO (REMIX-1811) this should prompt the user to launch a remapping utility.
+                        joint_map = None
+                        carb.log_error(
+                            f"Replacement mesh at {ref_prim.GetPath()} contains joint names that are not in the"
+                            " captured skeleton and could not be remapped."
+                            f" - Skeleton: {skel_joints}\n"
+                            f" - Mesh: {mesh_joints}\n"
+                        )
+                        detail_message += (
+                            f"{ref_prim.GetPath()}\n"
+                            f" - Contains joint names that are not in the captured skeleton.  The joints will"
+                            f" need to be manually remapped.\n"
+                            f" - Skeleton: {skel_joints}\n"
+                            f" - Mesh: {mesh_joints}\n"
+                        )
+
+                    if joint_map and indices:
+                        remapped_indices = [joint_map[index] for index in indices]
+                        omni.kit.commands.execute(
+                            "ChangePropertyCommand",
+                            usd_context_name=stage,
+                            prop_path=binding_api.GetJointIndicesAttr().GetPath(),
+                            value=remapped_indices,
+                            prev=indices,
+                        )
+                        carb.log_info(f"joint indices successfully remapped for {ref_prim.GetPath()}")
+
+                # Set skel:joints property to None.
+                omni.kit.commands.execute(
+                    "ChangePropertyCommand",
+                    usd_context_name=stage,
+                    prop_path=binding_api.GetJointsAttr().GetPath(),
+                    value=Sdf.ValueBlock(),
+                    prev=original_joints,
+                )
+
+        if detail_message:
+            popup = ErrorPopup(
+                "Add Reference Errors",
+                "Content problem(s) when adding a reference.",
+                detail_message,
+                window_size=(900, 300),
+            )
+            popup.show()
+        return new_ref, child_prim_path
 
     def __anchor_reference_asset_path_to_layer(
         self, ref: Sdf.Reference, intro_layer: Sdf.Layer, anchor_layer: Sdf.Layer
@@ -640,7 +641,15 @@ class Setup:
             context_name=self._context_name,
         )
         child_prim = prim.GetStage().GetPrimAtPath(prim_path)
-        child_prim.CreateAttribute(constants.IS_REMIX_REF_ATTR, Sdf.ValueTypeNames.Bool).Set(True)
+
+        omni.kit.commands.execute(
+            "CreateUsdAttributeOnPath",
+            attr_path=child_prim.GetPath().AppendProperty(constants.IS_REMIX_REF_ATTR),
+            attr_type=Sdf.ValueTypeNames.Bool,
+            attr_value=True,
+            usd_context_name=self._context_name,
+        )
+
         return prim_path
 
     def on_reference_edited(
