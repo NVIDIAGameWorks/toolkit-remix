@@ -15,6 +15,7 @@ from typing import Any, Callable, List, Union
 
 import carb
 import omni.kit.app
+import omni.kit.undo
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
@@ -650,34 +651,35 @@ class SetupUI:
         self, add_reference_item: Union[_ItemAddNewReferenceFileMesh, _ItemReferenceFileMesh], asset_path: str
     ):
         stage = self._context.get_stage()
-        new_ref, prim_path = self._core.add_new_reference(
-            stage,
-            add_reference_item.prim.GetPath(),
-            asset_path,
-            self._core.get_ref_default_prim_tag(),
-            stage.GetEditTarget().GetLayer(),
-        )
-        if new_ref:
-            carb.log_info(
-                (
-                    f"Set new ref {new_ref.assetPath} {new_ref.primPath}, "
-                    f"layer {self._context.get_stage().GetEditTarget().GetLayer()}"
-                )
-            )
-            # select the new prim of the new added ref
-            current_instance_items = [
-                item for item in self._previous_tree_selection if isinstance(item, _ItemInstanceMesh)
-            ]
-            self._core.select_child_from_instance_item_and_ref(
+        with omni.kit.undo.group():
+            new_ref, prim_path = self._core.add_new_reference(
                 stage,
-                stage.GetPrimAtPath(prim_path),
-                new_ref.assetPath,
-                current_instance_items,
-                only_imageable=True,
-                filter_scope_prim_without_imageable=True,
+                add_reference_item.prim.GetPath(),
+                asset_path,
+                self._core.get_ref_default_prim_tag(),
+                stage.GetEditTarget().GetLayer(),
             )
-        else:
-            carb.log_info("No reference set")
+            if new_ref:
+                carb.log_info(
+                    (
+                        f"Set new ref {new_ref.assetPath} {new_ref.primPath}, "
+                        f"layer {self._context.get_stage().GetEditTarget().GetLayer()}"
+                    )
+                )
+                # select the new prim of the new added ref
+                current_instance_items = [
+                    item for item in self._previous_tree_selection if isinstance(item, _ItemInstanceMesh)
+                ]
+                self._core.select_child_from_instance_item_and_ref(
+                    stage,
+                    stage.GetPrimAtPath(prim_path),
+                    new_ref.assetPath,
+                    current_instance_items,
+                    only_imageable=True,
+                    filter_scope_prim_without_imageable=True,
+                )
+            else:
+                carb.log_info("No reference set")
 
     @omni.usd.handle_exception
     async def __deferred_expand(self, selection):
