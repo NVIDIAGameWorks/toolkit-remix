@@ -1,5 +1,5 @@
 [package]
-version = "2023.6.0"
+version = "2023.7.0"
 category = "Application"
 title = "NVIDIA RTX Remix"
 description = "App that regroups all extensions shared between all NVIDIA RTX Remix experiences"
@@ -39,7 +39,7 @@ iconPath = "${lightspeed.trex.app.resources}/data/icons/nvidia-rtx-remix-icon-db
 
 [settings.app.trex]
 default_layout_extension = "lightspeed.trex.layout.stagecraft"
-disabled_layouts = []
+disabled_layouts = ["lightspeed.trex.layout.texturecraft"]
 
 [settings.exts."omni.kit.window.modifier.titlebar"]
 titleFormatString = "  NVIDIA RTX Remix  {verKey:/app/version,font_color=0x909090,font_size=16} {separator} {file, board=true}"
@@ -85,10 +85,10 @@ timeout = 600
 # Version lock for all dependencies:
 [settings.app.exts]
 enabled = [
-	"lightspeed.app.trex.base-2023.6.0",
-	"lightspeed.app.trex.ingestcraft-2023.6.0",
-	"lightspeed.app.trex.stagecraft-2023.6.0",
-	"lightspeed.app.trex.texturecraft-2023.6.0",
+	"lightspeed.app.trex.base-2023.7.0",
+	"lightspeed.app.trex.ingestcraft-2023.7.0",
+	"lightspeed.app.trex.stagecraft-2023.7.0",
+	"lightspeed.app.trex.texturecraft-2023.7.0",
 	"lightspeed.common-0.6.0",
 	"lightspeed.error_popup.window-0.1.0",
 	"lightspeed.event.capture_persp_to_persp-1.1.0",
