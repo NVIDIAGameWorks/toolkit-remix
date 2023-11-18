@@ -112,13 +112,19 @@ class TestAssetReplacementsCoreWidget(AsyncTestCase):
             ["/RootNode/lights/light_9907D0B07D040077/Cylinder01"],
         )
 
-        # under mesh
+        # under mesh, we can't move a light directly from under the mesh
         self.assertEqual(
             core.filter_transformable_prims([Sdf.Path("/RootNode/meshes/mesh_BAC90CAA733B0859/Cylinder02")]),
+            [],
+        )
+
+        # under mesh but we can move the one from the instance
+        self.assertEqual(
+            core.filter_transformable_prims([Sdf.Path("/RootNode/instances/inst_BAC90CAA733B0859_0/Cylinder02")]),
             ["/RootNode/meshes/mesh_BAC90CAA733B0859/Cylinder02"],
         )
 
-        # under instance
+        # under instance but this wrong because there is not corresponding light in the mesh_
         self.assertEqual(
             core.filter_transformable_prims([Sdf.Path("/RootNode/instances/inst_BAC90CAA733B0859_0/Cylinder03")]),
             [],

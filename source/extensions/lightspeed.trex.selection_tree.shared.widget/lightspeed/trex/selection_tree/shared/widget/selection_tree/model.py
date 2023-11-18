@@ -12,9 +12,11 @@ import math
 import multiprocessing
 import re
 import typing
+from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Type, Union
 
 import carb.events
+import omni.kit.commands
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
@@ -447,6 +449,35 @@ class ListModel(ui.AbstractItemModel):
         self._layer_event = None
         self._usd_listener = _USDListener()
 
+    def set_ignore_refresh(self, value):
+        self._ignore_refresh = value
+
+    @contextmanager
+    def disable_refresh(self):
+        """
+        Disable refresh temporarily
+        """
+        self._ignore_refresh = True
+        try:
+            yield
+        finally:
+            self._ignore_refresh = False
+
+    @contextmanager
+    def refresh_only_at_the_end(self):
+        """
+        Disable refresh temporarily
+        """
+        self._ignore_refresh = True
+        try:
+            yield
+        finally:
+            self._ignore_refresh = False
+            omni.kit.commands.execute(
+                "LightspeedRefreshSelectionTree",
+                model=self,
+            )
+
     @property
     def stage(self):
         return self._context.get_stage()
@@ -784,3 +815,14 @@ class ListModel(ui.AbstractItemModel):
 
     def destroy(self):
         _reset_default_attrs(self)
+
+
+class LightspeedRefreshSelectionTree(omni.kit.commands.Command):
+    def __init__(self, model: ListModel):
+        self._model = model
+
+    def do(self):
+        self._model.refresh()
+
+    def undo(self):
+        self._model.refresh()

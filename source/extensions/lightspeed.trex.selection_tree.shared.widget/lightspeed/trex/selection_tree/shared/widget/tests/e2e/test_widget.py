@@ -211,7 +211,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await self.__destroy(_window, _wid)
 
-    async def test_delete_one_ref(self):
+    async def test_delete_one_ref_from_selected_mesh(self):
         # setup
         _window, _wid = await self.__setup_widget()  # Keep in memory during test
         usd_context = omni.usd.get_context()
@@ -231,9 +231,41 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
         item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
         self.assertEqual(len(item_prims), 0)
+
         self.assertEqual(len(item_file_meshes), 2)
         self.assertEqual(len(item_instance_groups), 1)
+        self.assertEqual(len(item_instance_meshes), 0)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_delete_one_ref_from_selected_instance(self):
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 2)
+
+        delete_ref_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+
+        # delete
+        await delete_ref_image.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        self.assertEqual(len(item_prims), 0)
+
+        self.assertEqual(len(item_file_meshes), 2)
+        self.assertEqual(len(item_instance_groups), 1)
+        self.assertEqual(len(item_instance_meshes), 1)
 
         await self.__destroy(_window, _wid)
 
@@ -249,6 +281,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
         self.assertEqual(len(item_file_meshes), 2)
+
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        self.assertEqual(len(item_instances), 0)
 
         await item_file_meshes[0].click()
 
@@ -304,13 +339,23 @@ class TestSelectionTreeWidget(AsyncTestCase):
         _window, _wid = await self.__setup_widget()  # Keep in memory during test
         usd_context = omni.usd.get_context()
 
-        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
+
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
         item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
         self.assertEqual(len(item_file_meshes), 2)
+
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        self.assertEqual(len(item_instances), 1)
+
+        tree_view = ui_test.find(f"{_window.title}//Frame/**/TreeView[*].identifier=='LiveSelectionTreeView'")
+
+        # test what items are selected. First prim + instance + instance group should be selected
+        all_items = tree_view.widget.model.get_all_items()
+        self.assertEqual(tree_view.widget.selection, [all_items[2], all_items[6], all_items[5]])
 
         await item_file_meshes[0].click()
 
@@ -334,6 +379,15 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await select_button.click()
         await ui_test.human_delay()
 
+        # test what items are selected
+        all_items = tree_view.widget.model.get_all_items()
+        self.assertEqual(tree_view.widget.selection, [all_items[4], all_items[11], all_items[10]])
+        current_selection = usd_context.get_selection().get_selected_prim_paths()
+        self.assertTrue(
+            current_selection[0].startswith("/RootNode/instances/inst_0AB745B8BEE1F16B_0/ref_")
+            and current_selection[0].endswith("/Toto")
+        )
+
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
@@ -346,6 +400,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # undo
         omni.kit.undo.undo()
         await ui_test.human_delay(human_delay_speed=3)
+
+        all_items = tree_view.widget.model.get_all_items()
+        self.assertEqual(tree_view.widget.selection, [all_items[2], all_items[6], all_items[5]])
+        current_selection = usd_context.get_selection().get_selected_prim_paths()
+        self.assertEqual(current_selection, ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"])
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
@@ -369,6 +428,15 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(len(item_file_meshes), 2)
         self.assertEqual(len(item_instance_groups), 1)
 
+        # test what items are selected
+        all_items = tree_view.widget.model.get_all_items()
+        self.assertEqual(tree_view.widget.selection, [all_items[4], all_items[11], all_items[10]])
+        current_selection = usd_context.get_selection().get_selected_prim_paths()
+        self.assertTrue(
+            current_selection[0].startswith("/RootNode/instances/inst_0AB745B8BEE1F16B_0/ref_")
+            and current_selection[0].endswith("/Toto")
+        )
+
         await self.__destroy(_window, _wid)
 
     async def test_append_and_delete_two_stage_lights_on_mesh(self):
@@ -378,6 +446,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
+        tree_view = ui_test.find(f"{_window.title}//Frame/**/TreeView[*].identifier=='LiveSelectionTreeView'")
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
@@ -411,6 +480,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(len(item_file_meshes), 2)
         self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
 
+        # test what items are selected
+        all_items = tree_view.widget.model.get_all_items()
+        self.assertEqual(tree_view.widget.selection, [all_items[5], all_items[8]])
+        current_selection = usd_context.get_selection().get_selected_prim_paths()
+        self.assertEqual(current_selection, ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/DiskLight"])
+
         # we add another light
         await item_file_meshes[1].click()
         light_distant_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDistant'")
@@ -424,6 +499,48 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(len(item_prims), 3)
         self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
 
+        # test what items are selected
+        all_items = tree_view.widget.model.get_all_items()
+        self.assertEqual(tree_view.widget.selection, [all_items[6], all_items[9]])
+        current_selection = usd_context.get_selection().get_selected_prim_paths()
+        self.assertEqual(current_selection, ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/DistantLight"])
+
+        # undo
+        omni.kit.undo.undo()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+
+        self.assertEqual(len(item_prims), 2)
+        self.assertEqual(item_prims[1].widget.text, "DiskLight")
+        self.assertEqual(len(item_file_meshes), 2)
+        self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
+
+        # test what items are selected
+        all_items = tree_view.widget.model.get_all_items()
+        self.assertEqual(tree_view.widget.selection, [all_items[5], all_items[8]])
+        current_selection = usd_context.get_selection().get_selected_prim_paths()
+        self.assertEqual(current_selection, ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/DiskLight"])
+
+        # redo
+        omni.kit.undo.redo()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        self.assertEqual(len(item_prims), 3)
+        self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
+
+        # test what items are selected
+        all_items = tree_view.widget.model.get_all_items()
+        self.assertEqual(tree_view.widget.selection, [all_items[6], all_items[9]])
+        current_selection = usd_context.get_selection().get_selected_prim_paths()
+        self.assertEqual(current_selection, ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/DistantLight"])
+
         # now remove 1 light
         delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
         self.assertEqual(len(delete_ref_images), 3)
@@ -436,6 +553,18 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
+        # undo
+        omni.kit.undo.undo()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 3)
+
+        # redo
+        omni.kit.undo.redo()
+        await ui_test.human_delay(human_delay_speed=3)
+
         # now remove 1 light
         delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
         self.assertEqual(len(delete_ref_images), 2)
@@ -447,6 +576,85 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 1)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_select_stage_light_instances_on_mesh(self):
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/instances/inst_BAC90CAA733B0859_1/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+        )
+        await ui_test.human_delay(human_delay_speed=3)
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+
+        await item_file_meshes[1].click()
+
+        # add 2 lights
+        window_name = "Light creator"
+        light_disk_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDisk'")
+        await light_disk_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+        await item_file_meshes[1].click()
+        light_distant_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDistant'")
+        await light_distant_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        self.assertEqual(len(item_instance_meshes), 3)
+
+        await item_instance_meshes[0].click()
+        self.assertEqual(
+            usd_context.get_selection().get_selected_prim_paths(),
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/DistantLight"],
+        )
+
+        await item_instance_meshes[1].click()
+        self.assertEqual(
+            usd_context.get_selection().get_selected_prim_paths(),
+            ["/RootNode/instances/inst_BAC90CAA733B0859_1/DistantLight"],
+        )
+
+        await item_instance_meshes[2].click()
+        self.assertEqual(
+            usd_context.get_selection().get_selected_prim_paths(),
+            ["/RootNode/instances/inst_BAC90CAA733B0859_2/DistantLight"],
+        )
+
+        await self.__destroy(_window, _wid)
+
+    async def test_select_prim_instances_on_mesh(self):
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/instances/inst_BAC90CAA733B0859_1/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+        )
+        await ui_test.human_delay(human_delay_speed=3)
+
+        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        self.assertEqual(len(item_instance_meshes), 3)
+
+        await item_instance_meshes[0].click()
+        self.assertEqual(
+            usd_context.get_selection().get_selected_prim_paths(),
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"],
+        )
+
+        await item_instance_meshes[1].click()
+        self.assertEqual(
+            usd_context.get_selection().get_selected_prim_paths(),
+            ["/RootNode/instances/inst_BAC90CAA733B0859_1/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"],
+        )
+
+        await item_instance_meshes[2].click()
+        self.assertEqual(
+            usd_context.get_selection().get_selected_prim_paths(),
+            ["/RootNode/instances/inst_BAC90CAA733B0859_2/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"],
+        )
 
         await self.__destroy(_window, _wid)
 
