@@ -106,6 +106,30 @@ def "RootNode"
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateZYX", "xformOp:scale"]
         }
 
+        def Xform "inst_BAC90CAA733B0859_1" (
+            prepend references = </RootNode/meshes/mesh_BAC90CAA733B0859>
+        )
+        {
+            rel material:binding = </RootNode/Looks/mat_BC868CE5A075ABB1>
+            token visibility = "inherited"
+            float3 xformOp:rotateZYX = (0, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (150, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateZYX", "xformOp:scale"]
+        }
+
+        def Xform "inst_BAC90CAA733B0859_2" (
+            prepend references = </RootNode/meshes/mesh_BAC90CAA733B0859>
+        )
+        {
+            rel material:binding = </RootNode/Looks/mat_BC868CE5A075ABB1>
+            token visibility = "inherited"
+            float3 xformOp:rotateZYX = (0, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (300, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateZYX", "xformOp:scale"]
+        }
+
         def Xform "inst_CED45075A077A49A_0" (
             prepend references = </RootNode/meshes/mesh_CED45075A077A49A>
         )

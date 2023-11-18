@@ -35,6 +35,7 @@ TBNFrameMode = 0 # Auto-mode
 tonemap.op = 6
 tonemap.cm2Factor = 1155
 histogram.enabled = true # auto exposure on
+histogram.useExposureClamping = false
 dlss.enableDenoiser = 1
 
 [rtx-transient]

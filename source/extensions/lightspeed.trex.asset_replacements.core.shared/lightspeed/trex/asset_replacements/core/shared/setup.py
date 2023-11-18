@@ -28,7 +28,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.validator.factory import BASE_HASH_KEY as _BASE_HASH_KEY
 from omni.flux.validator.factory import VALIDATION_PASSED as _VALIDATION_PASSED
 from omni.usd.commands import remove_prim_spec as _remove_prim_spec
-from pxr import Sdf, Usd, UsdGeom, UsdLux, UsdSkel
+from pxr import Sdf, Usd, UsdGeom, UsdSkel
 
 if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
@@ -257,8 +257,9 @@ class Setup:
     def get_selected_prim_paths(self) -> List[Union[str]]:
         return self._context.get_selection().get_selected_prim_paths()
 
-    def select_prim_paths(self, paths: List[Union[str]]):
-        current_selection = self._context.get_selection().get_selected_prim_paths()
+    def select_prim_paths(self, paths: List[Union[str]], current_selection: List[Union[str]] = None):
+        if current_selection is None:
+            current_selection = self.get_selected_prim_paths()
         if sorted(paths) != sorted(current_selection):
             omni.kit.commands.execute(
                 "SelectPrims", old_selected_paths=current_selection, new_selected_paths=paths, expand_in_stage=True
@@ -567,54 +568,51 @@ class Setup:
         # not introducing layer
         if intro_layer and intro_layer != edit_target_layer:
             ref = self.__anchor_reference_asset_path_to_layer(ref, intro_layer, edit_target_layer)
-        with omni.kit.undo.group():
-            # get prim
-            prim = stage.GetPrimAtPath(prim_path)
-            is_remix_ref = prim.GetAttribute(constants.IS_REMIX_REF_ATTR)
-            # if prim_path is mesh_*, we want to get his children and remove overrides later
-            # if not, we just remove the ref xform added for duplicated refs
-            if is_remix_ref and not remove_if_remix_ref:
-                prims = []
+        # get prim
+        prim = stage.GetPrimAtPath(prim_path)
+        is_remix_ref = prim.GetAttribute(constants.IS_REMIX_REF_ATTR)
+        # if prim_path is mesh_*, we want to get his children and remove overrides later
+        # if not, we just remove the ref xform added for duplicated refs
+        if is_remix_ref and not remove_if_remix_ref:
+            prims = []
+            parent_prim = prim.GetParent()
+        else:
+            prims = [prim]
+            if is_remix_ref:
                 parent_prim = prim.GetParent()
             else:
-                prims = [prim]
-                if is_remix_ref:
-                    parent_prim = prim.GetParent()
-                else:
-                    parent_prim = None
+                parent_prim = None
 
-            regex_is_mesh = re.compile(constants.REGEX_MESH_PATH)
-            if regex_is_mesh.match(str(prim_path)):
-                # we grab the children, but we skip remix ref
-                prims = [
-                    _prim
-                    for _prim in prim.GetChildren()
-                    if not _prim.GetAttribute(constants.IS_REMIX_REF_ATTR).IsValid()
-                ]
-
-            omni.kit.commands.execute(
-                "SetExplicitReferencesCommand",
-                stage=stage,
-                prim_path=str(prim_path),
-                reference=ref,
-                to_set=[],
-            )
-
-            # we should never delete /mesh_* or /light_* or /inst_*
-            regex_mesh_inst_light = re.compile(constants.REGEX_MESH_INST_LIGHT_PATH)
+        regex_is_mesh = re.compile(constants.REGEX_MESH_PATH)
+        if regex_is_mesh.match(str(prim_path)):
+            # we grab the children, but we skip remix ref
             prims = [
-                str(_prim.GetPath())
-                for _prim in prims
-                if _prim.IsValid() and not regex_mesh_inst_light.match(str(_prim.GetPath()))
+                _prim for _prim in prim.GetChildren() if not _prim.GetAttribute(constants.IS_REMIX_REF_ATTR).IsValid()
             ]
-            if prims:
-                self.delete_prim(prims)
 
-            # but if the prim is empty with no override, nothing, we should delete the override
-            if parent_prim:
-                prim_spec = edit_target_layer.GetPrimAtPath(parent_prim.GetPath())
-                if prim_spec and not prim_spec.hasReferences and not prim_spec.nameChildren:
-                    _remove_prim_spec(edit_target_layer, prim_spec.path)
+        omni.kit.commands.execute(
+            "SetExplicitReferencesCommand",
+            stage=stage,
+            prim_path=str(prim_path),
+            reference=ref,
+            to_set=[],
+        )
+
+        # we should never delete /mesh_* or /light_* or /inst_*
+        regex_mesh_inst_light = re.compile(constants.REGEX_MESH_INST_LIGHT_PATH)
+        prims = [
+            str(_prim.GetPath())
+            for _prim in prims
+            if _prim.IsValid() and not regex_mesh_inst_light.match(str(_prim.GetPath()))
+        ]
+        if prims:
+            self.delete_prim(prims)
+
+        # but if the prim is empty with no override, nothing, we should delete the override
+        if parent_prim:
+            prim_spec = edit_target_layer.GetPrimAtPath(parent_prim.GetPath())
+            if prim_spec and not prim_spec.hasReferences and not prim_spec.nameChildren:
+                _remove_prim_spec(edit_target_layer, prim_spec.path)
 
     def delete_prim(self, paths: List[str]):
         omni.kit.commands.execute(
@@ -695,7 +693,6 @@ class Setup:
     def filter_transformable_prims(self, paths: Optional[List[Sdf.Path]]):
         transformable = []
         regex_in_instance = re.compile(constants.REGEX_IN_INSTANCE_PATH)
-        regex_in_mesh = re.compile(constants.REGEX_IN_MESH_PATH)
         regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
         for path in paths:
             prim = self._context.get_stage().GetPrimAtPath(path)
@@ -705,11 +702,7 @@ class Setup:
                 # if this is a light instance, we add it. We can move light instance directly
                 transformable.append(str(path))
                 continue
-            if regex_in_instance.match(str(prim.GetPath())) or (
-                regex_in_mesh.match(str(prim.GetPath())) and prim.HasAPI(UsdLux.LightAPI)
-                if hasattr(UsdLux, "LightAPI")
-                else prim.IsA(UsdLux.Light)
-            ):
+            if regex_in_instance.match(str(prim.GetPath())):
                 # enable the transform manip only for lights and prim in instances (and light instance)
                 # we don't allow moving prim in mesh directly, a prim in an instance has to be selected
                 # we don't allow moving an instance directly
