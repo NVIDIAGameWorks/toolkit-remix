@@ -132,6 +132,92 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
+    async def test_select_light(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/lights/light_9907D0B07D040077"], False)
+
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # the properties are visible
+        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
+        frame_mesh_prim = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
+        self.assertFalse(frame_none.widget.visible)
+        self.assertFalse(frame_mesh_ref.widget.visible)
+        self.assertTrue(frame_mesh_prim.widget.visible)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_select_light_live_light(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/lights/light_9907D0B07D040077"], False)
+
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # create the light
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        self.assertEqual(len(item_file_meshes), 1)
+        await item_file_meshes[0].click()
+        window_name = "Light creator"
+        # The file picker window should now be opened (0 < len(widgets))
+        self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
+        light_disk_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDisk'")
+        self.assertIsNotNone(light_disk_button)
+        await light_disk_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # the properties are visible
+        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
+        frame_mesh_prim = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
+        self.assertFalse(frame_none.widget.visible)
+        self.assertFalse(frame_mesh_ref.widget.visible)
+        self.assertTrue(frame_mesh_prim.widget.visible)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_select_mesh_live_light(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+        )
+
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # create the light
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        self.assertEqual(len(item_file_meshes), 2)
+        await item_file_meshes[1].click()
+        window_name = "Light creator"
+        # The file picker window should now be opened (0 < len(widgets))
+        self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
+        light_disk_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDisk'")
+        self.assertIsNotNone(light_disk_button)
+        await light_disk_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # the properties are visible
+        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
+        frame_mesh_prim = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
+        self.assertFalse(frame_none.widget.visible)
+        self.assertFalse(frame_mesh_ref.widget.visible)
+        self.assertTrue(frame_mesh_prim.widget.visible)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
     async def test_prim_ref_grayed_out(self):
         # setup
         _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
