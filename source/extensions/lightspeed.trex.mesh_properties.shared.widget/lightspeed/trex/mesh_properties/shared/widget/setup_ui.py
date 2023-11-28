@@ -332,7 +332,14 @@ class SetupUI:
         elif item_light_instance_groups or item_light_prims:  # light
             # if this is a light, we can transform the light by itself. So we should show the transform frame
             prim_paths = [item.parent.path for item in item_light_instance_groups]
-            prim_paths.extend([item.path for item in item_light_prims])
+
+            for item in item_light_prims:
+                for instance_item in self._current_instance_items:
+                    to_select_path = re.sub(
+                        constants.REGEX_MESH_TO_INSTANCE_SUB, str(instance_item.prim.GetPath()), item.path
+                    )
+                    prim_paths.append(to_select_path)
+
             xformable_prims = self._core.filter_transformable_prims(prim_paths)
             self._transformation_widget.show(bool(xformable_prims))
             self._property_widget.show(bool(xformable_prims))
