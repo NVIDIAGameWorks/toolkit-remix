@@ -13,6 +13,9 @@ docs/overview
 docs/install
 docs/usage
 docs/contributing
+docs/usage/capture
+docs/usage/ingest
+docs/usage/remaster
 ```
 
 # Indices and tables
