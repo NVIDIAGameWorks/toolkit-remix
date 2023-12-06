@@ -291,10 +291,10 @@ Universal Scene Description (USD) is a versatile framework designed to encode da
 <!----- Placeholder for where Release Notes will go  ----->
 
 
-## [Release Notes](#release-notes)
+<!----- ## [Release Notes](#release-notes)  ----->
 
 
-### [Known Issues](#known-issues)
+<!----- ### [Known Issues](#known-issues)  ----->
 
 
 <!----- Example of format for release notes?

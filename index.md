@@ -12,11 +12,11 @@ hidden:
 docs/overview
 docs/install
 docs/usage
+docs/tutorial
+docs/glossary
 docs/contributing
-docs/usage/capture
-docs/usage/ingest
-docs/usage/remaster
 ```
+
 
 # Indices and tables
 
