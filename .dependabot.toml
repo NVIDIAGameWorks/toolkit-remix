@@ -41,14 +41,14 @@ repo_update_args = ["rtx-remix-omni_core_materials", "--major"]
 required_paths = ["deps/target-deps.packman.xml"]
 dependabot_branch_name = "update-rtx-remix-omni_core_materials"
 
-[updater.remix_runtime]
+[updater.rtx-remix-remix_runtime]
 enabled = true
 type = "repo_update"
 schedule = "daily"
-mr_title = "bump remix_runtimes"
-repo_update_args = ["remix_runtime", "--major"]
+mr_title = "bump rtx-remix-remix_runtime"
+repo_update_args = ["rtx-remix-remix_runtime", "--major"]
 required_paths = ["deps/install-deps.packman.xml"]
-dependabot_branch_name = "update-remix_runtimes"
+dependabot_branch_name = "update-rtx-remix-remix_runtime"
 
 ## Kit SDK updater
 #[updater.kit_sdk]
