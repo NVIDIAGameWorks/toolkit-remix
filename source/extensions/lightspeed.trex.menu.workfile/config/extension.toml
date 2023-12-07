@@ -4,8 +4,28 @@ title = "NVIDIA RTX Remix workfile menu"
 description = "Workfile menu to save/save as workfile for NVIDIA RTX Remix App"
 
 [dependencies]
+"omni.kit.widget.prompt" = {}
+"omni.kit.window.preferences" = {}
+"omni.kit.window.about" = {}
 "omni.flux.utils.common" = {}
 "omni.ui" = {}
+"omni.usd" = {}
 
 [[python.module]]
 name = "lightspeed.trex.menu.workfile"
+
+[[test]]
+
+args = [
+    "--/app/extensions/registryEnabled=1",
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--/app/file/ignoreUnsavedOnExit=1",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
+    "--no-window",
+]
+
+dependencies = [
+    "omni.kit.test",
+    "omni.kit.ui_test",
+]
