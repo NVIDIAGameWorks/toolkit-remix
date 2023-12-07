@@ -2,7 +2,7 @@
 name = "NVIDIA RTX Remix"
 #displayed before application name in launcher
 productArea = "Omniverse"
-version = "2023.7.2"
+version = "2023.8.0"
 # A filter of release types
 # 3 filter types [ "alpha", "beta", "release "]
 channel = "alpha"
