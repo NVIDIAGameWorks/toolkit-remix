@@ -7,12 +7,43 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+import asyncio
+
+import omni.kit.window.about
+import omni.kit.window.preferences
 import omni.ui as ui
+import omni.usd
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
 
 from .delegate import Delegate as _Delegate
+
+
+@omni.usd.handle_exception
+async def async_focus_window(window_name: str):
+    """
+    Focus the provided window name.
+    """
+    window = ui.Workspace.get_window(window_name)
+    if window is None:
+        raise ValueError(f"Could not find window named {window_name:!r}")
+    window.focus()
+
+
+def error_prompt(message: str) -> None:
+    """
+    Show a simple prompt to notify the user of an error.
+    """
+    PromptManager.post_simple_prompt(
+        title="An Error Occurred",
+        message=message,
+        ok_button_info=PromptButtonInfo("Okay", None),
+        cancel_button_info=None,
+        modal=True,
+        no_title_bar=True,
+    )
 
 
 class SetupUI:
@@ -68,6 +99,28 @@ class SetupUI:
         """
         return _EventSubscription(self.__redo, function)
 
+    @staticmethod
+    def _show_preferences_window() -> None:
+        inst = omni.kit.window.preferences.get_instance()
+        if not inst:
+            error_prompt("Preferences extension is not loaded yet")
+            return
+
+        inst.show_preferences_window()
+        # Force the tab to be the active/focused tab (this currently needs to be done in async)
+        asyncio.ensure_future(async_focus_window("Preferences"))
+
+    @staticmethod
+    def _show_about_window() -> None:
+        inst = omni.kit.window.about.get_instance()
+        if not inst:
+            error_prompt("About extension is not loaded yet")
+            return
+
+        inst.show(True)
+        # Force the tab to be the active/focused tab (this currently needs to be done in async)
+        asyncio.ensure_future(async_focus_window("About"))
+
     def __create_ui(self):
         def create_separator():
             ui.Separator(
@@ -87,10 +140,15 @@ class SetupUI:
 
         with self.menu:
             ui.MenuItem(
-                "Save", style_type_name_override="MenuBurgerItem", triggered_fn=self._save, hotkey_text="Ctrl+S"
+                "Save",
+                identifier="save",
+                style_type_name_override="MenuBurgerItem",
+                triggered_fn=self._save,
+                hotkey_text="Ctrl+S",
             )
             ui.MenuItem(
                 "Save as",
+                identifier="save_as",
                 style_type_name_override="MenuBurgerItem",
                 triggered_fn=self._save_as,
                 hotkey_text="Ctrl+Shift+S",
@@ -98,18 +156,31 @@ class SetupUI:
             create_separator()
             ui.MenuItem(
                 "Undo",
+                identifier="undo",
                 style_type_name_override="MenuBurgerItem",
                 triggered_fn=self._undo,
                 hotkey_text="Ctrl+Z",
             )
             ui.MenuItem(
                 "Redo",
+                identifier="redo",
                 style_type_name_override="MenuBurgerItem",
                 triggered_fn=self._redo,
                 hotkey_text="Ctrl+Y",
             )
             create_separator()
-            ui.MenuItem("About", style_type_name_override="MenuBurgerItem")  # todo
+            ui.MenuItem(
+                "Preferences",
+                identifier="preferences",
+                triggered_fn=self._show_preferences_window,
+            )
+            create_separator()
+            ui.MenuItem(
+                "About",
+                identifier="about",
+                style_type_name_override="MenuBurgerItem",
+                triggered_fn=self._show_about_window,
+            )
 
     def show_at(self, x, y):
         if self.menu.shown:
