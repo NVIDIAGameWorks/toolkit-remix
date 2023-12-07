@@ -1,4 +1,5 @@
 [package]
+version = "1.0.1"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Viewports implementation"
 description = "Viewports implementation for NVIDIA RTX Remix App"
@@ -6,6 +7,7 @@ description = "Viewports implementation for NVIDIA RTX Remix App"
 [dependencies]
 "lightspeed.trex.app.style" = {}
 "lightspeed.trex.utils.common" = {}
+"lightspeed.events_manager" = {}
 "lightspeed.trex.viewports.manipulators" = {}
 "lightspeed.trex.viewports.properties_pane.widget" = {}
 "omni.flux.utils.common" = {}
@@ -21,12 +23,22 @@ persistent.app.viewport.displayOptions = 32255
 [[test]]
 dependencies = [
     "lightspeed.trex.app.resources",
+    "omni.kit.ui_test",
+    "omni.kit.test_suite.helpers",
 ]
+
 args = [
+    "--/app/extensions/registryEnabled=1",
+    "--/app/file/ignoreUnsavedOnExit=1",
     "--/app/hangDetector/enabled=0",
     "--/app/fastShutdown=1",
     "--no-window",
-    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
+    # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+    # Need to use a .kit file
+    "--merge-config=${kit}/../exts/lightspeed.trex.viewports.shared.widget/data/tests/lightspeed.trex.viewports.shared.widget.core_material.kit"
+
 ]
 
 [[python.module]]

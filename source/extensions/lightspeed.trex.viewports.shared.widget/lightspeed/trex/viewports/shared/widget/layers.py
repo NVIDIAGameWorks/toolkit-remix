@@ -74,7 +74,7 @@ class ViewportLayers:
 
     # For convenience and access, promote the underlying viewport api to this widget
     @property
-    def viewport_api(self):
+    def viewport_api(self) -> Optional[ViewportAPI]:
         return self.__viewport.viewport_api if self.__viewport else None
 
     @property
@@ -131,6 +131,7 @@ class ViewportLayers:
                 resolution=resolution,
                 viewport_api=ViewportAPI(usd_context_name, viewport_id, self.__viewport_updated),
                 hydra_engine_options=hydra_engine_options,
+                identifier="viewport",
             )
 
         # Expose the viewport itself into the layer system (factory is the key, so use the contructor)

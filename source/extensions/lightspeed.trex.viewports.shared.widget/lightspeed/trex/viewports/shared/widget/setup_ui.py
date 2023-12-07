@@ -8,12 +8,15 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import asyncio
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import carb.input
+import omni.appwindow
 import omni.kit.app
 import omni.ui as ui
 import omni.usd
+from lightspeed.common.constants import GlobalEventNames
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.app.style import update_viewport_menu_style
 from lightspeed.trex.viewports.properties_pane.widget import EnumItems as _PropertiesPaneEnumItems
 from lightspeed.trex.viewports.properties_pane.widget import SetupUI as _PropertiesPaneSetupUI
@@ -24,8 +27,14 @@ from omni.kit.viewport.utility import frame_viewport_selection as _frame_viewpor
 
 from .layers import ViewportLayers
 
+if TYPE_CHECKING:
+    from omni.kit.widget.viewport.api import ViewportAPI
+
 
 class SetupUI:
+
+    viewport_counts = {}
+
     def __init__(self, context_name):
         """Nvidia StageCraft Viewport UI"""
 
@@ -35,6 +44,7 @@ class SetupUI:
             "_camera_menu": None,
             "_render_menu": None,
             "_property_panel_frame": None,
+            "_properties_pane": None,
             "_splitter_property_viewport": None,
             "_viewport_frame": None,
             "_root_frame": None,
@@ -45,12 +55,18 @@ class SetupUI:
             "_property_panel_frame_spacer": None,
             "_extensions_camera_subscription": None,
             "_extensions_render_subscription": None,
+            "_minimize_window_subscription": None,
+            "_active_viewport_change_subscription": None,
+            "_stage_event_subscription": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
         self._context_name = context_name
+        self.viewport_id = self.next_unique_viewport_name(self._context_name)
         self.___first_time_show_properties = True
+        self._active = False
+        self._docked = False
 
         app = omni.kit.app.get_app_interface()
         ext_manager = app.get_extension_manager()
@@ -67,12 +83,39 @@ class SetupUI:
             hook_name="lightspeed.trex.viewports.shared.widget render listener",
         )
 
+        app_window = omni.appwindow.get_default_app_window()
+        self._minimize_window_subscription = app_window.get_window_minimize_event_stream().create_subscription_to_push(
+            self._on_minimized, name=f"lightspeed.trex.viewports.shared.widget.minimize_window_subscription.{self}"
+        )
+
+        # connect viewport to active viewport event
+        event_manager = _get_event_manager_instance()
+        event_manager.register_global_custom_event(GlobalEventNames.ACTIVE_VIEWPORT_CHANGED.value)
+        self._active_viewport_change_subscription = event_manager.subscribe_global_custom_event(
+            GlobalEventNames.ACTIVE_VIEWPORT_CHANGED.value, self.on_active_viewport_changed
+        )
+
         self._registered = []
         self.__create_ui()
         update_viewport_menu_style()
 
+        # connect viewport to stage events
+        self._stage_event_subscription = (
+            self.viewport_api.usd_context.get_stage_event_stream().create_subscription_to_pop(
+                self._on_stage_event, name="StageEvent"
+            )
+        )
+
+    @classmethod
+    def next_unique_viewport_name(cls, context_name: str) -> str:
+        cls.viewport_counts[context_name] = cls.viewport_counts.setdefault(context_name, 0) + 1
+        viewport_name = f"Viewport{cls.viewport_counts[context_name] - 1}"
+        if context_name:
+            return f"{context_name}/{viewport_name}"
+        return viewport_name
+
     @property
-    def viewport_api(self) -> ViewportLayers:
+    def viewport_api(self) -> "ViewportAPI":
         return self._viewport_layers.viewport_api
 
     def __create_ui(self):
@@ -84,14 +127,16 @@ class SetupUI:
                     self._viewport_frame = ui.Frame(
                         separate_window=False,
                         key_pressed_fn=self._on_viewport_frame_key_pressed,
+                        mouse_pressed_fn=self._on_viewport_frame_mouse_pressed,
                         horizontal_clipping=True,
                         vertical_clipping=True,
                     )
                     with self._viewport_frame:
-                        viewport_id = f"{self._context_name}/Viewport0" if self._context_name else "Viewport0"
                         self._viewport_layers = ViewportLayers(
-                            viewport_id=viewport_id, usd_context_name=self._context_name
+                            viewport_id=self.viewport_id, usd_context_name=self._context_name
                         )
+                        # pause viewport updates initially
+                        self.set_active(False)
 
                     self._property_panel_frame_spacer = ui.Spacer(width=ui.Pixel(12))
 
@@ -124,11 +169,50 @@ class SetupUI:
 
         self.toggle_viewport_property_panel(forced_value=True, value=False)
 
+    def _set_viewport_api_updates_enabled(self):
+        """Halt or resume viewport updates depending on state."""
+        if not self._viewport_layers or not self._viewport_layers.viewport_api:
+            return
+        updates_enabled = True
+        if self._docked and carb.settings.get_settings().get("/app/renderer/skipWhileMinimized"):
+            updates_enabled = False
+        if not self._active:
+            updates_enabled = False
+        self.viewport_api.updates_enabled = updates_enabled
+
+    def _on_minimized(self, event: carb.events.IEvent, *args, **kwargs):
+        self._docked = event.payload.get("isMinimized", False)
+        self._set_viewport_api_updates_enabled()
+
+    def set_active(self, active: bool):
+        """Call this method when a higher level ui element obscures or uncovers this shared viewport widget"""
+        self._active = active
+        if self._active:
+            # send an event to deactivate all other viewports
+            _get_event_manager_instance().call_global_custom_event(
+                GlobalEventNames.ACTIVE_VIEWPORT_CHANGED.value, self.viewport_id
+            )
+        self._set_viewport_api_updates_enabled()
+
+    def on_active_viewport_changed(self, viewport_id: str):
+        # disable viewport if another has been activated to ensure only there is only one at a time
+        if self.viewport_id != viewport_id:
+            self.set_active(False)
+
+    def _on_viewport_frame_mouse_pressed(self, x: float, y: float, button: int, modifier: int):
+        self.set_active(True)
+
     def _on_viewport_frame_key_pressed(self, key, _, pressed):
         # F keys
         if key != int(carb.input.KeyboardInput.F) or pressed:
             return
         self.frame_viewport_selection()
+
+    def _on_stage_event(self, event):
+        if event.type == int(omni.usd.StageEventType.OPENED):
+            # If a new stage is opened on the associated usd_context, we want to activate
+            # the viewport in order to make sure we always show the current stage.
+            self.set_active(True)
 
     def frame_viewport_selection(self, selection: List[str] = None):
         if selection is None:
@@ -232,6 +316,8 @@ class SetupUI:
     @omni.usd.handle_exception
     async def __deferred_on_property_viewport_splitter_change(self, x):
         await omni.kit.app.get_app_interface().next_update_async()
+        if self._root_frame is None:
+            return
         if x.value < 0:
             x = ui.Pixel(0)
         result = (
