@@ -297,7 +297,7 @@ class SetupUI(_BaseLayout):
 
     def _on_mass_cores_started(self, core: "_ManagerCore"):
         if self._viewport:
-            self._viewport.updates_enabled = False
+            self._viewport.set_active(False)
         self._stage_view_widget.enable_context_event(False)
         self._mass_cores_are_running[id(core)] = True
 
@@ -306,7 +306,7 @@ class SetupUI(_BaseLayout):
         update_viewport = not any(self._mass_cores_are_running.values())
         if update_viewport:
             if self._viewport:
-                self._viewport.updates_enabled = True
+                self._viewport.set_active(True)
             self._stage_view_widget.enable_context_event(True)
 
     def _on_app_window_size_changed(self, event: carb.events.IEvent):
