@@ -48,9 +48,12 @@
                 "name": "FileCleanup",
                 "data": {"channel": "cleanup_files_normal", "cleanup_output": false}
             }],
-            "data": {"data_flows": [
-                {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files_normal"}
-            ]},
+            "data": {
+                "data_flows": [
+                    {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files_normal"}
+                ],
+                "replace_udim_textures_by_empty": true
+            },
             "stop_if_fix_failed": true,
             "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
         },
@@ -61,10 +64,13 @@
                 "name": "FileCleanup",
                 "data": {"channel": "cleanup_files", "cleanup_output": false}
             }],
-            "data": {"data_flows": [
-                {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files"},
-                {"name": "InOutData", "push_output_data": true, "channel": "write_metadata"}
-            ]},
+            "data": {
+                "data_flows": [
+                    {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files"},
+                    {"name": "InOutData", "push_output_data": true, "channel": "write_metadata"}
+                ],
+                "replace_udim_textures_by_empty": true
+            },
             "stop_if_fix_failed": true,
             "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
         },
@@ -80,7 +86,7 @@
             "selector_plugins": [{"name": "AllPrims", "data": {}}],
             "data": {},
             "stop_if_fix_failed": true,
-            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": false}}
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
         },
         {
             "name": "WrapRootPrims",
