@@ -265,15 +265,18 @@ enable_dark_theme_switcher = true
 files.include = ["**"]
 files.exclude = [
     ".vscode/*",
+    "backup.teamcity/*",
     "_build/*",
     "_compiler/*",
     "_repo/*",
     ".git/*",
     ".eggs/*",
     ".venv/*",
+    "venv/*",
     "tools/*",
     "source/pythonapps/*",
     "source/extensions/example.*",
+    "source/*/lightspeed/common/tools/*",
 ]
 
 # python is formatted with black+isort:
@@ -281,16 +284,18 @@ files.exclude = [
 files.include = ["**/*.py"]
 files.exclude = [
     ".vscode/*",
+    "backup.teamcity/*",
     "_build/*",
     "_compiler/*",
     "_repo/*",
     ".git/*",
     ".eggs/*",
     ".venv/*",
+    "venv/*",
     "tools/*",
     "source/pythonapps/*",
     "source/extensions/example.*",
-    "source/*/lightspeed/common/tools/*"
+    "source/*/lightspeed/common/tools/*",
 ]
 python_version = "py310"
 job_count = 1
@@ -304,16 +309,18 @@ job_count = 1
 files.include = ["**/*.py"]
 files.exclude = [
     ".vscode/*",
+    "backup.teamcity/*",
     "_build/*",
     "_compiler/*",
     "_repo/*",
     ".git/*",
     ".eggs/*",
     ".venv/*",
+    "venv/*",
     "tools/*",
     "source/pythonapps/*",
     "source/extensions/example.*",
-    "source/*/lightspeed/common/tools/*"
+    "source/*/lightspeed/common/tools/*",
 ]
 
 ########################################################################################################################
