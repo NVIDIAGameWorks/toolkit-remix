@@ -158,8 +158,8 @@ ASSET_NEED_INGEST_MESSAGE = (
     "Assets are expected to be ingested."
 )
 ASSET_NEED_INGEST_WINDOW_TITLE = "##Ingestion"
-ASSET_NEED_INGEST_WINDOW_OK_LABEL = "Ignore and import the asset"
-ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL = "Go to ingest tab"
+ASSET_NEED_INGEST_WINDOW_OK_LABEL = "Ignore and Import"
+ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL = "Ingest Asset"
 
 MATERIAL_OVERRIDE_PATH = "{prim_node}/Looks"
 
