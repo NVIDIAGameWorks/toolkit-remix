@@ -36,10 +36,12 @@ class TestWizard(omni.kit.test.AsyncTestCase):
     async def test_setup_project_existing_project_should_quick_return_success(self):
         # Arrange
         project_file = self.base_dir / "projects" / "MyProject" / "my_project.usda"
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
 
         schema = ProjectWizardSchemaMock(
             existing_project=True,
             project_file=project_file,
+            remix_directory=remix_dir,
         )
 
         with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
@@ -48,6 +50,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(1, mock.setup_usd_mock.call_count)
+        self.assertEqual(0, mock.create_mods_dir.call_count)
         self.assertEqual(1, mock.create_symlinks_mock.call_count)
         self.assertEqual(0, mock.create_project_mock.call_count)
 
@@ -61,10 +64,12 @@ class TestWizard(omni.kit.test.AsyncTestCase):
     async def test_setup_project_symlink_error_should_quick_return_error(self):
         # Arrange
         project_file = self.base_dir / "projects" / "MyProject" / "my_project.usda"
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
 
         schema = ProjectWizardSchemaMock(
             existing_project=True,
             project_file=project_file,
+            remix_directory=remix_dir,
         )
 
         symlink_error = "Test Error"
@@ -82,6 +87,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(1, mock.setup_usd_mock.call_count)
+        self.assertEqual(0, mock.create_mods_dir.call_count)
         self.assertEqual(1, mock.create_symlinks_mock.call_count)
         self.assertEqual(0, mock.create_project_mock.call_count)
 
@@ -101,10 +107,12 @@ class TestWizard(omni.kit.test.AsyncTestCase):
     async def test_setup_project_no_stage_should_quick_return_fail(self):
         # Arrange
         project_file = self.base_dir / "project.usda"
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
 
         schema = ProjectWizardSchemaMock(
             existing_project=False,
             project_file=project_file,
+            remix_directory=remix_dir,
         )
 
         with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
@@ -120,6 +128,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(1, mock.setup_usd_mock.call_count)
+        self.assertEqual(1, mock.create_mods_dir.call_count)
         self.assertEqual(1, mock.create_symlinks_mock.call_count)
         self.assertEqual(1, mock.create_project_mock.call_count)
         self.assertEqual(0, mock.insert_capture_layer_mock.call_count)
@@ -505,6 +514,9 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(1, mock.setup_usd_mock.call_count)
         self.assertEqual(call(), mock.setup_usd_mock.call_args)
+
+        self.assertEqual(1, mock.create_mods_dir.call_count)
+        self.assertEqual(call(remix_dir, dry_run), mock.create_mods_dir.call_args)
 
         self.assertEqual(1, mock.create_symlinks_mock.call_count)
         self.assertEqual(call(project_dir, deps_dir, remix_dir, dry_run), mock.create_symlinks_mock.call_args)

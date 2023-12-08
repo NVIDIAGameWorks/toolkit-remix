@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.1] - 2023-12-07
+### Changed
+- Changed ingestion warning messages
+
 ## [0.6.0] - 2023-10-25
 ### Added
 - Added texture constant

@@ -21,7 +21,7 @@ rtx-remix
 │ ├ materials
 ```
 
-It might be helpful to create a desktop shortcut to this rtx-remix folder and rename that shortcut to your preferred project name.  You will need to create a “mods” folder inside this rtx-remix folder.  You may also want to create a project folder to contain the files you’ll be working on.
+It might be helpful to create a desktop shortcut to this rtx-remix folder and rename that shortcut to your preferred project name.  You may also want to create a project folder to contain the files you’ll be working on.
 
 
 ## Organizing Your Captures

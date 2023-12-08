@@ -126,17 +126,12 @@ class ProjectWizardSchema(BaseModel):
             raise ValueError("The remix directory is not writable")
 
         has_capture_dir = False
-        has_mods_dir = False
         _, entries = omni.client.list(str(v))
         for entry in entries:
             if entry.relative_path == _constants.REMIX_CAPTURE_FOLDER:
                 has_capture_dir = True
-            if entry.relative_path == _constants.REMIX_MODS_FOLDER:
-                has_mods_dir = True
         if not has_capture_dir:
             raise ValueError(f"The remix directory is missing a {_constants.REMIX_CAPTURE_FOLDER} subdirectory")
-        if not has_mods_dir:
-            raise ValueError(f"The remix directory is missing a {_constants.REMIX_MODS_FOLDER} subdirectory")
 
         return v
 

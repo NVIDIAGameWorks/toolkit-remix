@@ -120,6 +120,15 @@ class ProjectWizardCore:
             mods_directory = deps_directory / _constants.REMIX_MODS_FOLDER
             captures_directory = deps_directory / _constants.REMIX_CAPTURE_FOLDER
 
+            if not model.existing_project:
+                mods_error = self._create_mods_dir(model.remix_directory, dry_run)
+
+                # If for some reason the user has a file here, tell them
+                if mods_error:
+                    self._log_error(mods_error)
+                    self._on_run_finished(False, error=mods_error)
+                    return
+
             # Item validation should check that the symlinks are already valid if the remix_directory is None
             symlink_error = await self._create_symlinks(
                 project_directory, deps_directory, model.remix_directory, dry_run
@@ -174,6 +183,21 @@ class ProjectWizardCore:
             error_message = f"An unknown error occurred: {e}"
             self._log_error(error_message)
             self._on_run_finished(False, error=error_message)
+
+    def _create_mods_dir(self, remix_directory, dry_run):
+        # Mod dir validation should check if mods dir exists, if not create
+        rtx_remix_mods_directory = remix_directory / _constants.REMIX_MODS_FOLDER
+        if not rtx_remix_mods_directory.exists():
+            if dry_run:
+                self._log_info(f"Creating directory at '{rtx_remix_mods_directory}'")
+            else:
+                rtx_remix_mods_directory.mkdir()
+
+        # If for some reason the user has a file here, tell them
+        if not dry_run and not rtx_remix_mods_directory.is_dir():
+            return f"Please delete the file named {_constants.REMIX_MODS_FOLDER}, under {_constants.REMIX_FOLDER}."
+
+        return None
 
     def _on_run_finished(self, result, error=None):
         self.__on_run_finished(result, error)
