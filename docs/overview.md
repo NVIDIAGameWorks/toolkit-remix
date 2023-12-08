@@ -1,7 +1,3 @@
-
-
-<!-----  # RTX Remix Overview {#rtx-remix-overview}  ----->
-
 ![Lightspeed Studio](data/images/lightspeed.png "Lightspeed Studios")
 
 # [RTX Remix Overview](#rtx-remix-overview)
@@ -17,13 +13,13 @@ RTX Remix is a cool tool for upgrading older DirectX 8 and 9 games. It adds fanc
 
 ### [How Does It Work](#how-does-it-work)
 
-You don't need to be a computer expert to use RTX Remix. It does most of the hard work for you. But it helps to know a bit about how it works. The RTX Remix runtime has two main parts: the Bridge and the Renderer.
+You don't need to be a computer expert to use RTX Remix. It does most of the hard work for you. But it helps to know a bit about how it works. The RTX Remix runtime has two main parts: the Bridge and the Toolkit.
 
 The Bridge is like a middleman. It sits next to the game and listens to what the game wants to do. It then sends this information to another program called NvRemixBridge.exe, which can handle more stuff because it's fancier. This fancy part makes sure the game can use a lot of memory and works better with modern technology like ray tracing.
 
-But the Bridge is just the messenger. It sends all the game instructions to another part called the RTX Remix renderer. This renderer is like a super powerful graphics engine. It takes all the things the game wants to draw, like characters and objects, and makes them look amazing using path tracing.
+But the Bridge is just the messenger. It sends all the game instructions to another part called the RTX Remix Toolkit. This Toolkit is like a super powerful graphics engine. It takes all the things the game wants to draw, like characters and objects, and makes them look amazing using path tracing.
 
-The renderer also knows how to swap out the old game stuff with new and improved things from an RTX Remix Mod that you put in a special folder. It keeps track of what's what using special codes (hash IDs) so it knows what to change in the game as you play.
+The Toolkit also knows how to swap out the old game stuff with new and improved things from an RTX Remix Mod that you put in a special folder. It keeps track of what's what using special codes (hash IDs) so it knows what to change in the game as you play.
 
 When you get your hands on the RTX Remix creator toolkit, you'll be able to easily make and add new game stuff like objects, materials, and lights. And it's built on NVIDIA Omniverse, so you'll have lots of cool tools to make your game look even better.
 
@@ -304,3 +300,5 @@ Universal Scene Description (USD) is a versatile framework designed to encode da
 Example: [https://docs.omniverse.nvidia.com/composer/latest/release_notes.html](https://docs.omniverse.nvidia.com/composer/latest/release_notes.html)
 
  ----->
+
+Need to leave feedback about the RTX Remix Documentation?  [Click here](https://docs.google.com/forms/d/1vym6SgptS4QJvp6ZKTN8Mu9yfd5yQc76B3KHIl-n4DQ/prefill)

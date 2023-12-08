@@ -2,7 +2,7 @@
 
 ## Installing and Launching RTX Remix
 
-RTX Remix consists of two components - the **RTX Remix Runtime** and the **RTX Remix Renderer**.  The **RTX Remix Runtime**, which is open source,  injects the path tracing into the game and bridges the gap between the original game's renderer and the RTX Renderer.  The **RTX Remix Renderer** allows you to modify captures created via the RTX Runtime, ingest assets, and make scene changes.  Both are required to fully remaster a game end-to-end.
+RTX Remix consists of two components - the **RTX Remix Runtime** and the **RTX Remix Toolkit**.  The **RTX Remix Runtime**, which is open source,  injects the path tracing into the game and bridges the gap between the original game's renderer and the RTX Toolkit.  The **RTX Remix Toolkit** allows you to modify captures created via the RTX Runtime, ingest assets, and make scene changes.  Both are required to fully remaster a game end-to-end.
 
 
 ## Install the RTX Remix Runtime
@@ -14,19 +14,20 @@ To install the RTX Runtime, you’ll need to download the latest application thr
 > 2. For the DXVK-Remix application: [dxvk-remix](https://github.com/NVIDIAGameWorks/dxvk-remix/)
 
 When you download the RTX Remix runtime, you should get a zip file with the necessary components to prep a supported game for RTX Remix. Unzipping the file, you should see a folder structure like the following:
+
 ```text
 remix-0.1.0/
 |--- d3d9.dll  <-- Bridge interposer
 |--- ...
 \--- .trex/
     |--- NvRemixBridge.exe
-    |--- d3d9.dll  <-- Remix renderer
+    |--- d3d9.dll  <-- Remix Runtime/Renderer
     \--- ...
 ```
 
 
 
-## Install and Launch the RTX Remix Renderer
+## Install and Launch the RTX Remix Toolkit
 
 1. Follow the instructions on how to Install the NVIDIA Omniverse Platform here: [Install NVIDIA Omniverse](https://docs.omniverse.nvidia.com/install-guide/latest/index.html)
 2. In Omniverse Launcher, under the Exchange Tab, search for “**RTX Remix**”
