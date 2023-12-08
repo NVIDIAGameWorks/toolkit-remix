@@ -53,6 +53,7 @@ class WizardMockContext:
         # Define patches
         if self.__mock_wizard_methods:
             self._setup_usd_mock = patch.object(ProjectWizardCore, "_setup_usd_stage")
+            self._create_mods_dir = patch.object(ProjectWizardCore, "_create_mods_dir")
             self._create_symlinks_mock = patch.object(ProjectWizardCore, "_create_symlinks")
             self._create_project_mock = patch.object(ProjectWizardCore, "_create_project_layer")
             self._setup_existing_mod_mock = patch.object(ProjectWizardCore, "_setup_existing_mod_project")
@@ -80,6 +81,7 @@ class WizardMockContext:
         # Start the patches
         if self.__mock_wizard_methods:
             self.setup_usd_mock = self._setup_usd_mock.start()
+            self.create_mods_dir = self._create_mods_dir.start()
             self.create_symlinks_mock = self._create_symlinks_mock.start()
             self.create_project_mock = self._create_project_mock.start()
             self.setup_existing_mod_mock = self._setup_existing_mod_mock.start()
@@ -106,6 +108,8 @@ class WizardMockContext:
 
         # Setup mocks
         if self.__mock_wizard_methods:
+            self.create_mods_dir.return_value = None
+
             if sys.version_info.minor > 7:
                 generic_wizard_future = Mock()
             else:
@@ -156,6 +160,7 @@ class WizardMockContext:
         # Stop patches
         if self.__mock_wizard_methods:
             self._setup_usd_mock.stop()
+            self._create_mods_dir.stop()
             self._create_symlinks_mock.stop()
             self._create_project_mock.stop()
             self._setup_existing_mod_mock.stop()

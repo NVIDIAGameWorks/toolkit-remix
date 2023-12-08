@@ -491,29 +491,6 @@ class TestItems(omni.kit.test.AsyncTestCase):
             f"The remix directory is missing a {constants.REMIX_CAPTURE_FOLDER} subdirectory", str(cm.exception)
         )
 
-    async def test_schema_is_remix_directory_valid_no_mods_subdir_throws(self):
-        # Arrange
-        remix_dir = Path(self.temp_dir.name) / constants.REMIX_FOLDER
-
-        # Act
-        with patch.object(omni.client, "stat") as stat_mock, patch.object(omni.client, "list") as list_mock:
-            stat_mock.return_value = (
-                omni.client.Result.OK,
-                MockListEntry(str(remix_dir), flags=omni.client.ItemFlags.CAN_HAVE_CHILDREN),
-            )
-            list_mock.return_value = (omni.client.Result.OK, [MockListEntry(str(constants.REMIX_CAPTURE_FOLDER))])
-            with self.assertRaises(ValueError) as cm:
-                ProjectWizardSchema.is_remix_directory_valid(remix_dir, {})
-
-        # Assert
-        stat_args, _ = stat_mock.call_args
-        list_args, _ = list_mock.call_args
-        self.assertEqual(str(remix_dir), stat_args[0])
-        self.assertEqual(str(remix_dir), list_args[0])
-        self.assertEqual(
-            f"The remix directory is missing a {constants.REMIX_MODS_FOLDER} subdirectory", str(cm.exception)
-        )
-
     async def test_schema_is_remix_directory_valid_accepted_returns_val(self):
         # Arrange
         remix_dir = Path(self.temp_dir.name) / constants.REMIX_FOLDER
