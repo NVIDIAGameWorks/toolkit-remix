@@ -10,7 +10,7 @@
 import carb.settings
 import omni.ui as ui
 import omni.usd
-from lightspeed.trex.viewports.shared.widget import SetupUI as _SetupUI
+from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
 from omni.kit.test.async_unittest import AsyncTestCase
@@ -30,12 +30,14 @@ class TestSharedViewportWidget(AsyncTestCase):
     async def tearDown(self):
         await wait_stage_loading()
 
-    async def __setup_widget(self, width=WINDOW_WIDTH, height=WINDOW_HEIGHT) -> (ui.Window, list[_SetupUI]):
+    async def __setup_widget(
+        self, width=WINDOW_WIDTH, height=WINDOW_HEIGHT
+    ) -> (ui.Window, list[_create_viewport_instance]):
         window = ui.Window("TestSharedViewportUI", width=width, height=height)
         with window.frame:
             with omni.ui.HStack():
-                widget1 = _SetupUI("")
-                widget2 = _SetupUI("")
+                widget1 = _create_viewport_instance("")
+                widget2 = _create_viewport_instance("")
 
         await ui_test.human_delay(human_delay_speed=1)
 
@@ -60,9 +62,9 @@ class TestSharedViewportWidget(AsyncTestCase):
         viewports = ui_test.find_all(f"{_window.title}//Frame/**/.identifier == 'viewport'")
         self.assertTrue(len(viewports) == len(_widgets))
 
-        # viewports should be disabled initially
+        # last created viewport should be enabled
         self.assertTrue(_widgets[0].viewport_api.updates_enabled is False)
-        self.assertTrue(_widgets[1].viewport_api.updates_enabled is False)
+        self.assertTrue(_widgets[1].viewport_api.updates_enabled is True)
 
         # after clicking on viewport 1, it should be enabled
         await viewports[0].click()

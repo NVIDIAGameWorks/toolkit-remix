@@ -33,7 +33,7 @@ from lightspeed.trex.utils.common.file_path import (
     is_usd_file_path_valid_for_filepicker as _is_usd_file_path_valid_for_filepicker,
 )
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
-from lightspeed.trex.viewports.shared.widget import SetupUI as ViewportUI
+from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
 from lightspeed.trex.welcome_pads.stagecraft.models import NewWorkFileItem, RecentWorkFileItem, ResumeWorkFileItem
 from omni.flux.footer.widget import FooterWidget
 from omni.flux.header_nvidia.widget import HeaderWidget
@@ -441,7 +441,7 @@ class SetupUI(TrexLayout):
 
                                 ui.Rectangle(name="TreePanelBackgroundSplitter")
                     with ui.Frame(separate_window=False):
-                        self._viewport = ViewportUI(self._context_name)
+                        self._viewport = _create_viewport_instance(self._context_name)
 
         # subscribe to the burger menu
         self._sub_menu_burger_pressed = self._components_pane.get_ui_widget().menu_burger_widget.set_mouse_pressed_fn(

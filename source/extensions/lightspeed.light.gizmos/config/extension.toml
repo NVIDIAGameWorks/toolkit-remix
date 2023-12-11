@@ -1,0 +1,33 @@
+[package]
+version = "1.0.1"
+authors = ["NVIDIA"]
+title = "Light gizmos extension"
+description = "Render light gizmos using omni.ui.scene"
+readme = "docs/README.md"
+repository = ""
+category = "Documentation"
+keywords = ["ui", "scene", "docs", "documentation", "popover"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[dependencies]
+"lightspeed.trex.viewports.manipulators" = {}
+"omni.kit.scene_view.opengl" = {}
+"omni.ui.scene" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.light.gizmos"
+
+[[test]]
+args = [
+    "--/app/window/dpiScaleOverride=1.0",
+    "--/app/window/scaleToMonitor=false",
+    "--no-window"
+]
+dependencies = [
+    "omni.kit.renderer.core",
+    "omni.kit.renderer.capture",
+    "omni.kit.viewport.utility",
+]

@@ -29,7 +29,6 @@ INCLUDED_SCENE_LAYERS = [
     # "omni.kit.viewport.scene.SimpleGrid",  # use legacy grid for now
     "omni.kit.viewport.scene.SimpleOrigin",
     "omni.kit.viewport.scene.CameraAxisLayer",
-    "omni.kit.viewport.scene.LegacyLight",
     "omni.kit.viewport.scene.LegacyGrid",
 ]
 
