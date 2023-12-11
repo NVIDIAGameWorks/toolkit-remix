@@ -209,6 +209,7 @@ sphinx_exclude_patterns = [
     "source/extensions/lightspeed_example*",
     "source/extensions/lightspeed.export*",
     "source/extensions/lightspeed.layer*",
+    "source/extensions/lightspeed.light.gizmos*",
     "source/extensions/lightspeed.lock*",
     "source/extensions/lightspeed.paths*",
     "source/extensions/lightspeed.pip*",
@@ -276,6 +277,7 @@ files.exclude = [
     "tools/*",
     "source/pythonapps/*",
     "source/extensions/example.*",
+    "source/extensions/lightspeed.hydra.remix/plugin/usd/usd/resources/codegenTemplates/*"
 ]
 
 # python is formatted with black+isort:

@@ -12,6 +12,7 @@ from typing import Any, Dict
 import omni.usd
 from omni.kit.manipulator.selection import SelectionManipulator, SelectionMode
 
+from .global_selection import GlobalSelection
 from .interface.i_manipulator import IManipulator
 
 
@@ -49,10 +50,7 @@ class SelectionDefault(IManipulator):
             return
 
         args = self.__selection_args
-        if hasattr(self.viewport_api, "request_pick"):
-            self.viewport_api.request_pick(*args)
-            return
-        self.viewport_api.pick(args[0][0], args[0][1], args[1][0], args[1][1], args[2])
+        GlobalSelection.get_instance().add_prim_selection(self.viewport_api, args)
 
     def _model_changed(self, model, item):
         # https://gitlab-master.nvidia.com/omniverse/kit/-/merge_requests/13725

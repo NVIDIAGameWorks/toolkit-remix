@@ -139,6 +139,22 @@ class ViewportLayers:
         # Now add the notification which will be called for all layers already registered and any future ones.
         RegisterViewportLayer.add_notifier(self.__viewport_layer_event)
 
+    def find_viewport_layer(self, layer_id: str, category: str = None, layers=None):
+        def recurse_layers(layer):
+            if (
+                layer_id == getattr(layer, "name", None)
+                and (category is None)
+                or (category in getattr(layer, "categories", ()))
+            ):
+                return layer
+            for child_layer in getattr(layer, "layers", ()):
+                found_layer = recurse_layers(child_layer)
+                if found_layer:
+                    return found_layer
+            return None
+
+        return recurse_layers(layers or self)
+
     def __viewport_updated(self, camera_path: Sdf.Path, stage: Usd.Stage):
         if not self.__viewport:
             return

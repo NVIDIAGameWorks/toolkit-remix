@@ -3,12 +3,10 @@ resolution.width = 1920
 resolution.height = 1080
 
 [renderer]
-enabled='rtx'
 multiGpu.maxGpuCount = 1
 mdl.searchPaths.templates = "${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 
 [rtx]
-rendermode = "RaytracedLighting"
 multiThreading.enabled = true
 materialflattener.enabled = false
 pathtracing.maxBounces = 3

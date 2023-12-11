@@ -1,5 +1,5 @@
 [package]
-version = "1.0.1"
+version = "1.1.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Viewports implementation"
 description = "Viewports implementation for NVIDIA RTX Remix App"
@@ -10,6 +10,7 @@ description = "Viewports implementation for NVIDIA RTX Remix App"
 "lightspeed.events_manager" = {}
 "lightspeed.trex.viewports.manipulators" = {}
 "lightspeed.trex.viewports.properties_pane.widget" = {}
+"lightspeed.light.gizmos" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.viewport.utility" = {}
 # start before to be sure to apply settings from the app .kit
@@ -39,6 +40,10 @@ args = [
     # Need to use a .kit file
     "--merge-config=${kit}/../exts/lightspeed.trex.viewports.shared.widget/data/tests/lightspeed.trex.viewports.shared.widget.core_material.kit"
 
+]
+
+stdoutFailPatterns.exclude = [
+    "*[carb.glinterop.plugin] OpenGL Interop is not available. Upgrade your driver to latest for this feature.*",
 ]
 
 [[python.module]]

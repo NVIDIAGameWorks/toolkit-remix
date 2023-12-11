@@ -22,7 +22,7 @@ from lightspeed.trex.contexts import get_instance as trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as TrexContexts
 from lightspeed.trex.layout.shared.base import SetupUI as _BaseLayout
 from lightspeed.trex.stage_view.shared.widget import SetupUI as _StageViewWidget
-from lightspeed.trex.viewports.shared.widget import SetupUI as ViewportUI
+from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
 from omni.flux.tabbed.widget import SetupUI as _TabbedFrame
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.validator.mass.queue.widget import Actions as _MassQueueTreeActions
@@ -169,7 +169,7 @@ class SetupUI(_BaseLayout):
                     )
                 self._frame_viewport = ui.Frame(separate_window=False, visible=False, width=ui.Fraction(1))
                 with self._frame_viewport:
-                    self._viewport = ViewportUI(self._context_name)
+                    self._viewport = _create_viewport_instance(self._context_name)
 
         self._properties_panel.add([self._VALIDATION_TAB_NAME, self._STAGE_VIEW_TAB_NAME])
         self._mass_ingest_widget.set_validator_widget_root_frame(

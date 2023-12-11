@@ -24,13 +24,8 @@ This base experience regroup all extensions shared between all NVIDIA RTX Remix 
 "omni.kit.renderer.core" = {}
 "omni.kit.splash" = { order = -5000}
 
-"omni.hydra.rtx" = {}
-"omni.hydra.pxr" = {}
-# "omni.hydra.pxr.settings" = {}
-"omni.rtx.settings.core" = {} # this is the new Render Settings 2.0
-"omni.rtx.window.settings" = {}
-
 # Trex shared extensions
+"lightspeed.hydra.remix" = { order = -10000 }
 "lightspeed.trex.contexts" = {} # contexts used for each Flux App
 "lightspeed.trex.app.resources" = {order = -1000}  # should start first because of "default_resources_ext"
 "lightspeed.trex.app.setup" = { order = 1000 } # layout setup, we are running that at the end
@@ -41,7 +36,7 @@ This base experience regroup all extensions shared between all NVIDIA RTX Remix 
 # Windows only extensions. For all of them set exact=true to not be included into generated version lock.
 # That will break linux otherwise, as version lock is platform agnostic currently.
 [dependencies."filter:platform"."windows-x86_64"]
-"omni.kit.window.modifier.titlebar" = { version = "105.1.5", exact = true }
+"omni.kit.window.modifier.titlebar" = { version = "105.1.10", exact = true }
 
 # Viewport and Renderer
 "omni.kit.renderer.capture" = {}

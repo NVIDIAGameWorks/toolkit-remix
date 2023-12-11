@@ -118,6 +118,10 @@ class SetupUI:
     def viewport_api(self) -> "ViewportAPI":
         return self._viewport_layers.viewport_api
 
+    @property
+    def viewport_layers(self) -> ViewportLayers:
+        return self._viewport_layers
+
     def __create_ui(self):
         self._root_frame = ui.Frame(computed_content_size_changed_fn=self.__root_size_changed)
         with self._root_frame:
@@ -135,8 +139,8 @@ class SetupUI:
                         self._viewport_layers = ViewportLayers(
                             viewport_id=self.viewport_id, usd_context_name=self._context_name
                         )
-                        # pause viewport updates initially
-                        self.set_active(False)
+                        # do viewport updates initially
+                        self.set_active(True)
 
                     self._property_panel_frame_spacer = ui.Spacer(width=ui.Pixel(12))
 
@@ -192,6 +196,7 @@ class SetupUI:
             _get_event_manager_instance().call_global_custom_event(
                 GlobalEventNames.ACTIVE_VIEWPORT_CHANGED.value, self.viewport_id
             )
+
         self._set_viewport_api_updates_enabled()
 
     def on_active_viewport_changed(self, viewport_id: str):
