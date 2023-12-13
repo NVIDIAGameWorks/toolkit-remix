@@ -63,3 +63,6 @@ A key point to remember is that the spritesheet should be organized from left to
 <img src="data/images/sprite_sheet_example.png" alt="drawing" width="400"/>
 
 > ⚠️ Please be aware that there is a feature gap in the MDL. The runtime will treat all textures as spritesheets, whereas the MDL only treats emissive textures as spritesheets.
+
+***
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://docs.google.com/forms/d/1vym6SgptS4QJvp6ZKTN8Mu9yfd5yQc76B3KHIl-n4DQ/prefill) <sub>

@@ -57,3 +57,6 @@ Now, keep in mind that these two sets of folders, the ones for your in-game file
 Revamping an entire game is a big challenge, so you might think about forming a team to help out. Remix mods focus a lot on art, and even if your mod involves changing how the game works, it's a good idea to set up a structure that allows multiple artists to collaborate efficiently.
 
 You may want to pick one or two people to handle the Remix setup and asset preparation. This helps avoid confusion and keeps everything consistent. Having too many people involved in this part could lead to mistakes and differences in the project files.
+
+***
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://docs.google.com/forms/d/1vym6SgptS4QJvp6ZKTN8Mu9yfd5yQc76B3KHIl-n4DQ/prefill) <sub>
