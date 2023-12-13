@@ -1,7 +1,4 @@
 ```{toctree}
----
-hidden:
----
 remaster.md
 conffiles.md
 setupruntime.md
