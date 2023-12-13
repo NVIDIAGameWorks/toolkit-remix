@@ -1,3 +1,10 @@
+```{toctree}
+---
+hidden:
+---
+projectwizard.md
+modsetupscreen.md
+```
 # RTX Remix Toolkit Interface
 
 

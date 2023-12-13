@@ -301,4 +301,3 @@ Example: [https://docs.omniverse.nvidia.com/composer/latest/release_notes.html](
 
  ----->
 
-Need to leave feedback about the RTX Remix Documentation?  [Click here](https://docs.google.com/forms/d/1vym6SgptS4QJvp6ZKTN8Mu9yfd5yQc76B3KHIl-n4DQ/prefill)
