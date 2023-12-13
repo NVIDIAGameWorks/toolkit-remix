@@ -45,6 +45,7 @@ docs/howto/bestpractices
 docs/howto/remixtooltutorial
 docs/howto/portaltutorial
 docs/glossary
+docs/faq
 docs/contributing
 ```
 
