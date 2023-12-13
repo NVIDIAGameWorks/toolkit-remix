@@ -1,7 +1,4 @@
 ```{toctree}
----
-hidden:
----
 runtimeinterface/usergraphicsettings.md
 runtimeinterface/developermenu.md
 runtimeinterface/renderingtab.md

@@ -1,7 +1,4 @@
 ```{toctree}
----
-hidden:
----
 projectwizard.md
 modsetupscreen.md
 ```
