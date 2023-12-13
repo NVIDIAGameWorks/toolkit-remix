@@ -467,3 +467,6 @@ Note that fog remapping and fog max distance remapping must be enabled for this 
    </td>
   </tr>
 </table>
+
+***
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://docs.google.com/forms/d/1vym6SgptS4QJvp6ZKTN8Mu9yfd5yQc76B3KHIl-n4DQ/prefill) <sub>

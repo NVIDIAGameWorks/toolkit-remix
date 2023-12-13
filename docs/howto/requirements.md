@@ -35,3 +35,6 @@ portaltutorial.md
 * [Vulkan SDK](https://vulkan.lunarg.com/sdk/home#windows) _1.3.211.0 or newer_
     * Please Note that you may need to uninstall previous SDK if you have an old version
 * [Python](https://www.python.org/downloads/) _version 3.9 or newer_
+
+***
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://docs.google.com/forms/d/1vym6SgptS4QJvp6ZKTN8Mu9yfd5yQc76B3KHIl-n4DQ/prefill) <sub>

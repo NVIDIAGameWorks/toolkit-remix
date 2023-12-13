@@ -33,3 +33,6 @@ The RTX Remix tool takes assets from a game capture and cleans them up by removi
 5. **Selection Tab**: Look at the "Selection" tab, where you'll find the original model hash and the converted/captured USD.
 6. **Add New Reference**: Click "Add New Reference" and navigate to the ingested model.
 7. **Adjust Position and Properties**: Modify the positioning, orientation, and scale using "Object Properties" until it matches the original. You can then safely delete the original captured asset and save that layer.
+
+***
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://docs.google.com/forms/d/1vym6SgptS4QJvp6ZKTN8Mu9yfd5yQc76B3KHIl-n4DQ/prefill) <sub>

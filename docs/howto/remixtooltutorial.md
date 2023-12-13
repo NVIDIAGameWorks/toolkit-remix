@@ -53,3 +53,6 @@ Prerequisite: Remix runtime found in:: remix-toolkit-install-dir\deps\remix_runt
 6. From here the following should be visible on screen, and the remixing can begin:
 
 ![RemixTool Tutorial](../data/images/remix_918.png)
+
+***
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://docs.google.com/forms/d/1vym6SgptS4QJvp6ZKTN8Mu9yfd5yQc76B3KHIl-n4DQ/prefill) <sub>
