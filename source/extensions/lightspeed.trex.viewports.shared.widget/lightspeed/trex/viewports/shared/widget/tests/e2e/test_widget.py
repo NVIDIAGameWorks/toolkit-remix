@@ -7,6 +7,8 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
+from typing import TYPE_CHECKING
+
 import carb.settings
 import omni.ui as ui
 import omni.usd
@@ -16,8 +18,14 @@ from omni.kit import ui_test
 from omni.kit.test.async_unittest import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage, wait_stage_loading
 
+if TYPE_CHECKING:
+    from lightspeed.trex.viewports.shared.widget.setup_ui import SetupUI as _ViewportSetupUI
+
 WINDOW_HEIGHT = 1000
 WINDOW_WIDTH = 1436
+
+_CONTEXT_NAME = ""
+_CONTEXT_2_NAME = "secondary"
 
 
 class TestSharedViewportWidget(AsyncTestCase):
@@ -25,19 +33,20 @@ class TestSharedViewportWidget(AsyncTestCase):
     # Before running each test
     async def setUp(self):
         await open_stage(_get_test_data("usd/project_example/combined.usda"))
+        usd_context_2 = omni.usd.create_context(_CONTEXT_2_NAME)
+        await open_stage(_get_test_data("usd/ingested_assets/source/cube.usda"), usd_context=usd_context_2)
 
     # After running each test
     async def tearDown(self):
+        # Note: this func seems to be context independent (same val for both contexts)
         await wait_stage_loading()
 
-    async def __setup_widget(
-        self, width=WINDOW_WIDTH, height=WINDOW_HEIGHT
-    ) -> (ui.Window, list[_create_viewport_instance]):
+    async def __setup_widget(self, width=WINDOW_WIDTH, height=WINDOW_HEIGHT) -> (ui.Window, list["_ViewportSetupUI"]):
         window = ui.Window("TestSharedViewportUI", width=width, height=height)
         with window.frame:
             with omni.ui.HStack():
-                widget1 = _create_viewport_instance("")
-                widget2 = _create_viewport_instance("")
+                widget1 = _create_viewport_instance(_CONTEXT_NAME)
+                widget2 = _create_viewport_instance(_CONTEXT_2_NAME)
 
         await ui_test.human_delay(human_delay_speed=1)
 
@@ -90,6 +99,7 @@ class TestSharedViewportWidget(AsyncTestCase):
         await viewports[0].click()
         self.assertTrue(_widgets[0].viewport_api.updates_enabled is True)
         self.assertTrue(_widgets[1].viewport_api.updates_enabled is False)
+        await wait_stage_loading()  # make sure the stage gets a chance to load before minimizing
 
         # while minimized, viewports should pause
         minimize_event_stream.push(payload={"isMinimized": True})
@@ -102,6 +112,7 @@ class TestSharedViewportWidget(AsyncTestCase):
         await ui_test.wait_n_updates()
         self.assertTrue(_widgets[0].viewport_api.updates_enabled is True)
         self.assertTrue(_widgets[1].viewport_api.updates_enabled is False)
+        await wait_stage_loading()  # make sure the stage gets a chance to load before minimizing
 
         # check that it will respect this preference and keep updating viewport 1
         carb.settings.get_settings().set("/app/renderer/skipWhileMinimized", False)
@@ -118,10 +129,13 @@ class TestSharedViewportWidget(AsyncTestCase):
 
         # after clicking on viewport 2, it should be enabled, and after minimizing and
         # restoring it should still be the one that is enabled.
-        await viewports[1].click()
         carb.settings.get_settings().set("/app/renderer/skipWhileMinimized", True)
+        await viewports[1].click()
         self.assertTrue(_widgets[0].viewport_api.updates_enabled is False)
         self.assertTrue(_widgets[1].viewport_api.updates_enabled is True)
+        await wait_stage_loading(
+            usd_context=omni.usd.get_context(_CONTEXT_2_NAME)
+        )  # make sure the stage gets a chance to load before minimizing
         minimize_event_stream.push(payload={"isMinimized": True})
         await ui_test.wait_n_updates()
         self.assertTrue(_widgets[0].viewport_api.updates_enabled is False)
