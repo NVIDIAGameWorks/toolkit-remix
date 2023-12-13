@@ -1,3 +1,18 @@
+```{toctree}
+---
+hidden:
+---
+remaster.md
+conffiles.md
+setupruntime.md
+capture.md
+modelreplacement.md
+ingestmodeltextures.md
+materialreplacement.md
+bestpractices.md
+remixtooltutorial.md
+portaltutorial.md
+```
 # Learning & Essential Skills
 
 ## Requirements

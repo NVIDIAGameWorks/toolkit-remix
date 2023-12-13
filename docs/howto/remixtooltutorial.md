@@ -1,4 +1,4 @@
-# Remix Sample Tutorial
+# Tutorial: Remix Sample
 ## RTX Remix Runtime Workflow
 Prerequisite: Remix runtime found in:: remix-toolkit-install-dir\deps\remix_runtime
 
