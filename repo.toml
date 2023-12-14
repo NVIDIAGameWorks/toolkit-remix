@@ -296,6 +296,7 @@ files.exclude = [
     "tools/*",
     "source/pythonapps/*",
     "source/extensions/example.*",
+    "source/extensions/lightspeed.common/lightspeed/common/tools/*",
 ]
 python_version = "py310"
 job_count = 1
@@ -320,6 +321,7 @@ files.exclude = [
     "tools/*",
     "source/pythonapps/*",
     "source/extensions/example.*",
+    "source/extensions/lightspeed.common/lightspeed/common/tools/*",
 ]
 
 ########################################################################################################################
