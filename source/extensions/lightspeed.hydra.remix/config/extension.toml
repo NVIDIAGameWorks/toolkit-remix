@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.1.0"
+version = "0.1.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alex Dunn <adunn@nvidia.com>"]
@@ -60,3 +60,11 @@ value = "${kit}/../deps/hdremix"
 isPath = true
 append = true
 override = false
+
+# Force disable RTX IO
+[[env]]
+name = "DXVK_USE_RTXIO"
+value = "0"
+isPath = false
+append = false
+override = true
