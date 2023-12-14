@@ -190,8 +190,11 @@ class Setup:
         return sorted(result, reverse=True)
 
     def get_capture_image(self, path: str) -> Optional[str]:
-        image_path = Path(path).parent.joinpath(".thumbs", f"{Path(path).name}.dds")
-        return str(image_path) if image_path.exists() else None
+        for folder in [".thumbs", "thumbs"]:
+            image_path = Path(path).parent / folder / f"{Path(path).name}.dds"
+            if image_path.exists():
+                return str(image_path)
+        return None
 
     @staticmethod
     def get_hashes_from_capture_layer(layer: Sdf.Layer) -> Tuple[Dict[str, Sdf.Path], Dict[str, Set[str]]]:
