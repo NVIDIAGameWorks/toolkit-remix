@@ -460,8 +460,27 @@ class Setup:
 
                 indices_primvar = binding_api.GetJointIndicesPrimvar()
                 indices = indices_primvar.Get()
+                if not indices:
+                    carb.log_warn(
+                        f"{ref_prim.GetPath()} contained a skeleton binding API, but is missing "
+                        f"`primvars:skel:jointIndices`."
+                    )
+                    detail_message += (
+                        f"{ref_prim.GetPath()}\n"
+                        f" - Contains a binding API but no `primvars:skel:jointIndices`.\n"
+                        f"   The joints will need to be manually remapped."
+                    )
+                    continue
                 original_joints = binding_api.GetJointsAttr().Get()
-                if not indices or not original_joints:
+                if not original_joints:
+                    carb.log_warn(
+                        f"{ref_prim.GetPath()} contained a skeleton binding API, but is missing `skel:joints`."
+                    )
+                    detail_message += (
+                        f"{ref_prim.GetPath()}\n"
+                        f" - Contains a binding API but no `skel:joints`.\n"
+                        f"   The joints will need to be manually remapped."
+                    )
                     continue
 
                 # Force the mesh to bind to the captured skeleton
@@ -474,6 +493,12 @@ class Setup:
                 original_joints = binding_api.GetJointsAttr().Get()
                 mesh_joints = [joint.split("/")[-1] for joint in original_joints]
                 if not mesh_joints:
+                    carb.log_warn(f"{ref_prim.GetPath()} `skel:joints` was empty.")
+                    detail_message += (
+                        f"{ref_prim.GetPath()}\n"
+                        f" - Contains a binding API but `skel:joints` was empty`"
+                        f"   The joints will need to be manually remapped."
+                    )
                     continue
 
                 # First, check if the joint arrays match
