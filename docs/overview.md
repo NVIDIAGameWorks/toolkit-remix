@@ -8,7 +8,7 @@
 
 ### [Introduction](#introduction)
 
-RTX Remix is a cool tool for upgrading older DirectX 8 and 9 games. It adds fancy stuff like path tracing, NVIDIA DLSS (a smart upscaling technology), better textures using AI, and lets people create their own game stuff. It's like giving your old games a makeover. RTX Remix has two parts: the RTX Remix runtime (which makes the game look better) and the RTX Remix creator toolkit (which helps you make cool stuff for the game). You can use RTX Remix to make classic games look awesome and share your creations with others.
+RTX Remix is a cool tool for upgrading older DirectX 8 and 9 games. It adds fancy stuff like path tracing, NVIDIA DLSS (a smart upscaling technology), better textures using AI, and lets people create their own game stuff. It's like giving your old games a makeover. RTX Remix has two parts: the RTX Remix runtime (which makes the game look better) and the RTX Remix Creator Toolkit (which helps you make cool stuff for the game). You can use RTX Remix to make classic games look awesome and share your creations with others.
 
 
 ### [How Does It Work](#how-does-it-work)
@@ -40,7 +40,7 @@ Please review the [Omniverse Technical Requirement Documentation](https://docs.o
 
 <!----- https://github.com/NVIDIAGameWorks/rtx-remix/wiki/Compatibility ----->
 
-The RTX Remix Runtime is primarily targeting DirectX 8 and 9 games with a fixed function pipeline for compatibility. Injecting the Remix runtime into other content is unlikely to work. It is important to state that even amongst DX8/9 games with fixed function pipelines, there is diversity in how they utilize certain shader techniques or handle rendering. As a result, there are crashes and unexpected rendering scenarios that require improvements to the RTX Remix runtime for content to work perfectly.   
+The RTX Remix Runtime is primarily targeting DirectX 8 and 9 games with a fixed function pipeline for compatibility. Injecting the Remix runtime into other content is unlikely to work. It is important to state that even amongst DX8/9 games with fixed function pipelines, there is diversity in how they utilize certain shader techniques or handle rendering. As a result, there are crashes and unexpected rendering scenarios that require improvements to the RTX Remix runtime for content to work perfectly.
 
 It is our goal to work in parallel with the community to identify these errors and improve the runtime to widen compatibility with as many DX8 and 9 fixed function games as possible.  As Remix development continues, we will be adding revisions to the RTX Remix Runtime that will expand compatibility for more and more titles.  Some of those solutions will be code contributions submitted by our talented [developer community](http://discord.gg/rtxremix), which we will receive on our [GitHub as pull requests](https://github.com/NVIDIAGameWorks/rtx-remix/pulls) and integrate into the main RTX Remix Runtime.  RTX Remix is a first of its kind modding platform for reimagining a diverse set of classic games with the same workflow, but it's going to take some investigation and work to achieve that broad compatibility.
 
@@ -100,7 +100,7 @@ Remix utilizes Omniverse's standard USD (for scenes) and MDL (for materials) fil
 
 ### Asset Converter
 
-Apps in omniverse are loaded with the Asset Converter extension. With it, users can convert models into USD using the [**Asset Converter**](https://docs.omniverse.nvidia.com/composer/latest/common/formats.html#asset-converter) service. Below is a list of formats it can convert to USD.
+Apps in Omniverse are loaded with the Asset Converter extension. With it, users can convert models into USD using the [**Asset Converter**](https://docs.omniverse.nvidia.com/composer/latest/common/formats.html#asset-converter) service. Below is a list of formats it can convert to USD.
 
 <table>
   <tr>
