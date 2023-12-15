@@ -277,6 +277,7 @@ files.exclude = [
     "tools/*",
     "source/pythonapps/*",
     "source/extensions/example.*",
+    "source/extensions/lightspeed.common/lightspeed/common/tools/*",
     "source/extensions/lightspeed.hydra.remix/plugin/usd/usd/resources/codegenTemplates/*"
 ]
 
