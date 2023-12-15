@@ -114,6 +114,7 @@ release.files_exclude = [
     ["**/*.pdb"],
     ["**/*.exp"],
     ["kit/**"],
+    ["deps/**"],
     ["apps/kit.portable"]
 ]
 "linux-x86_64".files_strip = [
