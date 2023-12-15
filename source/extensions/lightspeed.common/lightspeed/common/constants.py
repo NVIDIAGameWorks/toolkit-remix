@@ -77,10 +77,6 @@ SHADER_NAME_OPAQUE = "AperturePBR_Opacity.mdl"
 SHADER_NAME_TRANSLUCENT = "AperturePBR_Translucent.mdl"
 
 NVTT_PATH = "${kit}/../deps/tools/nvtt/nvtt_export.exe"
-
-#######################################################################################################################
-# All the tools were removed frpm lightspeed.common in favor of newer tools
-#######################################################################################################################
 PIX2PIX_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "pytorch-CycleGAN-and-pix2pix"))
 REAL_ESRGAN_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "realesrgan-ncnn-vulkan-20210901-windows"))
 MAT_SR_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "mat-sr"))
@@ -88,7 +84,6 @@ MAT_SR_ARTIFACTS_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "mat-sr
 PIX2PIX_TEST_SCRIPT_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("test.py"))
 PIX2PIX_CHECKPOINTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("checkpoints"))
 PIX2PIX_RESULTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("results"))
-#######################################################################################################################
 
 REGEX_IN_INSTANCE_PATH = (
     f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa PLW1401
