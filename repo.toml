@@ -173,8 +173,11 @@ apps = [
     "${root}/source/apps/lightspeed.app.trex.stagecraft.kit",
     "${root}/source/apps/lightspeed.app.trex.texturecraft.kit",
     "${root}/source/apps/lightspeed.app.trex_dev.kit",
-    "${root}/source/extensions/lightspeed.trex.project_wizard.core/apps/lightspeed.app.trex.project_wizard_cli.kit",
-    "${root}/source/extensions/lightspeed.trex.packaging.core/apps/lightspeed.app.trex.project_packaging_cli.kit"
+    # we don't need to cache sub-apps, the extension itself is cached by an app. We can have a case where the sub app
+    # use an extension that is not a dependency of the extension itself, but here this is not the case.
+    # If you add a sub app here, please check this.
+#    "${root}/source/extensions/lightspeed.trex.project_wizard.core/apps/lightspeed.app.trex.project_wizard_cli.kit",
+#    "${root}/source/extensions/lightspeed.trex.packaging.core/apps/lightspeed.app.trex.project_packaging_cli.kit"
 ]
 
 
