@@ -2,7 +2,8 @@
 
 Material Filtering allows you to adjust material filtering options or render all white materials for an easier time when tuning lighting.
 
-![MaterialFiltering](../data/images/rtxremix_019.PNG)
+![MaterialFiltering](../../data/images/rtxremix_019.PNG)
+
 
 <table>
   <tr>

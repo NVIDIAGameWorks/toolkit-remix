@@ -3,7 +3,8 @@
 Various compatibility options for geometry handling.
 
 
-![Geometry](../data/images/rtxremix_022.PNG)
+![Geometry](../../data/images/rtxremix_022.PNG)
+
 
 <table>
   <tr>

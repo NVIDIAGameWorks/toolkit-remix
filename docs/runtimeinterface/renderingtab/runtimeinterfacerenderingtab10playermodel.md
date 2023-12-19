@@ -3,7 +3,7 @@
 Player Model allows you to toggle compatibility options related to first person character rendering here, as well as toggle first person character shadows.
 
 
-![PlayerModel](../data/images/rtxremix_021.PNG)
+![PlayerModel](../../data/images/rtxremix_021.PNG)
 
 <table>
   <tr>
