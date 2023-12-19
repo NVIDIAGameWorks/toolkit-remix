@@ -38,3 +38,18 @@ dlss.enableDenoiser = 1
 
 [rtx-transient]
 resourcemanager.enableTextureStreaming = true
+
+###############################################################################
+# Fix for Pre-ADA GPUs: Disable DLSS-G & present thread by default
+###############################################################################
+[app.runLoops]
+main.rateLimitUsePrecisionSleep = true
+main.syncToPresent = false
+
+[exts."omni.kit.renderer.core".present]
+enabled = false
+presentAfterRendering = false
+
+["rtx-transient".dlssg]
+enabled = false
+###############################################################################
