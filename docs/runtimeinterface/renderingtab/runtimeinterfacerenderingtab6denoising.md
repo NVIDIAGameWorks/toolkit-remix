@@ -3,7 +3,9 @@
 Denoising allows you to toggle denoising on and off, as well as tune denoising parameters in detail. Denoising is a critical part of modern Path Tracing renderers and turning it off entirely has mainly educational value. Adjusting the individual settings may be beneficial for image quality or compatibility, depending on the game and mod in question.
 
 
-![Denoising](../data/images/rtxremix_026.png)
+
+![Denoising](../../data/images/rtxremix_026.png)
+
 
 
 <table>

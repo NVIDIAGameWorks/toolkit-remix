@@ -3,7 +3,8 @@
 Light Conversion allows you to control how game lights are translated into Path Tracing compatible physical light sources in the Remix Toolkit.
 
 
-![LightConversion](../data/images/rtxremix_020.PNG)
+![LightConversion](../../data/images/rtxremix_020.PNG)
+
 
 <table>
   <tr>

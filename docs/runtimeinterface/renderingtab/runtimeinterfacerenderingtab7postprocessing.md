@@ -3,7 +3,9 @@
 Post-Processing allows you to toggle on and off, as well as tune the look of each of the supported post-processing effects in Remix.
 
 
-![PostProcessing](../data/images/rtxremix_025.png)
+
+![PostProcessing](../../data/images/rtxremix_025.png)
+
 
 
 <table>

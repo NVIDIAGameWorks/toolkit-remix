@@ -1,13 +1,6 @@
-```{toctree}
-projectwizard.md
-modsetupscreen.md
-```
-# RTX Remix Toolkit Interface
+# Launch Screen
 
-
-## Launch Screen
-
-![Launch Sreen](../data/images/rtxremix_065.PNG)
+![Launch Screen](data/images/rtxremix_065.PNG)
 
 <table>
   <tr>
