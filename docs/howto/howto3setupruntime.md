@@ -34,7 +34,5 @@ With UI setup out of the way, you can perform an additional test to ensure RTX R
 2. This will create your first capture of the game, which you can use to remaster assets, materials and lights. Capture files will be placed in a special folder called rtx-remix/captures – this will be placed next to the game executable, when first created. The rtx_remix folder is also where pre-made RTX Remix mods will go, under folder mods.
 
 > 📝 If you are having trouble, try launching your game in Direct X v.7 or lower
-> ⚠️ Per game setup may be different depending on the game you are trying to remaster.  Join the [RTX Discord Community](http://discord.gg/rtxremix) where you can check out the **Remix-Projects** channel for help for the game you wish to remaster!
 
-***
-<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://docs.google.com/forms/d/1vym6SgptS4QJvp6ZKTN8Mu9yfd5yQc76B3KHIl-n4DQ/prefill) <sub>
+> ⚠️ Per game setup may be different depending on the game you are trying to remaster.  Join the [RTX Discord Community](http://discord.gg/rtxremix) where you can check out the **Remix-Projects** channel for help for the game you wish to remaster!
