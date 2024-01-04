@@ -46,7 +46,7 @@ enabled = true
 type = "repo_update"
 schedule = "daily"
 mr_title = "bump rtx-remix-remix_runtime"
-repo_update_args = ["rtx-remix-remix_runtime", "--major"]
+repo_update_args = ["rtx-remix-remix_runtime", "--major", "--include-pre-release"]
 required_paths = ["deps/install-deps.packman.xml"]
 dependabot_branch_name = "update-rtx-remix-remix_runtime"
 

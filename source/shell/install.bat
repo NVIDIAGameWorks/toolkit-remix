@@ -1,7 +1,6 @@
 setlocal
 
 :: Pull dependencies
-call "%~dp0pull_kit_sdk.bat"
 call "%~dp0pull_dependencies.bat"
 
 :: Warmup the Remix apps

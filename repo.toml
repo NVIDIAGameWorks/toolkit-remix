@@ -113,7 +113,7 @@ release.files = [
 release.files_exclude = [
     ["**/*.pdb"],
     ["**/*.exp"],
-    ["kit/**"],
+#    ["kit/**"],
     ["deps/**"],
     ["apps/kit.portable"]
 ]
