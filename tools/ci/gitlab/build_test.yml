@@ -25,3 +25,8 @@ build_test:
     when: on_success
     paths:
     - _build/packages
+  rules:
+      # Pipeline disabling flags in MR titles :
+    - if: $CI_MERGE_REQUEST_TITLE =~ /\[pipeline:all:skip\]/
+      when: never
+    - when: always
