@@ -25,8 +25,3 @@ build_doc:
     - !reference [ .omni_s3_write_get_secrets, omni_s3_write_get_secrets ]
     - ./build.sh --release
     - ./build_docs.sh
-  rules:
-      # Pipeline disabling flags in MR titles :
-    - if: $CI_MERGE_REQUEST_TITLE =~ /\[pipeline:all:skip\]/
-      when: never
-    - when: always

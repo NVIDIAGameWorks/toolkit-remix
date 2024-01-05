@@ -6,8 +6,3 @@ check-code-lint:
   script:
     - .\lint_code.bat
   timeout: 10m
-  rules:
-      # Pipeline disabling flags in MR titles :
-    - if: $CI_MERGE_REQUEST_TITLE =~ /\[pipeline:all:skip\]/
-      when: never
-    - when: always
