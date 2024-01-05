@@ -103,9 +103,29 @@ timeout = 1800
 ########################################################################################################################
 
 [repo_package]
-windows_max_path_length = 240
 
 [repo_package.packages.main_package]
+
+archive_format = "zip"
+replace_authors_in_kit_extensions = true
+strip_package_infos = true
+exclude_kit_extensions_for_thin_packaging = false
+
+windows_max_path_length = 240
+
+# temp for fat packaging and enterprise builds until pipeline changes are complete: @gamato
+files_exclude = [
+    ["**/*.pdb"],
+    ["**/*.exp"],
+    # ["kit/**"],
+    ["baseapp/**"],
+    ["extsbuild/**"],
+    ["cache/**"],
+    ["data/**"],
+    ["logs/**"],
+    ["apps/kit.portable"],
+]
+
 # package content
 release.files = [
     ["**"],
@@ -113,20 +133,18 @@ release.files = [
 release.files_exclude = [
     ["**/*.pdb"],
     ["**/*.exp"],
-#    ["kit/**"],
-    ["deps/**"],
-    ["apps/kit.portable"]
+    # ["kit/**"],
+    ["apps/kit.portable"],
 ]
 "linux-x86_64".files_strip = [
     ["**/*.so"],
 ]
+# temp until fix
 "linux-x86_64".files_strip_exclude = [
+    ["**/*tbb*.so"],
+    ["*/pip_prebundle/PIL/*"],
 ]
-omniverse_flow_version_scheme = true
-archive_format = "zip"
-strip_package_infos = true
-# Do not package extensions that can be pulled (using http).
-exclude_kit_extensions_for_thin_packaging = false
+
 
 #######################################################################################################################
 # Section for "post build" step configuration.
