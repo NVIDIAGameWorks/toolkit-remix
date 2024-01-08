@@ -508,7 +508,7 @@ class LightGizmosManipulator(sc.Manipulator):
         self._update_icon_geometry()
         # build UI
         with self._root:
-            with sc.Transform(look_at=sc.Transform.LookAt.CAMERA):
+            with sc.Transform(look_at=sc.Transform.LookAt.CAMERA, scale_to=sc.Space.SCREEN):
                 with sc.Transform(transform=sc.Matrix44.get_scale_matrix(64.0, 64.0, 1.0)):
                     # using a polygon mesh here because image icons seem to crash OV
                     sc.PolygonMesh(
