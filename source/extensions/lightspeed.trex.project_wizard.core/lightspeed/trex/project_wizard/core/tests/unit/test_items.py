@@ -129,6 +129,50 @@ class TestItems(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(f"'{file_name}' is not valid", str(cm.exception))
 
+    async def test_schema_is_project_file_valid_invalid_characters(self):
+        file_names = [
+            "test<.usd",
+            "test(.usd",
+            "test|.usd",
+            "test?.usd",
+            "test*.usd",
+            "test>.usd",
+            "test).usd",
+            "test:.usd",
+            'test".usd',
+        ]
+
+        for name in file_names:
+            with self.subTest(name=name):
+                with self.assertRaises(ValueError) as cm:
+                    ProjectWizardSchema.is_project_file_valid(Path(self.temp_dir.name) / name, {})
+                self.assertEqual(str(cm.exception), f"'{name}' has an invalid character in filename.")
+
+    async def test_schema_is_capture_file_valid_accepted_filename(self):
+        file_names = [
+            "test.usd",
+            "testmod.usd",
+            "test_capture.usd",
+            "test_baker.usd",
+            "testsublayer.usd",
+            "gibberishmod.usd",
+            "gibberishcapture.usd",
+        ]
+
+        for name in file_names:
+            with self.subTest(name=name):
+                value = ProjectWizardSchema.is_project_file_valid(Path(self.temp_dir.name) / name, {})
+                self.assertEqual(Path(self.temp_dir.name) / name, value)
+
+    async def test_schema_is_project_file_valid_reserved_words(self):
+        file_names = ["mod.usda", "mod_capture_baker.usda", "sublayer.usda"]
+
+        for name in file_names:
+            with self.subTest(name=name):
+                with self.assertRaises(ValueError) as cm:
+                    ProjectWizardSchema.is_project_file_valid(Path(self.temp_dir.name) / name, {})
+                self.assertEqual(str(cm.exception), f"'{name}' has a reserved name in filename.")
+
     async def test_schema_is_project_file_valid_not_usd_throws(self):
         # Arrange
         project_file = Path(self.temp_dir.name) / "project.txt"

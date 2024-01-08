@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.4] - 2023-10-16
+### Changed
+- Adding filename check for invalid characters
+
 ## [1.1.3] - 2023-12-07
 ### Fixed
 - Create mods dir if doesnt exist

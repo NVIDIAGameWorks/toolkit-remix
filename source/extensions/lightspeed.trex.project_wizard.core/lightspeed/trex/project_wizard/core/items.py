@@ -52,6 +52,13 @@ class ProjectWizardSchema(BaseModel):
     @validator(ProjectWizardKeys.PROJECT_FILE.value, allow_reuse=True)
     def is_project_file_valid(cls, v, values):  # noqa
         """Check that the path is a valid project file"""
+
+        # Make sure there are no invalid characters in the filename
+        if re.search(r'[<>"\\():*?|]', Path(str(v)).name):
+            raise ValueError(f"'{Path(str(v)).name}' has an invalid character in filename.")
+        # Making sure no reserved words are in the filename
+        if re.search(r"(\bmod[.]+\b)|(\bcapture\b)|(\bmod_capture_baker\b)|(\bsublayer\b)", Path(str(v)).name):
+            raise ValueError(f"'{Path(str(v)).name}' has a reserved name in filename.")
         # Make sure we have a path
         if not v or not str(v).strip():
             raise ValueError(f"'{str(v)}' is not valid")
