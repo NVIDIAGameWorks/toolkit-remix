@@ -1,10 +1,11 @@
-# Introducti
+# Learning & Essential Skills
 
 ```{toctree}
 ---
 hidden: true
 maxdepth: 2
 ---
+howto9requirements.md
 howto1remaster.md
 howto2conffiles.md
 howto3setupruntime.md

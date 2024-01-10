@@ -1,6 +1,6 @@
 # Launch Screen
 
-![Launch Screen](data/images/rtxremix_065.PNG)
+![LaunchScreen](../data/images/rtxremix_065.PNG)
 
 <table>
   <tr>

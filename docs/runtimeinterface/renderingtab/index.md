@@ -5,6 +5,8 @@
 hidden: true
 maxdepth: 3
 ---
+runtimeinterfacerenderingtaboverview.md
+runtimeinterfacerenderingtab1general.md
 runtimeinterfacerenderingtab2pathtracing.md
 runtimeinterfacerenderingtab3lighting.md
 runtimeinterfacerenderingtab4volumetrics.md
