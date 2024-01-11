@@ -10,6 +10,7 @@
 import asyncio
 import uuid
 from typing import Optional, TypeVar
+from unittest.mock import patch
 
 import omni.kit.test
 import omni.kit.ui_test
@@ -114,3 +115,9 @@ class TestWorkFileBurgerMenu(omni.kit.test.AsyncTestCase):
             self.assertTrue(inst._is_visible())  # noqa PLW0212
             # NOTE: The about extension doesn't create/destroy the window just toggles its visibility.
             inst.show(False)
+
+    async def test_show_logs(self):
+        with patch.object(SetupUI, "_open_logs_dir") as mock_open:
+            async with AsyncTestMenu() as menu:
+                await menu.click("logs")
+        self.assertEqual(1, mock_open.call_count)

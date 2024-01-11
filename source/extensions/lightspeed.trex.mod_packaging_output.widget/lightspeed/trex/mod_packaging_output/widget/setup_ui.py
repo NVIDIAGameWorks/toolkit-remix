@@ -7,7 +7,6 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-import os
 import re
 
 import omni.ui as ui
@@ -19,6 +18,7 @@ from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
+from omni.flux.utils.common.path_utils import open_file_using_os_default
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 
 
@@ -119,7 +119,7 @@ class ModPackagingOutputWidget:
     def _open_output_path(self):
         if not self._update_open_button_state():
             return
-        os.startfile(self._output_field.model.get_value_as_string())
+        open_file_using_os_default(self._output_field.model.get_value_as_string())
 
     def _update_enable_state(self, *_):
         checked = self._override_checkbox.model.get_value_as_bool()

@@ -9,6 +9,7 @@
 """
 import asyncio
 
+import carb.tokens
 import omni.kit.window.about
 import omni.kit.window.preferences
 import omni.ui as ui
@@ -16,6 +17,7 @@ import omni.usd
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.common.path_utils import open_file_using_os_default
 from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
 
 from .delegate import Delegate as _Delegate
@@ -121,6 +123,11 @@ class SetupUI:
         # Force the tab to be the active/focused tab (this currently needs to be done in async)
         asyncio.ensure_future(async_focus_window("About"))
 
+    @staticmethod
+    def _open_logs_dir() -> None:
+        log_folder = carb.tokens.get_tokens_interface().resolve("${logs}")
+        open_file_using_os_default(log_folder)
+
     def __create_ui(self):
         def create_separator():
             ui.Separator(
@@ -173,6 +180,13 @@ class SetupUI:
                 "Preferences",
                 identifier="preferences",
                 triggered_fn=self._show_preferences_window,
+            )
+            create_separator()
+            ui.MenuItem(
+                "Show Logs",
+                identifier="logs",
+                style_type_name_override="MenuBurgerItem",
+                triggered_fn=self._open_logs_dir,
             )
             create_separator()
             ui.MenuItem(
