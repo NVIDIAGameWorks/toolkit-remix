@@ -482,7 +482,7 @@ current_dict.update(
             "image_url": _get_fonts("NVIDIASans_A_Lt"),
         },
         "ImageWithProvider::HeaderNvidiaBackground": {
-            "background_color": 0x33000000,
+            "background_color": 0x99000000,
             "background_gradient_color": 0x00000000,
         },
         "ImageWithProvider::FooterLabel": {
