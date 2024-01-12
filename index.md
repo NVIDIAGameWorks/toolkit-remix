@@ -1,6 +1,6 @@
 # NVIDIA RTX Remix
 
-```{include} ./docs/remix1overview.md
+```{include} ./docs/remix-overview.md
 :relative-docs: docs/
 :relative-images:
 ```
@@ -9,13 +9,13 @@
 ---
 hidden: true
 ---
-docs/remix1overview
-docs/remix2install
+docs/remix-overview.md
+docs/remix-installation
 docs/runtimeinterface/index
 docs/toolkitinterface/index
 docs/howto/index
-docs/remix6glossary
-docs/remix7faq
+docs/remix-glossary
+docs/remix-faq
 docs/contributing
 ```
 

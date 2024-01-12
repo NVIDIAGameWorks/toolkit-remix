@@ -1,34 +1,35 @@
 # Tutorial: Remix Sample
 ## RTX Remix Runtime Workflow
-Prerequisite: Remix runtime found in:: remix-toolkit-install-dir\deps\remix_runtime
+> ⚠️ Remix Runtime and Sample Application can be found in: <remix-toolkit-install-dir>\deps\remix_runtime ⚠️
+
+1. Copy the contents of this folder somewhere on your local system, and all the following steps should be performed from that location.  This is just so we can always maintain a clean copy of the original installation.  After your directory should look something like this:
 
 ![RemixTool Tutorial](../data/images/remix_907.png)
 
-1. Copy the contents of this folder somewhere on your local system, and all the following steps should be performed from that location.  This is just so we can always maintain a clean copy of the original installation.  After your directory should look something like this:
-2. Copy the contents of the ‘runtime\.trex’ directory, to the ‘sample’ directory.  So after it should look something like the below.  Since RemixSample.exe is a 64-bit application, we only need the contents of the ".trex" directory.  If your application is 32-bit, then the entire "runtime" directory should be used:
+2. Copy the contents of the ‘runtime/:trex’ directory, to the ‘sample’ directory.  So after it should look something like the below.
 
 ![RemixTool Tutorial](../data/images/remix_908.png)
 
 3. Run "RemixSample.exe" and you should see something like this:
 
-
 ![RemixTool Tutorial](../data/images/remix_909.png)
 
 4. From here, treat this application as any other Remix app.  Menus (ALT+X) and capture should work as expected.  So let’s take a capture and enhance this scene.
-5. Press ALT+X to bring up the Remix menu and select the "Developer Settings Menu" button as shown below:
+
+    Press ALT+X to bring up the Remix menu and select the "Developer Settings Menu" button as shown below:
 
 ![RemixTool Tutorial](../data/images/remix_910.png)
 
-6. From the "Developer Settings Menu" click on the "Enhancements Tab":
+5. From the "Developer Settings Menu" click on the "Enhancements Tab":
 
 ![RemixTool Tutorial](../data/images/remix_911.png)
 
-7. From here, we can specify a name for our capture, and hit the "Capture Scene" button when ready.  This will capture the current frame, and write a USD containing all the data to disk.  The progress bar will show how far into the capturing process we are, once it reaches 100% we can begin the toolkit workflow.
+6. From here, we can specify a name for our capture, and hit the “Capture Scene” button when ready. This will capture the current frame, and write a USD containing all the data to disk. The progress bar will show how far into the capturing process we are, once it reaches 100% we can begin the toolkit workflow.
 
 ![RemixTool Tutorial](../data/images/remix_912.png)
 
 
-## RTX Remix Tookit Workflow
+## RTX Remix Toolkit Workflow
 
 1. Launch the Remix Toolkit and select the Setup "Project" button from the startup page:
 

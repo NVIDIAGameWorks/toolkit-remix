@@ -5,7 +5,8 @@
 hidden: true
 maxdepth: 2
 ---
-toolkitinterface1launchscreen.md
-toolkitinterface2projectwizard.md
-toolkitinterface3modsetupscreen.md
+remix-toolkitinterface-launchscreen.md
+remix-toolkitinterface-modsetupscreen.md
+remix-toolkitinterface-projectwizard.md
 ```
+
