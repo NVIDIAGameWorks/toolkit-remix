@@ -33,7 +33,72 @@ When you get your hands on the RTX Remix creator toolkit, you'll be able to easi
 
 ## [Technical Requirements](#technical-requirements)
 
-Please review the [Omniverse Technical Requirement Documentation](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/common/technical-requirements.html) for further details on what is required to use Applications within the Omniverse Platform.
+> Omniverse is built to run on any RTX-powered machine. For ideal performance, we recommend using GeForce RTX™ 2080, Quadro RTX™ 5000, or higher. For latest drivers, visit [NVIDIA Driver Downloads](https://www.nvidia.com/Download/index.aspx). For Quadro, select 'Quadro New Feature Driver (QNF).
+
+<table>
+  <tr>
+    <td><strong>Level</strong>
+    </td>
+    <td><strong>Operating System</strong>
+    </td>
+    <td><strong>CPU</strong>
+    </td>
+     <td><strong>CPU Cores</strong>
+    </td>
+    <td><strong>RAM</strong>
+    </td>
+    <td><strong>GPU</strong>
+    </td>
+    <td><strong>VRAM</strong>
+    </td>
+    <td><strong>Disk</strong>
+  </td>
+  </tr>
+  <tr>
+    <td>Minimum
+   </td>
+   <td><sp>Windows 10/11</sp>
+   </td>
+   <td><sp>Intel I7</sp>
+   <sp>AMD Ryzen</sp>
+   </td>
+   <td>4
+   </td>
+    <td>16 GB
+   </td>
+    <td>RTX GPU
+   </td>
+   <td>6 GB
+   </td>
+    <td>512 GB SSD
+   </td>
+  </tr>
+  <tr>
+    <td>Recommended
+   </td>
+   <td><p>Windows 10/11</p>
+   </td>
+   <td><sp>Intel I7</sp>
+   <sp>AMD Ryzen</sp>
+   </td>
+   <td>8
+   </td>
+    <td>32 GB
+   </td>
+    <td><sp>GeForce RTX 2080</sp>
+    <sp>Quadro RTX 5000</sp>
+   </td>
+   <td>8 GB
+   </td>
+    <td>512 GB M.2 SSD
+   </td>
+  </tr>
+  </tr>
+</table>
+
+
+
+We recommend that you review the [Omniverse Technical Requirement Documentation](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/common/technical-requirements.html) for further details on what is required to use Applications within the Omniverse Platform.
 
 
 ## [Compatibility](#compatibility)

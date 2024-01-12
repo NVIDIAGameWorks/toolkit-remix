@@ -5,17 +5,16 @@
 hidden: true
 maxdepth: 3
 ---
-runtimeinterfacerenderingtaboverview.md
-runtimeinterfacerenderingtab1general.md
-runtimeinterfacerenderingtab2pathtracing.md
-runtimeinterfacerenderingtab3lighting.md
-runtimeinterfacerenderingtab4volumetrics.md
-runtimeinterfacerenderingtab5alphatestbending.md
-runtimeinterfacerenderingtab6denoising.md
-runtimeinterfacerenderingtab7postprocessing.md
-runtimeinterfacerenderingtab8debug.md
-runtimeinterfacerenderingtab9geometry.md
-runtimeinterfacerenderingtab10playermodel.md
-runtimeinterfacerenderingtab11lightconversion.md
-runtimeinterfacerenderingtab12materialfiltering.md
+remix-runtimeinterface-rendering-overview.md
+remix-runtimeinterface-rendering-pathtracing.md
+remix-runtimeinterface-rendering-lighting.md
+remix-runtimeinterface-rendering-volumetrics.md
+remix-runtimeinterface-rendering-alphatestbending.md
+remix-runtimeinterface-rendering-denoising.md
+remix-runtimeinterface-rendering-postprocessing.md
+remix-runtimeinterface-rendering-debug.md
+remix-runtimeinterface-rendering-geometry.md
+remix-runtimeinterface-rendering-playermodel.md
+remix-runtimeinterface-rendering-lightconversion.md
+remix-runtimeinterface-rendering-materialfiltering.md
 ```

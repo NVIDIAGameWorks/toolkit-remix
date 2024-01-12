@@ -5,11 +5,12 @@
 hidden: true
 maxdepth: 2
 ---
-runtimeinterface1overview.md
-runtimeinterface2usergraphicsettings.md
-runtimeinterface3developermenu.md
+remix-runtimeinterface-overview.md
+remix-runtimeinterface-usergraphicsettings.md
+remix-runtimeinterface-developermenu.md
+remix-runtimeinterface-general.md
 renderingtab/index.md
-runtimeinterface5gamesetuptab.md
-runtimeinterface6enhancementstab.md
-runtimeinterface7about.md
+remix-runtimeinterface-gamesetup.md
+remix-runtimeinterface-enhancements.md
+remix-runtimeinterface-about.md
 ```

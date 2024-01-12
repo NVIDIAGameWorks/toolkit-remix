@@ -8,7 +8,7 @@ RTX Remix comes with a runtime overlay menu that makes it easy to adjust how you
 
 ### User Graphics Settings
 
-When pressing **Alt + X**, you will first be taken to the [User Graphics Settings](runtimeinterface2usergraphicsettings.md) menu. This menu has various high-level settings intended for end users of RTX Remix mods to quickly customize their experience. There are three tabs: General, Rendering and Content. All the settings are described with a tooltip when you hover over them.
+When pressing **Alt + X**, you will first be taken to the [User Graphic Settings](remix-runtimeinterface-usergraphicsettings.md) menu. This menu has various high-level settings intended for end users of RTX Remix mods to quickly customize their experience. There are three tabs: General, Rendering and Content. All the settings are described with a tooltip when you hover over them.
 
 [FIXME: are these tabs outdated?]::
 
@@ -21,9 +21,9 @@ The **Content** settings allow you to turn off and on each of the three types of
 ### Developer Settings
 
 At the bottom of the User Graphics Settings menu, you should see a button for Developer Settings Menu. This will take you to a deeper and more detailed RTX Remix Developer Menu. It contains three main tabs.
-1. The [Rendering Tab](renderingtab/runtimeinterfacerenderingtab1general.md) is intended mostly for mod authors and runtime developers who need the ultimate control of renderer internals to achieve compatibility or the intended look for a mod or game.
-1. The [Game Setup Tab](runtimeinterface5gamesetuptab.md) contains the key capture and tagging workflow that will be needed to make a game moddable and compatible with RTX Remix.
-1. The[Enhancements Tab](runtimeinterface6enhancementstab.md) allows for toggling various types of replacements on and off, as well as highlighting unreplaced assets, all useful for testing and validating mod content.
+1. The [Rendering Tab](renderingtab/remix-runtimeinterface-rendering-overview.md) is intended mostly for mod authors and runtime developers who need the ultimate control of renderer internals to achieve compatibility or the intended look for a mod or game.
+1. The [Game Setup Tab](remix-runtimeinterface-gamesetup.md) contains the key capture and tagging workflow that will be needed to make a game moddable and compatible with RTX Remix.
+1. The [Enhancements Tab](remix-runtimeinterface-enhancements.md) allows for toggling various types of replacements on and off, as well as highlighting unreplaced assets, all useful for testing and validating mod content.
 
 > 📝 There is a checkbox at the top of the Developer Settings Menu that says "Always Developer Menu." Turning this checkbox on (and saving settings) will take you directly to the Developer menu when pressing **Alt + X**, saving you a click!
 

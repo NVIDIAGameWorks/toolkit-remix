@@ -2,8 +2,7 @@
 
 The General settings deal mostly with performance and include various upscaling and latency reduction options.
 
-
-![General](../../data/images/rtxremix_031.png)
+![General](../data/images/rtxremix_031.png)
 
 <table>
   <tr>
