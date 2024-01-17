@@ -62,6 +62,9 @@ class LightGizmosTestModel(sc.AbstractManipulatorModel):
             return self.transform.value
         return None
 
+    def get_as_bools(self, item):
+        return True
+
 
 class TestInfo(OmniUiTest):
     async def test_general(self):
