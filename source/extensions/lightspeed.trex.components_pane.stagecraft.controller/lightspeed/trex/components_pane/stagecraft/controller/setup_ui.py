@@ -22,7 +22,7 @@ from omni.flux.utils.common.decorators import sandwich_attrs_function_decorator 
 
 class SetupUI:
 
-    DEFAULT_TITLE = "Untitled workfile"
+    DEFAULT_TITLE = "Untitled project"
 
     def __init__(self, context_name: str):
         """Nvidia StageCraft Components Pane"""
