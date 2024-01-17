@@ -134,7 +134,9 @@ class SetupUI:
                         )
                     ui.Spacer(height=ui.Pixel(8))
                     self._material_properties_widget = _MaterialPropertyWidget(
-                        self._context_name, tree_column_widths=[ui.Percent(self.COLUMN_WIDTH_PERCENT)]
+                        self._context_name,
+                        tree_column_widths=[ui.Percent(self.COLUMN_WIDTH_PERCENT)],
+                        create_color_space_attributes=False,
                     )
 
         self._sub_on_material_refresh_done = self._material_properties_widget.subscribe_refresh_done(
