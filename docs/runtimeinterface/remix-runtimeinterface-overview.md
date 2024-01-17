@@ -1,12 +1,10 @@
-# Runtime User Guide
-
-RTX Remix comes with a runtime overlay menu that makes it easy to adjust how your game looks and runs. It contains detailed settings for all the major functions: Rendering, Asset Replacement, and Capture. You can access this menu by pressing **Alt + X** once in game (this hotkey can also be customized using the rtx.conf config file).
-
-## RTX Runtime Interface
+# RTX Remix Runtime Interface
 
 > 📝 You can extend or shrink the Menu panel by holding your mouse cursor over the edge of the panels until the icon changes to the double arrow icon, then drag the edge of the panel to the size you prefer.
 
-### User Graphics Settings
+## User Graphics Settings
+
+![User Graphics Settings](../data/images/usergraphicssettings.png)
 
 When pressing **Alt + X**, you will first be taken to the [User Graphic Settings](remix-runtimeinterface-usergraphicsettings.md) menu. This menu has various high-level settings intended for end users of RTX Remix mods to quickly customize their experience. There are three tabs: General, Rendering and Content. All the settings are described with a tooltip when you hover over them.
 
@@ -18,10 +16,10 @@ The **Rendering** settings contain high level image quality settings for the RTX
 
 The **Content** settings allow you to turn off and on each of the three types of replacements supported by RTX Remix: Material, Mesh and Light replacements. These settings can be of interest when you want to evaluate the impact of each type of replacement on the mod project. Note however, that turning all the replacements off does not mean reverting to the original rendering that the underlying game uses. You are still Path Tracing, just with global defaults in place for materials and lights, and without any replacement meshes.
 
-### Developer Settings
+## Developer Settings
 
 At the bottom of the User Graphics Settings menu, you should see a button for Developer Settings Menu. This will take you to a deeper and more detailed RTX Remix Developer Menu. It contains three main tabs.
-1. The [Rendering Tab](renderingtab/remix-runtimeinterface-rendering-overview.md) is intended mostly for mod authors and runtime developers who need the ultimate control of renderer internals to achieve compatibility or the intended look for a mod or game.
+1. The [Rendering Tab](renderingtab/index.md) is intended mostly for mod authors and runtime developers who need the ultimate control of renderer internals to achieve compatibility or the intended look for a mod or game.
 1. The [Game Setup Tab](remix-runtimeinterface-gamesetup.md) contains the key capture and tagging workflow that will be needed to make a game moddable and compatible with RTX Remix.
 1. The [Enhancements Tab](remix-runtimeinterface-enhancements.md) allows for toggling various types of replacements on and off, as well as highlighting unreplaced assets, all useful for testing and validating mod content.
 
@@ -29,11 +27,11 @@ At the bottom of the User Graphics Settings menu, you should see a button for De
 
 > ⚠️ **Coders** Check out our RTX Options Documentation on GitHub [here](https://github.com/NVIDIAGameWorks/dxvk-remix/blob/main/RtxOptions.md).
 
-### Saving Settings
+## Saving Settings
 
 Any settings you change in the menus can be saved as new defaults. They will be stored in a file named **rtx.conf** placed next to the **.trex/ runtime** folder. This file will be created if it does not already exist. The next time you start the game with RTX Remix, settings will be read from this file, and applied automatically.
 
-### Keyboard Shortcuts
+## Keyboard Shortcuts
 
 
 <table>
@@ -70,4 +68,4 @@ Any settings you change in the menus can be saved as new defaults. They will be 
 </table>
 
 ***
-<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://docs.google.com/forms/d/1vym6SgptS4QJvp6ZKTN8Mu9yfd5yQc76B3KHIl-n4DQ/prefill) <sub>
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>

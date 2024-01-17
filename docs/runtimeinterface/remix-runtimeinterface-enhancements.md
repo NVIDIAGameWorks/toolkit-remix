@@ -26,7 +26,7 @@ The Enhancements tab also contains the all-important Capture Frame in USD button
    </td>
    <td>Enable Enhanced Assets Checkbox
    </td>
-   <td><div style="width: 50%; overflow: show; white-space: wrap;">rtx.enableReplacementAssets</div>
+   <td>rtx.enableReplacementAssets
    </td>
    <td>Checked
    </td>
@@ -38,7 +38,7 @@ The Enhancements tab also contains the all-important Capture Frame in USD button
    </td>
    <td>Enable Enhanced Materials Checkbox
    </td>
-   <td><div style="width: 50%; overflow: show; white-space: wrap;">rtx.enableReplacementMeshes</div>
+   <td>rtx.enableReplacementMeshes
    </td>
    <td>Checked
    </td>
@@ -52,7 +52,7 @@ Requires replacement assets in general to be enabled to have any effect.
    </td>
    <td>Enable Adaptive Texture Resolution Checkbox
    </td>
-   <td><div style="width: 50%; overflow: show; white-space: wrap;">rtx.enableAdaptiveResolutionReplacementTextures</div>
+   <td>rtx.enableAdaptiveResolutionReplacementTextures
    </td>
    <td>Checked
    </td>
@@ -70,7 +70,7 @@ Additionally, this setting must be set at startup and changing it will not take 
    </td>
    <td>Skip Texture Mip Map Levels
    </td>
-   <td><div style="width: 50%; overflow: show; white-space: wrap;">rtx.minReplacementTextureMipMapLevel</div>
+   <td>rtx.minReplacementTextureMipMapLevel
    </td>
    <td>0
    </td>
@@ -88,7 +88,7 @@ Additionally, this setting must be set at startup and changing it will not take 
    </td>
    <td>Force High Resolution Textures Checkbox
    </td>
-   <td><div style="width: 50%; overflow: show; white-space: wrap;">rtx.forceHighResolutionReplacementTextures</div>
+   <td>rtx.forceHighResolutionReplacementTextures
    </td>
    <td>Unchecked
    </td>
@@ -106,7 +106,7 @@ Additionally, this setting must be set at startup and changing it will not take 
    </td>
    <td>Enable Enhanced Meshes Checkbox
    </td>
-   <td><div style="width: 50%; overflow: show; white-space: wrap;">rtx.enableReplacementMaterials</div>
+   <td>rtx.enableReplacementMaterials
    </td>
    <td>Checked
    </td>
@@ -120,7 +120,7 @@ Requires replacement assets in general to be enabled to have any effect.
    </td>
    <td>Enable Enhanced Lights Checkbox
    </td>
-   <td><div style="width: 50%; overflow: show; white-space: wrap;">rtx.enableReplacementLights</div>
+   <td>rtx.enableReplacementLights
    </td>
    <td>Checked
    </td>
@@ -158,7 +158,7 @@ Requires replacement assets in general to be enabled to have any effect.
    </td>
    <td>Highlight Replacements with Unstable Anchors (flash red) Checkbox
    </td>
-   <td><div style="width: 50%; overflow: show; white-space: wrap;">rtx.useHighlightUnsafeAnchorMode</div>
+   <td>rtx.useHighlightUnsafeAnchorMode
    </td>
    <td>Unchecked
    </td>
@@ -166,3 +166,6 @@ Requires replacement assets in general to be enabled to have any effect.
    </td>
   </tr>
 </table>
+
+***
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>

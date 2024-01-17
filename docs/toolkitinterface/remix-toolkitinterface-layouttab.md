@@ -1,26 +1,33 @@
-# User Graphic Settings
+# Layout Tab
 
-![UserGraphicSettings](../data/images/rtxremix_024.png)
+<!--- Needs Description --->
+
+## Mod Setup
+
+![FolderStructureDemo](../data/images/rtxremix_072.png)
+
 
 <table>
   <tr>
-   <td><strong>Ref #</strong>
+   <td><strong>Ref</strong>
    </td>
    <td><strong>Option</strong>
+   </td>
+   <td><strong>Description</strong>
    </td>
   </tr>
   <tr>
    <td>1
    </td>
-   <td>User Graphic Settings
+   <td>Hamburger Menu
    </td>
-   <td><!--- Needs Description --->
+   <td>Save (Ctrl + S), Save As (Ctrl + Shift + S), Undo (Ctrl + Z), Redo (Ctrl + Y), About
    </td>
   </tr>
   <tr>
    <td>2
    </td>
-   <td>Memory Stats
+   <td>Workfile Title
    </td>
    <td><!--- Needs Description --->
    </td>
@@ -28,15 +35,15 @@
   <tr>
    <td>3
    </td>
-   <td>DLSS 3.0 Settings
+   <td>Mod Setup
    </td>
-   <td><!--- Needs Description --->
+   <td>Set the details of your mod project
    </td>
   </tr>
   <tr>
    <td>4
    </td>
-   <td>DLSS 3.0 Switch
+   <td>Asset Replacements
    </td>
    <td><!--- Needs Description --->
    </td>
@@ -44,7 +51,7 @@
   <tr>
    <td>5
    </td>
-   <td>Super Resolution
+   <td>Mod Packaging
    </td>
    <td><!--- Needs Description --->
    </td>
@@ -52,124 +59,133 @@
   <tr>
    <td>6
    </td>
-   <td>Super Resolution Mode
+   <td>Project Wizard
    </td>
-   <td><!--- Needs Description --->
+   <td>Access the Project Wizard Panel
    </td>
   </tr>
   <tr>
    <td>7
    </td>
-   <td>Reflex
+   <td>Open Project Wizard
    </td>
-   <td><!--- Needs Description --->
+   <td>Launches the Project Wizard Panel
    </td>
   </tr>
   <tr>
    <td>8
    </td>
-   <td>Image Quality Settings
+   <td>Capture File
    </td>
-   <td><!--- Needs Description --->
+   <td>Load the captured game file scene
    </td>
   </tr>
   <tr>
    <td>9
    </td>
-   <td>Graphics Preset
+   <td>Capture File Location
    </td>
-   <td><!--- Needs Description --->
+   <td>Directory location of the captured file
    </td>
   </tr>
   <tr>
    <td>10
    </td>
-   <td>Min Light Bounces
+   <td>Capture Details
    </td>
-   <td><!--- Needs Description --->
+   <td>Displays details from the captured layer file loaded into the stage
    </td>
   </tr>
   <tr>
    <td>11
    </td>
-   <td>Max Light Bounces
+   <td>Mod File
    </td>
-   <td><!--- Needs Description --->
+   <td>Modify the captured file
    </td>
   </tr>
   <tr>
    <td>12
    </td>
-   <td>Volumetric Lighting
+   <td>Load Existing Mod File
    </td>
-   <td><!--- Needs Description --->
+   <td>Load an existing mod file
    </td>
   </tr>
   <tr>
    <td>13
    </td>
-   <td>Denoising Quality
+   <td>Create a New Mod File
    </td>
-   <td><!--- Needs Description --->
+   <td>Create a new mod file
    </td>
   </tr>
   <tr>
    <td>14
    </td>
-   <td>Texture Quality
+   <td>Current Path File Location
    </td>
-   <td><!--- Needs Description --->
+   <td>Directory location of the current file
    </td>
   </tr>
   <tr>
    <td>15
    </td>
-   <td>Particle Light
+   <td>Mod Details
    </td>
-   <td><!--- Needs Description --->
+   <td>Displays details from the mod layer file loaded into the stage
    </td>
   </tr>
   <tr>
    <td>16
    </td>
-   <td>Enhancement Assets
+   <td>Viewport
    </td>
-   <td><!--- Needs Description --->
+   <td>Staging area for the captured file
    </td>
   </tr>
   <tr>
    <td>17
    </td>
-   <td>Motion Blur
+   <td>Layout
    </td>
-   <td><!--- Needs Description --->
+   <td>Opens the Layout Tab
    </td>
   </tr>
   <tr>
    <td>18
    </td>
-   <td>Developer Settings Menu
+   <td>Ingest
    </td>
-   <td><!--- Needs Description --->
+   <td>Opens the Ingest Tab
    </td>
   </tr>
   <tr>
    <td>19
    </td>
-   <td>Save Settings…
+   <td>Texture
    </td>
-   <td><!--- Needs Description --->
+   <td>Opens the Texture Tab
    </td>
   </tr>
   <tr>
    <td>20
    </td>
-   <td>Close
+   <td>Profile
    </td>
-   <td><!--- Needs Description --->
+   <td>Opens the User Profile
    </td>
   </tr>
 </table>
+
+## Asset Replacement
+
+![Asset Replacement](../data/images/layouttab-assetreplacement.png)
+
+
+## Mod Packaging
+
+<!--- Needs Description --->
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>

@@ -31,7 +31,7 @@
 
 ## RTX Remix Toolkit Workflow
 
-1. Launch the Remix Toolkit and select the Setup "Project" button from the startup page:
+1. Launch the RTX Remix Toolkit Application and select the Setup "Project" button from the startup page:
 
 ![RemixTool Tutorial](../data/images/remix_913.png)
 
@@ -39,15 +39,17 @@
 
 ![RemixTool Tutorial](../data/images/remix_914.png)
 
-3. When presented with the dialog below, the next steps are to decide on your project file location and to point the toolkit at the "rtx-remix" directory which is produced as a result of performing a capture in the Remix Runtime (step 5 in the Runtime Workflow section).
+3. When presented with the dialog below, the next steps are to decide on your project file location and to point the toolkit at the capture. Click the folder icon to the right of “Project File Location” which will open up a file browser
 
 ![RemixTool Tutorial](../data/images/remix_915.png)
 
-4. In the Project File Directory, navigate to the file path where you created your “project” folder. Type your file name and select the USD file type.  USDA is a text readable representation of USD, which can be useful for debugging, but will consume more memory than the USD (binary) variants.
+4. In the file browser, you can create a new blank folder for your project. Make sure the name does not have any spaces in it. Select the folder,  type in a file name and select the USD file type. USDA is a text readable representation of USD, which can be useful for debugging, but will consume more memory than the USD (binary) variants. Click “Save As”.
 
 ![RemixTool Tutorial](../data/images/remix_916.png)
 
-5. With the project file location and remix directory configured, select the capture we made earlier and hit the "Create" button.
+5. Next, Click on “Remix Directory” and navigate to the “rtx-remix” directory which was produced as a result of performing a capture in the RTX Remix Runtime (step 5 in the Runtime Workflow section).
+
+6. With the project file location and remix directory configured, select the capture we made earlier and hit the "Create" button.
 
 ![RemixTool Tutorial](../data/images/remix_917.png)
 
@@ -56,4 +58,4 @@
 ![RemixTool Tutorial](../data/images/remix_918.png)
 
 ***
-<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://docs.google.com/forms/d/1vym6SgptS4QJvp6ZKTN8Mu9yfd5yQc76B3KHIl-n4DQ/prefill) <sub>
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>

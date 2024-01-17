@@ -17,10 +17,5 @@ docs/howto/index
 docs/remix-glossary
 docs/remix-faq
 docs/contributing
+docs/remix-index
 ```
-
-# Indices and tables
-
-* {ref}`genindex`
-* {ref}`modindex`
-* {ref}`search`
