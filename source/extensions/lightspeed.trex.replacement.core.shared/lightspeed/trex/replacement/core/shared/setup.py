@@ -193,7 +193,7 @@ class Setup:
             if constants.MATERIAL_RELATIONSHIP in mesh_prim.relationships:
                 materials = mesh_prim.relationships[constants.MATERIAL_RELATIONSHIP].targetPathList.explicitItems
                 # Always take the first material as there should never be more than 1 material here
-                match = regex_hash.match(str(materials[0]))
+                match = regex_hash.match(str(materials[0]) if materials else "")
                 filtered_hashes.add(match.group(3) if match else prim_hash)
             else:
                 filtered_hashes.add(prim_hash)
