@@ -137,6 +137,7 @@ class SetupUI:
                         self._context_name,
                         tree_column_widths=[ui.Percent(self.COLUMN_WIDTH_PERCENT)],
                         create_color_space_attributes=False,
+                        asset_path_file_extension_options=[("*.dds", "Compatible Textures")],
                     )
 
         self._sub_on_material_refresh_done = self._material_properties_widget.subscribe_refresh_done(

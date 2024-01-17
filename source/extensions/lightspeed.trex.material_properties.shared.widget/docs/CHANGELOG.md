@@ -1,6 +1,9 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.0] - 2024-01-13
+### Changed
+- Override asset path file extension options to only allow DDS files
 
 ## [1.0.2] - 2023-09-29
 ### Fixed
