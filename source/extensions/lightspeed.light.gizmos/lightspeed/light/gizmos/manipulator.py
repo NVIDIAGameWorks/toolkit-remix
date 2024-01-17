@@ -488,6 +488,7 @@ class LightGizmosManipulator(sc.Manipulator):
         self._viewport_api = viewport_api
         self._root = sc.Transform()
         self._polygon_mesh = None
+        self._is_visible = True
 
         # image based gizmos crash omniverse just now (105.1.2)
         # style = ui.Style.get_instance()
@@ -503,9 +504,15 @@ class LightGizmosManipulator(sc.Manipulator):
     def on_build(self):
         """Called when the model is changed and rebuilds the whole gizmo"""
         self.model.update_from_prim()
+
         # get up to date state
         self._update_root_transform()
         self._update_icon_geometry()
+        self._update_visibility()
+
+        if not self._is_visible:
+            return
+
         # build UI
         with self._root:
             with sc.Transform(look_at=sc.Transform.LookAt.CAMERA, scale_to=sc.Space.SCREEN):
@@ -533,6 +540,9 @@ class LightGizmosManipulator(sc.Manipulator):
         if item == self.model.get_item("light_type"):
             self._update_icon_geometry()
 
+        if item == self.model.get_item("visible"):
+            self._update_visibility()
+
     def _update_root_transform(self):
         transform = self.model.get_as_floats(self.model.get_item("transform"))
         self._root.transform = sc.Matrix44(*transform)
@@ -549,6 +559,9 @@ class LightGizmosManipulator(sc.Manipulator):
                 self._polygon_mesh = DistantLight()
             case _:
                 self._polygon_mesh = SphereLight()
+
+    def _update_visibility(self):
+        self._is_visible = self.model.get_as_bools(self.model.get_item("visible"))
 
     def _get_context(self):
         return omni.usd.get_context(self._viewport_api.usd_context_name)

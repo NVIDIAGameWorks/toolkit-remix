@@ -12,7 +12,7 @@ import carb
 import omni.usd
 from lightspeed.trex.viewports.manipulators.global_selection import GlobalSelection
 from omni.kit.scene_view.opengl import ViewportOpenGLSceneView
-from pxr import Tf, Usd, UsdLux
+from pxr import Tf, Usd, UsdGeom, UsdLux
 
 from .manipulator import LightGizmosManipulator
 from .model import LightGizmosModel
@@ -148,12 +148,18 @@ class LightGizmosLayer:
 
     def _notice_changed(self, notice, stage):
         """Called by Tf.Notice"""
-        # Paths of all changed prims
-        changed_paths = [str(p.GetPrimPath()) for p in notice.GetChangedInfoOnlyPaths()]
         # Check to see if we need to update some transforms
-        for light_path in changed_paths:
-            if light_path in self._manipulators:
-                self._manipulators[light_path].model.update_from_prim()
+        for prim in notice.GetChangedInfoOnlyPaths():
+            prim_path = str(prim.GetPrimPath())
+            if prim_path in self._manipulators:
+                self._manipulators[prim_path].model.update_from_prim()
+            else:
+                # Update on any parent transformation changes too
+                for manipulator in self._manipulators.values():
+                    if not manipulator.model.get_prim_path().startswith(prim_path):
+                        continue
+                    if UsdGeom.Xformable.IsTransformationAffectedByAttrNamed(prim.name):
+                        manipulator.model.update_from_prim()
 
     def _create_manipulators(self, stage):
         # Release stale manipulators

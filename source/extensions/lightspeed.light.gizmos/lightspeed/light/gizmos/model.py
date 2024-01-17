@@ -70,6 +70,7 @@ class LightGizmosModel(sc.AbstractManipulatorModel):
     def update_from_prim(self):
         self.set_value(self.transform, self._get_transform())
         self.set_value(self.light_type, self._get_light_type())
+        self.set_value(self.visible, self._is_visible())
 
     def get_item(self, identifier):
         match (identifier):
@@ -119,10 +120,10 @@ class LightGizmosModel(sc.AbstractManipulatorModel):
         stage = self._get_context().get_stage()
         if not stage or not self._current_path:
             return False
+        if not self._prim.IsActive():
+            return False
         imageable = UsdGeom.Imageable(self._prim)
-        visible = imageable.GetVisibilityAttr().Get()
-        purpose = imageable.GetPurposeAttr().Get()
-        return visible == "inherited" and purpose == "default"
+        return imageable.ComputeVisibility() != UsdGeom.Tokens.invisible
 
     def _get_transform(self):
         """Returns transform of currently selected object"""
