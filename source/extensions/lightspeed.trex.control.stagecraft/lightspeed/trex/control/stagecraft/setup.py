@@ -87,13 +87,13 @@ class Setup:
         def on_save(result, error):
             if not result or error:
                 _TrexMessageDialog(
-                    message="An error occurred while saving the workfile.",
+                    message="An error occurred while saving the project.",
                     disable_cancel_button=True,
                 )
                 return
 
             _TrexMessageDialog(
-                message=f"Are you sure you want to open this workfile?\n\n{path}",
+                message=f"Are you sure you want to open this project?\n\n{path}",
                 ok_handler=partial(self._stage_core_setup.open_stage, path),
                 ok_label="Open",
             )
@@ -103,7 +103,7 @@ class Setup:
         if self._context.has_pending_edit() and layer_capture and layer_replacement:
             _TrexMessageDialog(
                 message="There are some pending edits in your current stage.\n\n"
-                "Do you want to save your change before changing workfile?",
+                "Do you want to save your change before changing project?",
                 ok_handler=partial(self._on_save_as, on_save_done=on_save),
                 cancel_handler=partial(on_save, True, ""),
                 ok_label="Save",
