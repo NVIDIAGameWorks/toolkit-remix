@@ -2,15 +2,14 @@
 
 * RTX Remix Runtime & Toolkit Applications
 
-> 📝 Refer to our Installation Guidefor both the **RTX Remix Runtime** and the **RTX Remix Toolkit**.
+> 📝 Refer to our Installation Guide for both the **RTX Remix Runtime** and the **RTX Remix Toolkit**.
 
 ## Requirements For Creators
 
 * Windows 10 or 11
-* [Python](https://www.python.org/downloads/)
 * [NVIDIA Omniverse](https://www.nvidia.com/en-us/omniverse/download/)
 
-## Requirements for Developers
+## RTX Remix Runtime Requirements for Developers
 
 * Windows 10 or 11
 * [Visual Studio](https://visualstudio.microsoft.com/vs/older-downloads/) _VS 2019 or newer_
@@ -35,6 +34,7 @@ Before we dive into replacing assets, let's take a moment to get familiar with t
 
 For instance, marking a texture as a "sky texture" will automatically make it emissive and ensure it's always visible to the player, even if it's in a separate space like the skybox (this is particularly important in Source Engine games). It's also a good idea to mark UI textures to make sure they aren't affected by the new rendering pipeline. If you want more detailed information on how these settings work, you can refer to the dedicated **RTX.conf** breakdown.
 
+
 # Introduction to Captures
 
 RTX Remix is capable of creating asset-exact copies of in-game scenes in the Universal Scene Description (USD) format through a process referred to as “capturing”. Captured scenes (“captures”) can be opened and edited in both NVIDIA Omniverse-based applications, as well as most popular public Digital Content Creation (DCC) tools that support the USD file format.   Because the scene is captured into a USD file, all assets will likewise be available in a single common format. Captured assets include: materials, textures, meshes, and skeletal data for skinned assets, in addition to scene-specific instances and lighting.  Meshes and materials are converted into USD format, whereas textures are converted to DDS. These copies are then stored adjacent to the captures in similarly named folders.
@@ -44,7 +44,7 @@ RTX Remix is capable of creating asset-exact copies of in-game scenes in the Uni
 
 ## Folder Structure
 
-RTX Remix automatically organizes the captures you take within a simple folder structure.
+RTX Remix automatically organizes the captures you take within a simple folder structure.  The name of your project folder should NOT have any spaces.
 
 ```text
 rtx-remix
@@ -58,8 +58,9 @@ rtx-remix
 │ ├ thumbs
 └ mods ← Manually Made
 └ project ← Manually Made
-│ ├ models
-│ ├ materials
+│ ├ models ← Manually Made
+│ ├ materials ← Manually Made
+│ ├ deps ← (Automatically created symlink to `rtx-remix` directory to make sure you have referenced files available)
 ```
 
 It might be helpful to create a desktop shortcut to this rtx-remix folder and rename that shortcut to your preferred project name.  You may also want to create a project folder to contain the files you’ll be working on.
@@ -84,7 +85,7 @@ Remember, there can be such a thing as too much organization, but breaking down 
 
 ## Storing Files (Source + Ingested)
 
-Remember the project folder you made in the "SETTING UP PROJECT" section? That's where all the in-game files belong, and it's connected to the game's rtx-remix mod folder through a special shortcut called a symlink. This symlink acts like a shortcut, but it's also where the folder is supposed to be.
+In your Projects folder, where all the in-game files belong, remember that it's connected to the game's rtx-remix mod folder through a special shortcut called a symlink. This symlink acts like a shortcut, but it's also where the folder is supposed to be.
 
 Now, to keep things neat and tidy, both for yourself and for the people who will use your mod, it's a good idea to make extra folders inside this project folder. These new folders should organize assets in a way that matches the layers we talked about earlier.
 
@@ -98,3 +99,6 @@ Now, keep in mind that these two sets of folders, the ones for your in-game file
 Revamping an entire game is a big challenge, so you might think about forming a team to help out. Remix mods focus a lot on art, and even if your mod involves changing how the game works, it's a good idea to set up a structure that allows multiple artists to collaborate efficiently.
 
 You may want to pick one or two people to handle the Remix setup and asset preparation. This helps avoid confusion and keeps everything consistent. Having too many people involved in this part could lead to mistakes and differences in the project files.
+
+***
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>

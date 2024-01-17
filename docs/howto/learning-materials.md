@@ -1,8 +1,5 @@
 # Introduction to Material Replacement
 
-<!--- 📺 _[Work In Progress]_ --->
-<!--- #5 PORTAL TUTORIAL VIDEO: Introduction to Material Replacement (ingesting a texture, replacing a texture) --->
-
 In Remix, materials on meshes get a PBR (Physically-Based Rendering) makeover, allowing you to use high-quality and more physically accurate textures in your game. In this tutorial, we'll focus on replacing materials for world geometry. If you want to replace materials on models, check out the Model Replacement section of this guide.
 
 
@@ -60,9 +57,10 @@ Once you've set these values, ensure that all your textures are configured to us
 A key point to remember is that the spritesheet should be organized from left to right, and from top to bottom, just like the example image presented below:
 
 <!--- ![SpriteSheetExample](data/images/sprite_sheet_example.png) --->
-<img src="data/images/sprite_sheet_example.png" alt="drawing" width="400"/>
+<img src="../data/images/sprite_sheet_example.png" alt="drawing" width="400"/>
+
 
 > ⚠️ Please be aware that there is a feature gap in the MDL. The runtime will treat all textures as spritesheets, whereas the MDL only treats emissive textures as spritesheets.
 
 ***
-<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://docs.google.com/forms/d/1vym6SgptS4QJvp6ZKTN8Mu9yfd5yQc76B3KHIl-n4DQ/prefill) <sub>
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>

@@ -1,22 +1,20 @@
 # Installation Guide
 
-## Installing and Launching RTX Remix
-
 RTX Remix consists of two components - the **RTX Remix Runtime** and the **RTX Remix Toolkit**.  The **RTX Remix Runtime**, which is open source,  injects the path tracing into the game and bridges the gap between the original game's renderer and the RTX Toolkit.  The **RTX Remix Toolkit** allows you to modify captures created via the RTX Runtime, ingest assets, and make scene changes.  Both are required to fully remaster a game end-to-end.
 
 
-## Install the RTX Remix Runtime
+## Install RTX Remix Runtime
 
-To install the RTX Runtime, you’ll need to download the latest application through GitHub via this link: [github.com/NVIDIAGameWorks/rtx-remix](https://github.com/NVIDIAGameWorks/rtx-remix/releases/).
+To install RTX Remix Runtime, you’ll need to download the latest application through GitHub via this link: [github.com/NVIDIAGameWorks/rtx-remix](https://github.com/NVIDIAGameWorks/rtx-remix/releases/).
 
 > This version includes the **Runtime Bridge** and the **DXVK-Remix** applications required to run the Runtime.  You may download these applications separately through GitHub.
 >  1. For the Bridge Application: [bridge-remix](https://github.com/NVIDIAGameWorks/bridge-remix).
-> 2. For the DXVK-Remix application: [dxvk-remix](https://github.com/NVIDIAGameWorks/dxvk-remix/)
+> 2. For the DXVK-Remix Application: [dxvk-remix](https://github.com/NVIDIAGameWorks/dxvk-remix/)
 
-When you download the RTX Remix runtime, you should get a zip file with the necessary components to prep a supported game for RTX Remix. Unzipping the file, you should see a folder structure like the following:
+When you download RTX Remix Runtime, you should get a zip file with the necessary components to prep a supported game for RTX Remix. Unzipping the file, you should see a folder structure like the following:
 
 ```text
-remix-0.1.0/
+remix-0.4.0/
 |--- d3d9.dll  <-- Bridge interposer
 |--- ...
 \--- .trex/
@@ -25,7 +23,7 @@ remix-0.1.0/
     \--- ...
 ```
 
-
+Once you have the files on your computer, you’ll need to copy them alongside your game executables following the instructions in the section [Setup RTX Remix Runtime with your Game](howto/learning-runtimesetup.md). 
 
 ## Install and Launch the RTX Remix Toolkit
 
@@ -43,4 +41,4 @@ remix-0.1.0/
 ![InstallOmniverseRemixApp](data/images/rtxremix_010.PNG)
 
 ***
-<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://docs.google.com/forms/d/1vym6SgptS4QJvp6ZKTN8Mu9yfd5yQc76B3KHIl-n4DQ/prefill) <sub>
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>
