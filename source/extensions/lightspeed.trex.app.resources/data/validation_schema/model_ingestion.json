@@ -20,6 +20,13 @@
         },
     "check_plugins": [
         {
+            "name": "ClearUnassignedMaterial",
+            "selector_plugins": [{"name": "AllMeshes", "data": {"include_geom_subset": true}}],
+            "data": {},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
+        },
+        {
             "name": "DefaultMaterial",
             "selector_plugins": [{"name": "AllMeshes", "data": {}}],
             "data": {},
@@ -44,13 +51,9 @@
         {
             "name": "ConvertToOctahedral",
             "selector_plugins": [{"name": "AllShaders", "data": {}}],
-            "resultor_plugins": [{
-                "name": "FileCleanup",
-                "data": {"channel": "cleanup_files_normal", "cleanup_output": false}
-            }],
             "data": {
                 "data_flows": [
-                    {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files_normal"}
+                    {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files"}
                 ],
                 "replace_udim_textures_by_empty": true
             },
@@ -60,10 +63,6 @@
         {
             "name": "ConvertToDDS",
             "selector_plugins": [{"name": "AllShaders", "data": {}}],
-            "resultor_plugins": [{
-                "name": "FileCleanup",
-                "data": {"channel": "cleanup_files", "cleanup_output": false}
-            }],
             "data": {
                 "data_flows": [
                     {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files"},
@@ -98,7 +97,7 @@
         {
             "name": "ApplyUnitScale",
             "selector_plugins": [{"name": "RootPrims", "data": {}}],
-            "data": {"meters_per_unit_target":  1, "expose_mass_ui": true},
+            "data": {"meters_per_unit_target":  0.01, "expose_mass_ui": true},
             "stop_if_fix_failed": true,
             "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true, "close_stage_on_exit": false}}
         },
@@ -111,6 +110,10 @@
         }
     ],
     "resultor_plugins": [
+        {
+                "name": "FileCleanup",
+                "data": {"channel": "cleanup_files", "cleanup_output": false}
+        },
         {
             "name": "FileMetadataWritter",
             "data": {"channel": "write_metadata"}
