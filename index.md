@@ -11,9 +11,11 @@ hidden: true
 ---
 docs/remix-overview.md
 docs/remix-installation
+docs/howto/index
 docs/runtimeinterface/index
 docs/toolkitinterface/index
-docs/howto/index
+docs/remix-formats
+docs/remix-releasenotes
 docs/remix-glossary
 docs/remix-faq
 docs/contributing

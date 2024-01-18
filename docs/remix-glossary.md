@@ -34,7 +34,7 @@
 **Cone Radius** - The path of a ray of light as it extends from the camera into the scene and helps determine which objects or surfaces in the 3D environment the ray intersects with.
 
 
-### D
+## D
 
 **DDS File** - DDS stands for "DirectDraw Surface," and it is a file format commonly used in computer graphics and game development. DDS files are specifically designed for storing and efficiently accessing texture and image data. 
 

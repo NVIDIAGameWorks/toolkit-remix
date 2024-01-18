@@ -7,6 +7,7 @@ maxdepth: 2
 ---
 remix-toolkitinterface-launchscreen.md
 remix-toolkitinterface-projectwizard.md
+remix-toolkitinterface-viewport.md
 remix-toolkitinterface-layouttab.md
 remix-toolkitinterface-ingesttab.md
 remix-toolkitinterface-aitools.md

@@ -37,14 +37,22 @@ Projects                <--- Manually create folder
 
 ## Take Your First Scene Capture
 
-1. Launch Portal, where you installed **RTX Runtime**.
-2. Navigate to the first scene in the game and open the **Enhancements** tab of the Developer Settings Menu
-    1. Option 1: Press **Alt + X** on your keyboard to open the RTX Runtime interface, click on the **Developer Settings Menu** button, then click on the **Enhancements** tab
-    2. Option 2: Press **Ctrl + Shift + Q** on your keyboard to open the **Enhancements** Settings
-3. If you don’t see the **Capture Frame in USD** button, uncheck the **Enable Enhanced Assets** checkbox to reveal it.
-4. Click on the **Capture Frame in USD** button to capture the frame.
-The file will be saved in the format of (capture)_(year)_(month)_(day)_(hour)_(minutes)_(seconds).  This will also create a DDS thumbnail in a folder adjacent to the capture directory with the same name as the capture including the USD file type.
-Once you've captured your first game scene, you're all set to create a new project in Omniverse using the RTX Remix Renderer. You'll notice that the RTX Runtime has made a folder called **rtx-remix**.  Inside this folder, you'll find all the materials, textures, lights, and meshes for the game scene you captured in USD format.
+Get started with scene capture using these simple instructions:
+
+1. **Launch Portal:** Open Portal where you've installed the RTX Runtime.
+2. **Navigate to the First Scene:** Head to the first scene in the game.
+3. **Open the Enhancements Tab:** Access the Enhancements tab in the Developer Settings Menu.
+4. **Choose an Option:**
+    * Option 1: Press Alt + X, click on the Developer Settings Menu button, then select the Enhancements tab.
+    * Option 2: Press Ctrl + Shift + Q to open the Enhancements Settings.
+5. **Adjust Settings (If Needed):** If the "Capture Frame in USD" button is not visible, uncheck the "Enable Enhanced Assets" checkbox to reveal it.
+6. **Capture the Frame:**
+    * Click on the "Capture Frame in USD" button.
+    * The file will be saved with the format (capture)(year)(month)(day)(hour)(minutes)(seconds).
+    * A DDS thumbnail with the same name will be created in a folder next to the capture directory.
+7. **Explore the Captured Scene:**
+    * Once you've captured your first game scene, a folder named "rtx-remix" will be created by the RTX Runtime.
+    * Inside this folder, you'll find all the materials, textures, lights, and meshes for the captured game scene in USD format.
 
 > 📝 Before creating your project file, please see the section on _Renaming Captures_ in the _Best Practices_ section.
 

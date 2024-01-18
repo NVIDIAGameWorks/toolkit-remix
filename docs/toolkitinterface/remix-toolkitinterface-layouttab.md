@@ -27,7 +27,7 @@
   <tr>
    <td>2
    </td>
-   <td>Workfile Title
+   <td>Project Title
    </td>
    <td><!--- Needs Description --->
    </td>
