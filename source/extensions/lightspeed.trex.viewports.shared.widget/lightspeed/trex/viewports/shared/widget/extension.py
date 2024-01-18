@@ -8,7 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import contextlib
-from typing import Dict, Optional
+from typing import TYPE_CHECKING, Dict, Optional
 
 import carb
 import omni.ext
@@ -25,6 +25,9 @@ from .scene.scenes import origin_default_factory as _origin_default_factory
 from .setup_ui import SetupUI as _ViewportSetupUI
 from .stats.layer import ViewportStatsLayer
 from .tools.layer import ViewportToolsLayer
+
+if TYPE_CHECKING:
+    from omni.kit.widget.viewport.api import ViewportAPI
 
 _VIEWPORT_MANAGER_INSTANCE = None
 
@@ -46,6 +49,13 @@ def create_instance(context_name: str) -> _ViewportSetupUI:
         _VIEWPORT_MANAGER_INSTANCE = {}
     _VIEWPORT_MANAGER_INSTANCE.update({context_name: viewport})
     return viewport
+
+
+def get_viewport_api(context_name: str) -> Optional["ViewportAPI"]:
+    viewport = get_instance(context_name)
+    if not viewport:
+        return None
+    return viewport.viewport_api
 
 
 class TrexViewportSharedExtension(omni.ext.IExt):

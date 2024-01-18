@@ -7,6 +7,6 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-__all__ = ["create_instance", "get_instance", "get_instances"]
+__all__ = ["create_instance", "get_instance", "get_instances", "get_viewport_api"]
 
-from .extension import TrexViewportSharedExtension, create_instance, get_instance, get_instances
+from .extension import TrexViewportSharedExtension, create_instance, get_instance, get_instances, get_viewport_api

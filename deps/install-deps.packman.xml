@@ -6,7 +6,7 @@
     <package name="nvtt-exporter-standalone" version="2023.4.0.1-dev-windows-x86_64" />
   </dependency>
   <dependency name="rtx-remix-lookdev-lighting" linkPath="../../deps/content/rtx-remix-lookdev-lighting">
-    <package name="rtx-remix-lookdev-lighting" version="2023.0.0" />
+    <package name="rtx-remix-lookdev-lighting" version="2023.1.0" />
   </dependency>
   <dependency name="rtx-remix-lookdev-modeling" linkPath="../../deps/content/rtx-remix-lookdev-modeling">
     <package name="rtx-remix-lookdev-modeling" version="2023.0.0" />
