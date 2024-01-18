@@ -3,7 +3,7 @@
 RTX Remix consists of two components - the **RTX Remix Runtime** and the **RTX Remix Toolkit**.  The **RTX Remix Runtime**, which is open source,  injects the path tracing into the game and bridges the gap between the original game's renderer and the RTX Toolkit.  The **RTX Remix Toolkit** allows you to modify captures created via the RTX Runtime, ingest assets, and make scene changes.  Both are required to fully remaster a game end-to-end.
 
 
-## Install RTX Remix Runtime
+## Install the RTX Remix Runtime
 
 To install RTX Remix Runtime, you’ll need to download the latest application through GitHub via this link: [github.com/NVIDIAGameWorks/rtx-remix](https://github.com/NVIDIAGameWorks/rtx-remix/releases/).
 
@@ -25,7 +25,11 @@ remix-0.4.0/
 
 Once you have the files on your computer, you’ll need to copy them alongside your game executables following the instructions in the section [Setup RTX Remix Runtime with your Game](howto/learning-runtimesetup.md). 
 
-## Install and Launch the RTX Remix Toolkit
+## Install the RTX Remix Toolkit
+
+(Go to landing page and download installer)
+
+### Install the RTX Remix from the Omniverse Launcher
 
 1. Follow the instructions on how to Install the NVIDIA Omniverse Platform here: [Install NVIDIA Omniverse](https://docs.omniverse.nvidia.com/install-guide/latest/index.html)
 2. In Omniverse Launcher, under the Exchange Tab, search for “**RTX Remix**”

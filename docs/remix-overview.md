@@ -16,7 +16,7 @@ The Bridge acts as the messenger - it sends all the game instructions to another
 
 The renderer also knows how to swap out the old game stuff with new and improved things from an RTX Remix Mod that you put in a special folder. It keeps track of what's what using special codes (hash IDs) so it knows what to change in the game as you play.
 
-Finally, using  the RTX Remix Toolkit, you are able to easily make and add new game objects, materials, and lights. And since it's built on NVIDIA Omniverse ecosystem, you'll have lots of cool tools to make your game look even better.
+Finally, using  the RTX Remix Toolkit, you are able to easily make and add new game objects, materials, and lights. And since it's built on the NVIDIA Omniverse ecosystem, you'll have lots of cool tools to make your game look even better.
 
 
 <!----- ON HOLD - Need to figure out how to handle this section
@@ -27,144 +27,48 @@ Finally, using  the RTX Remix Toolkit, you are able to easily make and add new g
 
  ----->
 
-# [Technical Requirements](#technical-requirements)
+# Requirements
+
+## Technical Requirements
 
 > Omniverse is built to run on any RTX-powered machine. For ideal performance, we recommend using GeForce RTX™ 2080, Quadro RTX™ 5000, or higher. For latest drivers, visit [NVIDIA Driver Downloads](https://www.nvidia.com/Download/index.aspx). For Quadro, select 'Quadro New Feature Driver (QNF).
 
-## RTX Remix Runtime
-
-<table>
-  <tr>
-    <td><strong>Level</strong>
-    </td>
-    <td><strong>Operating System</strong>
-    </td>
-    <td><strong>CPU</strong>
-    </td>
-     <td><strong>CPU Cores</strong>
-    </td>
-    <td><strong>RAM</strong>
-    </td>
-    <td><strong>GPU</strong>
-    </td>
-    <td><strong>VRAM</strong>
-    </td>
-    <td><strong>Disk</strong>
-  </td>
-  </tr>
-  <tr>
-    <td>Minimum
-   </td>
-   <td><p>Windows 10/11</p>
-   </td>
-   <td><p>Intel I7</p>
-   <p>AMD Ryzen</p>
-   </td>
-   <td>4
-   </td>
-    <td>16 GB
-   </td>
-    <td>RTX GPU
-   </td>
-   <td>6 GB
-   </td>
-    <td>512 GB SSD
-   </td>
-  </tr>
-  <tr>
-    <td>Recommended
-   </td>
-   <td><p>Windows 10/11</p>
-   </td>
-   <td><p>Intel I7</p>
-   <p>AMD Ryzen</p>
-   </td>
-   <td>8
-   </td>
-    <td>32 GB
-   </td>
-    <td><p>GeForce RTX 2080</p>
-    <p>Quadro RTX 5000</p>
-   </td>
-   <td>8 GB
-   </td>
-    <td>512 GB M.2 SSD
-   </td>
-  </tr>
-  </tr>
-</table>
-
-## RTX Remix Toolkit
-
-<table>
-  <tr>
-    <td><strong>Level</strong>
-    </td>
-    <td><strong>Operating System</strong>
-    </td>
-    <td><strong>CPU</strong>
-    </td>
-     <td><strong>CPU Cores</strong>
-    </td>
-    <td><strong>RAM</strong>
-    </td>
-    <td><strong>GPU</strong>
-    </td>
-    <td><strong>VRAM</strong>
-    </td>
-    <td><strong>Disk</strong>
-  </td>
-  </tr>
-  <tr>
-    <td>Minimum
-   </td>
-   <td><sp>Windows 10/11</p>
-   </td>
-   <td><sp>Intel I7</p>
-   <sp>AMD Ryzen</p>
-   </td>
-   <td>4
-   </td>
-    <td>16 GB
-   </td>
-    <td>RTX GPU
-   </td>
-   <td>6 GB
-   </td>
-    <td>512 GB SSD
-   </td>
-  </tr>
-  <tr>
-    <td>Recommended
-   </td>
-   <td><p>Windows 10/11</p>
-   </td>
-   <td><p>Intel I7</p>
-   <p>AMD Ryzen</p>
-   </td>
-   <td>8
-   </td>
-    <td>32 GB
-   </td>
-    <td><p>GeForce RTX 3070</p>
-   </td>
-   <td>8 GB
-   </td>
-    <td>512 GB M.2 SSD
-   </td>
-  </tr>
-  </tr>
-</table>
-
+| Level                | Operating System  | CPU                   | CPU Cores | RAM     | GPU                | VRAM  | Disk           |
+| :------------------: | :---------------: | :-------------------: | :-------: | :-----: | :----------------: | :---: | :------------: |
+| Min              |   Windows 10/11   | Intel I7 or AMD Ryzen | 4         | 16 GB   | GeForce RTX 3060Ti | 8 GB  | 512 GB SSD     |
+| Rec          |   Windows 10/11   | Intel I7 or AMD Ryzen | 8         | 32 GB   | GeForce RTX 4070   | 12 GB | 512 GB M.2 SSD |
 
 We recommend that you review the [Omniverse Technical Requirement Documentation](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/common/technical-requirements.html) for further details on what is required to use Applications within the Omniverse Platform.
 
+## Requirements For Modders
 
-# [Compatibility](#compatibility)
+* Windows 10 or 11
+* [NVIDIA Omniverse](https://www.nvidia.com/en-us/omniverse/download/)
+
+## RTX Remix Runtime Requirements for Developers
+
+* Windows 10 or 11
+* [Visual Studio](https://visualstudio.microsoft.com/vs/older-downloads/) _VS 2019 or newer_
+* [Windows SDK and emulator](https://developer.microsoft.com/en-us/windows/downloads/sdk-archive/) _10.0.19041.0 or newer_
+*  [Meson](https://mesonbuild.com/) _V0.61.4 or newer_
+    * Please Note that v1.2.0 does not work (missing library)
+    * Follow these [instructions](https://mesonbuild.com/SimpleStart.html#installing-meson) on how to install and reboot the PC before
+* [Vulkan SDK](https://vulkan.lunarg.com/sdk/home#windows) _1.3.211.0 or newer_
+    * Please Note that you may need to uninstall previous SDK if you have an old version
+* [Python](https://www.python.org/downloads/) _version 3.9 or newer_
+
+
+# Compatibility
 
 The RTX Remix Runtime is primarily targeting DirectX 8 and 9 games with a fixed function pipeline for compatibility. Injecting the Remix runtime into other content is unlikely to work. It is important to state that even amongst DX8/9 games with fixed function pipelines, there is diversity in how they utilize certain shader techniques or handle rendering. As a result, there are crashes and unexpected rendering scenarios that require improvements to the RTX Remix Runtime for content to work perfectly.
 
 It is our goal to work in parallel with the community to identify these errors and improve the runtime to widen compatibility with as many DX8 and 9 fixed function games as possible.  As Remix development continues, we will be adding revisions to the RTX Remix Runtime that will expand compatibility for more and more titles.  Some of those solutions will be code contributions submitted by our talented [developer community](http://discord.gg/rtxremix), which we will receive on our [GitHub as pull requests](https://github.com/NVIDIAGameWorks/rtx-remix/pulls) and integrate into the main RTX Remix Runtime.  RTX Remix is a first of its kind modding platform for reimagining a diverse set of classic games with the same workflow, but it's going to take some investigation and work to achieve that broad compatibility.
+
+## [Defining Compatibility](#defining-compatibility)
+
+Games are 'compatible' if the majority of their draw calls can be intercepted by Remix. That doesn't mean there won't currently be crashes or other bugs that prevent a specific game from launching. If the game crashes, but the content is compatible, then fixing the crash means the game can be remastered. If the game's content isn't compatible, then fixing the crash won't really achieve anything.
+
+This also doesn't mean that everything in the game will be Remix compatible - often specific effects will either need to be replaced using the existing replacements flow, or will need some kind of custom support added to the runtime (like terrain).
 
 
 ## [Fixed Function Pipelines](#fixed-function-pipelines)
@@ -186,13 +90,8 @@ However, there exists various wrapper libraries which can translate from early O
 
 We are not currently aware of any wrapper libraries for DirectX 7 to fixed function DirectX 9, but in theory such a wrapper is reasonable to create.
 
-
-## [Defining Compatibility](#defining-compatibility)
-
-Games are 'compatible' if the majority of their draw calls can be intercepted by Remix. That doesn't mean there won't currently be crashes or other bugs that prevent a specific game from launching. If the game crashes, but the content is compatible, then fixing the crash means the game can be remastered. If the game's content isn't compatible, then fixing the crash won't really achieve anything.
-
-This also doesn't mean that everything in the game will be Remix compatible - often specific effects will either need to be replaced using the existing replacements flow, or will need some kind of custom support added to the runtime (like terrain).
-
+## ModDB Compatibility Tables
+<!--- ***need content here --->
 
 ## [Rules of Thumb](#rules-of-thumb)
 
@@ -214,214 +113,6 @@ DXVK_SHADER_DUMP_PATH=/some/path
 DXVK_LOG_LEVEL=debug
 ```
 If that dumps out a few shaders, then the content may mostly be Remix compatible. If it dumps out a lot of shaders, then the game probably won't be workable.
-
-
-# [Formats](#formats)
-
-Remix utilizes Omniverse's standard USD (for scenes) and MDL (for materials) file formats.  Most content used in Omniverse needs to be converted into one of those standard formats so that your file can be used universally among the applications being used within the platform.  You can view the [Omniverse Format documentation](https://docs.omniverse.nvidia.com/composer/latest/common/formats.html) to read further details about file formats and format conversions.
-
-## Asset Converter
-
-Apps in Omniverse are loaded with the Asset Converter extension. With it, users can convert models into USD using the [**Asset Converter**](https://docs.omniverse.nvidia.com/composer/latest/common/formats.html#asset-converter) service. Below is a list of formats it can convert to USD.
-
-<table>
-  <tr>
-   <td><strong>Extension</strong>
-   </td>
-   <td><strong>Format</strong>
-   </td>
-   <td><strong>Description</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>.fbx
-   </td>
-   <td>Autodesk FBX Interchange File
-   </td>
-   <td>Common 3D model saved in the Autodesk Filmbox format
-   </td>
-  </tr>
-  <tr>
-   <td>.obj
-   </td>
-   <td>Object File Format
-   </td>
-   <td>Common 3D Model format
-   </td>
-  </tr>
-  <tr>
-   <td>.gltf
-   </td>
-   <td>GL Transmission Format File
-   </td>
-   <td>Common 3D Scene Description
-   </td>
-  </tr>
-  <tr>
-   <td>.lxo
-   </td>
-   <td>Foundry MODO 3D Image Format
-   </td>
-   <td>Foundry MODO is a type of software used for rendering, 3D modeling, and animation.
-   </td>
-  </tr>
-</table>
-
-
-## [Materials](#materials)
-
-NVIDIA has developed a custom schema in USD to represent material assignments and specify material parameters. In Omniverse, these specialized USD’s get an extension change to .MDL signifying that it is represented in NVIDIA’s open-source MDL (Material Definition Language).
-
-
-### DL Texture Formats Accepted
-
-MDL Materials throughout Omniverse can accept texture files in the following formats.
-
-
-<table>
-  <tr>
-   <td><strong>Extension</strong>
-   </td>
-   <td><strong>Format</strong>
-   </td>
-   <td><strong>Description</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>.bmp
-   </td>
-   <td>Bitmap Image File
-   </td>
-   <td>Common image format developed by Microsoft.
-   </td>
-  </tr>
-  <tr>
-   <td>.dds
-   </td>
-   <td>DirectDraw Surface
-   </td>
-   <td>Microsoft DirectX format for textures and environments.
-   </td>
-  </tr>
-  <tr>
-   <td>.gif
-   </td>
-   <td>Graphical Interchange Format File
-   </td>
-   <td>Common color constrained lossless web format developed by CompuServe.
-   </td>
-  </tr>
-  <tr>
-   <td>.hdr
-   </td>
-   <td>High Dynamic Range Image File
-   </td>
-   <td>High Dynamic Range format developed by Industrial Light and Magic.
-   </td>
-  </tr>
-  <tr>
-   <td>.pgm
-   </td>
-   <td>Portable Gray Map
-   </td>
-   <td>Files that store grayscale 2D images. Each pixel within the image contains only one or two bytes of information (8 or 16 bits)
-   </td>
-  </tr>
-  <tr>
-   <td>.jpg
-   </td>
-   <td>Joint Photographic Experts Group
-   </td>
-   <td>Common “lossy” compressed graphic format.
-   </td>
-  </tr>
-  <tr>
-   <td>.pic
-   </td>
-   <td>PICtor raster image format
-   </td>
-   <td>DOS imaging standard mainly used by Graphics Animation System for Professionals (GRASP) and Pictor Paint.
-   </td>
-  </tr>
-  <tr>
-   <td>.png
-   </td>
-   <td>Portable Network Graphics File
-   </td>
-   <td>Common “lossless” compressed graphics format.
-   </td>
-  </tr>
-  <tr>
-   <td>.ppm
-   </td>
-   <td>Adobe Photoshop Document
-   </td>
-   <td>The native format for Adobe Photoshop documents.
-   </td>
-  </tr>
-</table>
-
-
-
-
-## USD File Formats
-
-Universal Scene Description (USD) is a versatile framework designed to encode data that can be scaled, organized hierarchically, and sampled over time. Its primary purpose is to facilitate the exchange and enhancement of data among different digital content creation applications.
-
-
-<table>
-  <tr>
-   <td><strong>Extension</strong>
-   </td>
-   <td><strong>Format</strong>
-   </td>
-   <td><strong>Description</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>.usd
-   </td>
-   <td>Universal Scene Description (Binary)
-   </td>
-   <td>This is the standard binary or ASCII file format for USD. It stores the 3D scene and asset data in a compact, binary form, making it efficient for storage and processing.
-   </td>
-  </tr>
-  <tr>
-   <td>.usda
-   </td>
-   <td>Universal Scene Description (ASCII)
-   </td>
-   <td>This format stores USD data in a human-readable, ASCII text format. It's primarily used for debugging and as a reference because it's easier for humans to read and modify. However, it's less efficient in terms of file size and loading speed compared to the binary format.
-   </td>
-  </tr>
-  <tr>
-   <td>.usdc
-   </td>
-   <td>Universal Scene Description (Crate)
-   </td>
-   <td>This is a binary format for USD, but it's optimized for high-performance data storage and retrieval. .usdc files are typically used as the primary format for asset storage and production pipelines, as they offer faster loading and saving times compared to .usd files.
-   </td>
-  </tr>
-</table>
-
-
-
-<!----- Placeholder for where Release Notes will go  ----->
-
-
-<!----- ## [Release Notes](#release-notes)  ----->
-
-
-<!----- ### [Known Issues](#known-issues)  ----->
-
-
-<!----- Example of format for release notes?
-* [REMIX-2121](https://omniverse-jirasw.nvidia.com/browse/REMIX-2121): On v2023.5.1 - Application Crash from gpu.foundation.plugin when navigating to the Project File Location or the Remix Directory location while using a TitianRTX
-    * [https://omniverse-jirasw.nvidia.com/browse/REMIX-2121](https://omniverse-jirasw.nvidia.com/browse/REMIX-2121)
-
-Example: [https://docs.omniverse.nvidia.com/composer/latest/release_notes.html](https://docs.omniverse.nvidia.com/composer/latest/release_notes.html)
-
- ----->
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>
