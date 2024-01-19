@@ -733,8 +733,13 @@ class Setup:
                 # we don't allow moving an instance directly
                 # enable also for live light in mesh
                 if self.prim_is_from_a_capture_reference(prim):
-                    # prim from capture can't be moved
-                    continue
+                    # in a case we duplicated a captured prim
+                    parent = prim.GetParent()
+                    if parent and parent.GetAttribute(constants.IS_REMIX_REF_ATTR):
+                        pass
+                    else:
+                        # prim from capture can't be moved
+                        continue
                 corresponding_paths = self.get_corresponding_prototype_prims([prim])
                 if corresponding_paths:
                     transformable.extend(corresponding_paths)

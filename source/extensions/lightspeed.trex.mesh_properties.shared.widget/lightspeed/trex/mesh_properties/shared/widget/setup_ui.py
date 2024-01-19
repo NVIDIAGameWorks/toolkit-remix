@@ -91,6 +91,7 @@ class SetupUI:
         self.__ref_mesh_field_is_editing = False
         self._current_reference_file_mesh_items = []
         self._current_instance_items = []
+        self.__will_change_prim_field = False
 
         self.__create_ui()
 
@@ -449,6 +450,7 @@ class SetupUI:
         self._do_mesh_ref_field_changed()
 
     def set_ref_mesh_field(self, path, change_prim_field=True):
+        self.__will_change_prim_field = change_prim_field
         if self._only_read_mesh_ref:
             value = path
         else:
@@ -458,7 +460,9 @@ class SetupUI:
 
         self._mesh_ref_field.model.set_value(value)
         if change_prim_field:
+            self._ignore_mesh_ref_field_changed = True
             self.__set_ref_mesh_prim_field()
+            self._ignore_mesh_ref_field_changed = False
 
     def __set_ref_mesh_prim_field(self):
         asset_path = self._mesh_ref_field.model.get_value_as_string()
@@ -546,6 +550,7 @@ class SetupUI:
     def _do_mesh_ref_field_changed(self):
         # check asset path
         path = self._mesh_ref_field.model.get_value_as_string()
+        will_change_prim_field = bool(self.__will_change_prim_field)
         self._overlay_mesh_ref_label.visible = not bool(path.strip())
         is_abs = self._core.is_absolute_path(path)
         layer = self._current_reference_file_mesh_items[0].layer
@@ -582,9 +587,10 @@ class SetupUI:
             return
 
         # check prim path
-        prim_path = self._mesh_ref_prim_field.model.get_value_as_string()
-        if set_new_ref and not self.__is_ref_prim_field_path_valid(path, prim_path):
-            set_new_ref = False
+        if not will_change_prim_field:
+            prim_path = self._mesh_ref_prim_field.model.get_value_as_string()
+            if set_new_ref and not self.__is_ref_prim_field_path_valid(path, prim_path):
+                set_new_ref = False
 
         if set_new_ref and not self._only_read_mesh_ref:
             self.set_new_usd_reference()
@@ -628,16 +634,19 @@ class SetupUI:
             prim_path = self._current_reference_file_mesh_items[-1].prim.GetPath()
             current_ref = self._current_reference_file_mesh_items[-1].ref
             current_layer = self._current_reference_file_mesh_items[-1].layer
-            ref_prim_path = self._mesh_ref_prim_field.model.get_value_as_string()
 
             # first we delete the ref
             self._core.remove_reference(stage, prim_path, current_ref, current_layer, remove_if_remix_ref=False)
 
             # second we add the new one
+            edit_target_layer = stage.GetEditTarget().GetLayer()
             asset_path = self._mesh_ref_field.model.get_value_as_string()
+            ref_prim_path = self._core.get_reference_prim_path_from_asset_path(
+                asset_path, current_layer, edit_target_layer, current_ref
+            )
 
             new_ref, prim_path = self._core.add_new_reference(
-                stage, prim_path, asset_path, ref_prim_path, stage.GetEditTarget().GetLayer(), create_if_remix_ref=False
+                stage, prim_path, asset_path, ref_prim_path, edit_target_layer, create_if_remix_ref=False
             )
             if new_ref:
                 carb.log_info(

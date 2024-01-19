@@ -238,6 +238,7 @@ class Delegate(ui.AbstractItemDelegate):
                                     width=10,
                                     height=10,
                                     style_type_name_override=style_type_name_override,
+                                    identifier="Expand",
                                 )
                                 ui.Spacer(width=0)
                         else:

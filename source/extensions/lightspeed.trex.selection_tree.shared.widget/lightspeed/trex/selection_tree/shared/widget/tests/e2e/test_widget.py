@@ -1,3 +1,4 @@
+# noqa PLC0302
 """
 * Copyright (c) 2023, NVIDIA CORPORATION.  All rights reserved.
 *
@@ -237,6 +238,56 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(len(item_file_meshes), 2)
         self.assertEqual(len(item_instance_groups), 1)
         self.assertEqual(len(item_instance_meshes), 0)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_duplicate_one_ref_from_selected_mesh(self):
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 2)  # ref item + prim
+
+        duplicate_ref_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
+
+        # delete
+        await duplicate_ref_image.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        self.assertEqual(len(item_prims), 3)  # 2 ref items + 1 prim
+
+        self.assertEqual(len(item_file_meshes), 2)
+        self.assertEqual(len(item_instance_groups), 1)
+        self.assertEqual(len(item_instance_meshes), 0)
+
+        expand_icon = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='Expand'")
+        self.assertEqual(len(expand_icon), 4)
+        # expand
+        await expand_icon[2].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 4)  # 2 ref items + 2 prims
+
+        # undo
+        omni.kit.undo.undo()
+        await ui_test.human_delay(human_delay_speed=3)
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 2)  # ref item + 1 prim
+
+        # redo
+        omni.kit.undo.redo()
+        await ui_test.human_delay(human_delay_speed=3)
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 3)  # 2 ref items + 1 prim
 
         await self.__destroy(_window, _wid)
 
