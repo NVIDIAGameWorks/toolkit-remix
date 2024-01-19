@@ -309,9 +309,6 @@ current_dict.update(
         "IconSeparator": {
             "border_width": 45,
         },
-        "Image::Account": {"image_url": _get_icons("account-circle"), "color": _WHITE_50},
-        "Image::Account:selected": {"image_url": _get_icons("account-circle"), "color": _WHITE_100},
-        "Image::Account:hovered": {"image_url": _get_icons("account-circle"), "color": _WHITE_80},
         "Image::AddStatic": {"image_url": _get_icons("add"), "color": _WHITE_50},
         "Image::Add": {"image_url": _get_icons("add"), "color": _WHITE_60},
         "Image::Add:hovered": {"image_url": _get_icons("add"), "color": _WHITE_100},
