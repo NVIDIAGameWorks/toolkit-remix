@@ -191,3 +191,42 @@ class ResumeWorkFileItem(Item):
     @property
     def description(self):
         return "Continue working on your currently opened project."
+
+
+class LaunchRemixGameItem(Item):
+    """Item of the model"""
+
+    def __init__(self, on_mouse_pressed_callback: Callable):
+        super().__init__()
+        self._on_mouse_pressed_callback = on_mouse_pressed_callback
+        self.__is_hovered = False
+
+    def get_image(self) -> str:
+        return _get_icons("new_workfile")
+
+    def on_mouse_pressed(self):
+        return
+
+    def on_mouse_released(self):
+        if self.__is_hovered:
+            self._on_mouse_pressed_callback()
+
+    def on_hovered(self, hovered):
+        """Action that will be called when the item is hovered on"""
+        self.__is_hovered = hovered
+
+    def on_description_scrolled_x(self, x):
+        """Action that will be called when the description is scrolled on x"""
+        return
+
+    def on_description_scrolled_y(self, y):
+        """Action that will be called when the description is scrolled on y"""
+        return
+
+    @property
+    def title(self):
+        return "Launch Game with Remix"
+
+    @property
+    def description(self):
+        return "Launch a game using the RTX Remix game launcher."
