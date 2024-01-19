@@ -238,7 +238,8 @@ class SetupUI:
         self._core.remove_prim_overrides(prim_path)
 
     def _on_duplicate_reference(self, item: _ItemReferenceFileMesh):
-        self._add_new_ref_mesh(item, item.path)
+        abs_path = omni.client.normalize_url(item.layer.ComputeAbsolutePath(item.path))
+        self._add_new_ref_mesh(item, abs_path)
 
     def _on_delete_prim(self, item: _ItemPrim):
         def _get_parent_item_mesh(_item):
