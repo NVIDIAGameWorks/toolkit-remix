@@ -9,6 +9,7 @@
 """
 import asyncio
 import os
+import subprocess
 import typing
 from enum import Enum
 from functools import partial
@@ -18,7 +19,7 @@ import omni.appwindow
 import omni.kit.app
 import omni.ui as ui
 import omni.usd
-from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS
+from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS, REMIX_LAUNCHER_PATH, REMIX_SAMPLE_PATH
 from lightspeed.event.save_recent.recent_saved_file_utils import RecentSavedFile as _RecentSavedFile
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.trex.components_pane.stagecraft.controller import SetupUI as ComponentsPaneSetupUI
@@ -34,12 +35,18 @@ from lightspeed.trex.utils.common.file_path import (
 )
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
-from lightspeed.trex.welcome_pads.stagecraft.models import NewWorkFileItem, RecentWorkFileItem, ResumeWorkFileItem
+from lightspeed.trex.welcome_pads.stagecraft.models import (
+    LaunchRemixGameItem,
+    NewWorkFileItem,
+    RecentWorkFileItem,
+    ResumeWorkFileItem,
+)
 from omni.flux.footer.widget import FooterWidget
 from omni.flux.header_nvidia.widget import HeaderWidget
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
+from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.widget.color import color_to_hex
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.flux.utils.widget.resources import get_background_images
@@ -84,7 +91,11 @@ class SetupUI(TrexLayout):
         self._welcome_resume_item = ResumeWorkFileItem(self._resume_work_file_clicked)
         self._welcome_resume_item.enabled = self.enable_welcome_resume_item()
         self._welcome_pads_new_model.add_items(
-            [NewWorkFileItem(self._new_work_file_clicked), self._welcome_resume_item]
+            [
+                LaunchRemixGameItem(self._launch_game_with_remix),
+                NewWorkFileItem(self._new_work_file_clicked),
+                self._welcome_resume_item,
+            ]
         )
 
         self._recent_saved_file = _RecentSavedFile()
@@ -208,6 +219,25 @@ class SetupUI(TrexLayout):
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self._on_open_work_file, function)
+
+    def _launch_game_with_remix(self):
+        def execute_launcher(filename: str):
+            file_url = OmniUrl(filename)
+            launcher_url = OmniUrl(carb.tokens.get_tokens_interface().resolve(REMIX_LAUNCHER_PATH))
+            command = [str(launcher_url), "-w", file_url.parent_url, str(file_url)]
+            # Start the sub-process
+            subprocess.Popen(  # noqa PLR1732
+                command, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, cwd=launcher_url.parent_url
+            )
+
+        _open_file_picker(
+            "Select a game executable",
+            execute_launcher,
+            lambda *_: None,
+            apply_button_label="Select Game",
+            current_file=carb.tokens.get_tokens_interface().resolve(REMIX_SAMPLE_PATH),
+            file_extension_options=[("*.exe", "Executable Files")],
+        )
 
     def _new_work_file_clicked(self):
         """Call the event object that has the list of functions"""

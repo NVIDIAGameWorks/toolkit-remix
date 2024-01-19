@@ -76,6 +76,8 @@ IS_REMIX_REF_ATTR = "IsRemixRef"
 SHADER_NAME_OPAQUE = "AperturePBR_Opacity.mdl"
 SHADER_NAME_TRANSLUCENT = "AperturePBR_Translucent.mdl"
 
+REMIX_SAMPLE_PATH = "${kit}/../deps/remix_runtime/sample"
+REMIX_LAUNCHER_PATH = "${kit}/../deps/remix_runtime/runtime/NvRemixLauncher32.exe"
 NVTT_PATH = "${kit}/../deps/tools/nvtt/nvtt_export.exe"
 PIX2PIX_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "pytorch-CycleGAN-and-pix2pix"))
 REAL_ESRGAN_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "realesrgan-ncnn-vulkan-20210901-windows"))
