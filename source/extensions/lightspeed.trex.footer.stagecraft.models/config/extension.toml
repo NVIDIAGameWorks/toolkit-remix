@@ -7,6 +7,7 @@ description = "This is the data used by the StageCraft footer"
 "omni.flux.footer.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.ui" = {}
+"lightspeed.common" = {}
 
 [[python.module]]
 name = "lightspeed.trex.footer.stagecraft.models"

@@ -163,6 +163,57 @@ ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL = "Ingest Asset"
 
 MATERIAL_OVERRIDE_PATH = "{prim_node}/Looks"
 
+CREDITS = """
+        Dev Ops
+            Zachary Kupu - Lead
+        Project Director
+            Jaakko Haapasalo
+        Project Manager
+            Nyle Usmani
+        QA
+            Dmitriy Marshak - Lead
+            Sunny Thakkar
+            Lindsay Lutz
+            David Driver-Gromm
+        Rendering
+            Nuno Subtil - Lead
+            Mark Henderson
+            Peter Kristof
+            Riley Alston
+            Sultim Tsyrendashiev
+            Xiangshun Bei
+            Yaobin Ouyang
+        Systems
+            Sascha Sertel - Lead
+            Alexander Jaus
+            Lakshmi Vengesanam
+            Nicholas Freybler
+        Tools
+            Damien Bataille - Lead
+            Shona Gillard
+            Nicolas Kendall-Bar
+            Ed Leafe
+            Pierre-Olivier Trottier
+            Sam Bourne
+        Engineering Director
+            Alex Dunn
+        Producer
+            Wendy Gram
+        AI Research
+            James Lucas
+        Art Lead
+            Vern Andres-Quentin
+        """
+
+LICENSE_AGREEMENT_URL = (
+    "https://docs.omniverse.nvidia.com/platform/latest/common/NVIDIA_Omniverse_License_Agreement.html"
+)
+COMMUNITY_SUPPORT_URL = "https://discord.com/invite/rtxremix"
+TECHNICAL_SUPPORT_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/issues"
+REPORT_ISSUE_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/issues"
+HELP_URL = "https://discord.com/channels/1028444667789967381/1095455547748257862"
+DOCUMENTATION_URL = "https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/"
+
 
 # This should match the `normalmap_encoding` in AperturePBR_normal.mdl
 class NormalMapEncodings(IntEnum):

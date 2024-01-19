@@ -14,14 +14,28 @@ from typing import Callable, Dict, Tuple
 import carb.settings
 import omni.kit.app
 import omni.ui as ui
+from lightspeed.common.constants import (
+    COMMUNITY_SUPPORT_URL,
+    CREDITS,
+    DOCUMENTATION_URL,
+    HELP_URL,
+    LICENSE_AGREEMENT_URL,
+    REPORT_ISSUE_URL,
+    TECHNICAL_SUPPORT_URL,
+)
 from omni.flux.footer.widget.model import FooterModel
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+
+
+class CreditsWindow(ui.Window):
+    def hide(self):
+        self.visible = False
 
 
 class StageCraftFooterModel(FooterModel):
     def __init__(self):
         super().__init__()
-        self._default_attr = {}
+        self._default_attr = {"_popup": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
@@ -35,7 +49,12 @@ class StageCraftFooterModel(FooterModel):
         """
         return {
             0: (),
-            1: (partial(ui.Spacer, height=ui.Pixel(24)), self.__about_sdg, self.__account, self.__license_agreement),
+            1: (
+                partial(ui.Spacer, height=ui.Pixel(24)),
+                self.__about_sdg,
+                self.__license_agreement,
+                self.__community_support,
+            ),
             2: (
                 partial(ui.Spacer, height=ui.Pixel(24)),
                 self.__technical_support,
@@ -45,17 +64,45 @@ class StageCraftFooterModel(FooterModel):
             ),
         }
 
+    def __credits(self):
+
+        self._popup = CreditsWindow(
+            "Credits",
+            visible=True,
+            width=300,
+            height=500,
+            dockPreference=ui.DockPreference.DISABLED,
+            flags=(
+                ui.WINDOW_FLAGS_NO_COLLAPSE
+                | ui.WINDOW_FLAGS_NO_MOVE
+                | ui.WINDOW_FLAGS_NO_RESIZE
+                | ui.WINDOW_FLAGS_NO_CLOSE
+                | ui.WINDOW_FLAGS_MODAL
+            ),
+        )
+
+        with self._popup.frame:
+            with ui.VStack():
+                ui.Spacer(width=0, height=ui.Pixel(8))
+                with ui.HStack():
+                    ui.Spacer(width=ui.Pixel(8), height=0)
+                    with ui.ScrollingFrame(height=ui.Percent(100)):
+                        ui.StringField(multiline=True, read_only=True).model.set_value(CREDITS)
+                    ui.Spacer(width=ui.Pixel(8), height=0)
+                ui.Spacer(width=0, height=ui.Pixel(8))
+                with ui.HStack(height=24):
+                    ui.Spacer(height=0)
+                    ui.Button("Okay", width=ui.Pixel(100), clicked_fn=self._popup.hide)
+                    ui.Spacer(height=0)
+                ui.Spacer(width=0, height=ui.Pixel(8))
+
     def __about_sdg(self):
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer()
-            ui.Label("About RTX Remix", name="FooterLabel")
+            label = ui.Label("About RTX Remix", name="FooterLabel")
             ui.Spacer()
 
-    def __account(self):
-        with ui.VStack(height=ui.Pixel(24)):
-            ui.Spacer()
-            ui.Label("Account", name="FooterLabel")
-            ui.Spacer()
+        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__credits())
 
     def __license_agreement(self):
         with ui.VStack(height=ui.Pixel(24)):
@@ -63,17 +110,24 @@ class StageCraftFooterModel(FooterModel):
             label = ui.Label("License agreement", name="FooterLabel")
             ui.Spacer()
 
-        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url())
+        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(LICENSE_AGREEMENT_URL))
 
-    def __open_nvidia_url(self):
-        url = "https://www.nvidia.com/"
+    def __community_support(self):
+        with ui.VStack(height=ui.Pixel(24)):
+            ui.Spacer()
+            label = ui.Label("Community Support", name="FooterLabel")
+            ui.Spacer()
+
+        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(COMMUNITY_SUPPORT_URL))
+
+    def __open_nvidia_url(self, url):
         webbrowser.open(url, new=0, autoraise=True)
 
     def __technical_support(self):
         with ui.HStack(height=ui.Pixel(24)):
             with ui.VStack():
                 ui.Spacer()
-                ui.Label("Technical Support", name="FooterLabel")
+                label = ui.Label("Technical Support", name="FooterLabel")
                 ui.Spacer()
             ui.Spacer()
             with ui.VStack(width=ui.Pixel(0)):
@@ -81,11 +135,13 @@ class StageCraftFooterModel(FooterModel):
                 ui.Label(str(self.__kit_version), name="FooterLabel")
                 ui.Spacer()
 
+        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(TECHNICAL_SUPPORT_URL))
+
     def __report_issue(self):
         with ui.HStack(height=ui.Pixel(24)):
             with ui.VStack():
                 ui.Spacer()
-                ui.Label("Report an issue", name="FooterLabel")
+                label = ui.Label("Report an issue", name="FooterLabel")
                 ui.Spacer()
             ui.Spacer()
             with ui.VStack(width=ui.Pixel(0)):
@@ -93,17 +149,23 @@ class StageCraftFooterModel(FooterModel):
                 ui.Label(str(self.__app_version), name="FooterLabel")
                 ui.Spacer()
 
+        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(REPORT_ISSUE_URL))
+
     def __help(self):
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer()
-            ui.Label("Help", name="FooterLabel")
+            label = ui.Label("Help", name="FooterLabel")
             ui.Spacer()
+
+        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(HELP_URL))
 
     def __documentation(self):
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer()
-            ui.Label("Documentation", name="FooterLabel")
+            label = ui.Label("Documentation", name="FooterLabel")
             ui.Spacer()
+
+        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(DOCUMENTATION_URL))
 
     def destroy(self):
         _reset_default_attrs(self)
