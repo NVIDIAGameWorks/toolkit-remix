@@ -91,6 +91,8 @@
 
 ## Render Settings
 
+These settings allow you to chose the type of renderer you want to use, the Rendering Mode, and Renderer specific settings.
+
 **Remix Render Settings**
 
 ![Remix Render Settings](../data/images/remix-viewport-rendersettings-002.png)
@@ -100,6 +102,8 @@
 ![Render Settings](../data/images/remix-viewport-010.png)
 
 ## Viewing Options
+
+![Viewing Options](../data/images/remix-viewport-viewingoptions.png)
 
 **Heads Up Display**
 
@@ -111,12 +115,19 @@
 
 **Show By Purpose**
 
-![Alt text](../data/images/remix-viewport-013.png)
+![Show By Purpose](../data/images/remix-viewport-013.png)
 
 
 ## Camera Settings
 
+> Since the Remix Toolkit is built on Omniverse. More information on camera settings can be found here: https://docs.omniverse.nvidia.com/materials-and-rendering/latest/cameras.html
+
+
 ![Camera Settings](../data/images/remix-viewport-camerasettings.png)
+
+## Stage Lights
+
+![Stage Lights](../data/images/remix-viewport-stagelights.png)
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>
