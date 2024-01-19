@@ -160,6 +160,7 @@ class LightGizmosLayer:
                         continue
                     if UsdGeom.Xformable.IsTransformationAffectedByAttrNamed(prim.name):
                         manipulator.model.update_from_prim()
+        GlobalSelection.g_set_lightmanipulators(self._manipulators)
 
     def _create_manipulators(self, stage):
         # Release stale manipulators
@@ -183,6 +184,7 @@ class LightGizmosLayer:
                     self._viewport_api, model=LightGizmosModel(light, self._usd_context_name, self._gizmo_scale)
                 )
                 self._manipulators[str(light.GetPrimPath())] = manipulator
+            GlobalSelection.g_set_lightmanipulators(self._manipulators)
 
     def _destroy_manipulators(self):
         self._revoke_listeners()
@@ -194,3 +196,4 @@ class LightGizmosLayer:
         for manipulator in self._manipulators.values():
             manipulator.destroy()
         self._manipulators = {}
+        GlobalSelection.g_set_lightmanipulators(self._manipulators)

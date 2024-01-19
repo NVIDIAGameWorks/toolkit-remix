@@ -1,5 +1,5 @@
 [package]
-version = "1.1.0"
+version = "1.2.0"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -26,3 +26,6 @@ preview_image = "data/preview.png"
 
 [[python.module]]
 name = "lightspeed.trex.viewports.manipulators"
+
+[settings.exts."lightspeed.trex.viewports.manipulators"]
+dxvkremix_use_legacy_select_highlight = false
