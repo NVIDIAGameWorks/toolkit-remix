@@ -272,7 +272,9 @@ class SetupUI:
             camera_frame.refresh(path)
 
     def _render_menu_item_option_clicked(self, engine_name: str, render_mode: str):
-        print((engine_name, render_mode))
+        # Overwrite the default behavior which is to show a render settings window,
+        # because we do not allow any chances to lose the 1:1 with the game.
+        pass
 
     def __init_splitter(self):
         if self._splitter_property_viewport is None:
