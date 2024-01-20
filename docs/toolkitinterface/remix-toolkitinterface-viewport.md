@@ -129,5 +129,15 @@ These settings allow you to chose the type of renderer you want to use, the Rend
 
 ![Stage Lights](../data/images/remix-viewport-stagelights.png)
 
+# Keyboard Shortcuts
+
+| Input | Description |
+|:----|:----|
+| Ctrl + S | Save Project |
+| Ctrl + Alt + S | Save Project As |
+| Ctrl + Z | Undo |
+| Ctrl + Y | Redo |
+
+
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>

@@ -45,6 +45,36 @@ World geometry has unstable hashes in many older games due to culling mechanisms
 1. **In-Game Debugging:** In-game, press Alt+X, scroll down to the "Debug" tab under "Rendering", and enable "Debug View".
 2. **Check Hash Stability:** To make sure that everything is working smoothly, switch to "Geometry Hash" in the debug view. If you notice a model, Material, or a part of the game world changing color in this view, that's a sign that the hash isn't stable. In such cases, you might need to use a workaround, and replacing it might not be an option.
 
+## Understanding Parallax Occlusion Mapping in RTX Remix
+
+Parallax Occlusion Mapping (POM) is a technique used in RTX Remix to add depth and realism to surfaces. It's achieved by simulating the displacement of pixels based on a height map, creating the illusion of intricate surface details.
+
+**What is Displacement Using Parallax Occlusion Mapping?**
+
+Displacement refers to the visual effect of altering the apparent geometric shape of a surface without actually changing its underlying geometry. In the context of RTX Remix, this is done using Parallax Occlusion Mapping.
+
+**The Role of displace_in**
+
+In Remix, the <code>displace_in</code> is crucial for determining the depth of the displacement. Here's a breakdown:
+
+**Mapping a Black Pixel**
+
+* In Remix, a black pixel on the height map corresponds to a depth equal to the width of the texture.
+* For example, if you have a wall panel that tiles every 1.5 meters, a black pixel will appear to be 1.5 * <code>displace_in</code> meters behind the wall.
+
+**Comparison with Substance Designer**
+
+In Substance Designer, a black pixel on the height map is 1 unit * <code>height_scale</code> deep, with the default preview mesh being 100x100 units.
+
+**Adjusting displace_in for Consistency**
+
+* To match the depth of the surface in Remix with Substance Designer's preview, adjust <code>displace_in</code> as follows: <code>displace_in</code> = <code>height_scale</code> / 100.
+* This adjustment ensures that the displacement scale in Remix is consistent with Substance Designer's default preview mesh.
+
+**Considerations for Custom Meshes**
+
+If the artist uses a custom mesh in Substance Designer, the adjustment factor for <code>displace_in</code> may need to be fine-tuned based on the specific characteristics of the custom mesh.
+
 
 ## Animated Materials
 

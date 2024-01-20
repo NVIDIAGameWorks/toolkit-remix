@@ -27,7 +27,7 @@ Once you have the files on your computer, you’ll need to copy them alongside y
 
 ## Install the RTX Remix Toolkit
 
-(Go to landing page and download installer)
+1. Click here to go to NVIDIA's™ [RTX Remix website](https://www.nvidia.com/en-us/geforce/rtx-remix/). 
 
 ### Install the RTX Remix from the Omniverse Launcher
 
