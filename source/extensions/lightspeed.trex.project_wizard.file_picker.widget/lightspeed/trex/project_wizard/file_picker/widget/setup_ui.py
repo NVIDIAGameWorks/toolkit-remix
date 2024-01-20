@@ -96,6 +96,7 @@ class FilePickerWidget:
             self._dir_field.model.set_value(str(self._current_path))
 
     def __path_selected_callback(self, path: str):
+        self._current_path = path
         self._dir_field.model.set_value(path)
         self._selected_callback(path)
 
@@ -136,6 +137,7 @@ class FilePickerWidget:
             self.__path_selected_callback,
             lambda *_: None,
             apply_button_label=self._apply_button_label,
+            current_file=self._current_path,
             file_extension_options=[] if self._select_directory else _constants.SAVE_USD_FILE_EXTENSIONS_OPTIONS,
             select_directory=self._select_directory,
             validate_selection=self.__validate_dialog_selection,
