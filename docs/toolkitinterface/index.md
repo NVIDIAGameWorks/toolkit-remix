@@ -11,5 +11,6 @@ remix-toolkitinterface-viewport.md
 remix-toolkitinterface-layouttab.md
 remix-toolkitinterface-ingesttab.md
 remix-toolkitinterface-aitools.md
+remix-toolkitinterface-lighting.md
 ```
 
