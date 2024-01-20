@@ -237,6 +237,12 @@ class ProjectWizardCore:
         remix_mods_directory = remix_directory / _constants.REMIX_MODS_FOLDER
         remix_project_directory = remix_mods_directory / project_directory.stem
 
+        if not remix_mods_directory.exists():
+            if not dry_run:
+                remix_mods_directory.mkdir(parents=True)
+            else:
+                self._log_info(f"Creating parent directory '{remix_mods_directory}'")
+
         if not deps_directory.exists():
             if not dry_run:
                 subprocess.check_call(f'mklink /J "{deps_directory}" "{remix_directory}"', shell=True)
