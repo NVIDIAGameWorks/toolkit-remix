@@ -8,12 +8,12 @@ Now that you've got everything set up, it's time to start remastering your game 
 
 # Understanding CONF Files
 
-Before we dive into replacing assets, let's take a moment to get familiar with the settings in the **Alt+X** menu, specifically in the "game setup" tab. Here, you'll find functions that allow you to change how certain textures in the game are rendered. Keep in mind that these options can vary depending on the game you're working on, but the tooltips should provide some initial guidance.
+Before we dive into replacing assets, let's take a moment to get familiar with the settings in the **Alt+X** menu, specifically in the "game setup" tab. Firstly, here you’ll find a list of materials from the original game displayed in a grid view.  RTX Remix will populate this list of materials based on what the original game is currently rendering, you may find this list changes over time or with respect to what you’re looking at in game (this is normal).  The purpose of this list is to provide a convenient way for users of RTX Remix to categorize the various materials in the original game.  Its with this context that Remix understands how to treat objects in the original game with respect to a modern renderer.  For instance, materials marked as UI in the original game don’t need to be raytraced, by letting Remix know about them it can use the original games renderer for displaying UI, which is often desirable.  
 
-For instance, marking a texture as a "sky texture" will automatically make it emissive and ensure it's always visible to the player, even if it's in a separate space like the skybox (this is particularly important in Source Engine games). It's also a good idea to mark UI textures to make sure they aren't affected by the new rendering pipeline. If you want more detailed information on how these settings work, you can refer to the dedicated **RTX.conf** breakdown.
+Other important categories are: Sky (lets Remix create a physically based environment map), Particles (let’s Remix reorient particle billboards with respect to all incoming rays, and also create the “soft particles” effect common in games), and Decals (tells Remix to treat these materials as physically based decals when path tracing).  There are many more categories, please refer to the tooltips in the runtime, or the per setting documentation if ever unclear what a particular category means.
 
 ## ModDB Conf Files
-<!--- need content here --->
+Visit the [ModDB website](https://www.moddb.com/rtx/)
 
 
 # Introduction to Captures
@@ -45,15 +45,14 @@ Projects ← Can be located anywhere -> Contains a list of Remix projects
 ```
 **Create a Desktop Shortcut**
 
-Make a shortcut for the "rtx-remix" folder on your desktop.
-Rename the shortcut to your project's name.
+Ensure that each mod for a specific game has a distinct name, which should be enforced by the wizard. If there's already a mod with the same parent directory name when creating a project, the project creation will fail. Additionally, when creating a desktop shortcut, make sure to exclude spaces in file names. Simply create a shortcut for the "rtx-remix" folder on your desktop, rename the shortcut to match your project's name. This ensures easy identification of the folder when working on your project, helping you keep track of each project's unique "rtx-remix" folder.
 
 **Organize Project Files**
 
 Create a project folder to keep your files organized.
 This project folder should be outside the game install folder.
 For example, if the game is in "C:/Program Files (x86)/Steam/common/Portal," don't place the project there.
-Use a valid path like "C:/Users/user/Remix Projects" or "D:/Remix Projects."
+Use a valid path like "C:/Users/user/RemixProjects" or "D:/RemixProjects."
 
 **Drive Formatting**
 
@@ -65,7 +64,7 @@ Have separate directories for source and output assets.
 Source directory: Store pre-ingestion assets & textures (FBX, USD, OBJ, etc.).
 Output directory: Keep ingested assets (USD) here.
 
-> Important: The output directory must be inside your project for correct references.
+> **IMPORTANT:** The output directory must be inside your project for correct references.
 
 **Linking Assets**
 

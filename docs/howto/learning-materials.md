@@ -22,10 +22,10 @@ In Remix, materials on meshes get a PBR (Physically-Based Rendering) makeover, a
 **Replacing a Material**
 This involves substituting an existing Material with a new one.
 
-**Adding an Material**
+**Adding a Material**
 Adding a Material typically refers to incorporating a new Material alongside existing ones.
 
-**Appending an Material**
+**Appending a Material**
  Appending a Material implies sequentially adding Materials to a project. For example, you might start with a basic scene and then append additional Materials to enhance or expand the environment.
 
 
@@ -74,8 +74,6 @@ A key point to remember is that the spritesheet should be organized from left to
 <!--- ![SpriteSheetExample](data/images/sprite_sheet_example.png) --->
 <img src="../data/images/sprite_sheet_example.png" alt="drawing" width="400"/>
 
-
-> ⚠️ Please be aware that there is a feature gap in the MDL. The runtime will treat all Materials as spritesheets, whereas the MDL only treats emissive Materials as spritesheets.
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>

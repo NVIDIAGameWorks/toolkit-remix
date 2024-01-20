@@ -3,7 +3,9 @@
 
 # [Introduction](#introduction)
 
-RTX Remix is a set of tools for upgrading older DirectX 8 and 9 games. It adds fancy stuff like path tracing, NVIDIA DLSS (a smart upscaling technology), better textures using AI, and lets people create their own game stuff. It's like giving your old games a makeover. RTX Remix has two parts: the RTX Remix Runtime (which makes the game look better) and the RTX Remix Creator Toolkit (which helps you make cool stuff for the game). You can use RTX Remix to make classic games look awesome and share your creations with others.
+RTX Remix is a modding platform for remastering a catalog of fixed-function DirectX 8 and 9 games with cutting edge graphics. With NVIDIA RTX Remix, experienced modders can upgrade textures with AI, easily replace game assets with high fidelity assets built with physically accurate (PBR) materials, and inject RTX ray tracing, DLSS and Reflex technologies into the game. It's like giving your old games a makeover with gorgeous modern-looking graphical mods.
+
+Remix consists of two components; there’s the RTX Remix Application (also known as the Toolkit), which is used for creating lights, revamping textures with AI, and adding remastered assets into a game scene that you’ve made with your favorite DCC tool. The second component is the RTX Remix Runtime, which helps you capture classic game scenes to bring into the RTX Remix application to begin your mod. The runtime also is responsible for making your mod “work” when a gamer is playing your mod–in real time, it replaces any old asset with the remastered assets you’ve added to the game scene, and relights the game with path tracing at playback. With the release of the RTX Remix application in Open Beta, the full power of RTX Remix is now in the hands of modders to make next level RTX mods.
 
 
 ## [How Does It Work](#how-does-it-work)
@@ -31,7 +33,8 @@ Finally, using  the RTX Remix Toolkit, you are able to easily make and add new g
 
 ## Technical Requirements
 
-> Omniverse is built to run on any RTX-powered machine. For ideal performance, we recommend using GeForce RTX™ 2080, Quadro RTX™ 5000, or higher. For latest drivers, visit [NVIDIA Driver Downloads](https://www.nvidia.com/Download/index.aspx). For Quadro, select 'Quadro New Feature Driver (QNF).
+RTX Remix and its mods are built to run on RTX-powered machines. For ideal performance, we recommend using GeForce RTX™ 4070 or higher. For latest drivers, visit  [NVIDIA Driver Downloads](https://www.nvidia.com/Download/index.aspx)s. For Quadro, select 'Quadro New Feature Driver (QNF).
+
 
 | Level                | Operating System  | CPU                   | CPU Cores | RAM     | GPU                | VRAM  | Disk           |
 | :------------------: | :---------------: | :-------------------: | :-------: | :-----: | :----------------: | :---: | :------------: |
@@ -68,14 +71,14 @@ It is our goal to work in parallel with the community to identify these errors a
 
 Games are 'compatible' if the majority of their draw calls can be intercepted by Remix. That doesn't mean there won't currently be crashes or other bugs that prevent a specific game from launching. If the game crashes, but the content is compatible, then fixing the crash means the game can be remastered. If the game's content isn't compatible, then fixing the crash won't really achieve anything.
 
-This also doesn't mean that everything in the game will be Remix compatible - often specific effects will either need to be replaced using the existing replacements flow, or will need some kind of custom support added to the runtime (like terrain).
+This also doesn't mean that everything in the game will be Remix compatible - often specific effects will either need to be replaced using the existing replacements flow, or will need some kind of custom support added to the runtime.
 
 
 ## [Fixed Function Pipelines](#fixed-function-pipelines)
 
 Remix functions by intercepting the data the game sends to the GPU, recreating the game's scene based on that data, and then path tracing that recreated scene. With a fixed function graphics pipeline, the game is just sending textures and meshes to the GPU, using standardized data formats. It's reasonable (though not easy) to recreate a scene from this standardized data.
 
-With a shader graphics pipeline, the game can send the data in any format, and the color of a given surface isn't determined until it is actually drawn on the screen. This makes it very difficult to recreate the scene - and there are a lot of other problems that occur as well.
+Part of why RTX Remix targets DX8 and 9 titles with fixed function pipelines is because  later games utilize shader graphics pipelines, where the game can send the data in any format, and the color of a given surface isn't determined until it is actually drawn on the screen. This makes it very difficult for RTX Remix to recreate the scene - which, amongst other problems, causes the game to be incompatible.
 
 The transition from 100% fixed function to 100% shader was gradual - most early DirectX 9.0 games only used shaders for particularly tricky cases, while later DirectX 9.0 games (like most made with 9.0c) may not use the fixed function pipeline at all. Applying Remix to a game using a mix of techniques will likely result in the fixed function objects showing up, and the shader dependent objects either looking wrong, or not showing up at all.
 
@@ -90,8 +93,8 @@ However, there exists various wrapper libraries which can translate from early O
 
 We are not currently aware of any wrapper libraries for DirectX 7 to fixed function DirectX 9, but in theory such a wrapper is reasonable to create.
 
-## ModDB Compatibility Tables
-<!--- ***need content here --->
+## ModDB Compatibility Table
+ModDB’s community has banded together to make modding with RTX Remix even easier. You can visit the [ModDB website](https://www.moddb.com/rtx/) and see a community maintained compatibility table, which indicates every game the mod community has found currently works with RTX Remix. It also specifies the last RTX Remix runtime that was tested with any given game, and provides config files (called “rtx.conf” files) that make any compatible game work with RTX Remix out of the box. Take a look, and be sure to contribute and update the table if you make any discoveries of your own.
 
 ## [Rules of Thumb](#rules-of-thumb)
 
@@ -107,8 +110,9 @@ DirectX 8 and DirectX 9.0 will probably be fixed function, and thus feasible. Di
 
 ### [Supported GPU](#supported-gpu)
 
-The Nvidia Geforce 2 graphics card was the last card to be fixed function only, so if the game could run on that card, it's probably fixed function. Note that many games supported fixed function when they released, but removed that support in later updates. Testing the content It's actually possible to tell dxvk to dump out any shaders used by the game, adding these settings to your environment variables:
-```
+The Nvidia Geforce 2 graphics card was the last card to be fixed function only, so if the game could run on that card, it's probably fixed function. Note that many games supported fixed functions when they were released, but removed that support in later updates. Testing the content It's actually possible to tell dxvk to dump out any shaders used by the game by adding these settings to your environment variables:
+
+```text
 DXVK_SHADER_DUMP_PATH=/some/path
 DXVK_LOG_LEVEL=debug
 ```
