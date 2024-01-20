@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.5] - 2024-01-20
+### Fixed
+- Fixed issue when opening a mod and the `mods` directory doesn't exist in rtx-remix
+
 ## [1.1.4] - 2023-10-16
 ### Changed
 - Adding filename check for invalid characters

@@ -221,13 +221,13 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         deps_dir = project_file.parent / constants.REMIX_DEPENDENCIES_FOLDER
 
         with WizardMockContext() as mock:
-            mock.path_exists_mock.side_effect = [False, True]
+            mock.path_exists_mock.side_effect = [True, False, True]
 
             # Act
             value = await self.core._create_symlinks(project_file.parent, deps_dir, remix_dir, False)  # noqa PLW0212
 
         # Assert
-        self.assertEqual(2, mock.path_exists_mock.call_count)
+        self.assertEqual(3, mock.path_exists_mock.call_count)
         self.assertEqual(1, mock.check_call_mock.call_count)
 
         self.assertEqual(None, value)
@@ -602,13 +602,13 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         deps_dir = project_file.parent / constants.REMIX_DEPENDENCIES_FOLDER
 
         with WizardMockContext() as mock:
-            mock.path_exists_mock.side_effect = [True, False] if deps_or_remix else [False, True]
+            mock.path_exists_mock.side_effect = [True, True, False] if deps_or_remix else [True, False, True]
 
             # Act
             value = await self.core._create_symlinks(project_file.parent, deps_dir, remix_dir, False)  # noqa PLW0212
 
         # Assert
-        self.assertEqual(2, mock.path_exists_mock.call_count)
+        self.assertEqual(3, mock.path_exists_mock.call_count)
         self.assertEqual(1, mock.check_call_mock.call_count)
 
         remix_project_dir = remix_dir / constants.REMIX_MODS_FOLDER / project_file_base
