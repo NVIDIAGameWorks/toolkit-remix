@@ -16,7 +16,7 @@ Instead of referencing a capture at <code>C:\Program Files (x86)\Steam\common\Po
 
 ## Ingesting an Asset
 
-The RTX Remix tool is your go-to for refining game capture assets by removing specific elements like shaders and texture formats. Follow this step-by-step guide to streamline the process:
+The RTX Remix Toolkit is your go-to for refining game capture assets by removing specific elements like shaders and texture formats. Follow this step-by-step guide to streamline the process:
 
 1. **Check File Format:** Ensure your asset is in an acceptable format (refer to the [Format Section](../remix-formats.md) for details) and load the asset into Remix.
 2. **Access the Ingest Tab:** Open the Remix window and locate the **Ingest** tab on the top right.  Choose the Asset(s) from the vertical left tabs.
@@ -31,13 +31,58 @@ The RTX Remix tool is your go-to for refining game capture assets by removing sp
 > ðŸ“ All Ingested files, even textures & Assets, will have MetaData files.
 
 
+## CLI Asset Ingestion Tool (Advanced)
+
+For advanced users there is a CLI tool that can be used to ingest large batches of assets. 
+
+### Finding Install Directory
+
+In order to run the CLI Tool, you will need to know where RTX Remix is installed. Open up the launcher and navigate to the Library > RTX Remix.
+
+![CLI Asset Ingestion Tool 1](../data/images/remix-clitool-001.png)
+
+Click on the hamburger menu and then Settings to bring up the install path:
+
+![CLI Asset Ingestion Tool 2](../data/images/remix-clitool-002.png)
+
+### Running CLI Asset Ingestion Tool
+
+Follow these steps to run the CLI Asset Ingestion Tool for customizing your assets:
+
+1. Copy Schema File:
+    * Locate the schema file for Model Ingestion:
+        <code>YOUR_APP_INSTALL\exts\lightspeed.trex.app.resources\data\validation_schema\model_ingestion.json</code>
+    * For Texture Ingestion:
+        <code>YOUR_APP_INSTALL\exts\lightspeed.trex.app.resources\data\validation_schema\material_ingestion.json</code>
+    * Save the path to this file as SCHEMA_PATH for later reference.
+2. Open Schema File in Text Editor:
+    * Open the file in a text editor.
+    * Update the list of files to ingest in the <code>context_plugin -> data -> input_files</code> (Tip: Use a script to save time).
+    * Update the output directory in <code>context_plugin -> data -> output_directory</code>.
+    * Save the schema file.
+3. Execute Commands in CMD:
+    * Open a cmd window.
+    * Navigate to the installation location of the app.
+    * Execute the following commands (replace REMIX_INSTALLATION_DIRECTORY with the appropriate value):
+        ```text
+        SET REMIX=C:\REMIX_INSTALLATION_DIRECTORY
+
+        "%REMIX%\extscache\omni.flux.validator.mass.core\bin\cli.bat" -s SCHEMA_PATH -e omni.flux.validator.plugin.check.usd omni.flux.validator.plugin.context.usd_stage omni.flux.validator.plugin.resultor.file omni.flux.validator.plugin.selector.usd -x--/renderer/mdl/searchPaths/templates="%REMIX%/omni_core_materials/Base;%REMIX%/kit/mdl/core/Base;%REMIX%/kit/mdl/core/Volume;%REMIX%/kit/mdl/core/mdl" -ex 1
+        ```
+4. Note on Arguments:
+    * <code>-s</code>: Points to the path of the modified schema file.
+    * <code>-e</code>: Can be ignored; it specifies extensions to enable.
+    * <code>-x--/renderer/mdl/searchPaths/templates</code>: Can be ignored; it indicates where to look for MDLs.
+    * <code>-ex</code>: Choose 0 for sequential ingestion (async) or 1 for more stable ingestion on separate threads.
+    * <code>-t</code>: Sets a timeout for ingestion (default is 600 seconds).
+
 ## Replacing, Adding, or Appending an Asset
 
 **Replacing an Asset**
 This involves substituting an existing Asset with a new one.
 
 **Adding an Asset**
-Adding a Asset typically refers to incorporating a new Asset alongside existing ones.
+Adding an Asset typically refers to incorporating a new Asset alongside existing ones.
 
 **Appending an Asset**
  Appending a Asset implies sequentially adding Assets to a project. For example, you might start with a basic scene and then append additional Assets to enhance or expand the environment.
@@ -94,7 +139,7 @@ Translucency is handled in the Ingestion process.  If a material has the word â€
 
 ## Emissive Elements
 
-**Emissive Textures:** To make parts of a Asset emit light, go to the "emissive" tab, tick "Enable Emission," and assign the Emissive Mask map texture. Adjust the Emissive Intensity value as needed.
+**Emissive Textures:** To make parts of an Asset emit light, go to the "emissive" tab, tick "Enable Emission," and assign the Emissive Mask map texture. Adjust the Emissive Intensity value as needed.
 
 
 ## Animated Assets

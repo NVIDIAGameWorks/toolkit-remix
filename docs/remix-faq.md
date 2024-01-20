@@ -3,11 +3,7 @@
 
 ### What is RTX Remix and what sets it apart from other modding tools?
 
-> RTX Remix is a cutting-edge software program built on NVIDIA Omniverse™, specifically designed for modders. What sets it apart is its ability to seamlessly capture game assets, enhance materials using powerful AI tools, and efficiently create impressive RTX remasters incorporating ray tracing and DLSS.
-
-### Are there any specific system requirements for using NVIDIA RTX Remix?
-
-> You can refer to the NVIDIA Omniverse Technical Requirements guidance for information here: https://docs.omniverse.nvidia.com/platform/latest/common/technical-requirements.html
+> RTX Remix is a high-tech software created for modders, using NVIDIA Omniverse™. What makes it special is its capability to grab game assets, improve materials with advanced AI tools, and easily produce stunning RTX remasters with ray tracing and DLSS. The unique thing about RTX Remix is that it's an all-in-one modding tool. Instead of having to learn different tools for each game, you only need to master RTX Remix for all compatible titles. It simplifies the modding process across various games.
 
 ### Can you explain the role of AI tools in RTX Remix and how they enhance materials automatically?
 
