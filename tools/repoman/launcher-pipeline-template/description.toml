@@ -23,7 +23,8 @@ tags = [
   "Materials",
   "PBR",
   "Classic Games",
-  "Remaster"
+  "Remaster",
+  "beta"
 ]
 
 #enum of "app", "connector" and "experience" for now
