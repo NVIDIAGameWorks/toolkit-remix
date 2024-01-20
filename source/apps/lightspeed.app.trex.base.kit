@@ -99,4 +99,6 @@ PlayButton.enabled = false
 SelectionButton.SelectMode.enabled = false
 
 [settings.exts."omni.ui"]
-raster.default_rasterpolicy_enabled = true
+# crash-fix: "raster.default_rasterpolicy_enabled = true" was causing a crash when
+#  using the new project wizard's file browser before having a stage loaded.
+raster.default_rasterpolicy_enabled = false
