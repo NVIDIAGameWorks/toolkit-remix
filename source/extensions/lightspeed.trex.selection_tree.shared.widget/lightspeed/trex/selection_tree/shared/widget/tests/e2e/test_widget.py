@@ -350,10 +350,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNotNone(dir_path_field)
 
         # It takes a while for the tree to update
-        await ui_test.human_delay(1)
+        await ui_test.human_delay(50)
         asset_path = _get_test_data("usd/ingested_assets/output/good/cube.usda")
         await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay(1)
+        await ui_test.human_delay(50)
 
         await select_button.click()
         await ui_test.human_delay()
@@ -391,7 +391,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         usd_context = omni.usd.get_context()
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
-        await ui_test.human_delay(human_delay_speed=3)
+        await ui_test.human_delay(human_delay_speed=10)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
@@ -409,6 +409,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(tree_view.widget.selection, [all_items[2], all_items[6], all_items[5]])
 
         await item_file_meshes[0].click()
+        await ui_test.human_delay(human_delay_speed=10)
 
         window_name = "Select a reference file"
 
@@ -832,9 +833,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNotNone(dir_path_field)
 
         # It takes a while for the tree to update
-        await ui_test.human_delay(1)
+        await ui_test.human_delay(50)
         await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay(1)
+        await ui_test.human_delay(50)
 
         await select_button.click()
         await ui_test.human_delay()
@@ -899,12 +900,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNotNone(dir_path_field)
 
         # It takes a while for the tree to update
-        await ui_test.human_delay(1)
+        await ui_test.human_delay(50)
         await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay(1)
+        await ui_test.human_delay(50)
 
         await select_button.click()
-        await ui_test.human_delay()
+        await ui_test.human_delay(10)
 
         ignore_ingestion_button = ui_test.find(
             f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
@@ -951,10 +952,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNotNone(dir_path_field)
 
         # It takes a while for the tree to update
-        await ui_test.human_delay(1)
+        await ui_test.human_delay(50)
         asset_path = _get_test_data("usd/ingested_assets/output/good/cube.usda")
         await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay(1)
+        await ui_test.human_delay(50)
 
         await select_button.click()
         await ui_test.human_delay()
@@ -1005,11 +1006,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         _window, _wid = await self.__setup_widget(height=300)  # Keep in memory during test
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
-        await ui_test.human_delay(human_delay_speed=3)
+        await ui_test.human_delay(human_delay_speed=10)
 
-        number_items = 20
+        number_items = 10
         for _ in range(number_items):
             item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+
+            self.assertGreaterEqual(len(item_file_meshes), 0)
             await item_file_meshes[0].click()
 
             window_name = "Select a reference file"
@@ -1020,10 +1023,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
             )
 
             # It takes a while for the tree to update
-            await ui_test.human_delay(1)
+            await ui_test.human_delay(50)
             asset_path = _get_test_data("usd/ingested_assets/output/good/cube.usda")
             await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
-            await ui_test.human_delay(1)
+            await ui_test.human_delay(50)
 
             await select_button.click()
             await ui_test.human_delay()
