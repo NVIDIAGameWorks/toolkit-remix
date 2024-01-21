@@ -64,10 +64,28 @@ class StageCraftFooterModel(FooterModel):
                 self.__github,
                 self.__report_issue,
             ),
+            3: (
+                partial(ui.Spacer, height=ui.Pixel(24)),
+                self.__show_kit_version,
+                self.__show_app_version,
+            ),
+            4: (),
         }
 
     def __open_nvidia_url(self, url):
         webbrowser.open(url, new=0, autoraise=True)
+
+    def __show_kit_version(self):
+        with ui.VStack(width=ui.Pixel(0), height=ui.Pixel(24)):
+            ui.Spacer()
+            ui.Label(str(self.__kit_version), name="FooterLabel")
+            ui.Spacer()
+
+    def __show_app_version(self):
+        with ui.VStack(width=ui.Pixel(0), height=ui.Pixel(24)):
+            ui.Spacer()
+            ui.Label(str(self.__app_version), name="FooterLabel")
+            ui.Spacer()
 
     def __credits(self):
 
@@ -134,28 +152,18 @@ class StageCraftFooterModel(FooterModel):
         label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(DOCUMENTATION_URL))
 
     def __community_support(self):
-        with ui.HStack(height=ui.Pixel(24)):
-            with ui.VStack():
-                ui.Spacer()
-                label = ui.Label("Community", name="FooterLabel")
-                ui.Spacer()
-            with ui.VStack(width=0):
-                ui.Spacer()
-                ui.Label(str(self.__kit_version), name="FooterLabel")
-                ui.Spacer()
+        with ui.VStack(height=ui.Pixel(24)):
+            ui.Spacer()
+            label = ui.Label("Community", name="FooterLabel")
+            ui.Spacer()
 
         label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(COMMUNITY_SUPPORT_URL))
 
     def __tutorials(self):
-        with ui.HStack(height=ui.Pixel(24)):
-            with ui.VStack():
-                ui.Spacer()
-                label = ui.Label("Tutorials", name="FooterLabel")
-                ui.Spacer()
-            with ui.VStack(width=0):
-                ui.Spacer()
-                ui.Label(str(self.__app_version), name="FooterLabel")
-                ui.Spacer()
+        with ui.VStack(height=ui.Pixel(24)):
+            ui.Spacer()
+            label = ui.Label("Tutorials", name="FooterLabel")
+            ui.Spacer()
 
         label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(TUTORIALS_URL))
 

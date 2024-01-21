@@ -399,8 +399,8 @@ class SetupUI(TrexLayout):
                     with ui.VStack():
                         self._header_nvidia_widget = HeaderWidget()  # hold or it will crash
                         with ui.HStack():
-                            ui.Spacer()  # flexible
-                            with ui.VStack(width=ui.Pixel(480)):
+                            ui.Spacer(width=ui.Percent(4))  # flexible
+                            with ui.VStack(width=ui.Percent(28)):
                                 ui.Spacer(height=ui.Pixel(48))
                                 self._welcome_pad_widgets.append(
                                     WelcomePadWidget(
@@ -410,8 +410,8 @@ class SetupUI(TrexLayout):
                                         auto_resize_list=False,
                                     )
                                 )  # hold or crash
-                            ui.Spacer(width=ui.Pixel(64))
-                            with ui.VStack(width=ui.Pixel(480)):
+                            ui.Spacer(width=ui.Percent(4))
+                            with ui.VStack(width=ui.Percent(28)):
                                 ui.Spacer(height=ui.Pixel(48))
                                 self._welcome_pad_widget_recent = WelcomePadWidget(
                                     model=self._welcome_pads_recent_model,
@@ -421,15 +421,20 @@ class SetupUI(TrexLayout):
                                     word_wrap_description=False,
                                 )  # hold or crash
                                 self._welcome_pad_widgets.append(self._welcome_pad_widget_recent)
-                            ui.Spacer(width=ui.Pixel(64))
-                            with ui.VStack(width=ui.Pixel(480)):
+                            ui.Spacer(width=ui.Percent(4))
+                            with ui.VStack(width=ui.Percent(28)):
                                 ui.Spacer(height=ui.Pixel(48))
                                 self._welcome_pad_widgets.append(
-                                    WelcomePadWidget(title="WHAT'S NEW", create_demo_items=False)
+                                    WelcomePadWidget(title="WHAT'S NEW", create_demo_items=False, show_footer=False)
                                 )  # hold or crash
 
-                            ui.Spacer()  # flexible
-                        self._home_footer = FooterWidget(model=StageCraftFooterModel, height=ui.Pixel(144))
+                            ui.Spacer(width=ui.Percent(4))  # flexible
+                        self._home_footer = FooterWidget(
+                            model=StageCraftFooterModel,
+                            height=ui.Pixel(144),
+                            column_width=ui.Pixel(0),
+                            between_columns_width=ui.Percent(10),
+                        )
 
             self._frame_workspace = ui.Frame(
                 name=Pages.WORKSPACE_PAGE.value,
