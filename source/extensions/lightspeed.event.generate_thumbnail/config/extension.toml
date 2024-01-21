@@ -1,0 +1,36 @@
+[package]
+version = "1.0.0"
+authors = ["Alex Dunn <adunn@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["event", "thumbnail"]
+title = "Lightspeed Event Generate Thumbnail"
+description = "Extension that generates thumbnails whenever a layer is saved"
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.events_manager" = {}
+"lightspeed.trex.viewports.shared.widget" = {}
+"omni.client" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.pip_archive" = {} # omni.kit.pip_archive has Pillow
+"omni.kit.widget.viewport" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.event.generate_thumbnail"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style",
+]
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
+]
