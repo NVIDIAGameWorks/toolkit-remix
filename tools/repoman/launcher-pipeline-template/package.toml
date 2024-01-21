@@ -9,12 +9,6 @@ url = "${package_url_windows-x86_64}"
 location = "$${base}"
 main = true
 
-[[package.windows-x86_64.packman]]
-name = "kit-sdk-launcher"
-url = "${kit-sdk-launcher_windows-x86_64}"
-location = "$${base}/kit"
-main = false
-
 [images]
 name = "Remix-Images"
 url = "https://d4i3qtqj3r0z5.cloudfront.net/remix-launcher-images@2024.0.1.zip"
