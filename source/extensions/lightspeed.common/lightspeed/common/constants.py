@@ -166,17 +166,22 @@ ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL = "Ingest Asset"
 MATERIAL_OVERRIDE_PATH = "{prim_node}/Looks"
 
 CREDITS = """
-        Dev Ops
-            Zachary Kupu - Lead
         Project Director
             Jaakko Haapasalo
+        Engineering Director
+            Alex Dunn
         Product Manager
             Nyle Usmani
+        Producer
+            Wendy Gram
+        Dev Ops
+            Zachary Kupu - Lead
         QA
             Dmitriy Marshak - Lead
             Sunny Thakkar
             Lindsay Lutz
             David Driver-Gromm
+            David Vega
         Rendering
             Nuno Subtil - Lead
             Mark Henderson
@@ -197,10 +202,8 @@ CREDITS = """
             Ed Leafe
             Pierre-Olivier Trottier
             Sam Bourne
-        Engineering Director
-            Alex Dunn
-        Producer
-            Wendy Gram
+            Scott Fitzpatrick
+            Sam Ahiro
         AI Research
             James Lucas
         Art Lead
