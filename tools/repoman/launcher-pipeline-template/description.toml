@@ -1,4 +1,4 @@
-name = "NVIDIA RTX Remix"
+name = "RTX Remix"
 #displayed application name in smaller card and library view
 shortName = "RTX Remix"
 version = "${version}"
@@ -8,7 +8,7 @@ latest = true
 slug = "trex"
 
 #displayed before application name in launcher
-productArea = "Omniverse"
+productArea = "NVIDIA"
 #category of content
 category = "Apps"
 #values for filtering content, not implemented yet
@@ -47,17 +47,20 @@ FEATURES:
 
 #array of links for more info on product
 [[links]]
+title = "License Agreement"
+url = "https://docs.omniverse.nvidia.com/platform/latest/common/NVIDIA_Omniverse_License_Agreement.html"
+[[links]]
 title = "Release Notes"
 url = "https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/docs/remix-releasenotes.html"
 [[links]]
 title = "Documentation"
-url = "https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/index.html"
+url = "https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/"
 [[links]]
 title = "Tutorials"
-url = "https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/docs/howto/index.html"
+url = "https://www.youtube.com/playlist?list=PL4w6jm6S2lzvgJ97T1_VbLGBR_l6zzOUm"
 [[links]]
 title = "Community"
-url = "https://discord.gg/rtxremix"
+url = "https://github.com/NVIDIAGameWorks/rtx-remix"
 [[links]]
 title = "Github"
 url = "https://github.com/NVIDIAGameWorks/rtx-remix"

@@ -170,7 +170,7 @@ CREDITS = """
             Zachary Kupu - Lead
         Project Director
             Jaakko Haapasalo
-        Project Manager
+        Product Manager
             Nyle Usmani
         QA
             Dmitriy Marshak - Lead
@@ -210,11 +210,12 @@ CREDITS = """
 LICENSE_AGREEMENT_URL = (
     "https://docs.omniverse.nvidia.com/platform/latest/common/NVIDIA_Omniverse_License_Agreement.html"
 )
-COMMUNITY_SUPPORT_URL = "https://discord.com/invite/rtxremix"
-TECHNICAL_SUPPORT_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/issues"
-REPORT_ISSUE_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/issues"
-HELP_URL = "https://discord.com/channels/1028444667789967381/1095455547748257862"
+RELEASE_NOTES_URL = "https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/docs/remix-releasenotes.html"
 DOCUMENTATION_URL = "https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/"
+TUTORIALS_URL = "https://www.youtube.com/playlist?list=PL4w6jm6S2lzvgJ97T1_VbLGBR_l6zzOUm"
+COMMUNITY_SUPPORT_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/"
+GITHUB_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/"
+REPORT_ISSUE_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/issues"
 
 
 # This should match the `normalmap_encoding` in AperturePBR_normal.mdl

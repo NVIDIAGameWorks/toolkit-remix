@@ -1,8 +1,8 @@
 #displayed application name
-name = "NVIDIA RTX Remix"
+name = "RTX Remix"
 #displayed before application name in launcher
-productArea = ""
-version = "2024.0.1"
+productArea = "NVIDIA"
+version = "2024.0.2"
 # A filter of release types
 # 3 filter types [ "alpha", "beta", "release "]
 channel = "beta"
