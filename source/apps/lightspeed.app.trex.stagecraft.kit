@@ -26,11 +26,12 @@ A tool to edit stage(s) captured from game(s)
 "lightspeed.trex.viewports.stagecraft.bundle" = {}
 
 # default events
-"lightspeed.event.save_recent" = {}  # for recent saved file
-"lightspeed.event.save_root_mod" = {}  # for runtime hot-reload
 "lightspeed.event.capture_persp_to_persp" = {}
+"lightspeed.event.generate_thumbnail" = {}  # for recent project thumbnails
 "lightspeed.event.layers_cleanup" = {}
 "lightspeed.event.save_global_muteness" = {}  # force Omniverse custom layer data
+"lightspeed.event.save_recent" = {}  # for recent saved file
+"lightspeed.event.save_root_mod" = {}  # for runtime hot-reload
 
 [settings]
 "@import@" = [
@@ -60,6 +61,9 @@ context = ""
 context = ""
 
 [settings.exts."lightspeed.event.save_root_mod"]
+context = ""
+
+[settings.exts."lightspeed.event.generate_thumbnail"]
 context = ""
 
 [[test]]
