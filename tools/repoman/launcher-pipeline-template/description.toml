@@ -5,7 +5,7 @@ version = "${version}"
 #boolean for if this version is the latest version
 latest = true
 #unique identifier for component, all lower case, persists between versions
-slug = "trex"
+slug = "rtx-remix"
 
 #displayed before application name in launcher
 productArea = "NVIDIA"
