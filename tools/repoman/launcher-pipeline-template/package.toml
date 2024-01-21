@@ -1,10 +1,10 @@
 name = "RTX Remix"
-slug = "trex"
+slug = "rtx-remix"
 kind = "app"
 version = "${version}"
 
 [[package.windows-x86_64.packman]]
-name = "TRex"
+name = "rtx-remix"
 url = "${package_url_windows-x86_64}"
 location = "$${base}"
 main = true
