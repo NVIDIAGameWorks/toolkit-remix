@@ -1,10 +1,10 @@
 # Optional note that will be shown below system requirements.
 # Supports markdown.
-note = "Note: Omniverse is built to run on any RTX-powered machine. For ideal performance, we recommend using GeForce RTX™ 2080, Quadro RTX™ 5000, or higher. For latest drivers, visit [NVIDIA Driver Downloads](https://www.nvidia.com/Download/index.aspx). For Quadro, select 'Quadro New Feature Driver (QNF)."
+note = "RTX Remix and its mods are built to run on RTX-powered machines. For ideal performance, we recommend using GeForce RTX™ 4070 or higher. For latest drivers, visit [NVIDIA Driver Downloads](https://www.nvidia.com/Download/index.aspx). For Quadro, select 'Quadro New Feature Driver (QNF).\nWe recommend that you review the [Omniverse Technical Requirement Documentation](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/common/technical-requirements.html) for further details on what is required to use Applications within the Omniverse Platform."
 # System requirements specs.
 # Supports line breaks.
 [minimum]
-cpuNames = "Intel I7\nAMD Ryzen"
+cpuNames = "Intel i7\nAMD Ryzen 7"
 cpuCores = "4"
 ram = "16 GB"
 storage = "512 GB SSD"
@@ -12,7 +12,7 @@ vram = "8 GB"
 gpu = "GeForce RTX 3060Ti"
 
 [recommended]
-cpuNames = "Intel I7\nAMD Ryzen"
+cpuNames = "Intel i7\nAMD Ryzen 7"
 cpuCores = "8"
 ram = "32 GB"
 storage = "512 GB M.2 SSD"

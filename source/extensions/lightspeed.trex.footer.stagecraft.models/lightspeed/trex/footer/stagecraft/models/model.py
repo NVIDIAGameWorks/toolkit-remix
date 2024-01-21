@@ -18,10 +18,11 @@ from lightspeed.common.constants import (
     COMMUNITY_SUPPORT_URL,
     CREDITS,
     DOCUMENTATION_URL,
-    HELP_URL,
+    GITHUB_URL,
     LICENSE_AGREEMENT_URL,
+    RELEASE_NOTES_URL,
     REPORT_ISSUE_URL,
-    TECHNICAL_SUPPORT_URL,
+    TUTORIALS_URL,
 )
 from omni.flux.footer.widget.model import FooterModel
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -53,16 +54,20 @@ class StageCraftFooterModel(FooterModel):
                 partial(ui.Spacer, height=ui.Pixel(24)),
                 self.__about_sdg,
                 self.__license_agreement,
-                self.__community_support,
+                self.__release_notes,
+                self.__documentation,
             ),
             2: (
                 partial(ui.Spacer, height=ui.Pixel(24)),
-                self.__technical_support,
+                self.__tutorials,
+                self.__community_support,
+                self.__github,
                 self.__report_issue,
-                self.__help,
-                self.__documentation,
             ),
         }
+
+    def __open_nvidia_url(self, url):
+        webbrowser.open(url, new=0, autoraise=True)
 
     def __credits(self):
 
@@ -107,57 +112,18 @@ class StageCraftFooterModel(FooterModel):
     def __license_agreement(self):
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer()
-            label = ui.Label("License agreement", name="FooterLabel")
+            label = ui.Label("License Agreement", name="FooterLabel")
             ui.Spacer()
 
         label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(LICENSE_AGREEMENT_URL))
 
-    def __community_support(self):
+    def __release_notes(self):
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer()
-            label = ui.Label("Community Support", name="FooterLabel")
+            label = ui.Label("Release Notes", name="FooterLabel")
             ui.Spacer()
 
-        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(COMMUNITY_SUPPORT_URL))
-
-    def __open_nvidia_url(self, url):
-        webbrowser.open(url, new=0, autoraise=True)
-
-    def __technical_support(self):
-        with ui.HStack(height=ui.Pixel(24)):
-            with ui.VStack():
-                ui.Spacer()
-                label = ui.Label("Technical Support", name="FooterLabel")
-                ui.Spacer()
-            ui.Spacer()
-            with ui.VStack(width=ui.Pixel(0)):
-                ui.Spacer()
-                ui.Label(str(self.__kit_version), name="FooterLabel")
-                ui.Spacer()
-
-        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(TECHNICAL_SUPPORT_URL))
-
-    def __report_issue(self):
-        with ui.HStack(height=ui.Pixel(24)):
-            with ui.VStack():
-                ui.Spacer()
-                label = ui.Label("Report an issue", name="FooterLabel")
-                ui.Spacer()
-            ui.Spacer()
-            with ui.VStack(width=ui.Pixel(0)):
-                ui.Spacer()
-                ui.Label(str(self.__app_version), name="FooterLabel")
-                ui.Spacer()
-
-        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(REPORT_ISSUE_URL))
-
-    def __help(self):
-        with ui.VStack(height=ui.Pixel(24)):
-            ui.Spacer()
-            label = ui.Label("Help", name="FooterLabel")
-            ui.Spacer()
-
-        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(HELP_URL))
+        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(RELEASE_NOTES_URL))
 
     def __documentation(self):
         with ui.VStack(height=ui.Pixel(24)):
@@ -166,6 +132,48 @@ class StageCraftFooterModel(FooterModel):
             ui.Spacer()
 
         label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(DOCUMENTATION_URL))
+
+    def __community_support(self):
+        with ui.HStack(height=ui.Pixel(24)):
+            with ui.VStack():
+                ui.Spacer()
+                label = ui.Label("Community", name="FooterLabel")
+                ui.Spacer()
+            with ui.VStack(width=0):
+                ui.Spacer()
+                ui.Label(str(self.__kit_version), name="FooterLabel")
+                ui.Spacer()
+
+        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(COMMUNITY_SUPPORT_URL))
+
+    def __tutorials(self):
+        with ui.HStack(height=ui.Pixel(24)):
+            with ui.VStack():
+                ui.Spacer()
+                label = ui.Label("Tutorials", name="FooterLabel")
+                ui.Spacer()
+            with ui.VStack(width=0):
+                ui.Spacer()
+                ui.Label(str(self.__app_version), name="FooterLabel")
+                ui.Spacer()
+
+        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(TUTORIALS_URL))
+
+    def __github(self):
+        with ui.VStack(height=ui.Pixel(24)):
+            ui.Spacer()
+            label = ui.Label("GitHub", name="FooterLabel")
+            ui.Spacer()
+
+        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(GITHUB_URL))
+
+    def __report_issue(self):
+        with ui.VStack(height=ui.Pixel(24)):
+            ui.Spacer()
+            label = ui.Label("Report an Issue", name="FooterLabel")
+            ui.Spacer()
+
+        label.set_mouse_pressed_fn(lambda x, y, b, m: self.__open_nvidia_url(REPORT_ISSUE_URL))
 
     def destroy(self):
         _reset_default_attrs(self)
