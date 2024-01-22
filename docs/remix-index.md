@@ -1,7 +1,5 @@
 # Index
 
-Ok, set your page to this:# Index
-
 ```{toctree}
 ---
 glob:
