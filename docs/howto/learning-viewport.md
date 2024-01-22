@@ -4,14 +4,14 @@
 
 | Navigation | Description | Image Reference |
 |:-----|:-----|:---------------:|
-| Home | The home control returns the Viewport camera to the scene’s point of origin. | |
-| Orbit    | The **orbit** control rotates the Viewport camera around a given point. This is similar to strafing around an object while looking at it. | ![Orbit](../data/images/view_navigation_1.png) |
-| Look     | To **orbit**, first use **focus** to select an object. Then, hold the Alt key and the left mouse button, and move the mouse | ![Look](../data/images/view_navigation_2.png) |
-| Walk     | The **walk** control moves the Viewport camera linearly, relative to the current view alignment. To walk, first hold the right mouse button to **look**. <p>While looking, press the W, A, S, D, Q, and E keys to walk relative to where you’re looking</p> <p>If you prefer, you can use the arrow keys plus Page Up and Page Down, instead</p> | ![Walk 1](../data/images/view_navigation_3.png) ![Walk 2](../data/images/view_navigation_5.png) |
-| Pan      | The **pan** control moves the Viewport camera parallel to the viewpoint. <p>To **pan**, hold the middle mouse button, and move the mouse</p> | ![Pan](../data/images/view_navigation_4.png) |
-| Focus    | The **focus** control zooms the Viewport camera in on a specific object. When you **focus** on an object, you can **orbit** that object. <p>To **focus**, click an object and press the F key. To un-focus, deselect all objects and press the F key.</p> | |
-| Dolly    | The **dolly** control moves the camera forward and backward in the space. <p>To **dolly**, scroll on your mouse.</p> | ![Dolly](../data/images/view_navigation_4.png) |
-| Teleport | The **teleport** control instantly moves the Viewport camera to a specific point, looking in a specific direction. <p>To **teleport**, hold the Y key and move your mouse to set a target</p> | |
+| **Home** | Use the **Home** control to bring the camera back to where the scene started. | |
+| **Orbit**    | Rotate the camera around a point by using the **Orbit** control. It's like circling around an object while keeping it in view. | ![Orbit](../data/images/view_navigation_1.png) |
+| **Look**     | To **Orbit**, choose an object with the focus, hold Alt, and left-click while moving the mouse. | ![Look](../data/images/view_navigation_2.png) |
+| **Walk**     | Move the camera in a straight line relative to the current view. Hold the right mouse button to **Look**, and use the arrow keys (W, A, S, D, Q, E) to **Walk**. Alternatively, use the arrow keys plus Page Up and Page Down. Adjust walking speed by scrolling while holding the right mouse button.| ![Walk 1](../data/images/view_navigation_3.png) ![Walk 2](../data/images/view_navigation_6.png) ![Walk Speed](../data/images/view_navigation_5.png)       |
+| **Pan**      | Move the camera parallel to the viewpoint by holding the middle mouse button and moving the mouse. | ![Pan](../data/images/view_navigation_4.png) |
+| **Focus**    | Zoom in on an object with the **Focus** control. Click an object, press F to **Focus**, and **Orbit** around it. Press F again to un-focus. | |
+| **Dolly**    | Move the camera forward or backward by scrolling on your mouse. | ![Dolly](../data/images/view_navigation_4.png) |
+| **Teleport** | Instantly move the camera to a specific point and direction. Hold Y and move the mouse to set the target. | |
 
 
 ## Navigation Keyboard Shortcuts
@@ -20,9 +20,9 @@
 
 | Name | Input | Description |
 |:-----|:-----|:-----|
-| Home | H | The home control returns the Viewport camera to the scene’s point of origin. |
-| Focus | F | The focus control zooms the Viewport camera in on a specific object. |
-| Teleport | Y | The teleport control instantly moves the Viewport camera to a specific point, looking in a specific direction. |
+| **Home** | H | The **Home** control returns the Viewport camera to the scene’s point of origin. |
+| **Focus** | F | The **Focus** control zooms the Viewport camera in on a specific object. |
+| **Teleport** | Y | The **Teleport** control instantly moves the Viewport camera to a specific point, Looking in a specific direction. |
 | Up (Walk) | RMB + W | Moves forward |
 | Left (Walk) | RMB + A | Moves left |
 | Down (Walk) | RMB + S | Moves backward |

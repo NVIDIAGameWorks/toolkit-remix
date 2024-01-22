@@ -2,399 +2,66 @@
 
 ## Model Ingestion
 
-![ModelIngestion](../data/images/rtxremix_079.png)
+![Model Ingestion](../data/images/remix-ingestion-models-001.png)
 
-<table>
-  <tr>
-   <td><strong>Ref</strong>
-   </td>
-   <td><strong>Option</strong>
-   </td>
-   <td><strong>Description</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>1
-   </td>
-   <td>Context Plugin: Asset Importer
-   </td>
-   <td>This plugin will import a list of files and process them sequentially 
-   </td>
-  </tr>
-  <tr>
-   <td>2
-   </td>
-   <td>Input File Paths
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>3
-   </td>
-   <td>List of Path(s) Field(s)
-   </td>
-   <td>The list of files to import as USD files
-   </td>
-  </tr>
-  <tr>
-   <td>4
-   </td>
-   <td>Add
-   </td>
-   <td>Add Files to the directory path field
-   </td>
-  </tr>
-  <tr>
-   <td>5
-   </td>
-   <td>Remove
-   </td>
-   <td>Remove Files from the directory path field
-   </td>
-  </tr>
-  <tr>
-   <td>6
-   </td>
-   <td>Output Directory
-   </td>
-   <td>Directory to import the converted input files to
-   </td>
-  </tr>
-  <tr>
-   <td>7
-   </td>
-   <td>Output Extension
-   </td>
-   <td>USD file extension to use for the converted input files
-   </td>
-  </tr>
-  <tr>
-   <td>8
-   </td>
-   <td>Check Message
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>9
-   </td>
-   <td>Set Message
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>10
-   </td>
-   <td>Check Plugin(s)
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>11
-   </td>
-   <td>Convert Material Shaders
-   </td>
-   <td>Ensures that all the materials have correct shaders
-   </td>
-  </tr>
-  <tr>
-   <td>12
-   </td>
-   <td>Convert Normal Maps to Octahedral
-   </td>
-   <td>Ensures that all normal paths are octahedral encoded
-   </td>
-  </tr>
-  <tr>
-   <td>13
-   </td>
-   <td>Convert Textures to DDS
-   </td>
-   <td>Ensures textures are encoded as DDS
-   </td>
-  </tr>
-  <tr>
-   <td>14
-   </td>
-   <td>Strip Extra USD Attributes
-   </td>
-   <td>Removes any non-essential properties from a mesh prim
-   </td>
-  </tr>
-  <tr>
-   <td>15
-   </td>
-   <td>Force Vertex Interpolation
-   </td>
-   <td>Ensures that per-vertex data does not use the “varying” or “faceVarying” interpolation schemes
-   </td>
-  </tr>
-  <tr>
-   <td>16
-   </td>
-   <td>Triangulate Mesh
-   </td>
-   <td>Triangulates un-triangulated meshes including GeomSubset processing
-   </td>
-  </tr>
-  <tr>
-   <td>17
-   </td>
-   <td>Add Inverted UV Attribute
-   </td>
-   <td>Ensures that all assets have an “InvertedUvs” property with texCoords containing an inverted y coordinate
-   </td>
-  </tr>
-  <tr>
-   <td>18
-   </td>
-   <td>Add Vertex Indices to Geometry Subsets
-   </td>
-   <td>Ensures that the properties of triangulated mesh prims with GeomSubsets have up-to-date per-vertex indices
-   </td>
-  </tr>
-  <tr>
-   <td>19
-   </td>
-   <td>Apply Unit Scale to Mesh
-   </td>
-   <td>Applies the “metersPerUnit” scaling to a mesh’s XForm scale
-   </td>
-  </tr>
-  <tr>
-   <td>20
-   </td>
-   <td>Has Default Prim
-   </td>
-   <td>Ensures the USD file contains a default prim
-   </td>
-  </tr>
-  <tr>
-   <td>21
-   </td>
-   <td>Make Asset Paths Relative
-   </td>
-   <td>Replaces absolute asset paths with relative paths
-   </td>
-  </tr>
-  <tr>
-   <td>22
-   </td>
-   <td>Make References Relative
-   </td>
-   <td>Replace absolute reference paths with relative paths
-   </td>
-  </tr>
-  <tr>
-   <td>23
-   </td>
-   <td>Resulter Plugin(s)
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>24
-   </td>
-   <td>File Metadata Writer
-   </td>
-   <td>Writes metadata from the input/output data of the context and check plugins validation result
-   </td>
-  </tr>
-  <tr>
-   <td>25
-   </td>
-   <td>Run
-   </td>
-   <td>Run the Model Ingestion
-   </td>
-  </tr>
-  <tr>
-   <td>26
-   </td>
-   <td>Stop
-   </td>
-   <td>Stop the Model Ingestion
-   </td>
-  </tr>
-  <tr>
-   <td>27
-   </td>
-   <td>Viewport
-   </td>
-   <td>View the Model Ingestion
-   </td>
-  </tr>
-</table>
+> NOTE: For the Input File Paths to be considered valid during asset import, the list must include at least one file.
 
-### Texture Ingestion
+| Ref | Option | Description |
+|:---:|:---|:---|
+| 1 | Context | Ingestcraft |
+| 2 | Input File Paths | The list of files to import as USD files |
+| 3 | List of Path(s) Field(s) | The list of files to import as USD files |
+| 4 | Add | Add Files to the directory path field |
+| 5 | Add from Library | Opens the directory of Library Assets |
+| 6 | Remove | Remove Files from the directory path field |
+| 7 | Output Directory | Directory to import the converted input files to |
+| 8 | Opens File Explorer |
+| 9 | Output Extension | USD file extension to use for the converted input file |
+| 10 | Apply Unit Scale to Mesh | Applies the “metersPerUnit” scaling to a mesh’s XForm scale |
+| 11 | Add to Queue | Adds imported assets from the Input File Path and places them in the Output Directory |
+| 12 | Selected Asset |
+| 13 | Toggle Validation Tab | Opens or Closes the Validation Tab |
+| 14 | Show in Viewport | Opens or Closes the Viewport |
+| 15 | Remove Selection | Remove selected asset from Queue |
+| 16 | Queue Ingestion Progress Bar | Percentage of completion |
+| 17 | Validation Tab | Validates the imported Assets |
+| 18 | Stage View Tab | Lists the assets in the stage |
+| 19 | Check Plugin(s) | Checks the Plugins used during Ingestion |
+| 20 | Resulter Plugin(s) | Checks resulter plugins used during Ingestion |
+| 21 | Run | Run the Model Ingestion |
+| 22 | Stop | Stop the Model Ingestion |
+| 23 | Viewport | View the Model Ingestion |
 
-![TextureIngestion](../data/images/rtxremix_081.png)
 
-<table>
-  <tr>
-   <td><strong>Ref</strong>
-   </td>
-   <td><strong>Option</strong>
-   </td>
-   <td><strong>Description</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>1
-   </td>
-   <td>Context Plugin: Texture Importer
-   </td>
-   <td>Assigns USD materials with the OmniPBR shader sequentially
-   </td>
-  </tr>
-  <tr>
-   <td>2
-   </td>
-   <td>Input File Paths
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>3
-   </td>
-   <td>List of Path(s) Field(s)
-   </td>
-   <td>List of files to import
-   </td>
-  </tr>
-  <tr>
-   <td>4
-   </td>
-   <td>Convention Dropdown
-   </td>
-   <td>Select the default convention type for Normals to use in batch: 
-<p>
-Normal - OpenGL
-<p>
-Normal - DirectX
-<p>
-Normal - Octahedral
-   </td>
-  </tr>
-  <tr>
-   <td>5
-   </td>
-   <td>Add
-   </td>
-   <td>Add Files to the directory path field
-   </td>
-  </tr>
-  <tr>
-   <td>6
-   </td>
-   <td>Remove
-   </td>
-   <td>Remove Files from the directory path field
-   </td>
-  </tr>
-  <tr>
-   <td>7
-   </td>
-   <td>Output Directory
-   </td>
-   <td>Directory to import the converted input files to
-   </td>
-  </tr>
-  <tr>
-   <td>8
-   </td>
-   <td>Check Message
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>9
-   </td>
-   <td>Set Message
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>10
-   </td>
-   <td>Check Plugin(s)
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>11
-   </td>
-   <td>Convert Material Shaders
-   </td>
-   <td>Ensures all materials us valid shaders
-   </td>
-  </tr>
-  <tr>
-   <td>12
-   </td>
-   <td>Convert Normal Maps to Octahedral
-   </td>
-   <td>Ensures that all normal paths are octahedral encoded
-   </td>
-  </tr>
-  <tr>
-   <td>13
-   </td>
-   <td>Convert Textures to DDS
-   </td>
-   <td>Ensures textures are encoded as DDS
-   </td>
-  </tr>
-  <tr>
-   <td>14
-   </td>
-   <td>Resulter Plugin(s)
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>15
-   </td>
-   <td>File Metadata Writer
-   </td>
-   <td>Writes metadata from the input/output data of the context and check plugins validation result
-   </td>
-  </tr>
-  <tr>
-   <td>16
-   </td>
-   <td>Run
-   </td>
-   <td>Run the Texture Ingestion
-   </td>
-  </tr>
-  <tr>
-   <td>17
-   </td>
-   <td>Stop
-   </td>
-   <td>Stop the Texture Ingestion
-   </td>
-  </tr>
-  <tr>
-   <td>18
-   </td>
-   <td>Viewport
-   </td>
-   <td>View the Texture Ingestion
-   </td>
-  </tr>
-</table>
+## Material Ingestion
+
+![Material Ingestion](../data/images/remix-ingestion-materials-001.png)
+
+| Ref | Option | Description |
+|:---:|:---|:---|
+| 1 | Context | Ingestcraft |
+| 2 | Input File Paths | The list of files to import as USD files |
+| 3 | Material Type Dropdown | Select the material type from the list.  <p>Options include: Other, Albedo, Emissive Mask, Metallic, Normal - OpenGL, Normal - DirectX, Normal - Octahedral, or Roughness</p> |
+| 4 | Convention Dropdown | Select the default convention type for <p>Normals to use in batch: Normal - OpenGL, Normal - DirectX, or Normal - Octahedral |
+| 5 | Add | Add Files to the directory path field |
+| 6 | Remove | Remove Files from the directory path field |
+| 7 | Output Directory | Directory to import the converted input files to |
+| 8 | Opens File Explorer |
+| 9 | Add to Queue | Adds imported assets from the Input File Path and places them in the Output Directory |
+| 10 | Selected Asset |
+| 11 | Queue Asset Ingestion Progress Bar | Percentage of completion |
+| 12 | Toggle Validation Tab | Opens or Closes the Validation Tab |
+| 13 | Show in Viewport | Opens or Closes the Viewport |
+| 14 | Remove Selection | Remove selected asset from Queue |
+| 15 | Queue Ingestion Progress Bar | Percentage of completion |
+| 16 | Validation Tab | Validates the imported Assets |
+| 17 | Stage View Tab | Lists the assets in the stage |
+| 18 | Check Plugin(s) | Checks the Plugins used during Ingestion |
+| 19 | Resulter Plugin(s) | Checks resulter plugins used during Ingestion |
+| 20 | Run | Run the Model Ingestion |
+| 21 | Stop | Stop the Model Ingestion |
+| 22 | Viewport | View the Model Ingestion |
+
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>
