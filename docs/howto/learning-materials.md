@@ -51,16 +51,18 @@ Parallax Occlusion Mapping (POM) is a technique used in RTX Remix to add depth a
 
 **What is Displacement Using Parallax Occlusion Mapping?**
 
-Displacement refers to the visual effect of altering the apparent geometric shape of a surface without actually changing its underlying geometry. In the context of RTX Remix, this is done using Parallax Occlusion Mapping.
+Displacement is a family of techniques used to make simple geometry appear more complex than it actually is.  In the context of RTX Remix, this is done using Parallax Occlusion Mapping.
 
-**The Role of displace_in**
+**Depth of a Pixel**
 
-In Remix, the <code>displace_in</code> is crucial for determining the depth of the displacement. Here's a breakdown:
+In Remix, four factors determine the depth of the displacement, which is calculated as:
+(height_map_pixel * displace_in * rtx.displacement.displacementFactor)
 
-**Mapping a Black Pixel**
-
-* In Remix, a black pixel on the height map corresponds to a depth equal to the width of the texture.
-* For example, if you have a wall panel that tiles every 1.5 meters, a black pixel will appear to be 1.5 * <code>displace_in</code> meters behind the wall.
+* <code>Height_map_pixel</code> A black pixel will be displaced back the full distance, a white pixel will not be displaced at all.
+* <code>displace_in</code> A material property that determines how deep a particular material appears
+* <code>rtx.displacement.displacementFactor</code> A global RtxOption primarily used for debugging.  We recommend leaving this at 1.0.
+* UV density of a given surface (i.e. how often the texture tiles)
+* For example, if you have a wall panel that tiles every 1.5 meters, a black pixel will appear to be 1.5 * <code>displace_in</code> meters behind the wall. A gray pixel will be 0.75 meters behind the wall, and a white pixel will not be changed.
 
 **Comparison with Substance Designer**
 
@@ -68,13 +70,12 @@ In Substance Designer, a black pixel on the height map is 1 unit * <code>height_
 
 **Adjusting displace_in for Consistency**
 
-* To match the depth of the surface in Remix with Substance Designer's preview, adjust <code>displace_in</code> as follows: <code>displace_in</code> = <code>height_scale</code> / 100.
+* To match the depth of the surface in Remix with Substance Designer's preview, adjust <code>displace_in</code> as follows: <code>displace_in = height_scale</code> / 100.
 * This adjustment ensures that the displacement scale in Remix is consistent with Substance Designer's default preview mesh.
 
 **Considerations for Custom Meshes**
 
-If the artist uses a custom mesh in Substance Designer, the adjustment factor for <code>displace_in</code> may need to be fine-tuned based on the specific characteristics of the custom mesh.
-
+If the artist uses a custom mesh in Substance Designer, the adjustment factor for <code>displace_in</code> may need to be fine-tuned based on the specific characteristics of the custom mesh.  Substance Designer does not factor in the UV density when calculating depth, so rather than simply dividing by 100, they will need to divide by the UV density of their custom mesh.
 
 ## Animated Materials
 
