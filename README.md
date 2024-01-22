@@ -48,10 +48,10 @@ app, we code the extension directly into this repo (like the layout of the app).
 ##### Commonly-Used Flags
 
 - Disable Sentry for local development *(Avoid creating Sentry tickets when working on bugs or features)*:
-  - `--/telemetry/enableSentry=false` 
+  - `--/telemetry/enableSentry=false`
 - Disable Driver-Version check *(Avoid Kit crashing on startup when an unsupported driver version is detected)*
   - `--/rtx/verifyDriverVersion/enabled=false`
-- Enable the PyCharm Debugger *(See the [PYCHARM_GUIDE](PYCHARM_GUIDE.md) for more details)*:  
+- Enable the PyCharm Debugger *(See the [PYCHARM_GUIDE](PYCHARM_GUIDE.md) for more details)*:
   - `--/app/extensions/registryEnabled=1 `
   - `--enable omni.kit.debug.pycharm`
   - `--/exts/omni.kit.debug.pycharm/pycharm_location="C:\Program Files\JetBrains\PyCharm 2023.2"` *(The file path should be modified to point to your PyCharm Installation)*
@@ -104,9 +104,21 @@ to master, a quick check/build/test pipeline will run.
 After the check/build/test pipeline completes and you are ready to publish the new version,
 click the play button for the manual job that was created after your MR was merged.
 
+This will create a new branch and pipeline in the **[trex-release-pipeline](https://gitlab-master.nvidia.com/omniverse/trex-release-pipeline/-/pipelines)** project.
+
 The publish process takes about ~20 minutes as Aug 2022.
 
-Please make sure to test the new version by downloading it from the launcher.
+Please make sure to test the new version by downloading it from the internal OV launcher.
+
+### Releasing to the public OV Launcher
+
+Once QA has tested and approved an internal build we are ready to push it out to the world.
+1. Create a new branch in [trex-release-pipeline](https://gitlab-master.nvidia.com/omniverse/trex-release-pipeline/-/pipelines) starting with `PROD-` and the same version. (i.e. `PROD-2024.1.1` for `INTEG-2024.1.1`)
+1. Switch to that branch in gitlab and "Run Pipeline".
+1. The first run will fail but search the error logs for the JIRA ticket that was created.
+1. When you approve that JIRA ticket and type "Approved" it will retry the pipeline and
+this time it should succeed. That means that the build is available for download on the
+public OV Launcher.
 
 # Kit Extensions & Apps Example :package:
 
@@ -178,6 +190,37 @@ Other options:
 
 You can always find out where extension is coming from in _Extension Manager_ by selecting an extension and hovering over open button or in the log (search for e.g. `[ext: omni.kit.tool.asset_importer`).
 
+## RTX Remix Documentation
+The user facing [documentation](https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/) can be found in `.\docs` and the sidebar is configured in `.\index.md`.
+
+Any changes to the docs on the `master` branch of our project will go live after
+the `build_docs` job finishes and the aws caching refreshes.
+
+### Building Documentation Locally
+When modifying the user-facing documentation, it is a good idea to preview how it will actually look in a browser for the public. Luckily that's easy to do!
+
+Navigate to the root of this repository and run:
+ ```bat
+ .\repo docs --warn-as-error=0 --project rtx_remix
+ ```
+
+It will print the following, and you can open the file:// link in your favorite browser.
+```bat
+The HTML pages are in _build\docs\rtx_remix\latest.
+Wrote: file://C:/Users/nkendallbar/projects/lightspeed-kit/_build/docs/rtx_remix/latest/index.html
+```
+
+More details can be found in the [omni-docs wiki](https://gitlab-master.nvidia.com/omniverse/omni-docs/-/wikis/Building-Omnidocs). They use the same tools, but be
+aware that those instructions may be specific to the omni-docs project.
+
+### Preview Markdown documentation with PyCharm
+Another useful way to get quick feedback is to use **PyCharm's Markdown** plugin. You can
+edit the raw text and see the markdown update live. Just go to `Settings > Plugins` and
+search for `"Markdown"` to install it. Note that you won't be able to preview everything
+perfectly (like sphinx's Table of Contents `toctree`s) so it's still important to build
+the docs as the final check.
+
+
 ## Tips for Adding to README
 
 If you add a new MD file, please also add it to the `sphinx_exclude_patterns` in `repo.toml`.  Otherwise the doc builder will complain.
@@ -190,7 +233,7 @@ If you add a new MD file, please also add it to the `sphinx_exclude_patterns` in
 + See [Carbonite documentation](https://nv/carb-docs/latest)
 
 # Questions?
-If you have any question, please use the channels and not try to ask in private message to some people.
+If you have any question, please use the channels and try not to ask in private message to some people.
 
 Why?
 
