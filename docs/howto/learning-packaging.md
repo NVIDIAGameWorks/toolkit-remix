@@ -1,6 +1,6 @@
 # Packaging Your Mod
 
-> Check out this section for more details on the [Mod Packaging Interface](learning-packaging.md)
+> Check out this section for more details on the [Mod Packaging Interface](../toolkitinterface/remix-toolkitinterface-layouttab.md)
 
 When you're ready to share your mod, it's time to package it. This process ensures that all the necessary elements (like assets, textures, and sublayers) are present in your project directory. If any references are missing, you'll receive an error message. You can either ignore the error for now (not merged yet) or fix the broken references to make sure all USD references are valid.
 
