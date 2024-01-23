@@ -38,8 +38,8 @@ RTX Remix and its mods are built to run on RTX-powered machines. For ideal perfo
 
 | Level                | Operating System  | CPU                   | CPU Cores | RAM     | GPU                | VRAM  | Disk           |
 | :------------------: | :---------------: | :-------------------: | :-------: | :-----: | :----------------: | :---: | :------------: |
-| Min              |   Windows 10/11   | Intel I7 or AMD Ryzen | 4         | 16 GB   | GeForce RTX 3060Ti | 8 GB  | 512 GB SSD     |
-| Rec          |   Windows 10/11   | Intel I7 or AMD Ryzen | 8         | 32 GB   | GeForce RTX 4070   | 12 GB | 512 GB M.2 SSD |
+| Min              |   Windows 10/11   | Intel I7 or AMD Ryzen 7 | 4         | 16 GB   | GeForce RTX 3060Ti | 8 GB  | 512 GB SSD     |
+| Rec          |   Windows 10/11   | Intel I7 or AMD Ryzen 7 | 8         | 32 GB   | GeForce RTX 4070   | 12 GB | 512 GB M.2 SSD |
 
 We recommend that you review the [Omniverse Technical Requirement Documentation](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/common/technical-requirements.html) for further details on what is required to use Applications within the Omniverse Platform.
 
@@ -91,7 +91,7 @@ Remix functions as a DirectX 9 replacer, and by itself cannot interact with Open
 
 However, there exists various wrapper libraries which can translate from early OpenGL or DirectX 8 to fixed function DirectX 9. While multiple translation layers introduce even more opportunities for bugs, these have been effectively used to get Remix working with several games that are not DirectX 9.
 
-We are not currently aware of any wrapper libraries for DirectX 7 to fixed function DirectX 9, but in theory such a wrapper is reasonable to create.
+We are not currently aware of any wrapper libraries for DirectX 7 to fixed function DirectX 9, but in theory such a wrapper could be created to extend RTX Remix compatibility further.
 
 ## ModDB Compatibility Table
 ModDB’s community has banded together to make modding with RTX Remix even easier. You can visit the [ModDB website](https://www.moddb.com/rtx/) and see a community maintained compatibility table, which indicates every game the mod community has found currently works with RTX Remix. It also specifies the last RTX Remix runtime that was tested with any given game, and provides config files (called “rtx.conf” files) that make any compatible game work with RTX Remix out of the box. Take a look, and be sure to contribute and update the table if you make any discoveries of your own.
@@ -117,6 +117,55 @@ DXVK_SHADER_DUMP_PATH=/some/path
 DXVK_LOG_LEVEL=debug
 ```
 If that dumps out a few shaders, then the content may mostly be Remix compatible. If it dumps out a lot of shaders, then the game probably won't be workable.
+
+### So Is My Game Content Being Processed by Remix?
+
+Here is an alternate, more definitive way to check if Remix is processing the some steps to check:
+
+1. Open the developer menu
+2. Click Enable Debug View
+3. Change the dropdown below it to Geometry Hash
+
+If it looks anything like the image below, then the content is probably remixable. If objects have a stable color, those objects are probably replaceable (once the tool comes out). If a mesh's color changes when you're in that view, that means the mesh won't be reliably replaceable using the current settings - though there may be workarounds with different configurations.
+
+![Editable Debug](data/images/remix-overview-001.png)
+
+If nothing changes, the game's content isn't going through remix at all. Try lowering the graphics settings as far as they will go, playing with the shader model, or whatever other tricks you can to try to force the game into a fixed function fallback mode.
+
+Regarding the geometry hash mode above: Dynamic meshes are expected to change color every frame - things like particle effects and maybe animated meshes. Animated meshes may flicker, depending on how the game does skinning:
+
+Games in this era could do skinning two different ways:
+
+1. Software animation (apply skinning on the CPU) - this will flicker
+2. Hardware animation (apply skinning on the GPU) - this should be stable
+
+Some games will support both based on some config value, so you may be able to force it into hardware animation.
+
+Remix still can't actually replace an animated mesh, but that's relatively straightforward to do if the mesh is GPU skinned- it is on our roadmap to address in the future.
+
+We have ideas to also enable CPU skinned meshes... but that's going to be a big experiment. It is a more speculative feature, and we will be investigating it sometime in the future.
+
+### Why are Shaders Hard to Path Trace?
+
+> NOTE: This is simplified and meant for someone with no knowledge of computer graphics
+
+What is a fixed function pipeline? Imagine you're making a little shoebox diorama, and you want the background to look like a brick wall. So you print out a picture of a brick wall and glue it on the back of the shoebox. Simple, easy, works great. This is basically what fixed function does - surface + texture, slap it on screen, done.
+
+What is a shader? What if you want to make it fancier? What if you wanted more artistic freedom to change the back of your box? Well, you could slap a tablet back there, and just display whatever you want on the screen. You could even write a little program that detects where someone is looking at the box from, and changes what is on the tablet's screen based on the viewing angle. This is basically what shaders do - they get passed a bunch of arbitrary data from the app, are told the camera position, and are asked what color a tiny piece of an object is supposed to be.
+
+Until the pixel shader runs for that tiny piece of that object, for that specific camera position, that object doesn't actually have a color assigned to it. The shader has to compute what color it should be. It also doesn't actually output the raw color - it includes lighting and whatever else the game is doing.
+
+That just describes pixel shaders though. Vertex shaders let that tablet change shape however it wants... and I think the metaphor starts to fall apart at this point.
+
+So why are shaders a problem? First off, shaders don't require a standardized description of the scene (positions of surfaces, cameras, lights, etc). Remix needs that information to reconstruct the scene for path tracing, and there's no standard way to extract that information that works across every game.
+
+It can be done on a per game basis, but it's a decent chunk of work for each game.
+
+Secondly, we need to know the color (and other material properties) of every surface - without any lighting or shading interfering. With pixel shaders, there's no straightforward way to get that - even if we could run the shader for every surface, it wouldn't be outputting the raw color data we need. This may be solvable with automatic shader processing, or letting modders write new ray-hit shaders to replace the functionality of the game's pixel shaders, but we'll need to do more experimentation to know what approach will actually work.
+
+Thirdly, there are the vertex shaders - but fortunately, we've already got an experimental solution that handles most vertex shaders.
+
+Once Remix is more stable and fleshed out, it may be possible to remaster shader based games. I've seen the modding community succeed at equally complicated projects, so I'm not going to rule that out. But I don't think it's worth even starting those projects yet - we should focus on the games that are actually a good fit first, build out and stabilize the tech for those, and get some remasters out the door.
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>

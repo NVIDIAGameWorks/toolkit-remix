@@ -5,13 +5,17 @@ RTX Remix consists of two components - the **RTX Remix Runtime** and the **RTX R
 
 ## Install the RTX Remix Runtime
 
-To install RTX Remix Runtime, you’ll need to download the latest application through GitHub via this link: [github.com/NVIDIAGameWorks/rtx-remix](https://github.com/NVIDIAGameWorks/rtx-remix/releases/).
+To install RTX Remix Runtime, you’ll need to download the latest files through GitHub via this link: [github.com/NVIDIAGameWorks/rtx-remix](https://github.com/NVIDIAGameWorks/rtx-remix/releases/).
 
-> This version includes the **Runtime Bridge** and the **DXVK-Remix** applications required to run the Runtime.  You may download these applications separately through GitHub.
+> This version includes the **Runtime Bridge** and the **DXVK-Remix** applications required to run the Runtime.  
+
+<!--- I don't want to delete this information yet
+You may download these applications separately through GitHub.
 >  1. For the Bridge Application: [bridge-remix](https://github.com/NVIDIAGameWorks/bridge-remix).
 > 2. For the DXVK-Remix Application: [dxvk-remix](https://github.com/NVIDIAGameWorks/dxvk-remix/)
+--->
 
-When you download RTX Remix Runtime, you should get a zip file with the necessary components to prep a supported game for RTX Remix. Unzipping the file, you should see a folder structure like the following:
+When you download RTX Remix Runtime, you should get a zip file with the necessary components to prepare a supported game for RTX Remix. Unzipping the file, you should see a folder structure like the following:
 
 ```text
 remix-0.4.0/
@@ -19,11 +23,16 @@ remix-0.4.0/
 |--- ...
 \--- .trex/
     |--- NvRemixBridge.exe
-    |--- d3d9.dll  <-- Remix Runtime/Renderer
+    |--- d3d9.dll  <-- Remix Renderer/DXVK-Remix
     \--- ...
 ```
 
-Once you have the files on your computer, you’ll need to copy them alongside your game executables following the instructions in the section [Setup RTX Remix Runtime with your Game](howto/learning-runtimesetup.md). 
+Once you have the files on your computer, you’ll need to copy them alongside your game executables following the instructions in the section [Setup RTX Remix Runtime with your Game](howto/learning-runtimesetup.md) with your Game. 
+
+We also host the RTX Remix Bridge and DXVK-Remix files separately through GitHub, and update them with experimental changes before they are ready to be packaged as part of an official RTX Remix Runtime release. If you would like to access those files, feel free to check them out below:
+
+1. For the Bridge Application: [bridge-remix](https://github.com/NVIDIAGameWorks/bridge-remix).
+2. For the DXVK-Remix Application: [dxvk-remix](https://github.com/NVIDIAGameWorks/dxvk-remix/)
 
 ## Install the RTX Remix Toolkit
 

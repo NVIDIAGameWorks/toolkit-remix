@@ -125,7 +125,7 @@
 | 2 | Preferences | Opens the Preferences panel |
 
 
-
+<!---
 ## Preferences Panel
 
 **Audio**
@@ -260,7 +260,7 @@
 
 | Ref | Option | Description |
 |:---:|:---|:---|
-| 1 | New Stage | Initiates the creation of a new stage, providing a starting point for scene development in NVIDIA Omniverse. |
+| 1 | New Stage | Initiates the creation of a new stage, providing a starting point for scene development in RTX Remix. |
 | 2 | Default Up Axis | Sets the default up axis for the stage, influencing the orientation of the scene. |
 | 3 | Default Animation Rate (Timecodes Per Second) | Defines the default animation rate in timecodes per second for animations within the stage. |
 | 4 | Default Meters Per Unit | Specifies the default meters per unit for defining the scale of objects in the stage. |
@@ -294,7 +294,7 @@
 
 | Ref | Option | Description |
 |:---:|:---|:---|
-| 1 | Tagging | Manages tagging preferences for organizing and categorizing elements within the viewport in NVIDIA Omniverse. |
+| 1 | Tagging | Manages tagging preferences for organizing and categorizing elements within the viewport in RTX Remix. |
 | 2 | Allow Advanced Tag View Checkbox | Enables the advanced tag view, providing users with additional options and features for managing tags. |
 | 3 | Show Hidden Tags in Advanced View Checkbox | Reveals hidden tags in the advanced tag view, allowing users to access and manipulate tags that are not visible in the standard view. |
 | 4 | Allow Adding and Modifying Hidden Tags Directly Checkbox | Permits users to directly add and modify hidden tags, providing a more granular level of control over tagging preferences. |
@@ -309,7 +309,7 @@
 | 1 | New Stage Template | Defines a template for creating new stages, offering a predefined starting point with specific configurations. |
 | 2 | Path to User Templates | Specifies the directory or folder where user-created templates are stored, allowing customization and access to personalized templates. |
 | 3 | Default Template | Sets the default template to be applied when creating a new stage, streamlining the initial setup based on user preferences. |
-| 4 | Open File Browser | Activates the file browser for selecting templates or navigating to the location of user templates in NVIDIA Omniverse. |
+| 4 | Open File Browser | Activates the file browser for selecting templates or navigating to the location of user templates in RTX Remix. |
 
 
 **Thumbnail Generation**
@@ -318,16 +318,16 @@
 
 | Ref | Option | Description |
 |:---:|:---|:---|
-| 1 | MDL Thumbnail Generation Settings | Manages settings for generating thumbnails using MDL (Material Definition Language) in NVIDIA Omniverse. |
+| 1 | MDL Thumbnail Generation Settings | Manages settings for generating thumbnails using MDL (Material Definition Language) in RTX Remix. |
 | 2 | Path USD Template to Render MDL Thumbnail | Specifies the USD template path for rendering MDL thumbnails, defining the location and format of the generated thumbnails. |
 | 3 | Name of the Standin Prim | Sets the name of the stand-in primitive used in MDL thumbnail generation, providing a reference for rendering. |
 | 4 | Renderer Type | Specifies the type of renderer to be used in generating thumbnails, allowing customization based on rendering preferences. |
 | 5 | Rendering Samples | Determines the number of samples used in the rendering process for generating high-quality thumbnails. |
-| 6 | USD Thumbnail Generation Settings | Manages settings for generating thumbnails in USD (Universal Scene Description) format in NVIDIA Omniverse. |
+| 6 | USD Thumbnail Generation Settings | Manages settings for generating thumbnails in USD (Universal Scene Description) format in RTX Remix. |
 | 7 | Renderer Type | Specifies the type of renderer employed in USD thumbnail generation, offering flexibility in rendering options. |
 | 8 | Rendering Samples | Defines the number of samples used in the rendering process for generating high-quality USD thumbnails. |
 | 9 | Save USD Thumbnail on Save Checkbox | Activates the option to automatically save USD thumbnails when saving the project, ensuring thumbnails are updated and synchronized with the scene. |
-| 10 | Open File Browser | Activates the file browser for selecting templates or navigating to the location of user templates in NVIDIA Omniverse. |
+| 10 | Open File Browser | Activates the file browser for selecting templates or navigating to the location of user templates in RTX Remix. |
 
 
 **Viewport**
@@ -336,7 +336,7 @@
 
 | Ref | Option | Description |
 |:---:|:---|:---|
-| 1 | Viewport Toolbar | Manages the visibility and settings of the toolbar within the viewport, providing quick access to various tools and options in NVIDIA Omniverse. |
+| 1 | Viewport Toolbar | Manages the visibility and settings of the toolbar within the viewport, providing quick access to various tools and options in RTX Remix. |
 | 2 | Settings Checkbox | Toggles the display of settings options on the viewport toolbar, allowing users to customize and control various viewport parameters. |
 | 3 | Renderer Checkbox | Controls the visibility of renderer-related options on the toolbar, providing quick access to settings related to rendering. |
 | 4 | Display Checkbox | Manages the display of options on the toolbar related to viewport display settings, offering quick adjustments to visual preferences. |
@@ -348,7 +348,7 @@
 
 ![Reset](../data/images/remix-preferences-reset.png)
 
-Restores all viewport preferences in NVIDIA Omniverse to their default settings, providing a quick and standardized reset for the viewport configuration.
+Restores all viewport preferences in RTX Remix to their default settings, providing a quick and standardized reset for the viewport configuration.
 
 
 ## Render Settings
@@ -380,6 +380,7 @@ These settings allow you to chose the type of renderer you want to use, the Rend
 | 17 | Global Lighting Factor | Value to set Global Lighting |
 | 18 | Pixar Storm Rendering Settings | Allows you to adjust the setting of the Storm Renderer. Options Include:<li>Renderer Lighting Factor<li>Enable Tiny Prim Culling<li>Step size when raymarching volume<li>Step size when raymarching volume for lighting computation<li>Maximum memory for a volume field texture in Mb (unless overridden by field prim)<li>Maximum number of lights |
 
+--->
 
 ## Viewing Options
 
