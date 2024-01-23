@@ -1,5 +1,7 @@
 # Index
 
+=======
+>>>>>>> docs/remix-index.md
 ```{toctree}
 ---
 glob:

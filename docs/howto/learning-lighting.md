@@ -1,10 +1,11 @@
 # Lighting Games for RTX Remix
 
-> You can review more lighting details by looking at the [Lighting Toolkit Interface](../toolkitinterface/remix-toolkitinterface-lighting.md) and/or the [Lighting Runtime Interface](../runtimeinterface/renderingtab/remix-runtimeinterface-rendering-lighting.md) interface option for the RTX Remix Toolkit application.
-
-Remix uses a fully physically-based renderer, which means that lighting works somewhat differently than what games tend to do. This means that the ideal lighting setup can be somewhat different compared to typical game engines.
+Remix uses a fully physically-based renderer, which means that lighting is simulated more realistically than what games tend to do. This means that the ideal lighting setup can be somewhat different compared to typical game engines.
 
 Remix supports both primitive lights as well as emissive meshes. Primitive lights are light entities defined based on one of a set of simple geometric primitives; they emit light but aren’t themselves visible in the scene. Emissive meshes are regular, textured meshes with an emissive mask applied to them that causes all or part of their surface to become emissive and can emit light that is colored based on a texture map.
+
+> You can review more lighting details by looking at the [Lighting Toolkit Interface](../toolkitinterface/remix-toolkitinterface-lighting.md) and/or the [Lighting Runtime Interface](../runtimeinterface/renderingtab/remix-runtimeinterface-rendering-lighting.md) interface option for the RTX Remix Toolkit application.
+
 
 ## How to pick the right light
 
@@ -25,7 +26,7 @@ Remix provides five types of primitive lights: cylinder, disc, rectangular, sphe
 
 **Step 1: Select Your Mesh**
 
-Start by selecting the mesh you want to illuminate in the viewport.
+Select the mesh you want to append the light source to
 
 **Step 2: Add New Stage Light**
 
@@ -33,7 +34,7 @@ Start by selecting the mesh you want to illuminate in the viewport.
 
 Navigate to the "Selection" tab and click on "Add New Stage Light." This opens up the options to choose the type of light you want to add.
 
-### Understanding Light Types
+### Primitive Light Types
 
 1. **Cylinder, Disc, Rectangular, Sphere Lights:**
     * These lights are based on simple geometric shapes.
@@ -63,6 +64,7 @@ When capturing lights from the original game, Remix will determine radiance for 
 
 Sphere lights are generally the most efficient type of primitive light, followed by rectangular, disk and finally cylinder lights. In most cases the shape of the emitter will determine the type of light required, but in cases where multiple light types can work, consider choosing the most efficient type first.
 
+
 ## Using Emissive Meshes
 
 Remix supports emissive meshes, which are regular geometric meshes where all or part of the surface becomes a light source (determined by an emissive map). They emit light based on the surface color, which can be uniform or textured.
@@ -87,32 +89,6 @@ Conversely, having too few lights in an area can also increase noise, as the ren
 Very thin geometry or detailed curvature on shiny surfaces or glass may cause lighting to become noisy. This is because camera jitter (used for AA and upscaling) can throw off the denoiser in these cases, as Remix loses the ability to track that geometry across frames.
 
 Avoid having light sources intersect other geometry in the scene. Sampling becomes much less efficient if portions of a light are occluded.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>

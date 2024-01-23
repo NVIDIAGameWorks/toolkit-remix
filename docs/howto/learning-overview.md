@@ -8,12 +8,15 @@ Now that you've got everything set up, it's time to start remastering your game 
 
 # Understanding CONF Files
 
-Before we dive into replacing assets, let's take a moment to get familiar with the settings in the **Alt+X** menu, specifically in the "game setup" tab. Firstly, here you’ll find a list of materials from the original game displayed in a grid view.  RTX Remix will populate this list of materials based on what the original game is currently rendering, you may find this list changes over time or with respect to what you’re looking at in game (this is normal).  The purpose of this list is to provide a convenient way for users of RTX Remix to categorize the various materials in the original game.  Its with this context that Remix understands how to treat objects in the original game with respect to a modern renderer.  For instance, materials marked as UI in the original game don’t need to be raytraced, by letting Remix know about them it can use the original games renderer for displaying UI, which is often desirable.  
+Before we dive into replacing assets, let's take a moment to get familiar with the settings in the **Alt+X** menu, specifically in the "game setup" tab. Firstly, here you’ll find a list of materials from the original game displayed in a grid view.  RTX Remix will populate this list of materials based on what the original game is currently rendering, you may find this list changes over time or with respect to what you’re looking at in game (this is normal).  The purpose of this list is to provide a convenient way for users of RTX Remix to categorize the various materials in the original game.  It’s with this context that Remix understands how to treat objects in the original game with respect to a modern renderer.  For instance, materials marked as UI in the original game don’t need to be raytraced, by letting Remix know about them it can use the original games renderer for displaying UI, which is often desirable.
 
 Other important categories are: Sky (lets Remix create a physically based environment map), Particles (let’s Remix reorient particle billboards with respect to all incoming rays, and also create the “soft particles” effect common in games), and Decals (tells Remix to treat these materials as physically based decals when path tracing).  There are many more categories, please refer to the tooltips in the runtime, or the per setting documentation if ever unclear what a particular category means.
 
+Changes you make from the game setup tab will be recorded in an RTX.conf config file, which will help preserve all of your changes for the next time you boot the game.
+
 ## ModDB Conf Files
-Visit the [ModDB website](https://www.moddb.com/rtx/)
+
+Visit the [ModDB website](https://www.moddb.com/rtx/). ModDB is hosting rtx.conf files for any game, that will help them run best with RTX Remix. Simply download the RTX.conf file, and drop it and the RTX Remix runtime alongside the game’s .exe. The community can help keep the best RTX.conf files updated on ModDB so that every modder can have a drag and drop experience with setting up a game for RTX Remix.
 
 
 # Introduction to Captures
