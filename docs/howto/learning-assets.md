@@ -71,7 +71,7 @@ Follow these steps to run the CLI Asset Ingestion Tool for customizing your asse
         ```
 4. Note on Arguments:
     * <code>-s</code>: Points to the path of the modified schema file.
-    * <code>-e</code>: Can be ignored; it specifies extensions to enable.
+    * <code>-e</code>: It specifies extensions to enable.
     * <code>-x--/renderer/mdl/searchPaths/templates</code>: Can be ignored; it indicates where to look for MDLs.
     * <code>-ex</code>: Choose 0 for sequential ingestion (async) or 1 for more stable ingestion on separate threads.
     * <code>-t</code>: Sets a timeout for ingestion (default is 600 seconds).

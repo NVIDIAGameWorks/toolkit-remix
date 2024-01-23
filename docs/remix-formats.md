@@ -13,8 +13,6 @@ Apps in Omniverse are loaded with the Asset Converter extension. With it, users 
 | Rec          |   Windows 10/11   | Intel I7 or AMD Ryzen | 8         | 32 GB   | GeForce RTX 4070   | 12 GB | 512 GB M.2 SSD |
 
 
-
-
 <table>
   <tr>
    <td><strong>Extension</strong>
