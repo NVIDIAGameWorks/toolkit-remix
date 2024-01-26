@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.6] - 2024-01-24
+### Fixed
+- Destroy the context at the end of the process to not trigger random listeners
+
 ## [1.1.5] - 2024-01-20
 ### Fixed
 - Fixed issue when opening a mod and the `mods` directory doesn't exist in rtx-remix
