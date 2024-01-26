@@ -1,5 +1,5 @@
 [package]
-version = "1.0.1"
+version = "1.0.2"
 authors = ["NVIDIA"]
 title = "Light gizmos extension"
 description = "Render light gizmos using omni.ui.scene"

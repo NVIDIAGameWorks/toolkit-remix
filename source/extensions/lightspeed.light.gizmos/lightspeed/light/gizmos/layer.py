@@ -39,6 +39,8 @@ class LightGizmosLayer:
             self._on_stage_event, name="Light Gizmos Stage Update"
         )
         self._stage_listener = None
+        self._current_stage = None
+        self._ignore_update = False
 
         self._gizmo_scale = 1.0
 
@@ -115,6 +117,7 @@ class LightGizmosLayer:
         if self._scene_view and self._viewport_api:
             # Be a good citizen, and un-register the SceneView from Viewport updates
             self._viewport_api.remove_scene_view(self._scene_view)
+        self._revoke_listeners()
         self._destroy_manipulators()
         # Remove our references to these objects
         self._viewport_api = None
@@ -135,22 +138,35 @@ class LightGizmosLayer:
             GlobalSelection.get_instance().on_selection_changed(
                 self._get_context(), self._viewport_api, list(self._manipulators.values())
             )
-        elif (
-            event.type == int(omni.usd.StageEventType.OPENED)
-            or event.type == int(omni.usd.StageEventType.HIERARCHY_CHANGED)
-            or event.type == int(omni.usd.StageEventType.ACTIVE_LIGHT_COUNTS_CHANGED)
+        elif event.type == int(omni.usd.StageEventType.OPENED):
+            self._current_stage = self._get_context().get_stage()
+            self._create_listener(self._current_stage)
+        elif event.type == int(omni.usd.StageEventType.HIERARCHY_CHANGED) or event.type == int(
+            omni.usd.StageEventType.ACTIVE_LIGHT_COUNTS_CHANGED
         ):
             stage = self._get_context().get_stage()
             # Create the manipulators
             self._create_manipulators(stage)
         elif event.type == int(omni.usd.StageEventType.CLOSED):
+            self._revoke_listeners()
             self._destroy_manipulators()
+
+    def _create_listener(self, stage):
+        # Add a Tf.Notice listener to update the transforms of all lights
+        if self._stage_listener:
+            self._revoke_listeners()
+        self._stage_listener = Tf.Notice.Register(Usd.Notice.ObjectsChanged, self._notice_changed, stage)
 
     def _notice_changed(self, notice, stage):
         """Called by Tf.Notice"""
         # Check to see if we need to update some transforms
-        for prim in notice.GetChangedInfoOnlyPaths():
-            prim_path = str(prim.GetPrimPath())
+        if self._ignore_update or stage != self._current_stage:
+            return
+        self._ignore_update = True
+        for path in notice.GetChangedInfoOnlyPaths():
+            if not path.IsPropertyPath():
+                continue
+            prim_path = str(path.GetPrimPath())
             if prim_path in self._manipulators:
                 self._manipulators[prim_path].model.update_from_prim()
             else:
@@ -158,16 +174,14 @@ class LightGizmosLayer:
                 for manipulator in self._manipulators.values():
                     if not manipulator.model.get_prim_path().startswith(prim_path):
                         continue
-                    if UsdGeom.Xformable.IsTransformationAffectedByAttrNamed(prim.name):
+                    if UsdGeom.Xformable.IsTransformationAffectedByAttrNamed(path.name):
                         manipulator.model.update_from_prim()
         GlobalSelection.g_set_lightmanipulators(self._manipulators)
+        self._ignore_update = False
 
     def _create_manipulators(self, stage):
         # Release stale manipulators
         self._destroy_manipulators()
-
-        # Add a Tf.Notice listener to update the transforms of all lights
-        self._stage_listener = Tf.Notice.Register(Usd.Notice.ObjectsChanged, self._notice_changed, stage)
 
         # trigger settings update
         self._light_gizmo_setting_change(None, carb.settings.ChangeEventType.CHANGED)
@@ -187,8 +201,6 @@ class LightGizmosLayer:
             GlobalSelection.g_set_lightmanipulators(self._manipulators)
 
     def _destroy_manipulators(self):
-        self._revoke_listeners()
-
         if self._scene_view:
             self._scene_view.scene.clear()
 

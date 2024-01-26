@@ -176,6 +176,8 @@ class ProjectWizardCore:
             await self._save_project_layer(layer_manager, dry_run)
             self._on_run_progress(90)
 
+            self._destroy_context()
+
             self._log_info(f"Project is ready: {model.project_file}")
             self._on_run_progress(100)
             self._on_run_finished(True)
@@ -212,6 +214,10 @@ class ProjectWizardCore:
     def _log_error(self, message):
         carb.log_error(message)
         self.__on_log_error(message)
+
+    def _destroy_context(self):
+        if omni.usd.get_context(self.CONTEXT_NAME):
+            omni.usd.destroy_context(self.CONTEXT_NAME)
 
     async def _setup_usd_stage(self):
         self._log_info("Setting up USD context and stage")

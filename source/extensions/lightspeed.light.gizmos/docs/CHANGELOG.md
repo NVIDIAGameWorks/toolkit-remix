@@ -2,6 +2,10 @@
 
 lightspeed.light.gizmos
 
+## [1.0.2] - 2024-01-24
+### Changed
+- Improved listener and skip event that are not from a property
+
 ## [1.0.1] - 2023-12-09
 ### Added
 - Improved light icons
