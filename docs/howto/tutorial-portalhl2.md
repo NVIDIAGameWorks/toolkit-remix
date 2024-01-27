@@ -3,7 +3,7 @@ To learn the process of setting up a game, here is an example of how to setup th
 
 ## Setup RTX Remix Runtime
 
-1. **Game Installation:** Make sure you have both Portal and PortalRTX installed and fully updated.
+1. **Game Installation:** Make sure you have both Portal and Portal With RTX installed and fully updated. Many games tend to require some unique treatment for them to properly hook to RTX Remix’s renderer. In the case of Portal, steps 2-5 utilize modifications we’ve made with Portal With RTX that improve compatibility with RTX Remix. These steps should be thought of as configuration steps unique to making Portal compatible.
 2. **Backup CFG Folder:** Go to the **cfg** folder for Portal (common\Portal\portal\cfg) and rename it to something like "original-cfg." This way, you won't delete any of the existing data.
 3. **Copy CFG Contents:** Copy all the files from the cfg folder of PortalRTX (common\PortalRTX\portal_rtx\cfg) and paste them into the cfg folder of Portal (common\Portal\portal\cfg).
 4. **Backup BIN Folder:** Similarly, go to the bin folder for Portal (common\Portal\bin) and rename it to something like "original-bin" to preserve the data.

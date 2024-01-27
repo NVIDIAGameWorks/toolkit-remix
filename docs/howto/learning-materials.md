@@ -3,15 +3,19 @@
 In Remix, materials on meshes get a PBR (Physically-Based Rendering) makeover, allowing you to use high-quality and more physically accurate Materials in your game. In this tutorial, we'll focus on replacing materials for world geometry. If you want to replace materials on models, check out the Model Replacement section of this guide.
 
 
-## Ingesting a Material
+## Ingesting Material Textures
 
-1. **Check File Format:** Ensure your Material is in an acceptable format (refer to the [Format Section](../remix-formats.md) for details) and load the Material into Remix.
-2. **Access the Ingest Tab:** Open the Remix window and locate the **Ingest** tab on the top right.  Choose the Material(s) from the vertical left tabs.
-3. **Upload Source Material:** Click the **Add** button under the **Input File Path** panel then upload your source Material file.
-4. **Set Output Directory:** Paste a folder link into the output directory bar or browse to the directory using the folder icon.
-5. **Specify Material Format:** Choose the desired Material format (USD, USDA, or USDC).
-6. **Add to Queue:** Press the "Add to Queue" button to initiate the cleanup process.
-7. **Post-Ingestion Validation:** After the ingestion process, navigate to the validation tab then access a detailed report on your Material ingestion.
+1. **Navigate to the Ingest Tab:** Head to the Ingest tab and select "Texture Ingestion."
+2. **Add Your Texture:** Click "Add" and effortlessly upload the texture of your choice (supports PNG or DDS formats).
+3. **Assign Texture Channel (Optional):**
+    * Explore the "convention" dropdown below the input file paths box.
+    * Set it to DirectX, OpenGL, or Octahedral based on the encoding type of your input normal map.
+    * Assign the texture to one of seven channels: Diffuse, Emissive Mask, Metallic, Normal - OpenGL, Normal - DirectX, Roughness, or Other.
+    * Opt for "Other" for a standardized ingestion without altering the name. This step is often automated, but choose "Other" for textures like heightmaps#
+4. **Set Output Directory:** Establish an output directory within your project file structure.
+4. **Initiate Ingestion:**
+    * Click "Run" to kickstart the texture export process.
+    * The output directory will contain additional files, but all you need for in-game use is the converted DDS file.
 
 > ⚠️ Issues with Ingestion will be highlighted in red with corresponding error messages.
 
@@ -28,14 +32,19 @@ Adding a Material typically refers to incorporating a new Material alongside exi
 **Appending a Material**
  Appending a Material implies sequentially adding Materials to a project. For example, you might start with a basic scene and then append additional Materials to enhance or expand the environment.
 
+![Adjust Position](../data/images/remix-assetingest-001.png)
 
-1. **Access Stage**: Go to the "Stage" tab on the top right.
-2. **Select Material Replacements**: Choose the "Material Replacements" tab on the left.
-3. **Layers**: In the top left, you'll see layers. Select your desired layer as the edit target.
-4. **Choose Mesh**: Pick your mesh for replacement.
-5. **Selection Tab**: Look at the "Selection" tab, where you'll find the original Material hash and the converted/captured USD.
-6. **Add New Reference**: Click “Add New Reference” and navigate to the ingested Material to append the new reference.
-7. **Adjust Position and Properties**: Modify the positioning, orientation, and scale using "Object Properties" until it matches the original. You can then safely delete the original captured Material and save that layer.
+1. **Access Stage:** Go to the "Modding" tab on the top right.
+2. **Select Asset Replacements:** Choose the "Asset Replacements" tab on the left.
+3. **Layers:** In the top left, you'll see layers. Select your desired layer as the edit target.
+4. **Choose Mesh:** Pick your mesh for texture replacement.
+5. **Selection Tab:** Look at the "Selection" tab, where you'll find the original Material hash and the converted/captured USD.
+6. **Add New Reference (Optional):** If you are replacing a model, follow the steps above for “Replacing, Adding, or Appending an Asset”.
+7. **Material Properties:** Scroll down to view the “Material Properties” tab on your selected asset. 
+8. **Assigning Textures:** Click the arrow next to a material property to see a list of adjustments you can make. 
+    * _For example:_ In the Base Material dropdown, you can add an Albedo, Roughness, Metallic, and Normal Map texture.
+    * If you are replacing a texture on a captured model, the original captured texture will be present in the “Albedo” channel. 
+9. **Selecting Textures:** Click the browse icon to navigate to your texture file pathing and then select it to add the texture to that channel
 
 
 ## Checking Hash Stability

@@ -14,9 +14,9 @@
 
 ![RemixTool Tutorial 3](../data/images/remix_909.png)
 
-4. From here, treat this application as any other Remix app.  Menus (ALT+X) and capture should work as expected.  So let’s take a capture and enhance this scene.
+4. From here, treat this application as any other classic game. Menus (ALT+X) and capture should work as expected. So let’s take a capture and enhance this scene.
 
-> Press ALT+X to bring up the Remix menu and select the "Developer Settings Menu" button as shown below:
+> Press **ALT+X** to bring up the Remix menu and select the "Developer Settings Menu" button as shown below:
 
 ![RemixTool Tutorial 4](../data/images/remix_910.png)
 

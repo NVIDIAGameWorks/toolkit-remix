@@ -23,6 +23,8 @@ Visit the [ModDB website](https://www.moddb.com/rtx/). ModDB is hosting rtx.conf
 
 RTX Remix is capable of creating asset-exact copies of in-game scenes in the Universal Scene Description (USD) format through a process referred to as “capturing”. Captured scenes (“captures”) can be opened and edited in both NVIDIA Omniverse-based applications, as well as most popular public Digital Content Creation (DCC) tools that support the USD file format.   Because the scene is captured into a USD file, all assets will likewise be available in a single common format. Captured assets include: materials, textures, meshes, and skeletal data for skinned assets, in addition to scene-specific instances and lighting.  Meshes and materials are converted into USD format, whereas textures are converted to DDS. These copies are then stored adjacent to the captures in similarly named folders.
 
+[ModDB](https://www.moddb.com/rtx) also hosts captures to make it easier to start your remaster.
+
 # Folder Structure
 
 RTX Remix automatically organizes the captures you take within a simple folder structure.  The name of your project folder should NOT have any spaces.

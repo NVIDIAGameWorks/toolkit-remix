@@ -1,5 +1,7 @@
 # Setup RTX Remix Runtime with your Game
 
+> **NOTE:** Please refer to our [Installation](../remix-installation.md) section for directions on how to install the Remix Runtime.
+
 When preparing your game, the best place to start is by copying the contents of the remix-runtime directory into the game’s directory, right next to the main executable of the game. You should end up with the d3d9.dll and .trex/ folder sitting right next to the main game executable. 
 > ⚠️ Some games will search for d3d9.dll in a different directory other than the directory of the main game executable. For example, Source Engine games will search in the bin directory next to the main game executable for d3d9.dll instead.
 
