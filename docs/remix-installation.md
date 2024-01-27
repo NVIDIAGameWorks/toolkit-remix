@@ -5,15 +5,35 @@ RTX Remix consists of two components - the **RTX Remix Runtime** and the **RTX R
 
 ## Install the RTX Remix Runtime
 
+### Install the Runtime from the App Files
+
+If you’ve downloaded the RTX Remix Toolkit, you have access to the RTX Remix Runtime. Simply navigate to the contents of the runtime folder to discover it:
+
+Navigate to this folder: <code>C:\Users\<USERNAME>\AppData\Local\ov\pkg\<rtx-remix-XXX.X.X>\deps\remix_runtime\runtime</code>
+
+![Launcher Menu](data/images/remix-install-004.png)
+
+> **NOTE:** You may need to make hidden files visible in order to see the <code>AppData</code> folder.  To do this, select the hamburger menu in the file explorer > Show > Hidden Files
+![Hidden Files](data/images/remix-install-003.png)
+
+### Install the Runtime from the Omniverse Launcher
+
+If you're having trouble finding this folder, you can also do it through the Omniverse Launcher:
+1. Click on the hamburger menu next to "Launch."
+2. Select "Settings."
+3. Click the folder icon.
+
+![Launcher Menu](data/images/remix-install-002.png)
+
+From there, you will find yourself nearly at the runtime folder–all you have to do is go to: <code>deps\remix_runtime\runtime</code>
+
+### Install the Runtime from GitHub
+
+Alternatively, you can also download the latest version of the RTX Remix Runtime through GitHub.
+
 To install RTX Remix Runtime, you’ll need to download the latest files through GitHub via this link: [github.com/NVIDIAGameWorks/rtx-remix](https://github.com/NVIDIAGameWorks/rtx-remix/releases/).
 
 > This version includes the **Runtime Bridge** and the **DXVK-Remix** applications required to run the Runtime.  
-
-<!--- I don't want to delete this information yet
-You may download these applications separately through GitHub.
->  1. For the Bridge Application: [bridge-remix](https://github.com/NVIDIAGameWorks/bridge-remix).
-> 2. For the DXVK-Remix Application: [dxvk-remix](https://github.com/NVIDIAGameWorks/dxvk-remix/)
---->
 
 When you download RTX Remix Runtime, you should get a zip file with the necessary components to prepare a supported game for RTX Remix. Unzipping the file, you should see a folder structure like the following:
 
@@ -44,7 +64,8 @@ We also host the RTX Remix Bridge and DXVK-Remix files separately through GitHub
 1. Follow the instructions on how to Install the NVIDIA Omniverse Platform here: [Install NVIDIA Omniverse](https://docs.omniverse.nvidia.com/install-guide/latest/index.html)
 2. In Omniverse Launcher, under the Exchange Tab, search for “**RTX Remix**”
 
-![OmniverseExchange](data/images/rtxremix_008.PNG)
+![Install Toolkit](data/images/remix-install-005.png)
+
 
 3. Select RTX Remix Application, (ensure that the dropdown next to the install button displays the latest release or the release you wish to download) and select the green “**INSTALL**” button to install the application
 

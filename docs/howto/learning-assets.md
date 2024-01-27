@@ -87,14 +87,16 @@ Adding an Asset typically refers to incorporating a new Asset alongside existing
 **Appending an Asset**
  Appending a Asset implies sequentially adding Assets to a project. For example, you might start with a basic scene and then append additional Assets to enhance or expand the environment.
 
+![Adjust Position](../data/images/remix-assetingest-002.png)
 
-1. **Access Stage**: Go to the "Stage" tab on the top right.
+1. **Access Stage**: Go to the "Modding" tab on the top right.
 2. **Select Asset Replacements**: Choose the "Asset Replacements" tab on the left.
 3. **Layers**: In the top left, you'll see layers. Select your desired layer as the edit target.
 4. **Choose Mesh**: Pick your mesh for replacement.
 5. **Selection Tab**: Look at the "Selection" tab, where you'll find the original Asset hash and the converted/captured USD.
 6. **Add New Reference**: Click “Add New Reference” and navigate to the ingested Asset to append the new reference.
-7. **Adjust Position and Properties**: Modify the positioning, orientation, and scale using "Object Properties" until it matches the original. You can then safely delete the original captured asset and save that layer.
+7. **Adjust Position and Properties**: Modify the positioning, orientation, and scale using "Object Properties", or the viewport gizmo, until it matches the original.
+8. You can then safely delete the original captured asset and same that layer.
 
 
 # Ingesting Asset Textures
