@@ -108,6 +108,7 @@ REGEX_SUB_LIGHT_PATH = (
 REGEX_MAT_MESH_LIGHT_PATH = (
     f"^(.*)({LIGHT_NAME_PREFIX}|{MESH_NAME_PREFIX}|{MATERIAL_NAME_PREFIX})([A-Z0-9]{{16}})$"  # noqa E501
 )
+REGEX_RESERVED_FILENAME = rf"(\b{REMIX_MOD_FILE}\b)|(\b{CAPTURE_FILE_PREFIX}[a-zA-Z]*\b)|(\bmod_{REMIX_CAPTURE_BAKER_SUFFIX}\b)|(\bsublayer\b)"  # noqa E501
 
 # Based on: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#file-and-directory-names
 REGEX_VALID_PATH = r'(?!^.*[\\/]*(?:CON|PRN|AUX|NUL|COM\d|LPT\d)(?:\.[\w\d]+)*$)^((?:\w:)?[^\0-\31"&*:<>?|]+[^\0-\31"&*\.:<>?|])$'  # noqa E501

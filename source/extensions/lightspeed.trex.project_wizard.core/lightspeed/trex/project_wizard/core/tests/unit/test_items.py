@@ -148,6 +148,34 @@ class TestItems(omni.kit.test.AsyncTestCase):
                     ProjectWizardSchema.is_project_file_valid(Path(self.temp_dir.name) / name, {})
                 self.assertEqual(str(cm.exception), f"'{name}' has an invalid character in filename.")
 
+    async def test_schema_is_project_file_valid_invalid_windows_reserved_words(self):
+        file_names = [
+            "NUL.usd",
+            "AUX.usd",
+            "CON.usd",
+            "PRN.usd",
+            "COM1.usd",
+            "LPT1.usd",
+        ]
+
+        for name in file_names:
+            with self.subTest(name=name):
+                with self.assertRaises(ValueError) as cm:
+                    ProjectWizardSchema.is_project_file_valid(Path(self.temp_dir.name) / name, {})
+                self.assertEqual(str(cm.exception), f"'{name}' has a Windows reserved word in filename.")
+
+    async def test_schema_is_project_file_valid_invalid_whitespace(self):
+        file_names = [
+            Path(self.temp_dir.name) / "test whitespace.usd",
+            "path/to/invalid proj/test.usd",
+        ]
+
+        for path in file_names:
+            with self.subTest(path=path):
+                with self.assertRaises(ValueError) as cm:
+                    ProjectWizardSchema.is_project_file_valid(path, {})
+                self.assertEqual(str(cm.exception), f"'{path}' has a whitespace in file path.")
+
     async def test_schema_is_capture_file_valid_accepted_filename(self):
         file_names = [
             "test.usd",
