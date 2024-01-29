@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.7] - 2024-01-29
+### Changed
+- Adding filename check for Windows reserved words
+
 ## [1.1.6] - 2024-01-24
 ### Fixed
 - Destroy the context at the end of the process to not trigger random listeners

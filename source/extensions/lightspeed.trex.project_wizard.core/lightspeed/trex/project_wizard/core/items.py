@@ -14,6 +14,8 @@ from typing import List, Optional
 
 import omni.client
 from lightspeed.common import constants as _constants
+from lightspeed.common.constants import REGEX_RESERVED_FILENAME as _REGEX_RESERVED_FILENAME
+from lightspeed.common.constants import REGEX_VALID_PATH as _REGEX_VALID_PATH
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCore
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
 from pydantic import BaseModel, validator
@@ -56,8 +58,14 @@ class ProjectWizardSchema(BaseModel):
         # Make sure there are no invalid characters in the filename
         if re.search(r'[<>"\\():*?|]', Path(str(v)).name):
             raise ValueError(f"'{Path(str(v)).name}' has an invalid character in filename.")
+        # Make sure there are no whitespaces in the path
+        if " " in str(v).strip():
+            raise ValueError(f"'{str(v)}' has a whitespace in file path.")
+        # Making sure there are no Windows reserved words
+        if not re.search(_REGEX_VALID_PATH, Path(str(v)).name):
+            raise ValueError(f"'{Path(str(v)).name}' has a Windows reserved word in filename.")
         # Making sure no reserved words are in the filename
-        if re.search(r"(\bmod[.]+\b)|(\bcapture\b)|(\bmod_capture_baker\b)|(\bsublayer\b)", Path(str(v)).name):
+        if re.search(_REGEX_RESERVED_FILENAME, Path(str(v)).name):
             raise ValueError(f"'{Path(str(v)).name}' has a reserved name in filename.")
         # Make sure we have a path
         if not v or not str(v).strip():
