@@ -811,13 +811,15 @@ class ModSetupPane:
             app_window = omni.appwindow.get_default_app_window()
             size = app_window.get_size()
 
+            dpi_scale = ui.Workspace.get_dpi_scale()
             rows_size = (
                 len(self._capture_tree_model.get_item_children(None))
                 * self._capture_tree_delegate.DEFAULT_IMAGE_ICON_SIZE
+                / dpi_scale
             )
             final_value_h = rows_size + 40
-            if final_value_h > size[1] - self._tree_capture_scroll_frame.screen_position_y - 8:
-                final_value_h = size[1] - self._tree_capture_scroll_frame.screen_position_y - 8
+            if final_value_h > size[1] / dpi_scale - self._tree_capture_scroll_frame.screen_position_y - 8:
+                final_value_h = size[1] / dpi_scale - self._tree_capture_scroll_frame.screen_position_y - 8
             self._window_capture_tree.height = ui.Pixel(final_value_h + 8)
             self._window_capture_tree.width = ui.Pixel(self._tree_capture_scroll_frame.computed_width + 24)
             scroll_y_value = int(self._tree_capture_scroll_frame.scroll_y)
@@ -830,8 +832,8 @@ class ModSetupPane:
                 value = max(frame.scroll_x_max for frame in item_path_scroll_frames.values())
                 if value != 0:  # no scroll max = we see everything
                     final_value_w = self._window_capture_tree.width + value
-                    if final_value_w > size[0] - self._tree_capture_scroll_frame.screen_position_x - 8:
-                        final_value_w = size[0] - self._tree_capture_scroll_frame.screen_position_x - 8
+                    if final_value_w > size[0] / dpi_scale - self._tree_capture_scroll_frame.screen_position_x - 8:
+                        final_value_w = size[0] / dpi_scale - self._tree_capture_scroll_frame.screen_position_x - 8
                     self._window_capture_tree.width = ui.Pixel(final_value_w + 32)
             self.__ignore_capture_tree_hovered = False
         elif (
