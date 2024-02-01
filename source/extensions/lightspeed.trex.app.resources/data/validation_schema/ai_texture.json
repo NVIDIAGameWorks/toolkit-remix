@@ -27,7 +27,8 @@
                 "config_artifact_path": "${kit}/../deps/ai_tools/i2m/artifacts/config.yaml",
                 "data_flows": [
                     {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files"}
-                ]
+                ],
+                "expose_mass_ui": true
             },
             "stop_if_fix_failed": true,
             "context_plugin": {"name": "CurrentStage", "data": {}}
