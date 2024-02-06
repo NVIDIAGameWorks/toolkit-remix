@@ -127,12 +127,10 @@ class SwitchToReplacementCore(_ILSSEvent):
 
         # if the current edit target is not part of the valid layers, switch it to the replacement layer
         if stage_edit_target not in valid_layer_identifiers:
-            messsage = (
-                "Cannot set a sub-mod as the edit target layer. Switching to the mod layer."
-                if stage_edit_target in submods
-                else "The current edit target layer is not valid. Switching to the mod layer."
-            )
-            self.__show_message(messsage)
+            if stage_edit_target in submods:
+                self.__show_message("Cannot set a sub-mod as the edit target layer. Switching to the mod layer.")
+            else:
+                carb.log_warn("The current edit target layer is not valid. Switching to the mod layer.")
             stage.SetEditTarget(layer_replacement)
 
     def destroy(self):

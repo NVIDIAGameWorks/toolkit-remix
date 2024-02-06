@@ -29,10 +29,12 @@ A tool to edit stage(s) captured from game(s)
 "lightspeed.event.capture_persp_to_persp" = {}
 "lightspeed.event.generate_thumbnail" = {}  # for recent project thumbnails
 "lightspeed.event.layers_cleanup" = {}  # remove invalid/deleted layers
+"lightspeed.event.load_edit_target" = {}  # load the edit target from the project layer
 "lightspeed.event.save_global_muteness" = {}  # force Omniverse custom layer data
 "lightspeed.event.save_recent" = {}  # for recent saved file
 "lightspeed.event.save_root_mod" = {}  # for runtime hot-reload
 "lightspeed.event.switch_to_replacement" = {}  # make sure we always have a valid edit target
+"lightspeed.event.validate_project" = {}  # enforce a given project structure
 
 [settings]
 "@import@" = [
@@ -55,6 +57,9 @@ icon.file = "${lightspeed.trex.app.resources}/data/icons/nvidia-rtx-remix-icon-d
 [settings.exts."lightspeed.event.layers_cleanup"]
 context = ""
 
+[settings.exts."lightspeed.event.load_edit_target"]
+context = ""
+
 [settings.exts."lightspeed.event.capture_persp_to_persp"]
 context = ""
 
@@ -65,6 +70,9 @@ context = ""
 context = ""
 
 [settings.exts."lightspeed.event.switch_to_replacement"]
+context = ""
+
+[settings.exts."lightspeed.event.validate_project"]
 context = ""
 
 [settings.exts."lightspeed.event.generate_thumbnail"]
@@ -126,10 +134,12 @@ enabled = [
 	"lightspeed.event.capture_persp_to_persp-1.1.1",
 	"lightspeed.event.generate_thumbnail-1.0.0",
 	"lightspeed.event.layers_cleanup-2.0.0",
+	"lightspeed.event.load_edit_target-1.0.0",
 	"lightspeed.event.save_global_muteness-1.1.0",
 	"lightspeed.event.save_recent-1.1.0",
 	"lightspeed.event.save_root_mod-1.1.0",
-	"lightspeed.event.switch_to_replacement-1.1.0",
+	"lightspeed.event.switch_to_replacement-1.1.1",
+	"lightspeed.event.validate_project-1.0.0",
 	"lightspeed.events_manager-1.0.0",
 	"lightspeed.hydra.remix-0.1.1",
 	"lightspeed.layer_manager-1.0.1",
@@ -194,7 +204,7 @@ enabled = [
 	"omni.flux.header_nvidia.widget-1.0.4",
 	"omni.flux.info_icon.widget-1.1.1",
 	"omni.flux.layer_tree.usd.core-1.0.0",
-	"omni.flux.layer_tree.usd.widget-1.7.1",
+	"omni.flux.layer_tree.usd.widget-1.7.2",
 	"omni.flux.light_creator.widget-1.1.0",
 	"omni.flux.pip_archive-1.8.1",
 	"omni.flux.popup.window-1.0.1",

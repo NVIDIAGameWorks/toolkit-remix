@@ -1,26 +1,24 @@
 [package]
-version = "1.1.1"
-authors = ["dbataille@nvidia.com"]
+version = "1.0.0"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
-keywords = ["event", "layer", "manager", "replacement"]
-title = "Lightspeed Event Swict to Replacement"
-description = "Lightspeed Event that always check that the edit target is the replacement or sub layer of the replacement layer"
+keywords = ["event", "project", "validate", "mod"]
+title = "Lightspeed Event Validate Project"
+description = "Extension that validates the project structure whenever a stage is opened or saving"
 icon = "data/icon.png"
 category = "other"
 preview_image = "data/preview.png"
-
-
-[ui]
-name = "Lightspeed Event Switch to Replacement"
 
 [dependencies]
 "lightspeed.events_manager" = {}
 "lightspeed.layer_manager" = {}
 "omni.flux.utils.common" = {}
+"omni.kit.commands" = {}
 "omni.kit.notification_manager" = {}
+"omni.kit.usd.layers" = {}
 "omni.usd" = {}
 
 [[python.module]]
-name = "lightspeed.event.switch_to_replacement"
+name = "lightspeed.event.validate_project"
