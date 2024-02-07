@@ -1,12 +1,21 @@
 # Release Notes
-<!----- Placeholder for where Release Notes will go  ----->
- <!----- Example of format for release notes?
-* [REMIX-2121](https://omniverse-jirasw.nvidia.com/browse/REMIX-2121): On v2023.5.1 - Application Crash from gpu.foundation.plugin when navigating to the Project File Location or the Remix Directory location while using a TitianRTX
-    * [https://omniverse-jirasw.nvidia.com/browse/REMIX-2121](https://omniverse-jirasw.nvidia.com/browse/REMIX-2121)
 
-Example: [https://docs.omniverse.nvidia.com/composer/latest/release_notes.html](https://docs.omniverse.nvidia.com/composer/latest/release_notes.html)
+## Version 0.4.1
 
- ----->
+| Ticket | Issue |
+|---:|:---|
+| REMIX-2665 | Captures for many games are not showing correctly in toolkits |
+| REMIX-1693 | Lose focus on field when we do tab on the property editor
+| REMIX-2126 | Ingestion: apply_unit_scale gives wrong result |
+| REMIX-2530 | Captured scene is backwards in editor |
+| REMIX-2669 | Toolkit is slow when we create a project |
+| REMIX-2695 | HdRemix: Kit crashes as Remix support check is ignored |
+| REMIX-2709 | DPI bug with the capture window |
+| REMIX-1542 | Chosen color changes when Color Selection Window closes |
+| REMIX-2526 | Cannot ingest jpeg file type, but jpg is supported |
+| REMIX-2521 | Filename text input is not sanitized |
+| REMIX-2654 | AI Tools don't get cleaned out of memory after inference is done |
+| REMIX-2661 | AI Tools don't run on 20-series GPUs |
 
 
 ## Known Issues
