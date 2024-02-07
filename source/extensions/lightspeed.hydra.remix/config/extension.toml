@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.1.1"
+version = "0.2.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alex Dunn <adunn@nvidia.com>"]
@@ -38,7 +38,11 @@ icon = "data/icon.png"
 "omni.usd" = {}
 "omni.mdl" = {}
 "omni.mdl.neuraylib" = {}
+"lightspeed.hydra.remix.bootstrap" = {}
+"lightspeed.trex.utils.widget" = {}
 
+[[python.module]]
+name = "lightspeed.trex.hydra.remix"
 
 [settings]
 pxr.rendermode = "HdRemixRendererPlugin" # set remix as default
@@ -54,6 +58,9 @@ common.omniGlobalLightAdjustment = 1.0
 [settings.exts."omni.usd"]
 mdl.populateInputsForNonMdlRenderer=1
 
+[settings.exts.lightspeed.hydra.remix]
+showpopup = true
+
 [[env]]
 name = "PXR_PLUGINPATH_NAME"
 value = "${kit}/../deps/hdremix"
@@ -65,6 +72,14 @@ override = false
 [[env]]
 name = "DXVK_USE_RTXIO"
 value = "0"
+isPath = false
+append = false
+override = true
+
+# Force no blocking message boxes, handled by OV
+[[env]]
+name = "RTX_AUTOMATION_DISABLE_BLOCKING_DIALOG_BOXES"
+value = "1"
 isPath = false
 append = false
 override = true

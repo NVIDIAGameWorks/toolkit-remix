@@ -10,6 +10,8 @@ build_test:
   stage: build_test
   needs:
     - check-code-lint
+  variables:
+    DXVK_CONFIG_FILE: '.\source\extensions\lightspeed.hydra.remix\lightspeed\trex\hydra\remix\data\tests\dxvk.conf'
   before_script:
     - .\build.bat --clean --release
     - .\build.bat --clean --debug

@@ -55,13 +55,20 @@ args = [
 	"--/app/hydraEngine/skipStatusBarIdle=true",
 	"--/app/asyncRendering=false",
 	"--/renderer/debug/validation/enabled=false",
-	"--/renderer/enabled='rtx'",
+	# invoking an RTX renderer, while a Remix renderer is present, causes a crash
+	# see lightspeed.hydra.remix\config\extension.toml
+	# "--/renderer/enabled='rtx'",
     "--no-window"
 ]
 
 dependencies = [
     "omni.kit.ui_test",
     "omni.kit.test_suite.helpers"
+]
+
+stdoutFailPatterns.exclude = [
+    "*OpenGL Interop is not available. Upgrade your driver to latest for this feature.*",
+    "*Cannot use omni.hydra.pxr without OpenGL interop*"
 ]
 
 # We can run all extension tests inside of an app. In practice many of them failing and crashing, that requires time
@@ -103,7 +110,8 @@ enabled = [
 	"lightspeed.event.switch_to_replacement-1.1.1",
 	"lightspeed.event.validate_project-1.0.0",
 	"lightspeed.events_manager-1.0.0",
-	"lightspeed.hydra.remix-0.1.1",
+	"lightspeed.hydra.remix.bootstrap-0.1.0",
+	"lightspeed.hydra.remix-0.2.0",
 	"lightspeed.layer_manager-1.0.1",
 	"lightspeed.light.gizmos-1.0.2",
 	"lightspeed.pip_archive-0.0.0",
