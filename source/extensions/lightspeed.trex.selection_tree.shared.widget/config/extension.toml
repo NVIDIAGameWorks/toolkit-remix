@@ -1,5 +1,5 @@
 [package]
-version = "1.0.4"
+version = "1.0.5"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Selection Tree implementation for the StageCraft"
 description = "Selection Tree implementation for NVIDIA RTX Remix StageCraft App"
@@ -18,6 +18,7 @@ preview_image = "data/preview.png"
 "lightspeed.trex.asset_replacements.core.shared" = {}
 "lightspeed.trex.utils.common" = {}
 "lightspeed.trex.utils.widget" = {}
+"omni.kit.commands" = {}
 "omni.kit.usd.layers" = {}
 "omni.ui" = {}
 "omni.usd" = {}
