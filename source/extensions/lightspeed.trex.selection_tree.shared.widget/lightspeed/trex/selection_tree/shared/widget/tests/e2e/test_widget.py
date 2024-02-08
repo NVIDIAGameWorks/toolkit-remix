@@ -677,6 +677,63 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await self.__destroy(_window, _wid)
 
+    async def test_duplicate_stage_light_on_mesh(self):
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+
+        duplicate_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
+        self.assertEqual(len(duplicate_images), 1)  # ref item
+
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        self.assertEqual(len(item_file_meshes), 2)
+
+        await item_file_meshes[1].click()
+
+        window_name = "Light creator"
+
+        # The file picker window should now be opened (0 < len(widgets))
+        self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
+
+        light_disk_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDisk'")
+
+        self.assertIsNotNone(light_disk_button)
+
+        # create the light
+        await light_disk_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        duplicate_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
+        self.assertEqual(len(duplicate_images), 2)  # ref item + light
+
+        await duplicate_images[1].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        duplicate_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
+        self.assertEqual(len(duplicate_images), 3)  # ref item + light + dup light
+
+        # undo
+        omni.kit.undo.undo()
+        await ui_test.human_delay(human_delay_speed=3)
+        # The undo command clears the selection since it was deleted. Reselect the original light.
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/DiskLight"], False
+        )
+        await ui_test.human_delay(human_delay_speed=3)
+        duplicate_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
+        self.assertEqual(len(duplicate_images), 2)  # ref item + light
+
+        # redo
+        omni.kit.undo.redo()
+        await ui_test.human_delay(human_delay_speed=3)
+        duplicate_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
+        self.assertEqual(len(duplicate_images), 3)  # ref item + light + dup light
+
+        await self.__destroy(_window, _wid)
+
     async def test_select_prim_instances_on_mesh(self):
         # setup
         _window, _wid = await self.__setup_widget()  # Keep in memory during test

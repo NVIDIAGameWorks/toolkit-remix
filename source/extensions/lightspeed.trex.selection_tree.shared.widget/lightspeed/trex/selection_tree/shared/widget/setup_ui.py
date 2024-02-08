@@ -15,6 +15,7 @@ from typing import Any, Callable, List, Union
 
 import carb
 import omni.kit.app
+import omni.kit.commands
 import omni.kit.undo
 import omni.ui as ui
 import omni.usd
@@ -95,6 +96,7 @@ class SetupUI:
         self._sub_tree_delegate_duplicate_ref = self._tree_delegate.subscribe_duplicate_reference(
             self._on_duplicate_reference
         )
+        self._sub_tree_delegate_duplicate_prim = self._tree_delegate.subscribe_duplicate_prim(self._on_duplicate_prim)
         self._sub_tree_delegate_reset_ref = self._tree_delegate.subscribe_reset_released(self._on_reset_asset)
 
         self.__create_ui()
@@ -240,6 +242,13 @@ class SetupUI:
     def _on_duplicate_reference(self, item: _ItemReferenceFileMesh):
         abs_path = omni.client.normalize_url(item.layer.ComputeAbsolutePath(item.path))
         self._add_new_ref_mesh(item, abs_path)
+
+    def _on_duplicate_prim(self, item: _ItemPrim):
+        omni.kit.commands.execute(
+            "CopyPrimCommand",
+            path_from=item.path,
+            usd_context_name=self._context_name,
+        )
 
     def _on_delete_prim(self, item: _ItemPrim):
         def _get_parent_item_mesh(_item):

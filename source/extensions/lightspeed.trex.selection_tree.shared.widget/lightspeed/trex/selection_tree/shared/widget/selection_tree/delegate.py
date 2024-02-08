@@ -122,6 +122,7 @@ class Delegate(ui.AbstractItemDelegate):
         self.__on_delete_reference = _Event()
         self.__on_delete_prim = _Event()
         self.__on_duplicate_reference = _Event()
+        self.__on_duplicate_prim = _Event()
         self.__on_frame_prim = _Event()
         self.__on_reset_released = _Event()
 
@@ -134,6 +135,16 @@ class Delegate(ui.AbstractItemDelegate):
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__on_duplicate_reference, function)
+
+    def _duplicate_prim(self, item: _ItemPrim):
+        """Call the event object that has the list of functions"""
+        self.__on_duplicate_prim(item)
+
+    def subscribe_duplicate_prim(self, function: Callable[[_ItemPrim], None]):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_duplicate_prim, function)
 
     def _delete_reference(self, item: _ItemReferenceFileMesh):
         """Call the event object that has the list of functions"""
@@ -438,6 +449,32 @@ class Delegate(ui.AbstractItemDelegate):
                                         mouse_released_fn=lambda x, y, b, m: self._on_frame_mouse_released(b, item),
                                     )
                                     ui.Spacer(width=0)
+                            elif isinstance(item, _ItemPrim) and item.is_usd_light():
+                                ui.Spacer(height=0, width=ui.Pixel(8))
+                                with ui.VStack(
+                                    width=ui.Pixel(16 + 16 + 8),
+                                    content_clipping=True,
+                                ):
+                                    ui.Spacer(width=0)
+                                    with ui.HStack(height=ui.Pixel(16)):
+                                        ui.Image(
+                                            "",
+                                            height=ui.Pixel(16),
+                                            name="TrashCan",
+                                            tooltip="Delete the prim",
+                                            mouse_released_fn=lambda x, y, b, m: self._on_delete_prim_released(b, item),
+                                        )
+                                        ui.Spacer(height=0, width=ui.Pixel(8))
+                                        ui.Image(
+                                            "",
+                                            height=ui.Pixel(16),
+                                            name="Duplicate",
+                                            tooltip="Duplicate the asset",
+                                            mouse_released_fn=lambda x, y, b, m: self._on_duplicate_prim_mouse_released(
+                                                b, item
+                                            ),
+                                        )
+                                    ui.Spacer(width=0)
                             elif isinstance(item, _ItemPrim) and item.from_live_light_group:
                                 ui.Spacer(height=0, width=ui.Pixel(8))
                                 with ui.VStack(
@@ -482,6 +519,11 @@ class Delegate(ui.AbstractItemDelegate):
         if button != 0:
             return
         self._duplicate_reference(item)
+
+    def _on_duplicate_prim_mouse_released(self, button, item):
+        if button != 0:
+            return
+        self._duplicate_prim(item)
 
     def _on_frame_mouse_released(self, button, item):
         if button != 0:
