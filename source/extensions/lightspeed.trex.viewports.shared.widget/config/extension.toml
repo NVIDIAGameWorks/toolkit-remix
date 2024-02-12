@@ -8,11 +8,13 @@ description = "Viewports implementation for NVIDIA RTX Remix App"
 "lightspeed.trex.app.style" = {}
 "lightspeed.trex.utils.common" = {}
 "lightspeed.events_manager" = {}
+"lightspeed.trex.hotkeys" = {}
 "lightspeed.trex.viewports.manipulators" = {}
 "lightspeed.trex.viewports.properties_pane.widget" = {}
 "lightspeed.light.gizmos" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.viewport.utility" = {}
+"omni.kit.hotkeys.core" = {}
 # start before to be sure to apply settings from the app .kit
 "omni.kit.widget.toolbar" = {order = -10}
 "omni.ui" = {}

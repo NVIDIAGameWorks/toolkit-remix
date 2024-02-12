@@ -31,7 +31,7 @@ class TrexIngestCraftLayoutExtension(omni.ext.IExt):
         carb.log_info("[lightspeed.trex.layout.ingestcraft] Startup")
 
         # create the Ingest context
-        trex_contexts_instance().create_context(TrexContexts.INGEST_CRAFT)
+        trex_contexts_instance().create_usd_context(TrexContexts.INGEST_CRAFT)
 
         _SETUP_INSTANCE = SetupUI(ext_id)
 

@@ -8,13 +8,17 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import abc
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import carb.settings
 import omni.ui as ui
 from lightspeed.trex.app.setup.extension import get_instance as _get_main_instance
+from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
 from omni.flux.header_navigator.widget import setup_ui as _header_navigator_ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+
+if TYPE_CHECKING:
+    from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 
 _APP_NAME = "/app/name"
 _DISABLED_LAYOUT_EXTENSION = "/app/trex/disabled_layouts"
@@ -80,6 +84,11 @@ class SetupUI:
 
     @property
     @abc.abstractmethod
+    def context(self) -> "_TrexContexts":
+        raise NotImplementedError()
+
+    @property
+    @abc.abstractmethod
     def button_priority(self) -> int:
         return 0
 
@@ -95,6 +104,7 @@ class SetupUI:
             cls.create_layout()
         else:
             cls._header_navigator.select_button(cls.button_name)  # noqa PLW0212
+            _trex_contexts_instance().set_current_context(cls.context)
 
     def show_layout_by_name(self, name: str):
         for layout in _LAYOUT_INSTANCES:
@@ -109,6 +119,7 @@ class SetupUI:
             with self._root_frame:
                 self._create_layout()
         self._header_navigator.select_button(self.button_name)
+        _trex_contexts_instance().set_current_context(self.context)
 
     @abc.abstractmethod
     def _create_layout(self):

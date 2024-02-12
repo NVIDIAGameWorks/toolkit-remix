@@ -15,6 +15,8 @@ from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
 from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
+from lightspeed.trex.hotkeys import TrexHotkeyEvent as _TrexHotkeyEvent
+from lightspeed.trex.hotkeys import get_global_hotkey_manager as _get_global_hotkey_manager
 from lightspeed.trex.layout.stagecraft import get_instance as _get_layout_instance
 from lightspeed.trex.menu.workfile import get_instance as _get_menu_workfile_instance
 from lightspeed.trex.project_wizard.window import ProjectWizardWindow as _ProjectWizardWindow
@@ -48,7 +50,7 @@ class Setup:
             setattr(self, attr, value)
 
         self._context_name = _TrexContexts.STAGE_CRAFT.value
-        self._context = _trex_contexts_instance().get_context(_TrexContexts.STAGE_CRAFT)
+        self._context = _trex_contexts_instance().get_usd_context(_TrexContexts.STAGE_CRAFT)
         self._layer_manager = _LayerManagerCore(context_name=_TrexContexts.STAGE_CRAFT.value)
         self._layout_instance = _get_layout_instance()
         self._menu_workfile_instance = _get_menu_workfile_instance()
@@ -67,10 +69,17 @@ class Setup:
             self._on_import_replacement_layer
         )
         self._sub_open_workfile = self._layout_instance.subscribe_open_work_file(self._on_open_workfile)
-        self._sub_key_undo = self._layout_instance.subscribe_ctrl_z_pressed(self._on_undo)
-        self._sub_key_redo = self._layout_instance.subscribe_ctrl_y_pressed(self._on_redo)
-        self._sub_key_save = self._layout_instance.subscribe_ctrl_s_pressed(self._on_save)
-        self._sub_key_save_as = self._layout_instance.subscribe_ctrl_shift_s_pressed(self._on_save_as)
+
+        hotkey_manager = _get_global_hotkey_manager()
+        self._sub_key_undo = hotkey_manager.subscribe_hotkey_event(
+            _TrexHotkeyEvent.CTRL_Z, self._on_undo, context=_TrexContexts.STAGE_CRAFT
+        )
+        self._sub_key_redo = hotkey_manager.subscribe_hotkey_event(
+            _TrexHotkeyEvent.CTRL_Y, self._on_redo, context=_TrexContexts.STAGE_CRAFT
+        )
+        # save and save-as will trigger regardless of the current layout screen
+        self._sub_key_save = hotkey_manager.subscribe_hotkey_event(_TrexHotkeyEvent.CTRL_S, self._on_save)
+        self._sub_key_save_as = hotkey_manager.subscribe_hotkey_event(_TrexHotkeyEvent.CTRL_SHIFT_S, self._on_save_as)
 
         self._sub_menu_workfile_save = self._menu_workfile_instance.subscribe_save(self._on_save)
         self._sub_menu_workfile_save_as = self._menu_workfile_instance.subscribe_save_as(self._on_save_as)
