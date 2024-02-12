@@ -23,34 +23,45 @@ class Contexts(Enum):
 
 class _Setup:
     def __init__(self):
-        self._default_attr = {"_usd_contexts": None}
+        self._default_attr = {"_usd_contexts": None, "_current_context": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
         self._usd_contexts = []
+        self._current_context = None
 
-    def create_context(self, usd_context_name: Contexts) -> omni.usd.UsdContext:
+    def create_usd_context(self, usd_context_name: Contexts) -> omni.usd.UsdContext:
         usd_context = omni.usd.get_context(usd_context_name.value)
         if not usd_context:
             usd_context = omni.usd.create_context(usd_context_name.value)
             self._usd_contexts.append(usd_context)
         return usd_context
 
-    def get_contexts(self) -> List[omni.usd.UsdContext]:
+    def get_usd_contexts(self) -> List[omni.usd.UsdContext]:
         return self._usd_contexts
 
-    def get_context(
+    def get_usd_context(
         self, usd_context_name: Contexts, create_if_not_exist: bool = True, do_raise: bool = True
     ) -> omni.usd.UsdContext:
         usd_context = omni.usd.get_context(usd_context_name.value)
         if not usd_context and not create_if_not_exist and do_raise:
             raise ValueError(f"Context {usd_context_name.value} was never created")
         if not usd_context and create_if_not_exist:
-            usd_context = self.create_context(usd_context_name)
+            usd_context = self.create_usd_context(usd_context_name)
         return usd_context  # noqa R504
+
+    def get_current_context(self) -> Contexts:
+        """Get the current context for the remix app"""
+        if not self._current_context:
+            raise RuntimeError("No context has been set yet. Make sure to call set_current_context()")
+        return self._current_context
+
+    def set_current_context(self, context):
+        """Set the current context for the remix app"""
+        self._current_context = context
 
     def destroy(self):
         for context in Contexts:
-            if self.get_context(context, create_if_not_exist=False, do_raise=False):
+            if self.get_usd_context(context, create_if_not_exist=False, do_raise=False):
                 omni.usd.destroy_context(context.value)
         _reset_default_attrs(self)
 

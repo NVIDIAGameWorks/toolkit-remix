@@ -18,6 +18,8 @@ import omni.usd
 from lightspeed.common.constants import GlobalEventNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.app.style import update_viewport_menu_style
+from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
+from lightspeed.trex.hotkeys import TrexHotkeyEvent, get_global_hotkey_manager
 from lightspeed.trex.viewports.properties_pane.widget import EnumItems as _PropertiesPaneEnumItems
 from lightspeed.trex.viewports.properties_pane.widget import SetupUI as _PropertiesPaneSetupUI
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -58,6 +60,7 @@ class SetupUI:
             "_minimize_window_subscription": None,
             "_active_viewport_change_subscription": None,
             "_stage_event_subscription": None,
+            "_sub_frame_hotkey": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -95,6 +98,14 @@ class SetupUI:
             GlobalEventNames.ACTIVE_VIEWPORT_CHANGED.value, self.on_active_viewport_changed
         )
 
+        # set up a hotkey for framing selection
+        hotkey_manager = get_global_hotkey_manager()
+        self._sub_frame_hotkey = hotkey_manager.subscribe_hotkey_event(
+            TrexHotkeyEvent.F,
+            lambda *_: self.frame_viewport_selection() if self._active else None,
+            context=_TrexContexts(self._context_name),
+        )
+
         self._registered = []
         self.__create_ui()
         update_viewport_menu_style()
@@ -127,10 +138,8 @@ class SetupUI:
         with self._root_frame:
             with ui.ZStack():
                 with ui.HStack():
-
                     self._viewport_frame = ui.Frame(
                         separate_window=False,
-                        key_pressed_fn=self._on_viewport_frame_key_pressed,
                         mouse_pressed_fn=self._on_viewport_frame_mouse_pressed,
                         horizontal_clipping=True,
                         vertical_clipping=True,
@@ -206,12 +215,6 @@ class SetupUI:
 
     def _on_viewport_frame_mouse_pressed(self, x: float, y: float, button: int, modifier: int):
         self.set_active(True)
-
-    def _on_viewport_frame_key_pressed(self, key, _, pressed):
-        # F keys
-        if key != int(carb.input.KeyboardInput.F) or pressed:
-            return
-        self.frame_viewport_selection()
 
     def _on_stage_event(self, event):
         if event.type == int(omni.usd.StageEventType.OPENED):

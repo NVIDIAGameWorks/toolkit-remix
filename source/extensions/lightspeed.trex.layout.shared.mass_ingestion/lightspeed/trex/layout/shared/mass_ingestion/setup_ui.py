@@ -41,8 +41,9 @@ class SetupUI(_BaseLayout):
         super().__init__(ext_id)
 
         self._schema_paths = schema_paths
+        self._trex_context = context
         self._context_name = context.value
-        self._context = trex_contexts_instance().get_context(context)
+        self._context = trex_contexts_instance().get_usd_context(context)
 
         self._sub_mass_cores_started = []
         self._sub_mass_cores_finished = []
@@ -77,6 +78,10 @@ class SetupUI(_BaseLayout):
     @abc.abstractmethod
     def button_name(self) -> str:
         return ""
+
+    @property
+    def context(self) -> TrexContexts:
+        return self._trex_context
 
     @property
     @abc.abstractmethod

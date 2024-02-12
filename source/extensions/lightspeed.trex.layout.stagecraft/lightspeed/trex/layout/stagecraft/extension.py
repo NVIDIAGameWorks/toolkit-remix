@@ -6,6 +6,8 @@
 # distribution of this software and related documentation without an express
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 #
+from __future__ import annotations
+
 import carb
 import carb.settings
 import omni.ext
@@ -16,7 +18,7 @@ from .setup_ui import SetupUI
 
 _DEFAULT_LAYOUT_EXTENSION = "/app/trex/default_layout_extension"
 
-_SETUP_INSTANCE = None
+_SETUP_INSTANCE: SetupUI | None = None
 
 
 def get_instance():
@@ -31,7 +33,7 @@ class TrexStageCraftLayoutExtension(omni.ext.IExt):
         carb.log_info("[lightspeed.trex.layout.stagecraft] Startup")
 
         # create the StageCraft context
-        trex_contexts_instance().create_context(TrexContexts.STAGE_CRAFT)
+        trex_contexts_instance().create_usd_context(TrexContexts.STAGE_CRAFT)
 
         _SETUP_INSTANCE = SetupUI(ext_id)
 

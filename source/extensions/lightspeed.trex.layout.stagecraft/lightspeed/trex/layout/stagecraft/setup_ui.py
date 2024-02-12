@@ -81,7 +81,7 @@ class SetupUI(TrexLayout):
         )
 
         self._context_name = TrexContexts.STAGE_CRAFT.value
-        self._context = trex_contexts_instance().get_context(TrexContexts.STAGE_CRAFT)
+        self._context = trex_contexts_instance().get_usd_context(TrexContexts.STAGE_CRAFT)
         self._layer_manager = _LayerManagerCore(context_name=self._context_name)
         self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
             self.__on_stage_event, name="StageChanged"
@@ -109,38 +109,6 @@ class SetupUI(TrexLayout):
         self._on_open_work_file = _Event()
         self._on_resume_work_file_clicked = _Event()
         self.__on_import_capture_layer = _Event()
-        self.__on_ctrl_s = _Event()
-        self.__on_ctrl_shift_s = _Event()
-        self.__on_ctrl_y = _Event()
-        self.__on_ctrl_z = _Event()
-
-    def subscribe_ctrl_s_pressed(self, fn):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        Called when we click on a tool (change of the selected tool)
-        """
-        return _EventSubscription(self.__on_ctrl_s, fn)
-
-    def subscribe_ctrl_shift_s_pressed(self, fn):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        Called when we click on a tool (change of the selected tool)
-        """
-        return _EventSubscription(self.__on_ctrl_shift_s, fn)
-
-    def subscribe_ctrl_z_pressed(self, fn):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        Called when we click on a tool (change of the selected tool)
-        """
-        return _EventSubscription(self.__on_ctrl_z, fn)
-
-    def subscribe_ctrl_y_pressed(self, fn):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        Called when we click on a tool (change of the selected tool)
-        """
-        return _EventSubscription(self.__on_ctrl_y, fn)
 
     def enable_welcome_resume_item(self) -> bool:
         current_stage = self._context.get_stage()
@@ -311,6 +279,10 @@ class SetupUI(TrexLayout):
         return "Modding"
 
     @property
+    def context(self) -> TrexContexts:
+        return TrexContexts.STAGE_CRAFT
+
+    @property
     def button_priority(self) -> int:
         return 10
 
@@ -331,6 +303,9 @@ class SetupUI(TrexLayout):
         self.__current_page = page
         self._on_header_refreshed()
         self.__refresh_welcome_pad_tree()
+
+    def current_page(self):
+        return self.__current_page
 
     def _on_header_refreshed(self):
         self._header_navigator.show_logo_and_title(self.__current_page == Pages.WORKSPACE_PAGE)
@@ -439,7 +414,6 @@ class SetupUI(TrexLayout):
             self._frame_workspace = ui.Frame(
                 name=Pages.WORKSPACE_PAGE.value,
                 visible=False,
-                key_pressed_fn=self._on_frame_workspace_key_pressed,
             )
             self._all_frames.append(self._frame_workspace)
             with self._frame_workspace:
@@ -518,32 +492,6 @@ class SetupUI(TrexLayout):
     def _frame_prim(self, prim: "Usd.Prim"):
         if prim and prim.IsValid():
             self._viewport.frame_viewport_selection(selection=[str(prim.GetPath())])
-
-    def _on_frame_workspace_key_pressed(self, key, modifiers, is_down):
-        if (
-            key == int(carb.input.KeyboardInput.Z)
-            and modifiers == carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL
-            and is_down
-        ):
-            self.__on_ctrl_z()
-        elif (
-            key == int(carb.input.KeyboardInput.Y)
-            and modifiers == carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL
-            and is_down
-        ):
-            self.__on_ctrl_y()
-        elif (
-            key == int(carb.input.KeyboardInput.S)
-            and modifiers == carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL
-            and is_down
-        ):
-            self.__on_ctrl_s()
-        elif (
-            key == int(carb.input.KeyboardInput.S)
-            and modifiers == carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL + carb.input.KEYBOARD_MODIFIER_FLAG_SHIFT
-            and is_down
-        ):
-            self.__on_ctrl_shift_s()
 
     def _on_back_arrow_pressed(self):
         self.show_page(Pages.HOME_PAGE)

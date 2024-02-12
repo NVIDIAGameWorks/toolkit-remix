@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 import carb.settings
 import omni.ui as ui
 import omni.usd
+from lightspeed.trex.contexts.setup import Contexts as _TrexContext
 from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
@@ -25,7 +26,7 @@ WINDOW_HEIGHT = 1000
 WINDOW_WIDTH = 1436
 
 _CONTEXT_NAME = ""
-_CONTEXT_2_NAME = "secondary"
+_CONTEXT_2_NAME = _TrexContext.STAGE_CRAFT.value
 
 
 class TestSharedViewportWidget(AsyncTestCase):

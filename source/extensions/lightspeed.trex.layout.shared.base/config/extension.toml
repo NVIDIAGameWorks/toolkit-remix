@@ -5,9 +5,18 @@ description = "Shared layout for NVIDIA RTX Remix App"
 
 [dependencies]
 "lightspeed.trex.app.setup" = {}
+"lightspeed.trex.contexts" = {}
 "omni.flux.header_navigator.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.ui" = {}
 
 [[python.module]]
 name = "lightspeed.trex.layout.shared.base"
+
+[[test]]
+
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window"
+]

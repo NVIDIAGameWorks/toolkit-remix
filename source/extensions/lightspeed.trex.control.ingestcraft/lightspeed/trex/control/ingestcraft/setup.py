@@ -23,7 +23,7 @@ class Setup:
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
         self._context_name = _TrexContexts.INGEST_CRAFT.value
-        self._context = _trex_contexts_instance().get_context(_TrexContexts.INGEST_CRAFT)
+        self._context = _trex_contexts_instance().get_usd_context(_TrexContexts.INGEST_CRAFT)
         self._layout_instance = _get_layout_instance()
         self._context.new_stage_with_callback(self._on_new_stage_created)
 

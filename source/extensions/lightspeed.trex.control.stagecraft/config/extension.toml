@@ -9,6 +9,7 @@ description = "Control will connect back end and front end for NVIDIA RTX Remix 
 "lightspeed.trex.contexts" = {}
 "lightspeed.trex.layout.stagecraft" = {}
 "lightspeed.trex.menu.workfile" = {}
+"lightspeed.trex.hotkeys" = {}
 "lightspeed.trex.project_wizard.window" = {}
 "lightspeed.trex.replacement.core.shared" = {}
 "lightspeed.trex.stage.core.shared" = {}

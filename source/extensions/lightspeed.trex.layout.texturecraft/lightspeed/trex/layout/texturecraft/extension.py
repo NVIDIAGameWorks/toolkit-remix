@@ -29,7 +29,7 @@ class TextureCraftLayoutExtension(omni.ext.IExt):
         global _SETUP_INSTANCE
         carb.log_info("[lightspeed.trex.layout.texturecraft] Startup")
         # create the TextureCraft configurator context
-        trex_contexts_instance().create_context(TrexContexts.TEXTURE_CRAFT)
+        trex_contexts_instance().create_usd_context(TrexContexts.TEXTURE_CRAFT)
 
         _SETUP_INSTANCE = SetupUI(ext_id)
         settings = carb.settings.get_settings()
