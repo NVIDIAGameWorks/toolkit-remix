@@ -18,7 +18,7 @@ class SetupUI(_IngestionLayout):
 
     @property
     def button_name(self) -> str:
-        return "Ingestion"
+        return "Import"
 
     @property
     def button_priority(self) -> int:
