@@ -242,12 +242,12 @@ class ModSetupPane:
                                 self._capture_tree_model,
                                 delegate=self._capture_tree_delegate_window,
                                 root_visible=False,
-                                header_visible=False,
+                                header_visible=True,
                                 columns_resizable=False,
                                 name="PropertiesPaneSectionCapture",
                                 selection_changed_fn=self._on_capture_window_tree_selection_changed,
                             )
-                            ui.Spacer(height=ui.Pixel(8))
+                            ui.Spacer(height=ui.Pixel(32))
                         ui.Spacer(width=ui.Pixel(8))
         self._window_capture_tree.frame.set_computed_content_size_changed_fn(
             functools.partial(
@@ -366,7 +366,7 @@ class ModSetupPane:
                                                         with ui.ZStack():
                                                             self._tree_capture_scroll_frame = ui.ScrollingFrame(
                                                                 name="PropertiesPaneSection",
-                                                                # height=ui.Pixel(self.DEFAULT_CAPTURE_TREE_FRAME_HEIGHT),
+                                                                # height=ui.Pixel(self.DEFAULT_CAPTURE_TREE_FRAME_HEIGHT),  # noqa E501
                                                                 horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,  # noqa E501
                                                                 identifier="TreeCaptureScrollFrame",
                                                             )
@@ -376,7 +376,7 @@ class ModSetupPane:
                                                                         self._capture_tree_model,
                                                                         delegate=self._capture_tree_delegate,
                                                                         root_visible=False,
-                                                                        header_visible=False,
+                                                                        header_visible=True,
                                                                         columns_resizable=False,
                                                                         mouse_hovered_fn=self._on_capture_tree_hovered,
                                                                         selection_changed_fn=self._on_capture_tree_selection_changed,  # noqa E501
@@ -755,6 +755,7 @@ class ModSetupPane:
         with self._fake_frame_for_scroll:
             with ui.VStack():
                 ui.Spacer(height=idx_item * self._capture_tree_delegate.DEFAULT_IMAGE_ICON_SIZE)
+                ui.Spacer(height=11)  # header
                 ui.Spacer(height=1)  # or bug
                 ui.Spacer(height=self._capture_tree_delegate.DEFAULT_IMAGE_ICON_SIZE)
                 fake_spacer_for_scroll = ui.Spacer(height=self._capture_tree_delegate.DEFAULT_IMAGE_ICON_SIZE)

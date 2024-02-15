@@ -212,9 +212,15 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
 
     def build_header(self, column_id):
         """Build the header"""
-        style_type_name = "TreeView.Header"
         with ui.HStack():
-            ui.Label(HEADER_DICT[column_id], style_type_name_override=style_type_name)
+            with ui.VStack(height=ui.Pixel(24)):
+                style_type_name = "TreeView.Header"
+                ui.Label(
+                    HEADER_DICT[column_id][0],
+                    style_type_name_override=style_type_name,
+                    alignment=ui.Alignment.CENTER,
+                    tooltip=HEADER_DICT[column_id][1],
+                )
 
     def __get_progress_color(self, progress: float):
         r = min(255.0, (1.0 - progress) * 2.0 * 255.0) / 255

@@ -82,9 +82,10 @@ class TestModSetupWidget(AsyncTestCase):
             self.assertEqual(len(items), (number_captures * len(chars)) + 1)
 
             # 2 pixels delta
+            header_offset = 12
             self.assertTrue(
                 tree_capture_scroll_frame.center.y - 2
-                < items[number_captures].center.y
+                < items[number_captures].center.y - header_offset
                 < tree_capture_scroll_frame.center.y + 2
             )
 
