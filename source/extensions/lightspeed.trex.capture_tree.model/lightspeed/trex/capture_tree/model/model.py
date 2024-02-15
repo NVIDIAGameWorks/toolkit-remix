@@ -20,7 +20,10 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 from .items import CaptureTreeItem
 
-HEADER_DICT = {0: "Path", 1: "Progress"}
+HEADER_DICT = {
+    0: ("Capture Layer", "Capture layer loaded in the stage"),
+    1: ("Replaced", "Number of replaced prims in the given capture"),
+}
 
 
 class CaptureTreeModel(ui.AbstractItemModel):
