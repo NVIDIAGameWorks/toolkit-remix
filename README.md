@@ -35,6 +35,10 @@ are "common use/general".
 When there is something that we want to add to the RTX Remix app, and this thing is really specific to the RTX Remix
 app, we code the extension directly into this repo (like the layout of the app).
 
+When updating a Flux extension, and merging the Flux MR, a new version of this Flux extension will be published.
+
+This repo would need a new MR to grab/pull the new version of the Flux extension. See [here](#flow-to-do-with-new-flux-extensions)
+
 #### Building
 1. Building the project for the first time:
    1. Clone this repo
@@ -44,6 +48,19 @@ app, we code the extension directly into this repo (like the layout of the app).
    1. `_build\windows-x86_64\release\lightspeed.app.trex_dev.bat` for the dev version that has menus.
    2. `_build\windows-x86_64\release\lightspeed.app.trex.bat` for the end-user version.
    3. If you work on a specific sub-app (IngestCraft, TextureCraft...), you can run the sub-app directly like `_build\windows-x86_64\release\lightspeed.app.trex.ingestcraft.bat`
+
+#### Flow to do with new Flux extensions
+1. Build project: `build.bat -r -u`. Doing `-u` will pull the last (local) version of the dependencies (so the last version of the Flux extensions). See [here](#using-a-local-build-of-another-extension)
+2. Before to do any MR (this repo or Flux), please run the tests of each repo `repo.bat test`
+3. When all the test pass (Flux and LSS), do your Flux MR.
+4. When approved, merge your Flux MR.
+5. Wait for the Flux extensions to be published (please check the pipeline of the Flux repo)
+6. (optional) Delete your `user.toml` from [here](#using-a-local-build-of-another-extension)
+7. Build project: `build.bat -r -u`. It will grab the published extensions.
+8. Do your LSS MR.
+
+> :warning: **Please don't wait days to merge your LSS MR. Doing this will affect others LSS MRs (they will pull your Flux extensions) **
+
 
 ##### Commonly-Used Flags
 
