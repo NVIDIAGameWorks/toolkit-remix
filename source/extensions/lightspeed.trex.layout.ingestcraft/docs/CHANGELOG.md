@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.3] - 2024-02-21
+### Changed
+- Changed "Import" to "Ingestion"
+
 ## [2.0.2] - 2024-02-13
 ### Changed
 - Changed "Ingestion" to "Import"
