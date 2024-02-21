@@ -1,4 +1,4 @@
-lightspeed.hydra.remix
+lightspeed.hydra.remix.core
 ###########################
 
 
