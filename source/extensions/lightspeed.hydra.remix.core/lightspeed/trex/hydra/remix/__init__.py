@@ -7,8 +7,8 @@
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 #
 
-__all__ = ["is_remix_supported"]
+__all__ = ["is_remix_supported", "RemixSupport"]
 
 # Export extension class
 from .extension import HdRemixFinalizer  # noqa F401
-from .extension import is_remix_supported
+from .extension import RemixSupport, is_remix_supported

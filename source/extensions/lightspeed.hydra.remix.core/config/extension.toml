@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.2.0"
+version = "0.2.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alex Dunn <adunn@nvidia.com>"]
@@ -13,7 +13,7 @@ description="Enables the Remix Hydra render delegate."
 readme  = "docs/README.md"
 
 # URL of the extension source repository.
-repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.hydra.remix"
+repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.hydra.remix.core"
 
 # One of categories for UI.
 category = "Rendering"

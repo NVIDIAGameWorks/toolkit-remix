@@ -9,19 +9,28 @@
 
 import asyncio
 import ctypes
+from enum import Enum
+from typing import Tuple
 
 import carb
 import omni.ext
+import omni.usd
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 
 CARB_SETTING_SHOW_REMIX_SUPPORT_POPUP = "exts/lightspeed/hydra/remix/showpopup"
 
 
-hdremix_issupported = False
+class RemixSupport(Enum):
+    WAITING_FOR_INIT = -1
+    NOT_SUPPORTED = 0
+    SUPPORTED = 1
+
+
+hdremix_issupported = RemixSupport.WAITING_FOR_INIT
 hdremix_errormessage = "<HdRemixFinalizer.check_support was not called>"
 
 
-def is_remix_supported() -> (bool, str):
+def is_remix_supported() -> Tuple[RemixSupport, str]:
     return (hdremix_issupported, hdremix_errormessage)
 
 
@@ -30,19 +39,19 @@ class HdRemixFinalizer(omni.ext.IExt):
 
     # Do not call more than once, as it's a heavy operation.
     # Cache the value for frequent use.
-    def check_support(self) -> (bool, str):
+    def check_support(self) -> Tuple[RemixSupport, str]:
         """Request HdRemix about support. This call is blocking, until HdRemix is fully initialized."""
         try:
             dll = ctypes.cdll.LoadLibrary("HdRemix.dll")
         except FileNotFoundError:
             msg = "Failed to load HdRemix.dll.\nAssuming that Remix is not supported."
             carb.log_error(msg)
-            return (False, msg)
+            return (RemixSupport.NOT_SUPPORTED, msg)
 
         if not hasattr(dll, "hdremix_issupported"):
             msg = "HdRemix.dll doesn't have 'hdremix_issupported' function.\nAssuming that Remix is not supported."
             carb.log_error(msg)
-            return (False, msg)
+            return (RemixSupport.NOT_SUPPORTED, msg)
 
         pfn_issupported = dll.hdremix_issupported
         pfn_issupported.argtypes = [ctypes.POINTER(ctypes.c_char_p)]
@@ -51,31 +60,48 @@ class HdRemixFinalizer(omni.ext.IExt):
         out_errormessage_cstr = ctypes.c_char_p("".encode("utf-8"))
         ok = pfn_issupported(ctypes.pointer(out_errormessage_cstr))
 
-        if ok == 0:
+        if ok != 1:
             # pylint: disable=no-member
             if out_errormessage_cstr and out_errormessage_cstr.value:
                 msg = out_errormessage_cstr.value.decode("utf-8")
             else:
-                msg = "Remix error occurred, but no message"
+                msg = "Remix error occurred, but no message" if ok == 0 else "Remix is being initialized..."
+            if ok == -1:
+                return (RemixSupport.WAITING_FOR_INIT, msg)
             carb.log_error(msg)
-            return (False, msg)
-        return (True, "Success")
+            return (RemixSupport.NOT_SUPPORTED, msg)
+        return (RemixSupport.SUPPORTED, "Success")
 
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.trex.hydra.remix] Startup")
+        asyncio.ensure_future(self.__check_support())
 
-        supported, errormsg = self.check_support()
+    @omni.usd.handle_exception
+    async def __check_support(self):
+        frames_passed = 0
+        timeout = 500
 
+        # set global vars
         global hdremix_issupported, hdremix_errormessage
-        hdremix_issupported = supported
-        hdremix_errormessage = errormsg
 
-        if not supported and carb.settings.get_settings().get_as_bool(CARB_SETTING_SHOW_REMIX_SUPPORT_POPUP):
-            asyncio.ensure_future(self.__show_popup(errormsg))
+        # busy wait until Remix has been initialized
+        while hdremix_issupported == RemixSupport.WAITING_FOR_INIT:
+            hdremix_issupported, hdremix_errormessage = self.check_support()
+            await omni.kit.app.get_app().next_update_async()
+            frames_passed += 1
+            if frames_passed > timeout:
+                hdremix_issupported = RemixSupport.NOT_SUPPORTED
+                hdremix_errormessage = "Remix initialization timeout"
+                return
 
-    async def __show_popup(self, errormsg):
+        if hdremix_issupported == RemixSupport.SUPPORTED:
+            return
+
+        if not carb.settings.get_settings().get_as_bool(CARB_SETTING_SHOW_REMIX_SUPPORT_POPUP):
+            return
+
         # wait until we fully composed a window, so it's centered...
-        for _ in range(10):
+        for _ in range(frames_passed, 10):
             await omni.kit.app.get_app().next_update_async()
 
         def exit_app():
@@ -83,7 +109,7 @@ class HdRemixFinalizer(omni.ext.IExt):
 
         self._dialog = _TrexMessageDialog(
             title="RTX Remix Renderer failed to initialize",
-            message=errormsg,
+            message=hdremix_errormessage,
             ok_label="Exit",
             ok_handler=exit_app,
             on_window_closed_fn=exit_app,
