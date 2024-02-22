@@ -10,6 +10,7 @@ tutorial-remixtool.md
 learning-runtimesetup.md
 learning-viewport.md
 learning-assets.md
+learning-properties.md
 learning-materials.md
 learning-aitexturetools.md
 learning-lighting.md
