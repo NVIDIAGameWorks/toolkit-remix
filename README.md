@@ -130,7 +130,7 @@ Please make sure to test the new version by downloading it from the internal OV 
 ### Releasing to the public OV Launcher
 
 Once QA has tested and approved an internal build we are ready to push it out to the world.
-1. Create a new branch in [trex-release-pipeline](https://gitlab-master.nvidia.com/omniverse/trex-release-pipeline/-/pipelines) starting with `PROD-` and the same version. (i.e. `PROD-2024.1.1` for `INTEG-2024.1.1`)
+1. Create a new branch in [trex-release-pipeline](https://gitlab-master.nvidia.com/omniverse/trex-release-pipeline/-/pipelines) starting with `PROD-` and the same version. (i.e. `PROD-2024.2.0` for `INTEG-2024.2.0`)
 1. Switch to that branch in gitlab and "Run Pipeline".
 1. The first run will fail but search the error logs for the JIRA ticket that was created.
 1. When you approve that JIRA ticket and type "Approved" it will retry the pipeline and
