@@ -1,21 +1,31 @@
-# Release Notes
+# Changelog
 
-## Version 0.4.1
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-| Ticket | Issue |
-|---:|:---|
-| REMIX-2665 | Captures for many games are not showing correctly in toolkits |
-| REMIX-1693 | Lose focus on field when we do tab on the property editor
-| REMIX-2126 | Ingestion: apply_unit_scale gives wrong result |
-| REMIX-2530 | Captured scene is backwards in editor |
-| REMIX-2669 | Toolkit is slow when we create a project |
-| REMIX-2695 | HdRemix: Kit crashes as Remix support check is ignored |
-| REMIX-2709 | DPI bug with the capture window |
-| REMIX-1542 | Chosen color changes when Color Selection Window closes |
-| REMIX-2526 | Cannot ingest jpeg file type, but jpg is supported |
-| REMIX-2521 | Filename text input is not sanitized |
-| REMIX-2654 | AI Tools don't get cleaned out of memory after inference is done |
-| REMIX-2661 | AI Tools don't run on 20-series GPUs |
+## [2024.2.1]
+
+### Added:
+- REMIX-2541: Expose Inference Mode UI for AI Texture Tool
+- REMIX-2526: AI Texture accept jpeg
+- REMIX-119: Automatically switch to the mod layer when a wrong layer is set as an edit target
+- REMIX-74, REMIX-114, REMIX-1483: Add events to validate the project + restore edit target
+- REMIX-2695: Check if Remix is supported
+- REMIX-2028: Add duplicate button to lights in selection tree
+- REMIX-1090: Add tree headers to the capture list to describe the columns
+- REMIX-1923: Add xform copy/paste functionality
+- REMIX-114: Save Authoring Layer on Set
+
+### Fixed:
+- REMIX-2669: Fix slowdown on project creation + light optimization
+- REMIX-2521: Adding check for Windows reserved words
+- REMIX-2709: Fix capture window dpi
+- REMIX-1542 REMIX-1693: don't lose focus of widgets when modifying properties
+- REMIX-2419 REMIX-2736: Handle 'f' key press anywhere on layout or ingestion tab. Handle 'Ctrl+S', etc. key presses on all tabs
+- REMIX-2719: Choose the same GPU for DXVK, as the one in Hydra Engine
+- REMIX-2722: Adjust default light intensity (first pass. Will do more ajustements)
+- REMIX-2642: Spelling / Wording / Grammar corrections in the Annotations for the Input File Path
+- REMIX-2654, REMIX-2661: AI Tools don't run on 20-series GPUs. AI Tools don't get cleaned out of memory after inference is done.
+- [HDRemix] Fix scale not affecting lights
 
 
 ## Known Issues
