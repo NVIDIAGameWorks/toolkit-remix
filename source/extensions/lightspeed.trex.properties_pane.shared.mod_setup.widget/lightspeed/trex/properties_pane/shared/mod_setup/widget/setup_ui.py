@@ -317,11 +317,13 @@ class ModSetupPane:
                                             ui.Spacer(width=ui.Pixel(4))
                                             with ui.ZStack():
                                                 self._capture_dir_field = ui.StringField(
-                                                    height=ui.Pixel(18), style_type_name_override="Field"
+                                                    name="CapturePathField",
+                                                    height=ui.Pixel(18),
+                                                    style_type_name_override="Field",
                                                 )
                                                 with ui.HStack():
                                                     ui.Spacer(width=ui.Pixel(8))
-                                                    with ui.Frame(width=ui.Pixel(134), horizontal_clipping=True):
+                                                    with ui.Frame(width=ui.Pixel(134), horizontal_clipping=False):
                                                         self._overlay_capture_label = ui.Label(
                                                             "Capture directory path...",
                                                             name="USDPropertiesWidgetValueOverlay",
@@ -349,7 +351,19 @@ class ModSetupPane:
                                                     "",
                                                     name="OpenFolder",
                                                     height=ui.Pixel(20),
+                                                    tooltip="Open the file picker",
                                                     mouse_pressed_fn=lambda x, y, b, m: self._on_capture_dir_pressed(b),
+                                                )
+                                                ui.Spacer()
+                                            ui.Spacer(width=ui.Pixel(8))
+                                            with ui.VStack(width=ui.Pixel(20)):
+                                                ui.Spacer()
+                                                ui.Image(
+                                                    "",
+                                                    name="Refresh",
+                                                    height=ui.Pixel(20),
+                                                    tooltip="Refresh the capture list",
+                                                    mouse_pressed_fn=lambda x, y, b, m: self.__on_event(),
                                                 )
                                                 ui.Spacer()
 
@@ -754,9 +768,8 @@ class ModSetupPane:
         self._fake_frame_for_scroll.clear()
         with self._fake_frame_for_scroll:
             with ui.VStack():
+                ui.Spacer(height=24)  # header
                 ui.Spacer(height=idx_item * self._capture_tree_delegate.DEFAULT_IMAGE_ICON_SIZE)
-                ui.Spacer(height=11)  # header
-                ui.Spacer(height=1)  # or bug
                 ui.Spacer(height=self._capture_tree_delegate.DEFAULT_IMAGE_ICON_SIZE)
                 fake_spacer_for_scroll = ui.Spacer(height=self._capture_tree_delegate.DEFAULT_IMAGE_ICON_SIZE)
                 ui.Spacer()
@@ -919,6 +932,7 @@ class ModSetupPane:
             if not self.__capture_field_is_editing:
                 self._capture_dir_field.style_type_name_override = "Field"
                 self._capture_dir_field.model.set_value(self.__last_capture_field_value or "")
+                self._overlay_capture_label.visible = False
                 return
             self._capture_dir_field.style_type_name_override = "FieldError"
             return
