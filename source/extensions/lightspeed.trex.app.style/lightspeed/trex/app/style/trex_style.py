@@ -370,6 +370,8 @@ current_dict.update(
         "Image::NvidiaShort": {"image_url": _get_image("NVIDIA-logo-green-white"), "color": _WHITE_100},
         "Image::Preview": {"image_url": _get_icons("magnify-expand"), "color": _WHITE_60},
         "Image::Preview:hovered": {"image_url": _get_icons("magnify-expand"), "color": _WHITE_80},
+        "Image::Refresh": {"image_url": _get_icons("refresh"), "color": _WHITE_60},
+        "Image::Refresh:hovered": {"image_url": _get_icons("refresh"), "color": _WHITE_80},
         "Image::Restore": {"image_url": _get_icons("restore"), "color": _WHITE_60},
         "Image::Restore:hovered": {"image_url": _get_icons("restore"), "color": _WHITE_80},
         "Image::Scope": {"image_url": _get_icons("scope"), "color": _WHITE_60},

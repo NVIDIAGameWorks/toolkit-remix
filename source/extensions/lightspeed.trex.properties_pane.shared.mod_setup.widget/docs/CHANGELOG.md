@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0] - 2024-02-16
+### Added
+- Added a refresh button for the capture file list
+
 ## [1.2.0] - 2024-02-12
 ### Added
 - Enabled headers for the captures list
