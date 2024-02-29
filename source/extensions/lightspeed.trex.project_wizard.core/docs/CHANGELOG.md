@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0] - 2024-02-26
+### Added
+- Create symlink by default (instead of junction) for Windows
+
 ## [1.1.7] - 2024-01-29
 ### Changed
 - Adding filename check for Windows reserved words
