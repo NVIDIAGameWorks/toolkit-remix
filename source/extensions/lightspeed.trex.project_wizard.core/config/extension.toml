@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.1.7"
+version = "1.2.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -19,6 +19,9 @@ category = "Core"
 # Keywords for the extension
 keywords = ["lightspeed", "rtx", "remix", "project", "wizard", "core"]
 
+[settings.exts."lightspeed.trex.project_wizard.core"]
+force_use_junction = false  # windows only
+
 [dependencies]
 "lightspeed.common" = {}
 "lightspeed.layer_manager" = {}
@@ -31,3 +34,12 @@ keywords = ["lightspeed", "rtx", "remix", "project", "wizard", "core"]
 
 [[python.module]]
 name = "lightspeed.trex.project_wizard.core"
+
+[[test]]
+
+args = [
+    "--/app/extensions/registryEnabled=1",
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window"
+]

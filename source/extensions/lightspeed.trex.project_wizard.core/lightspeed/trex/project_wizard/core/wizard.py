@@ -9,11 +9,11 @@
 """
 import asyncio
 import stat
-import subprocess
 from shutil import copytree
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
 
 import carb
+import carb.settings
 import omni.usd
 from lightspeed.common import constants as _constants
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManager
@@ -22,12 +22,16 @@ from lightspeed.trex.capture.core.shared import Setup as _CaptureCore
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.common.symlink import create_folder_symlinks as _create_folder_symlinks
 from omni.kit.usd.layers import LayerUtils as _LayerUtils
 
 from .items import ProjectWizardSchema as _ProjectWizardSchema
 
 if TYPE_CHECKING:
     from functools import partial
+
+
+SETTING_JUNCTION_NAME = "/exts/lightspeed.trex.project_wizard.core/force_use_junction"
 
 
 class ProjectWizardCore:
@@ -131,7 +135,7 @@ class ProjectWizardCore:
 
             # Item validation should check that the symlinks are already valid if the remix_directory is None
             symlink_error = await self._create_symlinks(
-                project_directory, deps_directory, model.remix_directory, dry_run
+                model, project_directory, deps_directory, model.remix_directory, dry_run
             )
             if symlink_error:
                 self._log_error(symlink_error)
@@ -232,13 +236,41 @@ class ProjectWizardCore:
 
         return context, stage
 
-    async def _create_symlinks(self, project_directory, deps_directory, remix_directory, dry_run):
+    def __symlink_need_get_model(self, model: _ProjectWizardSchema = None, schema: Dict = None):
+        if model is None and schema is None:
+            raise ValueError("Please specify a model or a schema")
+        if schema is not None:
+            model = _ProjectWizardSchema(**schema)
+        return model
+
+    def need_deps_directory_symlink(self, model: _ProjectWizardSchema = None, schema: Dict = None):
+        model = self.__symlink_need_get_model(model=model, schema=schema)
+        project_directory = model.project_file.parent
+        deps_directory = project_directory / _constants.REMIX_DEPENDENCIES_FOLDER
+        return not deps_directory.exists()
+
+    def need_project_directory_symlink(self, model: _ProjectWizardSchema = None, schema: Dict = None):
+        model = self.__symlink_need_get_model(model=model, schema=schema)
+        remix_directory = model.remix_directory
+        if not remix_directory:
+            return False
+        remix_mods_directory = remix_directory / _constants.REMIX_MODS_FOLDER
+        remix_project_directory = remix_mods_directory / model.project_file.parent.stem
+        return not remix_project_directory.exists()
+
+    async def _create_symlinks(
+        self, model, project_directory, deps_directory, remix_directory, dry_run, create_junction: bool = False
+    ):
         if not deps_directory:
             return "Unable to find the path to the project dependencies"
 
         # Item validation should check that the symlinks are already valid if the remix_directory is None
         if not remix_directory:
             return None
+
+        isettings = carb.settings.get_settings()
+        if isettings.get(SETTING_JUNCTION_NAME):
+            create_junction = True
 
         remix_mods_directory = remix_directory / _constants.REMIX_MODS_FOLDER
         remix_project_directory = remix_mods_directory / project_directory.stem
@@ -249,26 +281,32 @@ class ProjectWizardCore:
             else:
                 self._log_info(f"Creating parent directory '{remix_mods_directory}'")
 
-        if not deps_directory.exists():
+        symlink_directories = []
+
+        if self.need_deps_directory_symlink(model=model):
             if not dry_run:
-                subprocess.check_call(f'mklink /J "{deps_directory}" "{remix_directory}"', shell=True)
+                symlink_directories.append((deps_directory, remix_directory))
             else:
                 self._log_info(f"Symlink from '{remix_directory}' to '{deps_directory}'")
 
-        # If the project already exists in the rtx-remix dir
-        if remix_project_directory.exists():
-            # Don't allow creating a new project with the same name as an existing project.
-            # If OPENING a project from the rtx-remix dir it will have the same path.
-            if remix_project_directory != project_directory:
-                return (
-                    f"A project with the same name already exists in the '{_constants.REMIX_FOLDER}' directory: "
-                    f"'{remix_project_directory}'"
-                )
-        else:
+        # If the project doesn't already exists in the rtx-remix dir
+        if self.need_project_directory_symlink(model=model):
             if not dry_run:
-                subprocess.check_call(f'mklink /J "{remix_project_directory}" "{project_directory}"', shell=True)
+                symlink_directories.append((remix_project_directory, project_directory))
             else:
                 self._log_info(f"Symlink from '{project_directory}' to '{remix_project_directory}'")
+        elif remix_project_directory != project_directory:
+            # Don't allow creating a new project with the same name as an existing project.
+            # If OPENING a project from the rtx-remix dir it will have the same path.
+            if symlink_directories:
+                _create_folder_symlinks(symlink_directories, create_junction=create_junction)
+            return (
+                f"A project with the same name already exists in the '{_constants.REMIX_FOLDER}' directory: "
+                f"'{remix_project_directory}'"
+            )
+
+        if symlink_directories:
+            _create_folder_symlinks(symlink_directories, create_junction=create_junction)
 
         return None
 

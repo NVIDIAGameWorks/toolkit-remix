@@ -8,9 +8,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Tuple
 
+import carb.settings
 from carb.input import KeyboardInput
 from lightspeed.common import constants
 from lightspeed.layer_manager import layer_types
+from lightspeed.trex.project_wizard.core import SETTING_JUNCTION_NAME as _SETTING_JUNCTION_NAME
 from lightspeed.trex.project_wizard.window import ProjectWizardWindow
 from omni import ui, usd
 from omni.kit import ui_test
@@ -47,6 +49,8 @@ class TestComponents(Enum):
 class TestWizardWindow(AsyncTestCase):
     # Before running each test
     async def setUp(self):
+        self._isettings = carb.settings.get_settings()
+        self._isettings.set(_SETTING_JUNCTION_NAME, True)
         await usd.get_context().new_stage_async()
         self.stage = usd.get_context().get_stage()
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -64,6 +68,8 @@ class TestWizardWindow(AsyncTestCase):
 
         await self.__cleanup_directories()
         self.temp_dir.cleanup()
+
+        self._isettings.set(_SETTING_JUNCTION_NAME, False)
 
         self.stage = None
         self.temp_dir = None

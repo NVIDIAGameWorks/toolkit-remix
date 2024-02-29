@@ -220,11 +220,19 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         project_file = remix_dir / constants.REMIX_MODS_FOLDER / Path("MyProject") / "project.usda"
         deps_dir = project_file.parent / constants.REMIX_DEPENDENCIES_FOLDER
 
+        schema = ProjectWizardSchemaMock(
+            existing_project=True,
+            project_file=project_file,
+            remix_directory=remix_dir,
+        )
+
         with WizardMockContext() as mock:
             mock.path_exists_mock.side_effect = [True, False, True]
 
             # Act
-            value = await self.core._create_symlinks(project_file.parent, deps_dir, remix_dir, False)  # noqa PLW0212
+            value = await self.core._create_symlinks(  # noqa PLW0212
+                schema, project_file.parent, deps_dir, remix_dir, False, create_junction=True
+            )  # noqa PLW0212
 
         # Assert
         self.assertEqual(3, mock.path_exists_mock.call_count)
@@ -519,7 +527,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual(call(remix_dir, dry_run), mock.create_mods_dir.call_args)
 
         self.assertEqual(1, mock.create_symlinks_mock.call_count)
-        self.assertEqual(call(project_dir, deps_dir, remix_dir, dry_run), mock.create_symlinks_mock.call_args)
+        self.assertEqual(call(schema, project_dir, deps_dir, remix_dir, dry_run), mock.create_symlinks_mock.call_args)
 
         self.assertEqual(1, mock.create_project_mock.call_count)
         self.assertEqual(
@@ -584,10 +592,21 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         remix_dir = self.base_dir / constants.REMIX_FOLDER
         deps_dir = project_file.parent / constants.REMIX_DEPENDENCIES_FOLDER
 
+        schema = ProjectWizardSchemaMock(
+            existing_project=True,
+            project_file=project_file,
+            remix_directory=remix_dir,
+        )
+
         with WizardMockContext() as mock:
             # Act
             value = await self.core._create_symlinks(  # noqa PLW0212
-                project_file.parent, deps_dir if deps_or_remix else None, None if deps_or_remix else remix_dir, False
+                schema,
+                project_file.parent,
+                deps_dir if deps_or_remix else None,
+                None if deps_or_remix else remix_dir,
+                False,
+                create_junction=True,
             )
 
         # Assert
@@ -601,11 +620,19 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         remix_dir = self.base_dir / constants.REMIX_FOLDER
         deps_dir = project_file.parent / constants.REMIX_DEPENDENCIES_FOLDER
 
+        schema = ProjectWizardSchemaMock(
+            existing_project=True,
+            project_file=project_file,
+            remix_directory=remix_dir,
+        )
+
         with WizardMockContext() as mock:
             mock.path_exists_mock.side_effect = [True, True, False] if deps_or_remix else [True, False, True]
 
             # Act
-            value = await self.core._create_symlinks(project_file.parent, deps_dir, remix_dir, False)  # noqa PLW0212
+            value = await self.core._create_symlinks(  # noqa PLW0212
+                schema, project_file.parent, deps_dir, remix_dir, False, create_junction=True
+            )  # noqa PLW0212
 
         # Assert
         self.assertEqual(3, mock.path_exists_mock.call_count)

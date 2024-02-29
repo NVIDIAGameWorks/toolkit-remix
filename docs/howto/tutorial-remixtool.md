@@ -51,6 +51,9 @@
 
 6. With the project file location and remix directory configured, select the capture we made earlier and hit the "Create" button.
 
+```{warning} An User Account Control panel will be prompted to be able to symlink your project into your game. Please click "Yes". On Windows, the user needs specific right to be able to create symlink(s): [article](https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links)
+```
+
 ![RemixTool Tutorial 6](../data/images/remix-remixtutorial-003.png)
 
 7. Once you’ve made some changes save your project.  You can try replacing the ‘R’ mesh with this disco-ball asset:

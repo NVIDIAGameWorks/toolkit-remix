@@ -7,7 +7,7 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-__all__ = ["ProjectWizardCore", "ProjectWizardSchema", "ProjectWizardKeys"]
+__all__ = ["ProjectWizardCore", "ProjectWizardSchema", "ProjectWizardKeys", "SETTING_JUNCTION_NAME"]
 
 from .items import ProjectWizardKeys, ProjectWizardSchema
-from .wizard import ProjectWizardCore
+from .wizard import SETTING_JUNCTION_NAME, ProjectWizardCore
