@@ -31,7 +31,7 @@ async def __override_imgui_style():
 
 asyncio.ensure_future(__override_imgui_style())
 
-# default values
+# default values (AABBGGRR)
 _BLUE_SELECTED = 0x66FFC700
 _BLUE_SEMI_SELECTED = 0x33FFC700
 _BLUE_HOVERED = 0x1AFFC700
@@ -76,8 +76,8 @@ _DEFAULT_FIELD_READ_VALUE = {
 }
 
 _DEFAULT_FIELD_READ_ERROR_VALUE = {
-    "background_color": _RED_05,  # 01 for alpha or it will show a default color
-    "color": 0xCC0000FF,
+    "background_color": _RED_05,
+    "color": 0xFF7868FF,
     "border_width": 1,
     "border_radius": 5,
     "border_color": 0x0DFFFFFF,
@@ -655,7 +655,7 @@ current_dict.update(
             "color": _WHITE_30,
         },
         "PropertiesWidgetFieldSelected": {
-            "background_color": _WHITE_30,
+            "background_color": _DARK_40,
             "color": _WHITE_100,
             "border_width": 1,
             "border_radius": 5,
