@@ -7,7 +7,7 @@ title = "Viewport Bundle"
 description="A bundle of Viewport extensions that creates a baseline interactive Viewport."
 
 # Keywords for the extension
-keywords = ["kit", "ui", "viewport", "hydra", "render"]
+keywords = ["kit", "ui", "viewport", "hydra", "render", "waypoint"]
 
 # Location of change log file in target (final) folder of extension, relative to the root.
 # More info on writing changelog: https://keepachangelog.com/en/1.0.0/
@@ -36,13 +36,29 @@ category = "Viewport"
 "lightspeed.trex.viewports.menubar.camera" = {}  # to be able to toggle it
 # Lighting
 "omni.kit.viewport.menubar.lighting" = {}
+# Waypoint Core
+"lightspeed.trex.waypoint.core" = {}
+# Waypoint
+"omni.kit.viewport.menubar.waypoint" = {}
 
 [settings]
 # Collapse the additional camera control area
 persistent.exts."omni.kit.viewport.menubar.camera".expand = false
 # Set the default perspective camera focalLength
 persistent.app.primCreation.typedDefaults.camera.focalLength = 18.147562
+exts."omni.kit.waypoint.core".editing_waypoint = ""
+exts."omni.kit.waypoint.core".visible_startup = true
 
 [[test]]
 # This is just a collection of extensions, they should be tested indivdiually for now
 waiver = ""
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style"
+]
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"
+]

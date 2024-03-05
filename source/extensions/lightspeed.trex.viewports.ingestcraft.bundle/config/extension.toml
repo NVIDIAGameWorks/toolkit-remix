@@ -36,6 +36,10 @@ category = "Viewport"
 "lightspeed.trex.viewports.menubar.camera" = {}  # to be able to toggle it
 # Lighting
 "omni.kit.viewport.menubar.lighting" = {}
+# Waypoint Core
+"lightspeed.trex.waypoint.core" = {}
+# Waypoint
+"omni.kit.viewport.menubar.waypoint" = {}
 
 [settings]
 # Collapse the additional camera control area
@@ -54,3 +58,13 @@ exts."omni.flux.lookdev.core".default_material_path = "/OmniKit_Viewport_LightRi
 [[test]]
 # This is just a collection of extensions, they should be tested indivdiually for now
 waiver = ""
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style"
+]
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"
+]

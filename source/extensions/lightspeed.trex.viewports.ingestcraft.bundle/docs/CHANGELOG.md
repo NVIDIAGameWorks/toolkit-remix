@@ -3,6 +3,10 @@
 This document records all notable changes to ``omni.kit.viewport.bundle`` extension.
 This project adheres to `Semantic Versioning <https://semver.org/>`_.
 
+## [104.0.3] - 2024-01-31
+### Added
+- Adding waypoints
+
 ## [104.0.2] - 2022-09-28
 ### Added
 - New Lighting menu item.
