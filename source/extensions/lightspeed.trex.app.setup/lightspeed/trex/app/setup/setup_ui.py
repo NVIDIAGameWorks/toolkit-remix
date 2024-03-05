@@ -15,6 +15,7 @@ import omni.appwindow
 import omni.kit.app
 import omni.ui as ui
 import omni.usd
+from lightspeed.common.constants import WINDOW_NAME
 from omni.kit.mainwindow import get_main_window
 
 _HIDE_MENU = "/exts/lightspeed.trex.app.setup/hide_menu"
@@ -22,7 +23,7 @@ _HIDE_MENU = "/exts/lightspeed.trex.app.setup/hide_menu"
 
 class SetupUI:
 
-    _WINDOW_NAME = "Trex Main Window"
+    _WINDOW_NAME = WINDOW_NAME
 
     def __init__(self):
         """Setup the main Lightspeed Trex window"""

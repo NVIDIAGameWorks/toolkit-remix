@@ -4,6 +4,8 @@ from pathlib import Path
 
 from .texture_info import CompressionFormat, TextureInfo
 
+WINDOW_NAME = "Trex Main Window"
+
 MATERIAL_RELATIONSHIP = "material:binding"
 MATERIAL_INPUTS_DIFFUSE_TEXTURE = "inputs:diffuse_texture"
 MATERIAL_INPUTS_NORMALMAP_TEXTURE = "inputs:normalmap_texture"

@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.6.0"
+version = "0.6.2"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alexander Jaus <ajaus@nvidia.com>"]
