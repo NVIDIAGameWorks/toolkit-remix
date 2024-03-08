@@ -14,4 +14,4 @@ lightspeed.export.window
     :undoc-members:
     :show-inheritance:
     :imported-members:
-    :exclude-members: contextmanager,omni.client
+    :exclude-members: contextmanager,omni.client,partial

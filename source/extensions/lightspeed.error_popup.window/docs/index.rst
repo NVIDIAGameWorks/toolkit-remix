@@ -1,7 +1,5 @@
-example.python_ext
-###########################
-
-Example of Python only extension
+lightspeed.error_popup.window
+##############################
 
 
 .. toctree::
@@ -11,7 +9,7 @@ Example of Python only extension
    CHANGELOG
 
 
-.. automodule:: example.python_ext
+.. automodule:: lightspeed.error_popup.window
     :platform: Windows-x86_64, Linux-x86_64
     :members:
     :undoc-members:

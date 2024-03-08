@@ -16,7 +16,7 @@ readme  = "docs/README.md"
 repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.color_to_normal.core"
 
 # One of categories for UI.
-category = "Export"
+category = "internal"
 
 # Keywords for the extension
 keywords = ["convert", "normal", "color"]

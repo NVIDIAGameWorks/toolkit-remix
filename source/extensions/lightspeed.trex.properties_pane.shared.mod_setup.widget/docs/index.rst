@@ -14,4 +14,4 @@ lightspeed.trex.properties_pane.shared.mod_setup.widget
     :undoc-members:
     :show-inheritance:
     :imported-members:
-    :exclude-members:
+    :exclude-members: partial

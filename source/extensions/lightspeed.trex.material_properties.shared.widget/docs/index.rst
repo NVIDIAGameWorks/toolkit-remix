@@ -15,4 +15,4 @@ lightspeed.trex.material_properties.shared.widget
     :undoc-members:
     :show-inheritance:
     :imported-members:
-    :exclude-members:
+    :exclude-members: partial

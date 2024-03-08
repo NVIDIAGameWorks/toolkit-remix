@@ -14,4 +14,4 @@ lightspeed.trex.project_wizard.window
     :undoc-members:
     :show-inheritance:
     :imported-members:
-    :exclude-members:
+    :exclude-members: partial

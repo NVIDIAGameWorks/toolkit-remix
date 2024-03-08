@@ -8,7 +8,7 @@ changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
 keywords = ["remix", "capture", "tree", "model"]
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
 
 [dependencies]

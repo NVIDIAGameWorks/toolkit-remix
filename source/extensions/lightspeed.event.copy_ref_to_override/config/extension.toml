@@ -8,7 +8,7 @@ keywords = ["event", "layer", "manager", "copy", "ref", "override"]
 title = "Lightspeed Event Copy reference to override"
 description = "Lightspeed Event that will copy the reference of a prim on the layer that override the prim"
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
 
 

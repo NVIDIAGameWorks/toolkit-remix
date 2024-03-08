@@ -7,8 +7,9 @@ changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
 keywords = ["layout", "mass", "ingestion", "ingest"]
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.layout.shared.mass_ingestion"
 
 [dependencies]
 "lightspeed.trex.contexts" = {}

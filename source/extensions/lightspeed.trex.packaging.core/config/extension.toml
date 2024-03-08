@@ -4,11 +4,12 @@ authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "Mod Packaging Core"
 description = "Mod Packaging Core implementation"
 readme = "docs/README.md"
-category = "Core"
+category = "internal"
 keywords = ["kit", "lightspeed", "packaging", "core"]
 changelog = "docs/CHANGELOG.md"
-preview_image = "data/images/preview.png"
-icon = "data/images/icon.png"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.packaging.core"
 
 [dependencies]
 "lightspeed.common" = {}

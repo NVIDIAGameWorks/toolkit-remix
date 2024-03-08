@@ -16,7 +16,7 @@ readme  = "docs/README.md"
 repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.tool.octahedral_converter"
 
 # One of categories for UI.
-category = "Utility"
+category = "internal"
 
 # Keywords for the extension
 keywords = ["octahedral", "normal", "texture", "converter"]

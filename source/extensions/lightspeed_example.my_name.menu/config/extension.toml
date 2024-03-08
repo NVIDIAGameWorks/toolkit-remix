@@ -5,6 +5,11 @@ changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
 icon = "data/icon.png"
 preview_image = "data/preview.png"
+version = "1.0.0"
+authors = [ "Damien Bataille <dbataille@nvidia.com>",]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed_example.my_name.menu"
+category = "example"
+keywords = [ "remix",]
 
 [dependencies]
 "omni.kit.menu.utils" = {}

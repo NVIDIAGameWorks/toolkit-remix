@@ -1,4 +1,6 @@
-# Overview
+# lightspeed.trex.packaging.core
+
+## Overview
 
 Core extension used to package mods for distribution.
 

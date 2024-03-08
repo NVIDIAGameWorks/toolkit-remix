@@ -2,6 +2,14 @@
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Properties Pane Mod Packaging widget for the StageCraft"
 description = "Mod Packaging Properties Pane widget for NVIDIA RTX Remix StageCraft App"
+version = "1.0.0"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.properties_pane.shared.mod_packaging.widget"
+category = "internal"
+keywords = [ "remix",]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
 
 [dependencies]
 "lightspeed.error_popup.window" = {}

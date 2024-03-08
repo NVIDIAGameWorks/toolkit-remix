@@ -13,4 +13,5 @@ Added 'is_remix_supported' function to request support of Remix renderer, and a 
 Removed RTX IO
 
 ## [0.1.0] - 2023-10-12
-Created
+### Added
+- Created

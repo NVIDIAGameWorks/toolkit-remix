@@ -5,5 +5,8 @@ changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
 icon = "data/icon.png"
 preview_image = "data/preview.png"
-
-authors = ["Damien Bataille <dbataille@nvidia.com>"]
+authors = [ "Damien Bataille <dbataille@nvidia.com>",]
+version = "1.0.0"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed_example.app.resources"
+category = "example"
+keywords = [ "remix",]

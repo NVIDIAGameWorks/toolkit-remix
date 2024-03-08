@@ -1,7 +1,5 @@
-example.python_ext
-###########################
-
-Example of Python only extension
+lightspeed.color_to_roughness.menu
+###################################
 
 
 .. toctree::
@@ -11,7 +9,7 @@ Example of Python only extension
    CHANGELOG
 
 
-.. automodule:: example.python_ext
+.. automodule:: lightspeed.color_to_roughness.menu
     :platform: Windows-x86_64, Linux-x86_64
     :members:
     :undoc-members:

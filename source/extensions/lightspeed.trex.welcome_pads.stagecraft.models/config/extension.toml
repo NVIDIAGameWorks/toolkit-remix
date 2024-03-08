@@ -2,6 +2,14 @@
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Welcome Pads implementation for the StageCraft"
 description = "Welcome Pads implementation for NVIDIA RTX Remix StageCraft App"
+version = "1.0.0"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.welcome_pads.stagecraft.models"
+category = "internal"
+keywords = [ "remix",]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
 
 [dependencies]
 "omni.flux.utils.widget" = {}

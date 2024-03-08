@@ -10,7 +10,9 @@ build_doc:
   tags:
     - linux
   needs:
-    - job: build_test
+    - job: build_publish_validation_test_win
+      artifacts: true
+    - job: build_publish_validation_test_linux
       artifacts: true
   before_script:
     - ./build.sh --clean --release

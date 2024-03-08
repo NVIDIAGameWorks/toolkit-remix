@@ -8,7 +8,7 @@ keywords = ["remix", "app", "ressouces"]
 title = "NVIDIA RTX Remix Resources"
 description = "This Extension contains resources (images, icons) used by NVIDIA RTX Remix and splash screen."
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
 
 [core]

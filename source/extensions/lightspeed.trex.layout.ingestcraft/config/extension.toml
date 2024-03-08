@@ -7,8 +7,9 @@ changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
 keywords = ["layout", "ingestcraft", "ingest"]
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.layout.ingestcraft"
 
 [dependencies]
 "lightspeed.common" = {}
@@ -38,3 +39,9 @@ args = [
 
 [[python.module]]
 name = "lightspeed.trex.layout.ingestcraft"
+
+[dependencies."lightspeed.common"]
+
+[dependencies."lightspeed.trex.contexts"]
+
+[dependencies."lightspeed.trex.layout.shared.mass_ingestion"]

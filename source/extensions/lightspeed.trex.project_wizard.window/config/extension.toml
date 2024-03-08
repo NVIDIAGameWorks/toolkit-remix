@@ -10,12 +10,15 @@ description = "The widget generates project configuration that's then fed to the
 title = "NVIDIA RTX Remix Project Wizard Widget"
 
 # One of categories for UI.
-category = "Core"
+category = "internal"
 
 # Keywords for the extension
 keywords = ["lightspeed", "rtx", "remix", "project", "wizard", "core"]
 icon = "data/icon.png"
 preview_image = "data/preview.png"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.project_wizard.window"
+changelog = "docs/CHANGELOG.md"
 
 [dependencies]
 "lightspeed.error_popup.window" = {}

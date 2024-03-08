@@ -1,7 +1,5 @@
-example.python_ext
+lightspeed.layer_manager
 ###########################
-
-Example of Python only extension
 
 
 .. toctree::
@@ -11,7 +9,7 @@ Example of Python only extension
    CHANGELOG
 
 
-.. automodule:: example.python_ext
+.. automodule:: lightspeed.layer_manager
     :platform: Windows-x86_64, Linux-x86_64
     :members:
     :undoc-members:

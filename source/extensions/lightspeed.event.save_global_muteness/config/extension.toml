@@ -11,7 +11,7 @@ keywords = ["event", "custom", "data", "manager", "layer"]
 title = "Lightspeed Event Layers Save custom data"
 description = "Extension that save the Omniverse custom layer data"
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
 
 

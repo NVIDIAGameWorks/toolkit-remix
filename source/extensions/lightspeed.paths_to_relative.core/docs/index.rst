@@ -1,7 +1,5 @@
-example.python_ext
-###########################
-
-Example of Python only extension
+lightspeed.paths_to_relative.core
+##################################
 
 
 .. toctree::
@@ -11,7 +9,7 @@ Example of Python only extension
    CHANGELOG
 
 
-.. automodule:: example.python_ext
+.. automodule:: lightspeed.paths_to_relative.core
     :platform: Windows-x86_64, Linux-x86_64
     :members:
     :undoc-members:

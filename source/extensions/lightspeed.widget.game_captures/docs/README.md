@@ -1,1 +1,1 @@
-# lightspeed.widget.new_workspace
+# lightspeed.widget.game_captures
