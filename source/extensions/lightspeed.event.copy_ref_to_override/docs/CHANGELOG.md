@@ -10,4 +10,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Always set the bake layer at the bottom of the stack
 
 ## [1.0.0] - 2023-03-30
-Created
+### Added
+- Created

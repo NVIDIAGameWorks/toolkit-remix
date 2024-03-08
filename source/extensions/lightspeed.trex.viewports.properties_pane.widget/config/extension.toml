@@ -2,6 +2,14 @@
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Viewports Properties Pane implementation"
 description = "Viewports Properties Pane implementation for NVIDIA RTX Remix App"
+version = "1.0.0"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.viewports.properties_pane.widget"
+category = "internal"
+keywords = [ "remix",]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
 
 [dependencies]
 "lightspeed.trex.properties_pane.shared.camera.widget" = {}

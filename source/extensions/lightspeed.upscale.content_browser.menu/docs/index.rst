@@ -1,7 +1,5 @@
-example.python_ext
-###########################
-
-Example of Python only extension
+lightspeed.upscale.content_browser.menu
+########################################
 
 
 .. toctree::
@@ -11,7 +9,7 @@ Example of Python only extension
    CHANGELOG
 
 
-.. automodule:: example.python_ext
+.. automodule:: lightspeed.upscale.content_browser.menu
     :platform: Windows-x86_64, Linux-x86_64
     :members:
     :undoc-members:

@@ -8,7 +8,7 @@ keywords = ["remix", "viewport", "camera"]
 title = "NVIDIA RTX Remix Viewports Menubar Camera implementation"
 description = "Viewports Menubar Camera implementation for NVIDIA RTX Remix App"
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
 
 [dependencies]

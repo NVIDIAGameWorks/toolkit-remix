@@ -8,7 +8,7 @@ keywords = ["remix", "viewport", "manipulators"]
 title = "NVIDIA RTX Remix Viewports implementation for the StageCraft"
 description = "Viewports implementation for NVIDIA RTX Remix StageCraft App"
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
 
 [dependencies]

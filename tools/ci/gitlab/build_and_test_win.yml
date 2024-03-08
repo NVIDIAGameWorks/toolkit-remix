@@ -1,0 +1,19 @@
+build_publish_validation_test_win:
+  extends: .defaults
+  stage: build_test
+  needs:
+    - check-code-lint
+  variables:
+    DXVK_CONFIG_FILE: '.\source\extensions\lightspeed.hydra.remix.core\lightspeed\trex\hydra\remix\data\tests\dxvk.conf'
+  before_script:
+    - .\build.bat --clean --release
+  script:
+    - .\build.bat --release
+    - .\repo.bat publish_exts --verify
+    - .\repo.bat test -s alltests
+    - .\repo.bat package --mode main_package --platform windows-x86_64 --config release
+  # Artifacts required to make the publishing step work
+  artifacts:
+    when: on_success
+    paths:
+    - _build/packages

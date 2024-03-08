@@ -1,4 +1,4 @@
-# Lightspeed Light Gizmo [lightspeed.light.gizmos]
+# lightspeed.light.gizmos
 
 Light icons for HdRemix
 

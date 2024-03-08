@@ -7,8 +7,9 @@ changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
 keywords = ["asset", "replacement", "core"]
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.asset_replacements.core.shared"
 
 [dependencies]
 "lightspeed.common" = {}

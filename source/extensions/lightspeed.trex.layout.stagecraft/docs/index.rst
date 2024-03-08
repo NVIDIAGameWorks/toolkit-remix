@@ -15,4 +15,4 @@ lightspeed.trex.layout.stagecraft
     :undoc-members:
     :show-inheritance:
     :imported-members:
-    :exclude-members:
+    :exclude-members: partial

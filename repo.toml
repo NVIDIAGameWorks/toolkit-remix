@@ -25,6 +25,7 @@ path = "${test_root}"
 include = [
     "tests-lightspeed.*${shell_ext}"
 ]
+"platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
 exclude = []
 
 "platform:linux-x86_64".exclude = []
@@ -52,6 +53,7 @@ path = "${test_root}"
 include = [
     "tests-lightspeed.*${shell_ext}"
 ]
+"platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
 exclude = []
 "platform:linux-x86_64".exclude = []
 args = [
@@ -80,6 +82,7 @@ path = "${test_root}"
 include = [
     "tests-lightspeed.*${shell_ext}"
 ]
+"platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
 exclude = []
 "platform:linux-x86_64".exclude = []
 args = [
@@ -177,8 +180,14 @@ configs = ["release"]
 platforms = ["windows-x86_64"]
 
 # Extensions to publish, include and exclude among those discovered by kit. Wildcards are supported.
-exts.include = []
-exts.exclude = []
+exts.include = [
+    "lightspeed.*"
+]
+exts."platform:linux-x86_64".include = ["lightspeed.pip_archive.*"]  # we only test pip archive for linux
+exts.exclude = [
+    "lightspeed.app.*",
+    "lightspeed_example.*",
+]
 
 # verify before publishing
 publish_verification = true

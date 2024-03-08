@@ -7,4 +7,4 @@ Extensions
 
    lightspeed.progress_popup.window/**/index
    lightspeed.trex.**/index
-   lightspeed.hydra.remix.core/**/index
+   lightspeed.hydra.remix.**/index

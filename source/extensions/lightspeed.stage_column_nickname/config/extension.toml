@@ -16,7 +16,7 @@ readme  = "docs/README.md"
 repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.stage_column_nickname"
 
 # One of categories for UI.
-category = "other"
+category = "internal"
 
 # Keywords for the extension
 keywords = ["stage", "nickname", "lightspeed", "lss"]

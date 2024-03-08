@@ -8,7 +8,7 @@ keywords = ["event", "layer", "manager", "copy", "camera", "capture"]
 title = "Lightspeed Event Copy Capture Perspertive to Perspertive"
 description = "Lightspeed Event that will copy the perspertive camera from the capture layer to the regular perspertive"
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
 
 [dependencies]

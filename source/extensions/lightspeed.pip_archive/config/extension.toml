@@ -1,6 +1,21 @@
 [package]
 title = "Pip Archive"
-category = "Internal"
+category = "internal"
+version = "1.0.0"
+authors = [ "Damien Bataille <dbataille@nvidia.com>",]
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.pip_archive"
+keywords = [ "remix",]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+description="Python library from PIP used by this repo."
+
+# publish to each platform & kit version separately
+writeTarget.platform = true
+
+[package.target]
+python = ["cp310"]
 
 [core]
 # Load as early as possible

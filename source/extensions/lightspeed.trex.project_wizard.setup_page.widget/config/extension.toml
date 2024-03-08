@@ -10,15 +10,16 @@ description = "A page used to setup a project"
 title = "NVIDIA RTX Remix Project Wizard Setup Page Widget"
 
 # One of categories for UI.
-category = "Widget"
+category = "internal"
 
 # Keywords for the extension
 keywords = ["lightspeed", "rtx", "remix", "project", "wizard", "widget", "setup", "page"]
 
 readme = "docs/README.md"
 changelog = "docs/CHANGELOG.md"
-preview_image = "data/images/preview.png"
-icon = "data/images/icon.png"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.project_wizard.setup_page.widget"
 
 [dependencies]
 "lightspeed.common" = {}

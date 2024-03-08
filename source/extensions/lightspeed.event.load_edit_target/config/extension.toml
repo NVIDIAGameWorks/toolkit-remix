@@ -8,7 +8,7 @@ keywords = ["event", "project", "edit", "target"]
 title = "Lightspeed Event Load Edit Target"
 description = "Extension that sets the edit target to the one saved in the project file on stage open"
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
 
 [dependencies]

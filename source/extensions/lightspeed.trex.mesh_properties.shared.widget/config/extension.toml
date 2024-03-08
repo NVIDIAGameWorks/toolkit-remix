@@ -7,8 +7,9 @@ changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
 keywords = ["mesh", "properties", "widget"]
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.mesh_properties.shared.widget"
 
 [dependencies]
 "lightspeed.trex.asset_replacements.core.shared" = {}

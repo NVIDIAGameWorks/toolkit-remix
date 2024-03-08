@@ -15,4 +15,4 @@ lightspeed.trex.selection_tree.shared.widget
     :undoc-members:
     :show-inheritance:
     :imported-members:
-    :exclude-members:
+    :exclude-members: partial

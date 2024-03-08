@@ -1,7 +1,5 @@
-example.python_ext
+lightspeed_example.style
 ###########################
-
-Example of Python only extension
 
 
 .. toctree::
@@ -11,7 +9,7 @@ Example of Python only extension
    CHANGELOG
 
 
-.. automodule:: example.python_ext
+.. automodule:: lightspeed_example.style
     :platform: Windows-x86_64, Linux-x86_64
     :members:
     :undoc-members:

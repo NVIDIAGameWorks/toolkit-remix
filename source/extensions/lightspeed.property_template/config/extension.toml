@@ -7,7 +7,7 @@ readme = "docs/README.md"
 keywords = ["property", "template", "properties"]
 title = "Lightspeed Property template"
 description = "Alterations to the property window for Lightspeed content."
-category = "other"
+category = "internal"
 icon = "icons/find.png"
 preview_image = "data/preview.png"
 

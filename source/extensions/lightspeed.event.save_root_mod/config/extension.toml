@@ -8,7 +8,7 @@ keywords = ["event", "save", "manager", "mod"]
 title = "Lightspeed Event Save Root Mod"
 description = "Extension that saves the root mod layer whenever a layer is saved"
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
 
 [dependencies]

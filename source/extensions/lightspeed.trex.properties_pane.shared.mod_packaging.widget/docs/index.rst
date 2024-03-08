@@ -14,4 +14,4 @@ lightspeed.trex.properties_pane.shared.mod_packaging.widget
     :undoc-members:
     :show-inheritance:
     :imported-members:
-    :exclude-members: contextmanager
+    :exclude-members: contextmanager,partial

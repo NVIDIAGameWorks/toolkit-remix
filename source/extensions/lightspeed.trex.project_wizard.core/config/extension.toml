@@ -14,10 +14,11 @@ icon = "data/icon.png"
 preview_image = "data/preview.png"
 
 # One of categories for UI.
-category = "Core"
+category = "internal"
 
 # Keywords for the extension
-keywords = ["lightspeed", "rtx", "remix", "project", "wizard", "core"]
+keywords = [ "lightspeed", "rtx", "remix", "project", "wizard", "core"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.project_wizard.core"
 
 [settings.exts."lightspeed.trex.project_wizard.core"]
 force_use_junction = false  # windows only

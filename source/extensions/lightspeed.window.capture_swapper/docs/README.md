@@ -1,1 +1,1 @@
-# lightspeed.window.welcome
+# lightspeed.window.capture_swapper
