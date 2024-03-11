@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1] - 2024-02-15
+### Fixed
+- Header and spacing system
+
 ## [1.2.0] - 2024-02-12
 ### Added
 - Added more comprehensive column headers and tooltips to the captures list
