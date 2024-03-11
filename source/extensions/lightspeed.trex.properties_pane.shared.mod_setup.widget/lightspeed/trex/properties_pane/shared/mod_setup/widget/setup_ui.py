@@ -238,6 +238,7 @@ class ModSetupPane:
                         ui.Spacer(width=ui.Pixel(8))
                         with ui.VStack():
                             ui.Spacer(height=ui.Pixel(8))
+                            # TODO BUG OM-52829: TreeView vertical size does not account for header visibility
                             self._capture_tree_view_window = ui.TreeView(
                                 self._capture_tree_model,
                                 delegate=self._capture_tree_delegate_window,
@@ -247,7 +248,7 @@ class ModSetupPane:
                                 name="PropertiesPaneSectionCapture",
                                 selection_changed_fn=self._on_capture_window_tree_selection_changed,
                             )
-                            ui.Spacer(height=ui.Pixel(32))
+                            ui.Spacer(height=ui.Pixel(32))  # TODO: Set to 8 pixels once OM-52829 is resolved
                         ui.Spacer(width=ui.Pixel(8))
         self._window_capture_tree.frame.set_computed_content_size_changed_fn(
             functools.partial(
