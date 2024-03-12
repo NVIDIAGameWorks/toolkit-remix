@@ -1,0 +1,7 @@
+check-changelog:
+  extends: .defaults
+  stage: check_changelog
+  tags:
+    - linux
+  script:
+    - ./repo.sh check_changelog

@@ -1,7 +1,8 @@
 check-code-format:
   extends: .defaults
   stage: check_format
-  needs: []
+  needs:
+      - check-changelog
   variables:
       GIT_STRATEGY: clone
       GIT_DEPTH: 0 #get all previous commits to know the files that changed

@@ -11,6 +11,7 @@ variables:
   AWS_SECRET_ACCESS_KEY: $AWS_OMNIVERSEDOCS_SECRET_ACCESS_KEY
 
 stages:
+  - check_changelog
   - check_format
   - check_lint
   - build_test
@@ -19,6 +20,7 @@ stages:
   - pkg_publish
 
 include:
+  - local: tools/ci/gitlab/check_changelog.yml
   - local: tools/ci/gitlab/check_format.yml
   - local: tools/ci/gitlab/check_lint.yml
   - local: tools/ci/gitlab/build_and_test_linux.yml
