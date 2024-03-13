@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.4] - 2024-03-05
+### Changed
+- Changed the merge config reference for the mdl path for tests
+- Now the `.kit` within `trex.app.resources` is referenced
+
 ## [2.0.3] - 2024-02-21
 ### Changed
 - Changed "Import" to "Ingestion"

@@ -45,6 +45,7 @@ class Setup:
             "_sub_key_redo": None,
             "_sub_key_save": None,
             "_sub_key_save_as": None,
+            "_sub_key_unselect_all": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -80,6 +81,7 @@ class Setup:
         # save and save-as will trigger regardless of the current layout screen
         self._sub_key_save = hotkey_manager.subscribe_hotkey_event(_TrexHotkeyEvent.CTRL_S, self._on_save)
         self._sub_key_save_as = hotkey_manager.subscribe_hotkey_event(_TrexHotkeyEvent.CTRL_SHIFT_S, self._on_save_as)
+        self._sub_key_unselect_all = hotkey_manager.subscribe_hotkey_event(_TrexHotkeyEvent.ESC, self._on_unselect_all)
 
         self._sub_menu_workfile_save = self._menu_workfile_instance.subscribe_save(self._on_save)
         self._sub_menu_workfile_save_as = self._menu_workfile_instance.subscribe_save_as(self._on_save_as)
@@ -126,6 +128,9 @@ class Setup:
 
     def _on_save(self):
         self._stage_core_setup.save()
+
+    def _on_unselect_all(self):
+        self._context.get_selection().clear_selected_prim_paths()
 
     def _on_undo(self):
         self._stage_core_setup.undo()

@@ -1,5 +1,5 @@
 [package]
-version = "1.1.1"
+version = "1.1.2"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -33,7 +33,7 @@ args = [
     # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
     # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
     # Need to use a .kit file
-    "--merge-config=${kit}/../exts/lightspeed.event.capture_persp_to_persp/data/tests/lightspeed.event.capture_persp_to_persp.core_material.kit"
+    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
 ]
 
 dependencies = [

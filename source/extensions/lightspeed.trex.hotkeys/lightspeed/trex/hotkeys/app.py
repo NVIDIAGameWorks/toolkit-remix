@@ -64,6 +64,8 @@ class TrexHotkeyEvent(HotkeyEvent):
     )
     # frame selection as in a viewport
     F = KeyCombination(carb.input.KeyboardInput.F)
+    # to unselect all selected objects
+    ESC = KeyCombination(carb.input.KeyboardInput.ESCAPE)
 
 
 class HotkeyManager:

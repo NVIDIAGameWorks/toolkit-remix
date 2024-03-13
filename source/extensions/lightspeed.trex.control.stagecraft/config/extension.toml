@@ -24,17 +24,28 @@ icon = "data/icon.png"
 "lightspeed.trex.utils.widget" = {}
 "omni.flux.utils.common" = {}
 
+[[python.module]]
+name = "lightspeed.trex.control.stagecraft"
+
 [[test]]
-dependencies = [
-    "lightspeed.trex.app.resources",
-    "lightspeed.trex.app.style"
-]
+
 args = [
     "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
     "--/app/hangDetector/enabled=0",
     "--/app/fastShutdown=1",
-    "--no-window"
+    "--no-window",
+    "--/app/file/ignoreUnsavedOnExit=1",
+    # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+    # Need to use a .kit file
+    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
 ]
 
-[[python.module]]
-name = "lightspeed.trex.control.stagecraft"
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style",
+    "omni.flux.utils.widget",
+    "omni.kit.ui_test",
+    "omni.kit.test_suite.helpers",
+    "omni.usd"
+]
