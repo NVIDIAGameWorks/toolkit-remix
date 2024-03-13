@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1] - 2024-03-05
+### Changed
+- Changed the merge config reference for the mdl path for tests
+- Now the `.kit` within `trex.app.resources` is referenced
+
 ## [1.2.0] - 2023-12-11
 ### Added
 - Expose `get_viewport_api()`

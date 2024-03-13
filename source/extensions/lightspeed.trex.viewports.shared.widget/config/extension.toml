@@ -1,5 +1,5 @@
 [package]
-version = "1.2.0"
+version = "1.2.1"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Viewports implementation"
 description = "Viewports implementation for NVIDIA RTX Remix App"
@@ -48,8 +48,7 @@ args = [
     # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
     # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
     # Need to use a .kit file
-    "--merge-config=${kit}/../exts/lightspeed.trex.viewports.shared.widget/data/tests/lightspeed.trex.viewports.shared.widget.core_material.kit"
-
+    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
 ]
 
 stdoutFailPatterns.exclude = [
