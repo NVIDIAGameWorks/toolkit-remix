@@ -7,4 +7,4 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-from .e2e import *
+from .e2e.test_widget import *

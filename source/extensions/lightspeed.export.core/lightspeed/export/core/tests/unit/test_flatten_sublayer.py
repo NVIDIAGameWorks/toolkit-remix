@@ -1,13 +1,15 @@
 from pathlib import Path
 
+import carb.tokens
 import omni.kit.test
+import omni.usd
 from pxr import Sdf, Usd
 
 
-class TestlattenSublayersCommand(omni.kit.test.AsyncTestCase):
+class TestFlattenSublayersCommand(omni.kit.test.AsyncTestCase):
     # Before running each test
     async def setUp(self):
-        self._dataFolder = Path(__file__).parent.parent.parent.parent.parent.joinpath("data", "tests")
+        self._dataFolder = Path(carb.tokens.get_tokens_interface().resolve("${lightspeed.export.core}/data/tests"))
         self._context = omni.usd.create_context()
         self._context.open_stage(str(self._dataFolder / "flatten_sublayer_test_root.usda"))
         self._stage = self._context.get_stage()

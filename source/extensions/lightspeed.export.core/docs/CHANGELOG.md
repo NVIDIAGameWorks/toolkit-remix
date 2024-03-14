@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.1] - 2024-03-13
+### Fixed
+- Corrected imports
+
 ## [0.1.0] - 2022-09-29
 ### Added
 - Created

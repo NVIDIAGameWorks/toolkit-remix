@@ -2,6 +2,10 @@
 
 lightspeed.light.gizmos
 
+## [1.0.3] - 2024-03-13
+### Changed
+- Moved e2e test to its own directory
+
 ## [1.0.2] - 2024-01-24
 ### Changed
 - Improved listener and skip event that are not from a property
