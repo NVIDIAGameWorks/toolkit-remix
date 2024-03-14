@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.6] - 2024-03-13
+### Changed
+- Moved e2e test to its own directory
+
 ## [1.0.5] - 2024-02-07
 ### Added
 - Added duplicate button for stage lights in selection tree

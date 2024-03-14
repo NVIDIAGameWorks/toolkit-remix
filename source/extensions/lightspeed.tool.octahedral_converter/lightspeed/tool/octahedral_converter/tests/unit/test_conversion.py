@@ -15,9 +15,8 @@ import carb.tokens
 import numpy as np
 import omni.kit.test
 import omni.usd
+from lightspeed.tool.octahedral_converter import LightspeedOctahedralConverter
 from PIL import Image
-
-from ..octahedral_converter_core import LightspeedOctahedralConverter
 
 
 class Test(omni.kit.test.AsyncTestCaseFailOnLogError):

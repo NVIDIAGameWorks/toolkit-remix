@@ -8,6 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import omni.kit.test
+import omni.usd
 from carb.input import KeyboardInput
 from lightspeed.layer_manager.constants import LSS_LAYER_MOD_NAME, LSS_LAYER_MOD_NOTES, LSS_LAYER_MOD_VERSION
 from lightspeed.trex.mod_packaging_details.widget import ModPackagingDetailsWidget

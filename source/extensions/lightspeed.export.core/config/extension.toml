@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.1.0"
+version = "0.1.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alex Dunn <adunn@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -38,6 +38,7 @@ icon = "data/icon.png"
 "omni.client" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.usd.collect" = {}
+"omni.usd" = {}
 
 [[python.module]]
 name = "lightspeed.export.core"

@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.1] - 2024-03-13
+### Changed
+- Moved e2e test to its own directory
+
 ## [1.3.0] - 2024-02-16
 ### Added
 - Added a refresh button for the capture file list

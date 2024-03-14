@@ -9,14 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added the CHANGELOG.md file and CI check for it
 - REMIX-2734: Unselect all objects with ESC
+- REMIX-2667: Added the CHANGELOG.md file and CI check for it
 
 ### Changed
 
+- REMIX-2866: Moved tests into 'e2e' or 'unit' subdirectories
 
 ### Fixed
 
+- REMIX-2866: Corrected imports in several test directories
 
 ### Removed
 
