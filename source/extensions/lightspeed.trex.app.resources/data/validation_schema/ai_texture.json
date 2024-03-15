@@ -10,6 +10,7 @@
                 "allow_empty_input_files_list": true,
                 "data_flows": [{"name": "InOutData", "push_input_data": true}],
                 "hide_context_ui": true,
+                "create_context_if_not_exist": true,
                 "expose_mass_ui": true,
                 "cook_mass_template": true
             }

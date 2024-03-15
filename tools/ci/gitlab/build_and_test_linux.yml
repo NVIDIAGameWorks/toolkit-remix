@@ -11,6 +11,7 @@ build_publish_validation_test_linux:
     - set -eu
     - ./build.sh --config release
     - fail_wr=0
+    - ./_build/linux-x86_64/release/lightspeed.app.trex.ingestcraft.cli.sh -h  # test that the ingestion CLI is not broken
     - ./repo.sh publish_exts --verify
     - ./repo.sh test -s alltests
     - echo "WinRel=${fail_wr}"

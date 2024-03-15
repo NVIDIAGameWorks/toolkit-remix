@@ -33,7 +33,7 @@ The RTX Remix Toolkit is your go-to for refining game capture assets by removing
 
 ## CLI Asset Ingestion Tool (Advanced)
 
-For advanced users there is a CLI tool that can be used to ingest large batches of assets. 
+For advanced users there is a CLI tool that can be used to ingest large batches of assets.
 
 ### Finding Install Directory
 
@@ -63,11 +63,9 @@ Follow these steps to run the CLI Asset Ingestion Tool for customizing your asse
 3. Execute Commands in CMD:
     * Open a cmd window.
     * Navigate to the installation location of the app.
-    * Execute the following commands (replace REMIX_INSTALLATION_DIRECTORY with the appropriate value):
-        ```text
-        SET REMIX=C:\REMIX_INSTALLATION_DIRECTORY
-
-        "%REMIX%\extscache\omni.flux.validator.mass.core\bin\cli.bat" -s SCHEMA_PATH -e omni.flux.validator.plugin.check.usd omni.flux.validator.plugin.context.usd_stage omni.flux.validator.plugin.resultor.file omni.flux.validator.plugin.selector.usd -x--/renderer/mdl/searchPaths/templates="%REMIX%/omni_core_materials/Base;%REMIX%/kit/mdl/core/Base;%REMIX%/kit/mdl/core/Volume;%REMIX%/kit/mdl/core/mdl" -ex 1
+    * Execute the following commands:
+        ```bat
+        lightspeed.app.trex.ingestcraft.cli.bat -s SCHEMA_PATH -ex 1
         ```
 4. Note on Arguments:
     * <code>-s</code>: Points to the path of the modified schema file.
@@ -109,7 +107,7 @@ Adding an Asset typically refers to incorporating a new Asset alongside existing
     * Assign the texture to one of seven channels: Diffuse, Emissive Mask, Metallic, Normal - OpenGL, Normal - DirectX, Roughness, or Other.
     * Opt for "Other" for a standardized ingestion without altering the name. This step is often automated, but choose "Other" for textures like heightmaps.
 4. **Set Output Directory:** Establish an output directory within your project file structure.
-5. **Initiate Ingestion:** 
+5. **Initiate Ingestion:**
     * Click "Run" to kickstart the texture export process.
     * The output directory will contain additional files, but all you need for in-game use is the converted DDS file.
 
@@ -124,7 +122,7 @@ Adding an Asset typically refers to incorporating a new Asset alongside existing
 
 ## Translucency
 
-Translucency is handled in the Ingestion process.  If a material has the word “translucent” or “glass” or “trans” in the name, it will be converted automatically into a translucent material. 
+Translucency is handled in the Ingestion process.  If a material has the word “translucent” or “glass” or “trans” in the name, it will be converted automatically into a translucent material.
 
 **Automatic Conversion during Ingestion:**
 

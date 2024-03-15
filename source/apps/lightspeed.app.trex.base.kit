@@ -21,7 +21,6 @@ This base experience regroup all extensions shared between all NVIDIA RTX Remix 
 [dependencies]
 # The Main UI App
 "omni.kit.uiapp" = {}
-"omni.kit.renderer.core" = {}
 "omni.kit.splash" = { order = -15000}
 
 # Trex shared extensions
@@ -38,11 +37,6 @@ This base experience regroup all extensions shared between all NVIDIA RTX Remix 
 # That will break linux otherwise, as version lock is platform agnostic currently.
 [dependencies."filter:platform"."windows-x86_64"]
 "omni.kit.window.modifier.titlebar" = { version = "105.1.10", exact = true }
-
-# Viewport and Renderer
-"omni.kit.renderer.capture" = {}
-
-"omni.kit.window.extensions" = {}
 
 # Allow MDL paths to resolve
 "omni.kit.material.library" = {}

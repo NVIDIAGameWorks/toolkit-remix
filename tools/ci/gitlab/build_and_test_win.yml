@@ -10,6 +10,7 @@ build_publish_validation_test_win:
   script:
     - .\build.bat --release
     - .\repo.bat publish_exts --verify
+    - .\_build\windows-x86_64\release\lightspeed.app.trex.ingestcraft.cli.bat -h  # test that the ingestion CLI is not broken
     - .\repo.bat test -s alltests
     - .\repo.bat package --mode main_package --platform windows-x86_64 --config release
   # Artifacts required to make the publishing step work

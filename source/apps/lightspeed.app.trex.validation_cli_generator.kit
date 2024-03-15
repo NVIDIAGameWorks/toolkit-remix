@@ -1,0 +1,91 @@
+[package]
+version = "2024.1.1"
+category = "Application"
+title = "NVIDIA RTX Remix IngestCraft CLI Generator"
+description = "Experience used to generate the shotcut of the Mass Ingestion CLI of Lightspeed"
+authors = ["Damien Bataille <dbataille@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+keywords = ["lightspeed", "rtx", "remix", "app", "ingestcraft", "CLI", "Generator"]
+changelog = """
+# NVIDIA RTX Remix IngestCraft CLI Generator
+"""
+readme = """
+# NVIDIA RTX Remix IngestCraft
+
+A tool to ingest asset(s) for RTX Remix
+"""
+
+[dependencies]
+# needed for the schema setting at the bottom
+"omni.flux.validator.mass.core" = {}
+
+[settings]
+"@import@" = [
+	"./lightspeed.app.trex.app.settings.toml",
+	"./lightspeed.app.rendering.settings.toml",
+]
+
+# Basic Kit App
+################################
+app.name = "RTX Remix IngestCraft CLI Generator"
+
+[settings.app.window]
+title = "NVIDIA RTX Remix IngestCraft CLI Generator"
+iconPath = "${lightspeed.trex.app.resources}/data/icons/nvidia-rtx-remix-icon-dbp-256.ico"
+
+
+[[test]]
+args = [
+	"--no-assert-dialog",
+	"--/rtx/materialDb/syncLoads=true",
+	"--/omni.kit.plugin/syncUsdLoads=true",
+	"--/rtx/hydra/materialSyncLoads=true",
+	"--/renderer/multiGpu/autoEnable=false",
+	"--/app/hydraEngine/skipStatusBarIdle=true",
+	"--/app/asyncRendering=false",
+	"--/renderer/debug/validation/enabled=false",
+	"--/renderer/enabled='rtx'",
+    "--no-window"
+]
+
+dependencies = [
+    "omni.kit.ui_test",
+    "omni.kit.test_suite.helpers"
+]
+
+stdoutFailPatterns.exclude = [
+	# This may be fixable by more tightly controlling initialization order,
+	# but it doesn't appear to actually cause any problems.
+  "*[omni.kit.scene_view.opengl] No UsdRender.Product was found at '{render_product_path}'*",
+]
+
+# We can run all extension tests inside of an app. In practice many of them failing and crashing, that requires time
+# investment to fix. Add one extension, to keep pipeline working:
+pythonTests.include = [
+]
+pythonTests.exclude = [
+]
+timeout = 600
+
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Kit SDK Version: 105.1.2+release.135279.09b309e7.tc
+
+# Version lock for all dependencies:
+[settings.app.exts]
+enabled = [
+	"omni.flux.info_icon.widget-1.1.1",
+	"omni.flux.pip_archive-1.8.2",
+	"omni.flux.utils.common-2.15.0",
+	"omni.flux.utils.widget-1.12.0",
+	"omni.flux.validator.factory-2.4.0",
+	"omni.flux.validator.manager.core-1.15.0",
+	"omni.flux.validator.mass.core-1.9.0",
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################
