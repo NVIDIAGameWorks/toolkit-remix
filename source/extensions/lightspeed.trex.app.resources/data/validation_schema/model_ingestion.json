@@ -11,6 +11,7 @@
                 "data_flows": [{"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "write_metadata"}],
                 "output_usd_extension": "usd",
                 "hide_context_ui": true,
+                "create_context_if_not_exist": true,
                 "ignore_unbound_bones": false,
                 "expose_mass_ui": true,
                 "expose_mass_queue_action_ui": true,
@@ -111,8 +112,8 @@
     ],
     "resultor_plugins": [
         {
-                "name": "FileCleanup",
-                "data": {"channel": "cleanup_files", "cleanup_output": false}
+            "name": "FileCleanup",
+            "data": {"channel": "cleanup_files", "cleanup_output": false}
         },
         {
             "name": "FileMetadataWritter",

@@ -157,18 +157,13 @@ release.files_exclude = [
 pre_build.commands = [
     ["${root}/_build/${platform}/${config}/pull_dependencies${shell_ext}"],
 ]
-pre_build."platform:windows-x86_64".commands = [
-    ["${root}/_build/${platform}/${config}/pull_dependencies${shell_ext}"],
-]
 
 # Multiple commands (processes) can be executed in order after build.
 # These have the same behavior as repo_build.pre_build.commands, except that they run after the build.
 post_build.commands = [
     ["${root}/repo${shell_ext}", "stubgen", "-c", "${config}"],
-]
-post_build."platform:windows-x86_64".commands = [
-    ["${root}/repo${shell_ext}", "stubgen", "-c", "${config}"],
-    ["${root}/_build/${platform}/${config}/lightspeed.app.trex.warmup${shell_ext}"],
+    # Generate a shortcut to run the Mass Ingestion CLI in LSS
+    ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/lightspeed.app.trex.validation_cli_generator.kit", "--no-window", "--/app/extensions/excluded/0='omni.kit.splash' --/app/extensions/excluded/1='omni.kit.window.splash' --/app/settings/persistent=0 --/app/settings/loadUserConfig=0 --/structuredLog/enable=0 --/app/hangDetector/enabled=0 --/crashreporter/skipOldDumpUpload=1 --/app/content/emptyStageOnStart=1", "--/app/file/ignoreUnsavedOnExit=1", "--/app/fastShutdown=1", "--/app/quitAfter=10", "--exec", "${root}/tools/custom/generate_mass_cli.py"],
 ]
 
 ########################################################################################################################
@@ -202,6 +197,8 @@ publish_verification = true
 apps = [
     "${root}/source/apps/lightspeed.app.trex.kit",
     "${root}/source/apps/lightspeed.app.trex.ingestcraft.kit",
+    "${root}/source/apps/lightspeed.app.trex.validation_cli.kit",
+    "${root}/source/apps/lightspeed.app.trex.validation_cli_generator.kit",
     "${root}/source/apps/lightspeed.app.trex.stagecraft.kit",
     "${root}/source/apps/lightspeed.app.trex.texturecraft.kit",
     "${root}/source/apps/lightspeed.app.trex_dev.kit",
