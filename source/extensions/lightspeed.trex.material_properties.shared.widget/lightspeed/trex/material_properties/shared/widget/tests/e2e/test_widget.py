@@ -142,7 +142,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertTrue(property_branches)
 
         # we expend
-        await property_branches[0].click()
+        await property_branches[1].click()
         texture_file_fields = ui_test.find_all(
             f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
         )
@@ -191,7 +191,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertTrue(property_branches)
 
         # we expend
-        await property_branches[0].click()
+        await property_branches[1].click()
         texture_file_fields = ui_test.find_all(
             f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
         )
@@ -244,7 +244,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertTrue(property_branches)
 
         # we expend
-        await property_branches[0].click()
+        await property_branches[1].click()
         texture_file_fields = ui_test.find_all(
             f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
         )
