@@ -1,0 +1,9 @@
+check-test-location:
+  extends: .defaults
+  stage: check_test_file_location
+  tags:
+    - linux
+  needs:
+    - check-changelog
+  script:
+    - ./repo.sh check_test_file_location
