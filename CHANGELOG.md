@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - REMIX-2640: Always use a group for material properties
+- REMIX-2868: Added CI tool to verify that all tests are in 'e2e' or 'unit' directories
 - REMIX-2734: Unselect all objects with ESC
 - REMIX-2667: Added the CHANGELOG.md file and CI check for it
 
