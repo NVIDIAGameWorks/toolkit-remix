@@ -17,8 +17,11 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 class Contexts(Enum):
     INGEST_CRAFT = "ingestcraft"
     TEXTURE_CRAFT = "texturecraft"
+    # TODO. Don't forget to change the value also in lightspeed.app.trex.stagecraft.kit
+    #  Note that this change may not be worth it because many core extensions like omni.kit.window.file
+    #  and others currently assume "" for single default context.
     # STAGE_CRAFT = "stagecraft"
-    STAGE_CRAFT = ""  # TODO. Don't forget to change the value also in lightspeed.app.trex.stagecraft.kit
+    STAGE_CRAFT = ""
 
 
 class _Setup:
