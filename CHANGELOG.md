@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2866: Moved tests into 'e2e' or 'unit' subdirectories
 
 ### Fixed
-
+- REMIX-2715 Fix various issues with the ColorField
 - REMIX-2866: Corrected imports in several test directories
 
 ### Removed
