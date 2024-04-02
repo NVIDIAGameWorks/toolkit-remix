@@ -7,5 +7,6 @@
 * distribution of this software and related documentation without an express
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
-from .test_hotkeys import TestHotkeys
-from .test_prompt_unsaved import TrexTestPromptIfUnsavedStage
+__all__ = ["EventShutdownExtension"]
+
+from .extension import EventShutdownExtension

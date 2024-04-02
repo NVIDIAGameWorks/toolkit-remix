@@ -19,6 +19,7 @@ from lightspeed.common.constants import WINDOW_NAME
 from omni.kit.mainwindow import get_main_window
 
 _HIDE_MENU = "/exts/lightspeed.trex.app.setup/hide_menu"
+_APP_WINDOW_SETTING = "/app/window/enabled"  # setting affected by "--no-window" arg
 
 
 class SetupUI:
@@ -122,6 +123,9 @@ class SetupUI:
     @omni.usd.handle_exception
     async def setup_render_settings_window(self, hide=False):
         """Temp solution TODO: OM-72923"""
+        # skip temp fix if app is launched with "--no-window" and there are no windows to find
+        if not carb.settings.get_settings().get(_APP_WINDOW_SETTING):
+            return
         # Wait for the render settings windows
         frame = 0
         while True:

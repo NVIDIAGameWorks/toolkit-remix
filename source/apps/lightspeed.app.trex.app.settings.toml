@@ -1,4 +1,5 @@
 [app]
+# Required to avoid a myriad of issues: Slow to close, crash on exit, wrong exit code...
 fastShutdown = true
 
 [app.audio]
@@ -16,7 +17,11 @@ file = "${lightspeed.trex.app.resources}/data/fonts/NVIDIASans_A_Rg.ttf"
 size = 16
 
 [app.file]
-ignoreUnsavedStage = true
+# ignore omni.kit.windows.file handling so we can have our own
+ignoreUnsavedStage = true  # skips initial save prompt
+ignoreUnsavedOnExit = true  # skips omni.kit.windows.file handling
+# Use this setting to disable our handling for tests
+trexIgnoreUnsavedOnExit = false  # default, but here for documentation purposes
 
 [app.menu]
 legacy_mode = false

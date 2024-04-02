@@ -12,11 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2868: Added CI tool to verify that all tests are in 'e2e' or 'unit' directories
 - REMIX-2734: Unselect all objects with ESC
 - REMIX-2667: Added the CHANGELOG.md file and CI check for it
+- REMIX-2492: Add a save prompt that shows up if the project has been modified when closing the app to prevent lost work
 
 ### Changed
 - REMIX-2692: Ingestion has the option to use an external process to run, which doesn't slow down the main app. Enabled by default.
 
 - REMIX-2866: Moved tests into 'e2e' or 'unit' subdirectories
+- REMIX-1081: Improved UX for going from an open project to saved one by consolidating 2 dialogs into 1 with Save, Save As, Don't Save, Cancel options.
 
 ### Fixed
 - REMIX-2715 Fix various issues with the ColorField

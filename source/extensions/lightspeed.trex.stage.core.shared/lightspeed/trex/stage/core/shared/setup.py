@@ -66,8 +66,8 @@ class Setup:
     def redo(self):
         omni.kit.undo.redo()
 
-    def save(self):
-        omni.kit.window.file.save()
+    def save(self, on_save_done: Callable[[bool, str], None] = None):
+        omni.kit.window.file.save(on_save_done=on_save_done)
 
     def save_as(self, on_save_done: Callable[[bool, str], None] = None):
         omni.kit.window.file.save_as(False, on_save_done=on_save_done)

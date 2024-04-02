@@ -34,7 +34,8 @@ args = [
     "--/app/extensions/registryEnabled=1",
     "--/app/hangDetector/enabled=0",
     "--/app/fastShutdown=1",
-    "--/app/file/ignoreUnsavedOnExit=true",
+    "--/app/file/trexIgnoreUnsavedOnExit=1",
+    "--/app/file/ignoreUnsavedOnExit=1",
     "--no-window"
 ]
 
