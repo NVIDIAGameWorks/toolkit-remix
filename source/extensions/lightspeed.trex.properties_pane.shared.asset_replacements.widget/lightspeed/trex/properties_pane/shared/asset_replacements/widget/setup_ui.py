@@ -8,7 +8,7 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 import functools
-from typing import Any, Callable
+from typing import Any, Callable, List
 
 import omni.client
 from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER as _GAME_READY_ASSETS_FOLDER
@@ -18,6 +18,10 @@ from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshProper
 from lightspeed.trex.replacement.core.shared import Setup as _AssetReplacementCore
 from lightspeed.trex.replacement.core.shared.layers import AssetReplacementLayersCore as _AssetReplacementLayersCore
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemPrim as _ItemPrim
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
+    ItemReferenceFileMesh as _ItemReferenceFileMesh,
+)
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui
 from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as _UsdBookmarkCollectionModel
@@ -216,6 +220,11 @@ class AssetReplacementsPane:
                                 "- Override(s) can be removed. The list shows the stronger layer (top) to "
                                 "the weaker layer (bottom).\n",
                                 collapsed=False,
+                                pinnable=True,
+                                pinned_text_fn=lambda: self._get_selection_name_by_type(
+                                    [_ItemReferenceFileMesh, _ItemPrim]
+                                ),
+                                unpinned_fn=self._refresh_mesh_properties_widget,
                             )
                             with self._mesh_properties_collapsable_frame:
                                 self._mesh_properties_widget = _MeshPropertiesWidget(self._context_name)
@@ -239,6 +248,9 @@ class AssetReplacementsPane:
                                 "- Override(s) can be removed. The list shows the stronger layer (top) to "
                                 "the weaker layer (bottom).\n",
                                 collapsed=False,
+                                pinnable=True,
+                                pinned_text_fn=lambda: self._get_selection_name_by_type([_ItemPrim]),
+                                unpinned_fn=self._refresh_material_properties_widget,
                             )
                             with self._material_properties_collapsable_frame:
                                 self._material_properties_widget = _MaterialPropertiesWidget(self._context_name)
@@ -260,6 +272,9 @@ class AssetReplacementsPane:
         self._sub_tree_selection_changed = self._selection_tree_widget.subscribe_tree_selection_changed(
             self._on_tree_selection_changed
         )
+        self._sub_tree_model_emptied = self._selection_tree_widget.subscribe_tree_model_emptied(
+            self._on_tree_selection_changed
+        )
 
         self._sub_go_to_ingest_tab1 = self._mesh_properties_widget.subscribe_go_to_ingest_tab(self._go_to_ingest_tab)
         self._sub_go_to_ingest_tab2 = self._selection_tree_widget.subscribe_go_to_ingest_tab(self._go_to_ingest_tab)
@@ -279,6 +294,21 @@ class AssetReplacementsPane:
     @property
     def selection_tree_widget(self):
         return self._selection_tree_widget
+
+    def _get_selection_name_by_type(self, selection_types: List):
+        selection = []
+        # get a selection based on desired types in descending order from selection_types
+        for selection_type in selection_types:
+            selection = self._selection_tree_widget.get_selection_by_type(selection_type)
+            if selection:
+                break
+
+        if not selection:
+            return "None Selected"
+        if len(selection) == 1:
+            formatted_name = "/".join(selection[0].path.split("/")[-2:]).lstrip("/")
+            return formatted_name if len(formatted_name) < 50 else "..." + formatted_name[-50:]
+        return "Multiple Selected"
 
     def __on_selection_collapsable_frame_changed(self, collapsed):
         self.__tree_selection_collapsed = collapsed
@@ -317,6 +347,8 @@ class AssetReplacementsPane:
         self._mesh_properties_collapsable_frame.root.rebuild()
 
     def _refresh_mesh_properties_widget(self):
+        if self._mesh_properties_collapsable_frame.pinned:
+            return
         if self.__tree_selection_collapsed:
             items = []
         else:
@@ -324,6 +356,8 @@ class AssetReplacementsPane:
         self._mesh_properties_widget.refresh(items)
 
     def _refresh_material_properties_widget(self):
+        if self._material_properties_collapsable_frame.pinned:
+            return
         if self.__tree_selection_collapsed:
             items = []
         else:

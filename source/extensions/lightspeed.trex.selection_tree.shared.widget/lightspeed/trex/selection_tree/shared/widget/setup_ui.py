@@ -59,6 +59,7 @@ class SetupUI:
             "_tree_scroll_frame": None,
             "_tree_view": None,
             "_manip_frame": None,
+            "_frame_none": None,
             "_slide_placer": None,
             "_slider_manip": None,
             "_tree_model": None,
@@ -99,6 +100,7 @@ class SetupUI:
         self._sub_tree_delegate_duplicate_prim = self._tree_delegate.subscribe_duplicate_prim(self._on_duplicate_prim)
         self._sub_tree_delegate_reset_ref = self._tree_delegate.subscribe_reset_released(self._on_reset_asset)
 
+        self.__on_tree_model_emptied = _Event()
         self.__create_ui()
 
         self.__on_tree_selection_changed = _Event()
@@ -154,6 +156,12 @@ class SetupUI:
         """
         return _EventSubscription(self.__on_tree_selection_changed, function)
 
+    def subscribe_tree_model_emptied(self, function: Callable[[], Any] = None):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_tree_model_emptied, function)
+
     def subscribe_delete_reference(self, function: Callable[["Usd.Prim", str], None]):
         return self._tree_delegate.subscribe_delete_reference(function)
 
@@ -170,6 +178,17 @@ class SetupUI:
             with self._manipulator_frame:
                 size_manipulator_height = 4
                 with ui.ZStack():
+                    self._frame_none = ui.Frame(visible=True, identifier="frame_none")
+                    with self._frame_none:
+                        with ui.VStack():
+                            ui.Spacer(height=ui.Pixel(8))
+                            with ui.HStack(height=ui.Pixel(24), spacing=ui.Pixel(8)):
+                                ui.Spacer(height=0)
+                                with ui.VStack(width=0):
+                                    ui.Spacer()
+                                    ui.Label("None", name="PropertiesWidgetLabel")
+                                    ui.Spacer()
+                                ui.Spacer(height=0)
                     with ui.VStack():
                         self._tree_scroll_frame = ui.ScrollingFrame(
                             name="PropertiesPaneSection",
@@ -390,11 +409,16 @@ class SetupUI:
             self._core.select_prim_paths(to_select, current_selection=current_selection)
             self._core.remove_reference(stage, item.prim.GetPath(), item.ref, item.layer)
 
-    def _on_tree_model_changed(self, _, __):
+    def _on_tree_model_changed(self, model, __):
         self._tree_delegate.reset()
         if self.__on_deferred_tree_model_changed_tack:
             self.__on_deferred_tree_model_changed_tack.cancel()
         self.__on_deferred_tree_model_changed_tack = asyncio.ensure_future(self._on_deferred_tree_model_changed())
+
+        self._frame_none.visible = False
+        if not model.get_all_items() and self.__on_tree_model_emptied is not None:
+            self._frame_none.visible = True
+            self.__on_tree_model_emptied(model)
 
     @omni.usd.handle_exception
     async def _on_deferred_tree_model_changed(self):
@@ -498,6 +522,11 @@ class SetupUI:
 
     def get_selection(self):
         return self._tree_view.selection if self._tree_view is not None else []
+
+    def get_selection_by_type(self, data_type):
+        if self._tree_view.selection is None:
+            return []
+        return [item for item in self._tree_view.selection if isinstance(item, data_type)]
 
     @_ignore_function_decorator(attrs=["_ignore_tree_selection_changed"])
     def _on_tree_selection_changed(self, items):
@@ -822,4 +851,5 @@ class SetupUI:
             self.__on_deferred_tree_model_changed_tack.cancel()
         self.__on_deferred_tree_model_changed_tack = None
         self.__on_tree_selection_changed = None
+        self.__on_tree_model_emptied = None
         _reset_default_attrs(self)

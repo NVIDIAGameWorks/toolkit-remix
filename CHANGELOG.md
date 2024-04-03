@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-1596: Drag and drop textures from filebrowser
 - REMIX-2667: Added the CHANGELOG.md file and CI check for it
 - REMIX-2492: Add a save prompt that shows up if the project has been modified when closing the app to prevent lost work
+- REMIX-2830: Attribute pinning and properties panel clearing
 
 ### Changed
 - REMIX-2692: Ingestion has the option to use an external process to run, which doesn't slow down the main app. Enabled by default.
