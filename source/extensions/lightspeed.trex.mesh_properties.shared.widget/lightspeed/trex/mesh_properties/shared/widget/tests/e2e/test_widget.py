@@ -74,10 +74,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
 
         # the frame None is visible
-        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
         frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
         frame_mesh_prim = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
-        self.assertTrue(frame_none.widget.visible)
+        for frame_none in none_frames:
+            self.assertTrue(frame_none.widget.visible)
         self.assertFalse(frame_mesh_ref.widget.visible)
         self.assertFalse(frame_mesh_prim.widget.visible)
 
@@ -96,10 +97,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # the frame mesh prim is visible
-        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
         frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
         frame_mesh_prim = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
-        self.assertFalse(frame_none.widget.visible)
+        for frame_none in none_frames:
+            self.assertFalse(frame_none.widget.visible)
         self.assertFalse(frame_mesh_ref.widget.visible)
         self.assertTrue(frame_mesh_prim.widget.visible)
 
@@ -123,10 +125,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await item_prims[0].click()
 
         # the frame mesh ref is visible
-        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
         frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
         frame_mesh_prim = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
-        self.assertFalse(frame_none.widget.visible)
+        for frame_none in none_frames:
+            self.assertFalse(frame_none.widget.visible)
         self.assertTrue(frame_mesh_ref.widget.visible)
         self.assertFalse(frame_mesh_prim.widget.visible)
 
@@ -143,10 +146,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # the properties are visible
-        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
         frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
         frame_mesh_prim = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
-        self.assertFalse(frame_none.widget.visible)
+        for frame_none in none_frames:
+            self.assertFalse(frame_none.widget.visible)
         self.assertFalse(frame_mesh_ref.widget.visible)
         self.assertTrue(frame_mesh_prim.widget.visible)
 
@@ -175,10 +179,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # the properties are visible
-        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
         frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
         frame_mesh_prim = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
-        self.assertFalse(frame_none.widget.visible)
+        for frame_none in none_frames:
+            self.assertFalse(frame_none.widget.visible)
         self.assertFalse(frame_mesh_ref.widget.visible)
         self.assertTrue(frame_mesh_prim.widget.visible)
 
@@ -209,10 +214,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # the properties are visible
-        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
         frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
         frame_mesh_prim = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
-        self.assertFalse(frame_none.widget.visible)
+        for frame_none in none_frames:
+            self.assertFalse(frame_none.widget.visible)
         self.assertFalse(frame_mesh_ref.widget.visible)
         self.assertTrue(frame_mesh_prim.widget.visible)
 

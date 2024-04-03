@@ -1,6 +1,9 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1] - 2024-04-03
+### Changed
+- Update tests to account for new none frame
 
 ## [1.2.0] - 2024-03-07
 ### Added

@@ -66,6 +66,8 @@ _WHITE_100 = 0xFFFFFFFF
 
 _YELLOW = 0xFF00FFFF
 
+_ORANGE = 0xFF00AEFF
+
 _DEFAULT_FIELD_READ_VALUE = {
     "background_color": _DARK_00,  # 01 for alpha or it will show a default color
     "color": 0x90FFFFFF,
@@ -78,6 +80,15 @@ _DEFAULT_FIELD_READ_VALUE = {
 _DEFAULT_FIELD_READ_ERROR_VALUE = {
     "background_color": _RED_05,
     "color": 0xFF7868FF,
+    "border_width": 1,
+    "border_radius": 5,
+    "border_color": 0x0DFFFFFF,
+    "font_size": 14,
+}
+
+_DEFAULT_FIELD_WARNING_VALUE = {
+    "background_color": _DARK_00,
+    "color": _ORANGE,
     "border_width": 1,
     "border_radius": 5,
     "border_color": 0x0DFFFFFF,
@@ -303,6 +314,7 @@ current_dict.update(
         },
         "Field": _DEFAULT_FIELD_READ_VALUE,
         "FieldError": _DEFAULT_FIELD_READ_ERROR_VALUE,
+        "FieldWarning": _DEFAULT_FIELD_WARNING_VALUE,
         "Field:hovered": _DEFAULT_FIELD_READ_HOVERED_VALUE,
         "FreeBezierCurve::HeaderNvidiaLine": {"border_width": 1, "color": _WHITE_30},
         "FreeBezierCurve::TabLineIndicator": {"color": _BLUE_SELECTED, "border_width": 2},
@@ -358,6 +370,8 @@ current_dict.update(
         },
         "Image::OpenFolder": {"image_url": _get_icons("folder_open"), "color": _WHITE_60},
         "Image::OpenFolder:hovered": {"image_url": _get_icons("folder_open"), "color": _WHITE_100},
+        "Image::Pin": {"image_url": _get_icons("pin"), "color": _ORANGE},
+        "Image::PinOff": {"image_url": _get_icons("pin-outline"), "color": _WHITE_60},
         "Image::Import": {"image_url": _get_icons("import"), "color": _WHITE_60},
         "Image::Import:hovered": {"image_url": _get_icons("import"), "color": _WHITE_100},
         "Image::GoBack": {"image_url": _get_icons("go-back-icon"), "color": _WHITE_60},

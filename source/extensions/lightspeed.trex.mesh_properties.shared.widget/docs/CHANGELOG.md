@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.5] - 2024-04-03
+### Changed
+- Update tests to account for new none frame
+
 ## [1.0.4] - 2024-03-13
 ### Changed
 - Moved e2e test to its own directory

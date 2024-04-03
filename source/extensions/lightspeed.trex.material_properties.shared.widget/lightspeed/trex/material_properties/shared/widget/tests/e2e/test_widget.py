@@ -81,9 +81,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # the frame material is visible
-        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
         frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
-        self.assertFalse(frame_none.widget.visible)
+        for frame_none in none_frames:
+            self.assertFalse(frame_none.widget.visible)
         self.assertTrue(frame_material.widget.visible)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
@@ -101,9 +102,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # the frame material is visible
-        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
         frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
-        self.assertFalse(frame_none.widget.visible)
+        for frame_none in none_frames:
+            self.assertFalse(frame_none.widget.visible)
         self.assertTrue(frame_material.widget.visible)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
@@ -119,9 +121,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # the frame material is not visible
-        frame_none = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
         frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
-        self.assertTrue(frame_none.widget.visible)
+        for frame_none in none_frames:
+            self.assertTrue(frame_none.widget.visible)
         self.assertFalse(frame_material.widget.visible)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
