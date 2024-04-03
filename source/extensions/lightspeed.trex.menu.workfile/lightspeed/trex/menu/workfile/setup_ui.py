@@ -57,6 +57,7 @@ class SetupUI:
         self._delegate = _Delegate()
         self.__on_save = _Event()
         self.__on_save_as = _Event()
+        self.__on_new_workfile = _Event()
         self.__undo = _Event()
         self.__redo = _Event()
         self.__create_ui()
@@ -80,6 +81,12 @@ class SetupUI:
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__on_save_as, function)
+
+    def _create_new_workfile(self):
+        self.__on_new_workfile()
+
+    def subscribe_create_new_workfile(self, function):
+        return _EventSubscription(self.__on_new_workfile, function)
 
     def _undo(self):
         """Call the event object that has the list of functions"""
@@ -146,6 +153,14 @@ class SetupUI:
         )
 
         with self.menu:
+            ui.MenuItem(
+                "Unload Stage",
+                identifier="empty_stage",
+                style_type_name_override="MenuBurgerItem",
+                triggered_fn=self._create_new_workfile,
+                tooltip="Create a new stage in the current session.",
+            )
+            create_separator()
             ui.MenuItem(
                 "Save",
                 identifier="save",

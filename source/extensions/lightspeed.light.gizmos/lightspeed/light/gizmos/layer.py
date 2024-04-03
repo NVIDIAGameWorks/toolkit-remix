@@ -152,6 +152,9 @@ class LightGizmosLayer:
             self._destroy_manipulators()
 
     def _create_listener(self, stage):
+        # Do no work if there is no stage
+        if not stage:
+            return
         # Add a Tf.Notice listener to update the transforms of all lights
         if self._stage_listener:
             self._revoke_listeners()
@@ -180,6 +183,10 @@ class LightGizmosLayer:
         self._ignore_update = False
 
     def _create_manipulators(self, stage):
+        # Do no work if there is no stage
+        if not stage:
+            return
+
         # Release stale manipulators
         self._destroy_manipulators()
 

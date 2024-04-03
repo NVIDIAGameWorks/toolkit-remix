@@ -92,7 +92,7 @@ class SetupUI:
         root_layer = stage.GetRootLayer() if stage else None
         if stage_url and stage and root_layer and not root_layer.anonymous:
             self._ui.set_title(Path(stage_url).stem)
-        elif not self._from_user and not self.__init_title:
+        elif not self._from_user and not self.__init_title or self._ui.title_widget.text not in Path(stage_url).stem:
             self.__init_title = True
             self._ui.set_title(self.DEFAULT_TITLE)
 

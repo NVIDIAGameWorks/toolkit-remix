@@ -2,7 +2,12 @@
 
 lightspeed.light.gizmos
 
-## [1.0.3] - 2024-03-13
+
+## [1.0.4] - 2024-03-14
+### Fixed
+- Returning early if there is no stage when creating light gizmos
+
+## [1.0.3] - 2024-02-21
 ### Changed
 - Moved e2e test to its own directory
 
