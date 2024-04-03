@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.2] - 2024-02-28
+### Added
+- Added an action and event for creating an empty stage
+
 ## [1.0.1] - 2024-03-19
 ## Added
 - Add a save prompt that shows up if the project has been modified when closing the app to prevent lost work
@@ -11,3 +15,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.0.0] - 2024-02-28
 ### Added
 - Created
+

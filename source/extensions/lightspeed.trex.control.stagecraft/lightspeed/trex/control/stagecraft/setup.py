@@ -42,6 +42,7 @@ class Setup:
             "_sub_menu_workfile_save_as": None,
             "_sub_menu_workfile_undo": None,
             "_sub_menu_workfile_redo": None,
+            "_sub_menu_workfile_new_workfile": None,
             "_sub_key_undo": None,
             "_sub_key_redo": None,
             "_sub_key_save": None,
@@ -89,6 +90,9 @@ class Setup:
         self._sub_menu_workfile_save_as = self._menu_workfile_instance.subscribe_save_as(self._on_save_as)
         self._sub_menu_workfile_undo = self._menu_workfile_instance.subscribe_undo(self._on_undo)
         self._sub_menu_workfile_redo = self._menu_workfile_instance.subscribe_redo(self._on_redo)
+        self._sub_menu_workfile_new_workfile = self._menu_workfile_instance.subscribe_create_new_workfile(
+            self._on_new_workfile
+        )
 
     @property
     def context(self):
@@ -169,6 +173,9 @@ class Setup:
 
     def _on_redo(self):
         self._stage_core_setup.redo()
+
+    def _on_new_workfile(self):
+        self._stage_core_setup.create_new_work_file()
 
     def destroy(self):
         _reset_default_attrs(self)
