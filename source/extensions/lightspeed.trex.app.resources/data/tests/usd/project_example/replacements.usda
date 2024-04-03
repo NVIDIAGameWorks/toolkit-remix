@@ -65,6 +65,7 @@ over "RootNode"
                     displayGroup = "Specular"
                     displayName = "Metallic Map"
                     hidden = false
+                    renderType = "texture_2d"
                 )
                 asset inputs:normalmap_texture = @./sources/textures/T_MetalPanelWall_HeavyRust_normal.png@ (
                     colorSpace = "sRGB"

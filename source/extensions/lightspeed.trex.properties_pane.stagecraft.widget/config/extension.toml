@@ -21,3 +21,15 @@ icon = "data/icon.png"
 
 [[python.module]]
 name = "lightspeed.trex.properties_pane.stagecraft.widget"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.app.style"
+]
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"
+]

@@ -9,24 +9,31 @@
 """
 import asyncio
 import functools
+import re
 import typing
 from functools import partial
 from pathlib import Path
 from typing import List, Union
 
+import carb
 import omni.kit.app
 from lightspeed.common import constants as _constants
 from lightspeed.tool.material.core import ToolMaterialCore as _ToolMaterialCore
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
+from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
+from lightspeed.trex.contexts.setup import Contexts as _Contexts
 from lightspeed.trex.material.core.shared import Setup as _MaterialCore
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemPrim as _ItemPrim
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui, usd
+from omni.flux.asset_importer.core import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
+from omni.flux.asset_importer.widget.texture_import_list import TextureTypes as _TextureTypes
 from omni.flux.properties_pane.materials.usd.widget import MaterialPropertyWidget as _MaterialPropertyWidget
 from omni.flux.property_widget_builder.model.usd import utils as usd_properties_utils
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.kit.window.drop_support import ExternalDragDrop as _ExternalDragDrop
 from pxr import Sdf, Usd
 
 if typing.TYPE_CHECKING:
@@ -62,13 +69,16 @@ class SetupUI:
             "_convert_opaque_button": None,
             "_convert_translucent_button": None,
             "_sub_on_material_refresh_done": None,
+            "_external_drag_and_drop": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
         self._context_name = context_name
+        self._context = usd.get_context(self._context_name)
         self._asset_replacement_core = _AssetReplacementsCore(context_name)
         self._core = _MaterialCore(context_name)
+        self.set_external_drag_and_drop()
 
         self._stage = usd.get_context(self._context_name).get_stage()
 
@@ -79,6 +89,9 @@ class SetupUI:
 
         self.__on_material_changed = _Event()
         self.__on_go_to_ingest_tab = _Event()
+
+    def set_external_drag_and_drop(self, window_name=_constants.WINDOW_NAME):
+        self._external_drag_and_drop = _ExternalDragDrop(window_name=window_name, drag_drop_fn=self._drop_texture)
 
     def _go_to_ingest_tab(self):
         """Call the event object that has the list of functions"""
@@ -142,6 +155,81 @@ class SetupUI:
 
         self._sub_on_material_refresh_done = self._material_properties_widget.subscribe_refresh_done(
             self._on_material_refresh_done
+        )
+
+    def _drop_texture(self, event: _ExternalDragDrop, payload: List[str]):
+        """Funcion to do the work when dragging and dropping textures"""
+
+        # Make sure we aren't in either of the ingest contexts
+        context_inst = _trex_contexts_instance()
+        try:
+            context = context_inst.get_current_context()
+        except RuntimeError:
+            context = None
+        if context is not _Contexts.STAGE_CRAFT:
+            return
+
+        # Only do work if there are material settings and prims available to work on
+        items = self._material_properties_widget.property_model.get_all_items()
+        prim_paths = self._context.get_selection().get_selected_prim_paths()
+        if not prim_paths or not items:
+            return
+
+        # Make sure that it's an appropriate texture extension and use a dds if one is available
+        paths_to_update = {}
+        for source in event.expand_payload(payload):
+            path = Path(source)
+            if path.suffix.lower() not in _SUPPORTED_TEXTURE_EXTENSIONS:
+                continue
+
+            found_dds = list(path.parent.rglob(f"{path.stem}*.[dD][dD][sS]"))
+            if found_dds:
+                path = found_dds[0]
+
+            for texture_type in _TextureTypes:
+                label, name, regex = texture_type.value
+                match = re.search(regex, str(path.name))
+                if match is not None and name in paths_to_update:
+                    carb.log_warn(
+                        f"{label} is already set to {paths_to_update[name]['path'].stem}. Unable to set to {path.stem}"
+                    )
+                if match is not None and name not in paths_to_update:
+                    paths_to_update[name] = {"path": path, "type_name": label}
+
+        # Do no work if there aren't any textures
+        if not paths_to_update:
+            return
+
+        def assign_texture(paths=None):
+            if not paths:
+                paths = paths_to_update
+            with omni.kit.undo.group():
+                for item in items:
+                    for value_model in item.value_models:
+                        display_name = value_model.attributes[0].GetName()
+                        if display_name in paths:
+                            value_model.set_value(str(paths[display_name]["path"]))
+
+        def single_texture():
+            key = list(paths_to_update)[0]
+            path_dict = {key: paths_to_update[key]}
+            assign_texture(path_dict)
+
+        # If there is only one texture, then skip the dialog
+        if len(paths_to_update) == 1:
+            assign_texture()
+            return
+
+        # Dialog to ask for one or all textures
+        first_texture = list(paths_to_update)[0]
+        first_texture_name = paths_to_update[first_texture]["type_name"]
+        _TrexMessageDialog(
+            message=f"Do you want to use {first_texture} or all Textures?",
+            title="Texture Assignment",
+            ok_handler=single_texture,
+            cancel_handler=assign_texture,
+            ok_label=f"{first_texture_name}",
+            cancel_label="All",
         )
 
     def _on_material_refresh_done(self):
@@ -403,4 +491,7 @@ class SetupUI:
 
     def destroy(self):
         self._selected_prims = None
+        if self._external_drag_and_drop:
+            self._external_drag_and_drop.destroy()
+            self._external_drag_and_drop = None
         _reset_default_attrs(self)
