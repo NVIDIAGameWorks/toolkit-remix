@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [1.2.0] - 2024-03-07
+### Added
+- Added feature for dragging and dropping textures
+
 ## [1.1.2] - 2024-03-17
 ### Changed
 - Update tests to account for new Other material group

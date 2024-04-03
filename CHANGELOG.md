@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2640: Always use a group for material properties
 - REMIX-2868: Added CI tool to verify that all tests are in 'e2e' or 'unit' directories
 - REMIX-2734: Unselect all objects with ESC
+- REMIX-1596: Drag and drop textures from filebrowser
 - REMIX-2667: Added the CHANGELOG.md file and CI check for it
 - REMIX-2492: Add a save prompt that shows up if the project has been modified when closing the app to prevent lost work
 

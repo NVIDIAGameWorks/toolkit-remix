@@ -17,6 +17,8 @@ from carb.input import KeyboardInput
 from lightspeed.common import constants as _constants
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
+from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
+from lightspeed.trex.contexts.setup import Contexts as _Contexts
 from lightspeed.trex.material_properties.shared.widget import SetupUI as _MaterialPropertiesWidget
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
@@ -272,6 +274,46 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ignore_ingestion_button.click()
         await ui_test.human_delay()
+
+        # text should be the asset path
+        self.assertEquals(asset_path, texture_file_fields[0].widget.model.get_value_as_string())
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_drop_texture(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _mesh_property_wid.set_external_drag_and_drop(window_name=_window.title)
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+
+        await ui_test.human_delay(human_delay_speed=10)
+        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+
+        # we expand
+        await property_branches[2].click()
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+
+        context_inst = _trex_contexts_instance()
+        context_inst.set_current_context(_Contexts.STAGE_CRAFT)
+
+        asset_path = _get_test_data("usd/project_example/sources/textures/ingested/16px_metallic.m.rtex.dds")
+        omni.appwindow.get_default_app_window().get_window_drop_event_stream().push(0, 0, {"paths": [asset_path]})
+        await ui_test.human_delay(20)
+
+        # no ingestion window warning
+        ignore_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+        cancel_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNone(ignore_ingestion_button)
+        self.assertIsNone(cancel_ingestion_button)
 
         # text should be the asset path
         self.assertEquals(asset_path, texture_file_fields[0].widget.model.get_value_as_string())
