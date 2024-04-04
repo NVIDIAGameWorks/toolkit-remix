@@ -13,6 +13,7 @@ from enum import Enum
 from typing import Tuple
 
 import carb
+import lightspeed.hydra.remix.core.extern as extern
 import omni.ext
 import omni.usd
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
@@ -40,7 +41,7 @@ class HdRemixFinalizer(omni.ext.IExt):
     # Do not call more than once, as it's a heavy operation.
     # Cache the value for frequent use.
     def check_support(self) -> Tuple[RemixSupport, str]:
-        """Request HdRemix about support. This call is blocking, until HdRemix is fully initialized."""
+        """Request HdRemix about support."""
         try:
             dll = ctypes.cdll.LoadLibrary("HdRemix.dll")
         except FileNotFoundError:
@@ -73,7 +74,7 @@ class HdRemixFinalizer(omni.ext.IExt):
         return (RemixSupport.SUPPORTED, "Success")
 
     def on_startup(self, ext_id):
-        carb.log_info("[lightspeed.trex.hydra.remix] Startup")
+        carb.log_info("[lightspeed.hydra.remix.core] Startup")
         asyncio.ensure_future(self.__check_support())
 
     @omni.usd.handle_exception
@@ -95,6 +96,7 @@ class HdRemixFinalizer(omni.ext.IExt):
                 return
 
         if hdremix_issupported == RemixSupport.SUPPORTED:
+            extern.remix_extern_init()
             return
 
         if not carb.settings.get_settings().get_as_bool(CARB_SETTING_SHOW_REMIX_SUPPORT_POPUP):
@@ -117,4 +119,5 @@ class HdRemixFinalizer(omni.ext.IExt):
         )
 
     def on_shutdown(self):
-        carb.log_info("[lightspeed.trex.hydra.remix] Shutdown")
+        carb.log_info("[lightspeed.hydra.remix.core] Shutdown")
+        extern.remix_extern_destroy()

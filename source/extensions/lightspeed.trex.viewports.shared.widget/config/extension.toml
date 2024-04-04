@@ -54,6 +54,7 @@ args = [
 
 stdoutFailPatterns.exclude = [
     "*[carb.glinterop.plugin] OpenGL Interop is not available. Upgrade your driver to latest for this feature.*",
+    "*Cannot use omni.hydra.pxr without OpenGL interop*",
 ]
 
 [[python.module]]

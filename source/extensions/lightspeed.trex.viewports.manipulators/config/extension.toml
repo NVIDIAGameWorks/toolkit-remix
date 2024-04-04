@@ -1,5 +1,5 @@
 [package]
-version = "1.2.0"
+version = "1.2.1"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -15,6 +15,7 @@ preview_image = "data/preview.png"
 "lightspeed.common" = {}
 "lightspeed.trex.asset_replacements.core.shared" = {}
 "lightspeed.trex.contexts" = {}
+"lightspeed.hydra.remix.core" = {}
 "omni.kit.manipulator.camera" = {}
 "omni.kit.manipulator.prim" = {}
 "omni.kit.manipulator.selection" = {}
@@ -26,6 +27,3 @@ preview_image = "data/preview.png"
 
 [[python.module]]
 name = "lightspeed.trex.viewports.manipulators"
-
-[settings.exts."lightspeed.trex.viewports.manipulators"]
-dxvkremix_use_legacy_select_highlight = false

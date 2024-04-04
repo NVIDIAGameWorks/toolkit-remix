@@ -8,13 +8,14 @@
 * license agreement from NVIDIA CORPORATION is strictly prohibited.
 """
 
-import ctypes
-
 import carb.settings
 import omni.usd
+from lightspeed.hydra.remix.core import (
+    hdremix_highlight_paths,
+    hdremix_objectpicking_request,
+    hdremix_uselegacyselecthighlight,
+)
 from pxr import Gf
-
-from .select_highlight_setting import hdremix_uselegacyselecthighlight
 
 HDREMIX_LEGACY_OBJECT_PICKING_HIGHLIGHTING = hdremix_uselegacyselecthighlight() != 0
 
@@ -46,43 +47,10 @@ class GlobalSelection:
     def __init__(self):
         self._viewport_api = None
         self._pickingmode = omni.usd.PickingMode.RESET_AND_SELECT
-        self._hdremixdll = None
         self._needlight_pix = None
         self._issingleclick = True
         self._curlights = []
         self.lightmanipulators = {}
-        # keep references alive
-        self._callback_oncomplete_t = ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.c_char_p), ctypes.c_uint32)
-        self._callback_oncomplete = self._callback_oncomplete_t(GlobalSelection.__objectpicking_oncomplete_c)
-        self._callback_getcolor_t = ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.c_float))
-        self._callback_getcolor = self._callback_getcolor_t(GlobalSelection.__objectpicking_getcolor_c)
-
-    def get_hdremix_dll(self):
-        if HDREMIX_LEGACY_OBJECT_PICKING_HIGHLIGHTING:
-            return None
-        if self._hdremixdll is not None:
-            return self._hdremixdll
-        try:
-            dll = ctypes.cdll.LoadLibrary("HdRemix.dll")
-        except FileNotFoundError:
-            dll = None
-        if dll is None:
-            carb.log_warn("Failed to find HdRemix.dll. Object picking and highlighting are disabled")
-            return None
-        if (
-            not hasattr(dll, "objectpicking_highlight")
-            or not hasattr(dll, "objectpicking_request")
-            or not hasattr(dll, "objectpicking_setcallback_oncomplete")
-            or not hasattr(dll, "objectpicking_setcallback_getcolor")
-        ):
-            carb.log_warn(
-                "HdRemix.dll doesn't contain the required functions. Object picking and highlighting are disabled"
-            )
-            return None
-        self._hdremixdll = dll
-        self._hdremixdll.objectpicking_setcallback_oncomplete(self._callback_oncomplete)
-        self._hdremixdll.objectpicking_setcallback_getcolor(self._callback_getcolor)
-        return self._hdremixdll
 
     @staticmethod
     def get_instance():
@@ -135,37 +103,8 @@ class GlobalSelection:
             carb.log_warn(f"update_colors error: {e}")
             return (1.0, 1.0, 1.0)
 
-    # Called when HdRemix requires a highlight color
-    @staticmethod
-    def __objectpicking_getcolor_c(rgb_float3_ptr):
-        rgb = GlobalSelection.get_instance().get_color_from_settings()
-        float_array = ctypes.cast(rgb_float3_ptr, ctypes.POINTER(ctypes.c_float * 3)).contents
-        float_array[0] = rgb[0]
-        float_array[1] = rgb[1]
-        float_array[2] = rgb[2]
-
-    def highlight_paths(self, paths):
-        if self.get_hdremix_dll():
-            # void objectpicking_highlight( const char **, uint32_t )
-            pfn_highlight = self.get_hdremix_dll().objectpicking_highlight
-            pfn_highlight.argtypes = (ctypes.POINTER(ctypes.c_char_p), ctypes.c_uint32)
-            pfn_highlight.restype = None
-            c_string_array = (ctypes.c_char_p * len(paths))(*[p.encode("utf-8") for p in paths])
-            pfn_highlight(c_string_array, len(c_string_array))
-
     def objectpicking_oncomplete(self, selectedpaths):
         self.fin_set_prims(selectedpaths, self._pickingmode)
-
-    # Called when HdRemix completes a request
-    @staticmethod
-    def __objectpicking_oncomplete_c(selectedpaths_cstr_values, selectedpaths_cstr_count):
-        cstr_array = ctypes.cast(
-            selectedpaths_cstr_values, ctypes.POINTER(ctypes.c_char_p * selectedpaths_cstr_count)
-        ).contents
-        selectedpaths = set()
-        for i in range(selectedpaths_cstr_count):
-            selectedpaths.add(cstr_array[i].decode("utf-8"))
-        GlobalSelection.get_instance().objectpicking_oncomplete(selectedpaths)
 
     # Called on light click (and prim click if HDREMIX_LEGACY_OBJECT_PICKING_HIGHLIGHTING)
     def __on_query_complete(self, path, pos, *args):
@@ -199,19 +138,23 @@ class GlobalSelection:
         self._pickingmode = args[2]
         if args[0][0] != args[1][0] or args[0][1] != args[1][1]:
             # box selection
-            if self.get_hdremix_dll():
-                self.get_hdremix_dll().objectpicking_request(args[0][0], args[0][1], args[1][0], args[1][1])
-            else:
+            if HDREMIX_LEGACY_OBJECT_PICKING_HIGHLIGHTING:
                 self._viewport_api.request_pick(args[0], args[1], args[2], "lightspeed_selection")
+            else:
+                hdremix_objectpicking_request(
+                    args[0][0], args[0][1], args[1][0], args[1][1], self.objectpicking_oncomplete
+                )
             self._needlight_pix = None
             self._issingleclick = False
             self.fin_set_lights(self.l_lights_inside_rect(viewport_api, args), self._pickingmode)
         else:
             # click selection
-            if self.get_hdremix_dll():
-                self.get_hdremix_dll().objectpicking_request(args[0][0], args[0][1], args[0][0] + 1, args[0][1] + 1)
-            else:
+            if HDREMIX_LEGACY_OBJECT_PICKING_HIGHLIGHTING:
                 self._viewport_api.request_query(args[0], self.__on_query_complete, "lightspeed_selection")
+            else:
+                hdremix_objectpicking_request(
+                    args[0][0], args[0][1], args[0][0] + 1, args[0][1] + 1, self.objectpicking_oncomplete
+                )
             self._needlight_pix = (args[0][0], args[0][1])
             self._issingleclick = True
             # NOTE: call should be here, but need a refined pixel radius, than this hardcoded;
@@ -246,7 +189,7 @@ class GlobalSelection:
         self.fin_set_lights([light_path], self._pickingmode)
 
     def on_selection_changed(self, context: omni.usd.UsdContext, viewport_api, light_manipulators):
-        self.highlight_paths(context.get_selection().get_selected_prim_paths())
+        hdremix_highlight_paths(context.get_selection().get_selected_prim_paths())
 
 
 GlobalSelection._instance = GlobalSelection()  # noqa: PLW0212
