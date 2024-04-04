@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.2.1"
+version = "0.3.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alex Dunn <adunn@nvidia.com>"]
@@ -42,7 +42,7 @@ icon = "data/icon.png"
 "lightspeed.trex.utils.widget" = {}
 
 [[python.module]]
-name = "lightspeed.trex.hydra.remix"
+name = "lightspeed.hydra.remix.core"
 
 [settings]
 pxr.rendermode = "HdRemixRendererPlugin" # set remix as default
@@ -60,6 +60,7 @@ mdl.populateInputsForNonMdlRenderer=1
 
 [settings.exts.lightspeed.hydra.remix]
 showpopup = true
+useLegacySelectHighlight = false
 
 [[env]]
 name = "PXR_PLUGINPATH_NAME"

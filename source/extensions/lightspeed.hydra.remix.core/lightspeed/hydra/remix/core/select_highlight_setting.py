@@ -10,7 +10,7 @@
 
 import carb.settings
 
-SETTING_NAME = "/exts/lightspeed.trex.viewports.manipulators/dxvkremix_use_legacy_select_highlight"
+SETTING_NAME = "/exts/lightspeed/hydra/remix/useLegacySelectHighlight"
 
 
 # This can be called from HdRemix.dll::renderDelegate.cpp and from Python,

@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1] - 2024-03-22
+### Changed
+- Moved HdRemix related functionality and settings to the corresponding 'lightspeed.hydra.remix.core' extension
+
 ## [1.2.0] - 2024-01-19
 ### Added
 - GPU-based mesh selection and highlighting via HdRemix, dxvk-remix

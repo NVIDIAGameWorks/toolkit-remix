@@ -37,5 +37,10 @@ args = [
     "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
 ]
 
+stdoutFailPatterns.exclude = [
+    "*[carb.glinterop.plugin] OpenGL Interop is not available. Upgrade your driver to latest for this feature.*",
+    "*Cannot use omni.hydra.pxr without OpenGL interop*",
+]
+
 [[python.module]]
 name = "lightspeed.trex.control.ingestcraft"
