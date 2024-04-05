@@ -9,7 +9,7 @@ build_doc_publish:
   allow_failure: false
   variables:
     GIT_STRATEGY: fetch
-  stage: build_publish
+  stage: build_doc_publish
   tags:
     - linux
   before_script:

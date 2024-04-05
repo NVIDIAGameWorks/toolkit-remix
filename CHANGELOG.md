@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - REMIX-2658: Added a menu option to Unload Stage to reclaim resources without closing app
 - REMIX-2640: Always use a group for material properties
 - REMIX-2868: Added CI tool to verify that all tests are in 'e2e' or 'unit' directories
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-1076, REMIX-2699: Improve text legibility
 - REMIX-2829: Sanitize the whole project to publish extensions
 - REMIX-2875: HdRemix extension to be more independent from other extensions
+- REMIX-2869: Run the e2e tests, the unit tests, and the doc build in parallel
 
 ### Fixed
 - REMIX-2707: Fix issue with material properties changing groups after overrides are deleted

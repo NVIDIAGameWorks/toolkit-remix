@@ -15,9 +15,8 @@ stages:
   - check_test_file_location
   - check_format
   - check_lint
-  - build_test
-  - build_doc
-  - build_publish
+  - build_run_tests_and_doc
+  - build_doc_publish
   - pkg_publish
 
 include:
@@ -25,8 +24,11 @@ include:
   - local: tools/ci/gitlab/check_test_location.yml
   - local: tools/ci/gitlab/check_format.yml
   - local: tools/ci/gitlab/check_lint.yml
-  - local: tools/ci/gitlab/build_and_test_linux.yml
-  - local: tools/ci/gitlab/build_and_test_win.yml
+  - local: tools/ci/gitlab/run_unit_tests_linux.yml
+  - local: tools/ci/gitlab/run_unit_tests_windows_a2o.yml
+  - local: tools/ci/gitlab/run_unit_tests_windows_p2z.yml
+  - local: tools/ci/gitlab/run_e2e_a2s_tests_windows.yml
+  - local: tools/ci/gitlab/run_e2e_t2z_tests_windows.yml
   - local: tools/ci/gitlab/build_doc.yml
   - local: tools/ci/gitlab/publish_extensions.yml
   - local: tools/ci/gitlab/build_doc_publish.yml
