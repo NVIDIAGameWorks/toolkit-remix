@@ -1,0 +1,13 @@
+run-unit-tests-windows-a2o:
+  extends: .defaults
+  stage: build_run_tests_and_doc
+  needs:
+    - check-code-lint
+  variables:
+    DXVK_CONFIG_FILE: '.\source\extensions\lightspeed.hydra.remix.core\lightspeed\trex\hydra\remix\data\tests\dxvk.conf'
+  before_script:
+    - .\build.bat --clean --release
+    - .\build.bat --release
+    - .\repo.bat publish_exts --verify
+  script:
+    - .\repo.bat test --suite unit_win_a2o --config release

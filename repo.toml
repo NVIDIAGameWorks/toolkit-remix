@@ -44,12 +44,13 @@ args = [
 ]
 timeout = 1800
 
-# Run unit test suite
-[repo_test.suites.unit]
+
+# Run linux unit test suite
+[repo_test.suites.unit_linux]
 kind = "glob_and_exec"
 path = "${test_root}"
 
-[[repo_test.suites.unit.group]]
+[[repo_test.suites.unit_linux.group]]
 include = [
     "tests-lightspeed.*${shell_ext}"
 ]
@@ -71,16 +72,102 @@ args = [
     "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.unit.*'",
     "--no-window"
 ]
-timeout = 1800
+timeout = 300
 
-# Run end-to-end test suite
-[repo_test.suites.e2e]
+
+# Run unit test suite for windows, names starting with a-o
+[repo_test.suites.unit_win_a2o]
 kind = "glob_and_exec"
 path = "${test_root}"
 
-[[repo_test.suites.e2e.group]]
+[[repo_test.suites.unit_win_a2o.group]]
 include = [
-    "tests-lightspeed.*${shell_ext}"
+    "tests-lightspeed.[a-o]*${shell_ext}"
+]
+exclude = []
+args = [
+    "--portable",
+    "--portable-root",
+    "./portable",
+    "--/app/extensions/registryEnabled=0", # It should start ok without a registry enabled (everything prebundled)
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/exts/omni.kit.test/testExtArgs/0=\"--/app/hangDetector/enabled=0\"",
+    "--/exts/omni.kit.test/testExtArgs/1=\"--/app/fastShutdown=1\"",
+    "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
+    "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\"",
+    "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.unit.*'",
+    "--no-window"
+]
+timeout = 900
+
+
+# Run unit test suite for windows, names starting with p-z
+[repo_test.suites.unit_win_p2z]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.unit_win_p2z.group]]
+include = [
+    "tests-lightspeed.[p-z]*${shell_ext}"
+]
+exclude = []
+args = [
+    "--portable",
+    "--portable-root",
+    "./portable",
+    "--/app/extensions/registryEnabled=0", # It should start ok without a registry enabled (everything prebundled)
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+    "--/exts/omni.kit.test/testExtArgs/0=\"--/app/hangDetector/enabled=0\"",
+    "--/exts/omni.kit.test/testExtArgs/1=\"--/app/fastShutdown=1\"",
+    "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
+    "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\"",
+    "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.unit.*'",
+    "--no-window"
+]
+timeout = 900
+
+
+# Run end-to-end test suite, names starting with a-s
+[repo_test.suites.e2e_a2s]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.e2e_a2s.group]]
+include = [
+    "tests-lightspeed.[a-s]*${shell_ext}"
+]
+"platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
+exclude = []
+"platform:linux-x86_64".exclude = []
+args = [
+    "--portable",
+    "--portable-root",
+    "./portable",
+    "--/app/extensions/registryEnabled=0", # It should start ok without a registry enabled (everything prebundled)
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--/exts/omni.kit.test/testExtArgs/0=\"--/app/hangDetector/enabled=0\"",
+    "--/exts/omni.kit.test/testExtArgs/1=\"--/app/fastShutdown=1\"",
+    "--/exts/omni.kit.test/testExtArgs/2=\"--/rtx/verifyDriverVersion/enabled=false\"",
+    "--/exts/omni.kit.test/testExtArgs/3=\"--no-window\"",
+    "--no-window",
+    "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.e2e.*'",
+]
+timeout = 1800
+
+
+# Run end-to-end test suite, names starting with t-z
+[repo_test.suites.e2e_t2z]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.e2e_t2z.group]]
+include = [
+    "tests-lightspeed.[t-z]*${shell_ext}"
 ]
 "platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
 exclude = []
@@ -364,3 +451,13 @@ files.exclude = [
 [repo_deploy_launcher]
 enabled = true
 git_url = "https://oauth2:${env:TREX_RELEASE_TOKEN}@gitlab-master.nvidia.com/omniverse/trex-release-pipeline.git"
+
+########################################################################################################################
+# Check test file locations
+########################################################################################################################
+
+[repo_check_test_file_location]
+start_path = "source\\"
+required_paths = ["/unit/", "/e2e/"]
+# Any path containing any of the 'ignore' strings will be skipped
+ignore = ["extensions/lightspeed.common/lightspeed/common/tools"]

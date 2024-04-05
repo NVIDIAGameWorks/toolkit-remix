@@ -8,7 +8,7 @@ include:
 build-publish-win:
   interruptible: true
   allow_failure: false
-  stage: build_publish
+  stage: build_doc_publish
   before_script:
     - If (Test-Path ".\portable\"){ Remove-Item ".\portable\" -Recurse -Force }
     - .\build.bat --clean --release
@@ -34,7 +34,7 @@ build-publish-win:
 build-publish-linux:
   interruptible: true
   allow_failure: false
-  stage: build_publish
+  stage: build_doc_publish
   tags:
     - linux
   before_script:
@@ -60,7 +60,7 @@ build-publish-linux:
 
 
 publish-extensions:
-  stage: build_publish
+  stage: build_doc_publish
   interruptible: true
   allow_failure: false
   tags:
