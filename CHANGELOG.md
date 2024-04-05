@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2620, REMIX-2636: Add capture list refresh button and fix invisible path
 - REMIX-1924: Enabling waypoints in Remix
 - REMIX-2831: A world position utility, exposed from HdRemix
+- Generate RC.1 for QA
 
 ### Changed
 - REMIX-2692: Ingestion has the option to use an external process to run, which doesn't slow down the main app. Enabled by default.
