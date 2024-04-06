@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generate RC.1 for QA
 
 ### Changed
+- Correcting shutdown function for waypoint extension
 - REMIX-2692: Ingestion has the option to use an external process to run, which doesn't slow down the main app. Enabled by default.
 - REMIX-2866: Moved tests into 'e2e' or 'unit' subdirectories
 - REMIX-1081: Improved UX for going from an open project to saved one by consolidating 2 dialogs into 1 with Save, Save As, Don't Save, Cancel options.

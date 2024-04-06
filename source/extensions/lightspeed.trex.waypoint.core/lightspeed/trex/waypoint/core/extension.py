@@ -33,6 +33,4 @@ class WaypointExtension(omni.ext.IExt):
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.waypoint.core] Shutdown")
         global g_singleton
-        if g_singleton:
-            g_singleton.destroy()
         g_singleton = None
