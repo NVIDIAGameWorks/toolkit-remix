@@ -12,7 +12,13 @@ import os
 import re
 import subprocess
 import sys
-from operator import or_
+
+
+def get_change_log_text(txt, section_header, section_pattern):
+    split = [section for section in re.split(section_pattern, txt) if section.startswith(section_header)]
+    if not split:
+        sys.exit(f"No '{section_header}' section was found")
+    return [f"{ln}\n" for ln in split[0].splitlines()[2:]]
 
 
 def get_unreleased_length(txt, section_header, section_pattern, require=True):
@@ -46,6 +52,24 @@ def validate_change(orig, curr, section_header, section_pattern):
 def setup_repo_tool(parser, config):
     parser.prog = "check_changelog"
     parser.description = "Verify that the CHANGELOG.md file has had its '## [Unreleased]' section modified"
+    parser.add_argument(
+        "-s",
+        "--save-current",
+        dest="file_path",
+        required=False,
+        help=(
+            "Save the current changelog from the version specified in the section_header into a file. "
+            "This option will skip all other process."
+        )
+    )
+    parser.add_argument(
+        "-n",
+        "--save-one-line",
+        dest="one_line",
+        action="store_true",
+        required=False,
+        help="To use with -s. If True, it will save the changelog into 1 line",
+    )
 
     def run_repo_tool(options, config):
         main_sha = os.environ.get("CI_MERGE_REQUEST_DIFF_BASE_SHA")
@@ -58,6 +82,18 @@ def setup_repo_tool(parser, config):
         orig_text = orig_proc.stdout.decode()
         curr_proc = subprocess.run(["git", "show", f"{commit_sha}:{file_name}"], capture_output=True)
         curr_text = curr_proc.stdout.decode()
+
+        if options.file_path:
+            with open(file_name, "r", encoding="utf8") as f:
+                curr_text = f.read()
+            current_changelog = get_change_log_text(curr_text, section_header, section_pattern)
+            if options.one_line:
+                with open(options.file_path, "w", encoding="utf8") as f:
+                    f.write(repr("".join(current_changelog)))
+            else:
+                with open(options.file_path, "w", encoding="utf8") as f:
+                    f.writelines(current_changelog)
+            return
 
         if orig_text == curr_text:
             sys.exit(f"{file_name} was not updated")
