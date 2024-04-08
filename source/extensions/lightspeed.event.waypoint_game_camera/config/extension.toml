@@ -1,22 +1,24 @@
 [package]
-version = "1.1.0"
-authors = ["sgillard@nvidia.com"]
+version = "1.0.0"
+authors = ["Shona Gillard <sgillard@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
-keywords = ["remix", "viewport", "waypoint"]
-title = "NVIDIA RTX Remix Viewports Waypoint Core"
-description = "Viewports Waypoint Core implementation for NVIDIA RTX Remix App"
+keywords = ["event", "waypoint"]
+title = "Lightspeed Event Waypoint Game Camera"
+description = "Extension that creates a waypoint for the game camera"
 icon = "data/icon.png"
 category = "internal"
 preview_image = "data/preview.png"
 
 [dependencies]
-"lightspeed.common" = {}
-"omni.kit.waypoint.core" = {}
+"lightspeed.trex.waypoint.core" = {}
+"lightspeed.events_manager" = {}
 "omni.usd" = {}
-"lightspeed.trex.contexts" = {}
-"lightspeed.trex.viewports.shared.widget" = {}
+"omni.kit.usd.layers" = {}
+
+[[python.module]]
+name = "lightspeed.event.waypoint_game_camera"
 
 [[test]]
 dependencies = [
@@ -29,6 +31,3 @@ args = [
     "--no-window",
     "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'"
 ]
-
-[[python.module]]
-name = "lightspeed.trex.waypoint.core"

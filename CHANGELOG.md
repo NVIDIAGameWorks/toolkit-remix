@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- REMIX-1596: Create waypoint for game camera on start
 - REMIX-2658: Added a menu option to Unload Stage to reclaim resources without closing app
 - REMIX-2640: Always use a group for material properties
 - REMIX-2868: Added CI tool to verify that all tests are in 'e2e' or 'unit' directories
