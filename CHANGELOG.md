@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2715: Fix various issues with the ColorField
 - REMIX-2866: Corrected imports in several test directories
 - REMIX-1090: Capture list header adjustment
+- REMIX-2731: Fix AI tools failing for captured DDSs
 
 ### Removed
 
