@@ -16,8 +16,6 @@ build-publish-win:
     - .\build.bat --config release
     - .\repo.bat publish_exts --verify
     - .\repo.bat package --mode main_package --platform windows-x86_64 --config release
-    - echo ARTEFACT_WIN_JOB_ID=$env:CI_JOB_ID >> gitlab_release_win.env
-    - echo (Get-ChildItem  -Filter "_build/packages/*.release.zip" -Force | ForEach-Object {"ARTEFACT_WIN_ZIP_NAME=$_"}) > gitlab_release_win.env
   # Artifacts required to make the publishing step work
   artifacts:
     when: on_success
@@ -25,9 +23,6 @@ build-publish-win:
     - _build/packages/*
     - _build/**/*.log
     - _repo/*.log
-    reports:
-      # To ensure we've access to this file in the next stage
-      dotenv: gitlab_release_win.env
   rules:
     ## Automatically run publish job only on merge commit to master
     - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -35,7 +30,6 @@ build-publish-win:
     - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
       when: always
     - when: never
-
 
 build-publish-linux:
   interruptible: true
@@ -49,8 +43,6 @@ build-publish-linux:
     - ./build.sh --config release
     - ./repo.sh publish_exts --verify
     - ./repo.sh package --mode main_package --platform linux-x86_64 --config release
-    - echo ARTEFACT_LINUX_JOB_ID=$CI_JOB_ID >> gitlab_release_linux.env
-    - echo (Get-ChildItem  -Filter "_build/packages/*.release.zip" -Force | ForEach-Object {"ARTEFACT_LINUX_ZIP_NAME=$_"}) > gitlab_release_linux.env
   # Artifacts required to make the publishing step work
   artifacts:
     when: on_success
@@ -58,9 +50,6 @@ build-publish-linux:
     - _build/packages/*
     - _build/**/*.log
     - _repo/*.log
-    reports:
-      # To ensure we've access to this file in the next stage
-      dotenv: gitlab_release_linux.env
   rules:
     ## Automatically run publish job only on merge commit to master
     - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -68,7 +57,6 @@ build-publish-linux:
     - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
       when: always
     - when: never
-
 
 
 publish-extensions:
@@ -106,45 +94,3 @@ publish-extensions:
     - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
       when: always
     - when: never
-
-
-publish-gitlab_release:
-  interruptible: true
-  allow_failure: false
-  stage: build_doc_publish
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
-  needs:
-    - job: build-publish-win
-      artifacts: true
-    - job: build-publish-linux
-      artifacts: true
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: always                                 # Run this job when a tag is created manually
-    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: manual
-    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
-      when: manual
-    - when: never
-
-  script:
-    - echo "running release_job for $env:TAG"
-    - echo "getting window artefact from job for $env:ARTEFACT_WIN_JOB_ID"
-    - echo "getting linux artefact from job for $env:ARTEFACT_LINUX_JOB_ID"
-    - echo "grabbing zip file $env:ARTEFACT_WIN_ZIP_NAME and $env:ARTEFACT_LINUX_ZIP_NAME"
-    - .\repo.bat check_changelog -s _current_changelog.md
-  release: # See https://docs.gitlab.com/ee/ci/yaml/#release for available properties
-    name: "$CI_COMMIT_TAG"
-    tag_name: "$CI_COMMIT_TAG"
-    description: _current_changelog.md
-    ref: "$CI_COMMIT_SHA"
-    assets:
-      links:
-        - name: 'windows-x86_64.release'
-          url: 'https://$CI_SERVER_HOST/$CI_PROJECT_PATH/-/jobs/$ARTEFACT_WIN_JOB_ID/artifacts/file/_build/packages/$ARTEFACT_WIN_ZIP_NAME'
-          link_type: 'package' # optional
-        - name: 'linux-x86_64.release'
-          url: 'https://$CI_SERVER_HOST/$CI_PROJECT_PATH/-/jobs/$ARTEFACT_LINUX_JOB_ID/artifacts/file/_build/packages/$ARTEFACT_LINUX_JOB_ID'
-          link_type: 'package' # optional
-
-

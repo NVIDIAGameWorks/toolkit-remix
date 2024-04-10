@@ -18,6 +18,7 @@ stages:
   - build_run_tests_and_doc
   - build_doc_publish
   - pkg_publish
+  - gitlab_release
 
 include:
   - local: tools/ci/gitlab/check_changelog.yml
@@ -33,3 +34,4 @@ include:
   - local: tools/ci/gitlab/publish_extensions.yml
   - local: tools/ci/gitlab/build_doc_publish.yml
   - local: tools/ci/gitlab/pkg_publish.yml
+  - local: tools/ci/gitlab/gitlab_release.yml
