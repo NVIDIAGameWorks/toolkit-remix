@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.2.0] - 2023-12-11
 ### Added
 - Expose `get_viewport_api()`
+- New "Teleport" Tool (Ctrl+T or Toolbar button)
 
 ## [1.1.0] - 2023-12-11
 ### Changed

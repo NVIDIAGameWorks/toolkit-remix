@@ -12,5 +12,6 @@ remix-toolkitinterface-layouttab.md
 remix-toolkitinterface-ingesttab.md
 remix-toolkitinterface-aitools.md
 remix-toolkitinterface-lighting.md
+remix-toolkitinterface-shortcuts.md
 ```
 

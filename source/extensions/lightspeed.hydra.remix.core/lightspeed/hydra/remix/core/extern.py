@@ -9,6 +9,7 @@
 
 import ctypes
 from enum import Enum
+from typing import Callable
 
 import carb
 
@@ -119,7 +120,7 @@ class RemixExtern:
             return None
         return dll
 
-    def findworldposition_request(self, pix_x, pix_y, callback, requestid):
+    def findworldposition_request(self, pix_x: int, pix_y: int, callback, requestid: int):
         if self.__c_findworldposition_request is None:
             carb.log_error(
                 "findworldposition_request fail: Couldn't load HdRemix.dll, "
@@ -131,12 +132,14 @@ class RemixExtern:
         dictcounted_push(self.__requestdict_findworldposition, requestid, callback)
 
     # Called by HdRemix, when find world position request has been completed
-    def findworldposition_oncomplete(self, requestid, pix_x, pix_y, world_x, world_y, world_z):
+    def findworldposition_oncomplete(
+        self, requestid: int, pix_x: int, pix_y: int, world_x: float, world_y: float, world_z: float
+    ):
         callback = dictcounted_pop(self.__requestdict_findworldposition, requestid)
         if callback is not None:
             callback(pix_x, pix_y, world_x, world_y, world_z)
 
-    def objectpicking_request(self, x0, y0, x1, y1, callback, requestid):
+    def objectpicking_request(self, x0: int, y0: int, x1: int, y1: int, callback, requestid):
         if self.__c_objectpicking_request is None:
             carb.log_error(
                 "objectpicking_request fail: Couldn't load HdRemix.dll, "
@@ -148,7 +151,7 @@ class RemixExtern:
         dictcounted_push(self.__requestdict_objectpicking, requestid, callback)
 
     # Called by HdRemix, when object picking request has been completed
-    def objectpicking_oncomplete(self, requestid, selectedpaths):
+    def objectpicking_oncomplete(self, requestid: int, selectedpaths):
         callback = dictcounted_pop(self.__requestdict_objectpicking, requestid)
         if callback is not None:
             callback(selectedpaths)
@@ -164,7 +167,9 @@ class RemixExtern:
         self.__c_objectpicking_highlight(c_string_array, len(c_string_array))
 
     @staticmethod
-    def __c_findworldposition_oncomplete(requestid, pix_x, pix_y, world_x, world_y, world_z):
+    def __c_findworldposition_oncomplete(
+        requestid: int, pix_x: int, pix_y: int, world_x: float, world_y: float, world_z: float
+    ):
         if _instance is None:
             return
         _instance.findworldposition_oncomplete(requestid, pix_x, pix_y, world_x, world_y, world_z)
@@ -193,23 +198,24 @@ def remix_extern_destroy():
     _instance = None
 
 
-def safe_remix_extern():
+def safe_remix_extern() -> RemixExtern:
     remix_extern_init()
     return _instance
 
 
 # Function ID to signed int32
-def __callbackid_int32(callback):
-    return hash(id(callback)) & 0x7FFFFFFF
+def __callbackid_int32(callback, pix_x: int, pix_y: int) -> int:
+    # incorporate pixel to increase chances of a unique request id
+    return hash(id(callback) + 10 * pix_x + pix_y) & 0x7FFFFFFF
 
 
 # callback( pix_x, pix_y, worldpos_x, worldpos_y, worldpos_z )
-def hdremix_findworldposition_request(pix_x, pix_y, callback):
-    safe_remix_extern().findworldposition_request(pix_x, pix_y, callback, __callbackid_int32(callback))
+def hdremix_findworldposition_request(pix_x: int, pix_y: int, callback):
+    safe_remix_extern().findworldposition_request(pix_x, pix_y, callback, __callbackid_int32(callback, pix_x, pix_y))
 
 
 # callback( set_of_selected_usd_paths )
-def hdremix_objectpicking_request(x0, y0, x1, y1, callback):
+def hdremix_objectpicking_request(x0: int, y0: int, x1: int, y1: int, callback):
     safe_remix_extern().objectpicking_request(x0, y0, x1, y1, callback, _GLOBAL_OBJECTPICKING_REQUESTID)
 
 
@@ -226,28 +232,31 @@ class RemixRequestQueryType(Enum):
 # Compatibility function to replace viewport_api.request_query()
 # callback( path, worldpos, pixel )
 def viewport_api_request_query_hdremix(
-    pixel, callback, query_name, request_query_type=RemixRequestQueryType.PATH_AND_WORLDPOS
+    pixel: carb.Uint2,
+    callback: Callable[[str, carb.Double3 | None, carb.Uint2], None] = None,
+    query_name: str = "",
+    request_query_type=RemixRequestQueryType.PATH_AND_WORLDPOS,
 ):
     if request_query_type == RemixRequestQueryType.ONLY_WORLDPOS:
 
-        def get_only_worldpos(pix_x, pix_y, worldpos_x, worldpos_y, worldpos_z):
-            callback("", [worldpos_x, worldpos_y, worldpos_z], [pix_x, pix_y])
+        def get_only_worldpos(pix_x: int, pix_y: int, worldpos_x, worldpos_y, worldpos_z):
+            callback("", carb.Double3(worldpos_x, worldpos_y, worldpos_z), carb.Uint2(pix_x, pix_y))
 
         hdremix_findworldposition_request(pixel[0], pixel[1], get_only_worldpos)
     elif request_query_type == RemixRequestQueryType.ONLY_PATH:
 
         def get_only_path(set_of_selected_usd_paths):
             path = next(iter(set_of_selected_usd_paths)) if len(set_of_selected_usd_paths) > 0 else ""
-            callback(path, None, [pixel[0], pixel[1]])
+            callback(path, None, carb.Uint2(pixel[0], pixel[1]))
 
         hdremix_objectpicking_request(pixel[0], pixel[1], pixel[0] + 1, pixel[1] + 1, get_only_path)
     else:
 
         def get_path(set_of_selected_usd_paths):
-            def get_worldpos(pix_x, pix_y, worldpos_x, worldpos_y, worldpos_z):
+            def get_worldpos(pix_x: int, pix_y: int, worldpos_x, worldpos_y, worldpos_z):
                 path = next(iter(set_of_selected_usd_paths)) if len(set_of_selected_usd_paths) > 0 else ""
-                worldpos = [worldpos_x, worldpos_y, worldpos_z] if path else None
-                callback(path, worldpos, [pix_x, pix_y])
+                worldpos = carb.Double3(worldpos_x, worldpos_y, worldpos_z) if path else None
+                callback(path, worldpos, carb.Uint2(pix_x, pix_y))
 
             hdremix_findworldposition_request(pixel[0], pixel[1], get_worldpos)
 

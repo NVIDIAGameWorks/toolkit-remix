@@ -182,6 +182,9 @@ class SetupUI:
 
         self.toggle_viewport_property_panel(forced_value=True, value=False)
 
+    def viewport_frame(self):
+        return self._viewport_frame
+
     def _set_viewport_api_updates_enabled(self):
         """Halt or resume viewport updates depending on state."""
         if not self._viewport_layers or not self._viewport_layers.viewport_api:
@@ -207,6 +210,9 @@ class SetupUI:
             )
 
         self._set_viewport_api_updates_enabled()
+
+    def is_active(self):
+        return self._active
 
     def on_active_viewport_changed(self, viewport_id: str):
         # disable viewport if another has been activated to ensure only there is only one at a time

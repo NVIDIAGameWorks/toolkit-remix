@@ -169,6 +169,9 @@ path = "${test_root}"
 include = [
     "tests-lightspeed.[t-z]*${shell_ext}"
 ]
+serial = [
+    "tests-lightspeed.trex.viewports.shared.widget${shell_ext}",
+]
 "platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
 exclude = []
 "platform:linux-x86_64".exclude = []

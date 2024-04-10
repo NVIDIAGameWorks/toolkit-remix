@@ -25,6 +25,7 @@ icon = "data/icon.png"
 "omni.kit.hotkeys.core" = {}
 # start before to be sure to apply settings from the app .kit
 "omni.kit.widget.toolbar" = {order = -10}
+"omni.kit.commands" = {}
 "omni.ui" = {}
 
 [settings]
@@ -49,7 +50,7 @@ args = [
     # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
     # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
     # Need to use a .kit file
-    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
+    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit",
 ]
 
 stdoutFailPatterns.exclude = [

@@ -11,7 +11,6 @@ __all__ = ["ViewportLayers"]
 
 import traceback
 import weakref
-from typing import Callable, Optional
 
 import carb
 import omni.timeline
@@ -74,7 +73,7 @@ class ViewportLayers:
 
     # For convenience and access, promote the underlying viewport api to this widget
     @property
-    def viewport_api(self) -> Optional[ViewportAPI]:
+    def viewport_api(self) -> ViewportAPI | None:
         return self.__viewport.viewport_api if self.__viewport else None
 
     @property
@@ -85,16 +84,12 @@ class ViewportLayers:
     def layers(self):
         yield from self.__viewport_layers.values()
 
-    def get_frame_parent(self, name: str):
-        carb.log_error("ViewportLayers.get_frame_parent called but parent has not provided an implementation.")
-
     def __init__(
         self,
         viewport_id: str,
         *ui_args,
         usd_context_name: str = "",
-        get_frame_parent: Optional[Callable] = None,
-        hydra_engine_options: Optional[dict] = None,
+        hydra_engine_options: dict | None = None,
         **ui_kwargs,
     ):
         self.__viewport_layers = {}
@@ -105,11 +100,6 @@ class ViewportLayers:
         self.__timeline_sub = self.__timeline.get_timeline_event_stream().create_subscription_to_pop(  # noqa
             self.__on_timeline_event
         )
-        if get_frame_parent:
-            self.get_frame = get_frame_parent
-        else:
-            self.get_frame = self.get_frame_parent
-
         isettings = carb.settings.get_settings()
         width = isettings.get("/app/renderer/resolution/width")
         height = isettings.get("/app/renderer/resolution/height")

@@ -30,11 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2734: Unselect all objects with ESC
 - REMIX-1596: Drag and drop textures from filebrowser
 - REMIX-2667: Added the CHANGELOG.md file and CI check for it
-- REMIX-2492: Add a save prompt that shows up if the project has been modified when closing the app to prevent lost work
+- REMIX-2492: Added a save prompt that shows up if the project has been modified when closing the app to prevent lost work
 - REMIX-2830: Attribute pinning and properties panel clearing
 - REMIX-2620, REMIX-2636: Add capture list refresh button and fix invisible path
 - REMIX-1924: Enabling waypoints in Remix
 - REMIX-2831: A world position utility, exposed from HdRemix
+- REMIX-2422: Added a new "teleport" tool to bring selected objects to your mouse or center screen
 - Generate RC.1 for QA
 - Pipeline to auto generate release build(s)
 - Ray Reconstruction to the renderer
