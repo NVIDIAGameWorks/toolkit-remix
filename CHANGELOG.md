@@ -8,8 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-
 - REMIX-1596: Create waypoint for game camera on start
+- Ray Reconstruction to the renderer
+- Gitlab auto release pipeline
+
+### Changed
+- Correcting shutdown function for waypoint extension
+
+### Fixed
+- REMIX-2731: Fix AI tools failing for captured DDSs
+
+### Removed
+
+## [2024.3.0-RC.1]
+
+### Added
+
 - REMIX-2658: Added a menu option to Unload Stage to reclaim resources without closing app
 - REMIX-2640: Always use a group for material properties
 - REMIX-2868: Added CI tool to verify that all tests are in 'e2e' or 'unit' directories
@@ -26,7 +40,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ray Reconstruction to the renderer
 
 ### Changed
-- Correcting shutdown function for waypoint extension
 - REMIX-2692: Ingestion has the option to use an external process to run, which doesn't slow down the main app. Enabled by default.
 - REMIX-2866: Moved tests into 'e2e' or 'unit' subdirectories
 - REMIX-1081: Improved UX for going from an open project to saved one by consolidating 2 dialogs into 1 with Save, Save As, Don't Save, Cancel options.
@@ -42,7 +55,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2715: Fix various issues with the ColorField
 - REMIX-2866: Corrected imports in several test directories
 - REMIX-1090: Capture list header adjustment
-- REMIX-2731: Fix AI tools failing for captured DDSs
 
 ### Removed
 

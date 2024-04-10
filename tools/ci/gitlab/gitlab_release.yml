@@ -1,0 +1,135 @@
+include:
+  - project: 'omniverse/sectools/vault'
+    file: '/templates/v2/omni-packman-s3-creds.yml'
+  - project: 'omniverse/sectools/vault'
+    file: '/templates/v2/omni-codesign-creds.yml'
+  # ^^^ includes above are needed for the vault invocation.
+
+
+build-release-gitlab-win:
+  interruptible: true
+  stage: gitlab_release
+  before_script:
+    - If (Test-Path ".\portable\"){ Remove-Item ".\portable\" -Recurse -Force }
+    - .\build.bat --clean --release
+  script:
+    - .\build.bat --config release
+    - .\repo.bat package --mode main_package --platform windows-x86_64 --config release
+    - echo (Get-ChildItem  -Filter "_build/packages/*.release.zip" -Force | ForEach-Object {"ARTEFACT_WIN_ZIP_NAME=$_"}) > gitlab_release_win.env
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: always                                 # Run this job when a tag is created manually
+  # Artifacts required to make the publishing step work
+  artifacts:
+    when: on_success
+    paths:
+    - _build/packages/*
+    - _build/**/*.log
+    - _repo/*.log
+    reports:
+      # To ensure we've access to this file in the next stage
+      dotenv: gitlab_release_win.env
+
+
+build-release-gitlab-linux:
+  interruptible: true
+  stage: gitlab_release
+  tags:
+    - linux
+  before_script:
+    - ./build.sh --clean --release
+  script:
+    - ./build.sh --config release
+    - ./repo.sh package --mode main_package --platform linux-x86_64 --config release
+    - find _build/packages -maxdepth 1 -name "*.release.zip" -type f -printf "ARTEFACT_LINUX_ZIP_NAME=%f\n" > gitlab_release_linux.env
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: always                                 # Run this job when a tag is created manually
+  # Artifacts required to make the publishing step work
+  artifacts:
+    when: on_success
+    paths:
+    - _build/packages/*
+    - _build/**/*.log
+    - _repo/*.log
+    reports:
+      # To ensure we've access to this file in the next stage
+      dotenv: gitlab_release_linux.env
+
+
+pkg_publish_for_gitlab:
+  extends: .defaults
+  stage: gitlab_release
+  tags:
+    - linux
+  needs:
+    - job: build-release-gitlab-linux
+      artifacts: true
+    - job: build-release-gitlab-win
+      artifacts: true
+  script:
+    - set -eu
+    - |
+      mkdir tempbin
+      curl -fsSL https://urm.nvidia.com/artifactory/sw-kaizen-data-generic/com/nvidia/vault/vault-agent/1.5.2/nvidia_vault_agent_v1.5.2_linux_amd64.zip \
+      | bsdtar -xvf- -C tempbin
+      chmod +x tempbin/vault
+      export PATH="$PWD/tempbin:$PATH"
+    - !reference [.omni_codesign_get_secrets, omni_codesign_get_secrets]
+    - !reference [.omni_s3_write_get_secrets, omni_s3_write_get_secrets]
+    - ./build.sh --fetch-only --release --no-docker
+    - fail_wr=0
+    - ./repo.sh publish -c release || fail_wr=1
+    - echo "WinRel=${fail_wr}"
+    - '[ "$fail_wr" -eq 0 ] || exit 1'
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: always                                 # Run this job when a tag is created manually
+
+
+publish-gitlab_release:
+  interruptible: true
+  allow_failure: false
+  stage: gitlab_release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  tags:
+    - release-cli
+  needs:
+    - job: pkg_publish_for_gitlab
+      artifacts: true
+    - job: build-release-gitlab-linux  # to get the env
+      artifacts: true
+    - job: build-release-gitlab-win  # to get the env
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: always                                 # Run this job when a tag is created manually
+  script:
+    - echo "running release_job for $env:CI_COMMIT_TAG"
+    - echo "grabbing zip file $env:ARTEFACT_WIN_ZIP_NAME and $env:ARTEFACT_LINUX_ZIP_NAME"
+    - .\repo.bat check_changelog -s _current_changelog.md -d "[$env:CI_COMMIT_TAG]"
+    - $env:ENCODED_ARTEFACT_WIN_ZIP_NAME=[URI]::EscapeDataString("$env:ARTEFACT_WIN_ZIP_NAME")
+    - echo "encoded window zip name is $env:ENCODED_ARTEFACT_WIN_ZIP_NAME"
+    - $env:ENCODED_ARTEFACT_LINUX_ZIP_NAME=[URI]::EscapeDataString("$env:ARTEFACT_LINUX_ZIP_NAME")
+    - echo "encoded linux zip name is $env:ENCODED_ARTEFACT_LINUX_ZIP_NAME"
+    - $env:WIN_URL="$env:PACKMAN_CLOUDFRONT_URL/$env:ENCODED_ARTEFACT_WIN_ZIP_NAME"
+    - echo "full asset url for WIN is $env:WIN_URL"
+    - $env:LINUX_URL="$env:PACKMAN_CLOUDFRONT_URL/$env:ENCODED_ARTEFACT_LINUX_ZIP_NAME"
+    - echo "full asset url for LINUX is $env:LINUX_URL"
+    - echo "token is $env:CI_JOB_TOKEN"
+    - echo "token is CI_JOB_TOKEN"
+
+    - $assets_win = @{}
+    - $assets_win.Add("name", "windows-x86_64.release")
+    - $assets_win.Add("url", $env:WIN_URL)
+    - $assets_win = $assets_win | ConvertTo-Json
+    - $assets_win = $assets_win.replace('"','\"')
+
+    - $assets_linux = @{}
+    - $assets_linux.Add("name", "linux-x86_64.release")
+    - $assets_linux.Add("url", $env:LINUX_URL)
+    - $assets_linux = $assets_linux | ConvertTo-Json
+    - $assets_linux = $assets_linux.replace('"','\"')
+
+    # using release feature from the yaml doesn't work with powershell. Need to run the CLI directly
+    - release-cli --private-token $env:GITLAB_RELEASE_TOKEN create --name "$env:CI_COMMIT_TAG" --description "_current_changelog.md" --tag-name "$env:CI_COMMIT_TAG" --ref "$env:CI_COMMIT_SHA" --assets-link=$assets_win --assets-link=$assets_linux

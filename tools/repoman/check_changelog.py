@@ -15,6 +15,9 @@ import sys
 
 
 def get_change_log_text(txt, section_header, section_pattern):
+    """
+    Get the changelog from the specific header
+    """
     split = [section for section in re.split(section_pattern, txt) if section.startswith(section_header)]
     if not split:
         sys.exit(f"No '{section_header}' section was found")
@@ -63,6 +66,13 @@ def setup_repo_tool(parser, config):
         )
     )
     parser.add_argument(
+        "-d",
+        "--section-header",
+        dest="section_header",
+        required=False,
+        help="Override the section header you want to use",
+    )
+    parser.add_argument(
         "-n",
         "--save-one-line",
         dest="one_line",
@@ -76,7 +86,8 @@ def setup_repo_tool(parser, config):
         commit_sha = os.environ.get("CI_COMMIT_SHA")
         settings = config["repo_check_changelog"]
         file_name = settings["file_name"]
-        section_header = settings["section_header"]
+        cli_section_header = options.section_header
+        section_header = cli_section_header if cli_section_header else settings["section_header"]
         section_pattern = settings["section_pattern"]
         orig_proc = subprocess.run(["git", "show", f"{main_sha}:{file_name}"], capture_output=True)
         orig_text = orig_proc.stdout.decode()
