@@ -48,6 +48,7 @@ dependencies = [
 ]
 
 stdoutFailPatterns.exclude = [
+    "*[omni.kit.scene_view.opengl] No UsdRender.Product was found at '{render_product_path}'*",
     "*[carb.glinterop.plugin] OpenGL Interop is not available. Upgrade your driver to latest for this feature.*",
     "*Cannot use omni.hydra.pxr without OpenGL interop*",
 ]

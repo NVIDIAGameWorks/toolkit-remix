@@ -16,8 +16,8 @@ from lightspeed.trex.contexts.setup import Contexts as _TrexContext
 from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
-from omni.kit.test.async_unittest import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage, wait_stage_loading
+from omni.ui.tests.test_base import OmniUiTest
 
 if TYPE_CHECKING:
     from lightspeed.trex.viewports.shared.widget.setup_ui import SetupUI as _ViewportSetupUI
@@ -29,18 +29,28 @@ _CONTEXT_NAME = ""
 _CONTEXT_2_NAME = _TrexContext.STAGE_CRAFT.value
 
 
-class TestSharedViewportWidget(AsyncTestCase):
+class TestSharedViewportWidget(OmniUiTest):
 
     # Before running each test
     async def setUp(self):
-        await open_stage(_get_test_data("usd/project_example/combined.usda"))
+        await super().setUp()
+        usd_context_1 = omni.usd.get_context(_CONTEXT_NAME)
+        await open_stage(_get_test_data("usd/project_example/combined.usda"), usd_context=usd_context_1)
         usd_context_2 = omni.usd.create_context(_CONTEXT_2_NAME)
         await open_stage(_get_test_data("usd/ingested_assets/source/cube.usda"), usd_context=usd_context_2)
 
     # After running each test
     async def tearDown(self):
+        await super().tearDown()
         # Note: this func seems to be context independent (same val for both contexts)
         await wait_stage_loading()
+        await self.release_hydra_engines_workaround()
+
+    async def release_hydra_engines_workaround(self, usd_context_name: str = ""):
+        # copied from omni/kit/widget/viewport/tests/test_ray_query.py
+        await self.wait_n_updates(10)
+        omni.usd.release_all_hydra_engines(omni.usd.get_context(usd_context_name))
+        await self.wait_n_updates(10)
 
     async def __setup_widget(self, width=WINDOW_WIDTH, height=WINDOW_HEIGHT) -> (ui.Window, list["_ViewportSetupUI"]):
         window = ui.Window("TestSharedViewportUI", width=width, height=height)
