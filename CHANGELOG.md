@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2024.3.0-RC.2]
+
+### Added
 - REMIX-1596: Create waypoint for game camera on start
 - Ray Reconstruction to the renderer
 - Gitlab auto release pipeline
