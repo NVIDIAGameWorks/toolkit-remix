@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.3.1]
+### Changed
+- Set Apache 2 license headers
+
 ## [0.3.0] - 2024-03-22
 ### Added
 - A class to wrap C functions from HdRemix.dll.

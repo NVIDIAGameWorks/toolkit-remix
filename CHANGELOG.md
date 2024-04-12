@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-1596: Create waypoint for game camera on start
 - Ray Reconstruction to the renderer
 - Gitlab auto release pipeline
+- REMIX-2880: Add Apache license to all files + add Apache license
 
 ### Changed
 - Correcting shutdown function for waypoint extension

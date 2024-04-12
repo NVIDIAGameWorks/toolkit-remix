@@ -1,3 +1,6 @@
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/NVIDIAGameWorks/toolkit-remix/graphs/commit-activity)
+
 ## Getting Started
 
 ### Overview

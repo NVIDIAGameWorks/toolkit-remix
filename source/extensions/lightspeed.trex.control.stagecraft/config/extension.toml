@@ -2,7 +2,7 @@
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix control for the StageCraft"
 description = "Control will connect back end and front end for NVIDIA RTX Remix StageCraft App"
-version = "1.0.2"
+version = "1.0.3"
 readme = "docs/README.md"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.control.stagecraft"
 category = "internal"
