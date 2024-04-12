@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0] - 2024-04-02
+### Changed
+- Update to use new `FieldBuilder` to configure widgets for `MaterialPropertyWidget`
+
 ## [1.2.2]
 ### Changed
 - Set Apache 2 license headers

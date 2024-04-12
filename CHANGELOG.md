@@ -12,9 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ray Reconstruction to the renderer
 - Gitlab auto release pipeline
 - REMIX-2880: Add Apache license to all files + add Apache license
+- REMIX-2589: Add a way to customize property widgets per-attribute
 
 ### Changed
 - Correcting shutdown function for waypoint extension
+- REMIX-2791: Replace a variety of float widgets with sliders
 
 ### Fixed
 - REMIX-2731: Fix AI tools failing for captured DDSs

@@ -36,6 +36,9 @@ from omni import ui, usd
 from omni.flux.asset_importer.core import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.asset_importer.widget.texture_import_list import TextureTypes as _TextureTypes
 from omni.flux.properties_pane.materials.usd.widget import MaterialPropertyWidget as _MaterialPropertyWidget
+from omni.flux.property_widget_builder.model.usd import FileTexturePicker as _FileTexturePicker
+from omni.flux.property_widget_builder.model.usd import USDBuilderList as _USDBuilderList
+from omni.flux.property_widget_builder.model.usd import mapping as _mapping
 from omni.flux.property_widget_builder.model.usd import utils as usd_properties_utils
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
@@ -113,6 +116,17 @@ class SetupUI:
     def __show_material_menu(self):
         self.__menu.show()
 
+    def get_custom_field_builders(self) -> _USDBuilderList:
+        field_builders = _USDBuilderList()
+
+        # Customize the sdf asset path attribute widgets to limit file extension to dds.
+        @field_builders.register_by_type(_mapping.tf_sdf_asset_path)
+        def _sdf_asset_path_builder(item) -> list[ui.Widget]:
+            builder = _FileTexturePicker(file_extension_options=[("*.dds", "Compatible Textures")])
+            return builder(item)
+
+        return field_builders
+
     def __create_ui(self):
         with ui.ZStack():
             self._frame_none = ui.Frame(visible=True, identifier="frame_none")
@@ -157,7 +171,7 @@ class SetupUI:
                         self._context_name,
                         tree_column_widths=[ui.Percent(self.COLUMN_WIDTH_PERCENT)],
                         create_color_space_attributes=False,
-                        asset_path_file_extension_options=[("*.dds", "Compatible Textures")],
+                        field_builders=self.get_custom_field_builders(),
                     )
 
         self._sub_on_material_refresh_done = self._material_properties_widget.subscribe_refresh_done(
