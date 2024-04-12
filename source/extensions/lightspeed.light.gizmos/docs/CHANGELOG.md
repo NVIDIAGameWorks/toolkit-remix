@@ -3,6 +3,10 @@
 lightspeed.light.gizmos
 
 
+## [1.0.5]
+### Changed
+- Set Apache 2 license headers
+
 ## [1.0.4] - 2024-03-14
 ### Fixed
 - Returning early if there is no stage when creating light gizmos

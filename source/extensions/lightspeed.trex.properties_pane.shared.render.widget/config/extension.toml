@@ -2,7 +2,7 @@
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Properties Pane Render widget"
 description = "Render Properties Pane widget for NVIDIA RTX Remix App"
-version = "1.0.0"
+version = "1.0.1"
 readme = "docs/README.md"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.properties_pane.shared.render.widget"
 category = "internal"

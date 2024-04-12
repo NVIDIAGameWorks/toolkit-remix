@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.1]
+### Changed
+- Set Apache 2 license headers
+
 ## [1.4.0] - 2024-03-12
 ### Changed
 - Create the USD context if it doesn't exist

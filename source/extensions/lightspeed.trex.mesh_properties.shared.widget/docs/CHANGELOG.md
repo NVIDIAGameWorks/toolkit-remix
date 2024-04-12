@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.6]
+### Changed
+- Set Apache 2 license headers
+
 ## [1.0.5] - 2024-04-03
 ### Changed
 - Update tests to account for new none frame

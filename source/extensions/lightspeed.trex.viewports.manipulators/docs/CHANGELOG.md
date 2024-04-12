@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.2]
+### Changed
+- Set Apache 2 license headers
+
 ## [1.2.1] - 2024-03-22
 ### Changed
 - Moved HdRemix related functionality and settings to the corresponding 'lightspeed.hydra.remix.core' extension
