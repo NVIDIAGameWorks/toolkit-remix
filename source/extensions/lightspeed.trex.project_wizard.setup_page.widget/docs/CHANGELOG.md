@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.5] - 2024-04-12
+### Changed
+- Added `on_file_picker_opened` and `on_file_picker_closed` events
+
 ## [1.1.4]
 ### Changed
 - Set Apache 2 license headers

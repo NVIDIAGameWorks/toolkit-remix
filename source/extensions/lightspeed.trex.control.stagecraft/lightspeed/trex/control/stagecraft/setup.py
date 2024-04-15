@@ -27,7 +27,7 @@ from lightspeed.trex.hotkeys import TrexHotkeyEvent as _TrexHotkeyEvent
 from lightspeed.trex.hotkeys import get_global_hotkey_manager as _get_global_hotkey_manager
 from lightspeed.trex.layout.stagecraft import get_instance as _get_layout_instance
 from lightspeed.trex.menu.workfile import get_instance as _get_menu_workfile_instance
-from lightspeed.trex.project_wizard.window import ProjectWizardWindow as _ProjectWizardWindow
+from lightspeed.trex.project_wizard.window import get_instance as _get_project_wizard_window_instance
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCoreSetup
 from lightspeed.trex.stage.core.shared import Setup as _StageCoreSetup
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
@@ -68,10 +68,9 @@ class Setup:
         self._stage_core_setup = _StageCoreSetup(self._context_name)
         self._capture_core_setup = _CaptureCoreSetup(self._context_name)
         self._replacement_core_setup = _ReplacementCoreSetup(self._context_name)
-        self._wizard_window = _ProjectWizardWindow(self._context_name)
 
         self._sub_new_work_file_clicked = self._layout_instance.subscribe_new_work_file_clicked(
-            self._wizard_window.show_project_wizard
+            lambda: _get_project_wizard_window_instance(self._context_name).show_project_wizard(reset_page=True)
         )
         self._sub_import_capture_layer = self._layout_instance.subscribe_import_capture_layer(
             self._on_import_capture_layer

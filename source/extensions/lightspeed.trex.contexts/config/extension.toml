@@ -2,7 +2,7 @@
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix contexts"
 description = "Contexts for NVIDIA RTX Remix App(s). Each sub-app has his own context. Meaning that each viewports can show different stage(s)"
-version = "1.0.1"
+version = "1.0.2"
 readme = "docs/README.md"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.contexts"
 category = "internal"
@@ -12,8 +12,11 @@ preview_image = "data/preview.png"
 icon = "data/icon.png"
 
 [dependencies]
+"lightspeed.common" = {}
+"lightspeed.events_manager" = {}
 "omni.usd" = {}
 "omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
 
 [[python.module]]
 name = "lightspeed.trex.contexts"

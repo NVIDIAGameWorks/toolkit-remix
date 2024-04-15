@@ -250,3 +250,5 @@ class NormalMapEncodings(IntEnum):
 class GlobalEventNames(Enum):
     IMPORT_CAPTURE_LAYER = "Import capture layer"
     ACTIVE_VIEWPORT_CHANGED = "Active viewport changed"  # Emitted by trex.viewports.shared.widgets
+    CONTEXT_CHANGED = "Context changed"
+    PAGE_CHANGED = "Page changed"

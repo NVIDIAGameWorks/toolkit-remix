@@ -30,7 +30,7 @@ from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_F
 from lightspeed.error_popup.window import ErrorPopup as _ErrorPopup
 from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
 from lightspeed.trex.capture_tree.model import CaptureTreeDelegate, CaptureTreeModel
-from lightspeed.trex.project_wizard.window import ProjectWizardWindow as _ProjectWizardWindow
+from lightspeed.trex.project_wizard.window import get_instance as _get_project_wizard_window_instance
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCoreSetup
 from lightspeed.trex.utils.widget import TrexMessageDialog
 from omni.flux.property_widget_builder.model.file import FileAttributeItem as _FileAttributeItem
@@ -81,6 +81,7 @@ class ModSetupPane:
             "_capture_tree_model": None,
             "_capture_tree_view": None,
             "_capture_tree_view_window": None,
+            "_context_name": None,
             "_context": None,
             "_last_capture_tree_view_window_selection": None,
             "_overlay_capture_label": None,
@@ -113,6 +114,7 @@ class ModSetupPane:
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
+        self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
         self.__last_capture_field_value = None
         self.__import_existing_mod_file = True
@@ -133,7 +135,6 @@ class ModSetupPane:
         self.__capture_field_is_editing = False
         self._core_capture = CaptureCoreSetup(context_name)
         self._core_replacement = ReplacementCoreSetup(context_name)
-        self._wizard_window = _ProjectWizardWindow(context_name)
 
         self._sub_model_changed = self._capture_tree_model.subscribe_progress_updated(self._refresh_trees)
 
@@ -298,7 +299,9 @@ class ModSetupPane:
                             with self._project_wizard_collapsable_frame:
                                 ui.Button(
                                     "Open Project Wizard",
-                                    clicked_fn=self._wizard_window.show_project_wizard,
+                                    clicked_fn=lambda: _get_project_wizard_window_instance(
+                                        self._context_name
+                                    ).show_project_wizard(reset_page=True),
                                     height=ui.Pixel(32),
                                 )
                             ui.Spacer(height=ui.Pixel(8))

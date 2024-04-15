@@ -16,7 +16,7 @@
 """
 from asyncio import ensure_future
 from pathlib import Path
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from lightspeed.common import constants as _constants
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
@@ -27,6 +27,8 @@ from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWiz
 from lightspeed.trex.project_wizard.core import ProjectWizardSchema as _ProjectWizardSchema
 from lightspeed.trex.project_wizard.file_picker.widget import FilePickerWidget as _FilePickerWidget
 from omni import client, kit, ui, usd
+from omni.flux.utils.common import Event as _Event
+from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import async_wrap as _async_wrap
 from omni.flux.wizard.widget import WizardPage as _WizardPage
 
@@ -61,6 +63,10 @@ class SetupPage(_WizardPage):
                 "_capture_frame": None,
                 "_capture_background": None,
                 "_capture_tree": None,
+                "_sub_project_file_picker_opened": None,
+                "_sub_project_file_picker_closed": None,
+                "_sub_remix_file_picker_opened": None,
+                "_sub_remix_file_picker_closed": None,
             }
         )
 
@@ -81,6 +87,14 @@ class SetupPage(_WizardPage):
         self._capture_frame = None
         self._capture_background = None
         self._capture_tree = None
+
+        self._sub_project_file_picker_opened = None
+        self._sub_project_file_picker_closed = None
+        self._sub_remix_file_picker_opened = None
+        self._sub_remix_file_picker_closed = None
+
+        self.__on_file_picker_opened = _Event()
+        self.__on_file_picker_closed = _Event()
 
     @property
     def open_or_create(self) -> bool:
@@ -322,6 +336,12 @@ class SetupPage(_WizardPage):
                     ),
                     placeholder_label=save_label,
                 )
+                self._sub_project_file_picker_opened = self._project_path_picker.subscribe_file_picker_opened(
+                    self._on_file_picker_opened
+                )
+                self._sub_project_file_picker_closed = self._project_path_picker.subscribe_file_picker_closed(
+                    self._on_file_picker_closed
+                )
 
             ui.Spacer(height=ui.Pixel(8), width=0)
 
@@ -335,7 +355,7 @@ class SetupPage(_WizardPage):
                 ui.Spacer(width=ui.Pixel(8), height=0)
 
                 remix_label = f'Select the game\'s "{_constants.REMIX_FOLDER}" directory'
-                _FilePickerWidget(
+                remix_file_picker = _FilePickerWidget(
                     remix_label,
                     True,
                     self.__validate_remix_path,
@@ -343,6 +363,12 @@ class SetupPage(_WizardPage):
                     current_path=self.payload.get(_ProjectWizardKeys.REMIX_DIRECTORY.value, None),
                     apply_button_label="Select",
                     placeholder_label=remix_label,
+                )
+                self._sub_remix_file_picker_opened = remix_file_picker.subscribe_file_picker_opened(
+                    self._on_file_picker_opened
+                )
+                self._sub_remix_file_picker_closed = remix_file_picker.subscribe_file_picker_closed(
+                    self._on_file_picker_closed
                 )
 
             if not self.open_or_create:
@@ -374,3 +400,29 @@ class SetupPage(_WizardPage):
         self.__validate_project_path(self.payload.get(_ProjectWizardKeys.PROJECT_FILE.value, None))
         self.__validate_remix_path(self.payload.get(_ProjectWizardKeys.REMIX_DIRECTORY.value, None))
         self.__enable_capture_picker(bool(self.payload.get(_ProjectWizardKeys.REMIX_DIRECTORY.value, None)))
+
+    def _on_file_picker_opened(self):
+        """
+        Trigger the __on_file_picker_opened event
+        """
+        self.__on_file_picker_opened()
+
+    def subscribe_file_picker_opened(self, function: Callable[[], None]):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        Called when the file picker is opened.
+        """
+        return _EventSubscription(self.__on_file_picker_opened, function)
+
+    def _on_file_picker_closed(self):
+        """
+        Trigger the __on_file_picker_closed event
+        """
+        self.__on_file_picker_closed()
+
+    def subscribe_file_picker_closed(self, function: Callable[[], None]):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        Called when the file picker is closed.
+        """
+        return _EventSubscription(self.__on_file_picker_closed, function)
