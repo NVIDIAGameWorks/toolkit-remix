@@ -29,7 +29,7 @@ from carb.input import KeyboardInput
 from lightspeed.common import constants
 from lightspeed.layer_manager import layer_types
 from lightspeed.trex.project_wizard.core import SETTING_JUNCTION_NAME as _SETTING_JUNCTION_NAME
-from lightspeed.trex.project_wizard.window import ProjectWizardWindow
+from lightspeed.trex.project_wizard.window import ProjectWizardWindow as _ProjectWizardWindow
 from omni import ui, usd
 from omni.kit import ui_test
 from omni.kit.test.async_unittest import AsyncTestCase
@@ -60,6 +60,7 @@ class TestComponents(Enum):
     FILE_PICKER_DIRECTORY = 15
     FILE_PICKER_FILENAME = 16
     FILE_PICKER_OPEN = 17
+    FILE_PICKER_CANCEL = 18
 
 
 class TestWizardWindow(AsyncTestCase):
@@ -80,6 +81,8 @@ class TestWizardWindow(AsyncTestCase):
         if usd.get_context().get_stage():
             await usd.get_context().close_stage_async()
 
+        self.wizard.hide_project_wizard()
+        self.wizard.destroy()
         self.window.destroy()
 
         await self.__cleanup_directories()
@@ -94,12 +97,12 @@ class TestWizardWindow(AsyncTestCase):
         self.window = None
         self.wizard = None
 
-    async def __setup_widget(self) -> Tuple[ui.Window, ProjectWizardWindow]:
+    async def __setup_widget(self) -> Tuple[ui.Window, _ProjectWizardWindow]:
         await arrange_windows(topleft_window="Stage")
 
         window = ui.Window("TestWizardWindow", width=1000, height=800)
         with window.frame:
-            wizard = ProjectWizardWindow(width=1000, height=800)
+            wizard = _ProjectWizardWindow(width=1000, height=800)
 
         await ui_test.human_delay()
 
@@ -165,6 +168,7 @@ class TestWizardWindow(AsyncTestCase):
                 f"{window_title}//Frame/**/StringField[*].style_type_name_override=='Field'"
             ),
             TestComponents.FILE_PICKER_OPEN: ui_test.find(f"{window_title}//Frame/**/Button[*].text=='Open'"),
+            TestComponents.FILE_PICKER_CANCEL: ui_test.find(f"{window_title}//Frame/**/Button[*].text=='Cancel'"),
         }
 
         for component, button in components.items():
@@ -824,3 +828,71 @@ class TestWizardWindow(AsyncTestCase):
         # Make sure the project has the right authoring layer and the capture layer is locked
         self.assertEqual(expected_mod_file, omni_layers_data.get("authoring_layer", None))
         self.assertDictEqual({expected_capture_file: True}, omni_layers_data.get("locked", None))
+
+    async def test_start_page_file_picker_and_wizard_window_handoff(self):
+        # Setup the test
+        wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
+
+        # Start the test
+        self.wizard.show_project_wizard(reset_page=True)
+        await ui_test.human_delay()
+        components = await self.__find_start_page_components(wizard_window)
+        _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
+
+        # Ensure the wizard window is open
+        wizard_window_ui = ui_test.find(f"{wizard_window}").window
+        self.assertTrue(wizard_window_ui.visible)
+
+        # Press the "Open" button from the start page
+        await components[TestComponents.OPEN_OPTION].click()
+        await ui_test.human_delay()
+
+        # Ensure the wizard window has closed and file picker has opened
+        self.assertFalse(wizard_window_ui.visible)
+        file_picker_window_ui = ui_test.find("Open an RTX Remix project").window
+        self.assertTrue(file_picker_window_ui.visible)
+
+        # Press cancel
+        picker_buttons = await self.__find_file_picker_buttons("Open an RTX Remix project")
+        await picker_buttons[TestComponents.FILE_PICKER_CANCEL].click()
+        await ui_test.human_delay()
+
+        # Ensure that the file picker has closed and wizard window has opened
+        self.assertTrue(wizard_window_ui.visible)
+        self.assertFalse(file_picker_window_ui.visible)
+
+    async def test_wizard_file_picker_and_wizard_window_handoff(self):
+        # Setup the test
+        wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
+
+        # Start the test
+        self.wizard.show_project_wizard(reset_page=True)
+        await ui_test.human_delay()
+        start_components = await self.__find_start_page_components(wizard_window)
+        _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
+
+        # Ensure the wizard window is open
+        wizard_window_ui = ui_test.find(f"{wizard_window}").window
+        self.assertTrue(wizard_window_ui.visible)
+
+        # Press the "Create" button from the start page
+        await start_components[TestComponents.CREATE_OPTION].click()
+        await ui_test.human_delay()
+
+        # Press the file picker icon button
+        setup_components = await self.__find_setup_page_components(wizard_window)
+        await setup_components[TestComponents.PROJECT_FILE_ICON].click()
+        await ui_test.human_delay()
+
+        # Ensure the wizard window has closed and file picker has opened
+        self.assertFalse(wizard_window_ui.visible)
+        file_picker_window_ui = ui_test.find("Select a project file location").window
+        self.assertTrue(file_picker_window_ui.visible)
+
+        # Press ESC to cancel
+        await ui_test.emulate_keyboard_press(KeyboardInput.ESCAPE)
+        await ui_test.human_delay()
+
+        # Ensure that the file picker has closed and wizard window has opened
+        self.assertTrue(wizard_window_ui.visible)
+        self.assertFalse(file_picker_window_ui.visible)

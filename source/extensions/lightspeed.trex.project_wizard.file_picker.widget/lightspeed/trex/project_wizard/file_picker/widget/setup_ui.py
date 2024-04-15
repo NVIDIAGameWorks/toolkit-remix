@@ -21,6 +21,8 @@ import carb
 from lightspeed.common import constants as _constants
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui
+from omni.flux.utils.common import Event as _Event
+from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.file_pickers import open_file_picker as _open_file_picker
 
@@ -58,6 +60,9 @@ class FilePickerWidget:
         self._placeholder_label = placeholder_label
 
         self._validation_error = False
+
+        self.__on_file_picker_opened = _Event()
+        self.__on_file_picker_closed = _Event()
 
         self._create_ui()
 
@@ -107,6 +112,8 @@ class FilePickerWidget:
         self._dir_field.model.set_value(path)
         self._selected_callback(path)
 
+        self._on_file_picker_closed()
+
     def __validate_dialog_selection(self, dirname: str, filename: str):
         self._validation_error = self._validate_callback(str(Path(dirname) / filename))
         return not bool(self._validation_error)
@@ -139,10 +146,12 @@ class FilePickerWidget:
     def __open_dialog(self, _x, _y, b, _m):
         if b != 0:
             return
+
+        self._on_file_picker_opened()
         _open_file_picker(
             self._title,
             self.__path_selected_callback,
-            lambda *_: None,
+            lambda *_: self._on_file_picker_closed(),
             apply_button_label=self._apply_button_label,
             current_file=self._current_path,
             file_extension_options=[] if self._select_directory else _constants.SAVE_USD_FILE_EXTENSIONS_OPTIONS,
@@ -150,6 +159,32 @@ class FilePickerWidget:
             validate_selection=self.__validate_dialog_selection,
             validation_failed_callback=self.__show_validation_failed_dialog,
         )
+
+    def _on_file_picker_opened(self):
+        """
+        Trigger the __on_file_picker_opened event
+        """
+        self.__on_file_picker_opened()
+
+    def subscribe_file_picker_opened(self, function: Callable[[], None]):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        Called when the file picker is opened.
+        """
+        return _EventSubscription(self.__on_file_picker_opened, function)
+
+    def _on_file_picker_closed(self):
+        """
+        Trigger the __on_file_picker_closed event
+        """
+        self.__on_file_picker_closed()
+
+    def subscribe_file_picker_closed(self, function: Callable[[], None]):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        Called when the file picker is closed.
+        """
+        return _EventSubscription(self.__on_file_picker_closed, function)
 
     def destroy(self):
         """Destroy."""

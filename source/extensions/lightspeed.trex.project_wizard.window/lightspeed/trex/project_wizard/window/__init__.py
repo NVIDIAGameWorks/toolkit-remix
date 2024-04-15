@@ -14,6 +14,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
-__all__ = ["ProjectWizardWindow"]
+__all__ = ["ProjectWizardWindowExtension", "get_instance", "ProjectWizardWindow"]
 
+from .extension import ProjectWizardWindowExtension, get_instance
 from .setup_ui import ProjectWizardWindow

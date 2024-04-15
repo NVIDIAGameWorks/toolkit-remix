@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- REMIX-2820: Fix project wizard and file picker close
 - Fix property editor crash for unknowns widget builders
 
 ### Removed

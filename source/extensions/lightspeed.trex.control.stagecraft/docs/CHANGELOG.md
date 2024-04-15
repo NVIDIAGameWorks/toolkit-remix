@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.0] - 2024-04-12
+### Changed
+- Now reference global wizard window instance and calls `.show_project_wizard()`
+
 ## [1.0.3]
 ### Changed
 - Set Apache 2 license headers

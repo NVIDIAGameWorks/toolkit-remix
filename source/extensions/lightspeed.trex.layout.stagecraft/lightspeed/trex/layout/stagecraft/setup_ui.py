@@ -26,8 +26,14 @@ import omni.appwindow
 import omni.kit.app
 import omni.ui as ui
 import omni.usd
-from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS, REMIX_LAUNCHER_PATH, REMIX_SAMPLE_PATH
+from lightspeed.common.constants import (
+    READ_USD_FILE_EXTENSIONS_OPTIONS,
+    REMIX_LAUNCHER_PATH,
+    REMIX_SAMPLE_PATH,
+    GlobalEventNames,
+)
 from lightspeed.event.save_recent.recent_saved_file_utils import RecentSavedFile as _RecentSavedFile
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.trex.components_pane.stagecraft.controller import SetupUI as ComponentsPaneSetupUI
 from lightspeed.trex.components_pane.stagecraft.models import EnumItems as ComponentsEnumItems
@@ -55,6 +61,7 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.widget.color import color_to_hex
+from omni.flux.utils.widget.file_pickers.file_picker import destroy_file_picker as _destroy_file_picker
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.flux.utils.widget.resources import get_background_images
 from omni.flux.utils.widget.resources import get_icons as _get_icons
@@ -116,6 +123,13 @@ class SetupUI(TrexLayout):
         self._on_open_work_file = _Event()
         self._on_resume_work_file_clicked = _Event()
         self.__on_import_capture_layer = _Event()
+
+        # TODO Feature OM-45888 - File Picker will appear behind the wizard modal
+        event_manager = _get_event_manager_instance()
+        event_manager.register_global_custom_event(GlobalEventNames.PAGE_CHANGED.value)
+        self._page_changed_sub = event_manager.subscribe_global_custom_event(
+            GlobalEventNames.PAGE_CHANGED.value, _destroy_file_picker
+        )
 
     def enable_welcome_resume_item(self) -> bool:
         current_stage = self._context.get_stage()
@@ -305,6 +319,10 @@ class SetupUI(TrexLayout):
         self.__refresh_welcome_pad_tree()
 
     def show_page(self, page: Pages):
+        # TODO Feature OM-45888 - File Picker will appear behind the wizard modal
+        if page != self.__current_page:
+            _get_event_manager_instance().call_global_custom_event(GlobalEventNames.PAGE_CHANGED.value)
+
         for frame in self._all_frames:
             frame.visible = frame.name == page.value
         self.__current_page = page

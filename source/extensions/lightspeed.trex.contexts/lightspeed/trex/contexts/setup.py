@@ -18,7 +18,10 @@ from enum import Enum
 from typing import List
 
 import omni.usd
+from lightspeed.common import constants as _constants
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.widget.file_pickers import destroy_file_picker as _destroy_file_picker
 
 
 class Contexts(Enum):
@@ -38,6 +41,13 @@ class _Setup:
             setattr(self, attr, value)
         self._usd_contexts = []
         self._current_context = None
+
+        # TODO Feature OM-45888 - File Picker will appear behind the wizard modal
+        event_manager = _get_event_manager_instance()
+        event_manager.register_global_custom_event(_constants.GlobalEventNames.CONTEXT_CHANGED.value)
+        self._context_changed_sub = event_manager.subscribe_global_custom_event(
+            _constants.GlobalEventNames.CONTEXT_CHANGED.value, _destroy_file_picker
+        )
 
     def create_usd_context(self, usd_context_name: Contexts) -> omni.usd.UsdContext:
         usd_context = omni.usd.get_context(usd_context_name.value)
@@ -67,6 +77,9 @@ class _Setup:
 
     def set_current_context(self, context):
         """Set the current context for the remix app"""
+        # TODO Feature OM-45888 - File Picker will appear behind the wizard modal
+        if context != self._current_context:
+            _get_event_manager_instance().call_global_custom_event(_constants.GlobalEventNames.CONTEXT_CHANGED.value)
         self._current_context = context
 
     def destroy(self):

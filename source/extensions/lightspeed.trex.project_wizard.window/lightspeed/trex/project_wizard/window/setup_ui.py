@@ -40,6 +40,8 @@ class ProjectWizardWindow:
             "_wizard_window": None,
             "_wizard_completed_sub": None,
             "_setup_finished_sub": None,
+            "_file_picker_opened_sub": None,
+            "_file_picker_closed_sub": None,
         }
         for attr, value in self._default_attrs.items():
             setattr(self, attr, value)
@@ -47,12 +49,18 @@ class ProjectWizardWindow:
         self._context_name = context_name
         self._wizard_core = _ProjectWizardCore()
 
+        # TODO Feature OM-45888 - File Picker will appear behind the wizard modal (so hide and re-show wizard window)
+        wizard_start_page = _WizardStartPage(context_name=self._context_name)
+        self._file_picker_opened_sub = wizard_start_page.subscribe_file_picker_opened(self.hide_project_wizard)
+        self._file_picker_closed_sub = wizard_start_page.subscribe_file_picker_closed(self.show_project_wizard)
+
         self._wizard_window = _WizardWindow(
-            _WizardModel(_WizardStartPage(context_name=self._context_name)),
+            _WizardModel(wizard_start_page),
             title="RTX Remix Project Wizard",
             width=width,
             height=height,
-            flags=ui.WINDOW_FLAGS_NO_DOCKING
+            flags=ui.WINDOW_FLAGS_MODAL
+            | ui.WINDOW_FLAGS_NO_DOCKING
             | ui.WINDOW_FLAGS_NO_COLLAPSE
             | ui.WINDOW_FLAGS_NO_SCROLLBAR
             | ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
@@ -112,8 +120,11 @@ class ProjectWizardWindow:
         # reset in async after 1 frame because we can't reset a sub from the sub itself
         asyncio.ensure_future(self.__reset_setup_finished_sub())
 
-    def show_project_wizard(self, reset_page: bool = True):
+    def show_project_wizard(self, reset_page: bool = False):
         self._wizard_window.show_wizard(reset_page=reset_page)
+
+    def hide_project_wizard(self):
+        self._wizard_window.hide_wizard()
 
     def destroy(self):
         _reset_default_attrs(self)

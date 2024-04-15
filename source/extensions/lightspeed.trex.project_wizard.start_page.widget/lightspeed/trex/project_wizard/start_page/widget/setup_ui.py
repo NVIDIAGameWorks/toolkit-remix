@@ -16,6 +16,7 @@
 """
 from functools import partial
 from pathlib import Path
+from typing import Callable
 
 from lightspeed.common import constants as _constants
 from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys
@@ -24,6 +25,8 @@ from lightspeed.trex.project_wizard.existing_mods_page.widget import ExistingMod
 from lightspeed.trex.project_wizard.setup_page.widget import SetupPage as _SetupPage
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui
+from omni.flux.utils.common import Event as _Event
+from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.widget.file_pickers import open_file_picker as _open_file_picker
 from omni.flux.wizard.widget import WizardPage as _WizardPage
 
@@ -51,6 +54,8 @@ class WizardStartPage(_WizardPage):
                 "_example_description": None,
                 "_option_icons": None,
                 "_option_labels": None,
+                "_sub_file_picker_opened": None,
+                "_sub_file_picker_closed": None,
             }
         )
 
@@ -59,6 +64,12 @@ class WizardStartPage(_WizardPage):
         self._example_description = None
         self._option_icons = {}
         self._option_labels = {}
+
+        self._sub_file_picker_opened = self._setup_page.subscribe_file_picker_opened(self._on_file_picker_opened)
+        self._sub_file_picker_closed = self._setup_page.subscribe_file_picker_closed(self._on_file_picker_closed)
+
+        self.__on_file_picker_opened = _Event()
+        self.__on_file_picker_closed = _Event()
 
         # Option: (StyleName, Callback)
         self._options = {
@@ -95,6 +106,8 @@ class WizardStartPage(_WizardPage):
             # Only update the payload if we're completing the wizard process
             if self.next_page is None:
                 self.payload = {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
+            self._on_file_picker_closed()
+
             self._setup_page.open_or_create = True
             self._setup_page.project_path = project_path
             self.request_next()
@@ -127,11 +140,11 @@ class WizardStartPage(_WizardPage):
                 disable_cancel_button=True,
             )
 
-        # TODO Feature OM-45888 - File Picker will appear behind the modal
+        self._on_file_picker_opened()
         _open_file_picker(
             "Open an RTX Remix project",
             on_file_selected,
-            lambda *_: None,
+            lambda *_: self._on_file_picker_closed(),
             apply_button_label="Open",
             file_extension_options=_constants.SAVE_USD_FILE_EXTENSIONS_OPTIONS,
             select_directory=False,
@@ -206,3 +219,29 @@ class WizardStartPage(_WizardPage):
                 ui.Spacer(height=0)
 
             ui.Spacer(width=0)
+
+    def _on_file_picker_opened(self):
+        """
+        Trigger the __on_file_picker_opened event
+        """
+        self.__on_file_picker_opened()
+
+    def subscribe_file_picker_opened(self, function: Callable[[], None]):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        Called when the file picker is opened.
+        """
+        return _EventSubscription(self.__on_file_picker_opened, function)
+
+    def _on_file_picker_closed(self):
+        """
+        Trigger the __on_file_picker_closed event
+        """
+        self.__on_file_picker_closed()
+
+    def subscribe_file_picker_closed(self, function: Callable[[], None]):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        Called when the file picker is closed.
+        """
+        return _EventSubscription(self.__on_file_picker_closed, function)
