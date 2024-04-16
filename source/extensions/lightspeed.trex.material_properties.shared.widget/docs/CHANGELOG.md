@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.1] - 2024-04-15
+### Changed
+- Updated drag and drop regex to be case-insensitive and multi-texture dialog
+
 ## [1.3.0] - 2024-04-02
 ### Changed
 - Update to use new `FieldBuilder` to configure widgets for `MaterialPropertyWidget`

@@ -209,7 +209,7 @@ class SetupUI:
 
             for texture_type in _TextureTypes:
                 label, name, regex = texture_type.value
-                match = re.search(regex, str(path.name))
+                match = re.search(regex, str(path.name), re.IGNORECASE)
                 if match is not None and name in paths_to_update:
                     carb.log_warn(
                         f"{label} is already set to {paths_to_update[name]['path'].stem}. Unable to set to {path.stem}"
@@ -242,14 +242,14 @@ class SetupUI:
             return
 
         # Dialog to ask for one or all textures
-        first_texture = list(paths_to_update)[0]
-        first_texture_name = paths_to_update[first_texture]["type_name"]
+        first_key = list(paths_to_update)[0]
+        first_texture = paths_to_update[first_key]["path"].stem
         _TrexMessageDialog(
             message=f"Do you want to use {first_texture} or all Textures?",
             title="Texture Assignment",
             ok_handler=single_texture,
             cancel_handler=assign_texture,
-            ok_label=f"{first_texture_name}",
+            ok_label=f"{first_texture}",
             cancel_label="All",
         )
 
