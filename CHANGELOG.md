@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Updated drag and drop regex to be case-insensitive and multi-texture dialog
 
 ### Fixed
 - REMIX-2820: Fix project wizard and file picker close
