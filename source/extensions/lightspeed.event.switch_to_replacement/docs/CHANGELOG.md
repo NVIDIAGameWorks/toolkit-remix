@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0]
+### Changed
+- Monkey patch `Usd.EditContext` for ignore switch when `Usd.EditContext` is used
+
 ## [1.1.2]
 ### Changed
 - Set Apache 2 license headers

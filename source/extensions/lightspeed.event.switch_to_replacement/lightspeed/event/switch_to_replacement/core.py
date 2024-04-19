@@ -24,6 +24,8 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.usd.layers import LayerEventType, get_layer_event_payload, get_layers
 from pxr import Sdf
 
+from .edit_context import should_disable_switch as _should_disable_switch
+
 _CONTEXT = "/exts/lightspeed.event.switch_to_replacement/context"
 
 
@@ -71,6 +73,8 @@ class SwitchToReplacementCore(_ILSSEvent):
         self._layer_event_subscription = None
 
     def __on_layer_event(self, event: carb.events.IEvent):
+        if _should_disable_switch():
+            return
         payload = get_layer_event_payload(event)
         if payload.event_type in [
             LayerEventType.EDIT_MODE_CHANGED,

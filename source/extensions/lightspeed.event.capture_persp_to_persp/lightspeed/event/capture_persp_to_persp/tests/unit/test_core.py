@@ -30,7 +30,7 @@ from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
 from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit.test.async_unittest import AsyncTestCase
-from omni.kit.test_suite.helpers import arrange_windows, open_stage
+from omni.kit.test_suite.helpers import arrange_windows, open_stage, wait_stage_loading
 
 # from omni.kit.test_suite.helpers wait_stage_loading
 from pxr import Gf, Usd
@@ -47,6 +47,10 @@ async def make_temp_directory(context):
     try:
         yield temp_dir
     finally:
+        await wait_stage_loading()
+        await context.new_stage_async()
+        await wait_stage_loading()
+        await omni.kit.app.get_app().next_update_async()
         if context.can_close_stage():
             await context.close_stage_async()
         temp_dir.cleanup()

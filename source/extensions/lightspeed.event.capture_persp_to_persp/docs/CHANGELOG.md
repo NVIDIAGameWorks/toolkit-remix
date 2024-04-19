@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.5]
+### Fixed
+- Handle camera with `transform` attribute
+
 ## [1.1.4]
 ### Changed
 - Set Apache 2 license headers

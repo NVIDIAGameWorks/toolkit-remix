@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - REMIX-2820: Fix project wizard and file picker close
 - Fix property editor crash for unknowns widget builders
+- Start `lightspeed.event.capture_persp_to_persp` before the global event
+- Fix default waypoint creation (create it in the root layer)
 
 ### Removed
 

@@ -1,5 +1,5 @@
 [package]
-version = "1.1.4"
+version = "1.1.5"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -43,8 +43,6 @@ dependencies = [
     "lightspeed.trex.viewports.shared.widget",  # grab the viewport because the viewport generate the persp camera
     "lightspeed.trex.viewports.stagecraft.bundle",  # grab the viewport because the viewport generate the persp camera
     "omni.kit.test_suite.helpers",
-    "omni.kit.ui_test",
-    "omni.usd",
 ]
 
 stdoutFailPatterns.exclude = [

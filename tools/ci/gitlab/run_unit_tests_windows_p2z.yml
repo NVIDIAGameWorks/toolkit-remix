@@ -1,6 +1,8 @@
 run-unit-tests-windows-p2z:
   extends: .defaults
   stage: build_run_tests_and_doc
+  tags:
+    - quadro
   needs:
     - check-code-lint
   variables:
