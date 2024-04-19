@@ -1,6 +1,8 @@
 run-unit-tests-windows-a2o:
   extends: .defaults
   stage: build_run_tests_and_doc
+  tags:
+    - quadro
   needs:
     - check-code-lint
   variables:
@@ -10,4 +12,5 @@ run-unit-tests-windows-a2o:
     - .\build.bat --release
     - .\repo.bat publish_exts --verify
   script:
+    - .\_build\windows-x86_64\release\lightspeed.app.trex.ingestcraft.cli.bat -h  # test that the ingestion CLI is not broken
     - .\repo.bat test --suite unit_win_a2o --config release

@@ -11,5 +11,6 @@ run-unit-tests-linux:
     - fail_wr=0
     - ./repo.sh publish_exts --verify
   script:
+    - ./_build/linux-x86_64/release/lightspeed.app.trex.ingestcraft.cli.sh -h  # test that the ingestion CLI is not broken
     - ./repo.sh test --suite unit_linux --config release
     - echo "WinRel=${fail_wr}"

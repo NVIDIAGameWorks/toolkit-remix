@@ -91,8 +91,22 @@ class CopyCapturePerspToPerspCore(_ILSSEvent):
                     return
                 Sdf.CopySpec(capture_layer, "/RootNode/Camera", session_layer, self._PERSP_PATH)
 
-                xf_tr = camera_prim.GetProperty("xformOp:translate")
-                translate = xf_tr.Get()
+                attr_position, _attr_rotation, _attr_scale, _attr_order = omni.usd.TransformHelper().get_transform_attr(
+                    camera_prim.GetAttributes()
+                )
+                if attr_position:
+                    if attr_position.GetName() == "xformOp:translate":
+                        xf_tr = camera_prim.GetAttribute("xformOp:translate")
+                        translate = xf_tr.Get()
+                    elif attr_position.GetName() == "xformOp:transform":
+                        xf_tr = camera_prim.GetAttribute("xformOp:transform")
+                        value = xf_tr.Get()
+                        if isinstance(value, Gf.Matrix4d):
+                            matrix = value
+                        else:
+                            matrix = Gf.Matrix4d(*value)
+                        translate = matrix.ExtractTranslation()
+
                 zlen = Gf.Vec3d(translate[0], translate[1], translate[2]).GetLength()
 
                 omni.kit.commands.execute(

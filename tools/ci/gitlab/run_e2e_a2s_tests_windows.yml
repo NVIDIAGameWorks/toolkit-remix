@@ -1,6 +1,8 @@
 run-e2e-tests-windows-a2s:
   extends: .defaults
   stage: build_run_tests_and_doc
+  tags:
+    - quadro
   needs:
     - check-code-lint
   variables:

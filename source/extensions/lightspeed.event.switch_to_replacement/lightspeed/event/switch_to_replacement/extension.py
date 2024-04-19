@@ -20,6 +20,7 @@ from lightspeed.events_manager import get_instance as _get_event_manager_instanc
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 from .core import SwitchToReplacementCore
+from .edit_context import monkey_patch as _monkey_patch_edit_context
 
 
 class EventSaveRecentExtension(omni.ext.IExt):
@@ -34,6 +35,10 @@ class EventSaveRecentExtension(omni.ext.IExt):
     # noinspection PyUnusedLocal
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.event.switch_to_replacement] Lightspeed Event Switch To Replacement startup")
+
+        # monkey patch Usd.EditContext
+        _monkey_patch_edit_context()
+
         self._core = SwitchToReplacementCore()
         _get_event_manager_instance().register_event(self._core)
 

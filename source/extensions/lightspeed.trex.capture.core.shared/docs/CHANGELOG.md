@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.2]
+### Fixed
+- Add `lightspeed.event.capture_persp_to_persp` because it needs to start before
+
 ## [1.1.1]
 ### Changed
 - Set Apache 2 license headers

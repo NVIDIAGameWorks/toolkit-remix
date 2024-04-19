@@ -24,11 +24,16 @@ from lightspeed.layer_manager.core import LayerManagerCore as _LayerManager
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.waypoint.core import get_instance as _get_waypoint_instance
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.kit.waypoint.core import WaypointChangeCallbacks as _WaypointChangeCallbacks
+from pxr import Usd
 
 _CONTEXT = "/exts/lightspeed.event.waypoint_game_camera/context"
 
 
 class WaypointGameCameraCore(_ILSSEvent):
+
+    WAYPOINT_NAME = "Waypoint_GameCam"
+
     def __init__(self):
         super().__init__()
         self.default_attr = {
@@ -36,6 +41,7 @@ class WaypointGameCameraCore(_ILSSEvent):
             "_context": None,
             "_layer_event_sub": None,
             "_waypoint_instance": None,
+            "_ext_callback": None,
         }
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
@@ -47,8 +53,7 @@ class WaypointGameCameraCore(_ILSSEvent):
         self._layers = _layers.get_layers()
         self._layer_manager = _LayerManager(self._context_name)
         self._curr_capture = self._layer_manager.get_layer(_LayerType.capture)
-
-        self._waypoint_name = "Waypoint_GameCam"
+        self.__last_game_waypoint = False
 
     @property
     def name(self) -> str:
@@ -63,9 +68,11 @@ class WaypointGameCameraCore(_ILSSEvent):
 
     def _uninstall(self):
         """Function that will delete the behavior"""
+        if self._waypoint_instance and self._waypoint_instance.waypoint_obj:
+            self._waypoint_instance.waypoint_obj.deregister_callback(self._ext_callback)
         self._layer_event_sub = None
 
-    async def _reset_persp_camera(self):
+    def _reset_persp_camera(self):
         """Function to reset to perspective camera"""
         stage = self._context.get_stage()
         persp_camera = stage.GetPrimAtPath("/OmniverseKit_Persp")
@@ -77,41 +84,58 @@ class WaypointGameCameraCore(_ILSSEvent):
     @omni.usd.handle_exception
     async def _create_game_camera_waypoint(self):
         """Function to set game camera Waypoint"""
-        # Need to refresh a few times on start up to get thumbnail
-        for _ in range(4):
-            await omni.kit.app.get_app().next_update_async()
-
         stage = self._context.get_stage()
+        if not stage:
+            carb.log_warn("No stage found. Not setting waypoint.")
+            return
         game_camera = stage.GetPrimAtPath("/RootNode/Camera")
         if not game_camera:
             carb.log_warn("No game camera found. Not setting waypoint.")
             return
 
+        # Need to wait for the camera to switch + image to render
         self._waypoint_instance.waypoint_obj.viewport_widget.set_active_camera("/RootNode/Camera")
-        self._waypoint_instance.waypoint_obj.create_waypoint()
-
-        # Another refresh to pick up the newly created waypoint for renaming
         for _ in range(6):
             await omni.kit.app.get_app().next_update_async()
+
+        if not stage:
+            self._reset_persp_camera()
+            return
+        with Usd.EditContext(stage, stage.GetRootLayer()):
+            self.__last_game_waypoint = True
+            await self._waypoint_instance.waypoint_obj.create_waypoint_async()
+            self.__last_game_waypoint = False
+        self._reset_persp_camera()
+
+    def _on_waypoint_created(self, waypoint) -> None:
+        if not self.__last_game_waypoint:
+            return
+        if not waypoint:
+            carb.log_warn("No waypoint camera found. Unable to rename.")
+            self._reset_persp_camera()
+            return
+        if WaypointGameCameraCore.WAYPOINT_NAME not in waypoint.name:
+            stage = self._context.get_stage()
+            with Usd.EditContext(stage, stage.GetRootLayer()):
+                waypoint.rename(WaypointGameCameraCore.WAYPOINT_NAME)
+
+    def _reset_waypoints(self):
         waypoints = self._waypoint_instance.waypoint_obj.get_waypoints()
-        if waypoints:
-            waypoint = [j for i, j in enumerate(waypoints)][-1]
-            if self._waypoint_name not in waypoint.name:
-                self._waypoint_instance.waypoint_obj.rename_waypoint(waypoint, self._waypoint_name)
+        game_waypoint = [waypoint for waypoint in waypoints if waypoint.name == WaypointGameCameraCore.WAYPOINT_NAME]
+        if game_waypoint:
+            waypoint = game_waypoint[0]
+            stage = self._context.get_stage()
+            with Usd.EditContext(stage, stage.GetRootLayer()):
+                self._waypoint_instance.waypoint_obj.delete_waypoint(waypoint)
+            # fix bug that don't delete waypoint
+            path = waypoint.path
+            if self._context.get_stage().GetPrimAtPath(path):
+                omni.kit.commands.execute("DeletePrimsCommand", paths=[path], destructive=True)
 
-        asyncio.ensure_future(self._reset_persp_camera())
-
-    @omni.usd.handle_exception
-    async def _reset_waypoints(self):
-        waypoint = self._waypoint_instance.waypoint_obj.get_waypoint(self._waypoint_name)
-        self._waypoint_instance.waypoint_obj.delete_waypoint(waypoint)
         asyncio.ensure_future(self._create_game_camera_waypoint())
 
     def __on_layer_event(self, event):
         """Function to handle layer events"""
-        if not self._waypoint_instance.waypoint_obj:
-            self._waypoint_instance.create_waypoint_instance(self._context_name)
-
         payload = _layers.get_layer_event_payload(event)
         if not payload:
             return
@@ -120,10 +144,14 @@ class WaypointGameCameraCore(_ILSSEvent):
             return
 
         if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
+            if not self._waypoint_instance.waypoint_obj:
+                self._waypoint_instance.create_waypoint_instance(self._context_name)
+                self._ext_callback = _WaypointChangeCallbacks(on_waypoint_created=self._on_waypoint_created)
+                self._waypoint_instance.waypoint_obj.register_callback(self._ext_callback)
             self._curr_capture = capture_layer
             waypoints = self._waypoint_instance.waypoint_obj.get_waypoints()
             if waypoints:
-                asyncio.ensure_future(self._reset_waypoints())
+                self._reset_waypoints()
             else:
                 asyncio.ensure_future(self._create_game_camera_waypoint())
 
