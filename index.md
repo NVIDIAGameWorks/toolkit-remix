@@ -15,7 +15,7 @@ docs/howto/index
 docs/runtimeinterface/index
 docs/toolkitinterface/index
 docs/remix-formats
-docs/remix-releasenotes
+docs/remix-changelog
 docs/remix-glossary
 docs/remix-faq
 docs/contributing
