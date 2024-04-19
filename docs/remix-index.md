@@ -12,7 +12,7 @@ howto/index.md
 runtimeinterface/index.md
 toolkitinterface/index.md
 remix-formats.md
-remix-releasenotes.md
+remix-changelog.md
 ```
 
 ```{toctree}
