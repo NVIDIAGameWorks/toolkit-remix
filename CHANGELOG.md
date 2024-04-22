@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix property editor crash for unknowns widget builders
 - Start `lightspeed.event.capture_persp_to_persp` before the global event
 - Fix default waypoint creation (create it in the root layer)
+- Fix incorrect clear value for the viewport (appeared as red instead of black)
 
 ### Removed
 
