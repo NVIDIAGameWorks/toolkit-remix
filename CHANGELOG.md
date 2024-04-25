@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+### Fixed
+
+### Removed
+
+## [2024.3.0-RC.3]
+
+### Added
+
+### Changed
 - Updated drag and drop regex to be case-insensitive and multi-texture dialog
 - Create a release note in the documentation
 - Update to remix-0.5.0-rc1
