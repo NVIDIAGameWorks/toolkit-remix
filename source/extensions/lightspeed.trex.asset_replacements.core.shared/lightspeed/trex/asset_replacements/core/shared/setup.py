@@ -18,7 +18,7 @@ import re
 import typing
 import uuid
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import carb
 import omni.client
@@ -70,7 +70,7 @@ class Setup:
 
         _level = 0
 
-        def get_parent_ref_layers(_prim):
+        def get_parent_ref_layers(_prim) -> list[str]:
             refs_and_layers = omni.usd.get_composed_references_from_prim(_prim)
             result = []
             if refs_and_layers:
@@ -120,7 +120,7 @@ class Setup:
         stage,
         from_prim,
         from_reference_layer_path,
-        instance_items: List["_ItemInstanceMesh"],
+        instance_items: list["_ItemInstanceMesh"],
         only_xformable: bool = False,
         only_imageable: bool = False,
         filter_scope_prim_without_imageable: bool = False,
@@ -169,7 +169,7 @@ class Setup:
         if selection:
             self.select_prim_paths(selection)
 
-    def get_next_xform_children(self, prim, from_reference_layer_path: str = None) -> List[Usd.Prim]:
+    def get_next_xform_children(self, prim, from_reference_layer_path: str = None) -> list[Usd.Prim]:
         children_prims = prim.GetChildren()
         if not children_prims:
             return []
@@ -202,16 +202,16 @@ class Setup:
                     return True
         return False
 
-    def filter_xformable_prims(self, prims: List[Usd.Prim]):
+    def filter_xformable_prims(self, prims: list[Usd.Prim]) -> list[Usd.Prim]:
         return [prim for prim in prims if UsdGeom.Xformable(prim)]
 
-    def filter_scope_prims(self, prims: List[Usd.Prim]):
+    def filter_scope_prims(self, prims: list[Usd.Prim]) -> list[Usd.Prim]:
         return [prim for prim in prims if UsdGeom.Scope(prim)]
 
-    def filter_imageable_prims(self, prims: List[Usd.Prim]):
+    def filter_imageable_prims(self, prims: list[Usd.Prim]) -> list[Usd.Prim]:
         return [prim for prim in prims if UsdGeom.Imageable(prim) or prim.IsA(UsdGeom.Subset)]
 
-    def get_corresponding_prototype_prims(self, prims) -> List[str]:
+    def get_corresponding_prototype_prims(self, prims) -> list[str]:
         """Give a list of instance prims (inst_123456789/*), and get the corresponding prims inside the prototypes
         (mesh_123456789/*)"""
         paths = []
@@ -226,7 +226,7 @@ class Setup:
             paths.append(path)
         return paths
 
-    def get_corresponding_prototype_prims_from_path(self, paths) -> List[str]:
+    def get_corresponding_prototype_prims_from_path(self, paths) -> list[str]:
         """Give a list of instance prims (inst_123456789/*), and get the corresponding prims inside the prototypes
         (mesh_123456789/*)"""
         stage = self._context.get_stage()
@@ -261,10 +261,10 @@ class Setup:
         with omni.kit.undo.group():
             remove_prim_specs_recursive(replacement_layer, [prim_path, *material_prim_paths])
 
-    def get_selected_prim_paths(self) -> List[Union[str]]:
+    def get_selected_prim_paths(self) -> list[str]:
         return self._context.get_selection().get_selected_prim_paths()
 
-    def select_prim_paths(self, paths: List[Union[str]], current_selection: List[Union[str]] = None):
+    def select_prim_paths(self, paths: list[str], current_selection: list[str] = None):
         if current_selection is None:
             current_selection = self.get_selected_prim_paths()
         if sorted(paths) != sorted(current_selection):
@@ -274,13 +274,13 @@ class Setup:
 
     def get_prim_from_ref_items(
         self,
-        ref_items: List["_ItemReferenceFileMesh"],
-        parent_items: List[Union["_ItemInstanceMesh", "_ItemReferenceFileMesh"]],
+        ref_items: list["_ItemReferenceFileMesh"],
+        parent_items: list[Union["_ItemInstanceMesh", "_ItemReferenceFileMesh"]],
         only_xformable: bool = False,
         only_imageable: bool = False,
         level: Optional[int] = None,
         skip_remix_ref: bool = False,
-    ) -> List[Usd.Prim]:
+    ) -> list[Usd.Prim]:
         """
         Get xformables prim that comes from the reference item and are children of the parent items.
         """
@@ -307,7 +307,7 @@ class Setup:
             children_prims = self.filter_imageable_prims(children_prims)
         return children_prims
 
-    def get_scope_prims_without_imageable_children(self, prims):
+    def get_scope_prims_without_imageable_children(self, prims) -> list[Usd.Prim]:
         result = []
         scoped_children = self.filter_scope_prims(prims)
         for scope in scoped_children:
@@ -318,7 +318,7 @@ class Setup:
                 result.append(scope)
         return result
 
-    def texture_path_is_from_capture(self, path: str):
+    def texture_path_is_from_capture(self, path: str) -> bool:
         path_p = Path(path)
         return (
             bool(constants.CAPTURE_FOLDER in path_p.parts or constants.REMIX_CAPTURE_FOLDER in path_p.parts)
@@ -326,7 +326,7 @@ class Setup:
         )
 
     @staticmethod
-    def ref_path_is_from_capture(path: str):
+    def ref_path_is_from_capture(path: str) -> bool:
         path_p = Path(path)
         return (
             bool(constants.CAPTURE_FOLDER in path_p.parts or constants.REMIX_CAPTURE_FOLDER in path_p.parts)
@@ -346,7 +346,7 @@ class Setup:
         )
 
     @staticmethod
-    def switch_ref_abs_to_rel_path(stage, path):
+    def switch_ref_abs_to_rel_path(stage: Usd.Stage, path: str) -> str:
         edit_layer = stage.GetEditTarget().GetLayer()
         # make the path relative to current edit target layer
         if not edit_layer.anonymous:
@@ -354,7 +354,7 @@ class Setup:
         return path
 
     @staticmethod
-    def switch_ref_rel_to_abs_path(stage, path):
+    def switch_ref_rel_to_abs_path(stage: Usd.Stage, path: str) -> str:
         edit_layer = stage.GetEditTarget().GetLayer()
         # make the path relative to current edit target layer
         if not edit_layer.anonymous:
@@ -384,15 +384,15 @@ class Setup:
         return str(ref.primPath)
 
     @staticmethod
-    def ref_prim_path_is_default_prim(prim_path: str):
+    def ref_prim_path_is_default_prim(prim_path: str) -> bool:
         return prim_path == _DEFAULT_PRIM_TAG
 
     @staticmethod
-    def get_ref_default_prim_tag():
+    def get_ref_default_prim_tag() -> str:
         return _DEFAULT_PRIM_TAG
 
     @staticmethod
-    def is_ref_prim_path_valid(asset_path: str, prim_path: str, layer: Sdf.Layer, log_error=True):
+    def is_ref_prim_path_valid(asset_path: str, prim_path: str, layer: Sdf.Layer, log_error=True) -> bool:
         abs_new_asset_path = omni.client.normalize_url(layer.ComputeAbsolutePath(asset_path))
         _, entry = omni.client.stat(abs_new_asset_path)
         if not entry.flags & omni.client.ItemFlags.READABLE_FILE:
@@ -421,7 +421,7 @@ class Setup:
         new_ref_prim_path: str,
         layer: Sdf.Layer,
         create_if_remix_ref: bool = True,
-    ) -> Sdf.Reference:
+    ) -> tuple[Sdf.Reference, str]:
 
         detail_message = ""
 
@@ -569,7 +569,7 @@ class Setup:
 
     def __anchor_reference_asset_path_to_layer(
         self, ref: Sdf.Reference, intro_layer: Sdf.Layer, anchor_layer: Sdf.Layer
-    ):
+    ) -> Sdf.Reference:
         asset_path = ref.assetPath
         if asset_path:
             asset_path = intro_layer.ComputeAbsolutePath(asset_path)
@@ -594,7 +594,7 @@ class Setup:
         ref: Sdf.Reference,
         intro_layer: Sdf.Layer,
         remove_if_remix_ref: bool = True,
-    ) -> Sdf.Reference:
+    ):
         edit_target_layer = stage.GetEditTarget().GetLayer()
         # When removing a reference on a different layer, the deleted assetPath should be relative to edit target layer,
         # not introducing layer
@@ -646,7 +646,7 @@ class Setup:
             if prim_spec and not prim_spec.hasReferences and not prim_spec.nameChildren:
                 _remove_prim_spec(edit_target_layer, prim_spec.path)
 
-    def delete_prim(self, paths: List[str]):
+    def delete_prim(self, paths: list[str]):
         omni.kit.commands.execute(
             "DeletePrims",
             paths=paths,
@@ -722,7 +722,13 @@ class Setup:
     def is_file_path_valid(path: str, layer: Sdf.Layer, log_error: bool = True) -> bool:
         return _path_utils.is_file_path_valid(path, layer=layer, log_error=log_error)
 
-    def filter_transformable_prims(self, paths: Optional[List[Sdf.Path]]):
+    def filter_transformable_prims(self, paths: Optional[list[Sdf.Path]]) -> list[str]:
+        """
+        Filter a list of prim paths to those that can be transformed.
+
+        Instanced mesh prim paths will be replaced with their corresponding prototype
+        prim paths so that transformations will act on all instances.
+        """
         transformable = []
         regex_in_instance = re.compile(constants.REGEX_IN_INSTANCE_PATH)
         regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
@@ -753,11 +759,11 @@ class Setup:
         return transformable
 
     @staticmethod
-    def get_prim_hash(prim_path):
+    def get_prim_hash(prim_path) -> str:
         return re.match(constants.REGEX_HASH, prim_path).group(3)
 
     @staticmethod
-    def get_instance_from_mesh(mesh_paths: List[str], instance_paths: List[str]) -> List[str]:
+    def get_instance_from_mesh(mesh_paths: list[str], instance_paths: list[str]) -> list[str]:
         instances = set()
         for mesh_path in mesh_paths:
             for instance_path in instance_paths:

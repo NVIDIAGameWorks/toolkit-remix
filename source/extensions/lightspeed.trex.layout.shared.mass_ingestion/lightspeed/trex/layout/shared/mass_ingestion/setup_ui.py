@@ -95,6 +95,10 @@ class SetupUI(_BaseLayout):
     def button_priority(self) -> int:
         return 0
 
+    def show(self, value: bool):
+        if self._mass_ingest_widget:
+            self._mass_ingest_widget.show(value)
+
     def _create_layout(self):
         self._frame_workspace = ui.Frame(name=Pages.WORKSPACE_PAGE.value, visible=True)
         with self._frame_workspace:

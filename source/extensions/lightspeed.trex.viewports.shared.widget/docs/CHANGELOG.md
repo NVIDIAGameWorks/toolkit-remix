@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.4]
+### Fixed
+- Fix Teleport tool to act on prototype relative to current instance's world position.
+
 ## [1.2.3]
 ### Changed
 - Set Apache 2 license headers

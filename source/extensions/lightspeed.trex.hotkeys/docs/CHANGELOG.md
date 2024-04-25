@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.3.0] - 2024-04-22
+### Added
+- Ctrl+T hotkey for teleport
+
 ## [0.2.1]
 ### Changed
 - Set Apache 2 license headers

@@ -33,7 +33,9 @@ from .scene.scenes import origin_default_factory as _origin_default_factory
 from .setup_ui import SetupUI as _ViewportSetupUI
 from .stats.layer import ViewportStatsLayer
 from .tools.layer import ViewportToolsLayer
-from .tools.teleport import TeleportButtonGroup as _TeleportButtonGroup
+from .tools.teleport import create_button_instance as _create_teleporter_toolbar_button_group
+from .tools.teleport import delete_button_instance as _delete_teleporter_toolbar_button_group
+from .tools.teleport import teleporter_factory as _teleporter_factory
 
 if TYPE_CHECKING:
     from omni.kit.widget.viewport.api import ViewportAPI
@@ -82,6 +84,7 @@ class TrexViewportSharedExtension(omni.ext.IExt):
     def __init__(self):
         super().__init__()
         self.__registered = None
+        self.__teleport_button_group = None
 
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.trex.viewports.shared.widget] Startup")
@@ -96,6 +99,7 @@ class TrexViewportSharedExtension(omni.ext.IExt):
         )
         self.__registered.append(RegisterScene(_manipulator_camera_default, "omni.kit.viewport.manipulator.Camera"))
         self.__registered.append(RegisterScene(_prim_transform_manipulator, "omni.kit.lss.viewport.manipulator.prim"))
+        self.__registered.append(RegisterScene(_teleporter_factory, "omni.kit.lss.viewport.tools.teleport"))
 
         # self.__registered.append(
         #     RegisterScene(_grid_default_factory, "omni.kit.viewport.scene.SimpleGrid")
@@ -116,7 +120,15 @@ class TrexViewportSharedExtension(omni.ext.IExt):
 
     def __add_tools(self):
         toolbar = _get_toolbar_instance()
-        toolbar.add_widget(_TeleportButtonGroup(), 12)
+        self.__teleport_button_group = _create_teleporter_toolbar_button_group()
+        toolbar.add_widget(self.__teleport_button_group, 12)
+
+    def __remove_tools(self):
+        if self.__teleport_button_group:
+            toolbar = _get_toolbar_instance()
+            toolbar.remove_widget(self.__teleport_button_group)
+            self.__teleport_button_group.clean()
+            _delete_teleporter_toolbar_button_group()
 
     def __unregister_scenes(self, registered):
         for item in registered:
@@ -127,4 +139,5 @@ class TrexViewportSharedExtension(omni.ext.IExt):
         carb.log_info("[lightspeed.trex.viewports.shared.widget] Shutdown")
         if self.__registered:
             self.__unregister_scenes(self.__registered)
+        self.__remove_tools()
         self.__registered = None
