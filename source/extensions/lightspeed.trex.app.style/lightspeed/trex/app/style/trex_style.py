@@ -249,6 +249,7 @@ current_dict.update(
         "Button.Label::NoBackground:disabled": {
             "color": _WHITE_30,
         },
+        "Button.Image::teleport": {"image_url": _get_icons("teleport")},
         "Button.Image::ShowValidation": {
             "image_url": _get_icons("v-box"),
             "color": _WHITE_20,

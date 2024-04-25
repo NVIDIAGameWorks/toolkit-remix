@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated drag and drop regex to be case-insensitive and multi-texture dialog
 - Create a release note in the documentation
 - Update to remix-0.5.0-rc1
+- REMIX-2939: optimize process executor from Ingestion and AI Tool to not update UI if not visible
+- REMIX-2997: Improve Check Plugins load speed on startup
 
 ### Fixed
 - REMIX-2820: Fix project wizard and file picker close
@@ -20,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Start `lightspeed.event.capture_persp_to_persp` before the global event
 - Fix default waypoint creation (create it in the root layer)
 - Fix incorrect clear value for the viewport (appeared as red instead of black)
+- REMIX-2939: Fix item progression update for the Ingestion and AI Tool (using process executor)
+- REMIX-2422: Fixed Teleport to properly work with prototypes and instances
 
 ### Removed
 

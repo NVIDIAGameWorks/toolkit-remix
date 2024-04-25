@@ -34,6 +34,7 @@ INCLUDED_SCENE_LAYERS = [
     "omni.kit.viewport.manipulator.Selection",
     "omni.kit.viewport.manipulator.Camera",
     "omni.kit.lss.viewport.manipulator.prim",
+    "omni.kit.lss.viewport.tools.teleport",
     # "omni.kit.viewport.scene.SimpleGrid",  # use legacy grid for now
     "omni.kit.viewport.scene.SimpleOrigin",
     "omni.kit.viewport.scene.CameraAxisLayer",

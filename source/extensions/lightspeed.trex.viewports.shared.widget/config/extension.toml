@@ -1,5 +1,5 @@
 [package]
-version = "1.2.3"
+version = "1.2.4"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Viewports implementation"
 description = "Viewports implementation for NVIDIA RTX Remix App"
@@ -13,9 +13,13 @@ icon = "data/icon.png"
 
 
 [dependencies]
+"lightspeed.hydra.remix.core" = {}
+"lightspeed.trex.asset_replacements.core.shared" = {}
 "lightspeed.trex.app.style" = {}
+"lightspeed.trex.app.resources" = {}
 "lightspeed.trex.utils.common" = {}
 "lightspeed.events_manager" = {}
+"lightspeed.trex.contexts" = {}
 "lightspeed.trex.hotkeys" = {}
 "lightspeed.trex.viewports.manipulators" = {}
 "lightspeed.trex.viewports.properties_pane.widget" = {}
@@ -23,10 +27,12 @@ icon = "data/icon.png"
 "omni.flux.utils.common" = {}
 "omni.kit.viewport.utility" = {}
 "omni.kit.hotkeys.core" = {}
+"omni.kit.notification_manager" = {}
 # start before to be sure to apply settings from the app .kit
 "omni.kit.widget.toolbar" = {order = -10}
 "omni.kit.commands" = {}
 "omni.ui" = {}
+"omni.usd" = {}
 
 [settings]
 # Default legacy display options for any consumers (all visible but Skeletons)

@@ -106,12 +106,20 @@ class SetupUI:
 
     def _show_layout(self, cls: "SetupUI"):
         for frame in ui.Inspector.get_children(SetupUI.SHARED_ZSTACK):
-            frame.visible = frame == cls._root_frame  # noqa PLW0212
+            value = frame == cls._root_frame  # noqa PLW0212
+            frame.visible = value
+            frame.enabled = value
         if cls._root_frame is None:  # noqa PLW0212
             cls.create_layout()
         else:
             cls._header_navigator.select_button(cls.button_name)  # noqa PLW0212
             _trex_contexts_instance().set_current_context(cls.context)
+        for layout in _LAYOUT_INSTANCES:
+            layout.show(layout == cls)
+
+    @abc.abstractmethod
+    def show(self, value: bool):
+        pass
 
     def show_layout_by_name(self, name: str):
         for layout in _LAYOUT_INSTANCES:

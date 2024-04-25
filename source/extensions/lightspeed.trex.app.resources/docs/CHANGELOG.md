@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0] - 2024-04-23
+### Added
+- Teleport icon
+
 ## [1.4.1]
 ### Changed
 - Set Apache 2 license headers

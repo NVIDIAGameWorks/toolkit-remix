@@ -514,6 +514,9 @@ class SetupUI(TrexLayout):
 
         self._refresh_welcome_pads_recent_model()
 
+    def show(self, value: bool):
+        pass
+
     def _frame_prim(self, prim: "Usd.Prim"):
         if prim and prim.IsValid():
             self._viewport.frame_viewport_selection(selection=[str(prim.GetPath())])
