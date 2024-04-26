@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- REMIX-3002: Fix when the process executor is run from a Kit that is in a folder with a space
+- REMIX-2723: Fixed file browser search bar
 
 ### Removed
 
