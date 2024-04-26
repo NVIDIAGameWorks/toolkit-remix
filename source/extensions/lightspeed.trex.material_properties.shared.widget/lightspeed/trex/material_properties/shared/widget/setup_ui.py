@@ -88,7 +88,7 @@ class SetupUI:
         self._context = usd.get_context(self._context_name)
         self._asset_replacement_core = _AssetReplacementsCore(context_name)
         self._core = _MaterialCore(context_name)
-        self.set_external_drag_and_drop()
+        # self.set_external_drag_and_drop()  # disable REMIX-3008
 
         self._stage = usd.get_context(self._context_name).get_stage()
 

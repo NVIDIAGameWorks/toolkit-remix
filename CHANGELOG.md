@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - REMIX-1248: Cursor now visibly changes over scroll bars
+- REMIX-3008: for now, because of REMIX-3008, disable drag and drop
 
 ### Fixed
 - REMIX-3002: Fix when the process executor is run from a Kit that is in a folder with a space
