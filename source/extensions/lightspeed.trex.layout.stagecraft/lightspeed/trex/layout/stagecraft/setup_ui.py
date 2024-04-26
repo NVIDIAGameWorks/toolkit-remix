@@ -63,6 +63,7 @@ from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.widget.color import color_to_hex
 from omni.flux.utils.widget.file_pickers.file_picker import destroy_file_picker as _destroy_file_picker
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
+from omni.flux.utils.widget.hover import hover_helper as _hover_helper
 from omni.flux.utils.widget.resources import get_background_images
 from omni.flux.utils.widget.resources import get_icons as _get_icons
 from omni.flux.welcome_pad.widget import WelcomePadWidget
@@ -473,7 +474,8 @@ class SetupUI(TrexLayout):
                                             width=ui.Pixel(12),
                                         )
 
-                                ui.Rectangle(name="TreePanelBackgroundSplitter")
+                                splitter = ui.Rectangle(name="TreePanelBackgroundSplitter")
+                                _hover_helper(splitter)
                     with ui.Frame(separate_window=False):
                         self._viewport = _create_viewport_instance(self._context_name)
 
