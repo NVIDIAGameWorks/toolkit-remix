@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add launcher publish for branch `release/2024.3.x`
 - REMIX-1248: Cursor now visibly changes over vertical bar
+- Add a test video in the doc
 
 ### Changed
 
@@ -29,7 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update to remix-0.5.0-rc1
 - REMIX-2939: optimize process executor from Ingestion and AI Tool to not update UI if not visible
 - REMIX-2997: Improve Check Plugins load speed on startup
-- REMIX-1248: Cursor now visibly changes over scroll bars
 
 ### Fixed
 - REMIX-2820: Fix project wizard and file picker close

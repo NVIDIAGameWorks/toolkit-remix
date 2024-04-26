@@ -308,6 +308,19 @@ enabled = true
 name = "NVIDIA RTX Remix"
 project = "${conf:repo.name}"
 
+sphinx_conf_py_extra = """
+import shutil
+import pathlib
+
+def copy_videos(app, exc):
+    video_dir = pathlib.Path(app.builder.outdir).joinpath("docs", "videos")
+    src = pathlib.Path.cwd().joinpath("docs", "videos")
+    print(f"copying videos from {video_dir} to {src}")
+    shutil.copytree(src, video_dir)
+
+sphinx_event_handlers = [("build-finished", copy_videos)]
+"""
+
 sphinx_exclude_patterns = [
     "include",
     "tools",
