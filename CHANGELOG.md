@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add a test video in the doc
 
 ### Changed
+- REMIX-1248: Cursor now visibly changes over scroll bars
 
 ### Fixed
 - REMIX-3002: Fix when the process executor is run from a Kit that is in a folder with a space
