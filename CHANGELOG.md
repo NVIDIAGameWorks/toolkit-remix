@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2024.3.0]
+
+### Added
 - Add launcher publish for branch `release/2024.3.x`
 - REMIX-1248: Cursor now visibly changes over vertical bar
 - Add a test video in the doc
