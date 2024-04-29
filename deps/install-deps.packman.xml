@@ -1,6 +1,6 @@
 <project toolsVersion="5.6">
   <dependency name="rtx-remix-remix_runtime" linkPath="../../deps/remix_runtime">
-    <package name="rtx-remix-remix_runtime" version="remix-0.5.0-rc1" />
+    <package name="rtx-remix-remix_runtime" version="remix-0.5.0" />
   </dependency>
   <dependency name="nvtt-exporter-standalone" linkPath="../../deps/tools/nvtt">
     <package name="nvtt-exporter-standalone" version="2023.4.0.1-dev-windows-x86_64" />
