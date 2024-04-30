@@ -4,7 +4,7 @@ With the latest update of RTX Remix, we've enabled modders to add DLSS 3.5 Ray R
 
 As a reminder, you can update RTX Remix by clicking the menu next to the "Launch" prompt on the RTX Remix Application page of the Omniverse Launcher.
 
-## RTX Remix Toolkit Release 2024.3.1
+## RTX Remix Toolkit Release 2024.3.0
 
 ### Features
 - Added a new "Teleport" action to teleport any selected object to your mouse cursor or the center of the screen. Teleport via the viewport sidebar or the Ctrl + T hotkey.
