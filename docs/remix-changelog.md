@@ -4,6 +4,6 @@
 ---
 maxdepth: 2
 ---
-remix-releasenote.md
+remix-releasenotes.md
 remix-full-changelog.md
 ```

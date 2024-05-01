@@ -385,6 +385,10 @@ library_paths = [
     "${root}/_build/${platform_target}/release/kit/plugins/rtx",
 ]
 
+redirects = [
+    { path = "docs/remix-releasenote.html", target = "docs/remix-releasenotes.html" }
+]
+
 repo_url = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/blob/master"
 
 enable_dark_theme_switcher = true

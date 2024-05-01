@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
-- Fixed to release notes version to release version
+- Fixed release notes version to release version
+- Fixed documentation URL for release notes
 
 ### Removed
 
