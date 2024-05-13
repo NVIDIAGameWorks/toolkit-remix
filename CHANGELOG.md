@@ -9,12 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Release 2024.3.0
+- REMIX-2674: Adding a check for similar textures and auto-populating texture fields
+- Add repo tool to delete `Unreleased` section from the changelog
+- Release 2024.3.1
 
 ### Changed
 
 ### Fixed
 - Fixed release notes version to release version
 - Fixed documentation URL for release notes
+
+### Removed
+
+## [2024.3.1]
+
+### Added
+
+### Changed
+- Update runtime build to 0.5.1
+
+### Fixed
 
 ### Removed
 

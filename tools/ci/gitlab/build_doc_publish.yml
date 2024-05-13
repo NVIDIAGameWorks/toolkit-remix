@@ -24,6 +24,7 @@ build_doc_publish:
       export PATH="$PWD/tempbin:$PATH"
     - !reference [ .omni_s3_write_get_secrets, omni_s3_write_get_secrets ]
     - ./build.sh --release
+    - ./repo.sh delete_changelog
     - ./build_docs.sh
     - ./build_docs.sh --publish-as-latest -s publish --edition s3web
   rules:
