@@ -11,6 +11,19 @@ section_header = "[Unreleased]"
 # Pattern delineating sections
 section_pattern = "\n## "
 
+[repo_delete_changelog]
+# Tool name
+command = "delete_changelog"
+# [python module name or path]:[function name]
+entry_point = "${root}/tools/repoman/delete_changelog.py:setup_repo_tool"
+
+# Name of required file
+file_name = "CHANGELOG.md"
+# Header of section where change is required
+start_line = "^## \\[Unreleased\\]\n$"
+# Pattern delineating sections
+end_line = "^## \\[.*\\]\n$"
+
 [repo_check_test_file_location]
 # Tool name
 command = "check_test_file_location"

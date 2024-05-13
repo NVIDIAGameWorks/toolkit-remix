@@ -1,3 +1,13 @@
+# RTX Remix Release Notes (5/13/2024)
+
+## RTX Remix Toolkit Release 2024.3.1
+### Changed
+- Updated the runtime included with the RTX Remix Toolkit to version 0.5.1
+
+## RTX Remix Runtime 0.5.1
+### Bug Fixes
+- Fixed an issue preventing the Remix runtime from starting on AMD hardware with the latest Windows drivers
+
 # RTX Remix Release Notes (4/30/2024)
 
 With the latest update of RTX Remix, we've enabled modders to add DLSS 3.5 Ray Reconstruction for Remix mods. Look below for our detailed release notes, and for a full changelog, please click [here](remix-full-changelog.md)
@@ -79,7 +89,7 @@ As a reminder, you can update RTX Remix by clicking the menu next to the "Launch
 
 - Fixed crashes with the AI Texture Tools when processing DDS files
 
-## RTX Remix Runtime 0.5
+## RTX Remix Runtime 0.5.0
 Note to modders–with RTX Remix Runtime 0.5 we have removed an option that was causing excessive ghosting with no benefit to users. If your project requires you to remain on an older RTX Remix Runtime, we advise you to check your rtx.conf file, and ensure `rtx.enableDeveloperOptions = false`.
 
 ### Features
@@ -98,7 +108,7 @@ Note to modders–with RTX Remix Runtime 0.5 we have removed an option that was 
 - Improved stability and performance in shader-based games by enhancing the vertex capture system
 - Resolved visual artifacts, like banding, with tonemapper by introducing blue noise driven dithering. To enable this feature in the RTX Remix Runtime menu, go to “Post-Processing” > “Tonemapping” and set “Dither Mode” in the dropdown to “Spatial + Temporal” (uses a noise pattern that changes over time) or “Spatial” (uses a static noise pattern). The config options for these settings are `rtx.localtonemap.ditherMode` and `rtx.tonemap.ditherMode` for the local and global tonemappers respectively. These config options can be set to 1 for Spatial dither mode or 2 for Spatial + Temporal dither mode (or 0 to disable dithering).
 - Added config options to hide the RTX Remix splash banner (`rtx.hideSplashMessage = True/False`) and to display a custom welcome message to the user on startup (`rtx.welcomeMessage = “example text”`)
-- Added option to pass the original game’s cubemaps to RTX Remix’s backend. This enables cubemap textures to be used for tagging. Note that cubemaps will not render correctly, and draw calls that reference only cubemaps are not usable in Remix. To enable this feature in the RTX Remix Runtime menu, go to the “Game Setup” tab > “Step 2: Parameter Tuning” > “Heuristics” and check off “Allow Cubemaps”. Or, use the config option `rtx.allowCubemaps = True`. 
+- Added option to pass the original game’s cubemaps to RTX Remix’s backend. This enables cubemap textures to be used for tagging. Note that cubemaps will not render correctly, and draw calls that reference only cubemaps are not usable in Remix. To enable this feature in the RTX Remix Runtime menu, go to the “Game Setup” tab > “Step 2: Parameter Tuning” > “Heuristics” and check off “Allow Cubemaps”. Or, use the config option `rtx.allowCubemaps = True`.
 - Added the ability to ignore baked lighting associated with certain textures. This is useful in cases where the game bakes out lighting to vertex colors or texture factors (rather than lightmaps). To use this feature, in the RTX Remix Runtime menu’s "Game Setup" tab, as part of the texture tagging workflow, there is now a new category called “Ignore Baked Lighting Texture”.
 - Added the option to configure various RTX Remix systems that rely on a game’s world space coordinate system (ex: terrain baking) to assume a left-handed coordinate system.
 
@@ -106,9 +116,9 @@ Note to modders–with RTX Remix Runtime 0.5 we have removed an option that was 
 
   Thank you to community contributor “jdswebb” (Github PR# 65) for submitting the code for this change.
 
-- Added an option to use AABBs to differentiate instances, and therefore track them better across frames. For gamers, that means less ghosting and flickering for animated objects and skinned meshes in motion. To enable this feature, open the "Game Setup" tab of the RTX Remix Runtime menu, select "Step 2: Parameter Tuning" > "Heuristics" and toggle on "Always Calculate AABB (For Instance Matching). 
+- Added an option to use AABBs to differentiate instances, and therefore track them better across frames. For gamers, that means less ghosting and flickering for animated objects and skinned meshes in motion. To enable this feature, open the "Game Setup" tab of the RTX Remix Runtime menu, select "Step 2: Parameter Tuning" > "Heuristics" and toggle on "Always Calculate AABB (For Instance Matching).
 
-  Thank you to community contributor “xoxor4d” (Github PR# 67) for submitting the code for this change. 
+  Thank you to community contributor “xoxor4d” (Github PR# 67) for submitting the code for this change.
 
 - Improved how RTX Remix mods run for Steam Deck and Linux AMD users, thanks to optimizations for RADV drivers.
 
@@ -119,7 +129,7 @@ Note to modders–with RTX Remix Runtime 0.5 we have removed an option that was 
   Thank you to community contributor “mmdanggg2” (Github PR #66) for submitting the code for this change, and thank you to “Kamilkampfwagen-II” for reporting the issue on GitHub (issue #49).
 
 - Enabled the function logging feature in the RTX Remix Bridge found within the "Debug" build to also be in the "Debug Optimized" build.
-- Added an option `logServerCommands` to the RTX Remix Bridge to write what commands the server is processing to the `NvRemixBridge.log` file. To enable, in the `bridge.conf` file found alongside the NvRemixBridge.exe, set `logServerCommands = True` with no leading # mark. If `bridge.conf` does not exist, you can get it from https://github.com/NVIDIAGameWorks/bridge-remix/blob/main/bridge.conf 
+- Added an option `logServerCommands` to the RTX Remix Bridge to write what commands the server is processing to the `NvRemixBridge.log` file. To enable, in the `bridge.conf` file found alongside the NvRemixBridge.exe, set `logServerCommands = True` with no leading # mark. If `bridge.conf` does not exist, you can get it from https://github.com/NVIDIAGameWorks/bridge-remix/blob/main/bridge.conf
 - Added an additional logging mode that includes the messages of logServerCommands, and status information from the RTX Remix Bridge client/server messaging systems. This can be helpful for catching potential bridge messaging issues. To enable, in the `bridge.conf` file found alongside the `NvRemixBridge.exe`, set `logAllCommands = True` with no leading # mark. If `bridge.conf` does not exist, you can get it from https://github.com/NVIDIAGameWorks/bridge-remix/blob/main/bridge.conf
 
 ### Compatibility Improvements
