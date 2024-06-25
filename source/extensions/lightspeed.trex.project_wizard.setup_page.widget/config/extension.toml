@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.1.6"
+version = "1.1.7"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -19,7 +19,7 @@ readme = "docs/README.md"
 changelog = "docs/CHANGELOG.md"
 preview_image = "data/preview.png"
 icon = "data/icon.png"
-repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.project_wizard.setup_page.widget"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.project_wizard.setup_page.widget"
 
 [dependencies]
 "lightspeed.common" = {}

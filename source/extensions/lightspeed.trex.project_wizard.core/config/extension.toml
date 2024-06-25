@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.2.11"
+version = "1.2.12"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -18,7 +18,7 @@ category = "internal"
 
 # Keywords for the extension
 keywords = [ "lightspeed", "rtx", "remix", "project", "wizard", "core"]
-repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.project_wizard.core"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.project_wizard.core"
 
 [settings.exts."lightspeed.trex.project_wizard.core"]
 force_use_junction = false  # windows only

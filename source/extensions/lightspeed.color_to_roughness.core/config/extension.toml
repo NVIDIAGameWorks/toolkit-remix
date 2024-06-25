@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.1.2"
+version = "0.1.3"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alexander Jaus <ajaus@nvidia.com>"]
@@ -13,7 +13,7 @@ description="Invokes an AI upscaler on textures passed to it."
 readme  = "docs/README.md"
 
 # URL of the extension source repository.
-repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.color_to_roughness.core"
+repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.color_to_roughness.core"
 
 # One of categories for UI.
 category = "internal"

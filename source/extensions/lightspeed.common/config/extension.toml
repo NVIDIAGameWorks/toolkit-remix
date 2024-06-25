@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.0.0"
+version = "1.0.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alexander Jaus <ajaus@nvidia.com>"]
@@ -13,7 +13,7 @@ description="Stores values to be shared across Lightspeed Extensions"
 readme  = "docs/README.md"
 
 # URL of the extension source repository.
-repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.common"
+repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.common"
 
 # One of categories for UI.
 category = "internal"

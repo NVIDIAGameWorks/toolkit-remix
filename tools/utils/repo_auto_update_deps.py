@@ -27,7 +27,7 @@ def is_file_modified():
     import omni.repo.man as repo_man
     git_path = repo_man.find_git_path()
     result = []
-    p = subprocess.Popen([git_path, "merge-base", "origin/master", "HEAD"], stdout=subprocess.PIPE, encoding="utf8")
+    p = subprocess.Popen([git_path, "merge-base", "origin/main", "HEAD"], stdout=subprocess.PIPE, encoding="utf8")
     for f in p.stdout:
         head = f.split()
         p = subprocess.Popen([git_path, "diff", "--name-only", head[0]], stdout=subprocess.PIPE, encoding="utf8")

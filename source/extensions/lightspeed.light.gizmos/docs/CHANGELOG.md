@@ -3,6 +3,10 @@
 lightspeed.light.gizmos
 
 
+## [1.0.7]
+### Changed
+- Changed repo link
+
 ## [1.0.6]
 ### Changed
 - Update to Kit 106

@@ -2,9 +2,9 @@
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Components Pane implementation for the IngestCraft"
 description = "Components Pane implementation for NVIDIA RTX Remix IngestCraft App"
-version = "1.0.2"
+version = "1.0.3"
 readme = "docs/README.md"
-repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.components_pane.ingestcraft.controller"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.components_pane.ingestcraft.controller"
 category = "internal"
 keywords = [ "remix",]
 changelog = "docs/CHANGELOG.md"

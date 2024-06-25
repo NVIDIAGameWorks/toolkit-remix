@@ -3,6 +3,10 @@
 This document records all notable changes to ``omni.kit.viewport.bundle`` extension.
 This project adheres to `Semantic Versioning <https://semver.org/>`_.
 
+## [1.1.3]
+### Changed
+- Changed repo link
+
 ## [1.1.2]
 ### Changed
 - Update to Kit 106

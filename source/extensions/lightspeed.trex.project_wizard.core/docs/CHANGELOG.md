@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.12]
+### Changed
+- Changed repo link
+
 ## [1.2.11]
 ### Changed
 - Update Kit SDK

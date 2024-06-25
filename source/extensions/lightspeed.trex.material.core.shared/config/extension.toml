@@ -1,5 +1,5 @@
 [package]
-version = "1.0.2"
+version = "1.0.3"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Material Core extension for the StageCraft"
 description = "Extension that works on material data for NVIDIA RTX Remix StageCraft App"
@@ -9,7 +9,7 @@ keywords = ["material", "core"]
 icon = "data/icon.png"
 category = "internal"
 preview_image = "data/preview.png"
-repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.material.core.shared"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.material.core.shared"
 
 [dependencies]
 "omni.flux.utils.common" = {}

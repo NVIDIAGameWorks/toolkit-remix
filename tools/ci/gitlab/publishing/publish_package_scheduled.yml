@@ -1,8 +1,8 @@
 build-package-scheduled:
   extends: build-package-windows
   stage: publish_package_scheduled
-  rules: ## Add manual job on merge commit to master
-    - if: $CI_COMMIT_REF_NAME == "master" && $DO_PACKMAN_PUBLISH
+  rules: ## Add manual job on merge commit to main
+    - if: $CI_COMMIT_REF_NAME == "main" && $DO_PACKMAN_PUBLISH
       when: always
 
 publish-package-scheduled:
@@ -24,6 +24,6 @@ publish-package-scheduled:
     - ./repo.sh publish -c release || fail_wr=1
     - echo "WinRel=${fail_wr}"
     - '[ "$fail_wr" -eq 0 ] || exit 1'
-  rules: ## Add manual job on merge commit to master
-    - if: $CI_COMMIT_REF_NAME == "master" && $DO_PACKMAN_PUBLISH
+  rules: ## Add manual job on merge commit to main
+    - if: $CI_COMMIT_REF_NAME == "main" && $DO_PACKMAN_PUBLISH
       when: always

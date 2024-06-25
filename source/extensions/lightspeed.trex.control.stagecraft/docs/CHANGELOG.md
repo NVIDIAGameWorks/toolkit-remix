@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.4]
+### Changed
+- Changed repo link
+
 ## [1.1.3]
 ### Changed
 - Centralized logic to `lightspeed.layer_manager.core` extension

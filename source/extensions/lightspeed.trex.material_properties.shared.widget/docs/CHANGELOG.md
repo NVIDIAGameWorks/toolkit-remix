@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.7]
+### Changed
+- Changed repo link
+
 ## [1.3.6]
 - Use updated `TEXTURE_TYPE_CONVERTED_SUFFIX_MAP`
 

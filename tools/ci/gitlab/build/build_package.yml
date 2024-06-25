@@ -11,10 +11,10 @@ build-package-windows:
     when: on_success
     paths:
       - _build/packages
-  rules: ## Automatically run publish job only on merge commit to master
-    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
+  rules: ## Automatically run publish job only on merge commit to main
+    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"
       when: always
-    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
       when: always
     - when: never
 
@@ -33,9 +33,9 @@ build-package-linux:
     when: on_success
     paths:
       - _build/packages
-  rules: ## Automatically run publish job only on merge commit to master
-    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
+  rules: ## Automatically run publish job only on merge commit to main
+    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"
       when: always
-    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
       when: always
     - when: never

@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.3.1"
+version = "0.3.2"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
@@ -13,7 +13,7 @@ description="Manages registering application hotkeys for the Remix Toolkit App."
 readme  = "docs/README.md"
 
 # URL of the extension source repository.
-repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.hotkeys"
+repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.hotkeys"
 
 # One of categories for UI.
 category = "internal"

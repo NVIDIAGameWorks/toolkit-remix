@@ -24,7 +24,7 @@ def get_diff_lines(file_path: str, source_hash: str, target_hash: str):
     """
     Retrieve the differences between the current commit and the given source_hash for a specified file.
 
-    This function executes a git command to fetch the diff output between the current branch and the master branch
+    This function executes a git command to fetch the diff output between the current branch and the main branch
     for the given file path. It returns the diff as a list of lines, which can be processed further.
 
     Args:

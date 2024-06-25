@@ -19,7 +19,7 @@ section_pattern = "^## "
 # Threshold to determine if 2 lines are similar enough to be considered modified
 similarity_threshold = 0.5
 # The target commit to compare the changelog against
-target_commit = "origin/master"
+target_commit = "origin/main"
 # The source commit to compare the changelog against
 source_commit = "HEAD"
 
