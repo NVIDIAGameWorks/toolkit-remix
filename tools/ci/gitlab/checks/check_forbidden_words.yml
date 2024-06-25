@@ -1,0 +1,5 @@
+check-forbidden-words:
+  extends: .defaults
+  stage: check_mr
+  script:
+    - .\repo.bat check_forbidden_words

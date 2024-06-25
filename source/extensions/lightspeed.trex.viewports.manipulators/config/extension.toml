@@ -1,0 +1,29 @@
+[package]
+version = "1.2.4"
+authors = ["dbataille@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["remix", "viewport", "manipulators"]
+title = "NVIDIA RTX Remix Viewports implementation for the StageCraft"
+description = "Viewports implementation for NVIDIA RTX Remix StageCraft App"
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.trex.asset_replacements.core.shared" = {}
+"lightspeed.trex.contexts" = {}
+"lightspeed.hydra.remix.core" = {}
+"omni.kit.manipulator.camera" = {}
+"omni.kit.manipulator.prim" = {}
+"omni.kit.manipulator.selection" = {}
+"omni.kit.viewport.legacy_gizmos" = {}
+"omni.kit.widget.viewport" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.viewports.manipulators"

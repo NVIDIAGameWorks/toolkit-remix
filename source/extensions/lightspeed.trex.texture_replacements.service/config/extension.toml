@@ -1,0 +1,19 @@
+[package]
+version = "1.1.0"
+authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
+title = "NVIDIA RTX Remix Texture Replacements Service extension"
+description = "Extension that exposes microservices for texture replacement data for NVIDIA RTX Remix"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["asset", "replacement", "service"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.trex.texture_replacements.core.shared" = {}
+"omni.flux.asset_importer.core" = {}
+"omni.flux.service.factory" = {}
+
+[[python.module]]
+name = "lightspeed.trex.texture_replacements.service"

@@ -1,0 +1,31 @@
+[package]
+# Semantic Versionning is used: https://semver.org/
+version = "1.0.3"
+
+# Lists people or organizations that are considered the "authors" of the package.
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+
+# The title and description fields are primarly for displaying extension info in UI
+description = "A page used to select how to setup a project"
+title = "NVIDIA RTX Remix Project Wizard Start Page Widget"
+
+# One of categories for UI.
+category = "internal"
+keywords = [ "lightspeed", "rtx", "remix", "project", "wizard", "widget", "start", "page"]
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.project_wizard.start_page.widget"
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.trex.project_wizard.setup_page.widget" = {}
+"lightspeed.trex.project_wizard.existing_mods_page.widget" = {}
+"omni.client" = {}
+"omni.ui" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.wizard.widget" = {}
+
+[[python.module]]
+name = "lightspeed.trex.project_wizard.start_page.widget"

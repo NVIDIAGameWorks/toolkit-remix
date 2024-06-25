@@ -1,0 +1,9 @@
+include:
+  - local: tools/ci/gitlab/tests/unit/unit_tests_linux.yml
+
+flux-unit-tests-linux:
+  extends:
+    - .unit_tests_linux
+  stage: flux_unit_tests
+  script:
+    - ./repo.sh test --suite flux_unit_linux --config release

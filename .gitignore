@@ -1,0 +1,120 @@
+# all folders starting with _ are local
+_*/
+# exclude local website repo, used for publishing
+website/
+
+.history
+.lastrun
+.lastformat
+.lastverify
+.DS_Store
+**/.vscode/ipch
+Makefile
+*.swp
+*.swo
+
+# byte-compiled python files
+*.py[cod]
+
+# pip cache
+.cache
+
+# packman package files
+*@*.7z
+*@*.zip
+*@*.txt
+
+# packaged unittest archives
+/test_binaries-*.zip
+/tests-*.zip
+/run_tests.*
+*.sh1
+
+# patch files
+*.diff
+*.patch
+
+# binaries
+*.ico
+*.bmp
+*.gif
+*.jpg
+*.jpeg
+*.tga
+*.psd
+*.raw
+*.exr
+*.hdr
+*.dds
+*.ktx
+*.spv
+*.dxbc
+*.dxil
+*.gltf
+*.glb
+*.fbx
+*.usd
+*.usda
+*.usdz
+*.obj
+*.mat
+
+*.suo
+
+# ignore the autoexec.lst file
+autoexec.lst
+
+# don't ignore carb.usd folder
+!*.usd/
+
+NvfPerflog.txt
+imgui.ini
+CON
+
+# packman .user config
+*.packman.xml.user
+
+# kit user config
+deps/**/user.toml
+deps/kit-sdk.packman.xml.user*
+
+# allow anything in data, docs/images, ext data (under Git LFS management)
+!data/**
+!docs/images/**
+!source/extensions/**/data/**
+
+# ignore the cache
+data/cache
+
+# vscode settings are copied and filled in from 'settings.json.template'
+.vscode/settings.json
+
+symbols.txt
+/.vs
+
+# petert: temp file i create for debugging
+output.txt
+
+# PACKAGE-LICENSES/
+PACKAGE-DEPS.yaml
+
+# JetBrains configs
+.idea/
+
+# kit logs
+source/logs/
+
+# Upscale log output
+outputs/
+
+# Portable Kit SDK
+portable/
+
+# Hd Remix runtime files
+kit_d3d9.log
+kit.dxvk-cache
+metrics.txt
+PIC-V.log
+
+# Ignore internal repo tools
+/deps/repo-deps-internal.packman.xml

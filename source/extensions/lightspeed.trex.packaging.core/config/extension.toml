@@ -1,0 +1,41 @@
+[package]
+version = "1.0.12"
+authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "Mod Packaging Core"
+description = "Mod Packaging Core implementation"
+readme = "docs/README.md"
+category = "internal"
+keywords = ["kit", "lightspeed", "packaging", "core"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.packaging.core"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.layer_manager.core" = {}
+"lightspeed.pip_archive" = {}  # Required for Pydantic
+"lightspeed.trex.replacement.core.shared" = {}
+"omni.client" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.material_converter" = {}
+"omni.kit.commands" = {}
+"omni.kit.usd.collect" = {}
+"omni.kit.usd.layers" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.packaging.core"
+
+[[test]]
+args = [
+#    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl",
+    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+    # Need to use a .kit file
+    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
+]
+
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+    "omni.kit.material.library",
+]

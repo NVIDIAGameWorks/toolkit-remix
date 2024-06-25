@@ -1,0 +1,30 @@
+# Changelog
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [1.2.0]
+### Added
+- Added ability to filter by layer in `get_prim_paths` and `filter_prims_paths`
+
+## [1.1.1]
+### Changed
+- Don't use pydantic for typing to fix documentation
+
+## [1.1.0]
+### Added
+- Added `asset_utils`
+- Added `prim_utils`
+
+### Changed
+- Renamed `file_path` to `file_utils`
+
+## [1.0.2]
+### Changed
+- Update to Kit 106
+
+## [1.0.1]
+### Changed
+- Set Apache 2 license headers
+
+## [1.0.0] - 2024-02-28
+### Added
+- Created

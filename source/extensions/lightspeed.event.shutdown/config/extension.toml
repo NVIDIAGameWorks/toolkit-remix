@@ -1,0 +1,33 @@
+[package]
+version = "1.0.2"
+authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["event", "app"]
+title = "Lightspeed Event On App Shutdown"
+description = "Extension that triggers events just before the app shuts down"
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.events_manager" = {}
+"lightspeed.trex.control.stagecraft" = {}
+"omni.flux.utils.common" = {}
+
+[[python.module]]
+name = "lightspeed.event.shutdown"
+
+[[test]]
+args = [
+    # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+    # Need to use a .kit file
+    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
+]
+
+dependencies = [
+    "omni.flux.utils.widget",
+    "lightspeed.trex.tests.dependencies"
+]

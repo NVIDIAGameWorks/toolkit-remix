@@ -1,0 +1,5 @@
+check-changelog:
+  extends: .defaults
+  stage: check_mr
+  script:
+    - .\repo.bat check_changelog -s "$CI_COMMIT_SHA" -t "$CI_MERGE_REQUEST_DIFF_BASE_SHA"

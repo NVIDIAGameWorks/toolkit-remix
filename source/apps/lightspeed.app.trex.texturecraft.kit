@@ -1,0 +1,158 @@
+[package]
+version = "2024.4.0-RC.1"
+category = "Application"
+title = "NVIDIA RTX Remix TextureCraft"
+description = "A tool to edit texture(s)"
+authors = ["Damien Bataille <dbataille@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+keywords = ["lightspeed", "rtx", "remix", "app", "texturecraft"]
+changelog = """
+# NVIDIA RTX Remix TextureCraft
+
+## [2022.0.0] - 2022-06-16
+- Publishing first version.
+"""
+readme = """
+# NVIDIA RTX Remix TextureCraft
+
+A tool to edit texture(s)
+"""
+
+[dependencies]
+"lightspeed.app.trex.base" = {}
+"lightspeed.trex.layout.texturecraft" = {}
+
+# needed for the schema setting at the bottom
+"omni.flux.validator.plugin.check.usd" = { order = -10 } # to always start before the manager
+"omni.flux.validator.plugin.context.usd_stage" = { order = -10 } # to always start before the manager
+"omni.flux.validator.plugin.resultor.file" = { order = -10 } # to always start before the manager
+"omni.flux.validator.plugin.selector.usd" = { order = -10 } # to always start before the manager
+
+[settings]
+"@import@" = [
+	"./lightspeed.app.trex.app.settings.toml",
+	"./lightspeed.app.rendering.settings.toml",
+]
+
+# Basic Kit App
+################################
+app.name = "RTX Remix TextureCraft"
+
+[settings.app.window]
+title = "NVIDIA RTX Remix TextureCraft"
+iconPath = "${lightspeed.trex.app.resources}/data/icons/nvidia-rtx-remix-icon-dbp-256.ico"
+
+[settings.exts."omni.kit.window.modifier.titlebar"]
+titleFormatString = "  NVIDIA RTX Remix TextureCraft  {verKey:/app/version,font_color=0x909090,font_size=16} {separator} {file, board=true}"
+icon.file = "${lightspeed.trex.app.resources}/data/icons/nvidia-rtx-remix-icon-dbp-256.ico"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.settings",
+]
+
+stdoutFailPatterns.exclude = [
+    # lightspeed.dependencies will try to import but the error is still printed
+    "*[omni.ext.plugin] Failed to resolve extension dependencies.*"
+]
+
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Kit SDK Version: 106.0.0+release.118399.fcefe91f.gl
+
+# Exact Version dependencies:
+# 	omni.kit.window.modifier.titlebar-105.2.16
+
+# Version lock for all dependencies:
+[settings.app.exts]
+enabled = [
+	"lightspeed.app.trex.base-2024.4.0-RC.1",
+	"lightspeed.common-1.0.0",
+	"lightspeed.dependencies-1.0.0",
+	"lightspeed.error_popup.window-0.1.2",
+	"lightspeed.events_manager-1.0.3",
+	"lightspeed.hydra.remix.bootstrap-1.0.1",
+	"lightspeed.hydra.remix.core-0.3.4",
+	"lightspeed.layer_manager.core-2.1.0",
+	"lightspeed.layer_manager.service-1.1.0",
+	"lightspeed.light.gizmos-1.0.6",
+	"lightspeed.pip_archive-2.0.0",
+	"lightspeed.project_manager.service-1.0.0",
+	"lightspeed.tool.material.core-1.0.4",
+	"lightspeed.trex.app.resources-1.5.0",
+	"lightspeed.trex.app.setup-1.0.2",
+	"lightspeed.trex.app.style-1.2.1",
+	"lightspeed.trex.asset_replacements.core.shared-2.1.0",
+	"lightspeed.trex.asset_replacements.service-1.1.0",
+	"lightspeed.trex.camera_properties.shared.widget-1.0.2",
+	"lightspeed.trex.commands-1.0.2",
+	"lightspeed.trex.contexts-1.0.3",
+	"lightspeed.trex.hotkeys-0.3.1",
+	"lightspeed.trex.layout.shared.base-1.1.1",
+	"lightspeed.trex.layout.shared.mass_ingestion-1.2.2",
+	"lightspeed.trex.layout.texturecraft-2.0.5",
+	"lightspeed.trex.properties_pane.shared.camera.widget-1.0.2",
+	"lightspeed.trex.properties_pane.shared.render.widget-1.0.2",
+	"lightspeed.trex.service.core-1.0.0",
+	"lightspeed.trex.service.ingestcraft-1.0.0",
+	"lightspeed.trex.service.stagecraft-1.0.0",
+	"lightspeed.trex.stage_view.shared.widget-1.0.2",
+	"lightspeed.trex.texture_replacements.core.shared-1.1.0",
+	"lightspeed.trex.texture_replacements.service-1.1.0",
+	"lightspeed.trex.utils.common-1.2.0",
+	"lightspeed.trex.utils.widget-1.0.2",
+	"lightspeed.trex.viewports.manipulators-1.2.4",
+	"lightspeed.trex.viewports.properties_pane.widget-1.0.2",
+	"lightspeed.trex.viewports.shared.widget-1.2.6",
+	"lightspeed.ui_scene.light_manipulator-1.0.3",
+	"omni.flux.asset_importer.core-1.16.4",
+	"omni.flux.asset_importer.widget-2.5.6",
+	"omni.flux.commands-1.0.4",
+	"omni.flux.header_navigator.widget-1.1.4",
+	"omni.flux.info_icon.widget-1.1.3",
+	"omni.flux.internal_pip_archive-1.0.0",
+	"omni.flux.layer_tree.usd.core-1.0.2",
+	"omni.flux.lookdev.core-1.0.2",
+	"omni.flux.pip_archive-2.0.0",
+	"omni.flux.properties_pane.properties.usd.widget-2.7.1",
+	"omni.flux.property_widget_builder.delegates-1.3.4",
+	"omni.flux.property_widget_builder.model.file-1.6.1",
+	"omni.flux.property_widget_builder.model.usd-2.11.5",
+	"omni.flux.property_widget_builder.widget-2.5.2",
+	"omni.flux.resources-2.0.1",
+	"omni.flux.service.factory-1.2.1",
+	"omni.flux.service.shared-1.0.3",
+	"omni.flux.tabbed.widget-1.1.3",
+	"omni.flux.utils.common-2.17.0",
+	"omni.flux.utils.material_converter-1.8.3",
+	"omni.flux.utils.octahedral_converter-1.0.3",
+	"omni.flux.utils.widget-1.15.2",
+	"omni.flux.validator.factory-2.6.0",
+	"omni.flux.validator.manager.core-1.17.5",
+	"omni.flux.validator.manager.widget-1.6.5",
+	"omni.flux.validator.mass.core-1.11.5",
+	"omni.flux.validator.mass.queue.core-1.0.0",
+	"omni.flux.validator.mass.queue.widget-1.4.2",
+	"omni.flux.validator.mass.service-1.0.0",
+	"omni.flux.validator.mass.widget-1.7.2",
+	"omni.flux.validator.plugin.check.usd-3.12.0",
+	"omni.flux.validator.plugin.context.usd_stage-2.8.1",
+	"omni.flux.validator.plugin.resultor.file-1.6.0",
+	"omni.flux.validator.plugin.selector.usd-1.7.4",
+	"omni.kit.asset_converter-2.1.11",
+	"omni.kit.browser.asset-1.3.9",
+	"omni.kit.browser.core-2.3.11",
+	"omni.kit.browser.folder.core-1.9.12",
+	"omni.kit.widget.zoombar-1.0.5",
+	"omni.services.core-1.9.0",
+	"omni.services.facilities.base-1.0.4",
+	"omni.services.transport.server.base-1.1.1",
+	"omni.services.transport.server.http-1.3.1",
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################

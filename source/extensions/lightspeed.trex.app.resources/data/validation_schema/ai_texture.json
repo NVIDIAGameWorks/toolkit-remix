@@ -1,0 +1,47 @@
+{
+    "name": "PBR Material Generation",
+    "context_plugin":
+        {
+            "name": "TextureImporter",
+            "data": {
+                "context_name": "texturecraft",
+                "input_files": [],
+                "output_directory": "",
+                "allow_empty_input_files_list": true,
+                "data_flows": [{"name": "InOutData", "push_input_data": true}],
+                "hide_context_ui": true,
+                "create_context_if_not_exist": true,
+                "expose_mass_ui": true,
+                "cook_mass_template": true
+            }
+        },
+    "check_plugins": [
+        {
+            "name": "GeneratePBRMaterial",
+            "selector_plugins": [{"name": "AllTextures", "data": {}}],
+            "resultor_plugins": [{
+                "name": "FileCleanup",
+                "data": {"channel": "cleanup_files", "cleanup_output": false}
+            }],
+            "data": {
+                "model_artifact_path": "${kit}/../deps/ai_tools/i2m/artifacts/model.pt",
+                "config_artifact_path": "${kit}/../deps/ai_tools/i2m/artifacts/config.yaml",
+                "data_flows": [
+                    {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files"}
+                ],
+                "expose_mass_ui": true
+            },
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "CurrentStage", "data": {}}
+        },
+        {
+            "name": "MassTexturePreview",
+            "selector_plugins": [{"name": "Nothing", "data": {}}],
+            "data": {"expose_mass_queue_action_ui":  true},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "CurrentStage", "data": {}}
+        }
+    ],
+    "resultor_plugins": [
+    ]
+}

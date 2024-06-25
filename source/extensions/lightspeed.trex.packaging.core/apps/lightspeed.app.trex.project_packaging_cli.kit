@@ -1,0 +1,60 @@
+[package]
+title = "Remix Project Packaging App"
+
+# That makes it browsable in UI with "experience" filter
+keywords = ["app"]
+
+[dependencies]
+"lightspeed.trex.packaging.core" = {}
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+# Allow MDL paths to resolve
+"omni.kit.material.library" = {}
+
+[settings.app.window]
+title = "Remix Project Packaging App"
+
+
+[settings]
+# Basic Kit App
+################################
+app.versionFile = "${app}/../VERSION"
+app.fastShutdown = true
+renderer.mdl.searchPaths.templates = "${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+
+
+# Register extension folder from this repo in kit
+[settings.app.exts]
+folders.'++' = ["${app}/../../../exts", "${app}/../../../extscache"]
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.settings",
+]
+
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Kit SDK Version: 106.0.0+release.118399.fcefe91f.gl
+
+# Version lock for all dependencies:
+[settings.app.exts]
+enabled = [
+	"lightspeed.common-1.0.0",
+	"lightspeed.layer_manager.core-2.0.1",
+	"lightspeed.pip_archive-2.0.0",
+	"lightspeed.trex.packaging.core-1.0.12",
+	"lightspeed.trex.replacement.core.shared-1.0.5",
+	"omni.flux.layer_tree.usd.core-1.0.2",
+	"omni.flux.pip_archive-2.0.0",
+	"omni.flux.service.shared-1.0.3",
+	"omni.flux.utils.common-2.17.0",
+	"omni.flux.utils.material_converter-1.8.3",
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################

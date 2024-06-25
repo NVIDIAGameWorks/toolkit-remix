@@ -1,0 +1,19 @@
+[package]
+version = "1.0.2"
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "NVIDIA RTX Remix widget utils"
+description = "Utils helper for Lightspeed widgets"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["trex", "utils", "widget"]
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.utils.widget"
+
+[dependencies]
+"omni.ui" = {}
+"omni.kit.widget.prompt" = {}
+
+[[python.module]]
+name = "lightspeed.trex.utils.widget"

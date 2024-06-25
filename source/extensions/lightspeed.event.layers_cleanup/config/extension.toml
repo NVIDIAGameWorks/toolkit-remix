@@ -1,0 +1,30 @@
+[package]
+version = "2.0.2"
+authors = ["dbataille@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["event", "cleanup", "manager", "layer"]
+title = "Lightspeed Event Layers Cleanup"
+description = "Extension that cleanup the layers when we load them"
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+
+[ui]
+name = "Lightspeed Event Layers Cleanup"
+
+[dependencies]
+"lightspeed.events_manager" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.notification_manager" = {}
+"omni.kit.usd.layers" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.event.layers_cleanup"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

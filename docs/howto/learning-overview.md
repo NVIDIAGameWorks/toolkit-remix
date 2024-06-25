@@ -1,0 +1,81 @@
+# Introduction to Remastering
+
+Now that you've got everything set up, it's time to start remastering your game using Remix. The Remix runtime will automatically inject path tracing into the game, but the main focus of your Remix mod will be on replacing assets and textures. By using higher-poly models and PBR (Physically-Based Rendering) textures, you can significantly enhance the game's visual quality, surpassing what you could achieve with in-engine edits alone.
+
+> 📝 Please to our [Installation Guide](../remix-installation.md) for both the **RTX Remix Runtime** and the **RTX Remix Toolkit**.
+
+> 📝 Please to our [Requirements Guide](../remix-overview.md) for both the **RTX Remix Runtime** and the **RTX Remix Toolkit**.
+
+# Understanding CONF Files
+
+Before we dive into replacing assets, let's take a moment to get familiar with the settings in the **Alt+X** menu, specifically in the "game setup" tab. Firstly, here you’ll find a list of materials from the original game displayed in a grid view.  RTX Remix will populate this list of materials based on what the original game is currently rendering, you may find this list changes over time or with respect to what you’re looking at in game (this is normal).  The purpose of this list is to provide a convenient way for users of RTX Remix to categorize the various materials in the original game.  It’s with this context that Remix understands how to treat objects in the original game with respect to a modern renderer.  For instance, materials marked as UI in the original game don’t need to be raytraced, by letting Remix know about them it can use the original games renderer for displaying UI, which is often desirable.
+
+Other important categories are: Sky (lets Remix create a physically based environment map), Particles (let’s Remix reorient particle billboards with respect to all incoming rays, and also create the “soft particles” effect common in games), and Decals (tells Remix to treat these materials as physically based decals when path tracing).  There are many more categories, please refer to the tooltips in the runtime, or the per setting documentation if ever unclear what a particular category means.
+
+Changes you make from the game setup tab will be recorded in an RTX.conf config file, which will help preserve all of your changes for the next time you boot the game.
+
+## ModDB Conf Files
+
+Visit the [ModDB website](https://www.moddb.com/rtx/). ModDB is hosting rtx.conf files for any game, that will help them run best with RTX Remix. Simply download the RTX.conf file, and drop it and the RTX Remix runtime alongside the game’s .exe. The community can help keep the best RTX.conf files updated on ModDB so that every modder can have a drag and drop experience with setting up a game for RTX Remix.
+
+
+# Introduction to Captures
+
+RTX Remix is capable of creating asset-exact copies of in-game scenes in the Universal Scene Description (USD) format through a process referred to as “capturing”. Captured scenes (“captures”) can be opened and edited in both NVIDIA Omniverse-based applications, as well as most popular public Digital Content Creation (DCC) tools that support the USD file format.   Because the scene is captured into a USD file, all assets will likewise be available in a single common format. Captured assets include: materials, textures, meshes, and skeletal data for skinned assets, in addition to scene-specific instances and lighting.  Meshes and materials are converted into USD format, whereas textures are converted to DDS. These copies are then stored adjacent to the captures in similarly named folders.
+
+[ModDB](https://www.moddb.com/rtx) also hosts captures to make it easier to start your remaster.
+
+# Folder Structure
+
+RTX Remix automatically organizes the captures you take within a simple folder structure.  The name of your project folder should NOT have any spaces.
+
+```text
+rtx-remix
+└ captures -> Contains captures taken within the runtime
+│ └ capture_(year)_(month)_(day)_(hour)_(minutes)_(seconds).usd
+│ └ gameicon.exe_icon
+│ ├ lights
+│ ├ materials
+│ ├ meshes
+│ ├ textures
+│ ├ thumbs
+└ mods ← Automatically created after creating a project
+=================================================================
+Projects ← Can be located anywhere -> Contains a list of Remix projects
+
+└ YOUR_PROJECT ← Automatically created after creating a project -> contains the files for your project
+│ ├ models ← (SUGGESTION) Manually Made -> Contains the ingested models
+│ ├ materials ← (SUGGESTION) Manually Made -> Contains the ingested materials
+│ ├ deps ← (Automatically created symlink to `rtx-remix` directory to make sure you have referenced files available)
+```
+**Create a Desktop Shortcut**
+
+Ensure that each mod for a specific game has a distinct name, which should be enforced by the wizard. If there's already a mod with the same parent directory name when creating a project, the project creation will fail. Additionally, when creating a desktop shortcut, make sure to exclude spaces in file names. Simply create a shortcut for the "rtx-remix" folder on your desktop, rename the shortcut to match your project's name. This ensures easy identification of the folder when working on your project, helping you keep track of each project's unique "rtx-remix" folder.
+
+**Organize Project Files**
+
+Create a project folder to keep your files organized.
+This project folder should be outside the game install folder.
+For example, if the game is in "C:/Program Files (x86)/Steam/common/Portal," don't place the project there.
+Use a valid path like "C:/Users/user/RemixProjects" or "D:/RemixProjects."
+
+**Drive Formatting**
+
+Ensure that both your project drive and game install drive are formatted using NTFS (exFat doesn't support symlinks, which are crucial for us).
+
+**Source and Ingested Assets**
+
+Have separate directories for source and output assets.
+Source directory: Store pre-ingestion assets & textures (FBX, USD, OBJ, etc.).
+Output directory: Keep ingested assets (USD) here.
+
+> **IMPORTANT:** The output directory must be inside your project for correct references.
+
+**Linking Assets**
+
+If you want to output assets to a central depot, use symlinks.
+Example command: mklink /J "YOUR_PROJECT_DIR/assets" "INGESTED_ASSET_DIR"
+During mod packaging, this ensures all assets are resolved correctly, creating a zippable folder.
+
+***
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>

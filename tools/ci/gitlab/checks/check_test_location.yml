@@ -1,0 +1,5 @@
+check-test-location:
+  extends: .defaults
+  stage: check_mr
+  script:
+    - .\repo.bat check_test_file_location

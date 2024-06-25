@@ -1,0 +1,33 @@
+[package]
+version = "0.1.3"
+authors = ["dbataille@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["new", "widget", "game"]
+title = "Lightspeed New Game Widget"
+description = "Lightspeed New Game Widget let the user creates a new game category"
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+
+[ui]
+name = "Lightspeed New Game Widget"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.pip_archive" = {}  # Required for Pydantic
+"lightspeed.upscale.core" = {}
+"omni.client" = {}
+"omni.flux.utils.widget" = {}
+"omni.kit.pip_archive" = {}  # Required for PIL
+"omni.kit.widget.filebrowser" = {}
+"omni.kit.window.filepicker" = {}
+"omni.kit.window.popup_dialog" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+"omni.kit.pip_archive" = {}  # For PIL
+"lightspeed.pip_archive" = {}  # For Pydantic
+
+[[python.module]]
+name = "lightspeed.widget.new_game"

@@ -1,0 +1,13 @@
+build-docs:
+  extends:
+    - .defaults
+    - .linux_agent
+    - .linux_vault
+  stage: build_docs
+  needs:
+    - check-lint
+  before_script:
+    - !reference [ .linux_vault, before_script ]
+    - ./build.sh --rebuild --release
+  script:
+    - ./build_docs.sh

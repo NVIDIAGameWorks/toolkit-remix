@@ -1,0 +1,51 @@
+[core]
+order = 100  # to start always after the plugins
+
+[package]
+# Semantic Versionning is used: https://semver.org/
+version = "1.17.5"
+
+# Lists people or organizations that are considered the "authors" of the package.
+authors = ["Damien Bataille <dbataille@nvidia.com>"]
+
+# The title and description fields are primarly for displaying extension info in UI
+description = "This is the core manager of the validator that will handle plugins"
+title = "Flux Validator Manager Core"
+
+# Path (relative to the root) or content of readme markdown file for UI.
+readme = "docs/README.md"
+
+# One of categories for UI.
+category = "Widget"
+
+# Keywords for the extension
+keywords = ["kit", "flux", "validator", "manager", "core"]
+
+# Location of change log file in target (final) folder of extension, relative to the root.
+# More info on writing changelog: https://keepachangelog.com/en/1.0.0/
+changelog = "docs/CHANGELOG.md"
+
+# Preview image and icon. Folder named "data" automatically goes in git lfs (see .gitattributes file).
+# Preview image is shown in "Overview" of Extensions window. Screenshot of an extension might be a good preview image.
+preview_image = "data/images/preview.png"
+
+# Icon is shown in Extensions window, it is recommended to be square, of size 256x256.
+icon = "data/images/icon.png"
+
+[dependencies]
+"omni.flux.pip_archive" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.validator.factory" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "omni.flux.validator.manager.core"
+
+[[test]]
+dependencies = [
+    "omni.flux.tests.dependencies",
+    "omni.flux.validator.factory",
+    "omni.flux.validator.plugin.check.usd",
+    "omni.flux.validator.plugin.context.usd_stage",
+    "omni.flux.validator.plugin.selector.usd",
+]

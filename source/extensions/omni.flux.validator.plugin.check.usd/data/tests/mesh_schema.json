@@ -1,0 +1,60 @@
+{
+    "name": "Test",
+    "context_plugin":
+        {
+            "name": "USDFile",
+            "data": {"context_name": "", "file": "${omni.flux.validator.plugin.check.usd}/data/tests/usd/cube_faceVarying_quads.usda"}
+        },
+    "check_plugins": [
+        {
+            "name": "StripExtraAttributes",
+            "selector_plugins": [{"name": "AllMeshes", "data": {}}],
+            "data": {},
+            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}}
+        },
+        {
+            "name": "ForcePrimvarToVertexInterpolation",
+            "selector_plugins": [{"name": "AllMeshes", "data": {}}],
+            "data": {},
+            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}}
+        },
+        {
+            "name": "Triangulate",
+            "selector_plugins": [{"name": "AllMeshes", "data": {}}],
+            "data": {},
+            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}}
+        },
+        {
+            "name": "AddInvertedUVAttr",
+            "selector_plugins": [{"name": "AllMeshes", "data": {}}],
+            "data": {},
+            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}}
+        },
+        {
+            "name": "AddVertexIndicesToGeomSubsets",
+            "selector_plugins": [{"name": "AllMeshes", "data": {}}],
+            "data": {},
+            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}}
+        },
+        {
+            "name": "DefaultPrim",
+            "selector_plugins": [{"name": "Nothing", "data": {}}],
+            "data": {},
+            "context_plugin": {"name": "DependencyIterator", "data": {"context_name": ""}},
+            "pause_if_fix_failed": false,
+            "stop_if_fix_failed": false
+        },
+        {
+            "name": "RelativeAssetPaths",
+            "selector_plugins": [{"name": "AllPrims", "data": {}}],
+            "data": {},
+            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}}
+        },
+        {
+            "name": "RelativeReferences",
+            "selector_plugins": [{"name": "AllPrims", "data": {}}],
+            "data": {},
+            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}}
+        }
+    ]
+}

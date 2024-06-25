@@ -1,0 +1,23 @@
+{
+    "name": "Test",
+    "context_plugin":
+        {
+            "name": "USDFile",
+            "data": {"context_name": "", "file": "${omni.flux.validator.plugin.check.usd}/data/tests/usd/multiple_roots.usda"}
+        },
+    "check_plugins": [
+        {
+            "name": "DefaultPrim",
+            "selector_plugins": [
+                {
+                    "name": "Nothing",
+                    "data": {}
+                }
+            ],
+            "context_plugin": {"name": "DependencyIterator", "data": {"context_name": ""}},
+            "pause_if_fix_failed": false,
+            "stop_if_fix_failed": false,
+            "data": {"manual_selection": true}
+        }
+    ]
+}

@@ -1,0 +1,28 @@
+{
+    "name": "Model(s)",
+    "context_plugin": {"name": "FakeContext", "data": {}},
+    "check_plugins": [
+        {
+            "name": "FakeCheck",
+            "enabled": false,
+            "context_plugin": {"name": "FakeContext", "data": {}},
+            "selector_plugins": [{"name": "FakeSelector", "data": {}}],
+            "data": {},
+            "pause_if_fix_failed": false
+        },
+        {
+            "name": "FakeCheck",
+            "selector_plugins": [{"name": "FakeSelector", "data": {}}],
+            "data": {},
+            "context_plugin": {"name": "FakeContext", "data": {}},
+            "pause_if_fix_failed": false
+        },
+        {
+            "name": "FakeCheck",
+            "selector_plugins": [{"name": "FakeSelector", "data": {}}],
+            "data": {},
+            "context_plugin": {"name": "FakeContext", "data": {}},
+            "pause_if_fix_failed": false
+        }
+    ]
+}

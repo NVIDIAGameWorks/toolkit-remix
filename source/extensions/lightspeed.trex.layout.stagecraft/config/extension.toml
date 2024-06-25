@@ -1,0 +1,44 @@
+[package]
+version = "1.3.3"
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "NVIDIA RTX Remix layout for the StageCraft"
+description = "Layout for NVIDIA RTX Remix StageCraft App"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["layout", "stagecraft", "stage"]
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.layout.stagecraft"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.event.save_recent" = {}
+"lightspeed.events_manager" = {}
+"lightspeed.layer_manager.core" = {}
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.components_pane.stagecraft.controller" = {}
+"lightspeed.trex.components_pane.stagecraft.models" = {}
+"lightspeed.trex.footer.stagecraft.models" = {}
+"lightspeed.trex.layout.shared.base" = {}
+"lightspeed.trex.menu.workfile" = {}
+"lightspeed.trex.properties_pane.stagecraft.widget" = {}
+"lightspeed.trex.utils.common" = {}
+"lightspeed.trex.utils.widget" = {}
+"lightspeed.trex.viewports.shared.widget" = {}
+"lightspeed.trex.welcome_pads.stagecraft.models" = {}
+"omni.flux.footer.widget" = {}
+"omni.flux.header_nvidia.widget" = {}
+"omni.flux.utils.widget" = {}
+"omni.flux.welcome_pad.widget" = {}
+"omni.kit.widget.filebrowser" = {}
+"omni.kit.window.filepicker" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.layout.stagecraft"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

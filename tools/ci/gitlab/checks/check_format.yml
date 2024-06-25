@@ -1,0 +1,10 @@
+check-format:
+  extends: .defaults
+  stage: check_format
+  needs:
+    - check-changelog
+    - check-forbidden-words
+    - check-test-location
+  script:
+    - .\format_code.bat --verify
+  timeout: 10m

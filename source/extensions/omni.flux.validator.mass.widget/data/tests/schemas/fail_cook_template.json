@@ -1,0 +1,17 @@
+{
+    "name": "Model(s)",
+    "context_plugin": {
+        "name": "FakeContext",
+        "data": {"expose_mass_ui": true, "cook_mass_template": true, "cook_success": false}
+    },
+    "check_plugins": [
+        {
+            "name": "FakeCheck",
+            "enabled": false,
+            "context_plugin": {"name": "FakeContext", "data": {}},
+            "selector_plugins": [{"name": "FakeSelector", "data": {}}],
+            "data": {},
+            "pause_if_fix_failed": false
+        }
+    ]
+}

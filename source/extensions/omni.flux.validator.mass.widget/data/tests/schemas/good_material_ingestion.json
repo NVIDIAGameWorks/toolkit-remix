@@ -1,0 +1,28 @@
+{
+    "name": "Material(s)",
+    "context_plugin": {"name": "FakeContext", "data": {"expose_mass_ui": true, "cook_mass_template": true}},
+    "check_plugins": [
+        {
+            "name": "FakeCheck",
+            "enabled": false,
+            "context_plugin": {"name": "FakeContext", "data": {"expose_mass_ui": true}},
+            "selector_plugins": [{"name": "FakeSelector", "data": {}}],
+            "data": {},
+            "pause_if_fix_failed": false
+        },
+        {
+            "name": "FakeCheck",
+            "selector_plugins": [{"name": "FakeSelector", "data": {"expose_mass_ui": true}}],
+            "data": {"expose_mass_ui": true, "expose_mass_queue_action_ui": true},
+            "context_plugin": {"name": "FakeContext", "data": {}},
+            "pause_if_fix_failed": false
+        },
+        {
+            "name": "FakeCheck",
+            "selector_plugins": [{"name": "FakeSelector", "data": {}}],
+            "data": {"expose_mass_ui": true},
+            "context_plugin": {"name": "FakeContext", "data": {"expose_mass_queue_action_ui": true}},
+            "pause_if_fix_failed": false
+        }
+    ]
+}

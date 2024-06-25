@@ -1,0 +1,28 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "NVIDIA RTX Remix workfile menu"
+description = "Workfile menu to save/save as workfile for NVIDIA RTX Remix App"
+version = "1.0.3"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.menu.workfile"
+category = "internal"
+keywords = [ "remix",]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[dependencies]
+"omni.kit.widget.prompt" = {}
+"omni.kit.window.preferences" = {}
+"omni.kit.window.about" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.menu.workfile"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

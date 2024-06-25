@@ -1,0 +1,13 @@
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_game_name = "Portal with RTX - Direct3D 9"
+        string lightspeed_layer_type = "replacement"
+    }
+    subLayers = [
+        @./sublayer.usda@,
+        @./mod_capture_baker.usda@
+    ]
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)

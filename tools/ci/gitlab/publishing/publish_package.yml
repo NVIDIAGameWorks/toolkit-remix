@@ -1,0 +1,27 @@
+publish-to-launcher:
+  extends:
+    - .defaults
+    - .linux_agent
+    - .linux_vault
+  stage: publish_package
+  when: manual
+  needs:
+    - job: build-package-windows
+      artifacts: true
+  before_script:
+    - !reference [ .linux_vault, before_script ]
+    # Cleanup the Kit dir to avoid failure
+    - rm -rf _build/linux-x86_64/release/kit
+    - ./build.sh --fetch-only --release
+  script:
+    # `publish_extensions` will build before publishing
+    - fail_wr=0
+    - ./repo.sh ci publish_to_launcher || fail_wr=1
+    - echo "WinRel=${fail_wr}"
+    - '[ "$fail_wr" -eq 0 ] || exit 1'
+  rules: ## Add manual job on merge commit to master
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
+      when: manual
+    - when: never

@@ -1,0 +1,126 @@
+{
+    "name": "Model(s)",
+    "context_plugin":
+        {
+            "name": "AssetImporter",
+            "data": {
+                "context_name": "ingestcraft",
+                "input_files": [],
+                "output_directory": "",
+                "allow_empty_input_files_list": true,
+                "data_flows": [
+                    {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "write_metadata"},
+                    {"name": "InOutData", "push_output_data": true, "channel": "ingestion_output"}
+                ],
+                "output_usd_extension": "usd",
+                "hide_context_ui": true,
+                "create_context_if_not_exist": true,
+                "ignore_unbound_bones": false,
+                "expose_mass_ui": true,
+                "expose_mass_queue_action_ui": true,
+                "cook_mass_template": true,
+                "close_stage_on_exit": true
+            }
+        },
+    "check_plugins": [
+        {
+            "name": "ClearUnassignedMaterial",
+            "selector_plugins": [{"name": "AllMeshes", "data": {"include_geom_subset": true}}],
+            "data": {},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
+        },
+        {
+            "name": "DefaultMaterial",
+            "selector_plugins": [{"name": "AllMeshes", "data": {}}],
+            "data": {},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
+        },
+        {
+            "name": "MaterialShaders",
+            "selector_plugins": [{"name": "AllMaterials", "data": {}}],
+            "data": {"shader_subidentifiers": {"AperturePBR_Translucent": "translucent|glass|trans", "AperturePBR_Opacity": ".*"}},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
+        },
+        {
+            "name": "ValueMapping",
+            "selector_plugins": [{"name": "AllShaders", "data": {}}],
+            "data": {
+                "attributes":  {"inputs:emissive_intensity":  [{"operator": "=", "input_value": 10000.0, "output_value": 1.0}]}
+            },
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
+        },
+        {
+            "name": "ConvertToOctahedral",
+            "selector_plugins": [{"name": "AllShaders", "data": {}}],
+            "data": {
+                "data_flows": [
+                    {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files"}
+                ],
+                "replace_udim_textures_by_empty": true
+            },
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
+        },
+        {
+            "name": "ConvertToDDS",
+            "selector_plugins": [{"name": "AllShaders", "data": {}}],
+            "data": {
+                "data_flows": [
+                    {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files"},
+                    {"name": "InOutData", "push_output_data": true, "channel": "write_metadata"}
+                ],
+                "replace_udim_textures_by_empty": true
+            },
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
+        },
+        {
+            "name": "RelativeAssetPaths",
+            "selector_plugins": [{"name": "AllPrims", "data": {}}],
+            "data": {},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
+        },
+        {
+            "name": "RelativeReferences",
+            "selector_plugins": [{"name": "AllPrims", "data": {}}],
+            "data": {},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "DependencyIterator", "data": {"save_all_layers_on_exit": true, "close_dependency_between_round": true, "close_stage_on_exit":  false}}
+        },
+        {
+            "name": "WrapRootPrims",
+            "selector_plugins": [{"name": "Nothing", "data": {}}],
+            "data": {"wrap_prim_name": "XForms"},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true, "close_stage_on_exit": false}}
+        },
+        {
+            "name": "ApplyUnitScale",
+            "selector_plugins": [{"name": "RootPrims", "data": {}}],
+            "data": {"meters_per_unit_target":  0.01, "expose_mass_ui": true},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true, "close_stage_on_exit": false}}
+        },
+        {
+            "name": "WrapRootPrims",
+            "selector_plugins": [{"name": "Nothing", "data": {}}],
+            "data": {"wrap_prim_name": "ReferenceTarget"},
+            "stop_if_fix_failed": true,
+            "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true, "close_stage_on_exit": false}}
+        }
+    ],
+    "resultor_plugins": [
+        {
+            "name": "FileCleanup",
+            "data": {"channel": "cleanup_files", "cleanup_output": false}
+        },
+        {
+            "name": "FileMetadataWritter",
+            "data": {"channel": "write_metadata"}
+        }
+    ]
+}

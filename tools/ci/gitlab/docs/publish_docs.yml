@@ -1,0 +1,19 @@
+publish-docs:
+  extends:
+    - .defaults
+    - .linux_agent
+    - .linux_vault
+  stage: publish_docs
+  before_script:
+    - !reference [ .linux_vault, before_script ]
+    - ./build.sh --rebuild --release
+    - ./repo.sh delete_changelog
+  script:
+    - ./build_docs.sh
+    - ./build_docs.sh --publish-as-latest -s publish --edition s3web
+  rules: ## Automatically run publish job only on merge commit to master
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
+      when: always
+    - when: never

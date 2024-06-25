@@ -1,0 +1,17 @@
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_layer_type = "workfile"
+        dictionary omni_layer = {
+            string authoring_layer = "./mod.usda"
+        }
+    }
+    metersPerUnit = 1
+    subLayers = [
+        @./mod.usda@,
+        @./dependency.usda@
+    ]
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+

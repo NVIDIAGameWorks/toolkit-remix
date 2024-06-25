@@ -1,0 +1,23 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "NVIDIA RTX Remix common utils"
+description = "Common utils helper for Lightspeed widgets"
+version = "1.2.0"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.utils.common"
+category = "internal"
+keywords = [ "remix",]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[dependencies]
+"lightspeed.common" = {}
+"omni.client" = {}
+"omni.flux.asset_importer.core" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.validator.factory" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.utils.common"

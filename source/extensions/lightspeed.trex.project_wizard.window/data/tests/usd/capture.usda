@@ -1,0 +1,63 @@
+#usda 1.0
+(
+    customLayerData = {
+        dictionary cameraSettings = {
+            dictionary Front = {
+                double3 position = (500, 0, 0)
+                double radius = 500
+            }
+            dictionary Perspective = {
+                double3 position = (500, 500, 500)
+                double3 target = (-0.000003978038705554354, -0.000003978038478180679, 0.000007956076956361358)
+            }
+            dictionary Right = {
+                double3 position = (0, -500, 0)
+                double radius = 500
+            }
+            dictionary Top = {
+                double3 position = (0, 0, 500)
+                double radius = 500
+            }
+            string boundCamera = "/RootNode/Camera"
+        }
+        string lightspeed_layer_type = "capture"
+    }
+    defaultPrim = "RootNode"
+    endTimeCode = 0
+    metersPerUnit = 1
+    startTimeCode = 0
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+
+def "RootNode"
+{
+    def "lights"
+    {
+    }
+
+    def "meshes"
+    {
+    }
+
+    def "Looks"
+    {
+    }
+
+    def "instances"
+    {
+    }
+
+    def Camera "Camera"
+    {
+        float2 clippingRange = (7, 29996.916)
+        float focalLength = 10.240908
+        float horizontalAperture = 20.955
+        float verticalAperture = 11.787188
+        float3 xformOp:rotateXYZ = (96.10231, -5.082739, -140.3521)
+        float3 xformOp:scale = (1.0000001, 1, 1)
+        double3 xformOp:translate = (1501.2354736328125, 226.41355895996094, -255.96876525878906)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+    }
+}
+

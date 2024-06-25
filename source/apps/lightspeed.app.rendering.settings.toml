@@ -1,0 +1,52 @@
+[app.renderer]
+resolution.width = 1920
+resolution.height = 1080
+
+[renderer]
+multiGpu.maxGpuCount = 1
+mdl.searchPaths.templates = "${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+
+[rtx]
+multiThreading.enabled = true
+materialflattener.enabled = false
+pathtracing.maxBounces = 3
+ambientOcclusion.denoiserMode = 0
+translucency.maxRefractionBounces = 1
+sceneDb.ambientLightIntensity = 0.001
+reflections.denoiser.enabled = 0
+reflections.importantLightsOnly = 1
+reflections.sampledLighting.maxRayIntensity = 0.15
+reflections.sampledLighting.samplesPerPixel = 1
+indirectDiffuse.computeDiffuseGiAfterSpecularEvents = 0
+indirectDiffuse.denoiser.enabled = 0
+indirectDiffuse.enabled = 1
+indirectDiffuse.fetchSampleCount = 4
+indirectDiffuse.maxBounces = 16
+indirectDiffuse.restir = 0
+directLighting.sampledLighting.autoEnable = 0
+directLighting.sampledLighting.enabled = 1
+
+[rtx.hydra]
+TBNFrameMode = 0 # Auto-mode
+
+[rtx.post]
+tonemap.op = 6
+tonemap.cm2Factor = 1155
+histogram.enabled = true # auto exposure on
+histogram.useExposureClamping = false
+dlss.enableDenoiser = 1
+
+[rtx-transient]
+resourcemanager.enableTextureStreaming = true
+
+###############################################################################
+# Fix for Pre-ADA GPUs: Disable present thread by default
+###############################################################################
+[app.runLoops]
+main.rateLimitUsePrecisionSleep = true
+main.syncToPresent = false
+
+[exts."omni.kit.renderer.core".present]
+enabled = false
+presentAfterRendering = false
+###############################################################################

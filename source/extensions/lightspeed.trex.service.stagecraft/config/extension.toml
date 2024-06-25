@@ -1,0 +1,26 @@
+[package]
+version = "1.0.0"
+authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
+title = "NVIDIA RTX Remix Micro-Service for StageCraft"
+description = "Micro-Service for NVIDIA RTX Remix StageCraft App"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["micro", "service", "stagecraft", "stage"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
+
+[dependencies]
+"omni.flux.service.factory" = {}
+"lightspeed.layer_manager.service" = {}  # Used in Service Factory
+"lightspeed.project_manager.service" = {}  # Used in Service Factory
+"lightspeed.trex.asset_replacements.service" = {}  # Used in Service Factory
+"lightspeed.trex.texture_replacements.service" = {}  # Used in Service Factory
+
+[[python.module]]
+name = "lightspeed.trex.service.stagecraft"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

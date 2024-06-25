@@ -1,0 +1,60 @@
+publish-extensions-windows:
+  stage: publish_extensions
+  extends:
+    - .defaults
+    - .windows_vault
+  needs:
+    - job: build-package-windows
+      artifacts: true
+    - job: build-package-linux
+      artifacts: true
+  before_script:
+    - !reference [ .windows_vault, before_script ]
+    # Cleanup the Kit dir to avoid failure
+    - $kitPath = "_build\windows-x86_64\release\kit"
+    - if (Test-Path $kitPath) { Remove-Item -Path $kitPath -Recurse -Force }
+  script:
+    # `publish_extensions` will build before publishing
+    - $fail_wr = $false
+    - .\repo.bat ci publish_extensions --config release --platform windows-x86_64
+    - if (!$?) { $fail_wr = $true }
+    - Write-Host "WinRel=$fail_wr"
+    - if ($fail_wr) { Exit 1 }
+  variables:
+    GIT_STRATEGY: fetch
+  rules: ## Automatically run publish job only on merge commit to master
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
+      when: always
+    - when: never
+
+publish-extensions-linux:
+  stage: publish_extensions
+  extends:
+    - .defaults
+    - .linux_agent
+    - .linux_vault
+  needs:
+    - job: build-package-windows
+      artifacts: true
+    - job: build-package-linux
+      artifacts: true
+  before_script:
+    - !reference [ .linux_vault, before_script ]
+    # Cleanup the Kit dir to avoid failure
+    - rm -rf _build/linux-x86_64/release/kit
+  script:
+    # `publish_extensions` will build before publishing
+    - fail_wr=0
+    - ./repo.sh ci publish_extensions --config release --platform linux-x86_64 || fail_wr=1
+    - echo "WinRel=${fail_wr}"
+    - '[ "$fail_wr" -eq 0 ] || exit 1'
+  variables:
+    GIT_STRATEGY: fetch
+  rules: ## Automatically run publish job only on merge commit to master
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "push"
+      when: always
+    - when: never

@@ -1,0 +1,10 @@
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_game_name = "Sub Game"
+        string lightspeed_layer_type = "replacement"
+    }
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+

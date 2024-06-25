@@ -1,0 +1,41 @@
+[package]
+version = "2.1.0"
+authors = ["dbataille@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["layer", "manager", "core"]
+title = "Lightspeed Layer Manager Core"
+description = "Manage layers in the stage"
+icon = "data/images/icon.png"
+category = "internal"
+preview_image = "data/images/preview.png"
+
+[ui]
+name = "Lightspeed Layer Manager"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.pip_archive" = {}
+"omni.client" = {}
+"omni.flux.layer_tree.usd.core" = {}
+"omni.flux.service.shared" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.commands" = {}
+"omni.kit.usd.layers" = {}
+"omni.usd" = {}
+"omni.kit.window.file" = {}
+
+[[python.module]]
+name = "lightspeed.layer_manager.core"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+    "omni.flux.utils.tests",
+]
+
+stdoutFailPatterns.exclude = [
+    "*Can't find the layer type*",  # Exclude error log for save_layer_as when layer is None
+    "*Failed to save layer type*",  # Exclude error log for save_layer_as when export fails
+]

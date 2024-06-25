@@ -1,0 +1,40 @@
+[package]
+version = "1.3.6"
+authors =["Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "NVIDIA RTX Remix Material Properties implementation for the StageCraft"
+description = "Material Properties implementation for NVIDIA RTX Remix StageCraft App"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["material", "properties", "widget"]
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.material_properties.shared.widget"
+
+[dependencies]
+"omni.kit.material.library" = {}
+"omni.kit.window.drop_support" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+"lightspeed.common" = {}
+"lightspeed.tool.material.core" = {}
+"lightspeed.trex.asset_replacements.core.shared" = {}
+"lightspeed.trex.material.core.shared" = {}
+"lightspeed.trex.selection_tree.shared.widget" = {}
+"lightspeed.trex.utils.widget" = {}
+"lightspeed.trex.contexts" = {}
+"omni.flux.asset_importer.core" = {}
+"omni.flux.properties_pane.materials.usd.widget" = {}
+"omni.flux.property_widget_builder.model.usd" = {}
+"omni.flux.utils.common" = {}
+
+[[python.module]]
+name = "lightspeed.trex.material_properties.shared.widget"
+
+[[test]]
+dependencies = [
+    "lightspeed.common",
+    "lightspeed.layer_manager.core",
+    "lightspeed.trex.tests.dependencies",
+    "omni.flux.utils.widget",
+]

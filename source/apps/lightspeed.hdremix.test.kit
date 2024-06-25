@@ -1,0 +1,60 @@
+[package]
+version = "0.0.0"
+category = "Testing"
+title = "HdRemix Test Environment"
+
+readme  = """
+HdRemix Test Environment
+"""
+
+changelog = """
+# Changelog
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [0.0.0] - 2024-05-20
+### Added
+- Created
+"""
+
+description = """
+Kit application used solely for lightweight-kit-environment testing of HdRemix
+"""
+
+# That makes it browsable in UI with "experience" filter
+keywords = ["app"]
+
+[dependencies]
+"lightspeed.hydra.remix.bootstrap" = { order = -20000 }
+"lightspeed.hydra.remix.core" = { order = -10000 }
+"omni.kit.viewport.bundle" = { order = 1 }
+"omni.usd" = { order = 2 }
+"omni.kit.scripting" = { order = 3 }
+
+[settings.app.window]
+title = "HdRemix Test Environment"
+width = 1920
+height = 1080
+
+# Register extension folder from this repo in kit
+[settings.app.exts]
+folders.'++' = ["${app}/../exts", "${app}/../extscache"]
+
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Kit SDK Version: 106.0.0+release.118399.fcefe91f.gl
+
+# Version lock for all dependencies:
+[settings.app.exts]
+enabled = [
+	"lightspeed.hydra.remix.bootstrap-1.0.1",
+	"lightspeed.hydra.remix.core-0.3.4",
+	"lightspeed.trex.utils.widget-1.0.2",
+	"omni.kit.scripting-105.1.2",
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################

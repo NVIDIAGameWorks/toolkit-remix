@@ -1,0 +1,21 @@
+[package]
+version = "1.0.2"
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "NVIDIA RTX Remix Stage View"
+description = "Stage View show the list of prim in the stage"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["mesh", "stage", "widget", "view"]
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.stage_view.shared.widget"
+
+[dependencies]
+"omni.kit.usd.layers" = {}
+"omni.kit.widget.stage" = {}
+"omni.kit.widget.stage_icons" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.stage_view.shared.widget"

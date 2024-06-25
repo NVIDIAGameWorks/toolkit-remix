@@ -1,0 +1,10 @@
+include:
+  - local: tools/ci/gitlab/tests/unit/unit_tests_linux.yml
+
+lss-unit-tests-linux:
+  extends:
+    - .unit_tests_linux
+  stage: lss_unit_tests
+  script:
+    - ./_build/linux-x86_64/release/lightspeed.app.trex.ingestcraft.cli.sh -h  # test that the ingestion CLI is not broken
+    - ./repo.sh test --suite lss_unit_linux --config release

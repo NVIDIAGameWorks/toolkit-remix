@@ -1,0 +1,44 @@
+# Changelog
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [2.1.0]
+### Added
+- Added ability to filter get assets on a specific layer
+
+## [2.0.1]
+### Changed
+- Don't use pydantic for typing to fix documentation
+
+## [2.0.0] - 2022-11-16
+### Added
+- Added `with_data_model` functions equivalents for existing functions
+- Added data models representing the various requests and responses possible
+- Added validators for the data models
+
+## [1.1.4]
+### Changed
+- Update to Kit 106
+
+## [1.1.3]
+### Fixed
+- Updated some typing
+
+## [1.1.2]
+### Changed
+- Set Apache 2 license headers
+
+## [1.1.1] - 2024-03-13
+### Changed
+- Moved unit test to its own directory
+
+## [1.1.0] - 2022-08-10
+### Added
+- Expose some API as static
+
+## [1.0.1] - 2022-08-08
+### Added
+- Support for Geometry Subsets
+
+## [1.0.0] - 2022-06-09
+### Added
+- Created

@@ -1,0 +1,24 @@
+[package]
+version = "1.0.0"
+authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
+title = "NVIDIA RTX Remix Micro-Service for IngestCraft"
+description = "Micro-Service for NVIDIA RTX Remix IngestCraft App"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["micro", "service", "ingestcraft", "stage"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
+
+[dependencies]
+"omni.flux.service.factory" = {}
+"omni.flux.validator.mass.service" = {}
+"lightspeed.common" = {}
+
+[[python.module]]
+name = "lightspeed.trex.service.ingestcraft"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

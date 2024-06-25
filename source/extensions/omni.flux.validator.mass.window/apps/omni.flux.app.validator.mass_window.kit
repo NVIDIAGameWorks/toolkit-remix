@@ -1,0 +1,91 @@
+[package]
+title = "Flux Validator Mass App"
+
+# That makes it browsable in UI with "experience" filter
+keywords = ["app"]
+
+[dependencies]
+"omni.kit.uiapp" = {}
+"omni.flux.validator.mass.window" = {}
+
+# Windows only extensions. For all of them set exact=true to not be included into generated version lock.
+# That will break linux otherwise, as version lock is platform agnostic currently.
+[dependencies."filter:platform"."windows-x86_64"]
+"omni.kit.window.modifier.titlebar" = { version = "105.2.16", exact = true }
+
+[settings.app.window]
+title = "Flux Validator App"
+
+width = 1080
+height = 800
+x = -1
+y = -1
+
+
+[settings]
+# Basic Kit App
+################################
+app.versionFile = "${app}/../../../VERSION"
+app.fastShutdown = true
+
+
+# Register extension folder from this repo in kit
+[settings.app.exts]
+folders.'++' = ["${app}/../../../exts", "${app}/../../../extscache", "${app}/../exts", "${app}/../extscache", "${kit}/../exts", "${kit}/../extscache"]
+
+[settings.app.menu]
+legacy_mode = false
+compatibility_mode=false
+
+[settings.app.audio]
+enabled = false  # OM-105157
+
+[settings.exts."omni.kit.window.modifier.titlebar"]
+titleFormatString = "  Flux Validator  {verKey:/app/version,font_color=0x909090,font_size=16} {separator} {file, board=true}"
+showFileFullPath = true
+icon.size = 256
+defaultFont.name = "Arial"
+defaultFont.size = 16
+defaultFont.color = 0xD0D0D0
+separator.color = 0x00B976
+separator.width = 1
+windowBorder.color = 0x0F0F0F
+windowBorder.width = 2
+colors.caption = 0x0F0F0F
+colors.client = 0x0F0F0F
+
+[settings.exts."omni.ui"]
+raster.default_rasterpolicy_enabled = false
+
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Kit SDK Version: 106.0.0+release.118399.fcefe91f.gl
+
+# Exact Version dependencies:
+# 	omni.kit.window.modifier.titlebar-105.2.16
+
+# Version lock for all dependencies:
+[settings.app.exts]
+enabled = [
+	"omni.flux.info_icon.widget-1.1.3",
+	"omni.flux.pip_archive-2.0.0",
+	"omni.flux.service.shared-1.0.3",
+	"omni.flux.tabbed.widget-1.1.3",
+	"omni.flux.utils.common-2.17.0",
+	"omni.flux.utils.widget-1.15.2",
+	"omni.flux.validator.factory-2.6.0",
+	"omni.flux.validator.manager.core-1.17.5",
+	"omni.flux.validator.manager.widget-1.6.5",
+	"omni.flux.validator.mass.core-1.11.5",
+	"omni.flux.validator.mass.queue.core-1.0.0",
+	"omni.flux.validator.mass.queue.widget-1.4.2",
+	"omni.flux.validator.mass.widget-1.7.2",
+	"omni.flux.validator.mass.window-1.2.17",
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################

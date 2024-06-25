@@ -1,0 +1,3 @@
+# Any setting that we want different between public and internal should be here and repo_internal.toml
+[repo_build.licensing]
+enabled = false

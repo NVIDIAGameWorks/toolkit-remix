@@ -1,0 +1,21 @@
+[package]
+version = "1.0.2"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["event", "project", "edit", "target"]
+title = "Lightspeed Event Load Edit Target"
+description = "Extension that sets the edit target to the one saved in the project file on stage open"
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.events_manager" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.usd.layers" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.event.load_edit_target"

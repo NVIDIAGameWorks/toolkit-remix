@@ -1,0 +1,23 @@
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_game_name = "Test Sublayer"
+        string lightspeed_layer_type = "replacement"
+    }
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+
+over "RootNode"
+{
+    over "instances"
+    {
+        over "inst_6CA2F12444DEBE09_0"
+        {
+            float3 xformOp:rotateZYX = (0, 90, 0)
+            float3 xformOp:scale = (1, 1, 2)
+            double3 xformOp:translate = (10, 0, 0)
+        }
+    }
+}
+

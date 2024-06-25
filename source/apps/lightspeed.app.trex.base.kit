@@ -1,0 +1,106 @@
+[package]
+version = "2024.4.0-RC.1"
+category = "Application"
+title = "NVIDIA RTX Remix Base"
+description = "Base app that regroups all extensions shared between all NVIDIA RTX Remix experiences"
+authors = ["Damien Bataille <dbataille@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+keywords = ["lightspeed", "rtx", "remix", "app", "base"]
+changelog = """
+# NVIDIA RTX Remix
+
+## [2022.0.0] - 2022-06-14
+- Publishing first version.
+"""
+readme = """
+# NVIDIA RTX Remix Base Experience
+
+This base experience regroup all extensions shared between all NVIDIA RTX Remix experiences
+"""
+
+[dependencies]
+# The Main UI App
+"omni.kit.uiapp" = {}
+"lightspeed.dependencies" = { order = -15000}  # Try to load the splash screen
+
+# PIP Archives
+"lightspeed.pip_archive" = { order = -10002 }  # Load before `omni.flux.pip_archive` to ensure we override the pip deps
+"omni.flux.pip_archive" = { order = -10001 }  # Load before `lightspeed.hydra.remix.core` to ensure we override the pip deps
+
+# Trex shared extensions
+"lightspeed.hydra.remix.bootstrap" = { order = -20000 }
+"lightspeed.hydra.remix.core" = { order = -10000 }
+"lightspeed.trex.contexts" = {} # contexts used for each Flux App
+"lightspeed.trex.app.resources" = {order = -1000}  # should start first because of "default_resources_ext"
+"lightspeed.trex.app.setup" = { order = 1000 } # layout setup, we are running that at the end
+"lightspeed.trex.app.style" = {order = -100}  # global style
+
+# Windows
+"omni.kit.window.title" = {}
+# Windows only extensions. For all of them set exact=true to not be included into generated version lock.
+# That will break linux otherwise, as version lock is platform agnostic currently.
+[dependencies."filter:platform"."windows-x86_64"]
+"omni.kit.window.modifier.titlebar" = { version = "105.2.16", exact = true }
+
+# Allow MDL paths to resolve
+"omni.kit.material.library" = {}
+
+# Micro-Services
+"lightspeed.trex.service.core" = {}
+
+"omni.kit.telemetry" = {}
+
+[settings]
+# Splash Setup
+################################
+exts."omni.kit.window.splash".imagePath = "${lightspeed.trex.app.resources}/data/images/background_images_small/remix-splash-screen-864x486-r2.png"
+exts.'omni.kit.splash'.splash_app = "${lightspeed.trex.app.setup}/apps/lightspeed.trex.app.splash.kit"
+
+exts.'omni.kit.browser.asset'.folders = [
+    "http://omniverse-content-production.s3-us-west-2.amazonaws.com/RTXRemix/LightspeedAssets",
+    "http://omniverse-content-production.s3-us-west-2.amazonaws.com/RTXRemix/OVAssets/Assets/ArchVis/Industrial",
+    "http://omniverse-content-production.s3-us-west-2.amazonaws.com/RTXRemix/OVAssets/Assets/ArchVis/Residential",
+    "http://omniverse-content-production.s3-us-west-2.amazonaws.com/RTXRemix/OVAssets/Assets/DigitalTwin/Assets/Warehouse"
+]
+
+
+[settings.exts."omni.kit.window.modifier.titlebar"]
+showFileFullPath = true
+icon.size = 256
+defaultFont.name = "Arial"
+defaultFont.size = 16
+defaultFont.color = 0xD0D0D0
+separator.color = 0x00B976
+separator.width = 1
+windowBorder.color = 0x0F0F0F
+windowBorder.width = 0
+colors.caption = 0x0F0F0F
+colors.client = 0x0F0F0F
+
+[settings.ext."omni.kit.mainwindow"]
+margin.width = 0
+margin.height = 0
+backgroundColor = 0xFF0F0F0F
+
+[settings.exts."lightspeed.trex.app.setup"]
+hide_menu = true
+
+[settings.exts."omni.flux.utils.widget"]
+default_resources_ext = "lightspeed.trex.app.resources"
+hide_menu = true
+
+[settings.exts."omni.kit.viewport.menubar.camera"]
+createMenuAtStartup = false
+
+[settings.exts."omni.kit.viewport.menubar.render"]
+createMenuAtStartup = false
+
+[settings.exts."omni.kit.widget.toolbar"]
+Grab.enabled = false
+PlayButton.enabled = false
+SelectionButton.SelectMode.enabled = false
+
+[settings.exts."omni.ui"]
+# crash-fix: "raster.default_rasterpolicy_enabled = true" was causing a crash when
+#  using the new project wizard's file browser before having a stage loaded.
+raster.default_rasterpolicy_enabled = false

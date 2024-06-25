@@ -1,0 +1,86 @@
+{
+    "name": "Test",
+    "context_plugin":
+        {
+            "name": "USDFile",
+            "data": {"context_name": "", "file": "${omni.flux.validator.plugin.context.usd_stage}/data/tests/usd/cubes.usda"}
+        },
+    "check_plugins": [
+        {
+            "name": "PrintPrims",
+            "selector_plugins": [
+                {
+                    "name": "AllPrims",
+                    "data": {}
+                },
+                {
+                    "name": "AllPrims",
+                    "data": {}
+                }
+            ],
+            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}},
+            "stop_if_fix_failed": false,
+            "data": {}
+        },
+        {
+            "name": "PrintPrims",
+            "selector_plugins": [
+                {
+                    "name": "AllPrims",
+                    "data": {}
+                }
+            ],
+            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}},
+            "stop_if_fix_failed": false,
+            "data": {}
+        },
+        {
+            "name": "PrintPrims",
+            "selector_plugins": [
+                {
+                    "name": "AllPrims",
+                    "data": {}
+                }
+            ],
+            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}},
+            "stop_if_fix_failed": false,
+            "data": {}
+        },
+        {
+            "name": "PrintPrims",
+            "selector_plugins": [
+                {
+                    "name": "AllPrims",
+                    "data": {}
+                }
+            ],
+            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}},
+            "stop_if_fix_failed": false,
+            "data": {}
+        },
+        {
+            "name": "PrintPrims",
+            "selector_plugins": [
+                {
+                    "name": "AllPrims",
+                    "data": {}
+                }
+            ],
+            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}},
+            "stop_if_fix_failed": false,
+            "data": {}
+        },
+        {
+            "name": "PrintPrims",
+            "selector_plugins": [
+                {
+                    "name": "AllPrims",
+                    "data": {}
+                }
+            ],
+            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}},
+            "stop_if_fix_failed": false,
+            "data": {}
+        }
+    ]
+}

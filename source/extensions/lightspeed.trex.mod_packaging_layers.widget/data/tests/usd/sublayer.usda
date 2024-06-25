@@ -1,0 +1,17 @@
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_game_name = "TestGame"
+        string lightspeed_layer_type = "replacement"
+    }
+    subLayers = [
+        @./sublayer_child.usda@
+    ]
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+
+over "RootNode"
+{
+}
+

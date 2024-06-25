@@ -1,0 +1,57 @@
+[package]
+# Lists people or organizations that are considered the "authors" of the package.
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+
+# The title and description fields are primarly for displaying extension info in UI
+title = "Viewport Bundle"
+description="A bundle of Viewport extensions that creates a baseline interactive Viewport."
+
+# Keywords for the extension
+keywords = ["kit", "ui", "viewport", "hydra", "render", "waypoint"]
+
+# Location of change log file in target (final) folder of extension, relative to the root.
+# More info on writing changelog: https://keepachangelog.com/en/1.0.0/
+changelog="docs/CHANGELOG.md"
+
+# Path (relative to the root) or content of readme markdown file for UI.
+readme  = "docs/README.md"
+
+# Icon is shown in Extensions window, it is recommended to be square, of size 256x256.
+icon = "data/icon.png"
+preview_image = "data/preview.png"
+
+category = "internal"
+version = "1.1.2"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.viewports.stagecraft.bundle"
+
+[dependencies]
+"omni.kit.viewport.registry" = {}
+# Load the stats HUD (resolution, fsp, etc..)
+"omni.hydra.engine.stats" = {}
+# Load the viewport settings menu
+"omni.kit.viewport.menubar.settings" = {}
+# Load the display type menu
+"omni.kit.viewport.menubar.display" = {}
+# Load the renderer selection menu
+"lightspeed.trex.viewports.menubar.render" = {}  # to be able to toggle it
+## Load the view-from-camera menu
+"lightspeed.trex.viewports.menubar.camera" = {}  # to be able to toggle it
+# Lighting
+"omni.kit.viewport.menubar.lighting" = {}
+# Waypoint Core
+"lightspeed.trex.waypoint.core" = {}
+# Waypoint
+"omni.kit.viewport.menubar.waypoint" = {}
+
+[settings]
+# Collapse the additional camera control area
+persistent.exts."omni.kit.viewport.menubar.camera".expand = false
+# Set the default perspective camera focalLength
+persistent.app.primCreation.typedDefaults.camera.focalLength = 18.147562
+exts."omni.kit.waypoint.core".editing_waypoint = ""
+exts."omni.kit.waypoint.core".visible_startup = true
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

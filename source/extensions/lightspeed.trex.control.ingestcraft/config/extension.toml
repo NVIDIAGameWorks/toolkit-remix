@@ -1,0 +1,36 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "NVIDIA RTX Remix control for the IngestCraft"
+description = "Control will connect back end and front end for NVIDIA RTX Remix IngestCraft App"
+version = "1.0.2"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.control.ingestcraft"
+category = "internal"
+keywords = [ "remix",]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[dependencies]
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.layout.ingestcraft" = { order = 10}
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+    "omni.flux.validator.plugin.check.usd",
+    "omni.flux.validator.plugin.context.usd_stage",
+    "omni.flux.validator.plugin.selector.usd",
+    "omni.flux.validator.plugin.resultor.file"
+]
+args = [
+    # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+    # Need to use a .kit file
+    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
+]
+
+[[python.module]]
+name = "lightspeed.trex.control.ingestcraft"

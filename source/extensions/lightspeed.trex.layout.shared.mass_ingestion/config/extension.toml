@@ -1,0 +1,32 @@
+[package]
+version = "1.2.2"
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "NVIDIA RTX Remix layout for the Mass Ingestion"
+description = "Layout for NVIDIA RTX Remix Mass Ingestion"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["layout", "mass", "ingestion", "ingest"]
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.layout.shared.mass_ingestion"
+
+[dependencies]
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.layout.shared.base" = {}
+"lightspeed.trex.stage_view.shared.widget" = {}
+"lightspeed.trex.utils.common" = {}
+"lightspeed.trex.viewports.shared.widget" = {}
+"omni.flux.tabbed.widget" = {}
+"omni.flux.validator.mass.queue.widget" = {}
+"omni.flux.validator.mass.widget" = {}
+"omni.appwindow" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.layout.shared.mass_ingestion"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

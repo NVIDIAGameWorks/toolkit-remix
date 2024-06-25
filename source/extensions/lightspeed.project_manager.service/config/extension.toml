@@ -1,0 +1,18 @@
+[package]
+version = "1.0.0"
+authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["project", "manager", "service"]
+title = "Lightspeed Project Manager Service"
+description = "Expose microservices to manage projects in the stage"
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.layer_manager.core" = {}
+"omni.flux.service.factory" = {}
+
+[[python.module]]
+name = "lightspeed.project_manager.service"

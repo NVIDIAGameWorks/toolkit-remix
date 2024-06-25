@@ -1,0 +1,22 @@
+#usda 1.0
+(
+    subLayers = [
+        @./sublayer_child_01.usda@,
+        @./sublayer_child_02.usda@
+    ]
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+
+over "RootNode"
+{
+    over "lights"
+    {
+        over "light_9907D0B07D040077"
+        {
+            float intensity = 100
+            double3 xformOp:translate = (0, 0, 0)
+        }
+    }
+}
+

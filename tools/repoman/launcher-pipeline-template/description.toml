@@ -1,0 +1,66 @@
+name = "RTX Remix"
+#displayed application name in smaller card and library view
+shortName = "RTX Remix"
+version = "${version}"
+#boolean for if this version is the latest version
+latest = true
+#unique identifier for component, all lower case, persists between versions
+slug = "rtx-remix"
+
+#displayed before application name in launcher
+productArea = "NVIDIA"
+#category of content
+category = "Apps"
+#values for filtering content, not implemented yet
+tags = [
+  "Media & Entertainment",
+  "Remix",
+  "Modding",
+  "Gaming",
+  "DLSS",
+  "Pathtracing",
+  "AI Tools",
+  "Materials",
+  "PBR",
+  "Classic Games",
+  "Remaster",
+  "beta"
+]
+
+#enum of "app", "connector" and "experience" for now
+kind = "app"
+#string array, each line is a new line, keep lines under 256 char and keep lines under 4
+description = [
+  "NVIDIA RTX Remix, built on NVIDIA Omniverse, is a platform for remastering fixed function pipeline DirectX 8 and 9 games. RTX Remix enables experienced modders to remaster classic games by upgrading textures with AI, allowing easy replacement of game assets with high fidelity assets built with physically accurate materials, and injecting RTX path tracing, DLSS and Reflex technologies.
+
+FEATURES:
+* An RTX Remix Runtime is included in the download, which can be used for capturing classic game scenes which are then imported into the RTX Remix application. The RTX Remix Runtime will also execute on the changes you make as part of your mod, seamlessly injecting the remastered assets back into the game in real time at playback.
+* For the latest RTX Runtime, check out our GitHub: https://github.com/NVIDIAGameWorks/rtx-remix/releases/
+* An accurate viewport that reconstructs the game scene, so that every change you make can be previewed without launching the game.
+* An ingestion pipeline converts a variety of file formats to Universal Scene Description (OpenUSD), making it easy to open and edit them in your favorite Omniverse-connected app, including RTX Remix itself.
+* Easy asset replacement. Upgrade models with new, high-poly replacements that rival the detail and fidelity of those found in modern games. RTX Remix features a free bank of high quality USD assets created by NVIDIA, ready to be used in your next mod. Import them into your mods as-is, or remix their properties using an Omniverse connected application of your choice, such as Blender or Adobe Substance.
+* Support for a variety of PBR material maps, including albedo, metallic, roughness, emissive, normal, subsurface scattering and height maps, which can leverage Parallax Occlusion Mapping (POM) to make texture surfaces realistically bumpy, for improved interplay with fully ray traced light and shadow.
+* Powerful Generative AI Texture Tools that leverage Tensor Cores in GeForce RTX GPUs to analyze low resolution textures from classic games, and generate physically accurate materials including normal and roughness maps, before upscaling their resolution by up to 4X.
+* Relighting with full ray tracing, also known as path tracing. Convert basic light sources into physically-accurate dynamic lights, capable of casting high-fidelity ray-traced shadows, illuminating scenery, and interacting with the Physically Based properties of enhanced textures. And insert new lights to transform the appearance of a scene even more.
+"
+]
+
+#array of links for more info on product
+[[links]]
+title = "License Agreement"
+url = "https://docs.omniverse.nvidia.com/platform/latest/common/NVIDIA_Omniverse_License_Agreement.html"
+[[links]]
+title = "Release Notes"
+url = "https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/docs/remix-releasenotes.html"
+[[links]]
+title = "Documentation"
+url = "https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/"
+[[links]]
+title = "Tutorials"
+url = "https://www.youtube.com/playlist?list=PL4w6jm6S2lzvgJ97T1_VbLGBR_l6zzOUm"
+[[links]]
+title = "Community"
+url = "https://github.com/NVIDIAGameWorks/rtx-remix"
+[[links]]
+title = "Github"
+url = "https://github.com/NVIDIAGameWorks/rtx-remix"

@@ -1,0 +1,80 @@
+[repo_auto_update_deps]
+# Tool name
+command = "auto_update_deps"
+# [python module name or path]:[function name]
+entry_point = "${root}/tools/utils/repo_auto_update_deps.py:setup_repo_tool"
+
+[repo_check_changelog]
+# Tool name
+command = "check_changelog"
+# [python module name or path]:[function name]
+entry_point = "${root}/tools/utils/repo_check_changelog.py:setup_repo_tool"
+
+# Name of required file
+file_name = "CHANGELOG.md"
+# Header of section where change is required
+section_header = "[Unreleased]"
+# Pattern delineating sections
+section_pattern = "^## "
+# Threshold to determine if 2 lines are similar enough to be considered modified
+similarity_threshold = 0.5
+# The target commit to compare the changelog against
+target_commit = "origin/master"
+# The source commit to compare the changelog against
+source_commit = "HEAD"
+
+[repo_get_release_changelog]
+# Tool name
+command = "get_release_changelog"
+# [python module name or path]:[function name]
+entry_point = "${root}/tools/utils/repo_get_release_changelog.py:setup_repo_tool"
+
+# Name of required file
+file_name = "CHANGELOG.md"
+# Header of section where change is required
+section_header = "[Unreleased]"
+# Pattern delineating sections
+section_pattern = "\n## "
+
+[repo_delete_changelog]
+# Tool name
+command = "delete_changelog"
+# [python module name or path]:[function name]
+entry_point = "${root}/tools/utils/repo_delete_changelog.py:setup_repo_tool"
+
+# Name of required file
+file_name = "CHANGELOG.md"
+# Header of section where change is required
+start_line = "^## \\[Unreleased\\]\n$"
+# Pattern delineating sections
+end_line = "^## \\[.*\\]\n$"
+
+[repo_check_test_file_location]
+# Tool name
+command = "check_test_file_location"
+# [python module name or path]:[function name]
+entry_point = "${root}/tools/utils/repo_check_test_file_location.py:setup_repo_tool"
+# files/folders that we will check, using pathlib glob syntax
+files.include = ["**/source/**/tests/**/test_*.py", "**/source/**/tests/*.py"]
+# files/folders that we will not check, using pathlib glob syntax
+files.exclude = [
+    "**/lightspeed.common/lightspeed/common/tools/**/*",
+    "**/omni.flux.utils.tests/omni/flux/utils/tests/*",
+    "**/omni.flux.property_widget_builder.widget/omni/flux/property_widget_builder/widget/tests/ui_components.py",
+]
+# files/folders that we allow, using pathlib glob syntax
+rule.allow_paths = [
+    "**/source/**/tests/__init__.py",
+    "**/source/**/tests/unit/**/*.py",
+    "**/source/**/tests/e2e/**/*.py"
+]
+
+[repo_check_forbidden_words]
+# Tool name
+command = "check_forbidden_words"
+# [python module name or path]:[function name]
+entry_point = "${root}/tools/utils/repo_check_forbidden_words.py:setup_repo_tool"
+# files/folders that we will check, using pathlib glob syntax
+files.include = ["**/source/**/omni.flux.*/**/*.py", "**/source/**/omni.flux.*/**/*.toml"]
+# words that we will try to find. If there words exist, the process will crash
+words.exclude = ["lightspeed", "trex"]

@@ -1,0 +1,51 @@
+[package]
+# Semantic Versionning is used: https://semver.org/
+version = "1.8.3"
+
+# Lists people or organizations that are considered the "authors" of the package.
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+
+# The title and description fields are primarly for displaying extension info in UI
+title = "Material Converter"
+description="Converts a material and its attributes to point to a different shader."
+
+# Path (relative to the root) or content of readme markdown file for UI.
+readme  = "docs/README.md"
+
+# One of categories for UI.
+category = "Utility"
+
+# Keywords for the extension
+keywords = ["material", "converter", "shader", "mdl"]
+
+# Location of change log file in target (final) folder of extension, relative to the root.
+# More info on writing changelog: https://keepachangelog.com/en/1.0.0/
+changelog="docs/CHANGELOG.md"
+
+# Preview image and icon. Folder named "data" automatically goes in git lfs (see .gitattributes file).
+# Preview image is shown in "Overview" of Extensions window. Screenshot of an extension might be a good preview image.
+preview_image = "data/preview.png"
+
+# Icon is shown in Extensions window, it is recommended to be square, of size 256x256.
+icon = "data/icon.png"
+
+[dependencies]
+"omni.usd" = {}
+"omni.flux.pip_archive" = {} # For pydantic
+"omni.flux.utils.common" = {}
+
+# Main python module this extension provides, it will be publicly available as "import omni.example.hello".
+[[python.module]]
+name = "omni.flux.utils.material_converter"
+
+[[test]]
+dependencies = [
+    "omni.flux.tests.dependencies",
+]
+
+args = [
+    # "--/renderer/mdl/searchPaths/templates=${kit}/../exts/omni.flux.utils.material_converter/data/tests/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+    # Need to use a .kit file
+    "--merge-config=${app}/../../exts/omni.flux.utils.material_converter/data/tests/omni.app.test_material.kit"
+]

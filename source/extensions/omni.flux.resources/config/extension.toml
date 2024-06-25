@@ -1,0 +1,30 @@
+[package]
+# Semantic Versionning is used: https://semver.org/
+version = "2.0.1"
+
+authors = ["Mark Henderson <markh@nvidia.com>"]
+title = "Flux Resources"
+description = "This Extension contains resources (images, icons) used by Flux plugins."
+
+# Path (relative to the root) or content of readme markdown file for UI.
+readme = "docs/README.md"
+
+# One of categories for UI.
+category = "Resources"
+
+# Keywords for the extension
+keywords = ["kit", "flux"]
+
+# Location of change log file in target (final) folder of extension, relative to the root.
+# More info on writing changelog: https://keepachangelog.com/en/1.0.0/
+changelog = "docs/CHANGELOG.md"
+
+# Preview image and icon. Folder named "data" automatically goes in git lfs (see .gitattributes file).
+# Preview image is shown in "Overview" of Extensions window. Screenshot of an extension might be a good preview image.
+preview_image = "data/preview.png"
+
+# Icon is shown in Extensions window, it is recommended to be square, of size 256x256.
+icon = "data/icon.png"
+
+[core]
+order = -1000

@@ -1,0 +1,37 @@
+[package]
+version = "1.0.8"
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "NVIDIA RTX Remix Mesh Properties implementation for the StageCraft"
+description = "Mesh Properties implementation for NVIDIA RTX Remix StageCraft App"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["mesh", "properties", "widget"]
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.mesh_properties.shared.widget"
+
+[dependencies]
+"lightspeed.trex.asset_replacements.core.shared" = {}
+"lightspeed.trex.selection_tree.shared.widget" = {}
+"lightspeed.trex.utils.common" = {}
+"lightspeed.trex.utils.widget" = {}
+"lightspeed.common" = {}
+"omni.client" = {}
+"omni.flux.properties_pane.properties.usd.widget" = {}
+"omni.flux.properties_pane.transformation.usd.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.kit.widget.filebrowser" = {}
+"omni.kit.window.filepicker" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.mesh_properties.shared.widget"
+
+
+[[test]]
+dependencies = [
+    "lightspeed.layer_manager.core",
+    "lightspeed.trex.tests.dependencies",
+]

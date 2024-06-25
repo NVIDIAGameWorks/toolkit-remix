@@ -1,0 +1,158 @@
+#usda 1.0
+(
+    customLayerData = {
+        dictionary cameraSettings = {
+            string boundCamera = "/RootNode/Camera"
+        }
+        string lightspeed_exe_name = "testGame.exe"
+        string lightspeed_game_icon = "testGame.exe_icon.bmp"
+        string lightspeed_game_name = "testGame - Direct3D 9"
+        string lightspeed_layer_type = "capture"
+        dictionary omni_layer = {
+            dictionary muteness = {
+            }
+        }
+    }
+    defaultPrim = "RootNode"
+    endTimeCode = 0
+    metersPerUnit = 1
+    startTimeCode = 0
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+
+def "RootNode"
+{
+    def "lights"
+    {
+        def SphereLight "light_9907D0B07D040077" (
+            prepend references = @./lights/light_9907D0B07D040077.usd@
+        )
+        {
+        }
+
+        def SphereLight "light_EDF9B59568FD1142" (
+            prepend references = @./lights/light_EDF9B59568FD1142.usd@
+        )
+        {
+        }
+
+        def SphereLight "light_0FBF0D906770A019" (
+            prepend references = @./lights/light_0FBF0D906770A019.usd@
+        )
+        {
+        }
+    }
+
+    def "meshes"
+    {
+        def Xform "mesh_0AB745B8BEE1F16B" (
+            prepend references = @./meshes/mesh_0AB745B8BEE1F16B.usda@
+        )
+        {
+            rel material:binding = </RootNode/Looks/mat_BC868CE5A075ABB1>
+            token visibility = "invisible"
+        }
+
+        def Xform "mesh_CED45075A077A49A" (
+            prepend references = @./meshes/mesh_CED45075A077A49A.usda@
+        )
+        {
+            rel material:binding = </RootNode/Looks/mat_BC868CE5A075ABB1>
+            token visibility = "invisible"
+        }
+
+        def Xform "mesh_BAC90CAA733B0859" (
+            prepend references = @./meshes/mesh_BAC90CAA733B0859.usda@
+        )
+        {
+            rel material:binding = </RootNode/Looks/mat_BC868CE5A075ABB1>
+            token visibility = "invisible"
+        }
+    }
+
+    def "Looks"
+    {
+        def Material "mat_BC868CE5A075ABB1" (
+            prepend references = @./materials/mat_BC868CE5A075ABB1.usda@</Looks/mat_BC868CE5A075ABB1>
+        )
+        {
+        }
+    }
+
+    def "instances"
+    {
+        def Xform "inst_0AB745B8BEE1F16B_0" (
+            prepend references = </RootNode/meshes/mesh_0AB745B8BEE1F16B>
+        )
+        {
+            rel material:binding = </RootNode/Looks/mat_BC868CE5A075ABB1>
+            token visibility = "inherited"
+            float3 xformOp:rotateZYX = (0, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateZYX", "xformOp:scale"]
+        }
+
+        def Xform "inst_BAC90CAA733B0859_0" (
+            prepend references = </RootNode/meshes/mesh_BAC90CAA733B0859>
+        )
+        {
+            rel material:binding = </RootNode/Looks/mat_BC868CE5A075ABB1>
+            token visibility = "inherited"
+            float3 xformOp:rotateZYX = (0, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateZYX", "xformOp:scale"]
+        }
+
+        def Xform "inst_BAC90CAA733B0859_1" (
+            prepend references = </RootNode/meshes/mesh_BAC90CAA733B0859>
+        )
+        {
+            rel material:binding = </RootNode/Looks/mat_BC868CE5A075ABB1>
+            token visibility = "inherited"
+            float3 xformOp:rotateZYX = (0, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (150, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateZYX", "xformOp:scale"]
+        }
+
+        def Xform "inst_BAC90CAA733B0859_2" (
+            prepend references = </RootNode/meshes/mesh_BAC90CAA733B0859>
+        )
+        {
+            rel material:binding = </RootNode/Looks/mat_BC868CE5A075ABB1>
+            token visibility = "inherited"
+            float3 xformOp:rotateZYX = (0, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (300, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateZYX", "xformOp:scale"]
+        }
+
+        def Xform "inst_CED45075A077A49A_0" (
+            prepend references = </RootNode/meshes/mesh_CED45075A077A49A>
+        )
+        {
+            rel material:binding = </RootNode/Looks/mat_BC868CE5A075ABB1>
+            token visibility = "inherited"
+            float3 xformOp:rotateZYX = (0, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateZYX", "xformOp:scale"]
+        }
+    }
+
+    def Camera "Camera"
+    {
+        float2 clippingRange = (7, 29996.916)
+        float focalLength = 10.240908
+        float horizontalAperture = 20.955
+        float verticalAperture = 11.787188
+        float3 xformOp:rotateXYZ = (96.10231, -5.082739, -140.3521)
+        float3 xformOp:scale = (1.0000001, 1, 1)
+        double3 xformOp:translate = (1501.2354736328125, 226.41355895996094, -255.96876525878906)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+    }
+}
+

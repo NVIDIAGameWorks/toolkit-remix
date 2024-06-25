@@ -1,0 +1,41 @@
+[package]
+version = "1.0.3"
+authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
+title = "Omni.UI Scene Sample For Manipulating Select Light"
+description = "This example show an 3D manipulator for a selected light"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/omniverse/kit-extensions/kit-scene"
+category = "Documentation"
+keywords = ["ui", "example", "scene", "docs", "documentation", "light"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[dependencies]
+"lightspeed.trex.asset_replacements.core.shared" = {}
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.viewports.manipulators" = {}
+"omni.appwindow" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.commands" = {}
+"omni.kit.scene_view.opengl" = {}
+"omni.kit.scene_view.opengl" = {}
+"omni.ui" = {}
+"omni.ui.scene" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.ui_scene.light_manipulator"
+
+[[test]]
+args = [
+    "--/app/window/dpiScaleOverride=1.0",
+    "--/app/window/scaleToMonitor=false",
+    "--/app/fastShutdown=1",
+    "--/app/hangDetector/enabled=0",
+    "--no-window"
+]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+    "omni.kit.widget.viewport"
+]

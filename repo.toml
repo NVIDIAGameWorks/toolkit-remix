@@ -1,0 +1,565 @@
+########################################################################################################################
+# Repo tool base settings
+########################################################################################################################
+
+[repo]
+logging = "warn"
+
+# Use Kit Template repo configuration as a base. Only override things specific to the repo.
+import_configs = ["${root}/_repo/deps/repo_kit_tools/kit-template/repo.toml", "${root}/repo_public.toml"]
+import_optional_configs = ["${root}/repo_internal.toml"]
+
+# Reposiory Name. It is used for solution name and final package name
+name = "rtx_remix"
+
+########################################################################################################################
+# Test Runner
+########################################################################################################################
+
+# Run all test suites
+[repo_test.suites.alltests]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.alltests.group]]
+# Run all test
+include = ["tests-lightspeed.*${shell_ext}", "tests-omni.flux.*${shell_ext}"]
+exclude = []
+"platform:linux-x86_64".include = [  # we only test pip archive for linux
+    "tests-lightspeed.pip_archive${shell_ext}",
+    "tests-omni.flux.pip_archive${shell_ext}",
+]
+"platform:linux-x86_64".exclude = []
+args = [
+    "--portable", "--portable-root", "${root}/portable",
+    "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--no-window",
+]
+timeout = 1800
+
+# Run lightspeed linux unit test suite
+[repo_test.suites.lss_unit_linux]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.lss_unit_linux.group]]
+include = [
+    "tests-lightspeed.*${shell_ext}",
+]
+exclude = []
+"platform:linux-x86_64".include = [  # we only test pip archive for linux
+    "tests-lightspeed.pip_archive${shell_ext}",
+]
+"platform:linux-x86_64".exclude = []
+args = [
+    "--portable", "--portable-root", "${root}/portable",
+    "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.unit.*'",
+    "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--no-window",
+]
+timeout = 300
+
+# Run flux linux unit test suite
+[repo_test.suites.flux_unit_linux]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.flux_unit_linux.group]]
+include = [
+    "tests-omni.flux.*${shell_ext}",
+]
+exclude = []
+"platform:linux-x86_64".include = [  # we only test pip archive for linux
+    "tests-omni.flux.pip_archive${shell_ext}",
+]
+"platform:linux-x86_64".exclude = []
+args = [
+    "--portable", "--portable-root", "${root}/portable",
+    "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.unit.*'",
+    "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--no-window",
+]
+timeout = 300
+
+# Run lightspeed unit test suite, names starting with a-o
+[repo_test.suites.lss_unit_a2o]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.lss_unit_a2o.group]]
+include = [
+    "tests-lightspeed.[a-o]*${shell_ext}",
+]
+exclude = []
+args = [
+    "--portable", "--portable-root", "${root}/portable",
+    "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.unit.*'",
+    "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--no-window",
+]
+timeout = 900
+
+# Run flux unit test suite, names starting with a-o
+[repo_test.suites.flux_unit_a2o]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.flux_unit_a2o.group]]
+include = [
+    "tests-omni.flux.[a-o]*${shell_ext}",
+]
+exclude = []
+args = [
+    "--portable", "--portable-root", "${root}/portable",
+    "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.unit.*'",
+    "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--no-window",
+]
+timeout = 900
+
+# Run lightspeed unit test suite, names starting with p-z
+[repo_test.suites.lss_unit_p2z]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.lss_unit_p2z.group]]
+include = [
+    "tests-lightspeed.[p-z]*${shell_ext}",
+]
+exclude = []
+args = [
+    "--portable", "--portable-root", "${root}/portable",
+    "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.unit.*'",
+    "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--no-window",
+]
+timeout = 900
+
+# Run flux unit test suite, names starting with p-z
+[repo_test.suites.flux_unit_p2z]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.flux_unit_p2z.group]]
+include = [
+    "tests-omni.flux.[p-z]*${shell_ext}",
+]
+exclude = []
+args = [
+    "--portable", "--portable-root", "${root}/portable",
+    "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.unit.*'",
+    "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--no-window",
+]
+timeout = 900
+
+# Run lightspeed end-to-end test suite, names starting with a-s
+[repo_test.suites.lss_e2e_a2s]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.lss_e2e_a2s.group]]
+include = [
+    "tests-lightspeed.[a-s]*${shell_ext}",
+]
+exclude = []
+"platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
+"platform:linux-x86_64".exclude = []
+args = [
+    "--portable", "--portable-root", "${root}/portable",
+    "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.e2e.*'",
+    "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--no-window",
+]
+timeout = 1800
+
+# Run flux end-to-end test suite, names starting with a-s
+[repo_test.suites.flux_e2e_a2s]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.flux_e2e_a2s.group]]
+include = [
+    "tests-omni.flux.[a-s]*${shell_ext}",
+]
+exclude = []
+"platform:linux-x86_64".include = ["tests-omni.flux.pip_archive${shell_ext}"]  # we only test pip archive for linux
+"platform:linux-x86_64".exclude = []
+args = [
+    "--portable", "--portable-root", "${root}/portable",
+    "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.e2e.*'",
+    "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--no-window",
+]
+timeout = 1800
+
+# Run lightspeed end-to-end test suite, names starting with t-z
+[repo_test.suites.lss_e2e_t2z]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.lss_e2e_t2z.group]]
+include = [
+    "tests-lightspeed.[t-z]*${shell_ext}",
+]
+serial = [
+    "tests-lightspeed.trex.viewports.shared.widget${shell_ext}",
+]
+exclude = []
+"platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
+"platform:linux-x86_64".exclude = []
+args = [
+    "--portable", "--portable-root", "${root}/portable",
+    "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.e2e.*'",
+    "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--no-window",
+]
+timeout = 1800
+
+# Run end-to-end test suite, names starting with t-z
+[repo_test.suites.flux_e2e_t2z]
+kind = "glob_and_exec"
+path = "${test_root}"
+
+[[repo_test.suites.flux_e2e_t2z.group]]
+include = [
+    "tests-omni.flux.[t-z]*${shell_ext}",
+]
+exclude = []
+"platform:linux-x86_64".include = ["tests-omni.flux.pip_archive${shell_ext}"]  # we only test pip archive for linux
+"platform:linux-x86_64".exclude = []
+args = [
+    "--portable", "--portable-root", "${root}/portable",
+    "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.e2e.*'",
+    "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--no-window",
+]
+timeout = 1800
+
+########################################################################################################################
+# Packaging
+########################################################################################################################
+
+[repo_package]
+
+[repo_package.packages.main_package]
+
+archive_format = "zip"
+replace_authors_in_kit_extensions = true
+strip_package_infos = true
+exclude_kit_extensions_for_thin_packaging = false
+
+windows_max_path_length = 240
+
+# temp for fat packaging and enterprise builds until pipeline changes are complete: @gamato
+files_exclude = [
+    ["**/*.pdb"],
+    ["**/*.exp"],
+    # ["kit/**"],
+    ["baseapp/**"],
+    ["extsbuild/**"],
+    ["cache/**"],
+    ["data/**"],
+    ["logs/**"],
+    ["apps/kit.portable"],
+]
+
+# package content
+release.files = [
+    ["**"],
+]
+release.files_exclude = [
+    ["**/*.pdb"],
+    ["**/*.exp"],
+    # ["kit/**"],
+    ["apps/kit.portable"],
+]
+"linux-x86_64".files_strip = [
+    ["**/*.so"],
+]
+# temp until fix
+"linux-x86_64".files_strip_exclude = [
+    ["**/*tbb*.so"],
+    ["*/pip_prebundle/PIL/*"],
+]
+
+
+#######################################################################################################################
+# Section for "pre build", "post build" step configuration.
+#######################################################################################################################
+[repo_build]
+
+pre_build.commands = [
+    ["${root}/_build/${platform}/${config}/pull_dependencies${shell_ext}"],
+]
+
+# Multiple commands (processes) can be executed in order after build.
+# These have the same behavior as repo_build.pre_build.commands, except that they run after the build.
+post_build.commands = [
+    ["${root}/repo${shell_ext}", "stubgen", "-c", "${config}"],
+    # Generate a shortcut to run the Mass Ingestion CLI in LSS
+    ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/lightspeed.app.trex.validation_cli_generator.kit", "--no-window", "--/app/extensions/excluded/0='omni.kit.splash' --/app/extensions/excluded/1='omni.kit.window.splash' --/app/settings/persistent=0 --/app/settings/loadUserConfig=0 --/structuredLog/enable=0 --/app/hangDetector/enabled=0 --/crashreporter/skipOldDumpUpload=1 --/app/content/emptyStageOnStart=1", "--/app/file/ignoreUnsavedOnExit=1", "--/app/fastShutdown=1", "--/app/quitAfter=10", "--exec", "${root}/tools/custom/generate_mass_cli.py"],
+]
+
+[repo_build.fetch.pip]
+# List of pip files to pip install from (in order)
+files_to_pull = [
+    "${root}/deps/pip_flux.toml",
+    "${root}/deps/pip_lss.toml",
+    "${root}/deps/pip_internal.toml",
+]
+
+
+########################################################################################################################
+# Extensions publisher
+########################################################################################################################
+
+[repo_publish_exts]
+configs = ["release"]
+platforms = ["windows-x86_64"]
+
+# Extensions to publish, include and exclude among those discovered by kit. Wildcards are supported.
+exts.include = [
+    "lightspeed.*",
+    "omni.flux.*",
+]
+exts."platform:linux-x86_64".include = [
+    "lightspeed.pip_archive.*",
+    "omni.flux.pip_archive.*",
+]  # we only test pip archive for linux
+exts.exclude = [
+    "lightspeed.app.*",
+    "lightspeed_example.*",
+]
+
+# verify before publishing
+publish_verification = true
+
+
+########################################################################################################################
+# Extensions precacher
+########################################################################################################################
+
+[repo_precache_exts]
+# Apps to run and precache
+apps = [
+    "${root}/source/apps/lightspeed.app.trex.ingestcraft.kit",
+    "${root}/source/apps/lightspeed.app.trex.kit",
+    "${root}/source/apps/lightspeed.app.trex.stagecraft.kit",
+    "${root}/source/apps/lightspeed.app.trex.texturecraft.kit",
+    "${root}/source/apps/lightspeed.app.trex.validation_cli.kit",
+    "${root}/source/apps/lightspeed.app.trex.validation_cli_generator.kit",
+    "${root}/source/apps/lightspeed.app.trex_dev.kit",
+    "${root}/source/apps/lightspeed.hdremix.test.kit",
+    "${root}/source/extensions/lightspeed.trex.packaging.core/apps/lightspeed.app.trex.project_packaging_cli.kit",
+    "${root}/source/extensions/lightspeed.trex.project_wizard.core/apps/lightspeed.app.trex.project_wizard_cli.kit",
+    "${root}/source/extensions/omni.flux.asset_importer.core/apps/omni.flux.app.asset_importer_cli.kit",
+    "${root}/source/extensions/omni.flux.validator.manager.core/apps/omni.flux.app.validator_cli.kit",
+    "${root}/source/extensions/omni.flux.validator.manager.window/apps/omni.flux.app.validator.kit",
+    "${root}/source/extensions/omni.flux.validator.mass.core/apps/omni.flux.app.validator.mass_cli.kit",
+    "${root}/source/extensions/omni.flux.validator.mass.window/apps/omni.flux.app.validator.mass_window.kit",
+]
+
+########################################################################################################################
+# Documentation building
+########################################################################################################################
+
+[repo_docs]
+enabled = true
+
+name = "NVIDIA RTX Remix"
+project = "${conf:repo.name}"
+
+sphinx_conf_py_extra = """
+import shutil
+import pathlib
+
+def copy_videos(app, exc):
+    video_dir = pathlib.Path(app.builder.outdir).joinpath("docs", "videos")
+    src = pathlib.Path.cwd().joinpath("docs", "videos")
+    print(f"copying videos from {video_dir} to {src}")
+    shutil.copytree(src, video_dir)
+
+sphinx_event_handlers = [("build-finished", copy_videos)]
+
+autodoc_mock_imports = [
+    "fastapi",  # Import Doc from typing_extensions fails
+    "fast_version",  # No module named 'fast_version'
+    "pyperclip",  #  No module named 'pyperclip'
+    "pydantic",  # Cannot import name 'deprecated' from 'typing_extensions'
+    "omni.kit.manipulator",  # uses omni.kit.get_app() at module level
+    "omni.kit.viewport.menubar.camera",  # uses carb.tokens.get_tokens_interface() at module level
+    "omni.kit.viewport.menubar.render",  # uses carb.tokens.get_tokens_interface() at module level
+]
+"""
+
+sphinx_exclude_patterns = [
+    ####################################################################################################################
+    # Documentation generation failures
+    # Undocumented errors are: WARNING: document isn't included in any toctree
+    ####################################################################################################################
+    "source/extensions/lightspeed.asset_capture_localizer.*",
+    "source/extensions/lightspeed.color_to_normal.*",
+    "source/extensions/lightspeed.color_to_roughness.*",
+    "source/extensions/lightspeed.common*",
+    "source/extensions/lightspeed.error_popup.*",
+    "source/extensions/lightspeed.event.*",
+    "source/extensions/lightspeed.events_manager*",
+    "source/extensions/lightspeed.export*",
+    "source/extensions/lightspeed.layer_helpers*",
+    "source/extensions/lightspeed.layer_manager*",
+    "source/extensions/lightspeed.light.gizmos*",
+    "source/extensions/lightspeed.lock_xform*",
+    "source/extensions/lightspeed.paths_to_relative.*",
+    "source/extensions/lightspeed.pip_archive*",
+    "source/extensions/lightspeed.property_template*",
+    "source/extensions/lightspeed.stage_column_nickname*",
+    "source/extensions/lightspeed.tool.material.*",
+    "source/extensions/lightspeed.tool.octahedral_converter*",
+    "source/extensions/lightspeed.trex.layout.*",
+    "source/extensions/lightspeed.trex.viewports.shared.*",  # Kit is Executing extension-logic at the module-level which crashes docs generation
+    "source/extensions/lightspeed.upscale.*",
+    "source/extensions/lightspeed.widget.content_viewer*",
+    "source/extensions/lightspeed.widget.game_captures*",
+    "source/extensions/lightspeed.widget.new_game*",
+    "source/extensions/lightspeed.widget.new_workspace*",
+    "source/extensions/lightspeed.workspace*",
+    ####################################################################################################################
+    # Ignore directories
+    ####################################################################################################################
+    ".local",
+    "_build",
+    "include",
+    "portable",
+    "tools",
+    "SECURITY.md",
+    "VERSION.md",
+    "source/extensions/lightspeed_example*",
+    "source/extensions/lightspeed.common/**/tools/*",  # 3rd part tools documentation
+    "source/extensions/lightspeed.widget.content_viewer/**/jxnblk-LICENSE.md",  # 3rd part tools documentation
+    "**/omni-core-materials-LICENSE.md",
+    ####################################################################################################################
+    # Development READMEs
+    ####################################################################################################################
+    "docs_dev/*",
+    "VERSION.md",
+]
+
+redirects = [
+    { path = "docs/remix-releasenote.html", target = "docs/remix-releasenotes.html" }
+]
+
+repo_url = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/blob/master"
+
+enable_dark_theme_switcher = true
+
+########################################################################################################################
+# Code Format Tool
+########################################################################################################################
+
+# C++ is formatted with clang-format:
+[repo_format.cpp]
+files.include = ["**"]
+files.exclude = [
+    ".eggs/*",
+    ".git/*",
+    ".teamcity/*",
+    ".venv/*",
+    ".vscode/*",
+    "PACKAGE-DEPS.yaml",
+    "_build/*",
+    "_compiler/*",
+    "_repo/*",
+    "_testoutput/*",
+    "backup.teamcity/*",
+    "portable/*",
+    "source/extensions/example.*",
+    "source/extensions/lightspeed.common/lightspeed/common/tools/*",
+    "source/extensions/lightspeed.hydra.remix/plugin/usd/usd/resources/codegenTemplates/*",
+    "source/pythonapps/*",
+    "tools/*",
+    "venv/*",
+]
+
+# python is formatted with black+isort:
+[repo_format.python]
+files.include = ["**/*.py"]
+files.exclude = [
+    ".eggs/*",
+    ".git/*",
+    ".teamcity/*",
+    ".venv/*",
+    ".vscode/*",
+    "PACKAGE-DEPS.yaml",
+    "_build/*",
+    "_compiler/*",
+    "_repo/*",
+    "_testoutput/*",
+    "backup.teamcity/*",
+    "portable/*",
+    "source/extensions/example.*",
+    "source/extensions/lightspeed.common/lightspeed/common/tools/*",
+    "source/extensions/lightspeed.hydra.remix/plugin/usd/usd/resources/codegenTemplates/*",
+    "source/pythonapps/*",
+    "tools/*",
+    "venv/*",
+]
+python_version = "py310"
+job_count = 1
+
+
+########################################################################################################################
+# Python lint tool
+########################################################################################################################
+
+[repo_lint.flake8]
+files.include = ["**/*.py"]
+files.exclude = [
+    ".eggs/*",
+    ".git/*",
+    ".teamcity/*",
+    ".venv/*",
+    ".vscode/*",
+    "PACKAGE-DEPS.yaml",
+    "_build/*",
+    "_compiler/*",
+    "_repo/*",
+    "_testoutput/*",
+    "backup.teamcity/*",
+    "portable/*",
+    "source/extensions/example.*",
+    "source/extensions/lightspeed.common/lightspeed/common/tools/*",
+    "source/extensions/lightspeed.hydra.remix/plugin/usd/usd/resources/codegenTemplates/*",
+    "source/pythonapps/*",
+    "tools/*",
+    "venv/*",
+]
+
+########################################################################################################################
+# Launcher publish and deploy
+########################################################################################################################
+
+[repo_deploy_launcher]
+enabled = true
+git_url = "${env:TREX_RELEASE_URL_AND_TOKEN}"
+
+########################################################################################################################
+# Check test file locations
+########################################################################################################################
+
+[repo_check_test_file_location]
+start_path = "source\\"
+required_paths = ["/unit/", "/e2e/"]
+# Any path containing any of the 'ignore' strings will be skipped
+ignore = ["extensions/lightspeed.common/lightspeed/common/tools"]

@@ -1,0 +1,60 @@
+[package]
+version = "1.2.6"
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "NVIDIA RTX Remix Viewports implementation"
+description = "Viewports implementation for NVIDIA RTX Remix App"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.viewports.shared.widget"
+category = "internal"
+keywords = [ "remix",]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+
+[dependencies]
+"lightspeed.hydra.remix.core" = {}
+"lightspeed.trex.asset_replacements.core.shared" = {}
+"lightspeed.trex.app.style" = {}
+"lightspeed.trex.app.resources" = {}
+"lightspeed.trex.utils.common" = {}
+"lightspeed.events_manager" = {}
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.hotkeys" = {}
+"lightspeed.trex.viewports.manipulators" = {}
+"lightspeed.trex.viewports.properties_pane.widget" = {}
+"lightspeed.light.gizmos" = {}
+"lightspeed.ui_scene.light_manipulator" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.viewport.utility" = {}
+"omni.kit.hotkeys.core" = {}
+"omni.kit.notification_manager" = {}
+# start before to be sure to apply settings from the app .kit
+"omni.kit.widget.toolbar" = {order = -10}
+"omni.kit.commands" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[settings]
+# Default legacy display options for any consumers (all visible but Skeletons)
+persistent.app.viewport.displayOptions = 32255
+
+[[python.module]]
+name = "lightspeed.trex.viewports.shared.widget"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+    # Need to use a .kit file
+    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit",
+]
+
+stdoutFailPatterns.exclude = [
+    "*Multiple textures for pxr engine is not currently supported*",
+    "*Setting hydra_engine to pxr failed*",
+]

@@ -1,0 +1,54 @@
+[package]
+version = "1.0.0"
+authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
+title = "NVIDIA RTX Remix Micro-Service Core"
+description = "Micro-Service for NVIDIA RTX Remix Core"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["micro", "service", "core"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.trex.service.ingestcraft" = {}
+"lightspeed.trex.service.stagecraft" = {}
+"omni.flux.pip_archive" = {}
+"omni.flux.service.factory" = {}
+"omni.services.core" = {}
+"omni.flux.validator.plugin.check.usd" = {}  # Must be loaded before the services
+"omni.flux.validator.plugin.context.usd_stage" = {}  # Must be loaded before the services
+"omni.flux.validator.plugin.resultor.file" = {}  # Must be loaded before the services
+"omni.flux.validator.plugin.selector.usd" = {}  # Must be loaded before the services
+
+[[python.module]]
+name = "lightspeed.trex.service.core"
+
+[[test]]
+args = [
+    # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+    # Need to use a .kit file
+    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
+]
+
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+# Settings to configure the microservices
+
+[settings.exts."lightspeed.trex.service.core"]
+header = "application/lightspeed.remix.service+json"
+
+[[settings.exts."lightspeed.trex.service.core".services]]
+name = "StageCraftService"
+context = ""
+title = "Modding"
+description = "Manage the state of the modding sub-application."
+
+[[settings.exts."lightspeed.trex.service.core".services]]
+name = "IngestCraftService"
+context = "ingestcraft"
+title = "Ingestion"
+description = "Manage the state of the ingestion sub-application."

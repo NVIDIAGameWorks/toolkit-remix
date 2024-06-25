@@ -1,0 +1,28 @@
+[package]
+version = "1.0.3"
+authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "Mod Packaging Layers Widget"
+description = "Mod Packaging Details Layers implementation"
+readme = "docs/README.md"
+category = "internal"
+keywords = ["kit", "lightspeed", "packaging", "layers", "widget"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.mod_packaging_layers.widget"
+
+[dependencies]
+"lightspeed.layer_manager.core" = {}
+"omni.flux.layer_tree.usd.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.usd.layers" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.mod_packaging_layers.widget"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

@@ -1,0 +1,16 @@
+stages:
+  - stage
+
+Push:
+  variables:
+      DESCRIPTION: "description.toml"
+      PACKAGE: "package.toml"
+      S3: "launcherdb"
+      ORG_NAME: "$CI_PROJECT_NAMESPACE"
+      REPO_NAME: "$CI_PROJECT_NAME"
+      BRANCH: "$CI_COMMIT_BRANCH"
+  stage: stage
+  trigger:
+    project: omni-cd/toml-database
+    branch: external
+    strategy: depend

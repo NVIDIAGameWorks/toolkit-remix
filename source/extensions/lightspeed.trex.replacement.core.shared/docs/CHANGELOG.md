@@ -1,0 +1,26 @@
+# Changelog
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [1.0.5]
+- Use updated `lightspeed.layer_manager.core` extension
+
+## [1.0.4]
+### Changed
+- Update to Kit 106
+
+## [1.0.3] - 2024-05-01
+### Fixed
+- Fixed tests for Kit 106
+
+## [1.0.2]
+### Changed
+- Set Apache 2 license headers
+
+## [1.0.1] - 2024-01-13
+### Fixed
+- Fixed crash when no materials are found in the material relationship
+
+## [1.0.0] - 2023-10-10
+### Added
+- Added `group_replaced_hashes()`
+- Added tests

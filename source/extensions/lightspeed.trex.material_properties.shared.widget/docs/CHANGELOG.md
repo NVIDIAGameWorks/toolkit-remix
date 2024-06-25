@@ -1,0 +1,69 @@
+# Changelog
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [1.3.6]
+- Use updated `TEXTURE_TYPE_CONVERTED_SUFFIX_MAP`
+
+## [1.3.5] - 2024-06-05
+### Changed
+- File extension check now uses `get_invalid_extensions()`
+
+### Fixed
+- Drag and drop texture naming
+
+## [1.3.4]
+- Use updated `lightspeed.layer_manager.core` extension
+- Use centralized TextureTypes and associated maps
+
+## [1.3.3]
+### Changed
+- Update to Kit 106
+
+## [1.3.2] - 2024-04-15
+### Changed
+- REMIX-2674: Adding a check for similar textures and auto-populating texture fields
+
+## [1.3.1] - 2024-04-15
+### Changed
+- Updated drag and drop regex to be case-insensitive and multi-texture dialog
+
+## [1.3.0] - 2024-04-02
+### Changed
+- Update to use new `FieldBuilder` to configure widgets for `MaterialPropertyWidget`
+
+## [1.2.2]
+### Changed
+- Set Apache 2 license headers
+
+## [1.2.1] - 2024-04-03
+### Changed
+- Update tests to account for new none frame
+
+## [1.2.0] - 2024-03-07
+### Added
+- Added feature for dragging and dropping textures
+
+## [1.1.2] - 2024-03-17
+### Changed
+- Update tests to account for new Other material group
+
+## [1.1.1] - 2024-03-13
+### Changed
+- Moved e2e test to its own directory
+
+## [1.1.0] - 2024-01-13
+### Changed
+- Override asset path file extension options to only allow DDS files
+
+## [1.0.2] - 2023-09-29
+### Fixed
+- Convert shared material target should not be able to convert to current type
+
+## [1.0.1] - 2022-08-10
+### Fixed
+- Fix support for convert materials on non captured prims
+- Multi material selection (make clear to user that not supported)
+
+## [1.0.0] - 2022-06-09
+### Added
+- Created

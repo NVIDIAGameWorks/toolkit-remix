@@ -1,0 +1,21 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "NVIDIA RTX Remix footer StageCraft models"
+description = "This is the data used by the StageCraft footer"
+version = "1.0.2"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.footer.stagecraft.models"
+category = "internal"
+keywords = [ "remix",]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[dependencies]
+"omni.flux.footer.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+"lightspeed.common" = {}
+
+[[python.module]]
+name = "lightspeed.trex.footer.stagecraft.models"

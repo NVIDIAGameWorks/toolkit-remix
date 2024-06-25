@@ -1,0 +1,55 @@
+[package]
+title = "Flux Validator Mass App"
+
+# That makes it browsable in UI with "experience" filter
+keywords = ["app"]
+
+[dependencies]
+"omni.flux.utils.common" = {}
+"omni.flux.validator.mass.core" = {}
+
+
+[settings.app.window]
+title = "Flux Validator Mass App"
+
+
+[settings]
+# Basic Kit App
+################################
+app.versionFile = "${app}/../../../VERSION"
+app.fastShutdown = true
+
+is_flux_cli = true
+
+
+# Register extension folder from this repo in kit
+[settings.app.exts]
+folders.'++' = ["${app}/../../../exts", "${app}/../../../extscache", "${app}/../exts", "${app}/../extscache", "${kit}/../exts", "${kit}/../extscache"]
+
+[[test]]
+args = [
+	"--/app/window/width=480",
+    "--/app/window/height=480",
+]
+
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Kit SDK Version: 106.0.0+release.118399.fcefe91f.gl
+
+# Version lock for all dependencies:
+[settings.app.exts]
+enabled = [
+	"omni.flux.pip_archive-2.0.0",
+	"omni.flux.service.shared-1.0.3",
+	"omni.flux.utils.common-2.17.0",
+	"omni.flux.validator.factory-2.6.0",
+	"omni.flux.validator.manager.core-1.17.5",
+	"omni.flux.validator.mass.core-1.11.5",
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################

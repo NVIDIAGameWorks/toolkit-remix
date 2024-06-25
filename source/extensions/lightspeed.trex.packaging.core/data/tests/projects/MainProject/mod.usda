@@ -1,0 +1,59 @@
+#usda 1.0
+(
+    customLayerData = {
+        string lightspeed_game_name = "TestGame"
+        string lightspeed_layer_type = "replacement"
+        string lightspeed_mod_name = "Main Project"
+        string lightspeed_mod_notes = "Main Test Notes"
+        string lightspeed_mod_version = "1.0.0"
+    }
+    subLayers = [
+        @./sublayer.usda@,
+        @./mod_capture_baker.usda@
+    ]
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+
+over "RootNode"
+{
+    over "Looks"
+    {
+        over "mat_CC76669780A210D2" (
+            references = @./materials/AperturePBR_Translucent.usda@</Looks/mat_AperturePBR_Translucent>
+        )
+        {
+        }
+    }
+
+    over "meshes"
+    {
+        over "mesh_ZB98945ABC2E27F5" (
+            references = None
+        )
+        {
+            def Xform "ref_aeda0efa6cbd46118395c1a2c5e8d730" (
+                prepend references = @./deps/captures/meshes/mesh_0000B678749A7809.usda@
+            )
+            {
+                custom bool IsRemixRef = 1
+                double3 xformOp:rotateXYZ = (0, 0, 0)
+                double3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+            }
+        }
+    }
+
+    over "lights"
+    {
+        over "light_258C9F0C1B3AC623"
+        {
+            float3 xformOp:rotateZYX = (0, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (100, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateZYX", "xformOp:scale"]
+        }
+    }
+}
+

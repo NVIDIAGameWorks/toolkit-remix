@@ -1,0 +1,19 @@
+[package]
+version = "0.1.2"
+authors = ["ajaus@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+keywords = ["window"]
+title = "Lightspeed Progress Popup Window"
+description = "A Progress Popup Window"
+category = "internal"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+icon = "data/icon.png"
+preview_image = "data/preview.png"
+
+
+[dependencies]
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.progress_popup.window"

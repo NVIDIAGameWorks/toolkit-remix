@@ -1,0 +1,66 @@
+[app]
+# Required to avoid a myriad of issues: Slow to close, crash on exit, wrong exit code...
+fastShutdown = true
+enableDeveloperWarnings = false
+
+[app.audio]
+enabled = false  # OM-105157
+
+[app.content]
+emptyStageOnStart = true
+
+[app.extensions]
+registryEnabled = false
+
+# Fonts
+[app.font]
+file = "${lightspeed.trex.app.resources}/data/fonts/NVIDIASans_A_Rg.ttf"
+size = 16
+
+[app.file]
+# ignore omni.kit.windows.file handling so we can have our own
+ignoreUnsavedStage = true  # skips initial save prompt
+ignoreUnsavedOnExit = true  # skips omni.kit.windows.file handling
+# Use this setting to disable our handling for tests
+trexIgnoreUnsavedOnExit = false  # default, but here for documentation purposes
+
+[app.menu]
+legacy_mode = false
+compatibility_mode=false
+
+[app.exts]
+folders.'++' = ["${app}/../exts", "${app}/../extscache", "${app}/../apps"]
+
+[app.viewport]
+grid.trackCamera = true
+
+[app.window]
+width = 1700
+height = 800
+x = -1
+y = -1
+
+[app.renderer]
+skipWhileMinimized = true
+
+[app.runLoops.present]
+rateLimitFrequency = 60
+
+# Basic Kit App
+################################
+[persistent.app.window]
+uiStyle = "NvidiaDark"
+
+# Viewport
+###############################
+[persistent.app.viewport]
+# pickingMode = "models"
+pickingMode = "prims"
+noPadding = true
+ui.background.opacity = 0.7
+ui.background.brightness = 0.9
+
+# Enable sending stack traces to Sentry
+[telemetry]
+enableSentry = false  # TODO: waiting OM-110733
+dsn = "https://df3fec669240482a8e6e1323b818d631@o4505230501543936.ingest.sentry.io/4505230654308352"

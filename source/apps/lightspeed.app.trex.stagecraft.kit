@@ -1,0 +1,262 @@
+[package]
+version = "2024.4.0-RC.1"
+category = "Application"
+title = "NVIDIA RTX Remix StageCraft"
+description = "A tool to edit stage(s) captured from game(s)"
+authors = ["Damien Bataille <dbataille@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+keywords = ["lightspeed", "rtx", "remix", "app", "stagecraft"]
+changelog = """
+# NVIDIA RTX Remix StageCraft
+
+## [2022.0.0] - 2022-06-16
+- Publishing first version.
+"""
+readme = """
+# NVIDIA RTX Remix StageCraft
+
+A tool to edit stage(s) captured from game(s)
+"""
+
+[dependencies]
+"lightspeed.app.trex.base" = {}
+"lightspeed.trex.control.stagecraft" = {}
+
+# viewport menu bar that we can on/off
+"lightspeed.trex.viewports.stagecraft.bundle" = {}
+
+# default events
+"lightspeed.event.capture_persp_to_persp" = {}
+"lightspeed.event.generate_thumbnail" = {}  # for recent project thumbnails
+"lightspeed.event.layers_cleanup" = {}  # remove invalid/deleted layers
+"lightspeed.event.load_edit_target" = {}  # load the edit target from the project layer
+"lightspeed.event.save_global_muteness" = {}  # force Omniverse custom layer data
+"lightspeed.event.save_recent" = {}  # for recent saved file
+"lightspeed.event.save_root_mod" = {}  # for runtime hot-reload
+"lightspeed.event.shutdown" = {}  # for shutdown event and save prompt
+"lightspeed.event.switch_to_replacement" = {}  # make sure we always have a valid edit target
+"lightspeed.event.validate_project" = {}  # enforce a given project structure
+"lightspeed.event.waypoint_game_camera" = {} # create a waypoint for the game camera
+"lightspeed.event.camera_light" = {} # set camera light
+
+[settings]
+"@import@" = [
+	"./lightspeed.app.trex.app.settings.toml",
+	"./lightspeed.app.rendering.settings.toml",
+]
+
+# Basic Kit App
+################################
+app.name = "RTX Remix StageCraft"
+
+[settings.app.window]
+title = "NVIDIA RTX Remix StageCraft"
+iconPath = "${lightspeed.trex.app.resources}/data/icons/nvidia-rtx-remix-icon-dbp-256.ico"
+
+[settings.exts."omni.kit.window.modifier.titlebar"]
+titleFormatString = "  NVIDIA RTX Remix StageCraft  {verKey:/app/version,font_color=0x909090,font_size=16} {separator} {file, board=true}"
+icon.file = "${lightspeed.trex.app.resources}/data/icons/nvidia-rtx-remix-icon-dbp-256.ico"
+
+[settings.exts."omni.flux.validator.mass.core"]
+override_process_experience = "${app}/lightspeed.app.trex.validation_cli.kit"
+
+[settings.exts."lightspeed.event.layers_cleanup"]
+context = ""
+
+[settings.exts."lightspeed.event.load_edit_target"]
+context = ""
+
+[settings.exts."lightspeed.event.capture_persp_to_persp"]
+context = ""
+
+[settings.exts."lightspeed.event.save_global_muteness"]
+context = ""
+
+[settings.exts."lightspeed.event.save_root_mod"]
+context = ""
+
+[settings.exts."lightspeed.event.switch_to_replacement"]
+context = ""
+
+[settings.exts."lightspeed.event.validate_project"]
+context = ""
+
+[settings.exts."lightspeed.event.generate_thumbnail"]
+context = ""
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.settings",
+]
+
+stdoutFailPatterns.exclude = [
+	# This may be fixable by more tightly controlling initialization order,
+	# but it doesn't appear to actually cause any problems.
+    "*[omni.kit.scene_view.opengl] No UsdRender.Product was found at '{render_product_path}'*",
+    # lightspeed.dependencies will try to import but the error is still printed
+    "*[omni.ext.plugin] Failed to resolve extension dependencies.*"
+]
+
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Kit SDK Version: 106.0.0+release.118399.fcefe91f.gl
+
+# Exact Version dependencies:
+# 	omni.kit.window.modifier.titlebar-105.2.16
+
+# Version lock for all dependencies:
+[settings.app.exts]
+enabled = [
+	"lightspeed.app.trex.base-2024.4.0-RC.1",
+	"lightspeed.common-1.0.0",
+	"lightspeed.dependencies-1.0.0",
+	"lightspeed.error_popup.window-0.1.2",
+	"lightspeed.event.camera_light-1.0.1",
+	"lightspeed.event.capture_persp_to_persp-1.1.8",
+	"lightspeed.event.generate_thumbnail-1.0.2",
+	"lightspeed.event.layers_cleanup-2.0.2",
+	"lightspeed.event.load_edit_target-1.0.2",
+	"lightspeed.event.save_global_muteness-1.1.3",
+	"lightspeed.event.save_recent-1.1.3",
+	"lightspeed.event.save_root_mod-1.1.3",
+	"lightspeed.event.shutdown-1.0.2",
+	"lightspeed.event.switch_to_replacement-1.2.2",
+	"lightspeed.event.validate_project-1.0.3",
+	"lightspeed.event.waypoint_game_camera-1.1.2",
+	"lightspeed.events_manager-1.0.3",
+	"lightspeed.hydra.remix.bootstrap-1.0.1",
+	"lightspeed.hydra.remix.core-0.3.4",
+	"lightspeed.layer_manager.core-2.1.0",
+	"lightspeed.layer_manager.service-1.1.0",
+	"lightspeed.light.gizmos-1.0.6",
+	"lightspeed.pip_archive-2.0.0",
+	"lightspeed.progress_popup.window-0.1.2",
+	"lightspeed.project_manager.service-1.0.0",
+	"lightspeed.tool.material.core-1.0.4",
+	"lightspeed.trex.app.resources-1.5.0",
+	"lightspeed.trex.app.setup-1.0.2",
+	"lightspeed.trex.app.style-1.2.1",
+	"lightspeed.trex.asset_replacements.core.shared-2.1.0",
+	"lightspeed.trex.asset_replacements.service-1.1.0",
+	"lightspeed.trex.camera_properties.shared.widget-1.0.2",
+	"lightspeed.trex.capture.core.shared-1.1.6",
+	"lightspeed.trex.capture_tree.model-1.2.4",
+	"lightspeed.trex.commands-1.0.2",
+	"lightspeed.trex.components_pane.stagecraft.controller-1.0.3",
+	"lightspeed.trex.components_pane.stagecraft.models-1.0.3",
+	"lightspeed.trex.contexts-1.0.3",
+	"lightspeed.trex.control.stagecraft-1.1.3",
+	"lightspeed.trex.footer.stagecraft.models-1.0.2",
+	"lightspeed.trex.hotkeys-0.3.1",
+	"lightspeed.trex.layout.shared.base-1.1.1",
+	"lightspeed.trex.layout.stagecraft-1.3.3",
+	"lightspeed.trex.material.core.shared-1.0.2",
+	"lightspeed.trex.material_properties.shared.widget-1.3.6",
+	"lightspeed.trex.menu.workfile-1.0.3",
+	"lightspeed.trex.mesh_properties.shared.widget-1.0.8",
+	"lightspeed.trex.mod_packaging_details.widget-1.0.4",
+	"lightspeed.trex.mod_packaging_layers.widget-1.0.3",
+	"lightspeed.trex.mod_packaging_output.widget-1.1.3",
+	"lightspeed.trex.packaging.core-1.0.12",
+	"lightspeed.trex.project_wizard.core-1.2.11",
+	"lightspeed.trex.project_wizard.existing_mods_page.widget-1.0.2",
+	"lightspeed.trex.project_wizard.file_picker.widget-1.0.3",
+	"lightspeed.trex.project_wizard.setup_page.widget-1.1.6",
+	"lightspeed.trex.project_wizard.start_page.widget-1.0.3",
+	"lightspeed.trex.project_wizard.window-1.2.2",
+	"lightspeed.trex.properties_pane.shared.asset_replacements.widget-1.2.2",
+	"lightspeed.trex.properties_pane.shared.camera.widget-1.0.2",
+	"lightspeed.trex.properties_pane.shared.mod_packaging.widget-1.0.3",
+	"lightspeed.trex.properties_pane.shared.mod_setup.widget-1.5.2",
+	"lightspeed.trex.properties_pane.shared.render.widget-1.0.2",
+	"lightspeed.trex.properties_pane.stagecraft.widget-1.0.2",
+	"lightspeed.trex.replacement.core.shared-1.0.5",
+	"lightspeed.trex.selection_tree.shared.widget-1.2.4",
+	"lightspeed.trex.service.core-1.0.0",
+	"lightspeed.trex.service.ingestcraft-1.0.0",
+	"lightspeed.trex.service.stagecraft-1.0.0",
+	"lightspeed.trex.stage.core.shared-1.1.0",
+	"lightspeed.trex.texture_replacements.core.shared-1.1.0",
+	"lightspeed.trex.texture_replacements.service-1.1.0",
+	"lightspeed.trex.utils.common-1.2.0",
+	"lightspeed.trex.utils.widget-1.0.2",
+	"lightspeed.trex.viewports.manipulators-1.2.4",
+	"lightspeed.trex.viewports.menubar.camera-1.0.2",
+	"lightspeed.trex.viewports.menubar.render-1.0.2",
+	"lightspeed.trex.viewports.properties_pane.widget-1.0.2",
+	"lightspeed.trex.viewports.shared.widget-1.2.6",
+	"lightspeed.trex.viewports.stagecraft.bundle-1.1.2",
+	"lightspeed.trex.waypoint.core-1.1.2",
+	"lightspeed.trex.welcome_pads.stagecraft.models-1.0.2",
+	"lightspeed.ui_scene.light_manipulator-1.0.3",
+	"lightspeed.upscale.core-0.1.2",
+	"omni.flux.asset_importer.core-1.16.4",
+	"omni.flux.asset_importer.widget-2.5.6",
+	"omni.flux.bookmark_tree.model.usd-1.2.4",
+	"omni.flux.bookmark_tree.widget-1.2.6",
+	"omni.flux.commands-1.0.4",
+	"omni.flux.footer.widget-1.0.12",
+	"omni.flux.header_navigator.widget-1.1.4",
+	"omni.flux.header_nvidia.widget-1.0.6",
+	"omni.flux.info_icon.widget-1.1.3",
+	"omni.flux.internal_pip_archive-1.0.0",
+	"omni.flux.layer_tree.usd.core-1.0.2",
+	"omni.flux.layer_tree.usd.widget-1.7.5",
+	"omni.flux.light_creator.widget-1.1.6",
+	"omni.flux.lookdev.core-1.0.2",
+	"omni.flux.pip_archive-2.0.0",
+	"omni.flux.popup.window-1.0.3",
+	"omni.flux.properties_pane.materials.usd.widget-1.6.4",
+	"omni.flux.properties_pane.properties.usd.widget-2.7.1",
+	"omni.flux.properties_pane.transformation.usd.widget-2.6.1",
+	"omni.flux.property_widget_builder.delegates-1.3.4",
+	"omni.flux.property_widget_builder.model.file-1.6.1",
+	"omni.flux.property_widget_builder.model.usd-2.11.5",
+	"omni.flux.property_widget_builder.widget-2.5.2",
+	"omni.flux.resources-2.0.1",
+	"omni.flux.selection_history_tree.model.usd-1.0.4",
+	"omni.flux.selection_history_tree.widget-1.1.5",
+	"omni.flux.service.factory-1.2.1",
+	"omni.flux.service.shared-1.0.3",
+	"omni.flux.tree_panel.widget-1.5.3",
+	"omni.flux.utils.common-2.17.0",
+	"omni.flux.utils.material_converter-1.8.3",
+	"omni.flux.utils.octahedral_converter-1.0.3",
+	"omni.flux.utils.widget-1.15.2",
+	"omni.flux.validator.factory-2.6.0",
+	"omni.flux.validator.manager.core-1.17.5",
+	"omni.flux.validator.mass.core-1.11.5",
+	"omni.flux.validator.mass.queue.core-1.0.0",
+	"omni.flux.validator.mass.service-1.0.0",
+	"omni.flux.validator.plugin.check.usd-3.12.0",
+	"omni.flux.validator.plugin.context.usd_stage-2.8.1",
+	"omni.flux.validator.plugin.resultor.file-1.6.0",
+	"omni.flux.validator.plugin.selector.usd-1.7.4",
+	"omni.flux.welcome_pad.widget-2.0.3",
+	"omni.flux.wizard.widget-1.1.5",
+	"omni.flux.wizard.window-1.0.3",
+	"omni.kit.asset_converter-2.1.11",
+	"omni.kit.browser.asset-1.3.9",
+	"omni.kit.browser.core-2.3.11",
+	"omni.kit.browser.folder.core-1.9.12",
+	"omni.kit.core.collection-0.1.6",
+	"omni.kit.playlist.core-1.3.4",
+	"omni.kit.prim.icon-1.0.13",
+	"omni.kit.viewport.menubar.lighting-106.0.2",
+	"omni.kit.viewport.menubar.waypoint-104.2.16",
+	"omni.kit.waypoint.core-1.4.52",
+	"omni.kit.waypoint.playlist-1.0.8",
+	"omni.kit.widget.zoombar-1.0.5",
+	"omni.kit.widgets.custom-1.0.8",
+	"omni.services.core-1.9.0",
+	"omni.services.facilities.base-1.0.4",
+	"omni.services.transport.server.base-1.1.1",
+	"omni.services.transport.server.http-1.3.1",
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################

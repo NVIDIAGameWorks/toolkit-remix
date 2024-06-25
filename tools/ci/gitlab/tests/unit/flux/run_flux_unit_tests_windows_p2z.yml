@@ -1,0 +1,9 @@
+include:
+  - local: tools/ci/gitlab/tests/unit/unit_tests_windows.yml
+
+flux-unit-tests-windows-p2z:
+  extends:
+    - .unit_tests_windows
+  stage: flux_unit_tests
+  script:
+    - .\repo.bat test --suite flux_unit_p2z --config release

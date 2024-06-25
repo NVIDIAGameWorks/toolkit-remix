@@ -1,0 +1,21 @@
+[package]
+version = "1.0.2"
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "NVIDIA RTX Remix Camera Properties implementation"
+description = "Camera Properties implementation for NVIDIA RTX Remix App"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["camera", "properties", "widget"]
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.camera_properties.shared.widget"
+
+[dependencies]
+"omni.flux.properties_pane.properties.usd.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.camera_properties.shared.widget"

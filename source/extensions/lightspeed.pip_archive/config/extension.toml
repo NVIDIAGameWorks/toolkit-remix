@@ -1,0 +1,49 @@
+[package]
+title = "Pip Archive"
+category = "internal"
+version = "2.0.0"
+authors = [ "Damien Bataille <dbataille@nvidia.com>",]
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.pip_archive"
+keywords = [ "remix",]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+description="Python library from PIP used by this repo."
+
+# publish to each platform & kit version separately
+writeTarget.platform = true
+
+[package.target]
+python = ["cp310"]
+
+[core]
+# Load as early as possible
+order = -2001
+reloadable = false
+
+[dependencies]
+"omni.kit.pipapi" = {} # We need it so that we can use [python.pipapi].
+
+# We bundle not only "toml" package, but many other. No need to mention all of them, just importing one will add whole
+# folder (pip_prebundle) to sys.path.
+[[python.module]]
+name = "toml"
+path = "pip_prebundle"
+
+# That is empty module, added here only to make tests discoverable in test run
+[[python.module]]
+name = "lightspeed.pip_archive"
+
+[python.pipapi]
+# That extension brings folder with pip wheels, to enable offline pip install (prebundling). It is specified here:
+archiveDirs = ["pip_archive"]
+
+# https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
+requirements = []
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.settings",
+]
+

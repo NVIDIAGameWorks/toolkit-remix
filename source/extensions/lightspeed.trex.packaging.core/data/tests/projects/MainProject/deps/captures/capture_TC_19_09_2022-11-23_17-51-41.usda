@@ -1,0 +1,106 @@
+#usda 1.0
+(
+    customLayerData = {
+        dictionary cameraSettings = {
+            dictionary Front = {
+                double3 position = (500, 0, 0)
+                double radius = 500
+            }
+            dictionary Perspective = {
+                double3 position = (500, 500, 500)
+                double3 target = (-0.000003978038762397773, -0.000003978038478180679, 0.000007956076899517939)
+            }
+            dictionary Right = {
+                double3 position = (0, -500, 0)
+                double radius = 500
+            }
+            dictionary Top = {
+                double3 position = (0, 0, 500)
+                double radius = 500
+            }
+            string boundCamera = "/RootNode/Camera"
+        }
+        string lightspeed_exe_name = "test.exe"
+        string lightspeed_game_icon = "test.exe_icon.bmp"
+        string lightspeed_game_name = "TestGame"
+        string lightspeed_layer_type = "capture"
+        dictionary omni_layer = {
+            string authoring_layer = "./capture_TC_19_09_2022-11-23_17-51-41.usda"
+            dictionary muteness = {
+            }
+        }
+    }
+    defaultPrim = "RootNode"
+    endTimeCode = 0
+    metersPerUnit = 1
+    startTimeCode = 0
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+
+def "RootNode"
+{
+    def "lights"
+    {
+        def SphereLight "light_2E59B0ACAE5F2EEB" (
+            prepend references = @./lights/light_2E59B0ACAE5F2EEB.usd@
+        )
+        {
+        }
+    }
+
+    def "meshes"
+    {
+        def Xform "mesh_0000B678749A7809" (
+            prepend references = @./meshes/mesh_0000B678749A7809.usd@
+        )
+        {
+            rel material:binding = </RootNode/Looks/mat_CC76669780A210D2>
+            token visibility = "invisible"
+        }
+        def Xform "mesh_ZB98945ABC2E27F5" (
+            prepend references = @./meshes/mesh_ZB98945ABC2E27F5.usd@
+        )
+        {
+            rel material:binding = </RootNode/Looks/mat_CC76669780A210D2>
+            token visibility = "invisible"
+        }
+    }
+
+    def "Looks"
+    {
+        def Material "mat_CC76669780A210D2" (
+            prepend references = @./materials/mat_CC76669780A210D2.usd@</Looks/mat_CC76669780A210D2>
+        )
+        {
+        }
+    }
+
+    def "instances"
+    {
+        def Xform "inst_0000B678749A7809_0" (
+            prepend references = </RootNode/meshes/mesh_0000B678749A7809>
+        )
+        {
+            rel material:binding = </RootNode/Looks/mat_CC76669780A210D2>
+            token visibility = "inherited"
+            float3 xformOp:rotateZYX = (0, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (10, 10, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateZYX", "xformOp:scale"]
+        }
+    }
+
+    def Camera "Camera"
+    {
+        float2 clippingRange = (0.099999994, 27962.125)
+        float focalLength = 10.240908
+        float horizontalAperture = 20.955
+        float verticalAperture = 11.787188
+        float3 xformOp:rotateZYX = (-70.92256, -16.308733, -174.45303)
+        float3 xformOp:scale = (1, 0.99999994, 1)
+        double3 xformOp:translate = (-419.92852783203125, 1315.1619873046875, 704.03125)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateZYX", "xformOp:scale"]
+    }
+}
+

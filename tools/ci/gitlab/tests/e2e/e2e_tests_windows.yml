@@ -1,0 +1,11 @@
+.e2e_tests_windows:
+  extends:
+    - .defaults
+    - .gpu_agent
+    - .windows_vault
+  needs:
+    - check-lint
+  before_script:
+    - !reference [ .windows_vault, before_script ]
+    - .\build.bat --rebuild --release
+    - .\repo.bat publish_exts --verify

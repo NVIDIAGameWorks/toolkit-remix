@@ -1,0 +1,36 @@
+[package]
+version = "1.2.2"
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "NVIDIA RTX Remix Properties Pane Asset Replacements widget for the StageCraft"
+description = "Asset Replacements Properties Pane widget for NVIDIA RTX Remix StageCraft App"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["properties", "pane", "asset", "replacement", "widget"]
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.properties_pane.shared.asset_replacements.widget"
+
+[dependencies]
+"lightspeed.trex.material_properties.shared.widget" = {}
+"lightspeed.trex.mesh_properties.shared.widget" = {}
+"lightspeed.trex.replacement.core.shared" = {}
+"lightspeed.trex.selection_tree.shared.widget" = {}
+"omni.flux.bookmark_tree.model.usd" = {}
+"omni.flux.bookmark_tree.widget" = {}
+"omni.flux.selection_history_tree.widget" = {}
+"omni.flux.selection_history_tree.model.usd" = {}
+"omni.flux.layer_tree.usd.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.ui" = {}
+"omni.client" = {}
+
+[[python.module]]
+name = "lightspeed.trex.properties_pane.shared.asset_replacements.widget"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+    "omni.usd"
+]

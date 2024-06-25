@@ -1,0 +1,34 @@
+[package]
+authors =["Damien Bataille <dbataille@nvidia.com>"]
+title = "NVIDIA RTX Remix Style"
+description = "Global Style for NVIDIA RTX Remix App"
+version = "1.2.1"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/master/source/extensions/lightspeed.trex.app.style"
+category = "internal"
+keywords = [ "remix",]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[dependencies]
+"omni.kit.window.popup_dialog" = {}
+"omni.flux.utils.widget" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[core]
+order = -100
+
+[[python.module]]
+name = "lightspeed.trex.app.style"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.app.resources",
+    "lightspeed.trex.tests.settings",
+]
+
+args = [
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
+]

@@ -1,0 +1,59 @@
+[package]
+# Semantic Versionning is used: https://semver.org/
+version = "1.6.4"
+
+# Lists people or organizations that are considered the "authors" of the package.
+authors = ["Damien Bataille <dbataille@nvidia.com>"]
+
+# The title and description fields are primarly for displaying extension info in UI
+description = "USD Materials Properties widget pane widget for Flux"
+title = "Flux Materials Properties widget"
+
+# Path (relative to the root) or content of readme markdown file for UI.
+readme = "docs/README.md"
+
+# One of categories for UI.
+category = "Widget"
+
+# Keywords for the extension
+keywords = ["kit", "flux", "material", "properties", "usd", "widget"]
+
+# Location of change log file in target (final) folder of extension, relative to the root.
+# More info on writing changelog: https://keepachangelog.com/en/1.0.0/
+changelog = "docs/CHANGELOG.md"
+
+# Preview image and icon. Folder named "data" automatically goes in git lfs (see .gitattributes file).
+# Preview image is shown in "Overview" of Extensions window. Screenshot of an extension might be a good preview image.
+preview_image = "data/images/preview.png"
+
+# Icon is shown in Extensions window, it is recommended to be square, of size 256x256.
+icon = "data/images/icon.png"
+
+[dependencies]
+"omni.flux.property_widget_builder.model.usd" = {}
+"omni.flux.property_widget_builder.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.kit.material.library" = {}
+"omni.kit.usd.layers" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "omni.flux.properties_pane.materials.usd.widget"
+
+[[test]]
+dependencies = [
+    "omni.flux.tests.dependencies",
+]
+
+args = [
+    "--/app/hangDetector/enabled=0",
+    "--/app/fastShutdown=1",
+    "--no-window",
+]
+
+stdoutFailPatterns.exclude = [
+    # Exclude log message when a path can't be read for file_texture_picker widget
+    "*[omni.flux.utils.common.path_utils] * can't be read*",
+]
