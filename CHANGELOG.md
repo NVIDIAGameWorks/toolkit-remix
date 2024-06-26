@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename branch to `main`
 
 ### Fixed
+- REMIX-3078: Fixed texture preview window overlapping
+- REMIX-3079: Fixed texture preview windows showing the incorrect texture
 
 ### Removed
 

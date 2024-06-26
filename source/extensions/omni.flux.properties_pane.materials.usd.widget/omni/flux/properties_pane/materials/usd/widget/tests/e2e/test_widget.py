@@ -2,6 +2,7 @@ __all__ = ("TestMaterialPropertyWidget",)
 
 import asyncio
 import functools
+import os
 import pathlib
 import uuid
 
@@ -126,13 +127,22 @@ class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
         async with AsyncTestMeterialPropertyHelper() as helper:
             await helper.set_paths([mat_path])
 
-            widget_refs = omni.kit.ui_test.find_all(f"{helper.window.title}//Frame/**/Image[*].name=='Preview'")
-            self.assertTrue(len(widget_refs) > 0, "No widgets found")
-            widget_ref = widget_refs[0]
+            preview_image_ref = omni.kit.ui_test.find_all(f"{helper.window.title}//Frame/**/Image[*].name=='Preview'")
+            self.assertTrue(len(preview_image_ref) > 0, "No preview image button found")
+            preview_image_ref = preview_image_ref[0]
 
-            await widget_ref.click()
+            await preview_image_ref.click()
 
-            window_refs = omni.kit.ui_test.find_all("Texture Preview")
+            # Obtain the texture file path basename from the string field
+            string_field_ref = omni.kit.ui_test.find_all(
+                f"{helper.window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+            )
+            self.assertTrue(len(string_field_ref) > 0, "No texture string field found")
+            asset_path = string_field_ref[0].widget.model.get_attributes_raw_value(0).resolvedPath
+            texture_file_basename = os.path.basename(asset_path)
+
+            # The texture preview window title should be: ({texture file basename} - {texture type})
+            window_refs = omni.kit.ui_test.find_all(f"{texture_file_basename} - Albedo Map")
             self.assertTrue(len(window_refs) == 1, "Preview window not found")
             for window_ref in window_refs:
                 window_ref.widget.destroy()

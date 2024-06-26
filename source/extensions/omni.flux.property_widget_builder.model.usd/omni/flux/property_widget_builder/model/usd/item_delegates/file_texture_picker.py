@@ -129,8 +129,19 @@ class FileTexturePicker(_FilePicker):
                             mouse_pressed_fn=functools.partial(self._preview_image, item.value_models[i], i),
                         )
                         ui.Spacer()
+
+            # Initialize the preview window with a unique title/window ID so that it has its own instance in memory
+            item_raw_value = item.value_models[0].get_attributes_raw_value(0)
+
+            # Use the texture path as part of the title and fallback on using the asset name
+            if item_raw_value is not None and item_raw_value != "":
+                title_path = os.path.basename(item_raw_value.resolvedPath)
+            else:
+                selected_prim_paths = omni.usd.get_context().get_selection().get_selected_prim_paths()
+                title_path = "/".join(selected_prim_paths[0].split("/")[-2:]).lstrip("/")
+
             self._preview_window = ui.Window(
-                title="Texture Preview",
+                title=f"{title_path} - {item.name_models[0].get_value_as_string()}",
                 name="PropertiesPaneSectionWindow",
                 width=self.POPUP_WIDTH,
                 height=self.POPUP_HEIGHT,
