@@ -780,11 +780,30 @@ class Setup:
                 _remove_prim_spec(edit_target_layer, prim_spec.path)
 
     def delete_prim(self, paths: list[str]):
-        omni.kit.commands.execute(
-            "DeletePrims",
-            paths=paths,
-            context_name=self._context_name,
-        )
+        stage = self._context.get_stage()
+
+        parent_prims = []
+        for path in paths:
+            prim = stage.GetPrimAtPath(path)
+            parent_prims.append(prim.GetParent())
+
+        with omni.kit.undo.group():
+            omni.kit.commands.execute(
+                "DeletePrims",
+                paths=paths,
+                context_name=self._context_name,
+            )
+
+            # Remove any parent prim's overrides if they are empty
+            replacement_layer = stage.GetEditTarget().GetLayer()
+            for prim in parent_prims:
+                omni.kit.commands.execute(
+                    "RemoveOverride",
+                    prim_path=prim.GetPath(),
+                    layer=replacement_layer,
+                    context_name=self._context_name,
+                    check_up_to_prim=constants.ROOTNODE,
+                )
 
     def __create_child_ref_prim(self, stage: Usd.Stage, prim: Usd.Prim, create_if_remix_ref: bool = True) -> str:
         prim_path = prim.GetPath()

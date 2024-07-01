@@ -1,5 +1,5 @@
 [package]
-version = "1.2.5"
+version = "1.2.6"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Selection Tree implementation for the StageCraft"
 description = "Selection Tree implementation for NVIDIA RTX Remix StageCraft App"
@@ -31,4 +31,5 @@ name = "lightspeed.trex.selection_tree.shared.widget"
 dependencies = [
     "lightspeed.layer_manager.core",
     "lightspeed.trex.tests.dependencies",
+    "omni.flux.commands"
 ]

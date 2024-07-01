@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.2]
+### Changed
+- Remove parent prim override if there are no changed attrs
+
 ## [2.1.1]
 ### Changed
 - Changed repo link
