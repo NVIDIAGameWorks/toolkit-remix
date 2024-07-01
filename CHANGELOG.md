@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Rename branch to `main`
 - REMIX-2967: Changed CI tool to check changes to extensions are properly updated
+- REMIX-2871: Remove parent prim override if there are no changed attrs
 
 ### Fixed
 - REMIX-3078: Fixed texture preview window overlapping
