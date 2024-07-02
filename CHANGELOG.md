@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - REMIX-3078: Fixed texture preview window overlapping
 - REMIX-3079: Fixed texture preview windows showing the incorrect texture
+- Fixed the hotkey test so that it can handle developer mode
 
 ### Removed
 
