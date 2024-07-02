@@ -44,6 +44,7 @@ class _Setup:
         self._current_context = None
 
         # TODO Feature OM-45888 - File Picker will appear behind the wizard modal
+        # Register the global context change event if not already registered and subscribe
         event_manager = _get_event_manager_instance()
         event_manager.register_global_custom_event(_constants.GlobalEventNames.CONTEXT_CHANGED.value)
         self._context_changed_sub = event_manager.subscribe_global_custom_event(
@@ -76,11 +77,19 @@ class _Setup:
             raise RuntimeError("No context has been set yet. Make sure to call set_current_context()")
         return self._current_context
 
-    def set_current_context(self, context):
+    def set_current_context(self, context: Contexts) -> None:
         """Set the current context for the remix app"""
+        if not isinstance(context, Contexts):
+            raise TypeError(
+                f"The context argument must be of type {type(Contexts)}, not {type(context)}. "
+                f"Please import the Contexts enum from lightspeed.trex.contexts.setup."
+            )
+
         # TODO Feature OM-45888 - File Picker will appear behind the wizard modal
-        if context != self._current_context:
-            _get_event_manager_instance().call_global_custom_event(_constants.GlobalEventNames.CONTEXT_CHANGED.value)
+        if context != self._current_context and self._current_context is not None:
+            _get_event_manager_instance().call_global_custom_event(
+                _constants.GlobalEventNames.CONTEXT_CHANGED.value, self._current_context.value
+            )
         self._current_context = context
 
     def destroy(self):

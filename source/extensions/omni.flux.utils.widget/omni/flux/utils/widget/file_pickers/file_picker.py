@@ -253,7 +253,7 @@ def open_file_picker(
     _file_picker_dialog = dialog
 
 
-def destroy_file_picker():
+def destroy_file_picker(*args):
     global _file_picker_dialog
     if _file_picker_dialog is not None:
         _file_picker_dialog.destroy()

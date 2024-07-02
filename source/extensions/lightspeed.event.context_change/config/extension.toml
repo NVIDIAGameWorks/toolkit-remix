@@ -1,0 +1,28 @@
+[package]
+version = "1.0.0"
+authors = ["Scott Fitzpatrick <scfitzpatric@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["event", "context", "change", "selection"]
+title = "Lightspeed Event On Context Changed"
+description = "Extension that triggers events during context changes"
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.events_manager" = {}
+"lightspeed.trex.contexts" = {}
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.event.context_change"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.contexts",
+    "lightspeed.trex.tests.dependencies",
+]

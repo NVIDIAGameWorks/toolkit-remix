@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.3.3]
+### Fixed
+- Made test's hotkey registry check LSS-specific
+- Changed test initial context input type from `str` to `Contexts.TEXTURE_CRAFT`
+
 ## [0.3.2]
 ### Changed
 - Changed repo link
