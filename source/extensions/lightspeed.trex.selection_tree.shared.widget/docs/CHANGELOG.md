@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.7] - 2024-07-02
+### Changed
+- Removed the delete and duplicate button icons for asset reference light items in the selection tree
+
 ## [1.2.6]
 ### Changed
 - Added omni.flux.commands as a test dependency

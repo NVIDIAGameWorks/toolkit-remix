@@ -465,7 +465,7 @@ class Delegate(ui.AbstractItemDelegate):
                                         mouse_released_fn=lambda x, y, b, m: self._on_frame_mouse_released(b, item),
                                     )
                                     ui.Spacer(width=0)
-                            elif isinstance(item, _ItemPrim) and item.is_usd_light():
+                            elif isinstance(item, _ItemPrim) and item.is_usd_light() and item.from_live_light_group:
                                 ui.Spacer(height=0, width=ui.Pixel(8))
                                 with ui.VStack(
                                     width=ui.Pixel(16 + 16 + 8),

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the hotkey test so that it can handle developer mode
 
 ### Removed
+- REMIX-3152: Removed the delete and duplicate button icons for asset reference light items in the selection tree
 
 ## [2024.4.0-RC.1]
 
