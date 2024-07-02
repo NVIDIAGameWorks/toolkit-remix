@@ -19,6 +19,11 @@ __all__ = [
     "ImporterCore",
     "AssetImporterModel",
     "AssetItemImporterModel",
+    "get_texture_sets",
+    "determine_ideal_types",
+    "get_texture_type_from_filename",
+    "parse_texture_paths",
 ]
 
 from .asset_importer import AssetImporterModel, AssetItemImporterModel, ImporterCore
+from .utils import determine_ideal_types, get_texture_sets, get_texture_type_from_filename, parse_texture_paths

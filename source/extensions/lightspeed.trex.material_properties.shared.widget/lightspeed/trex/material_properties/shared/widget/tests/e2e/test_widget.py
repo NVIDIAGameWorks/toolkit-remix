@@ -413,10 +413,6 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await picker_buttons[TestComponents.FILE_PICKER_OPEN].click()
         await ui_test.human_delay(10)
 
-        diffuse_box = ui_test.find_all("Texture Assignment//Frame/**/CheckBox[*].name=='inputs:diffuse_texture'")
-        diffuse_box[0].widget.model.set_value(False)
-        await ui_test.human_delay(5)
-
         action_button = ui_test.find_all("Texture Assignment//Frame/**/Button[*].name=='AssignButton'")
         await action_button[0].click()
         await ui_test.human_delay(3)

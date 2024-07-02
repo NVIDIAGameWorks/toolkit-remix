@@ -20,10 +20,9 @@ from typing import List, Tuple
 import omni.usd
 from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP as _TEXTURE_TYPE_INPUT_MAP
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
+from omni.flux.asset_importer.core.utils import get_texture_sets as _get_texture_sets
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from pxr import Sdf, Tf
-
-from .model import TextureImportListModel as _TextureImportListModel
 
 
 @omni.usd.handle_exception
@@ -44,7 +43,7 @@ async def create_prims_and_link_assets(
     stage = context.get_stage()
 
     all_paths = {str(url): c for url, c in imported_files}
-    texture_sets = _TextureImportListModel.get_texture_sets(list(all_paths.keys()))
+    texture_sets = _get_texture_sets(list(all_paths.keys()))
     grouped_textures = {}
     for mat_prefix, texture_types in texture_sets.items():
         grouped_textures[mat_prefix] = []
