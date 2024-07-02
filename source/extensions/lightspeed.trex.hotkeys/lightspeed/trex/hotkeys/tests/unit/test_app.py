@@ -55,7 +55,11 @@ class TestTrigger(omni.kit.test.AsyncTestCase):
         hotkey_manager = get_global_hotkey_manager()
         hotkey_manager.define_hotkey_event(TestHotkeyEvent.CTRL_T, "Test T Hotkey")
         hotkey_manager.define_hotkey_event(TestHotkeyEvent.CTRL_F, "Test F Hotkey")
-        self.assertEqual(len(self._hotkey_registry.get_all_hotkeys()), 2)
+
+        all_hotkeys = self._hotkey_registry.get_all_hotkeys()
+        lss_hotkeys = [hotkey for hotkey in all_hotkeys if "lightspeed.trex" in hotkey.hotkey_ext_id]
+
+        self.assertEqual(len(lss_hotkeys), 2)
         self.assertEqual(len(self._action_registry.get_all_actions_for_extension("lightspeed.trex.hotkeys")), 2)
 
         # Hookup Hotkey
@@ -84,7 +88,7 @@ class TestTrigger(omni.kit.test.AsyncTestCase):
 
     async def test_hotkey_subscriptions_trigger_in_correct_contexts(self):
         trex_context_manager = get_context_manager()
-        trex_context_manager.set_current_context("Dummy")
+        trex_context_manager.set_current_context(Contexts.TEXTURE_CRAFT)
 
         async def press_ctrl_t():
             await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.T, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)

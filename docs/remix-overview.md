@@ -18,6 +18,8 @@ The Bridge acts as the messenger - it sends all the game instructions to another
 
 The renderer also knows how to swap out the old game stuff with new and improved things from an RTX Remix Mod that you put in a special folder. It keeps track of what's what using special codes (hash IDs) so it knows what to change in the game as you play.
 
+Remix starts with the Pixar USD `USDC_USE_PREAD` environment variable set to true. This offers asset overwriting functionality, allowing users to overwrite game assets that are currently opened and referenced in a Remix project.
+
 Finally, using  the RTX Remix Toolkit, you are able to easily make and add new game objects, materials, and lights. And since it's built on the NVIDIA Omniverse ecosystem, you'll have lots of cool tools to make your game look even better.
 
 
