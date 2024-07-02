@@ -112,3 +112,5 @@ In reality the texture type could be one of any of the following: `NORMAL_GL`, `
 
 Map between converted texture suffixes and their texture types.
 """
+
+PREFIX_TEXTURE_NO_PREFIX = "Unknown_prefix"

@@ -24,9 +24,11 @@ __all__ = [
     "TextureTypes",
     "TextureTypeNames",
     "UsdExtensions",
+    "PREFIX_TEXTURE_NO_PREFIX",
 ]
 
 from .constants import (
+    PREFIX_TEXTURE_NO_PREFIX,
     SUPPORTED_ASSET_EXTENSIONS,
     SUPPORTED_TEXTURE_EXTENSIONS,
     TEXTURE_TYPE_CONVERTED_SUFFIX_MAP,

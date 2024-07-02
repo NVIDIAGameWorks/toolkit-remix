@@ -27,6 +27,7 @@ import omni.kit.commands
 import omni.kit.undo
 import omni.ui as ui
 import omni.usd
+from omni.flux.asset_importer.core import get_texture_sets as _get_texture_sets
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
 from omni.flux.asset_importer.widget.texture_import_list import TextureImportItem as _TextureImportItem
@@ -251,7 +252,7 @@ class TextureImporter(_ContextBaseUSD):
             return False, message, []
 
         all_paths = {str(texture_url): texture_type for texture_url, texture_type in schema_data_template.input_files}
-        texture_sets = _TextureImportListModel.get_texture_sets(list(all_paths.keys()))
+        texture_sets = _get_texture_sets(list(all_paths.keys()))
         for mat_prefix, texture_types in texture_sets.items():
             schema = self.Data(**schema_data_template.dict())
             schema.input_files = [(path, all_paths[str(_OmniUrl(path))]) for _, path in texture_types]

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.16.5]
+### Changed
+- Centralizing texture set logic
+
 ## [1.16.4]
 ### Changed
 - Update deps

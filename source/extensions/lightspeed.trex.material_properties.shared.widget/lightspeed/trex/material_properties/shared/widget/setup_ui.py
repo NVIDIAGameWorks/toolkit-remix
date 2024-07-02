@@ -17,12 +17,12 @@
 
 import asyncio
 import functools
-import re
 import typing
 from functools import partial
 from pathlib import Path
 from typing import List, Union
 
+import carb
 import omni.client
 import omni.kit.app
 from lightspeed.common import constants as _constants
@@ -34,13 +34,11 @@ from lightspeed.trex.material.core.shared import Setup as _MaterialCore
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemPrim as _ItemPrim
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui, usd
+from omni.flux.asset_importer.core import determine_ideal_types as _determine_ideal_types
+from omni.flux.asset_importer.core import get_texture_type_from_filename as _get_texture_type_from_filename
+from omni.flux.asset_importer.core import parse_texture_paths as _parse_texture_paths
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
-from omni.flux.asset_importer.core.data_models import (
-    TEXTURE_TYPE_CONVERTED_SUFFIX_MAP as _TEXTURE_TYPE_CONVERTED_SUFFIX_MAP,
-)
 from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP as _TEXTURE_TYPE_INPUT_MAP
-from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_REGEX_MAP as _TEXTURE_TYPE_REGEX_MAP
-from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
 from omni.flux.properties_pane.materials.usd.widget import MaterialPropertyWidget as _MaterialPropertyWidget
 from omni.flux.property_widget_builder.model.usd import FileTexturePicker as _FileTexturePicker
 from omni.flux.property_widget_builder.model.usd import USDBuilderList as _USDBuilderList
@@ -232,12 +230,11 @@ class SetupUI:
                 path = found_dds[0]
             dropped_paths.append(path)
             if not basename:
-                basename = path.stem
+                basename = path.name
 
         other_dds_paths = dropped_paths[0].parent.glob("*.[dD][dD][sS]")
-        self._texture_assignment(
-            dropped_paths, items, allow_dialog_skip=False, basename=basename, found_paths=other_dds_paths
-        )
+        dropped_paths.extend(other_dds_paths)
+        self._texture_assignment(dropped_paths, items, allow_dialog_skip=False, basename=basename)
 
     def _on_material_refresh_done(self):
         """
@@ -250,52 +247,6 @@ class SetupUI:
                 if usd_properties_utils.get_type_name(value_model.metadata) in [Sdf.ValueTypeNames.Asset]:
                     value_model.set_callback_pre_set_value(self.__check_asset_was_ingested)
 
-    def __check_texture_basename(self, texture_type, basename, texture_stem):
-        """
-        Use texture regexes to compare against the basename.
-        """
-        if _TEXTURE_TYPE_REGEX_MAP.get(texture_type) is None:
-            return False
-
-        normal_types = [_TextureTypes.NORMAL_OGL, _TextureTypes.NORMAL_DX, _TextureTypes.NORMAL_OTH]
-        if texture_type in normal_types:
-            regex = rf".*({'|'.join([_TEXTURE_TYPE_REGEX_MAP.get(t) for t in normal_types])})"
-        else:
-            regex = rf".*({_TEXTURE_TYPE_REGEX_MAP.get(texture_type)})"
-
-        # To make sure we don't trip up on 'Metal', make sure we check string starting at the end
-        if texture_type == _TextureTypes.METALLIC:
-            match = re.search(rf"{regex}$", texture_stem, re.IGNORECASE)
-        else:
-            match = re.search(regex, texture_stem, re.IGNORECASE)
-        if match and basename:
-            group = match.groups()[0] if len(match.groups()) > 0 else match.group(0)
-            texture_base = texture_stem.split(group)[0]
-            if texture_base in basename:
-                return True
-
-        return False
-
-    @staticmethod
-    def _parse_texture_paths(paths_to_update, required_ext="dds"):
-        parsed_paths = {}
-        for path in paths_to_update:
-            name = path.name
-            if not name.endswith(required_ext):
-                continue
-            # Split the string at underscores or periods
-            parts = re.split(r"[_. -]", name)
-            # Initialize an empty list to hold the final parts of the string
-            parsed_parts = []
-
-            # Iterate over each part split by underscore
-            for part in parts:
-                # Further split each part by capital letters, but keep the capital letters as part of the next word
-                sub_parts = re.split("(?<=[a-z])(?=[A-Z])", part)
-                parsed_parts.extend(sub_parts)
-            parsed_paths[path] = parsed_parts
-        return parsed_paths
-
     def _texture_assignment(self, selected_paths, items, allow_dialog_skip=True, basename=None, found_paths=None):
         """
         Sort textures before updating the texture fields. Show a dialog to give options before
@@ -303,68 +254,39 @@ class SetupUI:
         """
         texture_dict = {}
 
-        def get_common_prefix(*lists):
-            """Given any number of lists, returns the common elements starting from index=0."""
-            if not lists:
-                return []
-            # Find the length of the shortest list to avoid index out of range errors
-            min_length = min((len(lst) for lst in lists))
-            # Initialize an empty list to store common elements
-            common_elements = []
-            # Iterate over the indices of the shortest list
-            for idx in range(min_length):
-                # Use the first list's element at index idx as a reference
-                reference_element = lists[0][idx]
-                # Check if all lists have the same element at index idx
-                if all((lst[idx] == reference_element for lst in lists)):
-                    # If all elements match, append the reference element to common_elements
-                    common_elements.append(reference_element)
-                else:
-                    # If any element does not match, break the loop
-                    break
-            # Return the list of common elements
-            return common_elements
-
-        parsed_selections = self._parse_texture_paths(selected_paths)
-        parsed_paths = self._parse_texture_paths(found_paths)
-        # If there is more than one selection, find the common prefix
-        pp = [list(val) for val in parsed_selections.values()]
-        common_select = get_common_prefix(*pp)
-        scores = [
-            (path, len(get_common_prefix(common_select, path_parts))) for path, path_parts in parsed_paths.items()
-        ]
-        if scores:
-            hi_score = max(val[1] for val in scores)
-            similar_textures = [score[0] for score in scores if score[1] == hi_score]
-        else:
-            hi_score = -1
-            similar_textures = []
-
-        for similar_texture in similar_textures:
-            sim_path = " ".join(parsed_paths.get(similar_texture, [])[hi_score:])
-            for texture_type, pattern in _TEXTURE_TYPE_REGEX_MAP.items():
-                if not pattern:
-                    continue
-                if re.search(pattern, sim_path, re.IGNORECASE):
-                    texture_dict[_TEXTURE_TYPE_INPUT_MAP.get(texture_type)] = similar_texture
+        basename_parts = _parse_texture_paths([basename])
+        base_parts_len = len(basename_parts[basename])
 
         for path in selected_paths:
             if path.suffix != ".dds":
                 continue
-            if len(path.stem.split(".")) > 1:
-                trex_tag = path.stem.split(".")[-2]
-                stem = path.stem.split(".")[:-2][0]
-            else:
-                trex_tag = ""
-                stem = path.stem
-            texture_type = _TEXTURE_TYPE_CONVERTED_SUFFIX_MAP.get(trex_tag, None)
-            if texture_type:
-                name = _TEXTURE_TYPE_INPUT_MAP[texture_type]
-                if basename and not self.__check_texture_basename(texture_type, basename, stem):
-                    continue
-                texture_dict[name] = path
+            texture_type = _get_texture_type_from_filename(str(path))
+            similar_len = len([c for c in basename_parts[basename] if c in path.name])
+            if similar_len == 0:
+                continue
+            if texture_type and similar_len >= base_parts_len - 1:
+                name = _TEXTURE_TYPE_INPUT_MAP[texture_type].replace("inputs:", "")
+                texture_dict[name] = str(path)
+
+        for _, value in texture_dict.items():
+            selected_paths.remove(Path(value))
+
+        texture_types = _determine_ideal_types([str(path) for path in selected_paths])
+        for path, texture_type in texture_types.items():
+            path_name = Path(path).name
+            similar_len = len([c for c in basename_parts[basename] if c in path_name])
+            if similar_len == 0:
+                continue
+            if _TEXTURE_TYPE_INPUT_MAP[texture_type] not in texture_dict and similar_len >= base_parts_len - 1:
+                texture_dict[_TEXTURE_TYPE_INPUT_MAP[texture_type]] = path
 
         if not texture_dict:
+            carb.log_warn("Could not determine texture type(s) or no textures found. Skipping...")
+            _TrexMessageDialog(
+                title="Texture Set Error",
+                message="Could not determine texture type(s) or no textures found.",
+                disable_cancel_button=True,
+            )
             return
 
         msg = "Would you like to assign any of the found textures?"
@@ -379,18 +301,17 @@ class SetupUI:
             with omni.kit.undo.group():
                 for item in items:
                     for value_model in item.value_models:
-                        display_name = value_model.attributes[0].GetName()
+                        display_name = value_model.attributes[0].GetName().replace("inputs:", "")
                         if checked_boxes and display_name not in checked_boxes:
                             continue
                         if display_name in paths:
                             rel_path = omni.client.normalize_url(
-                                usd.make_path_relative_to_current_edit_target(
-                                    str(paths[display_name]), stage=self._stage
-                                )
+                                usd.make_path_relative_to_current_edit_target(paths[display_name], stage=self._stage)
                             ).replace("\\", "/")
                             value_model.set_value(rel_path)
 
-            self._dialog.hide()
+            if self._dialog:
+                self._dialog.hide()
 
         # Allow for skipping the dialog, if needed
         if allow_dialog_skip:
@@ -417,17 +338,18 @@ class SetupUI:
         with self._dialog.frame:
             with ui.VStack():
                 ui.Label(msg)
-                ui.Spacer(width=0, height=ui.Pixel(25))
+                ui.Spacer()
                 for name, texture in texture_dict.items():
                     with ui.HStack(height=ui.Pixel(25)):
-                        ui.Label(texture.stem)
+                        ui.Label(Path(texture).stem)
+                        ui.Spacer(width=ui.Pixel(10))
                         checkbox = ui.CheckBox()
                         checkbox.model.set_value(True)
-                        checkbox.name = name
+                        checkbox.name = name.replace("inputs:", "")
                         checkboxes.append(checkbox)
-                ui.Spacer(width=0, height=ui.Pixel(8))
+                ui.Spacer()
                 with ui.HStack():
-                    ui.Spacer(width=ui.Pixel(200), height=0)
+                    ui.Spacer()
                     ui.Button(
                         text="Assign",
                         name="AssignButton",
@@ -436,6 +358,8 @@ class SetupUI:
                         height=30,
                     )
                     ui.Button(text="Cancel", name="CancelButton", clicked_fn=self._dialog.hide, width=75, height=30)
+                    ui.Spacer()
+                ui.Spacer()
 
     def __check_for_similar_textures(self):
         """
@@ -445,13 +369,13 @@ class SetupUI:
         def find_texture_set(paths):
             items = self._material_properties_widget.property_model.get_all_items()
             paths = [Path(path) for path in paths]
-            basename = paths[0].stem
-            textures = []
-            for path_obj in paths[0].parent.iterdir():
+            first_path = paths[0]
+            basename = first_path.name
+            for path_obj in first_path.parent.iterdir():
                 if path_obj.is_file() and path_obj.suffix in _SUPPORTED_TEXTURE_EXTENSIONS and path_obj not in paths:
-                    textures.append(path_obj)
+                    paths.append(path_obj)
 
-            self._texture_assignment(paths, items, allow_dialog_skip=False, basename=basename, found_paths=textures)
+            self._texture_assignment(paths, items, allow_dialog_skip=False, basename=basename)
 
         _open_file_picker(
             "Select Texture Set",

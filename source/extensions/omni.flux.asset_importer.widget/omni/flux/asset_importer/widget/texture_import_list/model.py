@@ -15,12 +15,10 @@
 * limitations under the License.
 """
 
-import hashlib
-import re
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from omni import ui
-from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_REGEX_MAP as _TEXTURE_TYPE_REGEX_MAP
+from omni.flux.asset_importer.core.utils import determine_ideal_types as _determine_ideal_types
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -31,8 +29,6 @@ from .items import TextureImportItem, TextureTypes
 
 
 class TextureImportListModel(ui.AbstractItemModel):
-
-    _PREFIX_TEXTURE_NO_PREFIX = "Unknown_prefix"
 
     def __init__(self):
         super().__init__()
@@ -101,133 +97,16 @@ class TextureImportListModel(ui.AbstractItemModel):
             self.__file_listener_instance.add_model(item)
         self._item_changed(None)
 
-    @staticmethod
-    def _get_default_prefix(path):
-        # only 8 digit
-        hash_int = int(hashlib.sha256(str(_OmniUrl(path).parent_url).encode("utf-8")).hexdigest(), 16) % 10**8
-        return f"{TextureImportListModel._PREFIX_TEXTURE_NO_PREFIX}_{hash_int}"
-
-    @staticmethod
-    def get_texture_sets(paths: List[str]) -> Dict[str, List[Tuple[str, str]]]:
-        """
-        From a list of path, return a list of set of textures
-
-        Args:
-            paths: the texture paths
-
-        Returns:
-            Set of textures
-        """
-        texture_sets = {}
-
-        # Combine all the TextureTypes in 1 regex expression to make building texture sets faster
-        patterns = [
-            _TEXTURE_TYPE_REGEX_MAP[t] for t in _TEXTURE_TYPE_REGEX_MAP if _TEXTURE_TYPE_REGEX_MAP[t] is not None
-        ]
-        regex_search = re.compile(
-            rf".*({'|'.join(patterns)})",
-            re.IGNORECASE,
-        )
-
-        # Build Texture Sets
-        for path in paths:
-            file_path = _OmniUrl(path).path
-            regex_match = re.search(regex_search, file_path)
-            # At least 1 keyword was found
-            if regex_match:
-                # If the individual item expressions have matching group, use those
-                match_index = 1
-                for index, group in enumerate(regex_match.groups()):
-                    if not group:
-                        continue
-                    match_index = index + 1
-                # The possible texture type
-                match_group = regex_match.group(match_index)
-                # Isolate the prefix used for the texture set
-                prefix = file_path[: regex_match.start(match_index)]
-                # if the texture name is Albedo.png/Metal.png/... with no prefix, we hash the full parent directory path
-                if prefix == "".strip():
-                    prefix = TextureImportListModel._get_default_prefix(path)
-                if prefix not in texture_sets:
-                    texture_sets[prefix] = []
-                texture_sets[prefix].append((match_group, path))
-            else:
-                if file_path not in texture_sets:
-                    texture_sets[file_path] = []
-                texture_sets[file_path].append(("Other", path))
-
-        return texture_sets
-
     def _determine_ideal_types(self, paths: List[str]) -> Dict[str, TextureTypes]:
         """
         Will try to determine the TextureType based on the filename. If no TextureType can be found, no entry will be
         added to the dictionary.
         """
 
-        texture_types = {}
-
         all_paths = [c.path.path for c in self._children]
         all_paths.extend(paths)
 
-        texture_sets = TextureImportListModel.get_texture_sets(all_paths)
-
-        # Sort the sets by length so the more precise prefixes overwrite the less precise prefixes
-        ordered_sets = sorted(texture_sets.keys(), key=len)
-
-        # Find the Texture Types
-        for set_prefix in ordered_sets:
-            set_types = texture_sets[set_prefix]
-
-            for path in all_paths:
-                file_path = _OmniUrl(path).path
-
-                # Make sure the file is part of the texture set
-                if not file_path.startswith(set_prefix) and not set_prefix.startswith(
-                    TextureImportListModel._PREFIX_TEXTURE_NO_PREFIX
-                ):
-                    continue
-
-                texture_type = None
-
-                # Get the texture type of the file in the set
-                set_texture_type = None
-                for set_type, _ in set_types:
-                    if file_path.startswith(set_prefix + set_type) or (
-                        set_prefix.startswith(TextureImportListModel._PREFIX_TEXTURE_NO_PREFIX)
-                        and file_path.startswith(set_type)
-                    ):
-                        set_texture_type = set_type
-                        break
-
-                # Get the enum value matching the texture type
-                # If the texture type is in the set multiple times, we keep the type as OTHER since it's probably
-                # not the texture type (Example: T_Metal_01.png and T_Metal_02.png)
-                if set_texture_type and len([t for t, _ in set_types if t.lower() == set_texture_type.lower()]) == 1:
-                    for t in TextureTypes:
-                        pattern = _TEXTURE_TYPE_REGEX_MAP.get(t)
-                        if pattern is None:
-                            continue
-                        # If the enum REGEX matches with the set texture type, we found the right type
-                        if re.search(pattern, set_texture_type, re.IGNORECASE):
-                            texture_type = t
-                            break
-
-                # Only update the texture type if a type was found.
-                # Since the prefixes are ordered by length, a more precise prefix will override a broader one
-                # (Example: T_Metal_Normal_OTH.png -> [T_Metal_, T_Metal_Normal_] will end up with value: OTH)
-                if texture_type:
-                    # Special check for normals, which can be in one of three encodings
-                    if self._pref_normal_conv is not None and texture_type in [
-                        TextureTypes.NORMAL_OGL,
-                        TextureTypes.NORMAL_DX,
-                        TextureTypes.NORMAL_OTH,
-                    ]:
-                        texture_types[path] = self._pref_normal_conv
-                    else:
-                        texture_types[path] = texture_type
-
-        # Return the list of explicitly known texture types only
-        return texture_types
+        return _determine_ideal_types(all_paths, pref_normal_conv=self._pref_normal_conv)
 
     def remove_items(self, items: List[TextureImportItem]):
         for item in items:

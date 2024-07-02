@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.7]
+### Changed
+- Updating with centralized texture set logic
+
 ## [2.5.6] - 2024-06-04
 ### Changed
 - File extension check now uses `get_invalid_extensions()` for textures

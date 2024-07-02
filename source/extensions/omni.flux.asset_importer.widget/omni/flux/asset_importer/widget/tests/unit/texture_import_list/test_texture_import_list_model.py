@@ -172,55 +172,6 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
                     {c.path.path: c.texture_type for c in model._children}, expected_types  # noqa PLW0212
                 )
 
-    async def test_get_texture_sets_should_group_texture_sets(self):
-        # Arrange
-        paths = [
-            "C:/test_01/T_Test_Diffuse.png",
-            "C:/test_01/T_Test_Emissive.png",
-            "D:/test_01/T_Test_Diffuse.dds",
-            "D:/test_01/T_Test_Emissive.dds",
-            "C:/test_02/Texture_OTH_Normal.jpg",
-            "C:/test_02/Texture_Metallic.jpg",
-            "C:/test_03/subdir/Test.gif",
-            "C:/test_04/subdir/metal_01.lxr",
-            "C:/test_04/subdir/metal_02.lxr",
-            "C:/test_05/T_Metal_DX_Normal.psd",
-            "C:/test_05/T_Metal_OGL.psd",
-        ]
-        expected_groups = {
-            "C:/test_01/T_Test_": [
-                ("Diffuse", "C:/test_01/T_Test_Diffuse.png"),
-                ("Emissive", "C:/test_01/T_Test_Emissive.png"),
-            ],
-            "D:/test_01/T_Test_": [
-                ("Diffuse", "D:/test_01/T_Test_Diffuse.dds"),
-                ("Emissive", "D:/test_01/T_Test_Emissive.dds"),
-            ],
-            "C:/test_02/Texture_": [
-                ("OTH", "C:/test_02/Texture_OTH_Normal.jpg"),
-                ("Metallic", "C:/test_02/Texture_Metallic.jpg"),
-            ],
-            "C:/test_03/subdir/Test.gif": [
-                ("Other", "C:/test_03/subdir/Test.gif"),
-            ],
-            "C:/test_04/subdir/": [
-                ("metal", "C:/test_04/subdir/metal_01.lxr"),
-                ("metal", "C:/test_04/subdir/metal_02.lxr"),
-            ],
-            "C:/test_05/T_Metal_": [
-                ("DX", "C:/test_05/T_Metal_DX_Normal.psd"),
-                ("OGL", "C:/test_05/T_Metal_OGL.psd"),
-            ],
-        }
-
-        model = TextureImportListModel()
-
-        # Act
-        texture_sets = model.get_texture_sets(paths)
-
-        # Assert
-        self.assertDictEqual(texture_sets, expected_groups)
-
     async def test_add_item_should_determine_texture_type_append_subscribe_and_call_item_changed(self):
         # Arrange
         model = TextureImportListModel()

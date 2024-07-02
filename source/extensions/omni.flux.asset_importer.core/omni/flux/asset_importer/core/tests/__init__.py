@@ -16,3 +16,4 @@
 """
 
 from .unit.test_asset_importer import TestAssetImporter
+from .unit.test_utils import TestAssetUtils
