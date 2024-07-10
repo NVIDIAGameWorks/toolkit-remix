@@ -47,7 +47,7 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
-from pxr import UsdGeom, UsdLux
+from pxr import Sdf, UsdGeom, UsdLux
 
 if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
@@ -234,6 +234,28 @@ class SetupUI:
                         ui.Spacer(height=0)
                         self._object_property_line = ui.Line(name="PropertiesPaneSectionTitle", width=ui.Percent(60))
                     self._property_widget = _PropertyWidget(self._context_name)
+                    with ui.HStack():
+                        ui.Spacer(height=0)
+                        self._object_category_line = ui.Line(name="PropertiesPaneSectionTitle", width=ui.Percent(60))
+                    self._remix_categories_vstack = ui.VStack(spacing=8, height=32)
+                    with self._remix_categories_vstack:
+                        with ui.HStack(height=ui.Pixel(32)):
+                            ui.Spacer(width=ui.Pixel(25))
+                            ui.Label("Set Remix Categories:  ", name="TreePanelTitleItemTitle", width=ui.Pixel(40))
+                            self._remix_categories_button = ui.Image(
+                                "",
+                                height=ui.Pixel(32),
+                                width=ui.Pixel(32),
+                                name="Categories",
+                                tooltip="Please note that not all categories are available in the Toolkit Viewport.",
+                                mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(b),
+                            )
+                        self._remix_categories_frame = ui.ScrollingFrame(
+                            visible=False,
+                            vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_AS_NEEDED,
+                            tooltip="To set categories, use the Remix Categories window.",
+                            mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(b),
+                        )
 
     def refresh(
         self,
@@ -294,6 +316,8 @@ class SetupUI:
             self._only_read_mesh_ref = True
             self.set_ref_mesh_field(self._current_reference_file_mesh_items[-1].path)
             self._only_read_mesh_ref = False
+            self._remix_categories_vstack.visible = False
+            self._remix_categories_frame.visible = False
         elif item_prims:
             # Get all the transformable prims from the instances
             instances = self._core.get_instance_from_mesh(
@@ -330,14 +354,19 @@ class SetupUI:
                         },
                     }
                 )
+                self._refresh_remix_categories(mesh_prims)
                 self._property_widget.set_lookup_table(lookup_table)
                 self._property_widget.refresh([mesh_prims[0].GetPath()])
+                self._remix_categories_vstack.visible = True
+                self._remix_categories_frame.visible = True
             else:
                 # we show the none panel
                 self._mesh_properties_frames[_ItemPrim].visible = False
                 self._mesh_properties_frames[None].visible = True
                 # for a regular prim, we don't show others properties
                 self._property_widget.show(False)
+                self._remix_categories_vstack.visible = False
+                self._remix_categories_frame.visible = False
         elif item_light_instance_groups or item_light_prims:  # light
             # if this is a light, we can transform the light by itself. So we should show the transform frame
             prim_paths = [item.parent.path for item in item_light_instance_groups]
@@ -405,6 +434,7 @@ class SetupUI:
                 self._mesh_properties_frames[None].visible = True
 
         self._object_property_line.visible = all([self._transformation_widget.visible, self._property_widget.visible])
+        self._object_category_line.visible = all([self._property_widget.visible, self._remix_categories_button.visible])
 
     def _on_ref_mesh_dir_pressed(self, button):
         if button != 0:
@@ -674,6 +704,149 @@ class SetupUI:
                 )
             else:
                 carb.log_info("No reference set")
+
+    def _refresh_remix_categories(self, mesh_prims):
+        # Check remix categories to see if any are applied
+        remix_attrs = {}
+        for attr in mesh_prims[0].GetAttributes():
+            attr_path = attr.GetName()
+            check = [
+                (display_name, attr_name)
+                for display_name, attr_name in constants.REMIX_CATEGORIES.items()
+                if attr_name == attr_path
+            ]
+            if check:
+                for value in check:
+                    remix_attrs[value[0]] = attr.Get()
+
+        any_true = [v for v in remix_attrs.values() if v]
+        # If there are no values or they are all False, hide the scrolling frame
+        if not any_true or not remix_attrs:
+            self._remix_categories_vstack.height = ui.Pixel(32)
+            with self._remix_categories_frame:
+                ui.VStack()
+            return
+
+        style = ui.Style.get_instance().default
+        style["Label::RemixAttrLabel"] = {"font_size": 10}
+        with self._remix_categories_frame:
+            with ui.VStack():
+                for key, value in remix_attrs.items():
+                    if not value:
+                        continue
+                    with ui.HStack(height=ui.Pixel(20)):
+                        ui.Spacer(width=ui.Pixel(56))
+                        ui.Label(key, name="RemixAttrLabel")
+                        ui.Spacer(width=ui.Pixel(5))
+                        ui.CheckBox(enabled=False).model.set_value(value)
+                    ui.Spacer(height=ui.Pixel(10))
+        self._remix_categories_vstack.height = ui.Pixel(100)
+
+    def _add_remix_category(self, b):
+        """Provide dialog to set remix categories."""
+
+        def __assign_remix_category(prev_values, dialog, checkboxes):
+            """Assigning the remix category value."""
+            paths = self._core.get_selected_prim_paths()
+            meshes = self._core.get_corresponding_prototype_prims([stage.GetPrimAtPath(path) for path in paths])
+            with omni.kit.undo.group():
+                for box in checkboxes:
+                    category = box.model.get_value_as_bool()
+                    prev_value = prev_values.get(box.name, False)
+                    if category and not prev_value:
+                        self._core.add_attribute(meshes, box.name, 1, prev_value, Sdf.ValueTypeNames.Bool)
+                    elif not category and prev_value:
+                        self._core.add_attribute(meshes, box.name, 0, prev_value, Sdf.ValueTypeNames.Bool)
+            dialog.visible = False
+            self._refresh_remix_categories([stage.GetPrimAtPath(meshes[0])])
+
+        def __close_dialog():
+            category_window.visible = False
+
+        window_height = ui.Workspace.get_main_window_height()
+        dialog_height = window_height / 1.5
+        category_window = ui.Window(
+            "Remix Categories",
+            visible=True,
+            width=450,
+            height=dialog_height if dialog_height < 500 else 575,
+            dockPreference=ui.DockPreference.DISABLED,
+            flags=(
+                ui.WINDOW_FLAGS_NO_COLLAPSE
+                | ui.WINDOW_FLAGS_NO_SCROLLBAR
+                | ui.WINDOW_FLAGS_MODAL
+                | ui.WINDOW_FLAGS_NO_RESIZE
+                | ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
+            ),
+        )
+
+        stage = self._context.get_stage()
+        # Grab any previously set category values
+        prim_paths = self._core.get_selected_prim_paths()
+        mesh_prims = self._core.get_corresponding_prototype_prims([stage.GetPrimAtPath(path) for path in prim_paths])
+        values = {}
+        for prim_path in mesh_prims:
+            prim = stage.GetPrimAtPath(prim_path)
+            for attr in prim.GetAttributes():
+                attr_name = attr.GetName()
+                check = [name for _, name in constants.REMIX_CATEGORIES.items() if name == attr_name]
+                if check:
+                    values[check[0]] = attr.Get()
+
+        # Build dialog. Not all categories are visible in the viewport, so give the users a warning
+        category_boxes = []
+        style = ui.Style.get_instance().default
+        with category_window.frame:
+            with ui.VStack():
+                with ui.VStack(height=ui.Pixel(45)):
+                    ui.Spacer(height=ui.Pixel(10))
+                    style["Label::AddRemixCategoriesLabel"] = {"font_size": 25}
+                    ui.Label(
+                        "Add Remix Categories to Prim:",
+                        name="AddRemixCategoriesLabel",
+                        style=style,
+                        alignment=ui.Alignment.CENTER,
+                    )
+                    style["Label::AddRemixCategoriesWarningLabel"] = {"color": ui.color.yellow, "font_size": 13}
+                    ui.Label(
+                        "***Note that some only appear in game and not the Toolkit Viewport!***",
+                        name="AddRemixCategoriesWarningLabel",
+                        style=style,
+                        word_wrap=True,
+                        alignment=ui.Alignment.CENTER,
+                    )
+                    ui.Spacer(width=ui.Pixel(15))
+                with ui.ScrollingFrame(
+                    horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                    vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_AS_NEEDED,
+                    name="TreePanelBackground",
+                    height=dialog_height - 175 if dialog_height < 500 else 425,
+                ):
+                    with ui.VStack(width=460):
+                        for name, attr_name in constants.REMIX_CATEGORIES.items():
+                            with ui.HStack(height=ui.Pixel(20), width=ui.Pixel(275)):
+                                ui.Spacer(width=ui.Pixel(75))
+                                category_box = ui.CheckBox()
+                                if attr_name in values:
+                                    category_box.model.set_value(values[attr_name])
+                                else:
+                                    category_box.model.set_value(False)
+                                category_box.name = attr_name
+                                category_boxes.append(category_box)
+                                ui.Label(name)
+                                ui.Spacer(width=ui.Pixel(125))
+                ui.Spacer(height=ui.Pixel(10))
+                with ui.HStack():
+                    ui.Spacer()
+                    ui.Button(
+                        text="Assign",
+                        clicked_fn=functools.partial(__assign_remix_category, values, category_window, category_boxes),
+                        height=25,
+                        width=50,
+                        identifier="AssignCategoryButton",
+                    )
+                    ui.Button("Cancel", clicked_fn=__close_dialog, height=25, width=50, identifier="CancelButton")
+                    ui.Spacer()
 
     def show(self, value):
         self._transformation_widget.show(value)

@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.3]
+### Added
+- Added styling for Categories Icon
+
 ## [1.2.2]
 ### Changed
 - Changed repo link

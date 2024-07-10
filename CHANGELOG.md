@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - REMIX-2879: Added `USDC_USE_PREAD` environment variable to enable overriding opened deps
 - REMIX-2489: Fixed and improved asset replacement and overwriting capabilities for referenced assets
+- REMIX-2603: Added dialog to set remix categories
 
 ### Changed
 - Rename branch to `main`

@@ -924,5 +924,19 @@ class Setup:
                 instances.add(constants.COMPILED_REGEX_MESH_TO_INSTANCE_SUB.sub(instance_path, mesh_path))
         return list(instances)
 
+    def add_attribute(self, paths: list[str], attribute_name: str, value=None, prev_val=None, val_type=None):
+        stage = self._context.get_stage()
+        for path in paths:
+            attr_path = Sdf.Path(path).AppendProperty(attribute_name)
+            prop = stage.GetPropertyAtPath(attr_path)
+            prim = stage.GetPrimAtPath(path)
+
+            if prop:
+                omni.kit.commands.execute("ChangeProperty", prop_path=prop.GetPath(), value=value, prev=prev_val)
+            else:
+                omni.kit.commands.execute(
+                    "CreateUsdAttribute", prim=prim, attr_name=attribute_name, attr_value=value, attr_type=val_type
+                )
+
     def destroy(self):
         _reset_default_attrs(self)
