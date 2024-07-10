@@ -133,6 +133,9 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # we re-open the material property frame
+        collapsable_frame_arrows = ui_test.find_all(
+            f"{_window.title}//Frame/**/Image[*].identifier=='PropertyCollapsableFrameArrow'"
+        )
         await collapsable_frame_arrows[5].click()
 
         # no we should see the material property

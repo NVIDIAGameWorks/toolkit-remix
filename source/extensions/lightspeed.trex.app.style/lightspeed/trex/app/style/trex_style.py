@@ -414,6 +414,8 @@ current_dict.update(
         "Image::Collection": {"image_url": _get_icons("link"), "color": _WHITE_80},
         "Image::Mesh": {"image_url": _get_icons("hexagon-outline"), "color": _WHITE_80},
         "Image::GeomSubset": {"image_url": _get_icons("hexagon-multiple-outline"), "color": _WHITE_80},
+        "Image::Categories": {"image_url": _get_icons("categories"), "color": _WHITE_100},
+        "Image::Categories:hovered": {"image_url": _get_icons("categories"), "color": _WHITE_60},
         "Image::ShowInViewport": {
             "image_url": _get_icons("axis-arrow"),
             "color": _WHITE_20,

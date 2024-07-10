@@ -250,6 +250,30 @@ COMMUNITY_SUPPORT_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/"
 GITHUB_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/"
 REPORT_ISSUE_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/issues"
 
+REMIX_CATEGORIES = {
+    "World UI": "remix_category:world_ui",
+    "World Matte": "remix_category:world_matte",
+    "Sky": "remix_category:sky",
+    "Ignore": "remix_category:ignore",
+    "Ignore Lights": "remix_category:ignore_lights",
+    "Ignore Anti-culling": "remix_category:ignore_anti_culling",
+    "Ignore Motion Blur": "remix_category:ignore_motion_blur",
+    "Ignore Opacity Micromap": "remix_category:ignore_opacity_micromap",
+    "Hidden": "remix_category:hidden",
+    "Particle": "remix_category:particle",
+    "Beam": "remix_category:beam",
+    "Decal Static": "remix_category:decal_Static",
+    "Decal Dynamic": "remix_category:decal_dynamic",
+    "Decal Single Offset": "remix_category:decal_single_offset",
+    "Decal No Offset": "remix_category:decal_no_offset",
+    "Alpha Blend to Cutout": "remix_category:alpha_blend_to_cutout",
+    "Terrain": "remix_category:terrain",
+    "Animated Water": "remix_category:animated_water",
+    "Third Person Player Model": "remix_category:third_person_player_model",
+    "Third Person Player Body": "remix_category:third_person_player_body",
+    "Ignore Baked Lighting": "remix_category:ignore_baked_lighting",
+}
+
 
 # This should match the `normalmap_encoding` in AperturePBR_normal.mdl
 class NormalMapEncodings(IntEnum):
