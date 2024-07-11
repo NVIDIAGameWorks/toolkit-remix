@@ -77,7 +77,7 @@ class ValidationSchema(BaseModel):
     check_plugins: List[_CheckSchema]
     resultor_plugins: Optional[List[_ResultorSchema]] = None
     validation_passed: bool = False
-    finished: Optional[Tuple[bool, str]] = (True, "Nothing")  # validation finished or not
+    finished: Optional[Tuple[bool, str]] = (False, "Nothing")  # validation finished or not
 
     @validator("uuid", allow_reuse=True)
     def sanitize_uuid(cls, v):  # noqa N805
@@ -115,32 +115,33 @@ class ValidationSchema(BaseModel):
 
         def _update(model: BaseModel, new_values: dict):
 
-            for k, v in model.validate(new_values).dict(exclude_defaults=False).items():
+            def nested_update(value_attr, new_value_attr, model_key, model_val):
+                if new_value_attr is None:
+                    setattr(model, model_key, new_value_attr)
+                    return
+                if isinstance(value_attr, BaseModel):
+                    _update(value_attr, new_value_attr)
+                elif isinstance(value_attr, list):
+                    for i, value in enumerate(value_attr):
+                        nested_update(value, new_value_attr[i], model_key, model_val)
+                elif isinstance(value_attr, dict):
+                    for i, key in enumerate(list(value_attr.keys())):
+                        nested_update(key, list(new_value_attr.keys())[i], model_key, model_val)
+                    for key, value in value_attr.items():
+                        nested_update(value, value_attr[key], model_key, model_val)
+                else:
+                    curr_val = getattr(model, model_key)
+                    if curr_val != model_val:
+                        setattr(model, model_key, model_val)
 
-                def _nested_update(_value_attr, _new_value_attr):
-                    if _new_value_attr is None:
-                        setattr(model, k, _new_value_attr)  # noqa PLW0640
-                        return
-                    if isinstance(_value_attr, BaseModel):
-                        _update(_value_attr, _new_value_attr)
-                    elif isinstance(_value_attr, list):
-                        for i, value in enumerate(_value_attr):
-                            _nested_update(value, _new_value_attr[i])  # noqa PLW0640
-                    elif isinstance(_value_attr, dict):
-                        for i, key in enumerate(list(_value_attr.keys())):
-                            _nested_update(key, list(_new_value_attr.keys())[i])  # noqa PLW0640
-                        for key, value in _value_attr.items():
-                            _nested_update(value, _value_attr[key])  # noqa PLW0640
-                    else:
-                        setattr(model, k, v)  # noqa B023
-
-                value_attr = getattr(model, k)
+            for model_key, model_val in model.validate(new_values).dict(exclude_defaults=False).items():
+                value_attr = getattr(model, model_key)
                 if isinstance(new_values, BaseModel):
-                    new_value_attr = getattr(new_values, k)
+                    new_value_attr = getattr(new_values, model_key)
                 else:
 
-                    new_value_attr = new_values[k]
-                _nested_update(value_attr, new_value_attr)
+                    new_value_attr = new_values[model_key]
+                nested_update(value_attr, new_value_attr, model_key, model_val)
 
         update = self.validate(data).dict()
         update.update(data)
