@@ -26,6 +26,7 @@ from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshProper
 from lightspeed.trex.replacement.core.shared import Setup as _AssetReplacementCore
 from lightspeed.trex.replacement.core.shared.layers import AssetReplacementLayersCore as _AssetReplacementLayersCore
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemPrim as _ItemPrim
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
     ItemReferenceFileMesh as _ItemReferenceFileMesh,
@@ -230,7 +231,7 @@ class AssetReplacementsPane:
                                 collapsed=False,
                                 pinnable=True,
                                 pinned_text_fn=lambda: self._get_selection_name_by_type(
-                                    [_ItemReferenceFileMesh, _ItemPrim]
+                                    [_ItemReferenceFileMesh, _ItemPrim, _ItemInstanceMesh]
                                 ),
                                 unpinned_fn=self._refresh_mesh_properties_widget,
                             )
@@ -304,10 +305,12 @@ class AssetReplacementsPane:
         return self._selection_tree_widget
 
     def _get_selection_name_by_type(self, selection_types: List):
-        selection = []
         # get a selection based on desired types in descending order from selection_types
+        selection = []
         for selection_type in selection_types:
-            selection = self._selection_tree_widget.get_selection_by_type(selection_type)
+            selection = [
+                item for item in self._selection_tree_widget.get_selection() if isinstance(item, selection_type)
+            ]
             if selection:
                 break
 

@@ -64,7 +64,8 @@ class Delegate(ui.AbstractItemDelegate):
             "_gradient_array": None,
             "_gradient_array_hovered": None,
             "_gradient_array_selected": None,
-            "_current_selection": None,
+            "_primary_selection": None,
+            "_secondary_selection": None,
             "_hovered_items": None,
             "_background_rectangle": None,
         }
@@ -72,7 +73,8 @@ class Delegate(ui.AbstractItemDelegate):
             setattr(self, attr, value)
 
         self.__refresh_gradient_color_task = None
-        self._current_selection = []
+        self._primary_selection = []
+        self._secondary_selection = []
         self._hovered_items = {}
         self._background_rectangle = {}
 
@@ -215,7 +217,8 @@ class Delegate(ui.AbstractItemDelegate):
         return _EventSubscription(self.__on_reset_released, function)
 
     def reset(self):
-        self._current_selection = []
+        self._primary_selection = []
+        self._secondary_selection = []
         self._hovered_items = {}
 
         self._path_scroll_frames = {}
@@ -249,7 +252,10 @@ class Delegate(ui.AbstractItemDelegate):
                 if id(item) not in self._background_rectangle:
                     self._background_rectangle[id(item)] = []
                 self._background_rectangle[id(item)].append(
-                    ui.Rectangle(height=self.DEFAULT_IMAGE_ICON_SIZE, style_type_name_override="TreeView.Item")
+                    ui.Rectangle(
+                        height=self.DEFAULT_IMAGE_ICON_SIZE,
+                        style_type_name_override=self.__get_item_background_style(item),
+                    )
                 )
                 with ui.VStack():
                     ui.Spacer()
@@ -327,7 +333,9 @@ class Delegate(ui.AbstractItemDelegate):
                 with ui.ZStack():
                     if id(item) not in self._background_rectangle:
                         self._background_rectangle[id(item)] = []
-                    self._background_rectangle[id(item)].append(ui.Rectangle(style_type_name_override="TreeView.Item"))
+                    self._background_rectangle[id(item)].append(
+                        ui.Rectangle(style_type_name_override=self.__get_item_background_style(item))
+                    )
                     with ui.HStack():
                         ui.Spacer(height=0, width=ui.Pixel(8))
                         with ui.HStack():
@@ -511,9 +519,7 @@ class Delegate(ui.AbstractItemDelegate):
     def _on_item_hovered(self, hovered, item):
         self._hovered_items[id(item)] = hovered
         for rectangle in self._background_rectangle.get(id(item), []):
-            rectangle.style_type_name_override = (
-                "TreeView.Item.IsHovered" if hovered and item not in self._current_selection else "TreeView.Item"
-            )
+            rectangle.style_type_name_override = self.__get_item_background_style(item, hovered)
         self.refresh_gradient_color(item)
 
     def _on_reset_mouse_released(self, button, item):
@@ -603,10 +609,12 @@ class Delegate(ui.AbstractItemDelegate):
         self.__do_refresh_gradient_color(item)
 
     def __do_refresh_gradient_color(self, item):
-        if id(item) not in self._gradient_image_provider:
+        if id(item) not in self._gradient_image_provider or isinstance(
+            item, (_ItemInstanceMesh, _ItemInstancesMeshGroup)
+        ):
             return
         is_hovered = self._hovered_items.get(id(item), False)
-        is_selected = item in self._current_selection
+        is_selected = item in self._primary_selection
         if is_selected:
             self._gradient_image_provider[id(item)].set_bytes_data(
                 self._gradient_array_selected_list, [self.__gradient_width, self.__gradient_height]
@@ -620,14 +628,22 @@ class Delegate(ui.AbstractItemDelegate):
                 self._gradient_array_list, [self.__gradient_width, self.__gradient_height]
             )
 
-    def on_item_selected(self, selected_items, all_items):
-        self._current_selection = selected_items
+    def on_item_selected(self, primary_items, secondary_items, all_items):
+        self._primary_selection = primary_items
+        self._secondary_selection = secondary_items
         for item in all_items:
             self.refresh_gradient_color(item)
             for rectangle in self._background_rectangle.get(id(item), []):
-                rectangle.style_type_name_override = (
-                    "TreeView.Item.selected" if item in selected_items else "TreeView.Item"
-                )
+                rectangle.style_type_name_override = self.__get_item_background_style(item)
+
+    def __get_item_background_style(self, item, hovered=False):
+        if item in self._primary_selection:
+            return "TreeView.Item.selected"
+        if item in self._secondary_selection:
+            return "TreeView.Item.semi_selected"
+        if hovered:
+            return "TreeView.Item.IsHovered"
+        return "TreeView.Item"
 
     def build_header(self, column_id):
         """Build the header"""
