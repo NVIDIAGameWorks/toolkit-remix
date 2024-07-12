@@ -1,6 +1,16 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0] - 2024-06-26
+### Added
+- Added shift-selection support
+- Secondary selections for instance items
+- Added `get_instance_selection()`
+
+### Changed
+- Instance items are no longer included as primary selections
+- Removed `get_selection_by_type()`
+
 ## [1.2.7] - 2024-07-02
 ### Changed
 - Removed the delete and duplicate button icons for asset reference light items in the selection tree
