@@ -1,5 +1,5 @@
 [package]
-version = "1.0.2"
+version = "1.0.3"
 authors = ["Damien Bataille <dbataille@nvidia.com>", "Sultim Tsyrendashiev <stsyrendashi@nvidia.com>"]
 title = "NVIDIA RTX Remix Bootstrap Extension"
 description = "Extension with minimal dependencies to load HdRemix.dll/HdRemix_bootstrap.dll as early as possible, to start up dxvk-remix instance asynchronously while other OV extensions are being loaded."
