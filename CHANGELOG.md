@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3079: Fixed texture preview windows showing the incorrect texture
 - Fixed the hotkey test so that it can handle developer mode
 - Removed the USDC_USE_PREAD environment variable since it causes crashes for projects with many textures
+- REMIX-2825: Updated renderer to the latest dxvk-remix to accomodate USD distant light import/export fixes
 
 ### Removed
 - REMIX-3152: Removed the delete and duplicate button icons for asset reference light items in the selection tree
