@@ -1,7 +1,7 @@
 trigger-publish-to-launcher:
   stage: trigger_publish_to_launcher
   extends:
-    - .defaults
+    - .windows_agent
   needs:
     - build-package-windows
   variables:

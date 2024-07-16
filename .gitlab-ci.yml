@@ -51,6 +51,7 @@ include:
   - local: tools/ci/gitlab/defaults/gitlab_release.yml
   - local: tools/ci/gitlab/defaults/agents/gpu_agent.yml
   - local: tools/ci/gitlab/defaults/agents/linux_agent.yml
+  - local: tools/ci/gitlab/defaults/agents/windows_agent.yml
   - local: tools/ci/gitlab/defaults/vault/linux_vault.yml
   - local: tools/ci/gitlab/defaults/vault/windows_vault.yml
   # Vault definitions

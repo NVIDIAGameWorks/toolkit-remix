@@ -1,5 +1,7 @@
 build-package-windows:
-  extends: .defaults
+  extends:
+    - .defaults
+    - .windows_agent
   stage: build_package
   before_script:
     - .\build.bat --rebuild --release
