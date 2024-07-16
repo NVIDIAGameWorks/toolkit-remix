@@ -1,0 +1,18 @@
+trigger-publish-to-launcher:
+  stage: trigger_publish_to_launcher
+  extends:
+    - .defaults
+  needs:
+    - build-package-windows
+  variables:
+    PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+  trigger:
+      include: tools/ci/gitlab/publishing/publish_package.yml
+      strategy: depend
+  rules: ## Automatically run publish job only on merge commit to main
+    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
+      when: always
+    - when: never
+

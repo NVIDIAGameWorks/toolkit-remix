@@ -6,7 +6,8 @@ publish-to-launcher:
   stage: publish_package
   when: manual
   needs:
-    - job: build-package-windows
+    - pipeline: $PARENT_PIPELINE_ID
+      job: build-package-windows
       artifacts: true
   before_script:
     - !reference [ .linux_vault, before_script ]
