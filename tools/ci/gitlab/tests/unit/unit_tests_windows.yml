@@ -3,6 +3,7 @@
     - .defaults
     - .gpu_agent
     - .windows_vault
+    - .windows_agent
   needs:
     - check-lint
   before_script:

@@ -21,8 +21,6 @@ publish-to-launcher:
     - echo "WinRel=${fail_wr}"
     - '[ "$fail_wr" -eq 0 ] || exit 1'
   rules: ## Add manual job on merge commit to main
-    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: manual
-    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_COMMIT_REF_NAME == "main"
       when: manual
     - when: never
