@@ -15,6 +15,7 @@ stages:
   - publish_docs
   - build_package
   - publish_extensions
+  - trigger_publish_to_launcher
   - publish_package
   - publish_package_scheduled
   - gitlab_release
