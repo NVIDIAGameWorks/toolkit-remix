@@ -6,8 +6,7 @@ publish-to-launcher:
   stage: publish_package
   when: manual
   needs:
-    - pipeline: $PARENT_PIPELINE_ID
-      job: build-package-windows
+    - job: build-package-windows
       artifacts: true
   before_script:
     - !reference [ .linux_vault, before_script ]
@@ -21,6 +20,8 @@ publish-to-launcher:
     - echo "WinRel=${fail_wr}"
     - '[ "$fail_wr" -eq 0 ] || exit 1'
   rules: ## Add manual job on merge commit to main
-    - if: $CI_COMMIT_REF_NAME == "main"
+    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
       when: manual
     - when: never
