@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2603: Added dialog to set remix categories
 - REMIX-2814: Selection tree multi-selection upgrades
 - Add a trigger pipeline to publish in the launcher (artefact bug)
+- REMIX-2236: Added github actions config and necessary files for github CLA bot
 
 ### Changed
 - Rename branch to `main`
