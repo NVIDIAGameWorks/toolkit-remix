@@ -35,11 +35,8 @@
 [[dependency]]
 python = "../_build/target-deps/python"
 packages = [
-    "dominate==2.6.0",              # SWIPAT filed under: http://nvbugs/4345466
     "pydantic==1.10.7",             # SWIPAT filed under: http://nvbugs/4345470
     "toml==0.10.1",                 # SWIPAT filed under: http://nvbugs/3060676
-    "wandb==0.12.17",               # SWIPAT filed under: http://nvbugs/4345481
-    "watchdog==0.10.4",             # SWIPAT filed under: http://nvbugs/3194408
 ]
 
 target = "../_build/target-deps/lss_pip_prebundle"

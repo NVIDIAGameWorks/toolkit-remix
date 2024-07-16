@@ -320,6 +320,10 @@ files_to_pull = [
     "${root}/deps/pip_internal.toml",
 ]
 
+[repo_stubgen]
+exts_exclude = [
+    "lightspeed.pip_archive"
+]
 
 ########################################################################################################################
 # Extensions publisher

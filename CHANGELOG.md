@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3105: Simplifying texture set logic with centralized texture set logic
 - REMIX-3083: Fixed ingestion progress bar to update count when ingestion is complete
 - Set back the regular pipeline
+- REMIX-2880: Remove unused libs
 
 ### Fixed
 - REMIX-3078: Fixed texture preview window overlapping

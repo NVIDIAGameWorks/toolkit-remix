@@ -39,8 +39,7 @@ packages = [
     "pydantic==1.10.7",             # SWIPAT filed under: http://nvbugs/3952548
     "pyperclip==1.8.2",             # SWIPAT filed under: http://nvbugs/4257389
     "requests==2.32.3",             # SWIPAT filed under: http://nvbugs/4549153
-    "shapely==2.0.1",               # SWIPAT filed under: http://nvbugs/4202649
-    "watchdog==0.10.4",             # SWIPAT filed under: http://nvbugs/3194408
+    "shapely==2.0.5",               # SWIPAT filed under: http://nvbugs/4748740
 ]
 
 target = "../_build/target-deps/flux_pip_prebundle"
