@@ -18,3 +18,7 @@
 BASE_HASH_KEY = "base_hash"
 VALIDATION_PASSED = "validation_passed"
 VALIDATION_EXTENSIONS = "validation_extensions"
+FIXES_APPLIED = "fixes_applied"
+
+# Schema Key for fixes applied
+CONTEXT_FIXES_APPLIED = "file_validated_fixes"

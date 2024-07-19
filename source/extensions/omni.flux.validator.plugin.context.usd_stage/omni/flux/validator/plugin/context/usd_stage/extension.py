@@ -24,6 +24,7 @@ from .asset_importer import AssetImporter as _AssetImporter
 from .current_stage import CurrentStage as _CurrentStage
 from .dependency_iterator import DependencyIterator as _DependencyIterator
 from .texture_importer import TextureImporter as _TextureImporter
+from .usd_directory import USDDirectory as _USDDirectory
 from .usd_file import USDFile as _USDFile
 
 
@@ -33,11 +34,11 @@ class FluxValidatorPluginContextUSDStageExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
         carb.log_info("[omni.flux.validator.plugin.context.usd_stage] Startup")
         _get_factory_instance().register_plugins(
-            [_USDFile, _CurrentStage, _DependencyIterator, _AssetImporter, _TextureImporter]
+            [_USDFile, _USDDirectory, _CurrentStage, _DependencyIterator, _AssetImporter, _TextureImporter]
         )
 
     def on_shutdown(self):
         carb.log_info("[omni.flux.validator.plugin.context.usd_stage] Shutdown")
         _get_factory_instance().unregister_plugins(
-            [_USDFile, _CurrentStage, _DependencyIterator, _AssetImporter, _TextureImporter]
+            [_USDFile, _USDDirectory, _CurrentStage, _DependencyIterator, _AssetImporter, _TextureImporter]
         )

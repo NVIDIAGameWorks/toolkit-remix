@@ -289,7 +289,7 @@ def delete_metadata(file_path: str, key: str):
             write_json_file(str(file_path), data)
 
 
-def write_metadata(file_path: str, key: str, value: typing.Any):
+def write_metadata(file_path: str, key: str, value: typing.Any, append: bool = False):
     """
     Write a metadata key for a file
 
@@ -297,6 +297,7 @@ def write_metadata(file_path: str, key: str, value: typing.Any):
         file_path: the file path to write the metadata for (not the metadata file)
         key: the key to add
         value: the value of the metadata
+        append: whether the value should be appended to a list or overwritten if is already exists
 
     Returns:
         None
@@ -306,10 +307,19 @@ def write_metadata(file_path: str, key: str, value: typing.Any):
     file_path_str = str(file_path)
     if file_path.exists():
         data = read_json_file(file_path_str)
-        data[key] = value
+        if append:
+            if key in data:
+                if isinstance(data[key], list):
+                    data[key].append(value)
+                else:
+                    data[key] = [data[key], value]
+            else:
+                data[key] = [value]
+        else:
+            data[key] = value
         write_json_file(file_path_str, data)
     else:
-        write_json_file(file_path_str, {key: value})
+        write_json_file(file_path_str, {key: [value]} if append else {key: value})
 
 
 def read_metadata(file_path: str, key: str) -> typing.Optional[typing.Any]:

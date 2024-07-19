@@ -42,8 +42,10 @@ class Operator(Enum):
 
 class AttributeMapping(BaseModel):
     operator: Operator
-    input_value: Any
-    output_value: Any
+    input_value: Any | None = None
+    output_value: Any | None = None
+    # Mapping function will be used in priority over the output_value if set
+    mapping_fn: str | None = None  # String following the lambda format for the mapping function
 
 
 class ValueMapping(_CheckBaseUSD):
@@ -61,7 +63,8 @@ class ValueMapping(_CheckBaseUSD):
         def input_output_same_type(cls, v):  # noqa
             for _, attr_mappings in v.items():
                 for index, mapping in enumerate(attr_mappings):
-                    if type(mapping.input_value) != type(mapping.output_value):  # noqa
+                    # Mapping function will be used in priority over the output_value if set
+                    if not mapping.mapping_fn and type(mapping.input_value) != type(mapping.output_value):  # noqa
                         raise ValueError(f"Input and Output value types do not match for mapping -> {index}")
             return v
 
@@ -69,10 +72,26 @@ class ValueMapping(_CheckBaseUSD):
         def iterable_input_output_same_length(cls, v):  # noqa
             for _, attr_mappings in v.items():
                 for index, mapping in enumerate(attr_mappings):
+                    # Mapping function will be used in priority over the output_value if set
+                    if mapping.mapping_fn:
+                        continue
                     if not isinstance(mapping.input_value, Iterable) or isinstance(mapping.input_value, str):
                         continue
                     if len(mapping.input_value) != len(mapping.output_value):  # noqa
                         raise ValueError(f"Input and Output values do not have the same number of items -> {index}")
+            return v
+
+        @validator("attributes", allow_reuse=True)
+        def valid_inputs(cls, v):  # noqa N805
+            for _, attr_mappings in v.items():
+                for index, mapping in enumerate(attr_mappings):
+                    if mapping.mapping_fn:
+                        continue
+                    if mapping.input_value is None or mapping.output_value is None:
+                        raise ValueError(
+                            f"A `mapping_fn` must be set in order for the `input_value` or `output_value` to be None. "
+                            f"-> {index}"
+                        )
             return v
 
         class Config(_CheckBaseUSD.Data.Config):
@@ -137,7 +156,9 @@ class ValueMapping(_CheckBaseUSD):
                     for mapping in attr_mappings:
                         input_value = attribute.Get()
                         input_type = type(input_value)
-                        if self.__OPERATOR_MAP[mapping.operator](input_value, input_type(mapping.input_value)):
+                        if self.__OPERATOR_MAP[mapping.operator](
+                            input_value, input_type(mapping.input_value) if mapping.input_value else None
+                        ):
                             is_valid = False
                             progress_message = (
                                 f"FAIL: The prim ({prim.GetPath()}) has the attribute '{attr_name}' "
@@ -199,11 +220,16 @@ class ValueMapping(_CheckBaseUSD):
                     for mapping in attr_mappings:
                         input_value = attribute.Get()
                         input_type = type(input_value)
-                        if self.__OPERATOR_MAP[mapping.operator](input_value, input_type(mapping.input_value)):
+                        if self.__OPERATOR_MAP[mapping.operator](
+                            input_value, input_type(mapping.input_value) if mapping.input_value else None
+                        ):
+                            output_value = mapping.output_value
+                            if mapping.mapping_fn:
+                                output_value = eval(mapping.mapping_fn)(input_value)  # noqa PLW0123
                             omni.kit.commands.execute(
                                 "ChangeProperty",
                                 prop_path=prim.GetProperty(attr_name).GetPath(),
-                                value=input_type(mapping.output_value),
+                                value=input_type(output_value),
                                 prev=None,
                                 usd_context_name=context_plugin_data,
                             )

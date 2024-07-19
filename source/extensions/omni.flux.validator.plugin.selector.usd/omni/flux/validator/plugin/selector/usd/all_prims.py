@@ -19,9 +19,7 @@ from typing import Any, Tuple
 
 import omni.ui as ui
 import omni.usd
-from omni.flux.utils.common.utils import get_omni_prims as _get_omni_prims
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
-from pxr import Usd
 
 from .base.base_selector import SelectorUSDBase as _SelectorUSDBase
 
@@ -48,17 +46,7 @@ class AllPrims(_SelectorUSDBase):
 
         Returns: True if ok + message + the selected data
         """
-
-        def traverse_instanced_children(prim):
-            for child in prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate):
-                if child.GetPath() in _get_omni_prims():
-                    continue
-                yield child
-                yield from traverse_instanced_children(child)
-
-        stage = omni.usd.get_context(context_plugin_data).get_stage()
-        result = list(traverse_instanced_children(stage.GetPseudoRoot()))
-        return True, "Ok", result
+        return True, "Ok", self._get_prims(schema_data, context_plugin_data)
 
     @omni.usd.handle_exception
     async def _build_ui(self, schema_data: Data) -> Any:

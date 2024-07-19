@@ -24,6 +24,8 @@ import omni.usd
 from omni.flux.utils.common.path_utils import hash_file as _hash_file
 from omni.flux.utils.common.path_utils import write_metadata as _write_metadata
 from omni.flux.validator.factory import BASE_HASH_KEY as _BASE_HASH_KEY
+from omni.flux.validator.factory import CONTEXT_FIXES_APPLIED as _CONTEXT_FIXES_APPLIED
+from omni.flux.validator.factory import FIXES_APPLIED as _FIXES_APPLIED
 from omni.flux.validator.factory import VALIDATION_EXTENSIONS as _VALIDATION_EXTENSIONS
 from omni.flux.validator.factory import VALIDATION_PASSED as _VALIDATION_PASSED
 from omni.flux.validator.factory import ResultorBase as _ResultorBase
@@ -61,6 +63,7 @@ class FileMetadataWritter(_ResultorBase):
         """
 
         all_data_flow = self._get_schema_data_flows(schema_data, schema)
+        fixes_applied = schema.context_plugin.data.dict().get(_CONTEXT_FIXES_APPLIED, [])
 
         if all_data_flow:
             for data_flow in all_data_flow:
@@ -73,6 +76,8 @@ class FileMetadataWritter(_ResultorBase):
                         _write_metadata(str(output_path), _BASE_HASH_KEY, src_hash)
                         _write_metadata(str(output_path), _VALIDATION_PASSED, schema.validation_passed)
                         _write_metadata(str(output_path), _VALIDATION_EXTENSIONS, self.__current_validation_extensions)
+                        for fix in fixes_applied:
+                            _write_metadata(str(output_path), _FIXES_APPLIED, fix, append=True)
 
         return True, "Metadata written"
 

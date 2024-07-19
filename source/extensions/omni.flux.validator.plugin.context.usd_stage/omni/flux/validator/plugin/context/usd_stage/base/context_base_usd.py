@@ -71,6 +71,9 @@ class ContextBaseUSD(_ContextBase):
         """
         context = omni.usd.get_context(usd_context_name)
         stage = context.get_stage()
+        # The stage was already closed
+        if not stage:
+            return
         root_layer = stage.GetRootLayer()
         # ugly work around to un-hold layers
         Sdf._TestTakeOwnership(root_layer)  # noqa

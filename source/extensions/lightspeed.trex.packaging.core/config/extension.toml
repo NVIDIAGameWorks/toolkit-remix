@@ -1,5 +1,5 @@
 [package]
-version = "1.0.15"
+version = "1.0.16"
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "Mod Packaging Core"
 description = "Mod Packaging Core implementation"

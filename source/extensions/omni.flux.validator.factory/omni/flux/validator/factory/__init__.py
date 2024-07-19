@@ -20,11 +20,13 @@ __all__ = [
     "BASE_HASH_KEY",
     "BaseSchema",
     "BaseValidatorRunMode",
+    "CONTEXT_FIXES_APPLIED",
     "CheckBase",
     "CheckSchema",
     "ContextBase",
     "ContextSchema",
     "DataFlow",
+    "FIXES_APPLIED",
     "FluxValidatorFactoryExtension",
     "get_instance",
     "InOutDataFlow",
@@ -38,7 +40,7 @@ __all__ = [
     "VALIDATION_EXTENSIONS",
 ]
 
-from .constant import BASE_HASH_KEY, VALIDATION_EXTENSIONS, VALIDATION_PASSED
+from .constant import BASE_HASH_KEY, CONTEXT_FIXES_APPLIED, FIXES_APPLIED, VALIDATION_EXTENSIONS, VALIDATION_PASSED
 from .data_flow import utils
 from .data_flow.base_data_flow import DataFlow
 from .data_flow.in_out_data import InOutDataFlow

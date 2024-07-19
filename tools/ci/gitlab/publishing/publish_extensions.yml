@@ -2,6 +2,7 @@ publish-extensions-windows:
   stage: publish_extensions
   extends:
     - .defaults
+    - .windows_agent
     - .windows_vault
   needs:
     - job: build-package-windows

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add a trigger pipeline to publish in the launcher (artefact bug)
 - REMIX-2236: Added github actions config and necessary files for github CLA bot
 - REMIX-3058: Added a material file path tooltip and copy menu for material property items
+- REMIX-3345: Added a tool to help with compatibility migrations for breaking data changes
 
 ### Changed
 - Rename branch to `main`
