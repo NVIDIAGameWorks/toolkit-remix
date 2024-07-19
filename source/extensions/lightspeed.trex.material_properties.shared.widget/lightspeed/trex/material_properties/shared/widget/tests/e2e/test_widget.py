@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import os
 from enum import Enum
 from unittest.mock import patch
 
@@ -35,6 +36,12 @@ from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
 from omni.kit.test.async_unittest import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage, wait_stage_loading
+
+MATERIAL_HASH = "BC868CE5A075ABB1"
+MATERIAL_ROOT_PATH = "/RootNode/Looks/"
+RELATIVE_SOURCE_TEXTURE_PATH = "project_example/sources/textures/"
+RELATIVE_CAPTURE_TEXTURE_PATH = "project_example/.deps/captures/materials/textures/"
+METAL_WALL_ASSET_PARTIAL_BASENAME = "T_MetalPanelWall_HeavyRust_"
 
 
 class TestComponents(Enum):
@@ -425,5 +432,107 @@ class TestSelectionTreeWidget(AsyncTestCase):
             "\\", "/"
         )
         self.assertEquals(rel_path, texture_file_fields[0].widget.model.get_value_as_string())
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_copy_from_material_label_copy_menu(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=10)
+
+        # ensure the material label exists
+        material_name_label = ui_test.find(f"{_window}//Frame/**/Label[*].identifier=='material_label'")
+        self.assertIsNotNone(material_name_label)
+
+        # test path copy
+        await material_name_label.click(right_click=True)
+        await ui_test.human_delay(5)
+        await omni.kit.ui_test.menu.select_context_menu("Copy Material Path")
+        await ui_test.human_delay(5)
+        copied_text = omni.kit.clipboard.paste()
+        await ui_test.human_delay(5)
+        self.assertEqual(copied_text, f"{MATERIAL_ROOT_PATH}mat_{MATERIAL_HASH}")
+
+        # test hash copy
+        await material_name_label.click(right_click=True)
+        await ui_test.human_delay(5)
+        await omni.kit.ui_test.menu.select_context_menu("Copy Material Hash")
+        await ui_test.human_delay(5)
+        copied_text = omni.kit.clipboard.paste()
+        await ui_test.human_delay(5)
+        self.assertEqual(copied_text, MATERIAL_HASH)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_copy_from_texture_string_field_copy_menu(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=10)
+
+        # expand the property branches
+        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+        for index in range(1, 4):
+            await property_branches[index].click()
+            await ui_test.human_delay(7)
+
+        # ensure the string fields exists
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        self.assertEqual(len(texture_file_fields), 4)
+
+        # test diffuse material full file path copy
+        await texture_file_fields[0].click(right_click=True)
+        await ui_test.human_delay(5)
+        await omni.kit.ui_test.menu.select_context_menu("Copy Full File Path")
+        await ui_test.human_delay(5)
+        copied_text = omni.kit.clipboard.paste()
+        await ui_test.human_delay(5)
+
+        full_path = os.path.abspath(copied_text)
+        start_index = full_path.find("project_example")
+        relative_path = full_path[start_index:].replace(os.sep, "/")
+        self.assertEqual(relative_path, f"{RELATIVE_CAPTURE_TEXTURE_PATH}{MATERIAL_HASH}.dds")
+
+        # test diffuse material hash copy
+        await texture_file_fields[0].click(right_click=True)
+        await ui_test.human_delay(5)
+        await omni.kit.ui_test.menu.select_context_menu("Copy File Path Hash")
+        await ui_test.human_delay(5)
+        copied_text = omni.kit.clipboard.paste()
+        await ui_test.human_delay(5)
+        self.assertEqual(copied_text, MATERIAL_HASH)
+
+        # test maps
+        for index, texture_type in enumerate(("metallic", "roughness", "normal"), start=1):
+            # test full file path copy
+            await texture_file_fields[index].click(right_click=True)
+            await ui_test.human_delay(5)
+            await omni.kit.ui_test.menu.select_context_menu("Copy Full File Path")
+            await ui_test.human_delay(5)
+            copied_text = omni.kit.clipboard.paste()
+            await ui_test.human_delay(5)
+
+            full_path = os.path.abspath(copied_text)
+            start_index = full_path.find("project_example")
+            relative_path = full_path[start_index:].replace(os.sep, "/")
+            self.assertEqual(
+                relative_path, f"{RELATIVE_SOURCE_TEXTURE_PATH}{METAL_WALL_ASSET_PARTIAL_BASENAME}{texture_type}.png"
+            )
+
+            # ensure material hash copy is disabled
+            await texture_file_fields[index].click(right_click=True)
+            await ui_test.human_delay(5)
+            context_menu = await omni.kit.ui_test.menu.get_context_menu()
+            await ui_test.human_delay(5)
+            self.assertFalse("Copy File Path Hash" in context_menu.get("_"))
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)

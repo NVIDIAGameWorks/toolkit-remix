@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.3] - 2024-07-26
+### Added
+- Added compiled `COMPILED_REGEX_HASH` for `REGEX_HASH`
+- Added `REGEX_HASH_GENERIC` and `COMPILED_REGEX_HASH_GENERIC`
+
 ## [1.0.2]
 ### Added
 - Added dictionary for Remix Categories

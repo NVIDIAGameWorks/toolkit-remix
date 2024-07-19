@@ -451,13 +451,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNotNone(dir_path_field)
 
         # It takes a while for the tree to update
-        await ui_test.human_delay(1)
+        await ui_test.human_delay(5)
         asset_path = _get_test_data("usd/ingested_assets/output/good/cube.usda")
         await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay(1)
+        await ui_test.human_delay(3)
 
         await select_button.click()
-        await ui_test.human_delay()
+        await ui_test.human_delay(5)
 
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()

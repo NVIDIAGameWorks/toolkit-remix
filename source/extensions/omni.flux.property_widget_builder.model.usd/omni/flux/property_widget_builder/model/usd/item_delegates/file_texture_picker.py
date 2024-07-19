@@ -19,10 +19,11 @@ __all__ = ("FileTexturePicker",)
 
 import functools
 import os
+import re
 import struct
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, List, Pattern, Tuple
 
 import carb
 import omni.client
@@ -52,15 +53,22 @@ class FileTexturePicker(_FilePicker):
     POPUP_HEIGHT = 320
 
     def __init__(
-        self, file_extension_options: List[Tuple[str, str]] | None = None, style_name: str = "PropertiesWidgetField"
+        self,
+        file_extension_options: List[Tuple[str, str]] | None = None,
+        style_name: str = "PropertiesWidgetField",
+        regex_hash: Pattern[str] = None,
     ):
         if file_extension_options is None:
             file_extension_options = [(f"{', '.join(_SUPPORTED_TEXTURE_EXTENSIONS)}", "Image files")]
 
         super().__init__(file_extension_options=file_extension_options, style_name=style_name)
 
+        self._regex_hash = regex_hash
         self._preview_window = None
         self._preview_button = None
+
+        # Populated during a right click event within `_show_copy_menu` to avoid garbage collection
+        self._context_menu: ui.Menu | None = None
 
         self.__field_changed_by_used = False
 
@@ -83,12 +91,16 @@ class FileTexturePicker(_FilePicker):
                                 read_only=True,
                                 style_type_name_override=f"{self.style_name}Read",
                                 identifier="file_texture_string_field_read",
+                                tooltip=item.value_models[i].get_value().resolvedPath,
+                                mouse_pressed_fn=functools.partial(self._show_copy_menu, item.value_models[i]),
                             )
                         else:
                             widget = ui.StringField(
                                 model=item.value_models[i],
                                 style_type_name_override=self.style_name,
                                 identifier="file_texture_string_field",
+                                tooltip=item.value_models[i].get_value().resolvedPath,
+                                mouse_pressed_fn=functools.partial(self._show_copy_menu, item.value_models[i]),
                             )
                         self._sub_field_begin_edit.append(
                             widget.model.subscribe_begin_edit_fn(
@@ -137,8 +149,7 @@ class FileTexturePicker(_FilePicker):
             if item_raw_value is not None and item_raw_value != "":
                 title_path = os.path.basename(item_raw_value.resolvedPath)
             else:
-                selected_prim_paths = omni.usd.get_context().get_selection().get_selected_prim_paths()
-                title_path = "/".join(selected_prim_paths[0].split("/")[-2:]).lstrip("/")
+                title_path = item.value_models[0].attribute_paths[0].pathString.split("/")[3]
 
             self._preview_window = ui.Window(
                 title=f"{title_path} - {item.name_models[0].get_value_as_string()}",
@@ -411,3 +422,37 @@ class FileTexturePicker(_FilePicker):
         ).replace("\\", "/")
         super()._set_field(widget, value_model, element_current_idx, relative_path)
         self.__field_changed_by_used = False
+
+    def _show_copy_menu(self, value_model: "_UsdAttributeValueModel", x: float, y: float, b: int, m: int):
+        """
+        Display a menu if the string field was right-clicked to show the copy full file path button.
+        """
+        # Only show the menu with right click
+        if b != 1:
+            return
+
+        # Avoid menu if value_model is invalid type or has no path
+        if not isinstance(value_model, _UsdAttributeValueModel) or value_model.get_value().resolvedPath == "":
+            return
+
+        # NOTE: This menu is stored on the object to avoid garbage collection and being prematurely destroyed
+        if self._context_menu is not None:
+            self._context_menu.destroy()
+        self._context_menu = ui.Menu("Context Menu")
+
+        with self._context_menu:
+            ui.MenuItem(
+                "Copy Full File Path",
+                identifier="copy_full_file_path",
+                triggered_fn=lambda: omni.kit.clipboard.copy(value_model.get_value().resolvedPath),
+            )
+            if self._regex_hash is not None:
+                hash_match = re.match(self._regex_hash, value_model.get_value().resolvedPath)
+                ui.MenuItem(
+                    "Copy File Path Hash",
+                    enabled=hash_match is not None,
+                    identifier="copy_file_path_hash",
+                    triggered_fn=lambda: omni.kit.clipboard.copy(hash_match.group(2)),
+                )
+
+        self._context_menu.show()

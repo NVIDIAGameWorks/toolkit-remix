@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.1] - 2024-07-16
+### Added
+- Copy menu hash disabling if there is no hash for the asset
+
 ## [1.3.0] - 2024-06-26
 ### Added
 - Added shift-selection support

@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.11.7] - 2024-07-12
+### Added
+- Full file path hover tooltip for material string field properties
+- Copy file path menu for material string field properties
+
+### Fixed
+- Now the fallback texture preview window title doesn't break when there are multiple assets selected
+
 ## [2.11.6] - 2024-06-26
 ### Fixed
 - Texture preview windows sharing the same UI instance
