@@ -578,6 +578,7 @@ class Delegate(ui.AbstractItemDelegate):
             self._context_menu.destroy()
         self._context_menu = ui.Menu("Context Menu")
 
+        hash_match = re.match(constants.COMPILED_REGEX_HASH, str(item.prim.GetPath()))
         with self._context_menu:
             ui.MenuItem(
                 "Copy Prim Name",
@@ -597,10 +598,9 @@ class Delegate(ui.AbstractItemDelegate):
             )
             ui.MenuItem(
                 "Copy Hash",
+                enabled=hash_match is not None,
                 identifier="copy_hash",
-                triggered_fn=lambda: omni.kit.clipboard.copy(
-                    re.match(constants.REGEX_HASH, str(item.prim.GetPath())).group(3)
-                ),
+                triggered_fn=lambda: omni.kit.clipboard.copy(hash_match.group(3)),
             )
 
         self._context_menu.show()

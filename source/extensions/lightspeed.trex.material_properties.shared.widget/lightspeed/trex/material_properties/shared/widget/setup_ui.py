@@ -17,6 +17,7 @@
 
 import asyncio
 import functools
+import re
 import typing
 from functools import partial
 from pathlib import Path
@@ -84,6 +85,8 @@ class SetupUI:
             "_stage": None,
             "_frame_none": None,
             "_material_properties_frames": None,
+            "_context_menu": None,
+            "_current_material": None,
             "_frame_material_widget": None,
             "_material_properties_widget": None,
             "_frame_combobox_materials": None,
@@ -105,6 +108,9 @@ class SetupUI:
 
         self._selected_prims = []
         self._material_properties_frames = {}
+
+        # Populated during a right click event within `_show_copy_menu` to avoid garbage collection
+        self._context_menu: ui.Menu | None = None
 
         self.__create_ui()
 
@@ -133,7 +139,10 @@ class SetupUI:
         # Customize the sdf asset path attribute widgets to limit file extension to dds.
         @field_builders.register_by_type(_mapping.tf_sdf_asset_path)
         def _sdf_asset_path_builder(item) -> list[ui.Widget]:
-            builder = _FileTexturePicker(file_extension_options=[("*.dds", "Compatible Textures")])
+            builder = _FileTexturePicker(
+                file_extension_options=[("*.dds", "Compatible Textures")],
+                regex_hash=_constants.COMPILED_REGEX_HASH_GENERIC,
+            )
             return builder(item)
 
         return field_builders
@@ -167,9 +176,11 @@ class SetupUI:
                                 self._current_material_label = ui.Label(
                                     "",
                                     name="PropertiesWidgetLabel",
+                                    identifier="material_label",
                                     alignment=ui.Alignment.LEFT_CENTER,
                                     tooltip="",
                                     width=ui.Percent(80),
+                                    mouse_pressed_fn=lambda x, y, b, m: self._show_copy_menu(b),
                                 )
                         ui.Image(
                             "",
@@ -492,10 +503,12 @@ class SetupUI:
                         self._material_properties_widget.show(True)
                         self._material_properties_widget.refresh(materials)
                         self._set_material_label(str(materials[0]))
+                        self._current_single_material = materials[0]
                     else:
                         # hide properties when multiple prims selected as this isnt supported yet
                         self._material_properties_widget.show(False)  # to disable the listener
                         self._set_material_label("Multiple Selected", SetupUI._concat_list_to_string(materials))
+                        self._current_single_material = None
 
                     return
         self._material_properties_widget.show(False)  # to disable the listener
@@ -619,6 +632,39 @@ class SetupUI:
             refresh_instance_items(instance_material_items, len(instance_material_items))
             await refresh_shared_items(shared_material_items, len(shared_material_items))
         self._texture_edit_status = False
+
+    def _show_copy_menu(self, button):
+        """
+        Display a menu if the string field was right-clicked to show the copy full file path button.
+        """
+        # Only show the menu with right click
+        if button != 1:
+            return
+
+        # If right click was not pressed or the material is None or empty
+        if self._current_single_material is None or str(self._current_single_material) == "":
+            return
+
+        # NOTE: This menu is stored on the object to avoid garbage collection and being prematurely destroyed
+        if self._context_menu is not None:
+            self._context_menu.destroy()
+        self._context_menu = ui.Menu("Context Menu")
+
+        hash_match = re.match(_constants.COMPILED_REGEX_HASH, self._current_single_material.pathString)
+        with self._context_menu:
+            ui.MenuItem(
+                "Copy Material Path",
+                identifier="copy_material_path",
+                triggered_fn=lambda: omni.kit.clipboard.copy(self._current_single_material.pathString),
+            )
+            ui.MenuItem(
+                "Copy Material Hash",
+                enabled=hash_match is not None,
+                identifier="copy_material_hash",
+                triggered_fn=lambda: omni.kit.clipboard.copy(hash_match.group(3)),
+            )
+
+        self._context_menu.show()
 
     def show(self, value):
         if value:
