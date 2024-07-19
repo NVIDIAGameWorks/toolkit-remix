@@ -16,3 +16,4 @@ API
    resources
    search
    text_to_image
+   tree_widget

@@ -9,8 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Create 2024.4.0-RC.2 build
+- REMIX-2593: Added a centralized TreeWidget with additional logic
 
 ### Changed
+- REMIX-2593: Changed the LayerTree widget to work with multiselect
 
 ### Fixed
 

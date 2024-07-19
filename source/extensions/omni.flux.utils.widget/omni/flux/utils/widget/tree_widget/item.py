@@ -17,33 +17,35 @@
 
 import abc
 
-from omni.flux.property_widget_builder.widget import Model as _Model
+from omni import ui
+from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 
-class FileModel(_Model):
-    """Basic list model"""
-
-    def __init__(self, path: str):
+class TreeItemBase(ui.AbstractItem):
+    def __init__(self, children: list["TreeItemBase"] | None = None):
         """
-        Model that will show a list of attribute(s) of a file
-
-        Args:
-            path: the path of the file
+        A base Item class to be overridden and used with the TreeWidget.
         """
         super().__init__()
-        self._path = path
+
+        for attr, value in self.default_attr.items():
+            setattr(self, attr, value)
+
+        self._children = children if children is not None else []
 
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
-        default_attr = super().default_attr
-        default_attr.update(
-            {
-                "_path": None,
-            }
-        )
-        return default_attr
+        return {"_children": None}
 
     @property
-    def path(self) -> str:
-        return self._path
+    def children(self) -> list["TreeItemBase"]:
+        return self._children
+
+    @property
+    @abc.abstractmethod
+    def can_have_children(self) -> bool:
+        raise NotImplementedError()
+
+    def destroy(self):
+        _reset_default_attrs(self)

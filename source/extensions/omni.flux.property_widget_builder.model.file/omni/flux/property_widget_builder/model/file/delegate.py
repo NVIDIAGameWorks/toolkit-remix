@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import abc
 from typing import TYPE_CHECKING, List
 
 import omni.ui as ui
@@ -25,7 +26,6 @@ from omni.flux.property_widget_builder.delegates.string_value.file_access import
 from omni.flux.property_widget_builder.delegates.string_value.file_flags import FileFlags as _FileFlags
 from omni.flux.property_widget_builder.delegates.string_value.multiline_field import MultilineField as _MultilineField
 from omni.flux.property_widget_builder.widget import Delegate as _Delegate
-from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 if TYPE_CHECKING:
     from omni.flux.property_widget_builder.widget import ItemModel as _ItemModel
@@ -35,18 +35,18 @@ class FileDelegate(_Delegate):
     """Delegate of the tree"""
 
     @property
-    def default_attrs(self):
-        default_attrs = super().default_attrs
-        default_attrs.update({})
-        return default_attrs
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
 
-    def _build_widget(self, model, item, column_id, level, expanded):
+    def _build_item_widgets(self, model, item, column_id: int = 0, level: int = 0, expanded: bool = False):
         """Create a widget per item"""
         if item is None:
             return None
         if column_id == 0:
             builder = NameField()
             return builder.build_ui(item)
+
         if column_id == 1:
             if item.attribute == "size":
                 attribute_builder = _BytesToHuman()
@@ -63,6 +63,7 @@ class FileDelegate(_Delegate):
                 return attribute_builder.build_ui(item)
             attribute_builder = _DefaultField(ui.StringField)
             return attribute_builder.build_ui(item)
+
         return None
 
     def _is_multiline_field(self, values: List["_ItemModel"]):
@@ -70,7 +71,3 @@ class FileDelegate(_Delegate):
             if value.multiline[0]:
                 return value.multiline
         return values[0].multiline
-
-    def destroy(self):
-        super().destroy()
-        _reset_default_attrs(self)

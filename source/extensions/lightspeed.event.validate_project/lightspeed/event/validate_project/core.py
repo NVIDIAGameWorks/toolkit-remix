@@ -172,7 +172,7 @@ class EventValidateProjectCore(_ILSSEvent):
     def __update_layer_state(self, layer_identifier: str, should_be_locked: bool, should_be_muted: bool):
         state = _layers.get_layers(self._context).get_layers_state()
 
-        with omni.kit.undo.group():
+        with omni.kit.undo.disabled():
             if state.is_layer_locked(layer_identifier) != should_be_locked:
                 commands.execute(
                     "LockLayer",
