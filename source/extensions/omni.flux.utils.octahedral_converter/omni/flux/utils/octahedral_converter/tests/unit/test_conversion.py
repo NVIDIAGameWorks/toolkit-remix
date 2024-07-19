@@ -38,8 +38,10 @@ class TestOctahedralConverter(omni.kit.test.AsyncTestCaseFailOnLogError):
         oth_path = texture_folder_path.joinpath("Normal_Map_Test_Octahedral.png").absolute()
         dx_path = texture_folder_path.joinpath("Normal_Map_Test_DirectX.png").absolute()
 
-        dx_img = np.array(Image.open(dx_path))[:, :, 0:3]
-        oth_img = np.array(Image.open(oth_path))[:, :, 0:3]
+        with Image.open(dx_path) as image_file:
+            dx_img = np.array(image_file)[:, :, 0:3]
+        with Image.open(oth_path) as image_file:
+            oth_img = np.array(image_file)[:, :, 0:3]
         converted_img = OctahedralConverter.convert_dx_to_octahedral(dx_img)
 
         diff = oth_img[:, :, 0:3].astype("int32") - converted_img[:, :, 0:3].astype("int32")
@@ -54,8 +56,10 @@ class TestOctahedralConverter(omni.kit.test.AsyncTestCaseFailOnLogError):
         oth_path = texture_folder_path.joinpath("Normal_Map_Test_Octahedral.png").absolute()
         ogl_path = texture_folder_path.joinpath("Normal_Map_Test_OpenGL.png").absolute()
 
-        oth_img = np.array(Image.open(oth_path))[:, :, 0:3]
-        ogl_img = np.array(Image.open(ogl_path))[:, :, 0:3]
+        with Image.open(oth_path) as image_file:
+            oth_img = np.array(image_file)[:, :, 0:3]
+        with Image.open(ogl_path) as image_file:
+            ogl_img = np.array(image_file)[:, :, 0:3]
 
         converted_img = OctahedralConverter.convert_ogl_to_octahedral(ogl_img)
 

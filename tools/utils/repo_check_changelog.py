@@ -22,7 +22,7 @@ import toml
 from pathlib import Path
 
 
-def get_changed_files(source_hash: str, original_hash: str) -> list[str]:
+def get_changed_files(source_hash: str, original_hash: str) -> list[tuple[str, str]]:
     """
     Find all the files that have changed since the last commit.
 
@@ -31,18 +31,18 @@ def get_changed_files(source_hash: str, original_hash: str) -> list[str]:
         original_hash: The original commit hash
 
     Returns:
-        A list of file names that have changed since the last commit.
+        A list of change type + file names that have changed since the last commit.
     """
     changed_files = subprocess.check_output(
         # Use --no-page to avoid paging the output
         # Use --name-only to only return the file names, not the changed diff
-        ["git", "--no-pager", "diff", "--name-only", f"{original_hash}..{source_hash}"],
+        ["git", "--no-pager", "diff", "--name-status", f"{original_hash}..{source_hash}"],
         text=True
     )
-    return changed_files.splitlines()
+    return [(file[0], file[2:]) for file in changed_files.splitlines()]
 
 
-def find_changed_extensions(changed_files: list[str], prefix_path: Path) -> list[Path]:
+def find_changed_extensions(changed_files: list[tuple[str, str]], prefix_path: Path) -> list[Path]:
     """
     Given the list of changed files, find all the extensions that have changes in them.
 
@@ -54,7 +54,10 @@ def find_changed_extensions(changed_files: list[str], prefix_path: Path) -> list
         A list of the extensions that contain changes.
     """
     str_prefix = prefix_path.as_posix()
-    changed_extension_files = [Path(chg) for chg in changed_files if chg.startswith(str_prefix)]
+    # ignore extensions that were deleted. We don't need to check anything here.
+    changed_extension_files = [
+        Path(chg) for change_type, chg in changed_files if chg.startswith(str_prefix) and change_type != "D"
+    ]
     rel_paths = [chg.relative_to(prefix_path) for chg in changed_extension_files]
     ext_name_parts = set([chg.parts[0] for chg in rel_paths])
     return [prefix_path / ext_name for ext_name in ext_name_parts]
@@ -119,7 +122,11 @@ def validate_extension_changes(source_hash: str, original_hash: str, changed_ext
     source_text = get_source(config_file, source_hash)
     original_text = get_source(config_file, original_hash)
     source_parsed = toml.loads(source_text)
-    original_parsed = toml.loads(original_text)
+    try:
+        original_parsed = toml.loads(original_text)
+    except toml.TomlDecodeError:
+        # we can't load the original, so we skip the check here
+        return ""
     source_version = source_parsed.get("package", {}).get("version")
     original_version = original_parsed.get("package", {}).get("version")
     if not source_version:
@@ -294,7 +301,11 @@ def setup_repo_tool(parser, _):
             failures.append(validate_extension_changes(source_hash, original_hash, changed_extension, extension_changelog_file, extension_config_file))
         # If there are any non-empty failures, fail.
         if any(failures):
-            print(f"The following extensions were not updated correctly:\n{'/n'.join([f for f in failures if f])}")
+            failures_string = ""
+            for f in failures:
+                if f:
+                    failures_string += f + "\n"
+            print(f"The following extensions were not updated correctly:\n{failures_string}")
             sys.exit(1)
 
         # Now validate the overall CHANGELOG.md

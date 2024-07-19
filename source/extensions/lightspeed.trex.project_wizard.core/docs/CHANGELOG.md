@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.16]
+### Changed
+- Update dependency
+
 ## [1.2.15]
 ### Changed
 - Update deps

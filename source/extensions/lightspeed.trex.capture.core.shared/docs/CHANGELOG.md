@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.7]
+### Fixed
+- Fix things for security
+
 ## [1.1.6]
 ### Fixed
 - Handle the upscaling of the game icon without to have the AI repo cloned

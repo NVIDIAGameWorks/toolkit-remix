@@ -98,10 +98,9 @@ def get_upscaled_game_icon_from_capture_folder(capture_folder_path: str) -> Opti
     if not upscaled_path.exists():
         # first we convert the bmp to png without alpha
         png_file = default_icon.replace("_icon.bmp", "_icon.png")
-        im1 = Image.open(default_icon)
-        im1 = im1.convert("RGB")
-        im1.save(png_file)
-        im1.close()
+        with Image.open(default_icon) as im1:
+            im1 = im1.convert("RGB")
+            im1.save(png_file)
         # we upscale
         UpscalerCore.perform_upscale(UpscaleModels.ESRGAN.value, png_file, str(upscaled_path))
     return str(upscaled_path)

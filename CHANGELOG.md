@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2236: Added github actions config and necessary files for github CLA bot
 - REMIX-3058: Added a material file path tooltip and copy menu for material property items
 - REMIX-3345: Added a tool to help with compatibility migrations for breaking data changes
+- Detect broken layers when creating a new one
 
 ### Changed
 - Rename branch to `main`
@@ -36,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed highlight outline rendering if selecting non-power-of-two amount of objects
 - Fix trigger pipeline
 - Fix CI that crash because of a wrong ingested asset
+- Multiple fixes for Checkmarx
 
 ### Removed
 - REMIX-3152: Removed the delete and duplicate button icons for asset reference light items in the selection tree
