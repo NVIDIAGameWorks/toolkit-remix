@@ -2,7 +2,7 @@ build-package-scheduled:
   extends: build-package-windows
   stage: publish_package_scheduled
   rules: ## Add manual job on merge commit to main
-    - if: $CI_COMMIT_REF_NAME == "main" && $DO_PACKMAN_PUBLISH
+    - if: $CI_COMMIT_REF_NAME == "release/2024.4.x" && $DO_PACKMAN_PUBLISH
       when: always
 
 publish-package-scheduled:
@@ -25,5 +25,5 @@ publish-package-scheduled:
     - echo "WinRel=${fail_wr}"
     - '[ "$fail_wr" -eq 0 ] || exit 1'
   rules: ## Add manual job on merge commit to main
-    - if: $CI_COMMIT_REF_NAME == "main" && $DO_PACKMAN_PUBLISH
+    - if: $CI_COMMIT_REF_NAME == "release/2024.4.x" && $DO_PACKMAN_PUBLISH
       when: always

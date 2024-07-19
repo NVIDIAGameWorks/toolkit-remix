@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create 2024.4.0-RC.2 build
 
 ### Changed
+- Change branch to release branch for CI for RC
 
 ### Fixed
 
