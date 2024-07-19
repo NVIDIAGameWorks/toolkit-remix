@@ -1,6 +1,6 @@
 # RTX Remix Release Notes (5/13/2024)
 
-## RTX Remix Toolkit Release 2024.4.0-RC.1
+## RTX Remix Toolkit Release 2024.4.0-RC.2
 ### Changed
 - Updated the runtime included with the RTX Remix Toolkit to version 0.5.1
 
