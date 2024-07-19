@@ -1,12 +1,12 @@
 publish-to-launcher:
   extends:
-    - .defaults
     - .linux_agent
     - .linux_vault
-  stage: publish_package
-  when: manual
+    - .gitlab_release
   needs:
-    - job: build-package-windows
+    - job: build-package-gitlab-linux
+      artifacts: true
+    - job: build-package-gitlab-windows
       artifacts: true
   before_script:
     - !reference [ .linux_vault, before_script ]
@@ -19,9 +19,3 @@ publish-to-launcher:
     - ./repo.sh ci publish_to_launcher || fail_wr=1
     - echo "WinRel=${fail_wr}"
     - '[ "$fail_wr" -eq 0 ] || exit 1'
-  rules: ## Add manual job on merge commit to main
-    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: manual
-    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
-      when: manual
-    - when: never
