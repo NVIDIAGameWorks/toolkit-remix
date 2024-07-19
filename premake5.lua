@@ -13,6 +13,10 @@ repo_build.prebuild_copy {
     { "${root}/deps/install-deps.packman.xml", bin_dir.."/dev/deps" },
 }
 
+repo_build.prebuild_link {
+    { "${root}/tools/migrations", bin_dir.."/tools/migrations" },
+}
+
 define_app("lightspeed.app.trex")
 define_app("lightspeed.app.trex.ingestcraft")
 define_app("lightspeed.app.trex.stagecraft")

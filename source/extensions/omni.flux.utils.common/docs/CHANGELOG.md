@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.18.0]
+### Added
+- Added the ability to write lists to metadata
+
 ## [2.17.0] - 2024-06-04
 ### Added
 - Added `get_invalid_extensions()`

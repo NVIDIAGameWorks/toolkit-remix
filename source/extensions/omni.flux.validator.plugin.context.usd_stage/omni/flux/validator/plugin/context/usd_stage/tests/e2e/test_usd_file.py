@@ -55,8 +55,8 @@ class TestUsdFile(AsyncTestCase):
             nonlocal sub_check_count
             sub_check_count += 1
             self.assertFalse(_result)
-            self.assertTrue(
-                _message == f"Can't find the file {omni.client.normalize_url('wrong_file_path/hello/ahah.usda')}"
+            self.assertEqual(
+                f"Can't read the file {omni.client.normalize_url('wrong_file_path/hello/ahah.usda')}", _message
             )
 
         def check_set_sub_validation(_result, _message, _data):
@@ -70,8 +70,8 @@ class TestUsdFile(AsyncTestCase):
             # will crash because the usd file doesn't exist
             await core.deferred_run()
 
-        self.assertTrue(sub_check_count == 1)
-        self.assertTrue(sub_set_count == 0)
+        self.assertEqual(sub_check_count, 1)
+        self.assertEqual(sub_set_count, 0)
 
     async def test_run_file_ok(self):
         core = _ManagerCore(

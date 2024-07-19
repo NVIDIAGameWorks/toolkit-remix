@@ -1,0 +1,46 @@
+{
+    "name": "Distant Lights Z Direction Migration",
+    "context_plugin":
+        {
+            "name": "USDDirectory",
+            "data": {
+                "context_name": "",
+                "directory": "",
+                "recursive": true,
+                "ignore_paths": ["deps/mods"],
+                "skip_validated_files": true,
+                "file_validated_fixes": ["distant_light_z_direction-1.0.0"],
+                "save_all_layers_on_exit": true,
+                "close_stage_on_exit": true,
+                "create_context_if_not_exist": true,
+                "cook_mass_template": true,
+                "data_flows": [
+                    {"name": "InOutData", "push_output_data": true, "channel": "write_metadata"}
+                ]
+            }
+        },
+    "check_plugins": [
+        {
+            "name": "ValueMapping",
+            "selector_plugins": [{"name": "AllLights", "data": {"light_types": ["DistantLight"], "select_from_root_layer_only": true}}],
+            "data": {
+                "attributes":  {
+                    "xformOp:rotateXYZ":  [{"operator": "All", "mapping_fn": "lambda v: (v[0], v[1], -1 * v[2])"}],
+                    "xformOp:rotateXZY":  [{"operator": "All", "mapping_fn": "lambda v: (v[0], -1 * v[1], v[2])"}],
+                    "xformOp:rotateYXZ":  [{"operator": "All", "mapping_fn": "lambda v: (v[0], v[1], -1 * v[2])"}],
+                    "xformOp:rotateYZX":  [{"operator": "All", "mapping_fn": "lambda v: (v[0], -1 * v[1], v[2])"}],
+                    "xformOp:rotateZXY":  [{"operator": "All", "mapping_fn": "lambda v: (-1 * v[0], v[1], v[2])"}],
+                    "xformOp:rotateZYX":  [{"operator": "All", "mapping_fn": "lambda v: (-1 * v[0], v[1], v[2])"}],
+                    "xformOp:transform":  [{
+                        "operator": "All",
+                        "mapping_fn": "lambda v: ((v[0][0], v[0][1], v[0][2], v[0][3]),(-1 * v[1][0], -1 * v[1][1], -1 * v[1][2], v[1][3]),(-1 * v[2][0], -1 * v[2][1], -1 * v[2][2], v[2][3]),(v[3][0], v[3][1], v[3][2], v[3][3]))"
+                    }]
+                }
+            },
+            "context_plugin": {"name": "CurrentStage", "data": {"save_on_exit": true}}
+        }
+    ],
+    "resultor_plugins": [
+        {"name": "FileMetadataWritter", "data": {"channel": "write_metadata"}}
+    ]
+}

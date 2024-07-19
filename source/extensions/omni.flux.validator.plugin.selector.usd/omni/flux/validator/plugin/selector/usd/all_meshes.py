@@ -47,15 +47,11 @@ class AllMeshes(_SelectorUSDBase):
         Returns: True if ok + message + the selected data
         """
 
-        stage = omni.usd.get_context(context_plugin_data).get_stage()
+        prims = self._get_prims(schema_data, context_plugin_data)
         if schema_data.include_geom_subset:
-            all_geos = [
-                prim_ref
-                for prim_ref in stage.TraverseAll()
-                if prim_ref.IsA(UsdGeom.Mesh) or prim_ref.IsA(UsdGeom.Subset)
-            ]
+            all_geos = [prim_ref for prim_ref in prims if prim_ref.IsA(UsdGeom.Mesh) or prim_ref.IsA(UsdGeom.Subset)]
         else:
-            all_geos = [prim_ref for prim_ref in stage.TraverseAll() if prim_ref.IsA(UsdGeom.Mesh)]
+            all_geos = [prim_ref for prim_ref in prims if prim_ref.IsA(UsdGeom.Mesh)]
         return True, "Ok", all_geos
 
     @omni.usd.handle_exception

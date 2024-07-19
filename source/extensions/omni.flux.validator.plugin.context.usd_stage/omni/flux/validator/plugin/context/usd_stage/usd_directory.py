@@ -16,6 +16,7 @@
 """
 
 import uuid
+from pathlib import Path
 from typing import Any, Awaitable, Callable, List, Optional, Tuple
 
 import carb.tokens
@@ -34,14 +35,24 @@ from pydantic import root_validator
 from .base.context_base_usd import ContextBaseUSD as _ContextBaseUSD
 
 
-class USDFile(_ContextBaseUSD):
+class USDDirectory(_ContextBaseUSD):
     class Data(_ContextBaseUSD.Data):
-        file: str
-        save_on_exit: bool = False
+        directory: str
+        recursive: bool = True  # Recursively go down every subdirectory in the given directory
+        ignore_paths: list[str] | None = (
+            None  # If these tokens are found in a path while walking the directories, the directory will be ignored
+        )
+        save_all_layers_on_exit: bool = False
         close_stage_on_exit: bool = False
+        # will close each dependency layer at the end. But NOT the main layer. Use close_stage_on_exit for the main
+        # layer
+        close_dependency_between_round: bool = True
 
         skip_validated_files: bool = False
         file_validated_fixes: set[str] | None = None  # List of fixes that should be applied to skip the validation
+
+        # For cooked templates only
+        cooked_files: list[str] | None = None
 
         _compatible_data_flow_names = ["InOutData"]
         data_flows: Optional[List[_InOutDataFlow]] = None  # override base argument with the good typing
@@ -53,9 +64,9 @@ class USDFile(_ContextBaseUSD):
                 raise ValueError("When `skip_validated_files` is True, `file_validated_fixes` must be set")
             return values
 
-    name = "USDFile"
-    display_name = "USD File"
-    tooltip = "This plugin will open the given stage path"
+    name = "USDDirectory"
+    display_name = "USD Directory"
+    tooltip = "This plugin will iterate and open all USD stages in the given path"
     data_type = Data
 
     @omni.usd.handle_exception
@@ -69,17 +80,28 @@ class USDFile(_ContextBaseUSD):
 
         Returns: True if the check passed, False if not
         """
-        file_path = carb.tokens.get_tokens_interface().resolve(schema_data.file)
-        file_path = omni.client.normalize_url(file_path)
-        if not _OmniUrl(file_path).is_file:
-            return False, f"Can't read the file {file_path}"
+        directory_path = omni.client.normalize_url((carb.tokens.get_tokens_interface().resolve(schema_data.directory)))
+        directory_url = _OmniUrl(directory_path)
 
-        if schema_data.skip_validated_files and schema_data.file_validated_fixes.intersection(
-            _path_utils.read_metadata(file_path, _FIXES_APPLIED) or []
-        ):
-            return False, "The file was already validated."
+        if not directory_url.is_directory:
+            return False, f"Can't find the directory {directory_path}"
 
-        return True, f"File {file_path} ok to read"
+        if schema_data.skip_validated_files:
+            input_files = await self.__glob_usd_files(
+                schema_data.directory,
+                recursive=schema_data.recursive,
+                ignore_paths=schema_data.ignore_paths,
+            )
+            files_to_validate = 0
+            for input_file in input_files:
+                if not schema_data.file_validated_fixes.intersection(
+                    _path_utils.read_metadata(input_file, _FIXES_APPLIED) or []
+                ):
+                    files_to_validate += 1
+            if files_to_validate < 1:
+                return False, "All the files within the directory were already validated."
+
+        return True, f"Directory {directory_path} ok to read"
 
     async def _setup(
         self,
@@ -97,30 +119,61 @@ class USDFile(_ContextBaseUSD):
 
         Returns: True if ok + message + data that need to be passed into another plugin
         """
-        file_path = carb.tokens.get_tokens_interface().resolve(schema_data.file)
-        file_path = omni.client.normalize_url(file_path)
-
-        if schema_data.skip_validated_files and schema_data.file_validated_fixes.intersection(
-            _path_utils.read_metadata(file_path, _FIXES_APPLIED) or []
-        ):
-            return False, "The file was already validated.", None
-
+        directory_path = omni.client.normalize_url((carb.tokens.get_tokens_interface().resolve(schema_data.directory)))
         context = await self._set_current_context(schema_data, parent_context)
         if not context:
             return False, f"The context {schema_data.computed_context} doesn't exist!", None
 
-        _validator_factory_utils.push_input_data(schema_data, [str(file_path)])
+        usd_file_paths = (
+            schema_data.cooked_files  # noqa PLW0212
+            if schema_data.cooked_files  # noqa PLW0212
+            else await self.__glob_usd_files(
+                directory_path, recursive=schema_data.recursive, ignore_paths=schema_data.ignore_paths
+            )
+        )
 
-        if schema_data.save_on_exit:
-            _validator_factory_utils.push_output_data(schema_data, [str(file_path)])
+        progress = 0
+        progress_delta = 1 / len(usd_file_paths)
 
-        result, error = await context.open_stage_async(file_path)
-        if not result:
-            return False, f"Can't open the file {file_path: {error}}", None
+        files_to_validate = 0
+        for i, file_path in enumerate(usd_file_paths):
+            if schema_data.skip_validated_files and schema_data.file_validated_fixes.intersection(
+                _path_utils.read_metadata(file_path, _FIXES_APPLIED) or []
+            ):
+                # File was already validated
+                continue
 
-        await run_callback(schema_data.computed_context)
+            files_to_validate += 1
 
-        return True, file_path, context.get_stage()
+            _validator_factory_utils.push_input_data(schema_data, [str(file_path)])
+
+            if schema_data.save_all_layers_on_exit:
+                _validator_factory_utils.push_output_data(schema_data, [str(file_path)])
+
+            result, error = await context.open_stage_async(file_path)
+            if not result:
+                return False, f"Can't open the file {file_path: {error}}", None
+            progress += progress_delta / 2
+
+            self.on_progress(progress, f"Opened {Path(file_path).name}", True)
+
+            await run_callback(schema_data.computed_context)
+
+            if schema_data.save_all_layers_on_exit:
+                result, error, _saved_layers = await context.save_stage_async()
+                if not result:
+                    return False, f"Can't save the file {file_path: {error}}", None
+
+            if schema_data.close_dependency_between_round and i != len(usd_file_paths) - 1:
+                await self._close_stage(schema_data.computed_context)
+
+            progress += progress_delta / 2
+            self.on_progress(progress, f"Processed {Path(file_path).name}", True)
+
+        if files_to_validate < 1:
+            return False, "All the files within the directory were already validated.", None
+
+        return True, directory_path, usd_file_paths
 
     async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
         """
@@ -134,23 +187,9 @@ class USDFile(_ContextBaseUSD):
             bool: True if the on exit passed, False if not.
             str: the message you want to show, like "Succeeded to exit this context"
         """
-        if not schema_data.computed_context and schema_data.skip_validated_files:
-            return True, "Validated file was skipped"
-
-        context = omni.usd.get_context(schema_data.computed_context)
-        message = "Ok!"
-        if schema_data.save_on_exit:
-            result, error = await context.save_stage_async()
-            file_path = carb.tokens.get_tokens_interface().resolve(schema_data.file)
-            file_path = omni.client.normalize_url(file_path)
-            if not result:
-                return False, f"Can't save the file {file_path: {error}}"
-            message = f"File {file_path} saved!"
-
         if schema_data.close_stage_on_exit:
             await self._close_stage(schema_data.computed_context)
-
-        return True, message
+        return True, "Exit ok"
 
     @omni.usd.handle_exception
     async def _mass_cook_template(self, schema_data_template: Data) -> Tuple[bool, Optional[str], List[Data]]:
@@ -170,16 +209,26 @@ class USDFile(_ContextBaseUSD):
         # Validate the context inputs are valid
         success, message = await self._check(schema_data_template, None)
         if not success:
-            return False, message, []
+            return False, message, result
 
-        input_file = schema_data_template.file
+        input_files = await self.__glob_usd_files(
+            schema_data_template.directory,
+            recursive=schema_data_template.recursive,
+            ignore_paths=schema_data_template.ignore_paths,
+        )
 
-        schema = self.Data(**schema_data_template.dict())
-        schema.file = input_file
-        schema.display_name_mass_template = str(_OmniUrl(input_file).stem)
-        schema.display_name_mass_template_tooltip = input_file
-        schema.uuid = str(uuid.uuid4())
-        result.append(schema)
+        for input_file in input_files:
+            if schema_data_template.skip_validated_files and schema_data_template.file_validated_fixes.intersection(
+                _path_utils.read_metadata(input_file, _FIXES_APPLIED) or []
+            ):
+                continue
+
+            schema = self.Data(**schema_data_template.dict())
+            schema.cooked_files = [input_file]  # noqa PLW0212
+            schema.display_name_mass_template = str(_OmniUrl(input_file).stem)
+            schema.display_name_mass_template_tooltip = input_file
+            schema.uuid = str(uuid.uuid4())
+            result.append(schema)
 
         return True, None, result
 
@@ -227,6 +276,32 @@ class USDFile(_ContextBaseUSD):
                 with ui.HStack():
                     ui.Spacer(width=ui.Pixel(4))
                     _file_field = ui.StringField(height=ui.Pixel(18), style_type_name_override="Field")
-                    file_path = carb.tokens.get_tokens_interface().resolve(schema_data.file)
+                    file_path = carb.tokens.get_tokens_interface().resolve(schema_data.directory)
                     file_path = omni.client.normalize_url(file_path)
                     _file_field.model.set_value(file_path)
+
+    async def __glob_usd_files(self, directory_path: str, recursive: bool = False, ignore_paths: list[str] = None):
+        directory_path = _OmniUrl(directory_path).path
+        file_paths = []
+
+        if ignore_paths is not None:
+            for ignore_path in ignore_paths:
+                if ignore_path in directory_path:
+                    return file_paths
+
+        result, entries = await omni.client.list_async(directory_path)
+        if result != omni.client.Result.OK:
+            return False, f"Can't list the files within {directory_path}", None
+
+        for entry in entries:
+            file_url = _OmniUrl(directory_path) / entry.relative_path
+
+            if file_url.is_file and file_url.suffix in {".usd", ".usda", ".usdb", ".usdc"}:
+                file_paths.append(str(file_url))
+
+            if recursive and file_url.is_directory:
+                file_paths.extend(
+                    await self.__glob_usd_files(str(file_url), recursive=recursive, ignore_paths=ignore_paths)
+                )
+
+        return file_paths

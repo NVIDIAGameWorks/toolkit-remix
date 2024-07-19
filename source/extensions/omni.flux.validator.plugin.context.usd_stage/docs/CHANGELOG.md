@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.9.0]
+### Added
+- Added a `USDDirectory` context plugin to iterate through all the USD files within a directory
+- Added a cook template method to `USDFile`
+
 ## [2.8.2]
 ### Changed
 - Updated with centralized texture set logic

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.13.0]
+### Changed
+- Changed `value_mapping.py` to support mapping functions on top of hardcoded input/output combos
+
 ## [3.12.0]
 ### Changed
 - Use `omni.flux.internal_pip_archive` for remix AI libraries

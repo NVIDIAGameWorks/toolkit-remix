@@ -47,8 +47,11 @@ class AllMaterials(_SelectorUSDBase):
         Returns: True if ok + message + the selected data
         """
 
-        stage = omni.usd.get_context(context_plugin_data).get_stage()
-        all_shaders = [prim_ref for prim_ref in stage.TraverseAll() if prim_ref.IsA(UsdShade.Material)]
+        all_shaders = [
+            prim_ref
+            for prim_ref in self._get_prims(schema_data, context_plugin_data)
+            if prim_ref.IsA(UsdShade.Material)
+        ]
         return True, "Ok", all_shaders
 
     @omni.usd.handle_exception
