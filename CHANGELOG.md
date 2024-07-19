@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3083: Fixed ingestion progress bar to update count when ingestion is complete
 - Set back the regular pipeline
 - REMIX-2880: Remove unused libs
+- Move the job "publish in the launcher" into the Gitlab publish pipeline
 
 ### Fixed
 - REMIX-3078: Fixed texture preview window overlapping
