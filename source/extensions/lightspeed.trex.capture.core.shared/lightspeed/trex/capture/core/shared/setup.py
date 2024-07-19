@@ -97,14 +97,13 @@ class Setup:
         upscaled_path = Path(upscaled)
         # first we convert the bmp to png without alpha
         png_file = default_icon.replace("_icon.bmp", "_icon.png")
-        im1 = Image.open(default_icon)
-        im1 = im1.convert("RGB")
-        im1.save(png_file)
+        with Image.open(default_icon) as im1:
+            im1 = im1.convert("RGB")
+            im1.save(png_file)
         if (
             not upscaled_path.exists()
             and Path(constants.REAL_ESRGAN_ROOT_PATH).joinpath("realesrgan-ncnn-vulkan.exe").exists()
         ):
-            im1.close()
             # we upscale
             UpscalerCore.perform_upscale(UpscaleModels.ESRGAN.value, png_file, str(upscaled_path))
         else:

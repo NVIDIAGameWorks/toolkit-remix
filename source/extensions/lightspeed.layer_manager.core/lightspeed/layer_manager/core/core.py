@@ -369,6 +369,14 @@ class LayerManagerCore:
             if not parent_layer:
                 raise ValueError(f'Can\'t find the parent layer with identifier "{parent_layer_identifier}".')
 
+            # Before to create the layer, we check if there is no broken layer with the same name
+            # The remove layer command doesn't handle layer that are declared but that don't exist on disk
+            broken_stack = self.broken_layers_stack()
+            for parent_broken_layer, broken_layer_path in broken_stack:
+                # If we find a layer with the same name from the same parent and broken, we remove it.
+                if str(path).endswith(Path(broken_layer_path).name):
+                    self.remove_broken_layer(parent_broken_layer.identifier, broken_layer_path)
+
             # Remove any existing layer of type layer_type if replacing
             if replace_existing and layer_type:
                 # If any parent layer is of type `layer_type`, raise a value error.
@@ -416,6 +424,8 @@ class LayerManagerCore:
 
         def get_layer_stack(_layer: Sdf.Layer) -> List[Sdf.Layer]:
             _layer_stack = []
+            if _layer is None:
+                return _layer_stack
             if _layer.identifier == layer_identifier:
                 _layer_stack.append(_layer)
             else:
@@ -431,6 +441,75 @@ class LayerManagerCore:
         layer_stack = get_layer_stack(root_layer)
 
         return any(self.get_custom_data_layer_type(layer) == layer_type.value for layer in layer_stack)
+
+    def broken_layers_stack(self) -> list[tuple[Sdf.Layer, str]]:
+        """
+        Return broken layers (like a layer in the stack but doesn't exist on the disk)
+
+        Returns:
+            Tuple of the broken layers + the parent like: (parent layer, broken layer)
+        """
+
+        result = []
+
+        def get_layer_stack(_layer: Sdf.Layer) -> List[Sdf.Layer]:
+            _layer_stack = []
+            for sublayer_path in _layer.subLayerPaths:
+                sdf_layer = Sdf.Layer.FindOrOpenRelativeToLayer(_layer, sublayer_path)
+                if sdf_layer:
+                    _layer_stack.extend(get_layer_stack(sdf_layer))
+                else:
+                    _layer_stack.append((_layer, sublayer_path))
+
+            return _layer_stack
+
+        root_layer = self.__context.get_stage().GetRootLayer()
+        result.extend(get_layer_stack(root_layer))
+
+        return result
+
+    def remove_broken_layer(self, parent_layer_identifier: str, broken_layer: str) -> list[str]:
+        """
+        Remove a specific layer from a parent layer. Useful when we want to remove a layer that is not valid (for
+        example a layer is set, but the layer doesn't exist on the disk)
+
+        Args:
+            parent_layer_identifier: the identifier of the layer we want to check sublayers from
+            broken_layer: the name of the layer to check
+
+        Returns:
+            List of removed layer path
+        """
+        result_list = []
+
+        def ___cleaup_layers(layer):
+            nonlocal result_list
+            layer_edited = False
+            sublayer_paths = layer.subLayerPaths.copy()
+            invalid_paths = []
+            children_layers = []
+            for sublayer_path in sublayer_paths:
+                if sublayer_path == broken_layer and parent_layer_identifier == layer.identifier:
+                    invalid_paths.append(sublayer_path)
+                    layer_edited = True
+                # Make sure the sublayer path is pointing to a valid layer file
+                sublayer = Sdf.Layer.FindOrOpenRelativeToLayer(layer, sublayer_path)
+                if sublayer:
+                    children_layers.append(sublayer)
+
+            if layer_edited:
+                result_list.extend(invalid_paths)
+                for invalid_path in invalid_paths:
+                    sublayer_paths.remove(invalid_path)
+
+                layer.subLayerPaths = sublayer_paths
+
+            for children_layer in children_layers:
+                ___cleaup_layers(children_layer)
+
+        root_layer = self.__context.get_stage().GetRootLayer()
+        ___cleaup_layers(root_layer)
+        return result_list
 
     def create_new_sublayer(
         self,

@@ -46,6 +46,9 @@ def bootstrap():
     Pull with packman from repo.packman.xml and add them all to python sys.path to enable importing.
     """
     files = [REPO_DEPS_FILE]
+    if not is_url_reachable(OPT_DEPS_FILE) and REPO_INTERNAL_DEPS_FILE.exists():
+        REPO_INTERNAL_DEPS_FILE.unlink()
+
     # Check if the URL is reachable before pulling the deps to avoid the 1-minute delay
     if is_url_reachable(OPT_DEPS_FILE):
         try:
@@ -61,6 +64,9 @@ def bootstrap():
                     sys.path.append(dep_path)
 
     # internal repo.toml
+    if not is_url_reachable(REPO_TOML_PRIVATE) and REPO_INTERNAL_TOML_FILE.exists():
+        REPO_INTERNAL_TOML_FILE.unlink()
+
     if is_url_reachable(REPO_TOML_PRIVATE):
         try:
             packmanapi.get_file(REPO_TOML_PRIVATE, REPO_INTERNAL_TOML_FILE)

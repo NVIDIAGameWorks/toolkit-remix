@@ -16,6 +16,7 @@
 """
 
 import contextlib
+import pathlib
 from types import NoneType
 from typing import Union
 from unittest.mock import Mock, call, patch
@@ -337,6 +338,54 @@ class TestLayerManagerCore(AsyncTestCase):
                                             set_parent,
                                             layer_type,
                                         )
+
+    async def test_broken_layers_stack_should_return_correct_value(self):
+        # Arrange
+        async with open_test_project("usd/full_project/full_project.usda", __name__) as project_url:
+            base_path = OmniUrl(project_url.parent_url)
+            test_items = [
+                (base_path / "full_project.usda", False),
+                (base_path / "mod.usda", False),
+                (base_path / "mod_capture_baker.usda", False),
+                (base_path / "sublayer_child_01.usda", False),
+                (base_path / "wrong_layer.usda", True),
+            ]
+
+            # Setup
+            root_layer = self.context.get_stage().GetRootLayer()
+            copy_layers = root_layer.subLayerPaths.copy()
+            copy_layers.append("./wrong_layer.usda")
+            root_layer.subLayerPaths = copy_layers
+
+            for layer_path, is_in_stack in test_items:
+                with self.subTest(name=f"layer_identifier_{layer_path.stem}_value_{is_in_stack}"):
+                    # Act
+                    value = self.layer_manager.broken_layers_stack()
+
+                    # Assert
+                    self.assertEqual(value, [(root_layer, "./wrong_layer.usda")])
+                    self.assertEqual(pathlib.Path(value[0][1]).name == layer_path.name, is_in_stack)
+
+    async def test_remove_broken_layer(self):
+        # Arrange
+        async with open_test_project("usd/full_project/full_project.usda", __name__):
+            # Setup
+            root_layer = self.context.get_stage().GetRootLayer()
+            copy_layers = root_layer.subLayerPaths.copy()
+            copy_layers.append("./wrong_layer.usda")
+            root_layer.subLayerPaths = copy_layers
+
+            # Assert 1
+            self.assertEqual(
+                [str(sublayer) for sublayer in root_layer.subLayerPaths],
+                ["./mod.usda", "./capture.usda", "./wrong_layer.usda"],
+            )
+
+            # Act
+            self.layer_manager.remove_broken_layer(root_layer.identifier, "./wrong_layer.usda")
+
+            # Assert 2
+            self.assertEqual([str(sublayer) for sublayer in root_layer.subLayerPaths], ["./mod.usda", "./capture.usda"])
 
     async def test_layer_type_in_stack_should_return_correct_value(self):
         # Arrange

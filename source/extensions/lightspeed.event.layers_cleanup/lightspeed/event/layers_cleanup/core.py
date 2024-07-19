@@ -24,8 +24,8 @@ import omni.kit.notification_manager as _nm
 import omni.kit.usd.layers as _layers
 import omni.usd
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
+from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from pxr import Sdf
 
 _CONTEXT = "/exts/lightspeed.event.layers_cleanup/context"
 
@@ -46,6 +46,7 @@ class EventLayersCleanupCore(_ILSSEvent):
         settings = carb.settings.get_settings()
         self._context_name = settings.get(_CONTEXT) or ""
         self._context = omni.usd.get_context(self._context_name)
+        self._layer_manager = _LayerManagerCore(self._context_name)
 
         self._notification_manager = _nm.manager.NotificationManager()
         self._notification_manager.on_startup()
@@ -77,30 +78,23 @@ class EventLayersCleanupCore(_ILSSEvent):
 
     def __on_stage_event(self, event):
         if event.type in [int(omni.usd.StageEventType.OPENED)]:
-            self.__cleaup_layers()
+            self.__cleanup_layers()
 
     def __on_layer_event(self, event):
         payload = _layers.get_layer_event_payload(event)
         if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
-            self.__cleaup_layers()
+            self.__cleanup_layers()
 
-    def __cleaup_layers(self):
-        root_layer = self._context.get_stage().GetRootLayer()
-        sublayer_paths = root_layer.subLayerPaths.copy()
+    def __cleanup_layers(self):
+        broken_stack = self._layer_manager.broken_layers_stack()
+        all_invalid_paths = []
+        for parent_broken_layer, broken_layer_path in broken_stack:
+            all_invalid_paths.extend(
+                self._layer_manager.remove_broken_layer(parent_broken_layer.identifier, broken_layer_path)
+            )
 
-        invalid_paths = []
-        for sublayer_path in sublayer_paths:
-            # Make sure the sublayer path is pointing to a valid layer file
-            sublayer = Sdf.Layer.FindOrOpenRelativeToLayer(root_layer, sublayer_path)
-            if not sublayer:
-                invalid_paths.append(sublayer_path)
-
-        for invalid_path in invalid_paths:
-            sublayer_paths.remove(invalid_path)
-
-        root_layer.subLayerPaths = sublayer_paths
-
-        self._post_notification(invalid_paths)
+        if all_invalid_paths:
+            self._post_notification(all_invalid_paths)
 
     def _post_notification(self, invalid_paths: List[str]):
         if not invalid_paths:

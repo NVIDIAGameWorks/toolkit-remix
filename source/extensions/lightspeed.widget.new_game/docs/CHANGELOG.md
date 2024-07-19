@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.4]
+### Fixed
+- Close Pillow image
+
 ## [0.1.3]
 - Use updated `lightspeed.layer_manager.core` extension
 
