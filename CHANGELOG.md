@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2825: Updated renderer to the latest dxvk-remix to accomodate USD distant light import/export fixes
 - Fixed highlight outline rendering if selecting non-power-of-two amount of objects
 - Fix trigger pipeline
+- Fix CI that crash because of a wrong ingested asset
 
 ### Removed
 - REMIX-3152: Removed the delete and duplicate button icons for asset reference light items in the selection tree
