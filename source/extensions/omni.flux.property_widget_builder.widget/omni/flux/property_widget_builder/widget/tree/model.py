@@ -21,11 +21,12 @@ __all__ = (
     "Model",
 )
 
+import abc
 import typing
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+from typing import List, Mapping, Optional
 
-import omni.ui as ui
-from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
+from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
 
 from .item_model import ItemGroupModel as _ItemGroupModel
 
@@ -36,14 +37,26 @@ if typing.TYPE_CHECKING:
 HEADER_DICT = {0: "Name", 1: "Value"}
 
 
-class Item(ui.AbstractItem):
+class Item(_TreeItemBase):
     """Item of the model"""
 
     def __init__(self):
         super().__init__()
+
         self._name_models = []
         self._value_models = []
-        self.children = []
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_name_models": None,
+                "_value_models": None,
+            }
+        )
+        return default_attr
 
     @property
     def name_models(self) -> List["ItemModel"]:
@@ -54,6 +67,10 @@ class Item(ui.AbstractItem):
     def value_models(self) -> List["ItemModel"]:
         """The name that will be showed on the tree"""
         return self._value_models
+
+    @property
+    def can_have_children(self) -> bool:
+        return False
 
     @property
     def element_count(self) -> int:
@@ -106,24 +123,34 @@ class ItemGroup(Item):
 
     def __init__(self, name):
         super().__init__()
+
         self._name_models = [_ItemGroupModel(name)]
         self._value_models = []
 
-
-class Model(ui.AbstractItemModel):
-    """Model for the treeview that will show a list of item(s)"""
-
-    def __init__(self):
-        super().__init__()
-        self._default_attrs = {}
-        for attr, value in self.default_attrs.items():
-            setattr(self, attr, value)
-        self.__items: List[Item] = []
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_name_models": None,
+                "_value_models": None,
+            }
+        )
+        return default_attr
 
     @property
-    def default_attrs(self) -> Dict[str, Any]:
-        """Default created class attribute"""
-        return {}
+    def can_have_children(self) -> bool:
+        return True
+
+
+class Model(_TreeModelBase):
+    """Model for the treeview that will show a list of item(s)"""
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
 
     def set_items(self, items: List[Item]):
         """
@@ -132,7 +159,7 @@ class Model(ui.AbstractItemModel):
         Args:
             items: the items to show
         """
-        self.__items = items
+        self._items = items
         self.refresh()
 
     def refresh(self):
@@ -149,23 +176,14 @@ class Model(ui.AbstractItemModel):
                     result.extend(_get_children(item.children))
             return result
 
-        return _get_children(self.__items)
-
-    def iter_item_children(self, items: Optional[Iterable[Item]] = None, recursive=True):
-        if items is None:
-            yield from self.__items
-            items = self.__items if recursive else []
-
-        for itm in items:
-            for child in itm.children:
-                yield child
-                if recursive:
-                    yield from self.iter_item_children([child], recursive=recursive)
+        if not self._items:
+            return []
+        return _get_children(self._items)
 
     def get_item_children(self, item: Optional[Item]):
         """Returns all the children when the widget asks it."""
         if item is None:
-            return self.__items
+            return self._items
         return item.children
 
     def get_item_value_model_count(self, item: Item):
@@ -179,13 +197,9 @@ class Model(ui.AbstractItemModel):
         In our case we use ui.SimpleStringModel.
         """
         if item is None:
-            return self.__items
+            return self._items
         if column_id == 0:
             return item.name_models
         if column_id == 1:
             return item.value_models
         return None
-
-    def destroy(self):
-        self.__items = []
-        _reset_default_attrs(self)

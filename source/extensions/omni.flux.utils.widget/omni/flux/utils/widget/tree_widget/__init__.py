@@ -15,35 +15,9 @@
 * limitations under the License.
 """
 
-import abc
+__all__ = ["TreeDelegateBase", "TreeItemBase", "TreeModelBase", "TreeWidget"]
 
-from omni.flux.property_widget_builder.widget import Model as _Model
-
-
-class FileModel(_Model):
-    """Basic list model"""
-
-    def __init__(self, path: str):
-        """
-        Model that will show a list of attribute(s) of a file
-
-        Args:
-            path: the path of the file
-        """
-        super().__init__()
-        self._path = path
-
-    @property
-    @abc.abstractmethod
-    def default_attr(self) -> dict[str, None]:
-        default_attr = super().default_attr
-        default_attr.update(
-            {
-                "_path": None,
-            }
-        )
-        return default_attr
-
-    @property
-    def path(self) -> str:
-        return self._path
+from .delegate import TreeDelegateBase
+from .item import TreeItemBase
+from .model import TreeModelBase
+from .widget import TreeWidget

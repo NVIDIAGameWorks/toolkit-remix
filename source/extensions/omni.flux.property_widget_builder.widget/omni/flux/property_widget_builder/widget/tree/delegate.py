@@ -24,16 +24,14 @@ __all__ = (
 import abc
 import asyncio
 import dataclasses
-from typing import Callable, Iterable, List, Optional
+from typing import Callable
 
 import carb
 import omni.ui as ui
 import omni.usd
+from omni.flux.property_widget_builder.delegates import NameField
 from omni.flux.property_widget_builder.delegates.default import DefaultField
-from omni.flux.property_widget_builder.delegates.string_value.default_label import NameField
-from omni.flux.utils.common import Event as _Event
-from omni.flux.utils.common import EventSubscription as _EventSubscription
-from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 
 from . import clipboard
 from .model import HEADER_DICT, Item, Model
@@ -69,10 +67,8 @@ class FieldBuilderList(list[FieldBuilder]):
         return _deco
 
 
-class Delegate(ui.AbstractItemDelegate):
+class Delegate(_TreeDelegateBase):
     """Delegate of the tree"""
-
-    DEFAULT_IMAGE_ICON_SIZE = 24
 
     def __init__(self, field_builders: list[FieldBuilder] | None = None):
         super().__init__()
@@ -84,25 +80,23 @@ class Delegate(ui.AbstractItemDelegate):
         self._name_widgets = {}
         self._subscriptions: list[carb.Subscription] = []
 
-        # Keeps track of the selected items.
-        self._selected_items: list[Item] = []
-
         # This is populated during a right click event within `_show_menu`. We store this Menu instance to avoid it
         # being garbage collected while it's displayed.
         self._context_menu: ui.Menu | None = None
 
-        self.__on_item_expanded = _Event()
-        self.__on_item_clicked = _Event()
-
     @property
-    def default_attrs(self):
-        return {
-            "field_builders": None,
-            "_name_widgets": None,
-            "_subscriptions": None,
-            "_selected_items": None,
-            "_context_menu": None,
-        }
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "field_builders": None,
+                "_name_widgets": None,
+                "_subscriptions": None,
+                "_context_menu": None,
+            }
+        )
+        return default_attr
 
     def reset(self):
         """
@@ -112,25 +106,110 @@ class Delegate(ui.AbstractItemDelegate):
         """
         self._name_widgets.clear()
         self._subscriptions.clear()
-        self._selected_items.clear()
+        self._selection.clear()
         self._context_menu = None
 
-    def selected_items_changed(self, items: Iterable[Item]):
+    def value_model_updated(self, item):
         """
-        Callback intended to be connected to the view's selection changed event.
-
-        This needs to be connected manually when configuring the delegate and the view.
+        Callback ran whenever an item's value model updates.
         """
-        self._selected_items = list(items)
+        pass
 
-    def get_selected_items(self) -> list[Item]:
-        return self._selected_items
+    def _get_default_field_builders(self) -> list[FieldBuilder]:
+        """
+        Get default FieldBuilder used to build item widget(s).
+
+        This can be subclassed to add specific builders based on the delegate.
+        """
+        return [
+            FieldBuilder(
+                claim_func=lambda _: True,
+                build_func=DefaultField(ui.StringField),
+            ),
+        ]
+
+    def get_widget_builder(
+        self, item, default: Callable[[Item], ui.Widget | list[ui.Widget] | None] = None
+    ) -> Callable[[Item], ui.Widget | list[ui.Widget] | None]:
+        """
+        Get a callable that will build widget(s) for the provided `item`.
+        """
+        for field_builder in reversed(self.field_builders):
+            if field_builder.claim_func(item):
+                return field_builder.build_func
+        if default is None:
+            raise ValueError(f"No custom field builder found for {item}")
+        return default
+
+    @abc.abstractmethod
+    def _build_item_widgets(
+        self, model: Model, item: Item, column_id: int, level: int, expanded: bool
+    ) -> list[ui.Widget] | None:
+        if column_id == 0:
+            builder = NameField()
+            return builder(item)
+        if column_id == 1:
+            builder = self.get_widget_builder(item, default=DefaultField(ui.StringField))
+            return builder(item)
+        return None
+
+    def _build_widget(self, model: Model, item: Item, column_id, level, expanded):
+        widgets = self._build_item_widgets(model, item, column_id, level, expanded)
+
+        if not widgets:
+            return
+
+        if not isinstance(widgets, list):
+            widgets = [widgets]
+        if column_id == 0:
+            self._name_widgets[id(item)] = widgets
+            return
+
+        if id(item) in self._name_widgets:
+            # if the value has a bigger height we need to resize the height of the name stack to have the same size
+            asyncio.ensure_future(self.__resize_name_height(widgets, item))
+
+        self.set_model_edit_fn(widgets, item)
+
+    def _build_header(self, column_id):
+        """Build the header"""
+        style_type_name = "TreeView.Header"
+        with ui.HStack():
+            ui.Label(HEADER_DICT[column_id], style_type_name_override=style_type_name)
+
+    def set_model_edit_fn(self, widgets: list[ui.Widget], item):
+        """
+        Set the callback when the value of the item is edited
+
+        Args:
+            widgets: the list of widgets that show the item
+            item: the item
+        """
+        for value_model in item.value_models:
+            self._subscriptions.append(value_model.subscribe_end_edit_fn(lambda m: self.value_model_updated(item)))
+            for widget in widgets:
+                value_model.add_begin_edit_fn(lambda m, w=widget: self._set_selected_style(w, True))
+                value_model.add_end_edit_fn(lambda m, w=widget: self._set_selected_style(w, False))
+
+    def _set_selected_style(self, widget: ui.Widget, value: bool):
+        """
+        Set the style name override of the widget when the widget is edited
+
+        Args:
+            widget: the widget that is edited (or not)
+            value: edited or not
+        """
+        suffix = "Selected"
+        if value:
+            widget.style_type_name_override = f"{widget.style_type_name_override}{suffix}"
+        elif widget.style_type_name_override.endswith(suffix):
+            widget.style_type_name_override = widget.style_type_name_override[: -len(suffix)]
 
     def _show_context_menu(self, model: Model, item: Item):
         """
         Display a context menu if the item was right-clicked for extra actions.
         """
-        selected_items = [x for x in self.get_selected_items() if not x.read_only]
+        selected_items = [x for x in self.selection if not x.read_only]
         all_items = model.get_all_items()
 
         # Early out optimization. No need to show a menu that can't actually do anything.
@@ -177,106 +256,16 @@ class Delegate(ui.AbstractItemDelegate):
             )
 
         self._context_menu.show()
-
-    def _item_clicked(self, button: int, model: Model, item: Item):
-        """
-        Callback ran whenever an item is clicked on.
-        """
-        # First emit the event which allows the parent tree to potentially modify the selection.
-        self.__on_item_clicked(button, model, item)
-        if button == 1:
-            self._show_context_menu(model, item)
-
-    def _build_regular_branch(self, _model, item, _column_id, _level, expanded):
-        # Draw the +/- icon
-        style_type_name_override = "TreeView.Item.Minus" if expanded else "TreeView.Item.Plus"
-        with ui.VStack(
-            width=ui.Pixel(16),
-            mouse_released_fn=lambda x, y, b, m: self._item_expanded(b, item, not expanded),
-        ):
-            ui.Spacer(width=0)
-            ui.Image(
-                "", width=10, height=10, style_type_name_override=style_type_name_override, identifier="property_branch"
-            )
-            ui.Spacer(width=0)
-
-    def build_branch(self, model: Model, item: Item, column_id: int, level: int, expanded: bool):
-        """Create a branch widget that opens or closes subtree"""
-        if column_id == 0:
-            with ui.HStack(width=16 * (level + 2), height=self.DEFAULT_IMAGE_ICON_SIZE):
-                if model.can_item_have_children(item):
-                    self._build_regular_branch(model, item, column_id, level, expanded)
-                else:
-                    ui.Spacer(width=ui.Pixel(16))
-
-    def _get_default_field_builders(self) -> list[FieldBuilder]:
-        """
-        Get default FieldBuilder used to build item widget(s).
-
-        This can be subclassed to add specific builders based on the delegate.
-        """
-        return [
-            FieldBuilder(
-                claim_func=lambda _: True,
-                build_func=DefaultField(ui.StringField),
-            ),
-        ]
-
-    def get_widget_builder(
-        self, item, default: Callable[[Item], ui.Widget | list[ui.Widget] | None] = None
-    ) -> Callable[[Item], ui.Widget | list[ui.Widget] | None]:
-        """
-        Get a callable that will build widget(s) for the provided `item`.
-        """
-        for field_builder in reversed(self.field_builders):
-            if field_builder.claim_func(item):
-                return field_builder.build_func
-        if default is None:
-            raise ValueError(f"No custom field builder found for {item}")
-        return default
-
-    @abc.abstractmethod
-    def _build_widget(
-        self, model: Model, item: Item, column_id: int = 0, level: int = 0, expanded: bool = False
-    ) -> Optional[List[ui.Widget]]:
-        if column_id == 0:
-            builder = NameField()
-            return builder(item)
-        if column_id == 1:
-            builder = self.get_widget_builder(item, default=DefaultField(ui.StringField))
-            return builder(item)
-        return None
-
-    def build_widget(self, model, item, column_id, level, expanded):
-        """Create a widget per item"""
-        if item is None:
-            return
-
-        if column_id == 0:
-            with ui.Frame(mouse_pressed_fn=lambda x, y, b, m: self._item_clicked(b, model, item)):
-                widgets = self._build_widget(model, item, column_id, level, expanded)
-        else:
-            widgets = self._build_widget(model, item, column_id, level, expanded)
-
-        if not widgets:
-            return
-
-        if not isinstance(widgets, list):
-            widgets = [widgets]
-
-        if column_id == 0:
-            self._name_widgets[id(item)] = widgets
-            return
-        if id(item) in self._name_widgets:
-            # if the value has a bigger height we need to resize the height of the name stack to have the same size
-            asyncio.ensure_future(self.__resize_name_height(widgets, item))
-
-        self.set_model_edit_fn(widgets, item)
+        super()._show_context_menu(model, item)
 
     @omni.usd.handle_exception
     async def __resize_name_height(self, widgets, item):
         # wait 1 frame to have the widget to appear
         await omni.kit.app.get_app().next_update_async()
+
+        if not self._name_widgets:
+            return
+
         stacks = self._name_widgets.get(id(item), [])
         max_height = 0
         for widget in widgets:
@@ -288,64 +277,3 @@ class Delegate(ui.AbstractItemDelegate):
         # cleanup
         if stacks:
             del self._name_widgets[id(item)]
-
-    def set_model_edit_fn(self, widgets: ui.Widget, item):
-        """
-        Set the callback when the value of the item is edited
-
-        Args:
-            widgets: the widget that show the item
-            item: the item
-        """
-        for value_model in item.value_models:
-            self._subscriptions.append(value_model.subscribe_end_edit_fn(lambda m: self.value_model_updated(item)))
-            for widget in widgets:
-                value_model.add_begin_edit_fn(lambda m, w=widget: self._set_selected_style(w, True))
-                value_model.add_end_edit_fn(lambda m, w=widget: self._set_selected_style(w, False))
-
-    def _set_selected_style(self, widget: ui.Widget, value: bool):
-        """
-        Set the style name override of the widget when the widget is edited
-
-        Args:
-            widget: the widget that is edited (or not)
-            value: edited or not
-        """
-        suffix = "Selected"
-        if value:
-            widget.style_type_name_override = f"{widget.style_type_name_override}{suffix}"
-        elif widget.style_type_name_override.endswith(suffix):
-            widget.style_type_name_override = widget.style_type_name_override[: -len(suffix)]
-
-    def value_model_updated(self, item):
-        """
-        Callback ran whenever an item's value model updates.
-        """
-        pass
-
-    def build_header(self, column_id):
-        """Build the header"""
-        style_type_name = "TreeView.Header"
-        with ui.HStack():
-            ui.Label(HEADER_DICT[column_id], style_type_name_override=style_type_name)
-
-    def _item_expanded(self, button, item, expanded):
-        """Call the event object that has the list of functions"""
-        if button != 0:
-            return
-        self.__on_item_expanded(item, expanded)
-
-    def subscribe_item_expanded(self, function):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        """
-        return _EventSubscription(self.__on_item_expanded, function)
-
-    def subscribe_item_clicked(self, function):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        """
-        return _EventSubscription(self.__on_item_clicked, function)
-
-    def destroy(self):
-        _reset_default_attrs(self)

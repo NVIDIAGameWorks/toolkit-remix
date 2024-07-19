@@ -109,6 +109,10 @@ class TestItem(Item):
             self._value_models.append(TestItemModel(value))
         self.selected = False
 
+    @property
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
+
     def get_value(self):
         return [x.get_value() for x in self._value_models]
 
@@ -117,13 +121,22 @@ class TestDelegate(Delegate):
     def __init__(self, field_builders: list[FieldBuilder] | None = None):
         super().__init__(field_builders=field_builders)
         self.widgets: dict[int, dict[int, list[ui.Widget]]] = {}
-        self._default_attrs = {"widgets": None}
 
-    def _build_widget(
+    @property
+    def default_attr(self) -> dict[str, None]:
+        attrs = super().default_attr
+        attrs.update(
+            {
+                "widgets": None,
+            }
+        )
+        return attrs
+
+    def _build_item_widgets(
         self, model: Model, item: Item, column_id: int = 0, level: int = 0, expanded: bool = False
     ) -> ui.Widget | list[ui.Widget] | None:
         cache = self.widgets.setdefault(id(item), {})
-        widgets = super()._build_widget(model, item, column_id=column_id, level=level, expanded=expanded)
+        widgets = super()._build_item_widgets(model, item, column_id=column_id, level=level, expanded=expanded)
         cache[column_id] = widgets
         return widgets
 

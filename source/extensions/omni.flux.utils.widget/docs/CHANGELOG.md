@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.16.0]
+### Added
+- Added centralized LayerTree widget
+
 ## [1.15.3] - 2024-06-26
 ### Changed
 - `destroy_file_picker()` now handles arguments

@@ -21,7 +21,7 @@ import weakref
 from functools import partial
 from pathlib import Path
 from typing import List, Optional
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 import omni.kit
 import omni.kit.test
@@ -277,7 +277,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         # Arrange
         layer0_path = Path(self.temp_dir.name) / "layer0.usda"
         layer0 = Sdf.Layer.CreateNew(str(layer0_path))
-        layer0_item = LayerItem("layer0", data={"layer": layer0})
+        layer0_item = LayerItem("layer0", data={"layer": layer0, "locked": False, "exclude_edit_target": False})
 
         model = LayerModel()
 
@@ -286,10 +286,10 @@ class TestModel(omni.kit.test.AsyncTestCase):
             model.set_authoring_layer(layer0_item)
 
             # Assert
-            args, kwargs = mock.call_args
             self.assertEqual(1, mock.call_count)
-            self.assertEqual(("SetEditTargetCommand",), args)
-            self.assertEqual({"layer_identifier": layer0.identifier, "usd_context": ""}, kwargs)
+            self.assertEqual(
+                call("SetEditTargetCommand", layer_identifier=layer0.identifier, usd_context=""), mock.call_args
+            )
 
     async def test_save_layer(self):
         # Arrange
@@ -297,7 +297,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         layer0 = Sdf.Layer.CreateNew(str(layer0_path))
 
         root_item = LayerItem("root")
-        layer0_item = LayerItem("layer0", data={"layer": layer0}, parent=root_item)
+        layer0_item = LayerItem("layer0", data={"layer": layer0, "savable": True}, parent=root_item)
         root_item.set_children([layer0_item], sort=False)
 
         model = LayerModel()
@@ -749,7 +749,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         # Arrange
         layer0_path = Path(self.temp_dir.name) / "layer0.usda"
         layer0 = Sdf.Layer.CreateNew(str(layer0_path))
-        layer0_item = LayerItem("layer0", data={"layer": layer0, "locked": is_locked})
+        layer0_item = LayerItem("layer0", data={"layer": layer0, "locked": is_locked, "exclude_lock": False})
 
         model = LayerModel()
 
@@ -770,7 +770,9 @@ class TestModel(omni.kit.test.AsyncTestCase):
         layer0_path = Path(self.temp_dir.name) / "layer0.usda"
         layer0 = Sdf.Layer.CreateNew(str(layer0_path))
 
-        layer0_item = LayerItem("layer0", data={"layer": layer0, "visible": not is_muted})
+        layer0_item = LayerItem(
+            "layer0", data={"layer": layer0, "visible": not is_muted, "exclude_mute": False, "can_toggle_mute": True}
+        )
 
         model = LayerModel()
 

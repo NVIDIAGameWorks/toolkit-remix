@@ -17,9 +17,10 @@
 
 __all__ = ("USDDelegate",)
 
+import abc
 import dataclasses
 import functools
-from typing import TYPE_CHECKING, Any, Iterable, Optional
+from typing import TYPE_CHECKING, Iterable, Optional
 
 import omni.kit.undo
 import omni.ui as ui
@@ -28,7 +29,6 @@ from omni.flux.property_widget_builder.delegates.default import CreatorField
 from omni.flux.property_widget_builder.delegates.string_value.default_label import NameField
 from omni.flux.property_widget_builder.widget import Delegate as _Delegate
 from omni.flux.property_widget_builder.widget import FieldBuilder
-from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.usd.layers import LayerUtils as _LayerUtils
 from pxr import Usd
 
@@ -64,64 +64,45 @@ class USDDelegate(_Delegate):
         self._context_menu_widgets: dict[int, ui.Menu] = {}
         self._rows: dict[int, Row] = {}
 
-    def reset(self):
-        """
-        Reset any stored state.
-        """
-        super().reset()
-        self._context_menu_widgets.clear()
-        self._rows.clear()
-
     @property
-    def default_attrs(self) -> dict[str, Any]:
-        default_attrs = super().default_attrs
-        default_attrs.update(
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
             {
                 "_context_menu_widgets": None,
                 "_rows": None,
             }
         )
-        return default_attrs
+        return default_attr
 
-    def build_branch(self, model: "_USDModel", item: "_Item", column_id: int, level: int, expanded: bool) -> None:
-        """Create a branch widget that opens or closes subtree"""
-        if column_id != 0:
-            return
+    @property
+    def selection(self) -> list["_Item"]:
+        return list(self._selection)
 
-        row = self._rows.get(id(item))
-        if row is None:
-            row = Row("".join(x.get_value_as_string() for x in item.name_models))
-        self._rows[id(item)] = row
+    @selection.setter
+    def selection(self, value: Iterable["_Item"]):
+        self._selection = list(value)
 
-        has_override = any(v.is_overriden for v in item.value_models)
-        is_default = all(v.is_default for v in item.value_models)
+        # Reset the selected item look
+        for item_id, row in self._rows.items():
+            if row.selected:
+                row.selected = False
+                self._on_item_hovered(False, item_id, True)
 
-        with ui.ZStack(mouse_hovered_fn=lambda hovered: self._on_item_hovered(hovered, id(item))):
-            with ui.VStack():
-                ui.Spacer()
-                row.background_widgets.append(
-                    ui.Rectangle(
-                        name="OverrideBackground",
-                        height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE + 2),
-                        visible=has_override,
-                    )
-                )
-                ui.Spacer()
-            with ui.HStack(width=16 * (level + 2), height=self.DEFAULT_IMAGE_ICON_SIZE):
-                if model.can_item_have_children(item):
-                    self._build_regular_branch(model, item, column_id, level, expanded)
-                else:
-                    # Z Stack is used to reserve the space
-                    with ui.ZStack(width=ui.Pixel((self.DEFAULT_IMAGE_ICON_SIZE / 2) + 8)):
-                        row.default_indicator_widget = ui.Circle(
-                            style_type_name_override="OverrideIndicator",
-                            tooltip="Reset the attribute to the default USD value",
-                            width=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 2),
-                            visible=not is_default,
-                            mouse_released_fn=lambda x, y, b, m: self._on_reset_item(b, item),
-                        )
+        for item in value:
+            item_id = id(item)
+            row = self._rows.get(item_id)
+            if row is not None:
+                row.selected = True
+                self._on_item_hovered(True, item_id)
 
-    def value_model_updated(self, item):
+    def reset(self):
+        super().reset()
+        self._context_menu_widgets.clear()
+        self._rows.clear()
+
+    def value_model_updated(self, item: "_Item"):
         """
         Callback ran whenever an item's value model updates.
         """
@@ -136,26 +117,12 @@ class USDDelegate(_Delegate):
             if row.more_widget is not None:
                 row.more_widget.visible = has_override
 
-    def _delete_overrides(self, item, layer=None):
-        """
-        Delete overrides on an item.
-        """
-        if layer is None:
-            item.delete_all_overrides()
-        else:
-            item.delete_layer_override(layer)
-        self.value_model_updated(item)
-
     def _get_default_field_builders(self) -> list[FieldBuilder]:
         return ALL_FIELD_BUILDERS
 
-    def _build_widget(
-        self, model: "_USDModel", item: "_Item", column_id: int, level: int, expanded: bool
-    ) -> Optional[list[ui.Widget]]:
-        """Create a widget per item"""
-        if item is None:
-            return None
-
+    def _build_item_widgets(
+        self, model: "_USDModel", item: "_Item", column_id: int, level: int, expanded: bool = False
+    ):
         widgets = None
         has_override = any(v.is_overriden for v in item.value_models)
 
@@ -224,21 +191,61 @@ class USDDelegate(_Delegate):
 
         return widgets
 
-    def selected_items_changed(self, items: Iterable["_Item"]):
-        super().selected_items_changed(items)
+    def build_branch(
+        self, model: "_USDModel", item: "_Item", column_id: int = 0, level: int = 0, expanded: bool = False
+    ):
+        """
+        Create a branch widget that opens or closes the subtree for item that can have children,
+        or the default & override widgets for items that can't.
+        """
+        if column_id != 0:
+            return
 
-        # Reset the selected item look
-        for item_id, row in self._rows.items():
-            if row.selected:
-                row.selected = False
-                self._on_item_hovered(False, item_id, True)
+        row = self._rows.get(id(item))
+        if row is None:
+            row = Row("".join(x.get_value_as_string() for x in item.name_models))
+        self._rows[id(item)] = row
 
-        for item in self.get_selected_items():
-            item_id = id(item)
-            row = self._rows.get(item_id)
-            if row is not None:
-                row.selected = True
-                self._on_item_hovered(True, item_id)
+        has_override = any(v.is_overriden for v in item.value_models)
+        is_default = all(v.is_default for v in item.value_models)
+
+        with ui.ZStack(mouse_hovered_fn=lambda hovered: self._on_item_hovered(hovered, id(item))):
+            with ui.VStack():
+                ui.Spacer()
+                row.background_widgets.append(
+                    ui.Rectangle(
+                        name="OverrideBackground",
+                        height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE + 2),
+                        visible=has_override,
+                    )
+                )
+                ui.Spacer()
+            with ui.HStack(width=16 * (level + 2), height=self.DEFAULT_IMAGE_ICON_SIZE):
+                if model.can_item_have_children(item):
+                    with ui.Frame(mouse_released_fn=lambda x, y, b, m: self._item_expanded(b, item, not expanded)):
+                        super()._build_branch(model, item, column_id, level, expanded)
+                else:
+                    # Z Stack is used to reserve the space
+                    with ui.ZStack(width=ui.Pixel((self.DEFAULT_IMAGE_ICON_SIZE / 2) + 16)):
+                        with ui.HStack():
+                            ui.Spacer(width=ui.Pixel(8))
+                            row.default_indicator_widget = ui.Circle(
+                                style_type_name_override="OverrideIndicator",
+                                tooltip="Reset the attribute to the default USD value",
+                                width=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 2),
+                                visible=not is_default,
+                                mouse_released_fn=lambda x, y, b, m: self._on_reset_item(b, item),
+                            )
+
+    def _delete_overrides(self, item, layer=None):
+        """
+        Delete overrides on an item.
+        """
+        if layer is None:
+            item.delete_all_overrides()
+        else:
+            item.delete_layer_override(layer)
+        self.value_model_updated(item)
 
     def _on_item_hovered(self, hovered, item_id, force=False):
         row = self._rows.get(item_id)
@@ -257,10 +264,10 @@ class USDDelegate(_Delegate):
             for value_model in item.value_models:
                 value_model.reset_default_value()
 
-    def _show_override_menu(self, model, item, x, y, button, *_):
+    def _show_override_menu(self, model, item, _x, _y, button, *_):
         if button != 0:
             return
-        self._context_menu_widgets[id(item)] = ui.Menu("Context menu", direction=ui.Direction.LEFT_TO_RIGHT)
+        self._context_menu_widgets[id(item)] = ui.Menu("Override menu", direction=ui.Direction.LEFT_TO_RIGHT)
         with self._context_menu_widgets[id(item)]:
             # Ensure there are no repeated entries in the menu
             property_stack = set()
@@ -295,8 +302,4 @@ class USDDelegate(_Delegate):
                             tooltip=stack_item.layer.identifier,
                         )
                         menu_item.enabled = not is_locked
-        self._context_menu_widgets[id(item)].show_at(x, y)
-
-    def destroy(self):
-        super().destroy()
-        _reset_default_attrs(self)
+        self._context_menu_widgets[id(item)].show()

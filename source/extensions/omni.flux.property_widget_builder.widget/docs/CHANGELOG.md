@@ -2,9 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.0]
+### Changed
+- Use centralized LayerTree widget
+
 ## [2.5.2] - 2024-04-24
 ### Added
 - Added tests for property widget
+
 ### Changed
 - Adjusted `Item.__repr__` for easier debugging
 
