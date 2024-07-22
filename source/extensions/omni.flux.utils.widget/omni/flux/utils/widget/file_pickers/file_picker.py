@@ -61,6 +61,8 @@ def _on_click_open(
     are the filename and directory name. Together they form the fullpath to the selected
     file.
     """
+    if not dirname.endswith("/"):
+        dirname = f"{dirname}/"
 
     selection_paths = dialog.get_current_selections()
 

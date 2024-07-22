@@ -16,11 +16,14 @@
 """
 
 import functools
+from pathlib import Path
 from typing import Any, Callable, List
 
 import omni.client
 from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER as _GAME_READY_ASSETS_FOLDER
 from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
+from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
+from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.material_properties.shared.widget import SetupUI as _MaterialPropertiesWidget
 from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshPropertiesWidget
 from lightspeed.trex.replacement.core.shared import Setup as _AssetReplacementCore
@@ -45,6 +48,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
+from pxr import Sdf
 
 
 class AssetReplacementsPane:
@@ -73,6 +77,7 @@ class AssetReplacementsPane:
             "_sub_go_to_ingest_tab2": None,
             "_sub_go_to_ingest_tab3": None,
             "_sub_stage_event": None,
+            "_layer_validation_error_msg": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -83,6 +88,8 @@ class AssetReplacementsPane:
 
         self._material_converted_sub = None
         self.__tree_selection_collapsed = False
+
+        self._layer_validation_error_msg = ""
 
         self.__create_ui()
 
@@ -333,6 +340,30 @@ class AssetReplacementsPane:
             self._selection_tree_widget.refresh()
 
     def __validate_file_path(self, existing_file, dirname, filename):
+        sublayer = Sdf.Layer.FindOrOpen(str(Path(dirname, filename)))
+        if not sublayer:
+            self._layer_validation_error_msg = f"Unable to open layer {filename}"
+            return False
+        # Check if the layer type is a reserved layer type
+        layer_manager = _LayerManagerCore(self._context_name)
+        layer_type = layer_manager.get_custom_data_layer_type(sublayer)
+        if layer_type in [
+            _LayerType.replacement.value,
+            _LayerType.capture.value,
+            _LayerType.capture_baker.value,
+            _LayerType.workfile.value,
+        ]:
+            self._layer_validation_error_msg = (
+                f"Layer {filename}'s layer type ({layer_type}) is reserved by Remix, and cannot be loaded."
+            )
+            return False
+
+        # Check if the layer is already used
+        all_layers = layer_manager.get_layers(layer_type=None)
+        if sublayer in all_layers:
+            self._layer_validation_error_msg = f"Layer {filename} is already loaded."
+            return False
+
         return self._replacement_core.is_path_valid(
             omni.client.normalize_url(omni.client.combine_urls(dirname, filename)),
             existing_file=existing_file,
@@ -340,11 +371,14 @@ class AssetReplacementsPane:
 
     def __validation_error_callback(self, existing_file, *_):
         fill_word = "imported" if existing_file else "created"
-        message = (
-            f"The {fill_word} layer file is not valid.\n\n"
-            f"Make sure the {fill_word} layer is a writable USD file and is not located in a "
-            f'"{_GAME_READY_ASSETS_FOLDER}" or "{_REMIX_CAPTURE_FOLDER}" directory.'
-        )
+        message = f"The {fill_word} layer file is not valid.\n\n"
+        if not self._layer_validation_error_msg:
+            message = (
+                f"{message}Make sure the {fill_word} layer is a writable USD file and is not located in a "
+                f'"{_GAME_READY_ASSETS_FOLDER}" or "{_REMIX_CAPTURE_FOLDER}" directory.\n'
+            )
+        else:
+            message = f"{message}{self._layer_validation_error_msg}"
         _TrexMessageDialog(
             message=message,
             disable_cancel_button=True,
