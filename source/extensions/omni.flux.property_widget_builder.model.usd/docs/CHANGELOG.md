@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.13.0]
+### Added
+- Added identifier for UI elements
+
+## [2.12.0]
+### Changed
+- Use centralized LayerTree widget
+
 ## [2.11.7] - 2024-07-12
 ### Added
 - Full file path hover tooltip for material string field properties

@@ -2,6 +2,10 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.3.0]
+### Changed
+- Switch back to the legacy manipulator
+
 ## [1.2.4]
 ### Changed
 - Update to Kit 106

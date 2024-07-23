@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.6]
+### Changed
+- Added a layer type check in validation
+
 ## [1.2.5] - 2024-07-11
 ### Changed
 - Added `_ItemInstanceMesh` as a last option type for `_get_selection_name_by_type()`

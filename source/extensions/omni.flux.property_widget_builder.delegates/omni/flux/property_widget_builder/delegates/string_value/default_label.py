@@ -30,8 +30,8 @@ from ..base import AbstractField
 class DefaultLabelField(AbstractField):
     """Delegate of the tree"""
 
-    def __init__(self, widget_type_name: str, style_name: str = "PropertiesWidgetField"):
-        super().__init__(style_name=style_name)
+    def __init__(self, widget_type_name: str, style_name: str = "PropertiesWidgetField", identifier: None | str = None):
+        super().__init__(style_name=style_name, identifier=identifier)
         self.widget_type_name = widget_type_name
 
     def build_ui(self, item) -> None:
@@ -45,6 +45,7 @@ class DefaultLabelField(AbstractField):
                     name="USDPropertiesWidgetLabelValue",
                     alignment=ui.Alignment.LEFT,
                     height=0,
+                    identifier=self.identifier or "",
                 )
                 ui.Spacer()
             ui.Spacer(height=ui.Pixel(4))

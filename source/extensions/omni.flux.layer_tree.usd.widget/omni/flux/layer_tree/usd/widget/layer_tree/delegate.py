@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import abc
 import asyncio
 from functools import partial
 from typing import Callable, List
@@ -26,36 +27,17 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.color import hex_to_color as _hex_to_color
 from omni.flux.utils.widget.gradient import create_gradient as _create_gradient
+from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 
 from .item_model import ItemBase
 from .model import LayerModel
 
 
-class LayerDelegate(ui.AbstractItemDelegate):
+class LayerDelegate(_TreeDelegateBase):
     __DEFAULT_IMAGE_ICON_SIZE = 24
 
     def __init__(self):
         super().__init__()
-
-        self._default_attr = {
-            "_background_items": None,
-            "_context_menu_widgets": None,
-            "_primary_selection": None,
-            "_hovered_items": None,
-            "_gradient_frame": None,
-            "_gradient_image_provider": None,
-            "_gradient_image_with_provider": None,
-            "_scroll_frames": None,
-            "_sub_on_value_changed": None,
-            "_sub_on_edit_finished": None,
-            "_new_item_model": None,
-            "_new_item_field_widget": None,
-            "_gradient_array": None,
-            "_gradient_array_hovered": None,
-            "_gradient_array_selected": None,
-        }
-        for attr, value in self._default_attr.items():
-            setattr(self, attr, value)
 
         self._initialize_gradient_styles()
         self._initialize_internal_members()
@@ -74,6 +56,31 @@ class LayerDelegate(ui.AbstractItemDelegate):
         self.__on_merge_clicked = _Event()
         self.__on_transfer_clicked = _Event()
 
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_background_items": None,
+                "_context_menu_widgets": None,
+                "_primary_selection": None,
+                "_hovered_items": None,
+                "_gradient_frame": None,
+                "_gradient_image_provider": None,
+                "_gradient_image_with_provider": None,
+                "_scroll_frames": None,
+                "_sub_on_value_changed": None,
+                "_sub_on_edit_finished": None,
+                "_new_item_model": None,
+                "_new_item_field_widget": None,
+                "_gradient_array": None,
+                "_gradient_array_hovered": None,
+                "_gradient_array_selected": None,
+            }
+        )
+        return default_attr
+
     def get_scroll_frames(self):
         """
         Get the scroll frames used in the delegates. This can be used to control the scrolling of the items externally.
@@ -83,7 +90,7 @@ class LayerDelegate(ui.AbstractItemDelegate):
         """
         return self._scroll_frames
 
-    def build_branch(self, model, item, column_id, level, expanded):
+    def build_branch(self, model: LayerModel, item: ItemBase, column_id, level, expanded):
         """Create a branch core that opens or closes subtree"""
         if item is None:
             return
@@ -104,38 +111,41 @@ class LayerDelegate(ui.AbstractItemDelegate):
                             mouse_hovered_fn=lambda hovered: self._on_trigger_hovered(hovered, model, item),
                         )
                 self._background_items[id(item)].append((spacer, rectangle))
-                with ui.VStack(mouse_released_fn=partial(self._show_context_menu, item)):
-                    ui.Spacer()
-                    with ui.HStack(height=ui.Pixel(self.__DEFAULT_IMAGE_ICON_SIZE)):
-                        with ui.HStack(width=0):
-                            self._build_branch_start_icons(item)
-                        ui.Spacer(height=0, width=ui.Pixel((level - 1) * 16))
-                        with ui.ZStack(width=ui.Pixel(20)):
-                            if item.can_have_children and item.children:
-                                # Draw the +/- icon
-                                with ui.HStack(
-                                    identifier="expansion_stack",
-                                    width=0,
-                                    mouse_released_fn=lambda x, y, b, m: self._on_item_expanded(b, item, not expanded),
-                                ):
-                                    ui.Spacer(height=0, width=ui.Pixel(4))
-                                    style_type_name_override = (
-                                        "TreeView.Item.Minus" if expanded else "TreeView.Item.Plus"
-                                    )
-                                    with ui.VStack(width=ui.Pixel(16)):
-                                        ui.Spacer(width=0)
-                                        ui.Image(
-                                            "",
-                                            width=10,
-                                            height=10,
-                                            style_type_name_override=style_type_name_override,
+                with ui.Frame():
+                    with ui.VStack():
+                        ui.Spacer()
+                        with ui.HStack(height=ui.Pixel(self.__DEFAULT_IMAGE_ICON_SIZE)):
+                            with ui.HStack(width=0):
+                                self._build_branch_start_icons(model, item)
+                            ui.Spacer(height=0, width=ui.Pixel((level - 1) * 16))
+                            with ui.ZStack(width=ui.Pixel(20)):
+                                if item.can_have_children and item.children:
+                                    # Draw the +/- icon
+                                    with ui.HStack(
+                                        identifier="expansion_stack",
+                                        width=0,
+                                        mouse_released_fn=lambda x, y, b, m: self._item_expanded(
+                                            b, model, item, not expanded
+                                        ),
+                                    ):
+                                        ui.Spacer(height=0, width=ui.Pixel(4))
+                                        style_type_name_override = (
+                                            "TreeView.Item.Minus" if expanded else "TreeView.Item.Plus"
                                         )
-                                        ui.Spacer(width=0)
-                        with ui.HStack(height=ui.Pixel(self.__DEFAULT_IMAGE_ICON_SIZE), width=0):
-                            self._build_branch_end_icons(item)
-                    ui.Spacer()
+                                        with ui.VStack(width=ui.Pixel(16)):
+                                            ui.Spacer(width=0)
+                                            ui.Image(
+                                                "",
+                                                width=10,
+                                                height=10,
+                                                style_type_name_override=style_type_name_override,
+                                            )
+                                            ui.Spacer(width=0)
+                            with ui.HStack(height=ui.Pixel(self.__DEFAULT_IMAGE_ICON_SIZE), width=0):
+                                self._build_branch_end_icons(model, item)
+                        ui.Spacer()
 
-    def build_widget(self, model, item, column_id, level, expanded):
+    def _build_widget(self, model: LayerModel, item: ItemBase, column_id, level, expanded):
         """Create a model per item"""
         if item is None:
             return
@@ -156,7 +166,7 @@ class LayerDelegate(ui.AbstractItemDelegate):
                             mouse_hovered_fn=lambda hovered: self._on_trigger_hovered(hovered, model, item),
                         )
                 self._background_items[id(item)].append((spacer, rectangle))
-                with ui.HStack(mouse_pressed_fn=partial(self._show_context_menu, item)):
+                with ui.HStack():
                     ui.Spacer(height=0, width=ui.Pixel(4))
                     with ui.HStack():
                         with ui.Frame(
@@ -206,14 +216,14 @@ class LayerDelegate(ui.AbstractItemDelegate):
                                     self._gradient_frame[id(item)] = ui.Frame(
                                         separate_window=True, width=ui.Pixel(self.__gradient_width)
                                     )
-                        self._build_widget_icons(item)
+                        self._build_widget_icons(model, item)
 
         asyncio.ensure_future(self._add_gradient_or_not(item))
 
-    def _show_context_menu(self, item, x, y, button, *_):
-        if button != 1:
-            return
-        self._context_menu_widgets[id(item)] = ui.Menu("Layer menu", direction=ui.Direction.LEFT_TO_RIGHT)
+    def _show_context_menu(self, model, item):
+        super()._show_context_menu(model, item)
+
+        self._context_menu_widgets[id(item)] = ui.Menu("Layer Menu", direction=ui.Direction.LEFT_TO_RIGHT)
         with self._context_menu_widgets[id(item)]:
             if item.data["savable"]:
                 ui.MenuItem(
@@ -240,13 +250,13 @@ class LayerDelegate(ui.AbstractItemDelegate):
                         "Existing Layer",
                         triggered_fn=partial(self._on_transfer_clicked, item, True),
                     )
-        self._context_menu_widgets[id(item)].show_at(x, y)
+        self._context_menu_widgets[id(item)].show()
 
-    def _build_branch_start_icons(self, item):
+    def _build_branch_start_icons(self, model: LayerModel, item: ItemBase):
         """Can be overriden to customize the branch icons"""
         ui.Spacer(width=ui.Pixel(8), height=0)
 
-    def _build_branch_end_icons(self, item):
+    def _build_branch_end_icons(self, model: LayerModel, item: ItemBase):
         """Can be overriden to customize the branch icons"""
         with ui.VStack(width=ui.Pixel(16)):
             ui.Spacer(width=0)
@@ -263,12 +273,12 @@ class LayerDelegate(ui.AbstractItemDelegate):
                 height=ui.Pixel(16),
                 name="LayerActive" if item.data["authoring"] else "Layer",
                 tooltip=tooltip,
-                mouse_released_fn=lambda x, y, b, m: self._on_set_authoring_layer(b, item),
+                mouse_released_fn=lambda x, y, b, m: self._on_set_authoring_layer(b, model, item),
                 enabled=not item.data["locked"] and not item.data["exclude_edit_target"],
             )
             ui.Spacer(width=0)
 
-    def _build_widget_icons(self, item):
+    def _build_widget_icons(self, model: LayerModel, item: ItemBase):
         """Can be overriden to customize the widget icons"""
         ui.Spacer(height=0, width=ui.Pixel(8))
         with ui.VStack(width=ui.Pixel(16), content_clipping=True):
@@ -280,7 +290,7 @@ class LayerDelegate(ui.AbstractItemDelegate):
                         height=ui.Pixel(16),
                         name="TrashCan",
                         tooltip="Delete the layer",
-                        mouse_released_fn=lambda x, y, b, m: self._on_remove_clicked(b, item),
+                        mouse_released_fn=lambda x, y, b, m: self._on_remove_clicked(b, model, item),
                     )
                 ui.Spacer(width=0)
         ui.Spacer(height=0, width=ui.Pixel(8))
@@ -292,7 +302,7 @@ class LayerDelegate(ui.AbstractItemDelegate):
                     height=ui.Pixel(16),
                     name="Lock" if item.data["locked"] else "Unlock",
                     tooltip="Unlock the layer" if item.data["locked"] else "Lock the layer",
-                    mouse_released_fn=lambda x, y, b, m: self._on_lock_clicked(b, item),
+                    mouse_released_fn=lambda x, y, b, m: self._on_lock_clicked(b, model, item),
                 )
                 ui.Spacer(width=0)
         # Unequal to better center the icons visually
@@ -310,7 +320,7 @@ class LayerDelegate(ui.AbstractItemDelegate):
                     height=ui.Pixel(16),
                     name=name,
                     tooltip=tooltip,
-                    mouse_released_fn=lambda x, y, b, m: self._on_visible_clicked(b, item),
+                    mouse_released_fn=lambda x, y, b, m: self._on_visible_clicked(b, model, item),
                     enabled=item.data["can_toggle_mute"],
                 )
                 ui.Spacer(width=0)
@@ -329,7 +339,7 @@ class LayerDelegate(ui.AbstractItemDelegate):
                 height=ui.Pixel(16),
                 name="Save" if item.data["savable"] and item.data["dirty"] else "SaveDisabled",
                 tooltip=tooltip,
-                mouse_released_fn=lambda x, y, b, m: self._on_save_clicked(b, item),
+                mouse_released_fn=lambda x, y, b, m: self._on_save_clicked(b, model, item),
             )
             ui.Spacer(width=0)
 
@@ -406,6 +416,11 @@ class LayerDelegate(ui.AbstractItemDelegate):
     @omni.usd.handle_exception
     async def _add_gradient_or_not(self, item):
         await omni.kit.app.get_app().next_update_async()
+
+        # Because of the spare frame, the item may not exist anymore
+        if not (item and item.data):
+            return
+
         if (
             self._scroll_frames
             and id(item) in self._scroll_frames
@@ -460,10 +475,11 @@ class LayerDelegate(ui.AbstractItemDelegate):
             return
         self._new_item_field_widget.style_type_name_override = "Field" if is_valid else "FieldError"
 
-    def _on_item_expanded(self, button, item, expanded):
+    def _item_expanded(self, button: int, model: LayerModel, item: ItemBase, expanded: bool):
+        self._item_clicked(button, True, model, item)
         if button != 0:
             return
-        self.__on_item_expanded(item, expanded)
+        self.__on_item_expanded(expanded)
 
     def subscribe_on_item_expanded(self, function: Callable):
         """
@@ -477,7 +493,9 @@ class LayerDelegate(ui.AbstractItemDelegate):
         """
         return _EventSubscription(self.__on_item_expanded, function)
 
-    def _on_set_authoring_layer(self, button, item):
+    def _on_set_authoring_layer(self, button: int, model: LayerModel, item: ItemBase):
+        # Update the selection to make sure the clicked item is included
+        self._item_clicked(button, True, model, item)
         if button != 0 or item.data["locked"] or item.data["exclude_edit_target"]:
             return
         self.__on_set_authoring_layer(item)
@@ -494,10 +512,12 @@ class LayerDelegate(ui.AbstractItemDelegate):
         """
         return _EventSubscription(self.__on_set_authoring_layer, function)
 
-    def _on_remove_clicked(self, button, item):
+    def _on_remove_clicked(self, button: int, model: LayerModel, item: ItemBase):
+        # Update the selection to make sure the clicked item is included
+        self._item_clicked(button, True, model, item)
         if button != 0 or item.data["exclude_remove"]:
             return
-        self.__on_remove_clicked(item)
+        self.__on_remove_clicked()
 
     def subscribe_on_remove_clicked(self, function: Callable):
         """
@@ -511,10 +531,12 @@ class LayerDelegate(ui.AbstractItemDelegate):
         """
         return _EventSubscription(self.__on_remove_clicked, function)
 
-    def _on_save_clicked(self, button, item):
-        if button != 0 or not item.data["savable"] or not item.data["dirty"]:
+    def _on_save_clicked(self, button: int, model: LayerModel, item: ItemBase):
+        # Update the selection to make sure the clicked item is included
+        self._item_clicked(button, True, model, item)
+        if button != 0 or not item.data["savable"]:
             return
-        self.__on_save_clicked(item)
+        self.__on_save_clicked()
 
     def subscribe_on_save_clicked(self, function: Callable):
         """
@@ -528,10 +550,12 @@ class LayerDelegate(ui.AbstractItemDelegate):
         """
         return _EventSubscription(self.__on_save_clicked, function)
 
-    def _on_lock_clicked(self, button, item):
+    def _on_lock_clicked(self, button: int, model: LayerModel, item: ItemBase):
+        # Update the selection to make sure the clicked item is included
+        self._item_clicked(button, True, model, item)
         if button != 0 or item.data["exclude_lock"]:
             return
-        self.__on_lock_clicked(item)
+        self.__on_lock_clicked(item.data["locked"])
 
     def subscribe_on_lock_clicked(self, function: Callable):
         """
@@ -545,10 +569,12 @@ class LayerDelegate(ui.AbstractItemDelegate):
         """
         return _EventSubscription(self.__on_lock_clicked, function)
 
-    def _on_visible_clicked(self, button, item):
+    def _on_visible_clicked(self, button: int, model: LayerModel, item: ItemBase):
+        # Update the selection to make sure the clicked item is included
+        self._item_clicked(button, True, model, item)
         if button != 0 or item.data["exclude_mute"] or not item.data["can_toggle_mute"]:
             return
-        self.__on_visible_clicked(item)
+        self.__on_visible_clicked(item.data["visible"])
 
     def subscribe_on_visible_clicked(self, function: Callable):
         """

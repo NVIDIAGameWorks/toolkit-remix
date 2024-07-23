@@ -15,26 +15,27 @@
 * limitations under the License.
 """
 
+import abc
 import weakref
+from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
 
 import carb
 import omni.kit.usd.layers as _layers
-from omni import ui, usd
+from omni import usd
 from omni.flux.layer_tree.usd.core import LayerCustomData as _LayerCustomData
-from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.layer_utils import FILE_DIALOG_EXTENSIONS as _FILE_DIALOG_EXTENSIONS
 from omni.flux.utils.common.layer_utils import save_layer_as as _save_layer_as
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
+from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
 from omni.kit import commands, undo
-from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
 
 from .item_model import ItemBase, LayerItem
 
 
-class LayerModel(ui.AbstractItemModel):
+class LayerModel(_TreeModelBase):
     """
     The model's implementation allows the addition of individual items but these actions should be reserved for
     temporary items (such as a TemporaryLayerItem). Permanent additions/removals should be done through the
@@ -75,20 +76,8 @@ class LayerModel(ui.AbstractItemModel):
 
         super().__init__()
 
-        self._default_attr = {
-            "_items": None,
-            "_layer_events": None,
-            "_stage_events": None,
-            "_context_name": None,
-            "_context": None,
-            "_exclude_lock": None,
-            "_exclude_mute": None,
-            "_exclude_edit_target": None,
-        }
-        for attr, value in self._default_attr.items():
-            setattr(self, attr, value)
-
         self._items = []
+        self._ignore_refresh = False
 
         self._layer_events = None
         self._stage_events = None
@@ -109,11 +98,43 @@ class LayerModel(ui.AbstractItemModel):
         self._exclude_add_child_fn = exclude_add_child_fn
         self._exclude_move_fn = exclude_move_fn
 
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_items": None,
+                "_ignore_refresh": None,
+                "_layer_events": None,
+                "_stage_events": None,
+                "_context_name": None,
+                "_context": None,
+                "_exclude_lock": None,
+                "_exclude_mute": None,
+                "_exclude_edit_target": None,
+            }
+        )
+        return default_attr
+
     # USD methods
+
+    @contextmanager
+    def disable_refresh(self, refresh_on_exit: bool = True):
+        """
+        Disable refresh temporarily
+        """
+        self._ignore_refresh = True
+        try:
+            yield
+        finally:
+            self._ignore_refresh = False
+            if refresh_on_exit:
+                self.refresh()
 
     def refresh(self) -> None:
         """Force a refresh of the model."""
-        if not self.stage:
+        if not self.stage or self._ignore_refresh:
             return
         root_layer = self.stage.GetRootLayer()
         root_item = self._create_layer_items(root_layer, None)
@@ -207,26 +228,16 @@ class LayerModel(ui.AbstractItemModel):
             layer: the layer to be deleted
         """
         # Can't delete the root layer
-        if layer.parent is None:
+        if layer.parent is None or layer.data.get("exclude_remove", True):
             return
 
-        def execute_command(*_):
-            commands.execute(
-                "RemoveSublayerCommand",
-                layer_identifier=layer.parent.data["layer"].identifier,
-                sublayer_position=_layers.LayerUtils.get_sublayer_position_in_parent(
-                    layer.parent.data["layer"].identifier, layer.data["layer"].identifier
-                ),
-                usd_context=self._context_name,
-            )
-
-        PromptManager.post_simple_prompt(
-            "",
-            "Are you sure you want to delete this layer?",
-            ok_button_info=PromptButtonInfo("Delete", execute_command),
-            cancel_button_info=PromptButtonInfo("Cancel"),
-            modal=True,
-            no_title_bar=True,
+        commands.execute(
+            "RemoveSublayerCommand",
+            layer_identifier=layer.parent.data["layer"].identifier,
+            sublayer_position=_layers.LayerUtils.get_sublayer_position_in_parent(
+                layer.parent.data["layer"].identifier, layer.data["layer"].identifier
+            ),
+            usd_context=self._context_name,
         )
 
     def set_authoring_layer(self, layer: LayerItem) -> None:
@@ -236,6 +247,10 @@ class LayerModel(ui.AbstractItemModel):
         Args:
             layer: the layer to be saved
         """
+
+        if layer.data.get("locked", True) or layer.data.get("exclude_edit_target", True):
+            return
+
         commands.execute(
             "SetEditTargetCommand",
             layer_identifier=layer.data["layer"].identifier,
@@ -250,6 +265,9 @@ class LayerModel(ui.AbstractItemModel):
         Args:
             layer: the layer to be saved
         """
+        if not layer.data.get("savable", False):
+            return
+
         layer.data["layer"].Save()
         self.refresh()
 
@@ -260,7 +278,7 @@ class LayerModel(ui.AbstractItemModel):
         Args:
             layer: the layer to be saved
         """
-        if not layer.data["layer"]:
+        if not layer.data.get("layer", None):
             return
 
         # Uses weakref to avoid filepicker hold it's strong reference
@@ -311,11 +329,21 @@ class LayerModel(ui.AbstractItemModel):
         Args:
             layer: the layer to be locked or unlocked
         """
-        # TODO adds absolute path to USD
+        self.set_lock_layer(layer, not layer.data["locked"])
+
+    def set_lock_layer(self, layer: LayerItem, value: bool) -> None:
+        """
+        Args:
+            layer: the layer to be locked or unlocked
+            value: whether to lock or unlock the layer
+        """
+        if layer.data.get("exclude_lock", True):
+            return
+
         commands.execute(
             "LockLayer",
             layer_identifier=layer.data["layer"].identifier,
-            locked=not layer.data["locked"],
+            locked=value,
             usd_context=self._context_name,
         )
 
@@ -324,6 +352,17 @@ class LayerModel(ui.AbstractItemModel):
         Args:
             layer: the layer to be muted or unmuted
         """
+        self.set_mute_layer(layer, layer.data["visible"])
+
+    def set_mute_layer(self, layer: LayerItem, value: bool) -> None:
+        """
+        Args:
+            layer: the layer to be muted or unmuted
+            value: whether to mute or unmute the layer
+        """
+        if layer.data.get("exclude_mute", True) or not layer.data.get("can_toggle_mute", False):
+            return
+
         # Make sure muteness is global to persist state
         layers_state = _layers.get_layers(self._context).get_layers_state()
         layers_state.set_muteness_scope(True)
@@ -331,7 +370,7 @@ class LayerModel(ui.AbstractItemModel):
         commands.execute(
             "SetLayerMutenessCommand",
             layer_identifier=layer.data["layer"].identifier,
-            muted=layer.data["visible"],
+            muted=value,
             usd_context=self._context_name,
         )
 
@@ -735,6 +774,3 @@ class LayerModel(ui.AbstractItemModel):
         self._context = usd.get_context(self._context_name)
         self.stage = self._context.get_stage()
         self.refresh()
-
-    def destroy(self):
-        _reset_default_attrs(self)
