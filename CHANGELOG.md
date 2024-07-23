@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - REMIX-3076: Added trailing slash to end of dirname when double-clicking in file dialog
+- Fix manipulator that was giving wrong data
 
 ### Removed
 
