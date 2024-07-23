@@ -15,8 +15,9 @@
 * limitations under the License.
 """
 
+import abc
+
 from omni.flux.property_widget_builder.widget import Model as _Model
-from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 
 class FileModel(_Model):
@@ -33,15 +34,16 @@ class FileModel(_Model):
         self._path = path
 
     @property
-    def path(self) -> str:
-        return self._path
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_path": None,
+            }
+        )
+        return default_attr
 
     @property
-    def default_attrs(self):
-        result = super().default_attrs
-        result.update({"_path": None})
-        return result
-
-    def destroy(self):
-        _reset_default_attrs(self)
-        super().destroy()
+    def path(self) -> str:
+        return self._path

@@ -18,14 +18,14 @@
 __all__ = ("PropertyWidget",)
 
 import asyncio
-from typing import Iterable, List, Optional
+from typing import List, Optional
 
 from omni import kit, ui, usd
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from omni.flux.utils.common.decorators import limit_recursion
+from omni.flux.utils.widget.tree_widget import TreeWidget as _TreeWidget
 
 from .tree.delegate import Delegate
-from .tree.model import Item, Model
+from .tree.model import Model
 
 
 class PropertyWidget:
@@ -38,7 +38,7 @@ class PropertyWidget:
         tree_column_widths: List[ui.Length] = None,
     ):
         """
-        The init
+        Property widget displaying attribute names and values in a tree structure
 
         Args:
             model: model to use for the treeview
@@ -47,39 +47,37 @@ class PropertyWidget:
         self._default_attr = {
             "_model": None,
             "_delegate": None,
-            "_tree_view": None,
             "_tree_column_widths": None,
+            "_update_task": None,
             "_expansion_state": None,
             "_on_item_expanded_sub": None,
-            "_sub_on_item_changed": None,
-            "_update_task": None,
+            "_on_item_changed_sub": None,
+            "_tree_view": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
         self._model = Model() if model is None else model
         self._delegate = Delegate() if delegate is None else delegate
+        self._tree_column_widths = tree_column_widths
 
         self._update_task = None
         self._expansion_state = {}
+
         self._on_item_expanded_sub = self._delegate.subscribe_item_expanded(self._on_item_expanded)
-
-        self._tree_column_widths = tree_column_widths
-
-        self._sub_on_item_changed = self._model.subscribe_item_changed_fn(self._on_item_changed)
-        self._sub_selection_changed = self._delegate.subscribe_item_clicked(self._on_item_clicked)
+        self._on_item_changed_sub = self._model.subscribe_item_changed_fn(self._on_item_changed)
 
         self._build_ui()
 
     @property
-    def tree_view(self) -> ui.TreeView:
+    def tree_view(self) -> _TreeWidget:
         """Treeview of the widget"""
         return self._tree_view
 
     def _build_ui(self):
-        self._tree_view = ui.TreeView(
+        self._tree_view = _TreeWidget(
             self._model,
-            delegate=self._delegate,
+            self._delegate,
             root_visible=False,
             header_visible=False,
             column_widths=(
@@ -87,7 +85,6 @@ class PropertyWidget:
             ),
             name="PropertyWidget",
         )
-        self._tree_view.set_selection_changed_fn(self._on_selection_changed)
 
     def _update_expansion_state_deferred(self, *_):
         if self._update_task:
@@ -119,35 +116,6 @@ class PropertyWidget:
             items = model.get_all_items()
         for _item in items:
             self._delegate.value_model_updated(_item)
-
-    def _iter_item_children(self, items: Optional[Iterable[Item]] = None, recursive=True):
-        """
-        Recursively yield all children for the provided `items`.
-        """
-        for itm in items:
-            for child in itm.children:
-                yield child
-                if recursive:
-                    yield from self._iter_item_children([child], recursive=recursive)
-
-    @limit_recursion()
-    def _on_selection_changed(self, items):
-        selection = set(self.tree_view.selection)
-        for item in items:
-            selection.update(self._iter_item_children([item]))
-        selection_list = list(selection)
-        self.tree_view.selection = selection_list
-        self._delegate.selected_items_changed(selection_list)
-
-    def _on_item_clicked(self, button: int, model: Model, item: Item):
-        """
-        Callback connected to the delegate's item clicked event.
-        """
-        # For right-clicks modify the selection of the tree.
-        if button == 1 and item not in self.tree_view.selection:
-            to_select = [item]
-            to_select.extend(model.iter_item_children([item]))
-            self.tree_view.selection = to_select
 
     def destroy(self):
         if self._update_task:

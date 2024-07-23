@@ -15,12 +15,13 @@
 * limitations under the License.
 """
 
+import abc
 from typing import Any, List, Optional
 
-from omni import ui
+from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 
 
-class ItemBase(ui.AbstractItem):
+class ItemBase(_TreeItemBase):
     """
     Base Item of the model. **This should not be used directly other than for typing, instead use one of the children
     classes**.
@@ -34,6 +35,21 @@ class ItemBase(ui.AbstractItem):
         self._enabled = True
         self._can_have_children = True
         self._children = []
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_title": None,
+                "_data": None,
+                "_enabled": None,
+                "_can_have_children": None,
+                "_children": None,
+            }
+        )
+        return default_attr
 
     @property
     def enabled(self) -> bool:
@@ -162,3 +178,16 @@ class LayerItem(ItemBase):
 
         if children is not None:
             self.set_children(children, False)
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_title": None,
+                "_data": None,
+                "_can_have_children": None,
+            }
+        )
+        return default_attr

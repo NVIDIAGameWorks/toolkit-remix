@@ -15,13 +15,13 @@
 * limitations under the License.
 """
 
+import abc
 from functools import partial
 
 import omni.ui as ui
 from omni.flux.layer_tree.usd.widget import LayerDelegate as _LayerDelegate
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 
 class PackagingLayerDelegate(_LayerDelegate):
@@ -30,14 +30,6 @@ class PackagingLayerDelegate(_LayerDelegate):
     def __init__(self):
         super().__init__()
 
-        self._default_attr.update(
-            {
-                "_checkbox_widgets": None,
-            }
-        )
-        for attr, value in self._default_attr.items():
-            setattr(self, attr, value)
-
         self._initialize_gradient_styles()
         self._initialize_internal_members()
 
@@ -45,10 +37,21 @@ class PackagingLayerDelegate(_LayerDelegate):
 
         self.__checkbox_toggled = _Event()
 
-    def _build_widget_icons(self, _):
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_checkbox_widgets": None,
+            }
+        )
+        return default_attr
+
+    def _build_widget_icons(self, model, item):
         pass
 
-    def _build_branch_start_icons(self, item):
+    def _build_branch_start_icons(self, model, item):
         with ui.VStack(width=self.__DEFAULT_IMAGE_ICON_SIZE):
             ui.Spacer()
             checkbox = ui.CheckBox(
@@ -79,6 +82,3 @@ class PackagingLayerDelegate(_LayerDelegate):
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__checkbox_toggled, function)
-
-    def destroy(self):
-        _reset_default_attrs(self)

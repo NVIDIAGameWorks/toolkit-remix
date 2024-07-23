@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import abc
 from typing import Any, Optional
 
 from omni.flux.property_widget_builder.widget import Item as _Item
@@ -47,6 +48,18 @@ class FileAttributeItem(_Item):
         self._name_models = [_FileAttributeNameModel(path, attribute, display_attr_name=display_attr_name)]
         self._value_models = [_FileAttributeValueModel(path, attribute)]
 
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_name_models": None,
+                "_value_models": None,
+            }
+        )
+        return default_attr
+
 
 class CustomFileAttributeItem(FileAttributeItem):
     def __init__(self, values: [Any], attribute_name: str, multiline: (bool, int) = (False, 0)):
@@ -54,3 +67,15 @@ class CustomFileAttributeItem(FileAttributeItem):
         self.attribute = "custom"  # used by custom delegate(s)
         self._name_models = [_CustomFileAttributeNameModel(attribute_name)]
         self._value_models = [_CustomFileAttributeValueModel(value, multiline) for value in values]
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_name_models": None,
+                "_value_models": None,
+            }
+        )
+        return default_attr

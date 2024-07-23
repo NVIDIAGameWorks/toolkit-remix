@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import abc
 import typing
 from typing import List, Union
 
@@ -22,7 +23,6 @@ import omni.usd
 from omni.flux.property_widget_builder.widget import Model as _Model
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from pxr import Sdf, Usd
 
 from .items import USDAttributeItem as _USDAttributeItem
@@ -57,6 +57,21 @@ class USDModel(_Model):
         self.__on_attribute_created = _Event()
         self.__on_attribute_changed = _Event()
         self.__on_override_removed = _Event()
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_context_name": None,
+                "_context": None,
+                "_prim_paths": None,
+                "_subscriptions": None,
+                "_value_changed_callbacks": None,
+            }
+        )
+        return default_attr
 
     @property
     def context_name(self) -> str:
@@ -160,8 +175,3 @@ class USDModel(_Model):
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__on_override_removed, function)
-
-    def destroy(self):
-        self._subscriptions.clear()
-        self._value_changed_callbacks.clear()
-        _reset_default_attrs(self)

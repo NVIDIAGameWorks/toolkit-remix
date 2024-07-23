@@ -17,12 +17,14 @@
 
 import asyncio
 import functools
-from typing import List, Optional
 
 import carb
 from omni import kit, ui, usd
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.hover import hover_helper as _hover_helper
+from omni.flux.utils.widget.tree_widget import TreeWidget as _TreeWidget
+from omni.kit import undo
+from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
 
 from .layer_tree.delegate import LayerDelegate as _LayerDelegate
 from .layer_tree.item_model import ItemBase as _ItemBase
@@ -37,9 +39,9 @@ class LayerTreeWidget:
     def __init__(
         self,
         context_name: str = "",
-        model: Optional[_LayerModel] = None,
-        delegate: Optional[_LayerDelegate] = None,
-        height: Optional[int] = None,
+        model: _LayerModel | None = None,
+        delegate: _LayerDelegate | None = None,
+        height: int | None = None,
         expansion_default: bool = False,
         hide_create_insert_buttons: bool = False,
     ):
@@ -89,10 +91,10 @@ class LayerTreeWidget:
         self._sub_on_set_authoring_layer = self._delegate.subscribe_on_set_authoring_layer(
             self._model.set_authoring_layer
         )
-        self._sub_on_item_removed = self._delegate.subscribe_on_remove_clicked(self._model.delete_layer)
-        self._sub_on_item_saved = self._delegate.subscribe_on_save_clicked(self._model.save_layer)
-        self._sub_on_item_locked = self._delegate.subscribe_on_lock_clicked(self._model.toggle_lock_layer)
-        self._sub_on_item_visible_toggled = self._delegate.subscribe_on_visible_clicked(self._model.toggle_mute_layer)
+        self._sub_on_item_removed = self._delegate.subscribe_on_remove_clicked(self._delete_layers)
+        self._sub_on_item_saved = self._delegate.subscribe_on_save_clicked(self._save_layers)
+        self._sub_on_item_locked = self._delegate.subscribe_on_lock_clicked(self._set_lock_layers)
+        self._sub_on_item_visible_toggled = self._delegate.subscribe_on_visible_clicked(self._set_mute_layers)
         self._sub_on_item_exported = self._delegate.subscribe_on_export_clicked(self._model.export_layer)
         self._sub_on_item_save_layer_as = self._delegate.subscribe_on_save_as_clicked(self._model.save_layer_as)
         self._sub_on_item_merge = self._delegate.subscribe_on_merge_clicked(self._model.merge_layers)
@@ -123,16 +125,17 @@ class LayerTreeWidget:
                             height=ui.Pixel(self._height),
                         )
                         with self._tree_scroll_frame:
-                            self._layer_tree_widget = ui.TreeView(
+                            self._layer_tree_widget = _TreeWidget(
                                 self._model,
-                                delegate=self._delegate,
+                                self._delegate,
+                                select_all_children=False,
                                 header_visible=False,
                                 drop_between_items=True,
                                 columns_resizable=False,
                                 style_type_name_override="TreeView.Selection",
                                 key_pressed_fn=self._on_delete_pressed,
                             )
-                            self._layer_tree_widget.set_selection_changed_fn(self._on_selection_changed)
+                            self._layer_tree_widget.set_selection_changed_fn(self.on_selection_changed)
                         self._tree_scroll_frame.set_build_fn(
                             functools.partial(
                                 self._resize_tree_columns,
@@ -219,7 +222,8 @@ class LayerTreeWidget:
                 item, self._tree_expanded.get(item.data["layer"].identifier, self._expansion_default), False
             )
 
-    def _on_selection_changed(self, items: List[_ItemBase]):
+    def on_selection_changed(self, items: list[_ItemBase]):
+        self._layer_tree_widget.on_selection_changed(items)
         # Update the import & create button states
         self._update_button_state(items)
         # Update the delegate gradients
@@ -235,13 +239,16 @@ class LayerTreeWidget:
         if key not in [int(carb.input.KeyboardInput.DEL), int(carb.input.KeyboardInput.NUMPAD_DEL)] or pressed:
             return
 
-        for item in self._layer_tree_widget.selection:
-            if item.data["exclude_remove"]:
-                continue
-            self._model.delete_layer(item)
+        self._delete_layers()
 
-    def _on_item_expanded(self, item: _LayerItem, expanded: bool):
-        self._tree_expanded[item.data["layer"].identifier] = expanded
+    def _on_item_expanded(self, expanded: bool):
+        for item in self._layer_tree_widget.selection:
+            if not item.can_have_children:
+                continue
+            self._tree_expanded[item.data["layer"].identifier] = expanded
+        if self._refresh_task:
+            self._refresh_task.cancel()
+        self._refresh_task = asyncio.ensure_future(self.__refresh_async())
 
     def _create_layer(self, button, create_or_import):
         if button != 0:
@@ -253,7 +260,51 @@ class LayerTreeWidget:
         self._tree_expanded[parent_layer.data["layer"].identifier] = True
         self._model.create_layer(create_or_import, parent=parent_layer)
 
-    def _update_button_state(self, items: Optional[List[_LayerItem]] = None):
+    def _delete_layers(self):
+        filtered_selection = [item for item in self._layer_tree_widget.selection if not item.data["exclude_remove"]]
+        if not filtered_selection:
+            return
+
+        def execute_commands(*_):
+            with self._model.disable_refresh():
+                with undo.group():
+                    for item in filtered_selection:
+                        self._model.delete_layer(item)
+
+        PromptManager.post_simple_prompt(
+            "",
+            f"Are you sure you want to delete the selected {'layers' if len(filtered_selection) > 1 else 'layer'}?",
+            ok_button_info=PromptButtonInfo(
+                "Delete All" if len(filtered_selection) > 1 else "Delete",
+                functools.partial(execute_commands, filtered_selection),
+            ),
+            cancel_button_info=PromptButtonInfo("Cancel"),
+            modal=True,
+            no_title_bar=True,
+        )
+
+    def _save_layers(self):
+        with undo.group():
+            for item in self._layer_tree_widget.selection:
+                if not item.data["savable"]:
+                    continue
+                self._model.save_layer(item)
+
+    def _set_lock_layers(self, value):
+        with undo.group():
+            for item in self._layer_tree_widget.selection:
+                if item.data["exclude_lock"]:
+                    continue
+                self._model.set_lock_layer(item, not value)
+
+    def _set_mute_layers(self, value):
+        with undo.group():
+            for item in self._layer_tree_widget.selection:
+                if item.data["exclude_mute"] or not item.data["can_toggle_mute"]:
+                    continue
+                self._model.set_mute_layer(item, value)
+
+    def _update_button_state(self, items: list[_LayerItem] | None = None):
         if self._hide_create_insert_buttons:
             return
 
@@ -267,7 +318,7 @@ class LayerTreeWidget:
         self._import_button.name = "ImportLayer" if layer else "ImportLayerDisabled"
         self._import_button.tooltip = "Import an existing layer" if layer else "Invalid parent layer selection"
 
-    def _get_valid_layer_from_selection(self, items: Optional[List[_LayerItem]] = None) -> Optional[_LayerItem]:
+    def _get_valid_layer_from_selection(self, items: list[_LayerItem] | None = None) -> _LayerItem | None:
         layer = None
         layers = items or self._layer_tree_widget.selection
         if layers:

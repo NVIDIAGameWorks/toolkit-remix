@@ -103,6 +103,12 @@ class USDBuilderList(FieldBuilderList):
         self.append(FieldBuilder(claim_func=self.claim_by_name(*names), build_func=build_func))
 
 
+def _generate_identifier(item) -> str:
+    return ",".join(
+        [str(attribute_path) for name_model in item.value_models for attribute_path in name_model.attribute_paths]
+    )
+
+
 DEFAULT_FIELD_BUILDERS = USDBuilderList()
 
 
@@ -113,7 +119,7 @@ def _fallback_builder(item) -> None:
         type_name = _get_type_name(item.value_models[0].metadata)
     except (IndexError, AttributeError):
         type_name = "<unknown>"
-    builder = DefaultLabelField(type_name)
+    builder = DefaultLabelField(type_name, identifier=_generate_identifier(item))
     return builder(item)
 
 
@@ -129,7 +135,7 @@ def _fallback_builder(item) -> None:
     mapping.tf_gf_vec4d,
 )
 def _floating_point_builder(item) -> list[ui.Widget]:
-    builder = DefaultField(ui.FloatField)
+    builder = DefaultField(ui.FloatField, identifier=_generate_identifier(item))
     return builder(item)
 
 
@@ -147,7 +153,7 @@ def _floating_point_builder(item) -> list[ui.Widget]:
     mapping.tf_gf_vec4h,
 )
 def _integer_builder(item) -> list[ui.Widget]:
-    builder = DefaultField(ui.IntField)
+    builder = DefaultField(ui.IntField, identifier=_generate_identifier(item))
     return builder(item)
 
 
@@ -155,7 +161,7 @@ def _integer_builder(item) -> list[ui.Widget]:
     mapping.tf_bool,
 )
 def _bool_builder(item) -> list[ui.Widget]:
-    builder = DefaultField(ui.CheckBox, style_name="PropertiesWidgetFieldBool")
+    builder = DefaultField(ui.CheckBox, style_name="PropertiesWidgetFieldBool", identifier=_generate_identifier(item))
     return builder(item)
 
 
@@ -163,7 +169,7 @@ def _bool_builder(item) -> list[ui.Widget]:
     mapping.tf_string,
 )
 def _string_builder(item) -> list[ui.Widget]:
-    builder = DefaultField(ui.StringField)
+    builder = DefaultField(ui.StringField, identifier=_generate_identifier(item))
     return builder(item)
 
 
@@ -171,7 +177,7 @@ def _string_builder(item) -> list[ui.Widget]:
     mapping.tf_tf_token,
 )
 def _tftoken_builder(item) -> list[ui.Widget]:
-    builder = DefaultField(ui.StringField)
+    builder = DefaultField(ui.StringField, identifier=_generate_identifier(item))
     return builder(item)
 
 
@@ -200,7 +206,7 @@ def _color_builder(item):
     mapping.tf_sdf_time_code,
 )
 def _time_code_builder(item):
-    builder = DefaultLabelField("time code")
+    builder = DefaultLabelField("time code", identifier=_generate_identifier(item))
     return builder(item)
 
 

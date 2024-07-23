@@ -9,11 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Create 2024.4.0-RC.2 build
+- REMIX-2593: Added a centralized TreeWidget with additional logic
+- REMIX-3075: Added a layer type check in validation
 
 ### Changed
 - Change branch to release branch for CI for RC
+- REMIX-2593: Changed the LayerTree widget to work with multiselect
 
 ### Fixed
+- REMIX-3076: Added trailing slash to end of dirname when double-clicking in file dialog
+- Fix manipulator that was giving wrong data
+- Re-add event that was mistakenly removed
+- Fixed inconsistent RC versions
 
 ### Removed
 
@@ -24,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2489: Fixed and improved asset replacement and overwriting capabilities for referenced assets
 - REMIX-2603: Added dialog to set remix categories
 - REMIX-2814: Selection tree multi-selection upgrades
-- Add a trigger pipeline to publish in the launcher (artefact bug)
+- Add a trigger pipeline to publish in the launcher (artifact bug)
 - REMIX-2236: Added github actions config and necessary files for github CLA bot
 - REMIX-3058: Added a material file path tooltip and copy menu for material property items
 - REMIX-3345: Added a tool to help with compatibility migrations for breaking data changes

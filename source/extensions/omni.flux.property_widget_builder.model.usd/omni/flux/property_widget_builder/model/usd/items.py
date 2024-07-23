@@ -93,6 +93,22 @@ class USDAttributeItem(_Item):
         self.__on_attribute_changed = _Event()
         self.__on_override_removed = _Event()
 
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_element_count": None,
+                "_name_models": None,
+                "_value_models": None,
+                "_context_name": None,
+                "_attribute_paths": None,
+                "_stage": None,
+            }
+        )
+        return default_attr
+
     def refresh(self):
         self._validate_attribute_exists()
         super().refresh()
@@ -139,6 +155,8 @@ class USDAttributeItem(_Item):
         a virtual attribute since it does not exist on any other layer.
         """
         await omni.kit.app.get_app().next_update_async()
+        if not self._attribute_paths:
+            return
         attribute_exists_in_stage = False
         for attribute_path in self._attribute_paths:
             prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
@@ -230,6 +248,17 @@ class USDAttributeXformItem(USDAttributeItem):
         self._edit_subs = []
         for model in self._value_models:
             self._edit_subs.append(model.subscribe_end_edit_fn(self.__override_all_xform_ops))
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_edit_subs": None,
+            }
+        )
+        return default_attr
 
     def __override_all_xform_ops(self, *_) -> None:
         with omni.kit.undo.group():
@@ -343,6 +372,19 @@ class _BaseListModelItem(_Item):
 
         self.__on_attribute_removed = _Event()
 
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_context_name": None,
+                "_attribute_paths": None,
+                "_stage": None,
+            }
+        )
+        return default_attr
+
     def __get_all_attributes(self):
         attributes = set()
         for value_model in self.value_models:
@@ -445,6 +487,11 @@ class USDMetadataListItem(_BaseListModelItem):
             not_implemented=not_implemented,
         )
 
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
+
 
 class USDAttrListItem(_BaseListModelItem):
     """Item of the model"""
@@ -487,6 +534,11 @@ class USDAttrListItem(_BaseListModelItem):
             display_attr_names_tooltip=display_attr_names_tooltip,
             not_implemented=not_implemented,
         )
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
 
 
 @dataclasses.dataclass
@@ -535,6 +587,19 @@ class USDAttributeItemStub(USDAttributeItem):
 
         self.__on_create_attributes_begin = _Event()
         self.__on_create_attributes_end = _Event()
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_attribute_defs": None,
+                "_refresh_task": None,
+                "_create_task": None,
+            }
+        )
+        return default_attr
 
     def _init_name_models(self, context_name, attribute_paths, display_attr_names, display_attr_names_tooltip):
         self._name_models = []
@@ -614,6 +679,11 @@ class USDAttributeXformItemStub(USDAttributeItemStub):
     Holds USD XForm attribute(s) that may be created at a later time.
     """
 
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
+
     def _create_attributes(self):
         attr_defs_by_prim = collections.defaultdict(list)
         for attr_def in self._attribute_defs:
@@ -683,6 +753,19 @@ class USDAttributeItemVirtual(USDAttributeItem):
             read_only=read_only,
             value_type_name=value_type_name,
         )
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_default_value": None,
+                "_create_callback": None,
+                "_value_type_name": None,
+            }
+        )
+        return default_attr
 
     def _init_name_models(self, context_name, attribute_paths, display_attr_names, display_attr_names_tooltip):
         if self._element_count is None:  # not implemented?
@@ -757,6 +840,11 @@ class USDAttributeXformItemVirtual(USDAttributeItemVirtual):
             display_attr_names_tooltip=display_attr_names_tooltip,
             read_only=read_only,
         )
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
 
     def __create_xform_ops(
         self, current_op: UsdGeom.XformOp.Type, ops_to_create: List[Tuple[UsdGeom.XformOp.Type, Any]], value: Any = None

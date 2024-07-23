@@ -32,8 +32,10 @@ class DefaultField(AbstractField):
     A default field can be used to create a simple widget(s) for an item's value_models.
     """
 
-    def __init__(self, widget_type: Type[ui.Widget], style_name: str = "PropertiesWidgetField"):
-        super().__init__(style_name=style_name)
+    def __init__(
+        self, widget_type: Type[ui.Widget], style_name: str = "PropertiesWidgetField", identifier: None | str = None
+    ):
+        super().__init__(style_name=style_name, identifier=identifier)
         self.widget_type = widget_type
 
     def build_ui(self, item) -> list[ui.Widget]:
@@ -49,6 +51,7 @@ class DefaultField(AbstractField):
                         model=item.value_models[i],
                         style_type_name_override=style_name,
                         read_only=item.value_models[i].read_only,
+                        identifier=self.identifier or "",
                     )
                     widgets.append(widget)
                     ui.Spacer(height=ui.Pixel(2))
