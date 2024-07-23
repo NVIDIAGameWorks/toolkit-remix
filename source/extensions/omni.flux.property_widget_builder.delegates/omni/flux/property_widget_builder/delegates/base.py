@@ -34,8 +34,9 @@ class AbstractField(Generic[ItemT]):
     AbstractField that stores a style_name attribute to be used within `build_ui` for styling widgets.
     """
 
-    def __init__(self, style_name: str = "PropertiesWidgetField") -> None:
+    def __init__(self, style_name: str = "PropertiesWidgetField", identifier: None | str = None) -> None:
         self.style_name = style_name
+        self.identifier = identifier
 
     def __call__(self, item: ItemT) -> ui.Widget | list[ui.Widget] | None:
         return self.build_ui(item)

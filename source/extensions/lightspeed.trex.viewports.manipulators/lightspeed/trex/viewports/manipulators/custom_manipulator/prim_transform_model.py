@@ -18,8 +18,7 @@
 from typing import List
 
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
-from omni.kit.manipulator.prim.core.model import PrimTransformModel as _PrimTransformModel
-from pxr import Sdf
+from omni.kit.manipulator.prim.legacy.model import PrimTransformModel as _PrimTransformModel
 
 
 class PrimTransformModel(_PrimTransformModel):
@@ -29,7 +28,7 @@ class PrimTransformModel(_PrimTransformModel):
         self.__redirect_paths = []
 
     def set_path_redirect(self, paths: List[str]):
-        self.__redirect_paths = [Sdf.Path(path) for path in paths]
+        self.__redirect_paths = paths
 
     def _on_ended_transform(
         self,
