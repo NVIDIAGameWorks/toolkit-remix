@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.8]
+### Fixed
+- Fixed layer validation
+
+## [1.2.7]
+### Fixed
+- Fixed layer validation for new layer
+
 ## [1.2.6]
 ### Changed
 - Added a layer type check in validation
