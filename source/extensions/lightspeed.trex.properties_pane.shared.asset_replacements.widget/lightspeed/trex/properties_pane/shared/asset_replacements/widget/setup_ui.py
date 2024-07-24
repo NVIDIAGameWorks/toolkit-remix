@@ -367,18 +367,13 @@ class AssetReplacementsPane:
         return True
 
     def __validate_file_path(self, existing_file, dirname, filename):
-        if existing_file:
-            valid_existing_layer = self.__validate_existing_layer(Path(dirname, filename))
-        else:
-            valid_existing_layer = False
-
-        if existing_file and not valid_existing_layer:
-            return valid_existing_layer
-
-        return self._replacement_core.is_path_valid(
+        result = self._replacement_core.is_path_valid(
             omni.client.normalize_url(omni.client.combine_urls(dirname, filename)),
             existing_file=existing_file,
         )
+        if result and existing_file and not self.__validate_existing_layer(Path(dirname, filename)):
+            return False
+        return result
 
     def __validation_error_callback(self, existing_file, *_):
         fill_word = "imported" if existing_file else "created"
