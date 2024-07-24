@@ -339,10 +339,10 @@ class AssetReplacementsPane:
         else:
             self._selection_tree_widget.refresh()
 
-    def __validate_file_path(self, existing_file, dirname, filename):
-        sublayer = Sdf.Layer.FindOrOpen(str(Path(dirname, filename)))
+    def __validate_existing_layer(self, path):
+        sublayer = Sdf.Layer.FindOrOpen(str(path))
         if not sublayer:
-            self._layer_validation_error_msg = f"Unable to open layer {filename}"
+            self._layer_validation_error_msg = f"Unable to open layer {path.name}"
             return False
         # Check if the layer type is a reserved layer type
         layer_manager = _LayerManagerCore(self._context_name)
@@ -354,20 +354,26 @@ class AssetReplacementsPane:
             _LayerType.workfile.value,
         ]:
             self._layer_validation_error_msg = (
-                f"Layer {filename}'s layer type ({layer_type}) is reserved by Remix, and cannot be loaded."
+                f"Layer {path.name}'s layer type ({layer_type}) is reserved by Remix, and cannot be loaded."
             )
             return False
 
         # Check if the layer is already used
         all_layers = layer_manager.get_layers(layer_type=None)
         if sublayer in all_layers:
-            self._layer_validation_error_msg = f"Layer {filename} is already loaded."
+            self._layer_validation_error_msg = f"Layer {path.name} is already loaded."
             return False
 
-        return self._replacement_core.is_path_valid(
+        return True
+
+    def __validate_file_path(self, existing_file, dirname, filename):
+        result = self._replacement_core.is_path_valid(
             omni.client.normalize_url(omni.client.combine_urls(dirname, filename)),
             existing_file=existing_file,
         )
+        if result and existing_file and not self.__validate_existing_layer(Path(dirname, filename)):
+            return False
+        return result
 
     def __validation_error_callback(self, existing_file, *_):
         fill_word = "imported" if existing_file else "created"
