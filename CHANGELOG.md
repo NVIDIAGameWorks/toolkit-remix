@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Create 2024.4.0-RC.3 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2024.4.0-RC.3]
+
+### Added
 - Create 2024.4.0-RC.2 build
 - REMIX-2593: Added a centralized TreeWidget with additional logic
 - REMIX-3075: Added a layer type check in validation
