@@ -50,10 +50,10 @@ class ProjectManagerService(ServiceBase):
             except ValueError as e:
                 raise ServiceBase.raise_error(404, e)
 
-        @self.router.put(path="/{project_id:path}", description="Open a project.")
+        @self.router.put(path="/{layer_id:path}", description="Open a project.")
         async def open_project(
-            project_id: str = ServiceBase.validate_path_param(  # noqa B008
+            layer_id: str = ServiceBase.validate_path_param(  # noqa B008
                 OpenProjectPathParamModel, description="Project identifier for the project to open as project"
             )
         ) -> str:
-            return self.__layer_core.open_project_with_data_models(project_id) or "OK"
+            return self.__layer_core.open_project_with_data_models(layer_id) or "OK"
