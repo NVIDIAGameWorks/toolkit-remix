@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create 2024.4.0-RC.3 build
 
 ### Changed
+- Updated repo tools + added public version of repo lint
 
 ### Fixed
 - Fixed layer validation for new layer
