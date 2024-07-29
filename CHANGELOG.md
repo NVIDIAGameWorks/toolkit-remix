@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated repo tools + added public version of repo lint
+- REMIX-3071: Refactor shutdown event to cleanup 2 way dependency
 
 ### Fixed
 - Fixed layer validation for new layer

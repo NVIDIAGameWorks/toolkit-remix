@@ -15,4 +15,4 @@
 * limitations under the License.
 """
 
-from .e2e import TestHotkeys
+from .test_prompt_unsaved import TrexTestPromptIfUnsavedStage
