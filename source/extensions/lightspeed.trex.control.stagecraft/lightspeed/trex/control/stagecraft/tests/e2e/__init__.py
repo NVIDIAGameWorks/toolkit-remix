@@ -16,4 +16,3 @@
 """
 
 from .test_hotkeys import TestHotkeys
-from .test_prompt_unsaved import TrexTestPromptIfUnsavedStage

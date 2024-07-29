@@ -20,12 +20,10 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 from typing import Callable
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import lightspeed.event.shutdown.unsaved_stage
 import omni.kit.app
-import omni.kit.test
-import omni.kit.window
 import omni.usd
 from carb.settings import ISettings
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
@@ -36,6 +34,10 @@ from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit.test.async_unittest import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage, wait_stage_loading
 from omni.kit.window.file import FileWindowExtension
+
+
+class MockEvent:
+    type = omni.kit.app.POST_QUIT_EVENT_TYPE  # noqa A003 shadowing builtin name
 
 
 def mock_prompt(response="ok"):
@@ -157,20 +159,23 @@ class TrexTestPromptIfUnsavedStage(AsyncTestCase):
     async def test_shutdown_will_show_prompt_and_save(self):
         self._context.set_pending_edit(True)
 
+        mock_shutdown_callable = Mock()
+
         with (
             patch.object(ISettings, "get", side_effect=self._mock_get_carb_setting),
             # This simulates showing prompt and clicking save
             patch("lightspeed.trex.control.stagecraft.setup._TrexMessageDialog", mock_prompt("ok")) as prompt,
-            patch.object(FileWindowExtension, "save") as mock_file_save,
+            patch.object(FileWindowExtension, "save", side_effect=mock_shutdown_callable) as mock_file_save,
         ):
             # We can't actually shut down the app or the test will not be able to finish. We call the next best thing,
-            # and simulate a close action.
+            # and simulate a close action with a fake shutdown callable.
             # omni.kit.app.get_app().shutdown()  # closes too fast.
             # app_window = omni.appwindow.get_default_app_window().shutdown()  # this crashes
-            _get_control_stagecraft().on_close_with_unsaved_project(None)
+            _get_control_stagecraft().interrupt_shutdown(mock_shutdown_callable)
 
         prompt.assert_called_once()
         mock_file_save.assert_called_once()
+        mock_shutdown_callable.assert_called_once()
 
     async def test_shutdown_no_prompt_if_ignore_on_exit_setting_is_true(self):
         self._context.set_pending_edit(True)
@@ -183,9 +188,6 @@ class TrexTestPromptIfUnsavedStage(AsyncTestCase):
 
             # Simulate close event even closer to actual event handling in order to
             # test the effect of the preference.
-            class MockEvent:
-                type = omni.kit.app.POST_QUIT_EVENT_TYPE  # noqa A003 shadowing builtin name
-
             event_name = lightspeed.event.shutdown.unsaved_stage.EventUnsavedStageOnShutdown().name
             event = _get_event_manager_instance().get_registered_event(event_name)
             # XXX: call private "slot" method on event as if it was triggered.

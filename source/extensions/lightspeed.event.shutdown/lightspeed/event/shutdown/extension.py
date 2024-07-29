@@ -18,28 +18,24 @@
 import carb
 import omni.ext
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
-from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 from .unsaved_stage import EventUnsavedStageOnShutdown
+
+_unsaved_event = None
 
 
 class EventShutdownExtension(omni.ext.IExt):
     """Standard extension support class, necessary for extension management"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.default_attr = {"_unsaved_event": None}
-        for attr, value in self.default_attr.items():
-            setattr(self, attr, value)
-        self._unsaved_event = None
-
     # noinspection PyUnusedLocal
     def on_startup(self, ext_id):
+        global _unsaved_event
         carb.log_info("[lightspeed.event.load_edit_target] Lightspeed Event Shutdown startup")
-        self._unsaved_event = EventUnsavedStageOnShutdown()
-        _get_event_manager_instance().register_event(self._unsaved_event)
+        _unsaved_event = EventUnsavedStageOnShutdown()
+        _get_event_manager_instance().register_event(_unsaved_event)
 
     def on_shutdown(self):
+        global _unsaved_event
         carb.log_info("[lightspeed.event.load_edit_target] Lightspeed Events Shutdown shutdown")
-        _get_event_manager_instance().unregister_event(self._unsaved_event)
-        _reset_default_attrs(self)
+        _get_event_manager_instance().unregister_event(_unsaved_event)
+        _unsaved_event = None

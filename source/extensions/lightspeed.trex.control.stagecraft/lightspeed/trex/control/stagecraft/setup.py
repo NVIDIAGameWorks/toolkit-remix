@@ -18,7 +18,6 @@
 from functools import partial
 from typing import Callable
 
-import omni.kit.app
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
@@ -101,35 +100,13 @@ class Setup:
             self._on_new_workfile
         )
 
-    @property
-    def context(self):
-        return self._context
-
-    def on_close_with_unsaved_project(self, on_closed: Callable[[], None]):
-        """
-        Check if current stage is dirty. If it's dirty, it will ask if to save the file, then close stage.
-        """
-        # Note: This method adapted from omni.kit.window.file.FileWindowExtension().close()
-        from omni.kit.window.file import get_instance as get_window_ext_instance
-
-        window_extension = get_window_ext_instance()  # type: omni.kit.window.file.FileWindowExtension
-        window_extension.stop_timeline()
-
-        def close_stage_job():
-            # Clear dirty state to allow fast quit.
-            self._context.set_pending_edit(False)
-            if on_closed:
-                on_closed()
-
-        self._prompt_if_unsaved_project(close_stage_job, "closing the app")  # noqa PLW0212
-
     def _on_import_capture_layer(self, path: str):
         self._capture_core_setup.import_capture_layer(path)
 
     def _on_import_replacement_layer(self, path: str, use_existing_layer: bool = True):
         self._replacement_core_setup.import_replacement_layer(path, use_existing_layer=use_existing_layer)
 
-    def _prompt_if_unsaved_project(self, callback: Callable[[], None], action_text: str) -> None:
+    def prompt_if_unsaved_project(self, callback: Callable[[], None], action_text: str) -> None:
         """Check for unsaved project and offer to save before executing callback"""
 
         def on_save_done(result, error):
@@ -140,6 +117,12 @@ class Setup:
                 )
                 return
             # No errors saving, let's call the next step...
+            callback()
+
+        def on_discard():
+            # We want to discard any changes anyway so we can clear dirty state to allow fast quit or
+            # whatever operation comes next.
+            self._context.set_pending_edit(False)
             callback()
 
         layer_capture = self._layer_manager.get_layer(_LayerType.capture)
@@ -155,7 +138,7 @@ class Setup:
                 middle_handler=partial(self._on_save_as, on_save_done=on_save_done),
                 disable_middle_button=False,
                 middle_2_label="Discard",
-                middle_2_handler=callback,
+                middle_2_handler=on_discard,
                 disable_middle_2_button=False,
                 disable_cancel_button=False,  # Cancel will just do nothing
             )
@@ -163,8 +146,19 @@ class Setup:
             # If project does not need to be saved, proceed:
             callback()
 
+    def should_interrupt_shutdown(self):
+        return self._context.can_close_stage() and self._context.has_pending_edit()
+
+    def interrupt_shutdown(self, shutdown_callback):
+        def callback():
+            # Clear dirty state to allow shutdown.
+            self._context.set_pending_edit(False)
+            shutdown_callback(self)
+
+        self.prompt_if_unsaved_project(callback, "closing app")
+
     def _on_open_workfile(self, path):
-        self._prompt_if_unsaved_project(lambda: self._layer_manager.open_stage(path), "changing project")
+        self.prompt_if_unsaved_project(lambda: self._layer_manager.open_stage(path), "changing project")
 
     def _on_save_as(self, on_save_done: Callable[[bool, str], None] = None):
         self._stage_core_setup.save_as(on_save_done=on_save_done)

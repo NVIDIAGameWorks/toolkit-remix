@@ -18,11 +18,9 @@ file = "${lightspeed.trex.app.resources}/data/fonts/NVIDIASans_A_Rg.ttf"
 size = 16
 
 [app.file]
-# ignore omni.kit.windows.file handling so we can have our own
+# ignore omni.kit.windows.file handling so we can have our own (trexIgnoreUnsavedOnExit)
 ignoreUnsavedStage = true  # skips initial save prompt
 ignoreUnsavedOnExit = true  # skips omni.kit.windows.file handling
-# Use this setting to disable our handling for tests
-trexIgnoreUnsavedOnExit = false  # default, but here for documentation purposes
 
 [app.menu]
 legacy_mode = false
