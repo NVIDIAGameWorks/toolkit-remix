@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.4.0]
+### Changed
+- Disable HDRemix bootstrap
+
 ## [0.3.6]
 ### Fixed
 - Fix USD export / import of distant lights in dxvk-remix: -Z now correctly points sun -> earth

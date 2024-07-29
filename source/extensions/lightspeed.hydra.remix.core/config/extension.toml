@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.3.6"
+version = "0.4.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alex Dunn <adunn@nvidia.com>"]
@@ -38,7 +38,6 @@ icon = "data/icon.png"
 "omni.usd" = {}
 "omni.mdl" = {}
 "omni.mdl.neuraylib" = {}
-"lightspeed.hydra.remix.bootstrap" = {}
 "lightspeed.trex.utils.widget" = {}
 
 [[python.module]]
