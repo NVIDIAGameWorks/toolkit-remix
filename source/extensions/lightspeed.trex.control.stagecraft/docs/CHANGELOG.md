@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.5]
+### Fixed
+- Removed test dependency on lightspeed.event.shutdown
+
 ## [1.1.4]
 ### Changed
 - Changed repo link

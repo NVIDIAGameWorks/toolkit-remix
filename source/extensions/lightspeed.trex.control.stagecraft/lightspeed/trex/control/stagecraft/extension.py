@@ -21,7 +21,6 @@ import omni.ext
 
 from .setup import Setup
 
-# make accessible for tests
 _stagecraft_control_instance: Setup | None = None
 
 
