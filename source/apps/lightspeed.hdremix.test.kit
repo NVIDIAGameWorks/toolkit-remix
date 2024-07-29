@@ -24,7 +24,6 @@ Kit application used solely for lightweight-kit-environment testing of HdRemix
 keywords = ["app"]
 
 [dependencies]
-"lightspeed.hydra.remix.bootstrap" = { order = -20000 }
 "lightspeed.hydra.remix.core" = { order = -10000 }
 "omni.kit.viewport.bundle" = { order = 1 }
 "omni.usd" = { order = 2 }
@@ -49,8 +48,7 @@ folders.'++' = ["${app}/../exts", "${app}/../extscache"]
 # Version lock for all dependencies:
 [settings.app.exts]
 enabled = [
-	"lightspeed.hydra.remix.bootstrap-1.0.3",
-	"lightspeed.hydra.remix.core-0.3.6",
+	"lightspeed.hydra.remix.core-0.4.0",
 	"lightspeed.trex.utils.widget-1.0.3",
 	"omni.kit.scripting-105.1.2",
 ]

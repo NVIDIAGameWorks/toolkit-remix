@@ -53,9 +53,9 @@ class HdRemixFinalizer(omni.ext.IExt):
         try:
             dll = ctypes.cdll.LoadLibrary("HdRemix.dll")
         except FileNotFoundError:
-            msg = "Failed to load HdRemix.dll.\nAssuming that Remix is not supported."
-            carb.log_error(msg)
-            return (RemixSupport.NOT_SUPPORTED, msg)
+            msg = "HdRemix.dll is not loaded into the process."
+            carb.log_warn(msg + " Retrying LoadLibrary...")
+            return (RemixSupport.WAITING_FOR_INIT, msg)
 
         if not hasattr(dll, "hdremix_issupported"):
             msg = "HdRemix.dll doesn't have 'hdremix_issupported' function.\nAssuming that Remix is not supported."
