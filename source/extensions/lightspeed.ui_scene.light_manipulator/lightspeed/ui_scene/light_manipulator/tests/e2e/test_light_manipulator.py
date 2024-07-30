@@ -146,3 +146,18 @@ class TestLightManipulator(OmniUiTest):
         light_x.AddRotateYOp().Set(45)
 
         await self.draw_manipulator_and_compare(window, prim)
+
+    async def test_cylinderlight_manipulator(self):
+        window = await self.create_test_window(width=256, height=256)
+
+        prim = self.create_and_select_test_light("CylinderLight")
+        light = UsdLux.CylinderLight(prim)
+        light.GetRadiusAttr().Set(5)
+        light.GetLengthAttr().Set(10)
+        light.GetIntensityAttr().Set(140)
+        # rotate the light to have a better angle
+        light_x = UsdGeom.Xformable(light)
+        light_x.AddRotateXOp().Set(30)
+        light_x.AddRotateYOp().Set(65)
+
+        await self.draw_manipulator_and_compare(window, prim)

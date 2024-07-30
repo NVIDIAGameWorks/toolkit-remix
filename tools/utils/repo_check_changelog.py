@@ -121,7 +121,11 @@ def validate_extension_changes(source_hash: str, original_hash: str, changed_ext
     config_file = changed_extension / extension_config_file
     source_text = get_source(config_file, source_hash)
     original_text = get_source(config_file, original_hash)
-    source_parsed = toml.loads(source_text)
+    try:
+        source_parsed = toml.loads(source_text)
+    except toml.TomlDecodeError:
+        print(f"Error parsing {config_file}")
+        raise
     try:
         original_parsed = toml.loads(original_text)
     except toml.TomlDecodeError:
