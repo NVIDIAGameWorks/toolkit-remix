@@ -17,7 +17,14 @@
 
 from __future__ import annotations
 
-__all__ = ["AbstractLightModel", "RectLightModel", "DiskLightModel", "DistantLightModel", "UsdLuxLight"]
+__all__ = [
+    "AbstractLightModel",
+    "RectLightModel",
+    "DiskLightModel",
+    "DistantLightModel",
+    "CylinderLightModel",
+    "UsdLuxLight",
+]
 
 from typing import TYPE_CHECKING
 
@@ -31,11 +38,6 @@ if TYPE_CHECKING:
 
 UsdLuxLight: UsdLux.BoundableLightBase | UsdLux.NonboundableLightBase = None
 LightModelItem: StringItem | FloatItem | MatrixItem = None
-
-# TODO: Add models for the other light types
-# CylinderLight = 2
-# SphereLight = 3
-# DomeLight = 5
 
 
 def _flatten_matrix(matrix: Gf.Matrix4d):
@@ -95,6 +97,7 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
     """
 
     light_class: type[UsdLuxLight] = None  # noqa PLE0602 - linter doesn't understand new type alias
+    linked_axes = [0, 0, 0]
 
     def __init__(self, prim: Usd.Prim, usd_context_name: str = "", viewport_layer: LightManipulatorLayer = None):
         super().__init__()
@@ -388,6 +391,17 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
 
         # Compute matrix from world-transform in USD
         world_xform = self.light_class(self._xform_prim).ComputeLocalToWorldTransform(time)  # noqa PLE1102
+        # lights of a certain type have a behavior where the shape of the light will be preserved even if the
+        # parent scale would morph it by only respecting the largest of the contradictory scale dimensions...
+        # So we account for that here to keep our representation in line with the light geometry.
+        world_transform = Gf.Transform(world_xform)
+        scale = world_transform.GetScale()
+        linked = [linked_axis * s for linked_axis, s in zip(self.linked_axes, scale)]
+        if any(linked):
+            maximum_value = max(linked)
+            scale = [maximum_value if linked_axis else s for linked_axis, s in zip(self.linked_axes, scale)]
+            world_transform.SetScale(scale)
+            world_xform = world_transform.GetMatrix()
 
         # Flatten Gf.Matrix4d to list
         return _flatten_matrix(world_xform)
@@ -411,6 +425,7 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
 
 class DiskLightModel(AbstractLightModel):
     light_class = UsdLux.DiskLight
+    linked_axes = [1, 1, 0]
 
     def __init__(self, prim: Usd.Prim, usd_context_name: str = "", viewport_layer: LightManipulatorLayer = None):
         super().__init__(prim, usd_context_name=usd_context_name, viewport_layer=viewport_layer)
@@ -568,3 +583,68 @@ class RectLightModel(AbstractLightModel):
 
 class SphereLightModel(DiskLightModel):
     light_class = UsdLux.SphereLight
+    linked_axes = [1, 1, 1]
+
+
+class CylinderLightModel(DiskLightModel):
+    light_class = UsdLux.CylinderLight
+    linked_axes = [0, 1, 1]
+
+    def __init__(self, prim: Usd.Prim, usd_context_name: str = "", viewport_layer: LightManipulatorLayer = None):
+        super().__init__(prim, usd_context_name=usd_context_name, viewport_layer=viewport_layer)
+        self.length = FloatItem()
+
+    def update_from_prim(self):
+        super().update_from_prim()
+        self.set_item_value(self.length, self._get_length(self._time))
+
+    def _light_attribute_notice_changed(self, attribute_path: Sdf.Path) -> set[sc.AbstractManipulatorItem]:
+        """Light specific implementation. Returns any items affected by attribute path."""
+        changed_items = super()._light_attribute_notice_changed(attribute_path)
+        if self.length and attribute_path.name == "inputs:length":
+            changed_items.add(self.length)
+        return changed_items
+
+    def _get_length(self, time: Usd.TimeCode) -> float:
+        """Returns radius of currently selected light"""
+        if not self._light:
+            return 0.0
+        return self._light.GetLengthAttr().Get(time)
+
+    def _set_length(self, time: Usd.TimeCode, value: float):
+        """set radius of currently selected light"""
+        if not self._light:
+            return
+        self._light.GetLengthAttr().Set(value, time=time)
+
+    def _set_floats(self, item: LightModelItem, value: list[float]):
+        """
+        Set the item value directly to USD. This is useful when we want to update the usd but
+        not record it in commands.
+        """
+        super()._set_floats(item, value)
+        if item == self.length:
+            self._set_length(self._time, value[0])
+
+    def _get_as_floats(self, item: LightModelItem) -> list[float] | None:
+        values = super()._get_as_floats(item)
+        if values:
+            return values
+        if item == self.length:
+            return [self._get_length(self._time)]
+        return None
+
+    def _set_floats_commands(self, item: LightModelItem, value: list[float]):
+        if super()._set_floats_commands(item, value):
+            return True
+        # we get the previous value from the model instead of USD
+        if item == self.length:
+            prev_value = self.length.value
+            if prev_value == value[0]:
+                return False
+            length_attr = self._light.GetLengthAttr()
+            omni.kit.commands.execute(
+                "ChangeProperty", prop_path=length_attr.GetPath(), value=value[0], prev=prev_value
+            )
+            return True
+        return False

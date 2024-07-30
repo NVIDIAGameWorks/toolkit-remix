@@ -23,6 +23,7 @@ __all__ = [
     "DistantLightManipulator",
     "RectLightManipulator",
     "SphereLightManipulator",
+    "CylinderLightManipulator",
 ]
 
 import abc
@@ -37,8 +38,30 @@ from omni.ui import color as cl
 from omni.ui import scene as sc
 from pxr import Usd, UsdLux
 
+from .constants import (
+    ARROW_P,
+    ARROW_TIP,
+    ARROW_VC,
+    ARROW_VI,
+    CLEAR_COLOR,
+    COLOR,
+    CYLINDER_LIGHT_INTENSITY,
+    DEFAULT_ARC_STYLE,
+    DEFAULT_SHAPE_STYLE,
+    DISK_LIGHT_INTENSITY,
+    DISTANT_LIGHT_INTENSITY,
+    HOVER_COLOR,
+    HOVER_THICKNESS,
+    INTENSITY_MIN,
+    INTENSITY_SCALE,
+    RECT_LIGHT_INTENSITY,
+    SPHERE_LIGHT_INTENSITY,
+    SQUARE_CENTER_TO_EDGE,
+    THICKNESS,
+)
+from .gesture import LightDragGesture
 from .light_model import (
-    AbstractLightModel,
+    CylinderLightModel,
     DiskLightModel,
     DistantLightModel,
     RectLightModel,
@@ -47,63 +70,17 @@ from .light_model import (
 )
 
 if TYPE_CHECKING:
-    from lightspeed.trex.viewports.shared.widget.interface import LayerItem
     from lightspeed.trex.viewports.shared.widget.layers import ViewportLayers
 
-ConcreteLightManipulatorCls: RectLightManipulator | DiskLightManipulator | DistantLightManipulator = None
-
-# this INTENSITY_SCALE is to make the manipulators a reasonable length with large intensity number
-INTENSITY_SCALE = 3.5  # global scaler of how big intensity appears
-INTENSITY_MIN = 0.2  # min length to make sure something shows for user to grab on to (twice arrow height)
-# defaults are from: `omni.flux.light_creator.widget/omni/flux/light_creator/widget/setup_ui.py`
-DISTANT_LIGHT_INTENSITY = 25
-SPHERE_LIGHT_INTENSITY = 100
-RECT_LIGHT_INTENSITY = 400
-DISK_LIGHT_INTENSITY = 500
-CYLINDER_LIGHT_INTENSITY = 140
-
-ARROW_WIDTH = 0.03
-ARROW_HEIGHT = 0.1
-ARROW_P = [
-    [ARROW_WIDTH, ARROW_WIDTH, 0],
-    [-ARROW_WIDTH, ARROW_WIDTH, 0],
-    [0, 0, ARROW_HEIGHT],
-    #
-    [ARROW_WIDTH, -ARROW_WIDTH, 0],
-    [-ARROW_WIDTH, -ARROW_WIDTH, 0],
-    [0, 0, ARROW_HEIGHT],
-    #
-    [ARROW_WIDTH, ARROW_WIDTH, 0],
-    [ARROW_WIDTH, -ARROW_WIDTH, 0],
-    [0, 0, ARROW_HEIGHT],
-    #
-    [-ARROW_WIDTH, ARROW_WIDTH, 0],
-    [-ARROW_WIDTH, -ARROW_WIDTH, 0],
-    [0, 0, ARROW_HEIGHT],
-    #
-    [ARROW_WIDTH, ARROW_WIDTH, 0],
-    [-ARROW_WIDTH, ARROW_WIDTH, 0],
-    [-ARROW_WIDTH, -ARROW_WIDTH, 0],
-    [ARROW_WIDTH, -ARROW_WIDTH, 0],
-]
-
-ARROW_VC = [3, 3, 3, 3, 4]
-ARROW_VI = list(range(sum(ARROW_VC)))
-# length of line almost to tip of arrow but shorter to make sure line doesn't dull point
-# when drawn
-ARROW_TIP = ARROW_HEIGHT - 0.02
+ConcreteLightManipulatorCls: (
+    RectLightManipulator
+    | DiskLightManipulator
+    | DistantLightManipulator
+    | SphereLightManipulator
+    | CylinderLightManipulator
+) = None
 
 _manipulator_classes: dict[UsdLuxLight, ConcreteLightManipulatorCls] | None = None
-
-# Style settings, as kwargs
-THICKNESS = 1
-HOVER_THICKNESS = THICKNESS + 2
-COLOR = cl.yellow
-HOVER_COLOR = cl.yellow  # color for arrows and corner rectangles when hovered
-CLEAR_COLOR = cl(0, 0, 0, 0)  # the key is that alpha is 0 here
-DEFAULT_SHAPE_STYLE = {"thickness": THICKNESS, "color": COLOR}
-SQUARE_WIDTH = 0.06
-SQUARE_CENTER_TO_EDGE = 0.5 * SQUARE_WIDTH + 0.01 * THICKNESS
 
 
 def is_mouse_button_down(button=carb.input.MouseInput.LEFT_BUTTON) -> bool:
@@ -156,223 +133,19 @@ def get_manipulator_class(light: Usd.Prim) -> type[ConcreteLightManipulatorCls] 
     global _manipulator_classes
     if _manipulator_classes is None:
         _manipulator_classes = {}
-        for cls in (RectLightManipulator, DiskLightManipulator, DistantLightManipulator, SphereLightManipulator):
+        for cls in (
+            RectLightManipulator,
+            DiskLightManipulator,
+            DistantLightManipulator,
+            SphereLightManipulator,
+            CylinderLightManipulator,
+        ):
             _manipulator_classes[cls.light_class] = cls
 
     for light_class, cls in _manipulator_classes.items():
         if light.IsA(light_class):
             return cls
     return None
-
-
-class _DisableViewportLayers:
-    """Object that hides viewport layers and then resets state when it goes out of scope."""
-
-    # intentionally make this a class attribute in order to ensure that no matter what order
-    # this disable instance is created or destroyed that layers will be restored properly.
-    # Note: this should be sufficient, even though there is a chance that if you drag twice
-    # in quick succession the first drag may re-enable layers before the second drag completes.
-    # Having a layer not disabled while dragging is a trivial problem compared with it staying
-    # incorrectly disabled after a drag.
-    __cls_layers: dict[LayerItem, bool] = {}
-
-    def __init__(self, viewport_layers: ViewportLayers, layers_and_categories: list[tuple[str, str]]):
-        self.__layers: list[LayerItem] = []
-        for layer, category in layers_and_categories:
-            found_layer = viewport_layers.find_viewport_layer(layer, category)
-            # make sure not to disable same layer twice and record the modified state
-            if found_layer and found_layer not in self.__cls_layers:
-                self.__cls_layers[found_layer] = found_layer.visible
-                self.__layers.append(found_layer)
-                found_layer.visible = False
-
-    def __del__(self):
-        # only restore the layers that this instance disabled
-        for layer in self.__layers:
-            # pop the layer off the class storage so that the next instantiation can
-            # record the state fresh.
-            layer.visible = self.__cls_layers.pop(layer)
-
-
-def disable_other_drag_gestures(viewport_layers):
-    """
-    Disable selection rect and prim transform effects on a Viewport.
-
-    Returns an object that resets selection when it goes out of scope.
-    """
-    disable_items = [
-        ("Selection", "manipulator"),
-        ("Prim Transform", "manipulator"),
-    ]
-    return _DisableViewportLayers(viewport_layers, disable_items)
-
-
-class _DragGesture(sc.DragGesture):
-    """Gesture to capture a drag on a light manipulator"""
-
-    def __init__(
-        self,
-        manipulator: AbstractLightManipulator,
-        orientations: list[int],
-        flag: list[int],
-        orientation_attr_map: dict[int, str],
-        on_ended_fn=None,
-        shape_xform: sc.Transform = None,
-    ):
-        super().__init__()
-        self._manipulator = manipulator
-        self.model: AbstractLightModel = self._manipulator.model
-        # record this _previous_ray_point to get the mouse moved vector
-        self._previous_ray_point = None
-        # this defines the orientation of the move, 0 means x, 1 means y, 2 means z. It's a list so that we
-        # can move a selection
-        self.orientations = orientations
-        # this defines the mapping between direction of a drag and the attr it should affect
-        self.orientation_attr_map = orientation_attr_map
-        if not shape_xform:
-            shape_xform = self._manipulator.shape_xform
-        self._shape_xform = shape_xform
-        # global flag to indicate if the manipulator changes all the width, height and intensity, rectangle manipulator
-        # in the example
-        self.is_global = len(self.orientations) > 1
-        # this defines the negative or positive of the move. E.g. when we move the positive x line to the right, it
-        # enlarges the width, and when we move the negative line to the left, it also enlarges the width
-        # 1 means positive and -1 means negative. It's a list so that we can reflect list orientation
-        self.flag = flag
-        self.user_on_ended_fn = on_ended_fn
-        self.__disable_gestures = None  # noqa PLW0238 Unused private member - used as context manager!
-
-    def _get_axis_attr(self, orientation: int) -> str:
-        return self.orientation_attr_map[orientation]
-
-    def _on_began(self):
-        """
-        Record the current values to the model for the omni.kit.command and
-        do any required initializations.
-        """
-        for orientation in self.orientations:
-            item = self.model.get_item(self._get_axis_attr(orientation))
-            self.model.set_item_value(item, self.model.get_as_float(item))
-
-        if self.is_global:
-            intensity_item = self.model.intensity
-            self.model.set_item_value(intensity_item, self.model.get_as_float(intensity_item))
-
-        # Initialize these attributes in case on_changed is never called. It seems like that happens occasionally.
-        # None values will be non-ops.
-        self.x_new = None
-        self.y_new = None
-        self.z_new = None
-        self.intensity_new = None
-        self._results = {0: None, 1: None, 2: None}
-
-    def on_began(self):
-        # When the user drags the slider, we don't want to see the selection
-        # rect. In Viewport Next, it works well automatically because the
-        # selection rect is a manipulator with its gesture, and we add the
-        # slider manipulator to the same SceneView.
-        # In Viewport Legacy, the selection rect is not a manipulator. Thus it's
-        # not disabled automatically, and we need to disable it with the following code.
-        self.__disable_gestures = disable_other_drag_gestures(  # noqa PLW0238 Unused private member
-            self._manipulator.viewport_layers
-        )
-
-        # initialize the self._previous_ray_point
-        self._previous_ray_point = self.gesture_payload.ray_closest_point
-
-        # record the current values to the model for the omni.kit.command
-        self._on_began()
-
-    def _on_changed(self, moved_x, moved_y, moved_z):
-        """Update USD with the appropriate values based on the drag deltas"""
-        # since self._shape_xform.transform = [x, 0, 0, 0,
-        #                                      0, y, 0, 0,
-        #                                      0, 0, z, 0,
-        #                                      0, 0, 0, 1]
-        # for example, when we want to update the  RectLightManipulator, we are actually
-        # updating self._shape_xform.transform[0] for width and self._shape_xform.transform[5]
-        # for height and self._shape_xform.transform[10] for intensity
-        x = self._shape_xform.transform[0]
-        y = self._shape_xform.transform[5]
-        z = self._shape_xform.transform[10]
-
-        self.x_new = max(x + moved_x, 0.0)
-        self.y_new = max(y + moved_y, 0.0)
-        self.z_new = max(z + moved_z, 0.0)
-
-        def update_intensity(intensity_new_: float):
-            # get a clamped value for calculations removing the minimum scale that was added
-            self.intensity_new = max(intensity_new_ - INTENSITY_MIN, 0.0)
-            self.model.set_raw_intensity_multiple(self.model.intensity, self.intensity_new)
-
-        # update the USD as well as update the ui
-        for axis, value in ((0, self.x_new), (1, self.y_new), (2, self.z_new)):
-            if axis not in self.orientations:
-                continue
-            attribute = self._get_axis_attr(axis)
-            if attribute == "intensity":
-                update_intensity(value)
-            else:
-                item = self.model.get_item(self._get_axis_attr(axis))
-                self.model.set_float_multiple(self._get_axis_attr(axis), item, value)
-
-        if self.is_global:
-            # need to update the intensity in a different way
-            # Note: This is a little unwieldy for the user, so we may want to just lock intensity if we get [0, 1]
-            # for orientation and just resize the rectangle. Still this is ok since it keeps the overall power of the
-            # rect light somewhat constant. As area increases... intensity decreases.
-            intensity_new = z * x * y / max(self.x_new * self.y_new, 1.0)
-            update_intensity(intensity_new)
-
-        self._results = {0: self.x_new, 1: self.y_new, 2: self.z_new}
-
-    def on_changed(self):
-        object_ray_point = self.gesture_payload.ray_closest_point
-        # calculate the ray moved vector
-        moved = [a - b for a, b in zip(object_ray_point, self._previous_ray_point)]
-        # transfer moved from world to object space, [0] to make it a normal, not point
-        moved = self._manipulator.xform.transform_space(sc.Space.WORLD, sc.Space.OBJECT, moved + [0])
-        # 2.0 because `_shape_xform.transform` is a scale matrix and it means
-        # the width of the rectangle is twice the scale matrix.
-        moved_x = moved[0] * 2.0 * self.flag[0]
-        moved_y = moved[1] * 2.0 * (self.flag[1] if self.is_global else self.flag[0])
-        moved_z = moved[2] * self.flag[0]
-
-        # update the self._previous_ray_point
-        self._previous_ray_point = object_ray_point
-
-        self._on_changed(moved_x, moved_y, moved_z)
-
-    def _on_ended(self):
-        """Set the final values using `set_float_commands` to make change undoable"""
-        for orientation in self.orientations:
-            if self._get_axis_attr(orientation) == "intensity":
-                if self.intensity_new:
-                    self.model.set_raw_intensity_commands_multiple(self.model.intensity, self.intensity_new)
-            else:
-                item = self.model.get_item(self._get_axis_attr(orientation))
-                value = self._results[orientation]
-                if value:
-                    self.model.set_float_commands_multiple(self._get_axis_attr(orientation), item, value)
-
-        if self.is_global and self.z_new:
-            self.model.set_raw_intensity_commands_multiple(self.model.intensity, self.intensity_new)
-
-    def on_ended(self):
-        # This re-enables the selection in the Viewport Legacy
-        self.__disable_gestures = None  # noqa PLW0238 Unused private member
-
-        if self.is_global:
-            # start group command
-            omni.kit.undo.begin_group()
-
-        self._on_ended()
-
-        if self.is_global:
-            # end group command
-            omni.kit.undo.end_group()
-        if self.user_on_ended_fn:
-            self.user_on_ended_fn()
 
 
 class _HoverArrows:
@@ -557,15 +330,15 @@ class RectLightManipulator(AbstractLightManipulator):
             on_ended_fn=lambda sender: set_thickness([shape1, shape2], THICKNESS),
         )
         rect_attr_map = {0: "width", 1: "height", 2: "intensity"}
-        shape1.gestures = [_DragGesture(self, [1], [1], rect_attr_map), vertical_hover_gesture]
-        shape2.gestures = [_DragGesture(self, [1], [-1], rect_attr_map), vertical_hover_gesture]
+        shape1.gestures = [LightDragGesture(self, [1], [1], rect_attr_map), vertical_hover_gesture]
+        shape2.gestures = [LightDragGesture(self, [1], [-1], rect_attr_map), vertical_hover_gesture]
 
         horizontal_hover_gesture = sc.HoverGesture(
             on_began_fn=lambda sender: set_thickness([shape3, shape4], HOVER_THICKNESS),
             on_ended_fn=lambda sender: set_thickness([shape3, shape4], THICKNESS),
         )
-        shape3.gestures = [_DragGesture(self, [0], [1], rect_attr_map), horizontal_hover_gesture]
-        shape4.gestures = [_DragGesture(self, [0], [-1], rect_attr_map), horizontal_hover_gesture]
+        shape3.gestures = [LightDragGesture(self, [0], [1], rect_attr_map), horizontal_hover_gesture]
+        shape4.gestures = [LightDragGesture(self, [0], [-1], rect_attr_map), horizontal_hover_gesture]
 
         # create hover arrows in the z-axis to indicate the intensity
         hover_arrows = _HoverArrows()
@@ -575,7 +348,7 @@ class RectLightManipulator(AbstractLightManipulator):
         hover_arrows.define((-h, h, 0), (-h, h, z))
         for arrow in hover_arrows.shapes:
             arrow.gestures = [
-                _DragGesture(self, [2], [-1], rect_attr_map, on_ended_fn=hover_arrows.hide),
+                LightDragGesture(self, [2], [-1], rect_attr_map, on_ended_fn=hover_arrows.hide),
                 sc.HoverGesture(
                     on_began_fn=lambda _sender: hover_arrows.show(),
                     on_ended_fn=lambda _sender: hover_arrows.hide(),
@@ -608,19 +381,19 @@ class RectLightManipulator(AbstractLightManipulator):
         )
 
         r1.gestures = [
-            _DragGesture(self, [0, 1], [1, -1], rect_attr_map, on_ended_fn=unhighlight_all),
+            LightDragGesture(self, [0, 1], [1, -1], rect_attr_map, on_ended_fn=unhighlight_all),
             highlight_all_gesture,
         ]
         r2.gestures = [
-            _DragGesture(self, [0, 1], [1, 1], rect_attr_map, on_ended_fn=unhighlight_all),
+            LightDragGesture(self, [0, 1], [1, 1], rect_attr_map, on_ended_fn=unhighlight_all),
             highlight_all_gesture,
         ]
         r3.gestures = [
-            _DragGesture(self, [0, 1], [-1, 1], rect_attr_map, on_ended_fn=unhighlight_all),
+            LightDragGesture(self, [0, 1], [-1, 1], rect_attr_map, on_ended_fn=unhighlight_all),
             highlight_all_gesture,
         ]
         r4.gestures = [
-            _DragGesture(self, [0, 1], [-1, -1], rect_attr_map, on_ended_fn=unhighlight_all),
+            LightDragGesture(self, [0, 1], [-1, -1], rect_attr_map, on_ended_fn=unhighlight_all),
             highlight_all_gesture,
         ]
 
@@ -656,10 +429,10 @@ class DiskLightManipulator(AbstractLightManipulator):
         r = 1.0
         z = -1.0
         # the circle - (arc gestures are only working between -pi and +pi)
-        shape1 = sc.Arc(r, axis=2, begin=0, end=math.pi / 2, **self._arc_style)
-        shape2 = sc.Arc(r, axis=2, begin=math.pi / 2, end=math.pi, **self._arc_style)
-        shape3 = sc.Arc(r, axis=2, begin=-math.pi, end=-math.pi / 2, **self._arc_style)
-        shape4 = sc.Arc(r, axis=2, begin=-math.pi / 2, end=0, **self._arc_style)
+        shape1 = sc.Arc(r, axis=2, begin=0, end=math.pi / 2, **DEFAULT_ARC_STYLE)
+        shape2 = sc.Arc(r, axis=2, begin=math.pi / 2, end=math.pi, **DEFAULT_ARC_STYLE)
+        shape3 = sc.Arc(r, axis=2, begin=-math.pi, end=-math.pi / 2, **DEFAULT_ARC_STYLE)
+        shape4 = sc.Arc(r, axis=2, begin=-math.pi / 2, end=0, **DEFAULT_ARC_STYLE)
         circle_lines = [shape1, shape2, shape3, shape4]
 
         # add gesture to the lines of the rectangle to update width or height of the light
@@ -668,10 +441,10 @@ class DiskLightManipulator(AbstractLightManipulator):
             on_ended_fn=lambda sender: set_thickness(circle_lines, THICKNESS),
         )
         disk_attr_map = {0: "radius", 1: None, 2: "intensity"}
-        shape1.gestures = [_DragGesture(self, [0], [1], disk_attr_map), circle_hover_gesture]
-        shape2.gestures = [_DragGesture(self, [0], [-1], disk_attr_map), circle_hover_gesture]
-        shape3.gestures = [_DragGesture(self, [0], [-1], disk_attr_map), circle_hover_gesture]
-        shape4.gestures = [_DragGesture(self, [0], [1], disk_attr_map), circle_hover_gesture]
+        shape1.gestures = [LightDragGesture(self, [0], [1], disk_attr_map), circle_hover_gesture]
+        shape2.gestures = [LightDragGesture(self, [0], [-1], disk_attr_map), circle_hover_gesture]
+        shape3.gestures = [LightDragGesture(self, [0], [-1], disk_attr_map), circle_hover_gesture]
+        shape4.gestures = [LightDragGesture(self, [0], [1], disk_attr_map), circle_hover_gesture]
 
         # create hover arrows in the z-axis to indicate the intensity
         hover_arrows = _HoverArrows()
@@ -681,7 +454,7 @@ class DiskLightManipulator(AbstractLightManipulator):
         hover_arrows.define((0, r, 0), (0, r, z))
         for arrow in hover_arrows.shapes:
             arrow.gestures = [
-                _DragGesture(self, [2], [-1], disk_attr_map, on_ended_fn=hover_arrows.hide),
+                LightDragGesture(self, [2], [-1], disk_attr_map, on_ended_fn=hover_arrows.hide),
                 sc.HoverGesture(
                     on_began_fn=lambda _sender: hover_arrows.show(), on_ended_fn=lambda _sender: hover_arrows.hide()
                 ),
@@ -713,19 +486,19 @@ class DiskLightManipulator(AbstractLightManipulator):
         )
 
         r1.gestures = [
-            _DragGesture(self, [0], [1, -1], disk_attr_map, on_ended_fn=unhighlight_all),
+            LightDragGesture(self, [0], [1, -1], disk_attr_map, on_ended_fn=unhighlight_all),
             highlight_all_gesture,
         ]
         r2.gestures = [
-            _DragGesture(self, [0], [1, 1], disk_attr_map, on_ended_fn=unhighlight_all),
+            LightDragGesture(self, [0], [1, 1], disk_attr_map, on_ended_fn=unhighlight_all),
             highlight_all_gesture,
         ]
         r3.gestures = [
-            _DragGesture(self, [0], [-1, 1], disk_attr_map, on_ended_fn=unhighlight_all),
+            LightDragGesture(self, [0], [-1, 1], disk_attr_map, on_ended_fn=unhighlight_all),
             highlight_all_gesture,
         ]
         r4.gestures = [
-            _DragGesture(self, [0], [-1, -1], disk_attr_map, on_ended_fn=unhighlight_all),
+            LightDragGesture(self, [0], [-1, -1], disk_attr_map, on_ended_fn=unhighlight_all),
             highlight_all_gesture,
         ]
 
@@ -765,36 +538,22 @@ class DistantLightManipulator(AbstractLightManipulator):
         hover_arrows.define((0, r, 0), (0, r, z))
         for arrow in hover_arrows.shapes:
             arrow.gestures = [
-                _DragGesture(self, [2], [-1], attr_map, on_ended_fn=hover_arrows.hide),
+                LightDragGesture(self, [2], [-1], attr_map, on_ended_fn=hover_arrows.hide),
                 sc.HoverGesture(
                     on_began_fn=lambda _sender: hover_arrows.show(), on_ended_fn=lambda _sender: hover_arrows.hide()
                 ),
             ]
 
 
-class SphereLightManipulator(AbstractLightManipulator):
-    light_class = UsdLux.SphereLight
-    model_class = SphereLightModel
-
-    intensity_scale = SPHERE_LIGHT_INTENSITY / INTENSITY_SCALE
-
-    _arc_style = dict(DEFAULT_SHAPE_STYLE)
-    _arc_style.update({"wireframe": True, "sector": False})
+class IntensityMixinFor3DManipulators:
+    """Base class for 3D light manipulators with an intensity control at the pivot"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Since these are not flat (2D) light shapes, we cannot just use z for intensity and we need to create a new
+        # transform so that when we try to reflect intensity, the geometry of the manipulator is not affected.
+        # Note: In the future, we could just add this to all manipulators and reroute intensity changes to it.
         self._intensity_xform = sc.Transform()
-
-    # XXX: TYPING - best we can do until sc.Manipulator becomes generic on model
-    @property
-    def model(self) -> SphereLightModel:
-        return super().model
-
-    def _build_shape_xform(self) -> list | None:
-        if self.model.radius:
-            r = max(self.model.get_as_float(self.model.radius), 0.0)
-            return [r, 0, 0, 0, 0, r, 0, 0, 0, 0, r, 0, 0, 0, 0, 1]
-        return None
 
     def _build_intensity_xform(self) -> list | None:
         if self.model.intensity:
@@ -802,47 +561,21 @@ class SphereLightManipulator(AbstractLightManipulator):
             return [i, 0, 0, 0, 0, i, 0, 0, 0, 0, i, 0, 0, 0, 0, 1]
         return None
 
+    def build_intensity_xform(self):
+        if not self.model:
+            return
+        xform = self._build_intensity_xform()
+        if xform:
+            self._intensity_xform.transform = xform
+
     @staticmethod
     def _three_rotation_matrices():
+        """A matrix for each axis"""
         return [
             sc.Matrix44.get_rotation_matrix(x=0.0, y=0.0, z=0.0, degrees=True),
             sc.Matrix44.get_rotation_matrix(x=0.0, y=-90.0, z=0.0, degrees=True),
             sc.Matrix44.get_rotation_matrix(x=-90.0, y=0.0, z=0.0, degrees=True),
         ]
-
-    def _build_manipulator_geometry(self):
-        # Build the shape geometry as unit-sized
-        r = 1.0
-
-        orientations = {  # circle to "active axis"
-            0: [0],
-            1: [2],  # this circle is perpendicular to x axis so we use z
-            2: [0],
-        }
-        flags = [[1], [-1], [-1], [1]]  # flags for each sector of circle
-        sphere_attr_map = {0: "radius", 1: "radius", 2: "radius"}
-
-        all_circle_lines = []
-        for i, rotation_transform in enumerate(self._three_rotation_matrices()):
-            shape_xform = sc.Transform(rotation_transform)
-            with shape_xform:
-                # the circle - (arc gestures are only working between -pi and +pi)
-                shape1 = sc.Arc(r, axis=2, begin=0, end=math.pi / 2, **self._arc_style)
-                shape2 = sc.Arc(r, axis=2, begin=math.pi / 2, end=math.pi, **self._arc_style)
-                shape3 = sc.Arc(r, axis=2, begin=-math.pi, end=-math.pi / 2, **self._arc_style)
-                shape4 = sc.Arc(r, axis=2, begin=-math.pi / 2, end=0, **self._arc_style)
-                circle_lines = [shape1, shape2, shape3, shape4]
-                all_circle_lines.extend([shape1, shape2, shape3, shape4])
-
-                circle_hover_gesture = sc.HoverGesture(
-                    on_began_fn=lambda sender: set_thickness(all_circle_lines, HOVER_THICKNESS),
-                    on_ended_fn=lambda sender: set_thickness(all_circle_lines, THICKNESS),
-                )
-                for shape, flag in zip(circle_lines, flags):
-                    shape.gestures = [
-                        _DragGesture(self, orientations[i], flag, sphere_attr_map),
-                        circle_hover_gesture,
-                    ]
 
     def _build_intensity_geometry(self):
         z = 1.0
@@ -870,7 +603,7 @@ class SphereLightManipulator(AbstractLightManipulator):
                 positive_arrow = hover_arrows.define((0, 0, 0), (0, 0, z))
                 negative_arrow = hover_arrows.define((0, 0, 0), (0, 0, -z))
                 positive_arrow.gestures = [
-                    _DragGesture(
+                    LightDragGesture(
                         self,
                         orientations[i],
                         [1 * flags[i]],
@@ -881,7 +614,7 @@ class SphereLightManipulator(AbstractLightManipulator):
                     hover_gesture,
                 ]
                 negative_arrow.gestures = [
-                    _DragGesture(
+                    LightDragGesture(
                         self,
                         orientations[i],
                         [-1 * flags[i]],
@@ -891,13 +624,6 @@ class SphereLightManipulator(AbstractLightManipulator):
                     ),
                     hover_gesture,
                 ]
-
-    def build_intensity_xform(self):
-        if not self.model:
-            return
-        xform = self._build_intensity_xform()
-        if xform:
-            self._intensity_xform.transform = xform
 
     def _build(self):
         """Override the default to build a separate xform for handling intensity"""
@@ -910,9 +636,139 @@ class SphereLightManipulator(AbstractLightManipulator):
         with self._intensity_xform:
             self._build_intensity_geometry()
 
+
+class SphereLightManipulator(IntensityMixinFor3DManipulators, AbstractLightManipulator):
+    light_class = UsdLux.SphereLight
+    model_class = SphereLightModel
+
+    intensity_scale = SPHERE_LIGHT_INTENSITY / INTENSITY_SCALE
+
+    # XXX: TYPING - best we can do until sc.Manipulator becomes generic on model
+    @property
+    def model(self) -> SphereLightModel:
+        return super().model
+
+    def _build_shape_xform(self) -> list | None:
+        if self.model.radius:
+            r = max(self.model.get_as_float(self.model.radius), 0.0)
+            return [r, 0, 0, 0, 0, r, 0, 0, 0, 0, r, 0, 0, 0, 0, 1]
+        return None
+
+    def _build_manipulator_geometry(self):
+        # Build the shape geometry as unit-sized
+        r = 1.0
+
+        orientations = {  # circle to "active axis"
+            0: [0],
+            1: [2],  # this circle is perpendicular to x axis so we use z
+            2: [0],
+        }
+        flags = [[1], [-1], [-1], [1]]  # flags for each sector of circle
+        sphere_attr_map = {0: "radius", 1: "radius", 2: "radius"}
+
+        all_circle_lines = []
+        for i, rotation_transform in enumerate(self._three_rotation_matrices()):
+            shape_xform = sc.Transform(rotation_transform)
+            with shape_xform:
+                # the circle - (arc gestures are only working between -pi and +pi)
+                shape1 = sc.Arc(r, axis=2, begin=0, end=math.pi / 2, **DEFAULT_ARC_STYLE)
+                shape2 = sc.Arc(r, axis=2, begin=math.pi / 2, end=math.pi, **DEFAULT_ARC_STYLE)
+                shape3 = sc.Arc(r, axis=2, begin=-math.pi, end=-math.pi / 2, **DEFAULT_ARC_STYLE)
+                shape4 = sc.Arc(r, axis=2, begin=-math.pi / 2, end=0, **DEFAULT_ARC_STYLE)
+                circle_lines = [shape1, shape2, shape3, shape4]
+                all_circle_lines.extend([shape1, shape2, shape3, shape4])
+
+                circle_hover_gesture = sc.HoverGesture(
+                    on_began_fn=lambda sender: set_thickness(all_circle_lines, HOVER_THICKNESS),
+                    on_ended_fn=lambda sender: set_thickness(all_circle_lines, THICKNESS),
+                )
+                for shape, flag in zip(circle_lines, flags):
+                    shape.gestures = [
+                        LightDragGesture(self, orientations[i], flag, sphere_attr_map),
+                        circle_hover_gesture,
+                    ]
+
     def _on_model_updated(self, item: sc.AbstractManipulatorItem):
         """Handle light subclass specific updates"""
         if item in (self.model.radius,):
+            self.build_shape_xform()
+        if item in (self.model.intensity,):
+            self.build_intensity_xform()
+
+
+class CylinderLightManipulator(IntensityMixinFor3DManipulators, AbstractLightManipulator):
+    light_class = UsdLux.CylinderLight
+    model_class = CylinderLightModel
+
+    intensity_scale = CYLINDER_LIGHT_INTENSITY / INTENSITY_SCALE
+
+    # XXX: TYPING - best we can do until sc.Manipulator becomes generic on model
+    @property
+    def model(self) -> CylinderLightModel:
+        return super().model
+
+    def _build_shape_xform(self) -> list | None:
+        if self.model.radius:
+            r = max(self.model.get_as_float(self.model.radius), 0.0)
+            x = max(self.model.get_as_float(self.model.length), 0.0)
+            return [x, 0, 0, 0, 0, r, 0, 0, 0, 0, r, 0, 0, 0, 0, 1]
+        return None
+
+    @staticmethod
+    def _two_translation_matrices():
+        """A matrix for each end of the cylinder"""
+        return [
+            sc.Matrix44.get_translation_matrix(x=0.5, y=0.0, z=0.0),
+            sc.Matrix44.get_translation_matrix(x=-0.5, y=0.0, z=0.0),
+        ]
+
+    def _build_manipulator_geometry(self):
+        # Build the shape geometry as unit-sized
+        r = 1
+        z = 0.5
+
+        all_circle_lines = []
+        flags = [[1], [1], [-1], [-1]]  # flags for each sector of circle
+        circle_attr_map = {0: "radius", 1: "radius", 2: "radius"}
+        for translation_xform in self._two_translation_matrices():
+            shape_xform = sc.Transform(translation_xform)
+            with shape_xform:
+                # the circle - (arc gestures are only working between -pi and +pi)
+                shape1 = sc.Arc(r, axis=0, begin=0, end=math.pi / 2, **DEFAULT_ARC_STYLE)
+                shape2 = sc.Arc(r, axis=0, begin=math.pi / 2, end=math.pi, **DEFAULT_ARC_STYLE)
+                shape3 = sc.Arc(r, axis=0, begin=-math.pi, end=-math.pi / 2, **DEFAULT_ARC_STYLE)
+                shape4 = sc.Arc(r, axis=0, begin=-math.pi / 2, end=0, **DEFAULT_ARC_STYLE)
+                circle_lines = [shape1, shape2, shape3, shape4]
+                all_circle_lines.extend(circle_lines)
+
+                circle_hover_gesture = sc.HoverGesture(
+                    on_began_fn=lambda sender: set_thickness(all_circle_lines, HOVER_THICKNESS),
+                    on_ended_fn=lambda sender: set_thickness(all_circle_lines, THICKNESS),
+                )
+                for shape, flag in zip(circle_lines, flags):
+                    shape.gestures = [
+                        LightDragGesture(self, [2], flag, circle_attr_map),
+                        circle_hover_gesture,
+                    ]
+
+        # the lines
+        line_attr_map = {0: "length", 1: "length", 2: "length"}
+        length_lines = []
+        s = math.sin(math.pi / 4) * r
+        for x, y in [(-s, s), (-s, -s), (s, s), (s, -s)]:
+            shape1 = sc.Line((-z, x, y), (0, x, y), **DEFAULT_SHAPE_STYLE)
+            shape2 = sc.Line((-z, x, y), (z, x, y), **DEFAULT_SHAPE_STYLE)
+            length_lines.extend([shape1, shape2])
+            length_hover_gesture = sc.HoverGesture(
+                on_began_fn=lambda sender: set_thickness(length_lines, HOVER_THICKNESS),
+                on_ended_fn=lambda sender: set_thickness(length_lines, THICKNESS),
+            )
+            shape1.gestures = [LightDragGesture(self, [0], [-1], line_attr_map), length_hover_gesture]
+            shape2.gestures = [LightDragGesture(self, [0], [1], line_attr_map), length_hover_gesture]
+
+    def _on_model_updated(self, item: sc.AbstractManipulatorItem):
+        """Handle light subclass specific updates"""
+        if item in (self.model.radius, self.model.length):
             self.build_shape_xform()
         if item in (self.model.intensity,):
             self.build_intensity_xform()
