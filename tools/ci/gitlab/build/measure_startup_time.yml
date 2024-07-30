@@ -1,0 +1,10 @@
+build_and_measure:
+  extends:
+    - .gpu_agent
+  stage: measure_startup_time
+  before_script:
+    - .\build.bat --rebuild --release
+  script:
+    - .\repo.bat measure_startup_time --webhook_url $env:SLACK_WEBHOOK_APP_TIME
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'

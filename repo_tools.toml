@@ -84,3 +84,15 @@ entry_point = "${root}/tools/utils/repo_check_forbidden_words.py:setup_repo_tool
 files.include = ["**/source/**/omni.flux.*/**/*.py", "**/source/**/omni.flux.*/**/*.toml"]
 # words that we will try to find. If there words exist, the process will crash
 words.exclude = ["lightspeed", "trex"]
+
+[repo_measure_startup_time]
+# Tool name
+command = "measure_startup_time"
+# [python module name or path]:[function name]
+entry_point = "${root}/tools/utils/repo_measure_startup_time.py:setup_repo_tool"
+# Command to run the app for testing
+app_command = ".\\_build\\windows-x86_64\\release\\lightspeed.app.trex.bat --no-window --/app/quitAfter=50 --/crashreporter/enabled=0"
+# Maximum startup time that will not trigger an alert
+time_limit = 20
+# Number of times to run the app
+number = 50
