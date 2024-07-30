@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Create 2024.4.0-RC.4 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2024.4.0-RC.4]
+
+### Added
 - Create 2024.4.0-RC.3 build
 - REMIX-2783: Added light manipulator for CylinderLight
 
