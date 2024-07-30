@@ -18,6 +18,7 @@ stages:
   - publish_package
   - publish_package_scheduled
   - gitlab_release
+  - measure_startup_time
 
 include:
   # Job definitions
@@ -39,6 +40,7 @@ include:
   - local: tools/ci/gitlab/docs/build_docs.yml
   - local: tools/ci/gitlab/docs/publish_docs.yml
   - local: tools/ci/gitlab/build/build_package.yml
+  - local: tools/ci/gitlab/build/measure_startup_time.yml
   - local: tools/ci/gitlab/publishing/publish_extensions.yml
   - local: tools/ci/gitlab/publishing/publish_package.yml
   - local: tools/ci/gitlab/publishing/publish_package_scheduled.yml
