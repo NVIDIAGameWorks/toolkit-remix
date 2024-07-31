@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create 2024.4.0-RC.4 build
 
 ### Changed
+- Update to `remix-0.5.3`
 
 ### Fixed
 - Fixed AI Tools by settings the internal pip archive import order
