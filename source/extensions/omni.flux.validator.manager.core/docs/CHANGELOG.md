@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.9]
+### Changed
+- Update deps
+
 ## [1.17.8]
 ### Changed
 - Update deps
