@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2988: Added manual CI test to measure app startup times
 
 ### Changed
+- Update to `remix-0.5.3`
 
 ### Fixed
 - Fixed AI Tools by settings the internal pip archive import order
