@@ -26,13 +26,14 @@ This base experience regroup all extensions shared between all NVIDIA RTX Remix 
 # PIP Archives
 "lightspeed.pip_archive" = { order = -10002 }  # Load before `omni.flux.pip_archive` to ensure we override the pip deps
 "omni.flux.pip_archive" = { order = -10001 }  # Load before `lightspeed.hydra.remix.core` to ensure we override the pip deps
+"omni.flux.internal_pip_archive" = { order = -10001 }  # Load before `lightspeed.hydra.remix.core` to ensure we override the pip deps
 
 # Trex shared extensions
 "lightspeed.hydra.remix.core" = { order = -10000 }
 "lightspeed.trex.contexts" = {} # contexts used for each Flux App
 "lightspeed.trex.app.resources" = {order = -1000}  # should start first because of "default_resources_ext"
 "lightspeed.trex.app.setup" = { order = 1000 } # layout setup, we are running that at the end
-"lightspeed.trex.app.style" = {order = -100}  # global style
+"lightspeed.trex.app.style" = { order = -100 }  # global style
 
 # Windows
 "omni.kit.window.title" = {}
