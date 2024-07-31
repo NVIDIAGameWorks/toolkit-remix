@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.13.1]
+### Fixed
+- Fixed import order for the internal pip archive
+
 ## [3.13.0]
 ### Changed
 - Changed `value_mapping.py` to support mapping functions on top of hardcoded input/output combos

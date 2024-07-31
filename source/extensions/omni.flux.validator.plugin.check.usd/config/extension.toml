@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "3.13.0"
+version = "3.13.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -36,7 +36,7 @@ icon = "data/images/icon.png"
 "omni.flux.info_icon.widget" = {}
 "omni.flux.lookdev.core" = {}
 "omni.flux.pip_archive" = {} # Required for pydantic
-"omni.flux.internal_pip_archive" = {} # Required for remix-client & remix-models-i2m
+"omni.flux.internal_pip_archive" = { order = -2001 } # Required for remix-client & remix-models-i2m
 "omni.flux.resources" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.material_converter" = {}
