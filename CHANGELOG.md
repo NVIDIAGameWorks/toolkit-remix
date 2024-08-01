@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Create 2024.4.0-RC.5 build
+- REMIX-2988: Added manual CI test to measure app startup times
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2024.4.0-RC.5]
+
+### Added
 - Create 2024.4.0-RC.4 build
 
 ### Changed
