@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.1]
+### Fixed
+- Fix `AllTextures` plugin
+
 ## [1.8.0]
 ### Changed
 - Added the ability to select root layer prims only for all selectors using `select_from_root_layer_only`
