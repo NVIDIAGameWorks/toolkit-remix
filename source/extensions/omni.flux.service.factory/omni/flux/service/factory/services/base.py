@@ -20,6 +20,7 @@ from typing import Any, Optional, Type, Union
 
 from fast_version import VersionedAPIRouter
 from fastapi import Depends, Path, Query
+from omni.flux.factory.base import PluginBase
 from omni.flux.service.shared import BaseServiceModel
 from omni.services.core import exceptions
 from omni.services.core.routers import ServiceAPIRouter
@@ -30,7 +31,7 @@ class APIRouter(VersionedAPIRouter, ServiceAPIRouter):
     pass
 
 
-class ServiceBase(abc.ABC):
+class ServiceBase(PluginBase, abc.ABC):
     """
     A base class used to define a Service.
 

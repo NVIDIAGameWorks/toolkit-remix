@@ -41,7 +41,7 @@ class IngestCraftService(ServiceBase):
         # Get the desired services from the factory
         factory = _get_service_factory_instance()
 
-        mass_queue = factory.get_service_from_name("MassValidatorService")(INGESTION_SCHEMAS)
+        mass_queue = factory.get_plugin_from_name("MassValidatorService")(INGESTION_SCHEMAS)
 
         # Include the desired services in the app-level service
         self.router.include_router(mass_queue.router, prefix=mass_queue.prefix)

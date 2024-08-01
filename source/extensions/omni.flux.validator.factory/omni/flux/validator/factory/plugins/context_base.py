@@ -26,14 +26,14 @@ from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import Field, validator
 
-from .base import Base as _Base
-from .base import BaseSchema as _BaseSchema
+from .plugin_base import Base as _Base
 from .resultor_base import Schema as _ResultorSchema
+from .schema_base import BaseSchema as _BaseSchema
 
 SetupDataTypeVar = TypeVar("SetupDataTypeVar")
 
 
-class ContextBase(_Base):
+class ContextBase(_Base, abc.ABC):
     class Data(_Base.Data):
 
         on_check_callback: Optional[Callable[[bool, str], Any]] = Field(default=None, exclude=True)

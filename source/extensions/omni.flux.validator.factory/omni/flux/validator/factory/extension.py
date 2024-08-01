@@ -19,12 +19,12 @@ import carb
 import carb.settings
 import omni.ext
 
-from .setup import Setup as _FactoryCore
+from .setup import ValidatorFactory as _ValidatorFactory
 
 _SETUP_INSTANCE = None
 
 
-def get_instance() -> _FactoryCore:
+def get_instance() -> _ValidatorFactory:
     return _SETUP_INSTANCE
 
 
@@ -35,7 +35,7 @@ class FluxValidatorFactoryExtension(omni.ext.IExt):
         global _SETUP_INSTANCE
         carb.log_info("[omni.flux.validator.factory] Startup")
 
-        _SETUP_INSTANCE = _FactoryCore()
+        _SETUP_INSTANCE = _ValidatorFactory()
 
     def on_shutdown(self):
         global _SETUP_INSTANCE

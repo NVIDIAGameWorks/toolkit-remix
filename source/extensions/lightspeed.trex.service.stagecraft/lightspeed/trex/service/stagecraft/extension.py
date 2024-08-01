@@ -25,8 +25,8 @@ from .service import StageCraftService as _StageCraftService
 class TrexStageCraftServiceExtension(omni.ext.IExt):
     def on_startup(self, _ext_id):
         carb.log_info("[lightspeed.trex.service.stagecraft] Startup")
-        _get_service_factory_instance().register_services([_StageCraftService])
+        _get_service_factory_instance().register_plugins([_StageCraftService])
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.service.stagecraft] Shutdown")
-        _get_service_factory_instance().unregister_services([_StageCraftService])
+        _get_service_factory_instance().unregister_plugins([_StageCraftService])

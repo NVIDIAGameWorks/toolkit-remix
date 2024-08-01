@@ -99,7 +99,7 @@ class ValidationSchema(BaseModel):
             callback(*v, set_schema_value=False, force_not_send_request=True)
         return v
 
-    @validator("check_plugins")
+    @validator("check_plugins", allow_reuse=True)
     def at_least_one(cls, v):  # noqa
         """Check if there is at least 1 check plugin"""
         if not v:

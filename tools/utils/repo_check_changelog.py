@@ -103,10 +103,12 @@ def validate_extension_changes(source_hash: str, original_hash: str, changed_ext
         """
         try:
             major1, minor1, patch1 = first_version.split('.')
+            major1, minor1, patch1 = int(major1), int(minor1), int(patch1)
         except ValueError:
             raise ValueError(f"Invalid semantic version string: {first_version}") from None
         try:
             major2, minor2, patch2 = second_version.split('.')
+            major2, minor2, patch2 = int(major2), int(minor2), int(patch2)
         except ValueError:
             raise ValueError(f"Invalid semantic version string: {second_version}") from None
         if major1 == major2:

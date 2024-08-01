@@ -26,8 +26,8 @@ from .service import MassValidatorService as _MassValidatorService
 class MassValidatorServiceExtension(omni.ext.IExt):
     def on_startup(self, _ext_id):
         carb.log_info("[omni.flux.validator.mass.service] Startup")
-        _get_service_factory_instance().register_services([_MassValidatorService])
+        _get_service_factory_instance().register_plugins([_MassValidatorService])
 
     def on_shutdown(self):
         carb.log_info("[omni.flux.validator.mass.service] Shutdown")
-        _get_service_factory_instance().unregister_services([_MassValidatorService])
+        _get_service_factory_instance().unregister_plugins([_MassValidatorService])

@@ -26,8 +26,8 @@ from .service import AssetReplacementsService as _AssetReplacementsService
 class TrexAssetReplacementsServiceExtension(omni.ext.IExt):
     def on_startup(self, _ext_id):
         carb.log_info("[lightspeed.trex.asset_replacements.service] Startup")
-        _get_service_factory_instance().register_services([_AssetReplacementsService])
+        _get_service_factory_instance().register_plugins([_AssetReplacementsService])
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.asset_replacements.service] Shutdown")
-        _get_service_factory_instance().unregister_services([_AssetReplacementsService])
+        _get_service_factory_instance().unregister_plugins([_AssetReplacementsService])

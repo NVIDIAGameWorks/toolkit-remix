@@ -15,5 +15,4 @@
 * limitations under the License.
 """
 
-from .unit.test_core import TestServiceFactoryCore
 from .unit.test_service_base import TestServiceBase

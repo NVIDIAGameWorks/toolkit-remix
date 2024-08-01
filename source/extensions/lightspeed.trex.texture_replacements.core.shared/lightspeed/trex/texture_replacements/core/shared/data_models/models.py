@@ -29,7 +29,7 @@ from .validators import TextureReplacementsValidators
 class TextureMaterialPathParamModel(BaseServiceModel):
     texture_asset_path: str
 
-    @root_validator()
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         TextureReplacementsValidators.is_valid_texture_prim(
             (values.get("texture_asset_path"), None), values.get("context_name")
@@ -40,7 +40,7 @@ class TextureMaterialPathParamModel(BaseServiceModel):
 class TextureFilePathParamModel(BaseServiceModel):
     texture_file_path: str
 
-    @root_validator()
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         TextureReplacementsValidators.is_valid_texture_asset((None, values.get("texture_file_path")), False)
         return values
@@ -59,7 +59,7 @@ class GetTexturesQueryModel(BaseServiceModel):
 
     context_name: str = ""  # This is only used to validate the layer_identifier
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         TextureReplacementsValidators.layer_is_in_project(values.get("layer_identifier"), values.get("context_name"))
         return values
@@ -87,7 +87,7 @@ class ReplaceTexturesRequestModel(BaseServiceModel):
     force: bool = False  # Whether to replace a non-ingested asset or fail the validation instead
     textures: list[tuple[str, Path]]
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         for texture_entry in values.get("textures"):
             TextureReplacementsValidators.is_valid_texture_prim(texture_entry, values.get("context_name"))

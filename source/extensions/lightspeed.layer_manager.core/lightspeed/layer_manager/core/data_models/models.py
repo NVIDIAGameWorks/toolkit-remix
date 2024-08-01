@@ -47,7 +47,7 @@ class OpenProjectPathParamModel(BaseServiceModel):
 class GetLayerPathParamModel(BaseServiceModel):
     layer_id: Path
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
         return values
@@ -56,7 +56,7 @@ class GetLayerPathParamModel(BaseServiceModel):
 class MoveLayerPathParamModel(BaseServiceModel):
     layer_id: Path
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
         LayerManagerValidators.can_move_sublayer(values.get("layer_id"), values.get("context_name"))
@@ -66,7 +66,7 @@ class MoveLayerPathParamModel(BaseServiceModel):
 class DeleteLayerPathParamModel(BaseServiceModel):
     layer_id: Path
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
         LayerManagerValidators.can_delete_layer(values.get("layer_id"), values.get("context_name"))
@@ -76,7 +76,7 @@ class DeleteLayerPathParamModel(BaseServiceModel):
 class MuteLayerPathParamModel(BaseServiceModel):
     layer_id: Path
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
         LayerManagerValidators.can_mute_layer(values.get("layer_id"), values.get("context_name"))
@@ -86,7 +86,7 @@ class MuteLayerPathParamModel(BaseServiceModel):
 class LockLayerPathParamModel(BaseServiceModel):
     layer_id: Path
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
         LayerManagerValidators.can_lock_layer(values.get("layer_id"), values.get("context_name"))
@@ -96,7 +96,7 @@ class LockLayerPathParamModel(BaseServiceModel):
 class SetEditTargetPathParamModel(BaseServiceModel):
     layer_id: Path
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
         LayerManagerValidators.can_set_edit_target_layer(values.get("layer_id"), values.get("context_name"))
@@ -106,7 +106,7 @@ class SetEditTargetPathParamModel(BaseServiceModel):
 class SaveLayerPathParamModel(BaseServiceModel):
     layer_id: Path
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
         return values
@@ -147,7 +147,7 @@ class CreateLayerRequestModel(BaseServiceModel):
     create_or_insert: bool = True
     replace_existing: bool = False  # Remove existing layers of type layer_type if set
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         LayerManagerValidators.can_create_layer(values.get("layer_path"), values.get("create_or_insert", True))
         LayerManagerValidators.layer_is_in_project(values.get("parent_layer_id"), values.get("context_name"))
@@ -164,7 +164,7 @@ class MoveLayerRequestModel(BaseServiceModel):
     new_parent_layer_id: Optional[Path] = None
     layer_index: int = -1  # Insert at the end by default
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         LayerManagerValidators.layer_is_in_project(values.get("current_parent_layer_id"), values.get("context_name"))
         LayerManagerValidators.layer_is_in_project(values.get("new_parent_layer_id"), values.get("context_name"))
@@ -175,7 +175,7 @@ class MoveLayerRequestModel(BaseServiceModel):
 class DeleteLayerRequestModel(BaseServiceModel):
     parent_layer_id: Path
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         LayerManagerValidators.layer_is_in_project(values.get("parent_layer_id"), values.get("context_name"))
         return values

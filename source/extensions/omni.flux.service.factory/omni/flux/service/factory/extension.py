@@ -18,13 +18,14 @@
 import carb
 import carb.settings
 import omni.ext
+from omni.flux.factory.base import FactoryBase as _FactoryBase
 
-from .core import TrexServiceFactoryCore as _FactoryCore
+from .services.base import ServiceBase as _ServiceBase
 
 _SETUP_INSTANCE = None
 
 
-def get_instance() -> _FactoryCore:
+def get_instance() -> _FactoryBase:
     """
     Returns:
         The Service Factory instance
@@ -39,7 +40,7 @@ class TrexServiceFactoryExtension(omni.ext.IExt):
         global _SETUP_INSTANCE
         carb.log_info("[omni.flux.service.factory] Startup")
 
-        _SETUP_INSTANCE = _FactoryCore()
+        _SETUP_INSTANCE = _FactoryBase[_ServiceBase]()
 
     def on_shutdown(self):
         global _SETUP_INSTANCE

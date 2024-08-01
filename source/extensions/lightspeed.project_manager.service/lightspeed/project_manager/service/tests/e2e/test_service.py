@@ -32,7 +32,7 @@ class TestProjectManagerService(AsyncTestCase):
         factory = get_service_factory_instance()
 
         # Register the service in the app
-        self.project_manager = factory.get_service_from_name("ProjectManagerService")()
+        self.project_manager = factory.get_plugin_from_name("ProjectManagerService")()
         main.register_router(router=self.project_manager.router, prefix=self.project_manager.prefix)
 
         # Setup a test client to send requests

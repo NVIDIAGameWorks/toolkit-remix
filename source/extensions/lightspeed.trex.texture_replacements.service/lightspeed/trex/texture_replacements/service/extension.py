@@ -26,8 +26,8 @@ from .service import TextureReplacementsService as _TextureReplacementsService
 class TrexTextureReplacementsServiceExtension(omni.ext.IExt):
     def on_startup(self, _ext_id):
         carb.log_info("[lightspeed.trex.texture_replacements.service] Startup")
-        _get_service_factory_instance().register_services([_TextureReplacementsService])
+        _get_service_factory_instance().register_plugins([_TextureReplacementsService])
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.texture_replacements.service] Shutdown")
-        _get_service_factory_instance().unregister_services([_TextureReplacementsService])
+        _get_service_factory_instance().unregister_plugins([_TextureReplacementsService])

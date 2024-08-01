@@ -25,15 +25,15 @@ from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import Field, validator
 
-from .base import Base as _Base
-from .base import BaseSchema as _BaseSchema
 from .context_base import Schema as _ContextSchema
 from .context_base import SetupDataTypeVar as _SetupDataTypeVar
+from .plugin_base import Base as _Base
 from .resultor_base import Schema as _ResultorSchema
+from .schema_base import BaseSchema as _BaseSchema
 from .selector_base import Schema as _SelectorSchema
 
 
-class CheckBase(_Base):
+class CheckBase(_Base, abc.ABC):
     class Data(_Base.Data):
 
         on_check_callback: Optional[Callable[[bool, str, Any], Any]] = Field(default=None, exclude=True)
@@ -200,7 +200,7 @@ class Schema(_BaseSchema):
     stop_if_fix_failed: bool = False  # stop the whole process if the fix/auto fix failed
     pause_if_fix_failed: bool = True  # pause the whole process if the fix/auto fix failed
 
-    @validator("selector_plugins")
+    @validator("selector_plugins", allow_reuse=True)
     def at_least_one(cls, v):  # noqa
         """Check that we have at least 1 selector plugin"""
         if not v:
