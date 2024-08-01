@@ -21,12 +21,13 @@ import omni.ui as ui
 import omni.usd
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.utils.common.path_utils import get_invalid_extensions as _get_invalid_extensions
-from omni.flux.validator.factory import SelectorBase as _SelectorBase
 from pxr import Sdf, UsdShade
 
+from .base.base_selector import SelectorUSDBase as _SelectorUSDBase
 
-class AllTextures(_SelectorBase):
-    class Data(_SelectorBase.Data):
+
+class AllTextures(_SelectorUSDBase):
+    class Data(_SelectorUSDBase.Data):
         filtered_input_names: List[str] = None
 
     name = "AllTextures"
