@@ -25,8 +25,8 @@ from .service import IngestCraftService as _IngestCraftService
 class TrexIngestCraftServiceExtension(omni.ext.IExt):
     def on_startup(self, _ext_id):
         carb.log_info("[lightspeed.trex.service.ingestcraft] Startup")
-        _get_service_factory_instance().register_services([_IngestCraftService])
+        _get_service_factory_instance().register_plugins([_IngestCraftService])
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.service.ingestcraft] Shutdown")
-        _get_service_factory_instance().unregister_services([_IngestCraftService])
+        _get_service_factory_instance().unregister_plugins([_IngestCraftService])

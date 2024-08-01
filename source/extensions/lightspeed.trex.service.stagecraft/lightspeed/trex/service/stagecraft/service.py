@@ -34,10 +34,10 @@ class StageCraftService(ServiceBase):
         # Get the desired services from the factory
         factory = _get_service_factory_instance()
 
-        project_manager = factory.get_service_from_name("ProjectManagerService")(context_name=context_name)
-        layer_manager = factory.get_service_from_name("LayerManagerService")(context_name=context_name)
-        asset_replacement = factory.get_service_from_name("AssetReplacementsService")(context_name=context_name)
-        texture_replacement = factory.get_service_from_name("TextureReplacementsService")(context_name=context_name)
+        project_manager = factory.get_plugin_from_name("ProjectManagerService")(context_name=context_name)
+        layer_manager = factory.get_plugin_from_name("LayerManagerService")(context_name=context_name)
+        asset_replacement = factory.get_plugin_from_name("AssetReplacementsService")(context_name=context_name)
+        texture_replacement = factory.get_plugin_from_name("TextureReplacementsService")(context_name=context_name)
 
         # Include the desired services in the app-level service
         self.router.include_router(project_manager.router, prefix=project_manager.prefix)

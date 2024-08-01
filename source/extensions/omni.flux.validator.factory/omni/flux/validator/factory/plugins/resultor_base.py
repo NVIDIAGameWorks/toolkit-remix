@@ -25,11 +25,11 @@ from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import BaseModel, Field, validator
 
-from .base import Base as _Base
-from .base import BaseSchema as _BaseSchema
+from .plugin_base import Base as _Base
+from .schema_base import BaseSchema as _BaseSchema
 
 
-class ResultorBase(_Base):
+class ResultorBase(_Base, abc.ABC):
     class Data(_Base.Data):
         on_resultor_callback: Callable[[bool, str], Any] | None = Field(default=None, exclude=True)
 

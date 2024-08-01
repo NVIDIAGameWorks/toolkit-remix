@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.10.0]
+### Changed
+- Mark the `ContextBaseUSD` class as Abstract Base Class (abc.ABC)
+
 ## [2.9.0]
 ### Added
 - Added a `USDDirectory` context plugin to iterate through all the USD files within a directory

@@ -25,8 +25,8 @@ from .service import ProjectManagerService as _ProjectManagerService
 class ProjectManagerServiceExtension(omni.ext.IExt):
     def on_startup(self, _ext_id):
         carb.log_info("[lightspeed.project_manager.service] Startup")
-        _get_service_factory_instance().register_services([_ProjectManagerService])
+        _get_service_factory_instance().register_plugins([_ProjectManagerService])
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.project_manager.service] Shutdown")
-        _get_service_factory_instance().unregister_services([_ProjectManagerService])
+        _get_service_factory_instance().unregister_plugins([_ProjectManagerService])

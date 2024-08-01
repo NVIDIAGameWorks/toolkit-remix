@@ -68,3 +68,7 @@ class ToJson(_ResultorBase):
         Build the UI for the plugin
         """
         ui.Label("None")
+
+    @omni.usd.handle_exception
+    async def _on_crash(self, schema_data: Any, data: Any) -> None:
+        pass

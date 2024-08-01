@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.4]
+### Fixed
+- Fixed hot-reload by allowing reuse of the validators
+
 ## [2.1.3]
 ### Added
 - Added function for adding attribute

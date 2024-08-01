@@ -10,11 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Create 2024.4.0-RC.5 build
 - REMIX-2988: Added manual CI test to measure app startup times
+- REMIX-3401: Added Centralized Generic factory
 
 ### Changed
+- REMIX-3401: Changed all usages of factories to use the Centralized Generic factory
 
 ### Fixed
 - Fix `AllTextures` plugin
+- REMIX-3401: Fixed hot-reload by allowing reuse of validators
 
 ### Removed
 

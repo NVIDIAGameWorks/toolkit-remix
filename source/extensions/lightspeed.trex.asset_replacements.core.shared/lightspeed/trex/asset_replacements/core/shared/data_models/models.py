@@ -30,7 +30,7 @@ from .validators import AssetReplacementsValidators
 class SetSelectionPathParamModel(BaseServiceModel):
     asset_paths: list[str]
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
 
         for asset_path in values.get("asset_paths"):
@@ -41,7 +41,7 @@ class SetSelectionPathParamModel(BaseServiceModel):
 class PrimInstancesPathParamModel(BaseServiceModel):
     asset_path: str
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         AssetReplacementsValidators.is_valid_prim(values.get("asset_path"), values.get("context_name"))
         AssetReplacementsValidators.is_valid_mesh(values.get("asset_path"))
@@ -52,7 +52,7 @@ class PrimInstancesPathParamModel(BaseServiceModel):
 class PrimTexturesPathParamModel(BaseServiceModel):
     asset_path: str
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         AssetReplacementsValidators.is_valid_prim(values.get("asset_path"), values.get("context_name"))
         AssetReplacementsValidators.is_valid_material(values.get("asset_path"), values.get("context_name"))
@@ -63,7 +63,7 @@ class PrimTexturesPathParamModel(BaseServiceModel):
 class PrimReferencePathParamModel(BaseServiceModel):
     asset_path: str
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         AssetReplacementsValidators.is_valid_prim(values.get("asset_path"), values.get("context_name"))
         return values
@@ -82,7 +82,7 @@ class GetPrimsQueryModel(BaseServiceModel):
 
     context_name: str = ""  # This is only used to validate the layer_identifier
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         AssetReplacementsValidators.layer_is_in_project(values.get("layer_identifier"), values.get("context_name"))
         return values
@@ -120,7 +120,7 @@ class AppendReferenceRequestModel(BaseServiceModel):
     asset_file_path: Path
     force: bool = False  # Ignore ingestion validation
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def root_validators(cls, values):  # noqa
         AssetReplacementsValidators.is_valid_file_path(values.get("asset_file_path"))
 

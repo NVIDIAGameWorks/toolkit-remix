@@ -81,6 +81,10 @@ class FileMetadataWritter(_ResultorBase):
 
         return True, "Metadata written"
 
+    @omni.usd.handle_exception
+    async def _on_crash(self, schema_data: Any, data: Any) -> None:
+        pass
+
     @staticmethod
     def get_current_validation_extensions():
         exts = omni.kit.app.get_app().get_extension_manager().get_extensions()

@@ -76,6 +76,10 @@ class FileCleanup(_ResultorBase):
         return True, f"File(s) cleaned up:\n{cleaned_str}"
 
     @omni.usd.handle_exception
+    async def _on_crash(self, schema_data: Any, data: Any) -> None:
+        pass
+
+    @omni.usd.handle_exception
     async def _build_ui(self, schema_data: Data) -> Any:
         """
         Build the UI for the plugin

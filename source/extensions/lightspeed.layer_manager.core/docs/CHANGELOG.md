@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.1]
+### Fixed
+- Fixed hot-reload by allowing reuse of the validators
+
 ## [2.2.0]
 ### Added
 - Added new functions `broken_layers_stack` and `remove_broken_layer`

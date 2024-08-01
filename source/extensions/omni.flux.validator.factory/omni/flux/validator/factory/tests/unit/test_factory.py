@@ -22,63 +22,54 @@ from omni.flux.validator.factory import SelectorBase as _SelectorBase
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.flux.validator.factory import get_instance as _get_factory_instance
 from omni.kit.test.async_unittest import AsyncTestCase
-from omni.kit.test_suite.helpers import arrange_windows, wait_stage_loading
+
+_FAKE_PLUGIN_NAME = "FakePlugin"
 
 
 class FakeSelectorPlugin(_SelectorBase):
-
-    name = "FakePlugin"
+    name = _FAKE_PLUGIN_NAME
     tooltip = "This is a test plugin"
 
     @omni.usd.handle_exception
     async def _select(
         self, schema_data: Any, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
     ) -> Tuple[bool, str, Any]:
-        """
-        Function that will be executed to select the data
-
-        Args:
-            schema_data: the data from the schema.
-            context_plugin_data: the data from the context plugin
-            selector_plugin_data: the data from the previous selector plugin
-
-        Returns: True if ok + message + the selected data
-        """
         return True, "Test", [1, 2, 3]
 
     @omni.usd.handle_exception
     async def _build_ui(self, schema_data: Any) -> Any:
-        """
-        Build the UI for the plugin
-        """
+        pass
+
+    @omni.usd.handle_exception
+    async def _on_crash(self, schema_data: Any, data: Any) -> None:
         pass
 
 
 class TestValidatorFactory(AsyncTestCase):
     async def setUp(self):
-        await arrange_windows()
+        self.factory = _get_factory_instance()
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
+        self.factory = None
 
-    async def test_factory(self):
-        factory_instance = _get_factory_instance()
-        # empty
-        self.assertFalse(factory_instance.get_all_plugins())
-        with self.assertRaises(ValueError):
-            self.assertFalse(factory_instance.is_plugin_registered("FakePlugin"))
-        self.assertIsNone(factory_instance.get_plugins_from_name("FakePlugin"))
+    async def test_is_plugin_registered_is_registered_should_return_true(self):
+        # Arrange
+        self.factory._plugins[_FAKE_PLUGIN_NAME] = FakeSelectorPlugin  # noqa PLW0212
 
-        # register
-        factory_instance.register_plugins([FakeSelectorPlugin])
-        self.assertTrue(factory_instance.get_all_plugins() == {"FakePlugin": FakeSelectorPlugin})
-        self.assertTrue(factory_instance.is_plugin_registered("FakePlugin"))
-        self.assertTrue(factory_instance.get_plugins_from_name("FakePlugin") == FakeSelectorPlugin)
+        # Act
+        value = self.factory.is_plugin_registered(_FAKE_PLUGIN_NAME)
 
-        # unregister
-        factory_instance.unregister_plugins([FakeSelectorPlugin])
-        self.assertFalse(factory_instance.get_all_plugins())
-        with self.assertRaises(ValueError):
-            self.assertFalse(factory_instance.is_plugin_registered("FakePlugin"))
-        self.assertIsNone(factory_instance.get_plugins_from_name("FakePlugin"))
+        # Assert
+        self.assertTrue(value)
+
+    async def test_is_plugin_registered_is_not_registered_should_raise_value_error(self):
+        # Arrange
+        pass
+
+        # Act
+        with self.assertRaises(ValueError) as cm:
+            self.factory.is_plugin_registered(_FAKE_PLUGIN_NAME)
+
+        # Assert
+        self.assertEqual(str(cm.exception), f"Plugin {_FAKE_PLUGIN_NAME} is not registered/not found! Stopped.")

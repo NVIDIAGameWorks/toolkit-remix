@@ -182,6 +182,10 @@ class FakeContext(_ContextBase):
         """
         ui.Label("Fake context label", alignment=ui.Alignment.CENTER)
 
+    @omni.usd.handle_exception
+    async def _on_crash(self, schema_data: Any, data: Any) -> None:
+        pass
+
 
 class FakeSelector(_SelectorBase):
     class Data(_SelectorBase.Data):
@@ -271,6 +275,10 @@ class FakeSelector(_SelectorBase):
         Build the UI for the plugin
         """
         ui.Label("Fake selector label", alignment=ui.Alignment.CENTER)
+
+    @omni.usd.handle_exception
+    async def _on_crash(self, schema_data: Any, data: Any) -> None:
+        pass
 
 
 class FakeCheck(_CheckBase):
@@ -383,6 +391,10 @@ class FakeCheck(_CheckBase):
         Build the UI for the plugin
         """
         ui.Label("Fake check label", alignment=ui.Alignment.CENTER)
+
+    @omni.usd.handle_exception
+    async def _on_crash(self, schema_data: Any, data: Any) -> None:
+        pass
 
 
 def register_fake_plugins():

@@ -18,7 +18,7 @@
 import asyncio
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 from unittest.mock import call, patch
 
 import omni.kit.app
@@ -60,6 +60,10 @@ class FakeResultor(_ResultorBase):
         """
         Build the UI for the plugin
         """
+        pass
+
+    @omni.usd.handle_exception
+    async def _on_crash(self, schema_data: Any, data: Any) -> None:
         pass
 
 

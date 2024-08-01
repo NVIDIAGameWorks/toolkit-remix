@@ -25,8 +25,8 @@ from .service import LayerManagerService as _LayerManagerService
 class LayerManagerServiceExtension(omni.ext.IExt):
     def on_startup(self, _ext_id):
         carb.log_info("[lightspeed.layer_manager.service] Startup")
-        _get_service_factory_instance().register_services([_LayerManagerService])
+        _get_service_factory_instance().register_plugins([_LayerManagerService])
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.layer_manager.service] Shutdown")
-        _get_service_factory_instance().unregister_services([_LayerManagerService])
+        _get_service_factory_instance().unregister_plugins([_LayerManagerService])

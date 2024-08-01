@@ -40,7 +40,7 @@ class AssetItemImporterModelBase(BaseModel):
     output_path: Optional[Union[str, Path]] = None
     output_usd_extension: Optional[_UsdExtensions] = None
 
-    @validator("input_path")
+    @validator("input_path", allow_reuse=True)
     def input_path_exist(cls, v):  # noqa
         """Check if the input path exist"""
         result, entry = omni.client.stat(v)
@@ -48,7 +48,7 @@ class AssetItemImporterModelBase(BaseModel):
             raise ValueError(f"import_batch was passed an invalid input_path. {v} doesn't exist!")
         return v
 
-    @validator("output_path")
+    @validator("output_path", allow_reuse=True)
     def output_folder_valid(cls, v):  # noqa
         """Check if the input path exist"""
         if v is not None:
@@ -69,7 +69,7 @@ AssetItemImporterModel = create_model(
 class AssetImporterModel(BaseModel):
     data: List[AssetItemImporterModel]
 
-    @validator("data")
+    @validator("data", allow_reuse=True)
     def at_least_one(cls, v):  # noqa
         """Check if there is at least 1 asset"""
         if not v:

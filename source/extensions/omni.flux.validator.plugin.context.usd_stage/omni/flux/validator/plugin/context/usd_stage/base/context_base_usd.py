@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import abc
 from typing import Any, Optional
 
 import carb.settings
@@ -29,7 +30,7 @@ from pydantic import Field
 _WAS_FLUX_CLI_CHECKED = False
 
 
-class ContextBaseUSD(_ContextBase):
+class ContextBaseUSD(_ContextBase, abc.ABC):
     class Data(_ContextBase.Data):
         context_name: Optional[str] = None
         create_context_if_not_exist: bool = False

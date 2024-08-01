@@ -422,7 +422,7 @@ class ToJson(_ResultorBase):
     class Data(_ResultorBase.Data):
         json_path: str
 
-        @validator("json_path")
+        @validator("json_path", allow_reuse=True)
         def json_path_empty(cls, v):  # noqa
             if not v.strip():
                 raise ValueError("Path is empty")

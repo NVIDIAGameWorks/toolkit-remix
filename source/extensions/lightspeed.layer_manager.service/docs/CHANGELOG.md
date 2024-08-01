@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0]
+### Changed
+- Use generic factory instead of service-specific factory
+
 ## [1.1.0]
 ### Added
 - Added endpoint to get layer types

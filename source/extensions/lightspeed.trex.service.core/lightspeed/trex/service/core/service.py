@@ -41,7 +41,7 @@ class CoreService:
 
         self._service_instances = []
         for service in services:
-            service_instance = factory.get_service_from_name(service.get(self.NAME))(
+            service_instance = factory.get_plugin_from_name(service.get(self.NAME))(
                 context_name=service.get(self.CONTEXT_NAME)
             )
             self._service_instances.append(service_instance)
