@@ -17,7 +17,6 @@
 
 import os
 from enum import Enum
-from unittest.mock import patch
 
 import carb
 import carb.input
@@ -36,6 +35,7 @@ from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
 from omni.kit.test.async_unittest import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage, wait_stage_loading
+from pxr import Sdf, Usd
 
 MATERIAL_HASH = "BC868CE5A075ABB1"
 MATERIAL_ROOT_PATH = "/RootNode/Looks/"
@@ -222,8 +222,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await texture_file_fields[0].click()
         await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
         await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
-        with patch.object(carb, "log_error"):
-            await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+        await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
         await ui_test.human_delay(3)
 
         # no ingestion window warning
@@ -272,8 +271,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await texture_file_fields[0].click()
         await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
         await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
-        with patch.object(carb, "log_error"):
-            await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+        await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
         await ui_test.human_delay(3)
 
         # no ingestion window warning
@@ -324,8 +322,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await texture_file_fields[0].click()
         await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
         await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
-        with patch.object(carb, "log_error"):
-            await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+        await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
         await ui_test.human_delay(3)
 
         # no ingestion window warning
@@ -534,5 +531,136 @@ class TestSelectionTreeWidget(AsyncTestCase):
             context_menu = await omni.kit.ui_test.menu.get_context_menu()
             await ui_test.human_delay(5)
             self.assertFalse("Copy File Path Hash" in context_menu.get("_"))
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_texture_string_field_tooltips_set_and_update(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=10)
+
+        # expand the property branches
+        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+        for index in range(1, 4):
+            await property_branches[index].click()
+            await ui_test.human_delay(7)
+
+        # ensure the string fields exists
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        self.assertEqual(len(texture_file_fields), 4)
+
+        # test diffuse material tooltip in comparison to the asset path
+        string_field_mouse_offset = ui_test.Vec2(10, 0)
+        await ui_test.emulate_mouse_move(texture_file_fields[0].position + string_field_mouse_offset)
+        await ui_test.human_delay(5)
+        asset_path = _get_test_data(f"usd/{RELATIVE_CAPTURE_TEXTURE_PATH}{MATERIAL_HASH}.dds")
+        self.assertEqual(texture_file_fields[0].widget.tooltip.lower(), asset_path.lower())
+
+        # check that each of the string fields have tooltips after mouse hovered - tooltip is set upon initial hover
+        for index, texture_type in enumerate(("metallic", "roughness", "normal"), start=1):
+            # move cursor directly over the string field
+            await ui_test.emulate_mouse_move(texture_file_fields[index].position + string_field_mouse_offset)
+            await ui_test.human_delay(5)
+
+            # ensure that the tooltips are accurate with the asset path
+            asset_path = _get_test_data(
+                f"usd/{RELATIVE_SOURCE_TEXTURE_PATH}{METAL_WALL_ASSET_PARTIAL_BASENAME}{texture_type}.png"
+            )
+            self.assertEqual(texture_file_fields[index].widget.tooltip.lower(), asset_path.lower())
+
+        # change the metallic texture to roughness asset
+        roughness_texture_asset_path = _get_test_data(
+            f"usd/{RELATIVE_SOURCE_TEXTURE_PATH}{METAL_WALL_ASSET_PARTIAL_BASENAME}roughness.png"
+        )
+        await texture_file_fields[1].input(roughness_texture_asset_path, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(3)
+
+        # no ingestion window warning
+        ignore_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+        cancel_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNotNone(ignore_ingestion_button)
+        self.assertIsNotNone(cancel_ingestion_button)
+        await ignore_ingestion_button.click()
+        await ui_test.human_delay(10)
+
+        # move mouse off
+        await ui_test.emulate_mouse_move(texture_file_fields[1].position - string_field_mouse_offset)
+        await ui_test.human_delay(5)
+
+        # check that the tooltip got updated
+        await ui_test.emulate_mouse_move(texture_file_fields[1].position + string_field_mouse_offset)
+        await ui_test.human_delay(5)
+        self.assertEqual(texture_file_fields[1].widget.tooltip.lower(), roughness_texture_asset_path.lower())
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_texture_string_field_tooltips_with_different_layer_and_edit_target(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=10)
+
+        # expand the property branches
+        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+        for index in range(1, 4):
+            await property_branches[index].click()
+            await ui_test.human_delay(7)
+
+        # ensure the string fields exists
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        self.assertEqual(len(texture_file_fields), 4)
+
+        # test diffuse material tooltip
+        string_field_mouse_offset = ui_test.Vec2(10, 0)
+        await ui_test.emulate_mouse_move(texture_file_fields[0].position + string_field_mouse_offset)
+        await ui_test.human_delay(5)
+        asset_path = _get_test_data(f"usd/{RELATIVE_CAPTURE_TEXTURE_PATH}{MATERIAL_HASH}.dds")
+        self.assertEqual(texture_file_fields[0].widget.tooltip.lower(), asset_path.lower())
+
+        # change edit target to the root layer
+        stage = usd_context.get_stage()
+        root_layer = stage.GetRootLayer()
+        stage.SetEditTarget(root_layer)
+
+        # test diffuse material tooltip with a different edit target (root layer)
+        await ui_test.emulate_mouse_move(texture_file_fields[0].position + string_field_mouse_offset)
+        await ui_test.human_delay(5)
+        asset_path = _get_test_data(f"usd/{RELATIVE_CAPTURE_TEXTURE_PATH}{MATERIAL_HASH}.dds")
+        self.assertEqual(texture_file_fields[0].widget.tooltip.lower(), asset_path.lower())
+
+        # move mouse off
+        await ui_test.emulate_mouse_move(texture_file_fields[0].position - string_field_mouse_offset)
+        await ui_test.human_delay(5)
+
+        # find a less powerful sublayer and set it as the edit target
+        sublayer = None
+        for sublayer_path in root_layer.subLayerPaths:
+            if "/captures/capture.usda" in sublayer_path:
+                sublayer = Sdf.Layer.FindOrOpenRelativeToLayer(root_layer, sublayer_path)
+                break
+
+        self.assertIsNotNone(sublayer)
+        stage.SetEditTarget(Usd.EditTarget(sublayer))
+
+        # test diffuse material tooltip with a different edit target (sublayer)
+        await ui_test.emulate_mouse_move(texture_file_fields[0].position + string_field_mouse_offset)
+        await ui_test.human_delay(5)
+        asset_path = _get_test_data(f"usd/{RELATIVE_CAPTURE_TEXTURE_PATH}{MATERIAL_HASH}.dds")
+        self.assertEqual(texture_file_fields[0].widget.tooltip.lower(), asset_path.lower())
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
