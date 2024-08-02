@@ -91,7 +91,6 @@ class FileTexturePicker(_FilePicker):
                                 read_only=True,
                                 style_type_name_override=f"{self.style_name}Read",
                                 identifier="file_texture_string_field_read",
-                                tooltip=item.value_models[i].get_value().resolvedPath,
                                 mouse_pressed_fn=functools.partial(self._show_copy_menu, item.value_models[i]),
                             )
                         else:
@@ -99,9 +98,21 @@ class FileTexturePicker(_FilePicker):
                                 model=item.value_models[i],
                                 style_type_name_override=self.style_name,
                                 identifier="file_texture_string_field",
-                                tooltip=item.value_models[i].get_value().resolvedPath,
                                 mouse_pressed_fn=functools.partial(self._show_copy_menu, item.value_models[i]),
                             )
+
+                        def _update_tooltip_value(hovered: bool, value_index=i, string_field_widget=widget):
+                            tooltip = item.value_models[value_index].get_value().resolvedPath
+
+                            # If there was no resolved path, use fallback paths
+                            if tooltip is None or tooltip == "":
+                                tooltip = self.__get_value_model_fallback_path(
+                                    item.value_models[value_index], must_be_absolute=False
+                                )
+                            string_field_widget.tooltip = str(tooltip)
+
+                        widget.set_mouse_hovered_fn(_update_tooltip_value)
+
                         self._sub_field_begin_edit.append(
                             widget.model.subscribe_begin_edit_fn(
                                 functools.partial(self._on_field_begin, widget, item.value_models[i], i)
@@ -378,6 +389,41 @@ class FileTexturePicker(_FilePicker):
         widget.style_type_name_override = "Field"
         return True
 
+    def __get_value_model_fallback_path(
+        self, value_model: "_UsdAttributeValueModel", must_be_absolute: bool = False
+    ) -> str:
+        fallback_path = ""
+        if value_model.get_value_as_string() and isinstance(value_model, _UsdAttributeValueModel):
+            asset_path = value_model.get_value_as_string()
+
+            # At least use a relative path as the fallback
+            if not must_be_absolute:
+                fallback_path = asset_path
+
+            # Obtain a value model attribute to derive a prim
+            value_model_attribute = None
+            for attr in value_model.attributes:
+                value_model_attribute = attr
+                break
+            if value_model_attribute is None:
+                return fallback_path
+
+            # Find an absolute path with the attr prim if possible, otherwise leave the fallback path as ""
+            prim_stack = value_model_attribute.GetPrim().GetPrimStack()
+            if prim_stack:
+                layer = None
+                for prim_spec in prim_stack:
+                    if not prim_spec.layer.anonymous:
+                        layer = prim_spec.layer
+                        break
+
+                if layer:
+                    absolute_asset_path = layer.ComputeAbsolutePath(asset_path)
+                    if absolute_asset_path:
+                        fallback_path = absolute_asset_path
+
+        return fallback_path
+
     def _on_field_begin(
         self, widget: ui.AbstractField, value_model: "_UsdAttributeValueModel", element_current_idx: int, model
     ):
@@ -431,8 +477,13 @@ class FileTexturePicker(_FilePicker):
         if b != 1:
             return
 
+        # Obtain the absolute asset path
+        absolute_asset_path = value_model.get_value().resolvedPath
+        if not absolute_asset_path:
+            absolute_asset_path = self.__get_value_model_fallback_path(value_model, must_be_absolute=True)
+
         # Avoid menu if value_model is invalid type or has no path
-        if not isinstance(value_model, _UsdAttributeValueModel) or value_model.get_value().resolvedPath == "":
+        if not isinstance(value_model, _UsdAttributeValueModel) or not absolute_asset_path:
             return
 
         # NOTE: This menu is stored on the object to avoid garbage collection and being prematurely destroyed
@@ -444,10 +495,10 @@ class FileTexturePicker(_FilePicker):
             ui.MenuItem(
                 "Copy Full File Path",
                 identifier="copy_full_file_path",
-                triggered_fn=lambda: omni.kit.clipboard.copy(value_model.get_value().resolvedPath),
+                triggered_fn=lambda: omni.kit.clipboard.copy(absolute_asset_path),
             )
             if self._regex_hash is not None:
-                hash_match = re.match(self._regex_hash, value_model.get_value().resolvedPath)
+                hash_match = re.match(self._regex_hash, absolute_asset_path)
                 ui.MenuItem(
                     "Copy File Path Hash",
                     enabled=hash_match is not None,

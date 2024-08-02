@@ -1,5 +1,5 @@
 [package]
-version = "1.3.9"
+version = "1.3.10"
 authors =["Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Material Properties implementation for the StageCraft"
 description = "Material Properties implementation for NVIDIA RTX Remix StageCraft App"
@@ -37,4 +37,8 @@ dependencies = [
     "lightspeed.layer_manager.core",
     "lightspeed.trex.tests.dependencies",
     "omni.flux.utils.widget",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.flux.utils.common.path_utils] * can't be read*",
 ]

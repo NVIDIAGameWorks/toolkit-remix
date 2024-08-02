@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.13.1]
+### Fixed
+- Fixed material property builder string field tooltip and copy menus
+
 ## [2.13.0]
 ### Added
 - Added identifier for UI elements
