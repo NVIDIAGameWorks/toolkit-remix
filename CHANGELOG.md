@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create 2024.4.0-RC.5 build
 - REMIX-2988: Added manual CI test to measure app startup times
 - REMIX-3401: Added Centralized Generic factory
+- REST API Documentation
 
 ### Changed
 - REMIX-3401: Changed all usages of factories to use the Centralized Generic factory

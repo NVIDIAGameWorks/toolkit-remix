@@ -13,5 +13,6 @@ remix-toolkitinterface-ingesttab.md
 remix-toolkitinterface-aitools.md
 remix-toolkitinterface-lighting.md
 remix-toolkitinterface-shortcuts.md
+remix-toolkitinterface-restapi.md
 ```
 
