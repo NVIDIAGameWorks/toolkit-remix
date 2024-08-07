@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Create 2024.4.0-RC.6 build
+- Create 2024.4.1 build
 - REMIX-2988: Added manual CI test to measure app startup times
 - REMIX-3401: Added Centralized Generic factory
 
@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3401: Fixed hot-reload by allowing reuse of validators
 - REMIX-3058: Fixed material file path tooltips and copy menus
 - Fixed changelog checker with type casting to support semantic versioning
+
+### Removed
+
+## [2024.4.1]
+
+### Added
+- Create 2024.4.0-RC.6 build
+
+### Changed
+
+### Fixed
 
 ### Removed
 
