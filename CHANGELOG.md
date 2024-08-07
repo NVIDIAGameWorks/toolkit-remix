@@ -8,20 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Create 2024.4.0-RC.5 build
+- Create 2024.4.0-RC.6 build
 - REMIX-2988: Added manual CI test to measure app startup times
 - REMIX-3401: Added Centralized Generic factory
-- REST API Documentation
 
 ### Changed
 - REMIX-3401: Changed all usages of factories to use the Centralized Generic factory
+
+### Fixed
+- REMIX-3401: Fixed hot-reload by allowing reuse of validators
+- REMIX-3058: Fixed material file path tooltips and copy menus
+- Fixed changelog checker with type casting to support semantic versioning
+
+### Removed
+
+## [2024.4.0-RC.6]
+
+### Added
+- Create 2024.4.0-RC.5 build
+- REST API Documentation
+
+### Changed
 - Update runtime to 0.5.4
 
 ### Fixed
 - Fix `AllTextures` plugin
-- REMIX-3401: Fixed hot-reload by allowing reuse of validators
-- REMIX-3058: Fixed material file path tooltips and copy menus
-- Fixed changelog checker with type casting to support semantic versioning
 
 ### Removed
 
