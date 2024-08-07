@@ -121,3 +121,6 @@ PIC-V.log
 
 # Ignore internal settings
 repo_internal.toml
+
+# Ignore generated documentation
+docs/toolkitinterface/remix-toolkitinterface-restapi-docs.html
