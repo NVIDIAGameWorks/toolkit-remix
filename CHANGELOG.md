@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - REMIX-3401: Changed all usages of factories to use the Centralized Generic factory
+- Update runtime to 0.5.4
 
 ### Fixed
 - Fix `AllTextures` plugin
