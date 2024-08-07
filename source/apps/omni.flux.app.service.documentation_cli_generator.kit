@@ -1,0 +1,62 @@
+[package]
+version = "1.0.0"
+category = "Application"
+title = "Flux Service Documentation Generation App"
+description = "App used to generate the shortcut of the Service Documentation Generation CLI"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+keywords = ["omni", "flux", "app", "service", "documentation", "CLI", "Generator"]
+changelog = """
+# Changelog
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [1.0.0]
+### Added
+- Created
+"""
+readme = """
+# Omniverse Flux Service Documentation Generation
+
+A tool to generate static documentation from Kit microservices
+"""
+
+[dependencies]
+"omni.flux.service.documentation" = {}
+
+[settings.app.window]
+title = "Flux Service Documentation Generation App"
+
+[settings]
+# Basic Kit App
+################################
+app.versionFile = "${app}/../../../VERSION"
+app.fastShutdown = true
+
+# Register extension folder from this repo in kit
+[settings.app.exts]
+folders.'++' = ["${app}/../../../exts", "${app}/../../../extscache", "${app}/../exts", "${app}/../extscache", "${kit}/../exts", "${kit}/../extscache"]
+
+[[test]]
+args = [
+	"--/app/window/width=480",
+    "--/app/window/height=480",
+]
+
+dependencies = [
+    "omni.flux.tests.dependencies",
+]
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Kit SDK Version: 106.0.0+release.118399.fcefe91f.gl
+
+# Version lock for all dependencies:
+[settings.app.exts]
+enabled = [
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################
