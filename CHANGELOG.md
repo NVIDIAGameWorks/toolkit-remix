@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REST API Documentation
 
 ### Changed
+- Update runtime to 0.5.4
 
 ### Fixed
 - Fix `AllTextures` plugin
