@@ -14,5 +14,6 @@ remix-toolkitinterface-aitools.md
 remix-toolkitinterface-lighting.md
 remix-toolkitinterface-shortcuts.md
 remix-toolkitinterface-restapi.md
+remix-toolkitinterface-migrations.md
 ```
 

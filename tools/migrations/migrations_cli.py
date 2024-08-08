@@ -35,7 +35,7 @@ def setup_cli() -> argparse.Namespace:
 
     lights_parser = subparsers.add_parser(
         Migrations.DistantLightsZDirection.value,
-        help=(
+        description=(
             "Migrate distant lights pointing in the wrong direction (Z towards the sun) to point in the correct "
             "direction (Z away from the sun)."
         )
