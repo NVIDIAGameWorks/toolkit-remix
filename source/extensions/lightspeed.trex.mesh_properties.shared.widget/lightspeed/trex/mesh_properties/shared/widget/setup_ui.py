@@ -255,6 +255,7 @@ class SetupUI:
                             vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_AS_NEEDED,
                             tooltip="To set categories, use the Remix Categories window.",
                             mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(b),
+                            name="CategoriesFrame",
                         )
 
     def refresh(

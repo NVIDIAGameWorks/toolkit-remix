@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3401: Added Centralized Generic factory
 - Add github windows and linux build actions
 - Add Data Migration documentation
+- Adding tests for Remix Categories
+- Adding tests for layer validation
 
 ### Changed
 - REMIX-3401: Changed all usages of factories to use the Centralized Generic factory

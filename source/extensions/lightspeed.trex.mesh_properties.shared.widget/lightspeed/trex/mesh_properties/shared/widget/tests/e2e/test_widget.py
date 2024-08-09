@@ -18,7 +18,7 @@
 import carb.input
 import omni.ui as ui
 import omni.usd
-from carb.input import KeyboardInput
+from carb.input import KeyboardEventType, KeyboardInput
 from lightspeed.common import constants as _constants
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
@@ -28,6 +28,31 @@ from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
 from omni.kit.test.async_unittest import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage, wait_stage_loading
+
+
+class ModifierKeyDownScope:
+    """
+    A context creator to emulate the holding down of modifier keys within a scope. This is a workaround to using
+    KeyDownScope which did not directly work with modifiers such as left shift.
+    """
+
+    def __init__(self, key: KeyboardInput, human_delay_speed: int = 2):
+        self._key = key
+        self._human_delay_speed = human_delay_speed
+
+    async def __aenter__(self):
+        # The key must be passed as both key and modifier to get the modifier effect to work
+        await self.emulate_keyboard(carb.input.KeyboardEventType.KEY_PRESS, self._key, self._key)
+        await ui_test.human_delay(self._human_delay_speed)
+
+    async def __aexit__(self, exc_type, exc, tb):
+        # No modifier should be passed so the modifier effect does not get stuck
+        await self.emulate_keyboard(carb.input.KeyboardEventType.KEY_RELEASE, self._key)
+        await ui_test.human_delay(self._human_delay_speed)
+
+    async def emulate_keyboard(self, event_type: KeyboardEventType, key: KeyboardInput, modifier: KeyboardInput = 0):
+        keyboard = omni.appwindow.get_default_app_window().get_keyboard()
+        carb.input.acquire_input_provider().buffer_keyboard_key_event(keyboard, event_type, key, modifier)
 
 
 class TestSelectionTreeWidget(AsyncTestCase):
@@ -609,3 +634,130 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEquals(len(item_prims), 5)
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_assign_single_remix_category(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+        )
+
+        await ui_test.human_delay(human_delay_speed=3)
+
+        category_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='Categories'")
+        await category_button.click()
+        await ui_test.human_delay(3)
+
+        # Set a random remix category for us to assign
+        box = ui_test.find("Remix Categories//Frame/**/CheckBox[*].name=='remix_category:world_ui'")
+        await ui_test.emulate_mouse_move_and_click(box.position)
+        await ui_test.human_delay(3)
+
+        # Assign the category
+        assign_button = ui_test.find("Remix Categories//Frame/**/Button[*].identifier=='AssignCategoryButton'")
+        await assign_button.click()
+        await ui_test.human_delay(3)
+
+        # Check that the category got assigned on the prim
+        stage = usd_context.get_stage()
+        prim = stage.GetPrimAtPath(
+            "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"
+        )
+        attrs = prim.GetAttributes()
+        test_attr = [attr for attr in attrs if attr.GetName() == "remix_category:world_ui"]
+
+        self.assertEqual(len(test_attr), 1)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_assign_multiple_remix_category(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+        )
+
+        await ui_test.human_delay(human_delay_speed=3)
+
+        category_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='Categories'")
+        await category_button.click()
+        await ui_test.human_delay(3)
+
+        # Set a random remix category for us to assign
+        box = ui_test.find("Remix Categories//Frame/**/CheckBox[*].name=='remix_category:world_ui'")
+        await ui_test.emulate_mouse_move_and_click(box.position)
+        await ui_test.human_delay(3)
+        box2 = ui_test.find("Remix Categories//Frame/**/CheckBox[*].name=='remix_category:decal_Static'")
+        await ui_test.emulate_mouse_move_and_click(box2.position)
+        await ui_test.human_delay(3)
+
+        # Assign the category
+        assign_button = ui_test.find("Remix Categories//Frame/**/Button[*].identifier=='AssignCategoryButton'")
+        await assign_button.click()
+
+        await ui_test.human_delay(3)
+
+        # Check that the category got assigned on the prim
+        stage = usd_context.get_stage()
+        prim = stage.GetPrimAtPath(
+            "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"
+        )
+        attrs = prim.GetAttributes()
+        test_attr = [
+            attr for attr in attrs if attr.GetName() in ("remix_category:world_ui", "remix_category:decal_Static")
+        ]
+
+        self.assertEqual(len(test_attr), 2)
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_remix_categories_button_visibility(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+        )
+
+        category_button = ui_test.find(f"{_window.title}//Frame/**/ScrollingFrame[*].name=='CategoriesFrame'")
+        await ui_test.human_delay(50)
+        self.assertTrue(category_button.widget.visible)
+
+        items = ui_test.find_all(f"{_window.title}//Frame/**/ScrollingFrame[*].name=='TreePanelBackground'")
+
+        await items[1].click()
+        await ui_test.human_delay(60)
+
+        category_button = ui_test.find(f"{_window.title}//Frame/**/ScrollingFrame[*].name=='CategoriesFrame'")
+        self.assertFalse(category_button.widget.visible)
+
+    async def test_remix_categories_button_visibility_multi_select(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+        )
+
+        category_button = ui_test.find(f"{_window.title}//Frame/**/ScrollingFrame[*].name=='CategoriesFrame'")
+        await ui_test.human_delay(50)
+        self.assertTrue(category_button.widget.visible)
+
+        prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+
+        for prim in prims:
+            async with ModifierKeyDownScope(key=KeyboardInput.LEFT_SHIFT):
+                await prim.click()
+                await ui_test.human_delay(3)
+
+        category_button = ui_test.find(f"{_window.title}//Frame/**/ScrollingFrame[*].name=='CategoriesFrame'")
+        self.assertFalse(category_button.widget.visible)

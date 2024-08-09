@@ -48,7 +48,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
-from pxr import Sdf
+from pxr import Sdf, Tf
 
 
 class AssetReplacementsPane:
@@ -340,7 +340,10 @@ class AssetReplacementsPane:
             self._selection_tree_widget.refresh()
 
     def __validate_existing_layer(self, path):
-        sublayer = Sdf.Layer.FindOrOpen(str(path))
+        try:
+            sublayer = Sdf.Layer.FindOrOpen(str(path))
+        except Tf.ErrorException:
+            sublayer = None
         if not sublayer:
             self._layer_validation_error_msg = f"Unable to open layer {path.name}"
             return False

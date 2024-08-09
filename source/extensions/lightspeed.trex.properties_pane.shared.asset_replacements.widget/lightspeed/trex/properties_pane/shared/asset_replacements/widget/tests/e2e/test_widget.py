@@ -15,8 +15,12 @@
 * limitations under the License.
 """
 
+import tempfile
+from pathlib import Path
+
 import omni.ui as ui
 import omni.usd
+from carb.input import KeyboardInput
 from lightspeed.trex.properties_pane.shared.asset_replacements.widget import (
     AssetReplacementsPane as _AssetReplacementsPane,
 )
@@ -31,6 +35,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
     async def setUp(self):
         await arrange_windows()
         await open_stage(_get_test_data("usd/project_example/combined.usda"))
+        self.temp_dir = tempfile.TemporaryDirectory()
 
     # After running each test
     async def tearDown(self):
@@ -336,5 +341,188 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         pin_label_texts = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='pin_label_text'")
         for pin_label_text in pin_label_texts:
             self.assertNotEqual(pin_label_text, "")
+
+        await self.__destroy(_window, _wid)
+
+    async def test_layer_validation_new_layer(self):
+        # setup
+        _window, _wid = await self.__setup_widget("test_layer_validation_new_layer")
+
+        property_pane_items = ui_test.find_all(f"{_window.title}//Frame/**/ScrollingFrame[*]=='PropertiesPaneSection'")
+        await property_pane_items[1].click()
+        await ui_test.human_delay(50)
+
+        expansion_stack = ui_test.find(f"{_window.title}//Frame/**/HStack[*].identifier=='expansion_stack'")
+        await expansion_stack.click()
+        await ui_test.human_delay(50)
+
+        layer_items = ui_test.find_all(f"{_window.title}//Frame/**/ZStack[*].identifier=='layer_item_root'")
+        await layer_items[1].click()
+        await ui_test.human_delay(50)
+
+        create_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='CreateLayer'")
+        await create_button.click()
+        await ui_test.human_delay(10)
+
+        # The create new file window should now be opened
+        file_picker_window_title = "Create a new layer file"
+        create_button = ui_test.find(f"{file_picker_window_title}//Frame/**/Button[*].text=='Create'")
+        dir_path_field = ui_test.find(
+            f"{file_picker_window_title}//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
+        )
+        file_name_field = ui_test.find(
+            f"{file_picker_window_title}//Frame/**/StringField[*].style_type_name_override=='Field'"
+        )
+
+        self.assertIsNotNone(create_button)
+        self.assertIsNotNone(dir_path_field)
+        self.assertIsNotNone(file_name_field)
+
+        dir_path = Path(self.temp_dir.name)
+        dir_name = str(dir_path.resolve())
+        file_name = "test.usda"
+
+        # It takes a while for the tree to update
+        await ui_test.human_delay(50)
+        await dir_path_field.input(dir_name, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(50)
+
+        await file_name_field.input(file_name, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay()
+
+        # Make sure we create the layer in the correct directory
+        self.assertEqual(dir_name + "/", dir_path_field.model._path)  # noqa PLW0212
+        self.assertEqual(file_name, file_name_field.model.get_value_as_string())
+
+        await create_button.click()
+
+        await ui_test.human_delay()
+
+        layer_path = dir_path / file_name
+        self.assertTrue(layer_path.exists())
+
+        await self.__destroy(_window, _wid)
+
+    async def test_layer_validation_import_layer(self):
+        # setup
+        _window, _wid = await self.__setup_widget("test_layer_validation_import_layer")
+
+        property_pane_items = ui_test.find_all(f"{_window.title}//Frame/**/ScrollingFrame[*]=='PropertiesPaneSection'")
+        await property_pane_items[1].click()
+        await ui_test.human_delay(50)
+
+        expansion_stack = ui_test.find(f"{_window.title}//Frame/**/HStack[*].identifier=='expansion_stack'")
+        await expansion_stack.click()
+        await ui_test.human_delay(50)
+
+        layer_items = ui_test.find_all(f"{_window.title}//Frame/**/ZStack[*].identifier=='layer_item_root'")
+        await layer_items[1].click()
+        await ui_test.human_delay(50)
+
+        import_layer_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='ImportLayer'")
+        await import_layer_button.click()
+        await ui_test.human_delay(50)
+
+        # The create new file window should now be opened
+        file_picker_window_title = "Select an existing layer file"
+        select_button = ui_test.find(f"{file_picker_window_title}//Frame/**/Button[*].text=='Select'")
+        dir_path_field = ui_test.find(
+            f"{file_picker_window_title}//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
+        )
+        file_name_field = ui_test.find(
+            f"{file_picker_window_title}//Frame/**/StringField[*].style_type_name_override=='Field'"
+        )
+
+        self.assertIsNotNone(select_button)
+        self.assertIsNotNone(dir_path_field)
+        self.assertIsNotNone(file_name_field)
+
+        dir_path = Path(self.temp_dir.name)
+        dir_name = str(dir_path.resolve())
+        file_name = "test.usda"
+        layer_path = dir_path / file_name
+        layer_path.touch()
+        layer_path.write_text("#usda 1.0")
+
+        # It takes a while for the tree to update
+        await ui_test.human_delay(50)
+        await dir_path_field.input(dir_name, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(50)
+
+        await file_name_field.input(file_name, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay()
+
+        await select_button.click()
+        await ui_test.human_delay(50)
+
+        layer_items = ui_test.find_all(f"{_window.title}//Frame/**/ZStack[*].identifier=='layer_item_root'")
+        self.assertEqual(len(layer_items), 4)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_layer_validation_import_invalid_layer(self):
+        # setup
+        _window, _wid = await self.__setup_widget("test_layer_validation_import_layer")
+
+        property_pane_items = ui_test.find_all(f"{_window.title}//Frame/**/ScrollingFrame[*]=='PropertiesPaneSection'")
+        await property_pane_items[1].click()
+        await ui_test.human_delay(50)
+
+        expansion_stack = ui_test.find(f"{_window.title}//Frame/**/HStack[*].identifier=='expansion_stack'")
+        await expansion_stack.click()
+        await ui_test.human_delay(50)
+
+        layer_items = ui_test.find_all(f"{_window.title}//Frame/**/ZStack[*].identifier=='layer_item_root'")
+        await layer_items[1].click()
+        await ui_test.human_delay(50)
+
+        import_layer_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='ImportLayer'")
+        await import_layer_button.click()
+        await ui_test.human_delay(50)
+
+        # The create new file window should now be opened
+        file_picker_window_title = "Select an existing layer file"
+        select_button = ui_test.find(f"{file_picker_window_title}//Frame/**/Button[*].text=='Select'")
+        dir_path_field = ui_test.find(
+            f"{file_picker_window_title}//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
+        )
+        file_name_field = ui_test.find(
+            f"{file_picker_window_title}//Frame/**/StringField[*].style_type_name_override=='Field'"
+        )
+
+        self.assertIsNotNone(select_button)
+        self.assertIsNotNone(dir_path_field)
+        self.assertIsNotNone(file_name_field)
+
+        dir_path = Path(self.temp_dir.name)
+        dir_name = str(dir_path.resolve())
+        file_name = "test.usda"
+        layer_path = dir_path / file_name
+        layer_path.touch()
+
+        # It takes a while for the tree to update
+        await ui_test.human_delay(50)
+        await dir_path_field.input(dir_name, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(50)
+
+        await file_name_field.input(file_name, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay()
+
+        await select_button.click()
+        await ui_test.human_delay(50)
+
+        buttons = []
+        for other_window in ui.Workspace.get_windows():
+            button = ui_test.find(f"{other_window.title}//Frame/**/Button[*].text=='Okay'")
+            if button:
+                buttons.append(button)
+
+        # Making sure that we are hitting a message dialog
+        self.assertEqual(len(buttons), 1)
+        await buttons[0].click()
+        await ui_test.human_delay(3)
+
+        file_browser = ui_test.find(file_picker_window_title)
+        file_browser.widget.destroy()
 
         await self.__destroy(_window, _wid)
