@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add Data Migration documentation
 - Adding tests for Remix Categories
 - Adding tests for layer validation
+- REMIX-3402: Added skeleton and example implementation for the Stage Manager
 
 ### Changed
 - REMIX-3401: Changed all usages of factories to use the Centralized Generic factory

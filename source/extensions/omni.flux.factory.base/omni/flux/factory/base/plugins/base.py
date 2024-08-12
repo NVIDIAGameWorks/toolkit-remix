@@ -19,7 +19,8 @@ import abc
 
 
 class PluginBase(abc.ABC):
+    @classmethod
     @property
     @abc.abstractmethod
-    def name(self) -> str:
+    def name(cls) -> str:
         pass

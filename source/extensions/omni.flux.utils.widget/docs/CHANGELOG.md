@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.0]
+### Changed
+- Changed the `TreeModelBase` to be generic
+
 ## [1.16.1] - 2024-07-19
 ### Fixed
 - Adding a trailing slash to end of dirname when double-clicking on file in dialog

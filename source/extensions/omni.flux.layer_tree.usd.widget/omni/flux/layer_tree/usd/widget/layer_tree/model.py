@@ -35,7 +35,7 @@ from omni.kit import commands, undo
 from .item_model import ItemBase, LayerItem
 
 
-class LayerModel(_TreeModelBase):
+class LayerModel(_TreeModelBase[ItemBase]):
     """
     The model's implementation allows the addition of individual items but these actions should be reserved for
     temporary items (such as a TemporaryLayerItem). Permanent additions/removals should be done through the
