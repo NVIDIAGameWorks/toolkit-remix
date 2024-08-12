@@ -1,0 +1,43 @@
+[package]
+title = "Flux Stage Manager App"
+
+# That makes it browsable in UI with "experience" filter
+keywords = ["app"]
+
+[dependencies]
+"omni.flux.stage_manager.core" = {}
+
+[settings.app.window]
+title = "Flux Stage Manager App"
+
+[settings]
+# Basic Kit App
+################################
+app.versionFile = "${app}/../../../VERSION"
+app.fastShutdown = true
+
+# Register extension folder from this repo in kit
+[settings.app.exts]
+folders.'++' = ["${app}/../../../exts", "${app}/../../../extscache", "${app}/../exts", "${app}/../extscache", "${kit}/../exts", "${kit}/../extscache"]
+
+[[test]]
+args = [
+	"--/app/window/width=1280",
+    "--/app/window/height=720",
+]
+
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Kit SDK Version: 106.0.0+release.118399.fcefe91f.gl
+
+# Version lock for all dependencies:
+[settings.app.exts]
+enabled = [
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################

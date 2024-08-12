@@ -1,0 +1,42 @@
+[package]
+# Semantic Versionning is used: https://semver.org/
+version = "1.0.0"
+
+# Lists people or organizations that are considered the "authors" of the package.
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+
+# The title and description fields are primarly for displaying extension info in UI
+description = "A repository of column plugins for the stage manager"
+title = "Flux Stage Manager Column Plugins"
+
+# Path (relative to the root) or content of readme markdown file for UI.
+readme = "docs/README.md"
+
+# One of categories for UI.
+category = "internal"
+
+# Keywords for the extension
+keywords = ["kit", "flux", "stage", "manager", "plugin", "column"]
+
+# Location of change log file in target (final) folder of extension, relative to the root.
+# More info on writing changelog: https://keepachangelog.com/en/1.0.0/
+changelog = "docs/CHANGELOG.md"
+
+# Preview image and icon. Folder named "data" automatically goes in git lfs (see .gitattributes file).
+# Preview image is shown in "Overview" of Extensions window. Screenshot of an extension might be a good preview image.
+preview_image = "data/images/preview.png"
+
+# Icon is shown in Extensions window, it is recommended to be square, of size 256x256.
+icon = "data/images/icon.png"
+
+[dependencies]
+"omni.flux.stage_manager.factory" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "omni.flux.stage_manager.plugin.column"
+
+[[test]]
+dependencies = [
+    "omni.flux.tests.dependencies",
+]

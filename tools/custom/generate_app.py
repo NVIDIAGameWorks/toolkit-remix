@@ -14,6 +14,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+import argparse
 import carb.tokens
 import omni.kit.app
 import traceback
@@ -28,27 +29,39 @@ class _SafeDict(dict):
         return '{' + key + '}'
 
 
-def go():
+def go(ext_name: str, app_name: str):
     """
-    This function will grab the Lightspeed Mass Ingestion shortcut and format it to link the Flux Mass Core CLI
+    This function will grab the Stage Manager shortcut and format it to link the Stage Manager Core CLI
     """
     try:
-        ext_id = omni.kit.app.get_app().get_extension_manager().get_enabled_extension_id("omni.flux.service.documentation")
+        ext_id = omni.kit.app.get_app().get_extension_manager().get_enabled_extension_id(ext_name)
+        if ext_id is None:
+            raise RuntimeError(f"Could not find the extension: {ext_name}")
+
         ext_root = Path(omni.kit.app.get_app().get_extension_manager().get_extension_path(ext_id))
-        shell_ext = carb.tokens.get_tokens_interface().resolve("${shell_ext}")
         apps = Path(carb.tokens.get_tokens_interface().resolve("${app}"))
-        file_name = f"omni.flux.app.service.documentation.cli{shell_ext}"
+
+        shell_ext = carb.tokens.get_tokens_interface().resolve("${shell_ext}")
+        file_name = Path(app_name)
+        if file_name.suffix.lower() in [".bat", ".sh"]:
+            # Make sure the app has the right extension
+            file_name = file_name.with_suffix(shell_ext)
+        else:
+            # Add the right extension
+            file_name = f"{file_name}{shell_ext}"
+
         file_path = apps.parent.joinpath(file_name)
-        relative_path_cli = os.path.relpath(ext_root, file_path.parent)
         if not file_path.exists():
-            raise FileNotFoundError(f"Could not find {file_name} to generate the Service Documentation Generation CLI")
+            raise FileNotFoundError(f"Could not find the file: {file_name}")
+
+        relative_path_cli = os.path.relpath(ext_root, file_path.parent)
 
         with open(file_path, "r", encoding="utf8") as inp:
             new_file_lines = []
             for line in inp:
                 line = line.format_map(
                     _SafeDict(
-                        omni_flux_service_documentation=relative_path_cli
+                        extension_path=relative_path_cli,
                     )
                 )
                 new_file_lines.append(line)
@@ -58,10 +71,19 @@ def go():
 
         st = os.stat(file_path)
         os.chmod(file_path, st.st_mode | stat.S_IEXEC)
-    except Exception:
+    except Exception:  # noqa
         carb.log_error(f"Traceback:\n{traceback.format_exc()}")
         omni.kit.app.get_app().post_quit(1)
 
 
 if __name__ == "__main__":
-    go()
+    parser = argparse.ArgumentParser(
+        description="Application Generator Script",
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    parser.add_argument("-id", "--extension-id", type=str, help="The ID for the extension to generate the application for", required=True)
+    parser.add_argument("-n", "--app-name", type=str, help="The name of the app to generate", required=True)
+
+    args = parser.parse_args()
+
+    go(args.extension_id, args.app_name)

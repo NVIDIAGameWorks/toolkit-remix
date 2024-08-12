@@ -30,7 +30,16 @@ title = "Flux Service Documentation Generation App"
 # Basic Kit App
 ################################
 app.versionFile = "${app}/../../../VERSION"
+
+app.content.emptyStageOnStart = true
 app.fastShutdown = true
+app.file.ignoreUnsavedOnExit = true
+app.hangDetector.enabled = false
+app.quitAfter = 10
+app.settings.loadUserConfig = false
+app.settings.persistent = false
+crashreporter.skipOldDumpUpload = true
+structuredLog.enable = false
 
 # Register extension folder from this repo in kit
 [settings.app.exts]

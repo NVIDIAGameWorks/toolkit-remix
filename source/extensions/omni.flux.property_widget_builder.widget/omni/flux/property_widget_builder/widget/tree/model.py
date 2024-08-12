@@ -144,7 +144,7 @@ class ItemGroup(Item):
         return True
 
 
-class Model(_TreeModelBase):
+class Model(_TreeModelBase[_TreeItemBase]):
     """Model for the treeview that will show a list of item(s)"""
 
     @property

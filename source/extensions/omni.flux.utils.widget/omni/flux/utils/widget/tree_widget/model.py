@@ -16,16 +16,17 @@
 """
 
 import abc
-from typing import TYPE_CHECKING, Iterable
+from typing import Generic, Iterable, TypeVar
 
 from omni import ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
-if TYPE_CHECKING:
-    from .item import TreeItemBase as _TreeItemBase
+from .item import TreeItemBase as _TreeItemBase
+
+T = TypeVar("T", bound=_TreeItemBase)
 
 
-class TreeModelBase(ui.AbstractItemModel):
+class TreeModelBase(ui.AbstractItemModel, Generic[T]):
     def __init__(self):
         """
         A base Model class to be overridden and used with the TreeWidget.
@@ -35,19 +36,17 @@ class TreeModelBase(ui.AbstractItemModel):
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
 
-        self._items: list["_TreeItemBase"] = []
+        self._items: list[T] = []
 
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
         return {"_items": None}
 
-    def can_item_have_children(self, item: "_TreeItemBase") -> bool:
+    def can_item_have_children(self, item: T) -> bool:
         return item.can_have_children
 
-    def iter_items_children(
-        self, items: Iterable["_TreeItemBase"] | None = None, recursive=True
-    ) -> Iterable["_TreeItemBase"]:
+    def iter_items_children(self, items: Iterable[T] | None = None, recursive=True) -> Iterable[T]:
         """
         Iterate through a collection of items' children
 
