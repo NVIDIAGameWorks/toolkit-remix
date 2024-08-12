@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3401: Fixed hot-reload by allowing reuse of validators
 - REMIX-3058: Fixed material file path tooltips and copy menus
 - Fixed changelog checker with type casting to support semantic versioning
+- Corrected documentation typo
 
 ### Removed
 
