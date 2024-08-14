@@ -18,6 +18,7 @@
 from functools import partial
 from typing import Callable
 
+import omni.ui
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
@@ -45,6 +46,7 @@ class Setup:
             "_sub_import_replacement_layer": None,
             "_sub_open_workfile": None,
             "_layer_manager": None,
+            "_previous_root_layer_identifier": None,
             "_sub_menu_workfile_save": None,
             "_sub_menu_workfile_save_as": None,
             "_sub_menu_workfile_undo": None,
@@ -63,6 +65,7 @@ class Setup:
         self._context_name = _TrexContexts.STAGE_CRAFT.value
         self._context = _trex_contexts_instance().get_usd_context(_TrexContexts.STAGE_CRAFT)
         self._layer_manager = _LayerManagerCore(context_name=_TrexContexts.STAGE_CRAFT.value)
+        self._previous_root_layer_identifier = None
         self._layout_instance = _get_layout_instance()
         self._menu_workfile_instance = _get_menu_workfile_instance()
         self._stage_core_setup = _StageCoreSetup(self._context_name)
@@ -92,12 +95,16 @@ class Setup:
         self._sub_key_save_as = hotkey_manager.subscribe_hotkey_event(_TrexHotkeyEvent.CTRL_SHIFT_S, self._on_save_as)
         self._sub_key_unselect_all = hotkey_manager.subscribe_hotkey_event(_TrexHotkeyEvent.ESC, self._on_unselect_all)
 
+        self._sub_menu_workfile_show = self._menu_workfile_instance.subscribe_show_menu(self._on_open_menu)
         self._sub_menu_workfile_save = self._menu_workfile_instance.subscribe_save(self._on_save)
         self._sub_menu_workfile_save_as = self._menu_workfile_instance.subscribe_save_as(self._on_save_as)
         self._sub_menu_workfile_undo = self._menu_workfile_instance.subscribe_undo(self._on_undo)
         self._sub_menu_workfile_redo = self._menu_workfile_instance.subscribe_redo(self._on_redo)
         self._sub_menu_workfile_new_workfile = self._menu_workfile_instance.subscribe_create_new_workfile(
             self._on_new_workfile
+        )
+        self._sub_menu_workfile_unload_stage = self._menu_workfile_instance.subscribe_reload_last_workfile(
+            self._on_reload_last_workfile
         )
 
     def _on_import_capture_layer(self, path: str):
@@ -157,8 +164,22 @@ class Setup:
 
         self.prompt_if_unsaved_project(callback, "closing app")
 
+    def _on_open_menu(self, open_prev_stage_menu_item: omni.ui.MenuItem):
+        # If there is no previous root layer identifier, disable the respective menu item from trex.menu.workfile
+        if open_prev_stage_menu_item:
+            open_prev_stage_menu_item.enabled = bool(self._previous_root_layer_identifier)
+
     def _on_open_workfile(self, path):
-        self.prompt_if_unsaved_project(lambda: self._layer_manager.open_stage(path), "changing project")
+        self.prompt_if_unsaved_project(lambda: self.__open_stage_and_save_previous_identifier(path), "changing project")
+
+    def _on_reload_last_workfile(self):
+        self.prompt_if_unsaved_project(
+            lambda: self.__open_stage_and_save_previous_identifier(self._previous_root_layer_identifier),
+            "reloading the previous stage",
+        )
+
+    def __open_stage_and_save_previous_identifier(self, path):
+        self._previous_root_layer_identifier = self._layer_manager.open_stage(path)
 
     def _on_save_as(self, on_save_done: Callable[[bool, str], None] = None):
         self._stage_core_setup.save_as(on_save_done=on_save_done)
@@ -176,7 +197,10 @@ class Setup:
         self._stage_core_setup.redo()
 
     def _on_new_workfile(self):
-        self._layer_manager.create_new_stage()
+        self.prompt_if_unsaved_project(self.__create_stage_and_save_previous_identifier, "unloading the current stage")
+
+    def __create_stage_and_save_previous_identifier(self):
+        self._previous_root_layer_identifier = self._layer_manager.create_new_stage()
 
     def destroy(self):
         _reset_default_attrs(self)

@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0] - 2024-08-13
+### Added
+- Added `_previous_root_layer_identifier` and `_on_reload_last_workfile()` for reloading previous stages
+- Added `__on_open_menu()` for toggling menu UI grabbed from `lightspeed.trex.menu.workfile`
+
+### Changed
+- Configured the existing save prompt to open if the user tries to unload a stage with unsaved changes
+
 ## [1.1.5]
 ### Fixed
 - Removed test dependency on lightspeed.event.shutdown

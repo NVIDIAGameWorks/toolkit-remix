@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.2]
+### Changed
+- Modified `open_stage()` and `create_new_stage()` to return non-anonymous previous root layer identifiers
+
 ## [2.2.1]
 ### Fixed
 - Fixed hot-reload by allowing reuse of the validators

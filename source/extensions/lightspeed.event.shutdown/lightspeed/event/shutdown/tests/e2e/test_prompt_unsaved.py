@@ -129,6 +129,22 @@ class TrexTestPromptIfUnsavedStage(AsyncTestCase):
 
         prompt.assert_called_once()
 
+    async def test_unload_with_unsaved_stage(self):
+        # Open a project and flag that there is a pending edit
+        self._context.set_pending_edit(True)
+
+        with (
+            patch.object(ISettings, "get", side_effect=self._mock_get_carb_setting),
+            # This simulates showing prompt and clicking don't save
+            # Note: keep this in sync with `lightspeed.trex.stagecraft.control.Setup._prompt_if_unsaved_project()`
+            patch("lightspeed.trex.control.stagecraft.setup._TrexMessageDialog", mock_prompt("middle_2")) as prompt,
+            patch.object(LayerManagerCore, "create_new_stage"),
+        ):
+            # unloading the current stage should ask if we want to save our work
+            _get_control_stagecraft()._on_new_workfile()  # noqa PLW0212 protected-access
+
+        prompt.assert_called_once()
+
     async def test_no_prompt_if_no_pending_edit(self):
         self._context.set_pending_edit(False)
 
