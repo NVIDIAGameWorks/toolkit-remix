@@ -835,13 +835,27 @@ class LayerManagerCore:
                 hashes[match.group(3)] = prim.path
         return hashes
 
-    def open_stage(self, layer_identifier: str, callback: Callable[[], None] = None):
+    def open_stage(self, layer_identifier: str, callback: Callable[[], None] = None) -> str:
+        # Obtain the previous stage root layer identifier if not anonymous
+        prev_stage_root_layer_identifier = self.__context.get_stage().GetRootLayer().identifier
+        if "anon" in prev_stage_root_layer_identifier:
+            prev_stage_root_layer_identifier = None
+
         omni.kit.window.file.open_stage(layer_identifier)
         if callback:
             callback()
 
-    def create_new_stage(self):
+        return prev_stage_root_layer_identifier
+
+    def create_new_stage(self) -> str:
+        # Obtain the previous stage root layer identifier if not anonymous
+        prev_stage_root_layer_identifier = self.__context.get_stage().GetRootLayer().identifier
+        if "anon" in prev_stage_root_layer_identifier:
+            prev_stage_root_layer_identifier = None
+
         self.__context.new_stage_with_callback(self._on_new_stage_created)
+
+        return prev_stage_root_layer_identifier
 
     def _on_new_stage_created(self, result: bool, error: str):
         asyncio.ensure_future(self._deferred_startup(self.__context))

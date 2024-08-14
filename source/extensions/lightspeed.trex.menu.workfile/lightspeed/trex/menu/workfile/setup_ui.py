@@ -63,12 +63,21 @@ class SetupUI:
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
         self._delegate = _Delegate()
+        self._reload_stage_menu_item = None
+        self.__on_show_menu = _Event()
         self.__on_save = _Event()
         self.__on_save_as = _Event()
         self.__on_new_workfile = _Event()
+        self.__on_reload_last_workfile = _Event()
         self.__undo = _Event()
         self.__redo = _Event()
         self.__create_ui()
+
+    def subscribe_show_menu(self, function):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_show_menu, function)
 
     def _save(self):
         """Call the event object that has the list of functions"""
@@ -95,6 +104,12 @@ class SetupUI:
 
     def subscribe_create_new_workfile(self, function):
         return _EventSubscription(self.__on_new_workfile, function)
+
+    def _reload_last_workfile(self):
+        self.__on_reload_last_workfile()
+
+    def subscribe_reload_last_workfile(self, function):
+        return _EventSubscription(self.__on_reload_last_workfile, function)
 
     def _undo(self):
         """Call the event object that has the list of functions"""
@@ -168,6 +183,13 @@ class SetupUI:
                 triggered_fn=self._create_new_workfile,
                 tooltip="Create a new stage in the current session.",
             )
+            self._reload_stage_menu_item = ui.MenuItem(
+                "Reload Last Stage",
+                identifier="reload_stage",
+                style_type_name_override="MenuBurgerItem",
+                triggered_fn=self._reload_last_workfile,
+                tooltip="Reload the previous stage in the current session.",
+            )
             create_separator()
             ui.MenuItem(
                 "Save",
@@ -222,6 +244,7 @@ class SetupUI:
     def show_at(self, x, y):
         if self.menu.shown:
             return
+        self.__on_show_menu(self._reload_stage_menu_item)
         self.menu.show_at(x, y)
 
     def destroy(self):

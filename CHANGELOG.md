@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adding tests for Remix Categories
 - Adding tests for layer validation
 - REMIX-3402: Added skeleton and example implementation for the Stage Manager
+- REMIX-3051: Configured the save prompt to open during stage unloads with unsaved changes
+- REMIX-3052: Added a new "reload last stage" workfile menu item
 
 ### Changed
 - REMIX-3401: Changed all usages of factories to use the Centralized Generic factory

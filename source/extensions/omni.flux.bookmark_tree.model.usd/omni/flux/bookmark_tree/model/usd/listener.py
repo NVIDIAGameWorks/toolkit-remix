@@ -72,33 +72,34 @@ class USDListener:
 
     def _on_usd_changed(self, notice, stage):
         for model in self._models:
-            model_base_path = model.get_bookmarks_base_path()
-            should_refresh = False
-            paths = notice.GetResyncedPaths() + notice.GetChangedInfoOnlyPaths()
-            for path in paths:
-                # If a bookmark collection was created or deleted with no item inside
-                if str(path) == model_base_path:
+            if str(model.stage) != "invalid null stage":
+                model_base_path = model.get_bookmarks_base_path()
+                should_refresh = False
+                paths = notice.GetResyncedPaths() + notice.GetChangedInfoOnlyPaths()
+                for path in paths:
+                    # If a bookmark collection was created or deleted with no item inside
+                    if str(path) == model_base_path:
+                        should_refresh = True
+                        break
+
+                    # Only care about paths where the path contains the bookmark base
+                    if model_base_path not in str(path):
+                        continue
+                    # Only allow properties
+                    if not path.IsPropertyPath():
+                        continue
+                    # Make sure it's a collection property
+                    name = path.name
+                    if len(str(name)) < 11 or str(name)[:11] != "collection:":
+                        continue
+                    # Only track "includes" for item inclusions/exclusions
+                    if len(str(name)) < 9 or str(name)[-9:] != ":includes":
+                        continue
+
                     should_refresh = True
                     break
-
-                # Only care about paths where the path contains the bookmark base
-                if model_base_path not in str(path):
-                    continue
-                # Only allow properties
-                if not path.IsPropertyPath():
-                    continue
-                # Make sure it's a collection property
-                name = path.name
-                if len(str(name)) < 11 or str(name)[:11] != "collection:":
-                    continue
-                # Only track "includes" for item inclusions/exclusions
-                if len(str(name)) < 9 or str(name)[-9:] != ":includes":
-                    continue
-
-                should_refresh = True
-                break
-            if should_refresh:
-                model.refresh()
+                if should_refresh:
+                    model.refresh()
 
     def destroy(self):
         for listener in self._listeners.values():

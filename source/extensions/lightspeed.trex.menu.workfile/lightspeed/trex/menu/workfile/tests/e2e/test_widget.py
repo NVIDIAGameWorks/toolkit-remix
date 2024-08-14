@@ -129,3 +129,15 @@ class TestWorkFileBurgerMenu(omni.kit.test.AsyncTestCase):
             async with AsyncTestMenu() as menu:
                 await menu.click("logs")
         self.assertEqual(1, mock_open.call_count)
+
+    async def test_unload_stage(self):
+        with patch.object(SetupUI, "_create_new_workfile") as mock_open:
+            async with AsyncTestMenu() as menu:
+                await menu.click("empty_stage")
+            self.assertEqual(1, mock_open.call_count)
+
+    async def test_reload_stage(self):
+        with patch.object(SetupUI, "_reload_last_workfile") as mock_open:
+            async with AsyncTestMenu() as menu:
+                await menu.click("reload_stage")
+            self.assertEqual(1, mock_open.call_count)
