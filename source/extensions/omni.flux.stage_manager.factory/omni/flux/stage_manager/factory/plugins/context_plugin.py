@@ -17,6 +17,8 @@
 
 import abc
 
+from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
+
 from .base import StageManagerPluginBase as _StageManagerPluginBase
 
 
@@ -29,6 +31,14 @@ class StageManagerContextPlugin(_StageManagerPluginBase, abc.ABC):
 
     @classmethod
     @property
+    def data_type(cls) -> _StageManagerDataTypes:
+        """
+        The data type that this plugin provides.
+        """
+        return _StageManagerDataTypes.GENERIC
+
+    @classmethod
+    @property
     @abc.abstractmethod
     def display_name(cls) -> str:
         """
@@ -37,7 +47,7 @@ class StageManagerContextPlugin(_StageManagerPluginBase, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def setup(self):
+    def setup(self) -> list:
         """
         Set up the context for the other plugins to use
         """

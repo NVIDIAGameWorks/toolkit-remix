@@ -17,6 +17,8 @@
 
 from typing import TYPE_CHECKING
 
+from omni import ui
+
 from .base import StageManagerUSDWidgetPlugin as _StageManagerUSDWidgetPlugin
 
 if TYPE_CHECKING:
@@ -24,16 +26,12 @@ if TYPE_CHECKING:
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 
 
-class PrimTreePlugin(_StageManagerUSDWidgetPlugin):
+class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin):
     display_name: str = "Prims"
     tooltip: str = ""
 
-    def build_ui(
-        self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", column_id: int, level: int, expanded: bool
-    ):
-        # TODO Implement this method
-        pass
+    def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
+        ui.Label(item.display_name, tooltip=item.tooltip)
 
-    def build_result_ui(self, model: "_StageManagerTreeModel", column_id: int):
-        # TODO Implement this method
-        pass
+    def build_result_ui(self, model: "_StageManagerTreeModel"):
+        ui.Label(f"{len(list(model.iter_items_children()))} items available")

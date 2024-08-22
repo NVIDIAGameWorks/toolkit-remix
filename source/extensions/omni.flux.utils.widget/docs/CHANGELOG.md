@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.1]
+### Changed
+- Improved branch building function for `TreeDelegateBase`
+
 ## [1.17.0]
 ### Changed
 - Changed the `TreeModelBase` to be generic

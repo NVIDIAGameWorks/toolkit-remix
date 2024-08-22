@@ -17,8 +17,12 @@
 
 import abc
 
+from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
 from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugin as _StageManagerInteractionPlugin
 
 
 class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
-    pass
+    @classmethod
+    @property
+    def compatible_data_type(cls):
+        return _StageManagerDataTypes.USD

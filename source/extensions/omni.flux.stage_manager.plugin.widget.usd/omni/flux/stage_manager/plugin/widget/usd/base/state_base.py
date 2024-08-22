@@ -15,23 +15,17 @@
 * limitations under the License.
 """
 
-import omni.usd
-from pydantic import Field, validator
+import abc
 
-from .base import StageManagerUSDContextPlugin as _StageManagerUSDContextPlugin
+from omni import ui
+
+from .usd_base import StageManagerUSDWidgetPlugin as _StageManagerUSDWidgetPlugin
 
 
-class CurrentProjectPlugin(_StageManagerUSDContextPlugin):
-    context_name: str = Field(...)
+class StageManagerStateWidgetPlugin(_StageManagerUSDWidgetPlugin, abc.ABC):
+    display_name: str = ""
+    tooltip: str = ""  # The tooltip will be dynamically built on the state icon
 
-    display_name: str = "Current Project"
-
-    @validator("context_name", allow_reuse=True)
-    def context_name_is_valid(cls, v):  # noqa N805
-        if not omni.usd.get_context(v):
-            raise ValueError("The context does not exist")
-        return v
-
-    def setup(self):
-        #  TODO Implement the actual context setup
-        pass
+    @property
+    def _icon_size(self) -> ui.Length:
+        return ui.Pixel(20)

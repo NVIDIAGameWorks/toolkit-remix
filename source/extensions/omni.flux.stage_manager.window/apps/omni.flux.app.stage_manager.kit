@@ -1,0 +1,77 @@
+[package]
+title = "Flux Stage Manager App"
+
+# That makes it browsable in UI with "experience" filter
+keywords = ["app"]
+
+[dependencies]
+"omni.kit.uiapp" = {}
+"omni.flux.stage_manager.window" = {}
+
+# Plugins
+"omni.flux.stage_manager.plugin.column" = {}
+"omni.flux.stage_manager.plugin.context.usd" = {}
+"omni.flux.stage_manager.plugin.filter.usd" = {}
+"omni.flux.stage_manager.plugin.interaction.usd" = {}
+"omni.flux.stage_manager.plugin.tree.usd" = {}
+"omni.flux.stage_manager.plugin.widget.usd" = {}
+
+# Windows only extensions. For all of them set exact=true to not be included into generated version lock.
+# That will break linux otherwise, as version lock is platform agnostic currently.
+[dependencies."filter:platform"."windows-x86_64"]
+"omni.kit.window.modifier.titlebar" = { version = "105.2.16", exact = true }
+
+[settings.app.window]
+title = "Flux Stage Manager App"
+
+width = 700
+height = 400
+x = -1
+y = -1
+
+[settings]
+# Basic Kit App
+################################
+app.versionFile = "${app}/../../../VERSION"
+app.fastShutdown = true
+app.menu.legacy_mode = false
+app.menu.compatibility_mode=false
+
+# Register extension folder from this repo in kit
+[settings.app.exts]
+folders.'++' = ["${app}/../../../exts", "${app}/../../../extscache", "${app}/../exts", "${app}/../extscache", "${kit}/../exts", "${kit}/../extscache"]
+
+[settings.exts."omni.kit.window.modifier.titlebar"]
+titleFormatString = "  Flux Stage Manager {separator} {file, board=true}"
+showFileFullPath = true
+icon.size = 256
+defaultFont.name = "Arial"
+defaultFont.size = 16
+defaultFont.color = 0xD0D0D0
+separator.color = 0x00B976
+separator.width = 1
+windowBorder.color = 0x0F0F0F
+windowBorder.width = 2
+colors.caption = 0x0F0F0F
+colors.client = 0x0F0F0F
+
+[settings.exts."omni.flux.stage_manager.core"]
+schema = "${omni.flux.stage_manager.window}/data/tests/json/test_schema.json"
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Kit SDK Version: 106.0.0+release.118399.fcefe91f.gl
+
+# Exact Version dependencies:
+# 	omni.kit.window.modifier.titlebar-105.2.16
+
+# Version lock for all dependencies:
+[settings.app.exts]
+enabled = [
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################

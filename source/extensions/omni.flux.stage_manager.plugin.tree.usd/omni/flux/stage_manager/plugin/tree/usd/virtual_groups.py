@@ -15,23 +15,34 @@
 * limitations under the License.
 """
 
+from typing import TYPE_CHECKING
+
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeDelegate as _StageManagerTreeDelegate
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 
 from .base import StageManagerUSDTreePlugin as _StageManagerUSDTreePlugin
 
+if TYPE_CHECKING:
+    from pxr import Usd
+
 
 class VirtualGroupsItem(_StageManagerTreeItem):
     @property
-    def default_attr(self) -> dict[str, None]:
-        return super().default_attr
+    def data(self) -> "Usd.Prim":
+        return super().data
 
 
 class VirtualGroupsModel(_StageManagerTreeModel):
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
+
+    def refresh(self):
+        self._items = [
+            VirtualGroupsItem(str(prim.GetPath().name), str(prim.GetPath()), data=prim) for prim in self.context_items
+        ]
+        super().refresh()
 
 
 class VirtualGroupsDelegate(_StageManagerTreeDelegate):
@@ -40,6 +51,16 @@ class VirtualGroupsDelegate(_StageManagerTreeDelegate):
         return super().default_attr
 
 
-class VirtualGroupsPlugin(_StageManagerUSDTreePlugin):
-    model: type[VirtualGroupsModel] = VirtualGroupsModel
-    delegate: type[VirtualGroupsDelegate] = VirtualGroupsDelegate
+class VirtualGroupsTreePlugin(_StageManagerUSDTreePlugin):
+    """
+    A flat list of prims that can be grouped using virtual groups
+    """
+
+    model: VirtualGroupsModel = None
+    delegate: VirtualGroupsDelegate = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.model = VirtualGroupsModel()
+        self.delegate = VirtualGroupsDelegate()

@@ -20,12 +20,13 @@ import carb.settings
 import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
-from .prim_tree import PrimTreePlugin as _PrimTreePlugin
+from .prim_tree import PrimTreeWidgetPlugin as _PrimTreeWidgetPlugin
+from .state_is_visible import IsVisibleStateWidgetPlugin as _IsVisibleStateWidgetPlugin
 
 
 class StageManagerUSDWidgetPluginsExtension(omni.ext.IExt):
 
-    _PLUGINS = [_PrimTreePlugin]
+    _PLUGINS = [_PrimTreeWidgetPlugin, _IsVisibleStateWidgetPlugin]
 
     def on_startup(self, _):
         carb.log_info("[omni.flux.stage_manager.plugin.widget.usd] Startup")

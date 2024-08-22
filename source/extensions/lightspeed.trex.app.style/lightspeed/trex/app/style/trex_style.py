@@ -841,6 +841,8 @@ current_dict.update(
             "border_width": 1.5,
         },
         "Window": {"background_color": 0xFF0F0F0F},
+        "Rectangle::TransparentBackground": {"background_color": 0x0},
+        "Rectangle::TabBackground": {"background_color": _GREY_42},
     }
 )
 style.default = current_dict

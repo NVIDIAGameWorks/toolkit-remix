@@ -16,11 +16,11 @@
 """
 
 import abc
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from pydantic import PrivateAttr
+from pydantic import Field, PrivateAttr
 
 from .base import StageManagerUIPluginBase as _StageManagerUIPluginBase
 
@@ -30,15 +30,17 @@ class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
     A plugin that allows filtering a list of items based on parameters controlled within the plugin
     """
 
-    _on_items_changed: _Event = PrivateAttr()
+    display_order: int = Field(0, description="The order in which the filter should be displayed in the UI")
+
+    _on_filter_items_changed: _Event = PrivateAttr()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self._on_items_changed = _Event()
+        self._on_filter_items_changed = _Event()
 
     @abc.abstractmethod
-    def filter_items(self, items: list[Any]) -> list[Any]:
+    def filter_items(self, items: Iterable[Any]) -> list[Any]:
         """
         Args:
             items: The list of items to filter.
@@ -48,14 +50,14 @@ class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
         """
         pass
 
-    def subscribe_items_changed(self, callback: Callable[[], None]):
+    def subscribe_filter_items_changed(self, callback: Callable[[], None]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
-        return _EventSubscription(self._on_items_changed, callback)
+        return _EventSubscription(self._on_filter_items_changed, callback)
 
-    def _items_changed(self):
+    def _filter_items_changed(self):
         """
         Trigger the `on_items_changed` event.
         """
-        self._on_items_changed()
+        self._on_filter_items_changed()

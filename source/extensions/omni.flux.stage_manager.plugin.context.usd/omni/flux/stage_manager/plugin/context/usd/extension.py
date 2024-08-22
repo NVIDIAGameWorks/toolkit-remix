@@ -20,12 +20,13 @@ import carb.settings
 import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
-from .current_project import CurrentProjectPlugin as _CurrentProjectPlugin
+from .current_stage import CurrentStageContextPlugin as _CurrentStageContextPlugin
+from .usd_file import UsdFileContextPlugin as _UsdFileContextPlugin
 
 
 class StageManagerUSDContextPluginsExtension(omni.ext.IExt):
 
-    _PLUGINS = [_CurrentProjectPlugin]
+    _PLUGINS = [_CurrentStageContextPlugin, _UsdFileContextPlugin]
 
     def on_startup(self, _):
         carb.log_info("[omni.flux.stage_manager.plugin.context.usd] Startup")

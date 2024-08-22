@@ -1,0 +1,34 @@
+{
+    "context": {
+        "name": "UsdFileContextPlugin",
+        "file_path": "${omni.flux.stage_manager.window}/data/tests/usd/full_project.usda"
+    },
+    "interactions": [
+        {
+            "name": "AllPrimsInteractionPlugin",
+            "tree": { "name": "PrimGroupsTreePlugin" },
+            "filters": [ { "name": "SearchFilterPlugin" } ],
+            "columns": [
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Prims",
+                    "widgets": [
+                        { "name": "PrimTreeWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "State",
+                    "width": { "unit": "Pixel", "value": 100 },
+                    "widgets": [
+                        { "name": "IsVisibleStateWidgetPlugin" }
+                    ]
+                }
+            ],
+            "context_filters": [
+                { "name": "OmniPrimsFilterPlugin" },
+                { "name": "IgnorePrimsFilterPlugin", "ignore_prim_paths": ["/remix_settings"] }
+            ]
+        }
+    ]
+}
