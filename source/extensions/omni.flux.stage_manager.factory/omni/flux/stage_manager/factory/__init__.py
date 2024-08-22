@@ -15,7 +15,14 @@
 * limitations under the License.
 """
 
-__all__ = ["StageManagerFactoryExtension", "get_instance", "StageManagerPluginBase", "StageManagerUIPluginBase"]
+__all__ = [
+    "StageManagerDataTypes",
+    "StageManagerFactoryExtension",
+    "StageManagerPluginBase",
+    "StageManagerUIPluginBase",
+    "get_instance",
+]
 
+from .enums import StageManagerDataTypes
 from .extension import StageManagerFactoryExtension, get_instance
 from .plugins.base import StageManagerPluginBase, StageManagerUIPluginBase

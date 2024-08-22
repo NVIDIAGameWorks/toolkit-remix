@@ -22,9 +22,11 @@ __all__ = [
     "StageManagerInteractionPlugin",
     "StageManagerTreePlugin",
     "StageManagerWidgetPlugin",
+    "LengthUnit",
+    "ColumnWidth",
 ]
 
-from .column_plugin import StageManagerColumnPlugin
+from .column_plugin import ColumnWidth, LengthUnit, StageManagerColumnPlugin
 from .context_plugin import StageManagerContextPlugin
 from .filter_plugin import StageManagerFilterPlugin
 from .interaction_plugin import StageManagerInteractionPlugin

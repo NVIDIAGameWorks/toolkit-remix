@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3402: Added skeleton and example implementation for the Stage Manager
 - REMIX-3051: Configured the save prompt to open during stage unloads with unsaved changes
 - REMIX-3052: Added a new "reload last stage" workfile menu item
+- REMIX-3403: Setup Stage Manager Core & Schema
+- REMIX-3404: Added Stage Manager Widget
+- REMIX-3440: Implemented USD Tree Plugins
 
 ### Changed
 - REMIX-3401: Changed all usages of factories to use the Centralized Generic factory

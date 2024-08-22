@@ -26,12 +26,16 @@ if TYPE_CHECKING:
 
 
 class StageManagerWidgetPlugin(_StageManagerUIPluginBase, abc.ABC):
+    """
+    A plugin that provides a widget for the TreeView
+    """
+
     @abc.abstractmethod
     def build_ui(  # noqa PLW0221
-        self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", column_id: int, level: int, expanded: bool
+        self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool
     ):
         pass
 
     @abc.abstractmethod
-    def build_result_ui(self, model: "_StageManagerTreeModel", column_id: int):
+    def build_result_ui(self, model: "_StageManagerTreeModel"):
         pass

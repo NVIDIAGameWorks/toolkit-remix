@@ -311,7 +311,6 @@ post_build.commands = [
     # Generate a shortcut to run the Mass Ingestion CLI in LSS
     ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/lightspeed.app.trex.validation_cli_generator.kit", "--no-window", "--/app/extensions/excluded/0='omni.kit.splash' --/app/extensions/excluded/1='omni.kit.window.splash' --/app/settings/persistent=0 --/app/settings/loadUserConfig=0 --/structuredLog/enable=0 --/app/hangDetector/enabled=0 --/crashreporter/skipOldDumpUpload=1 --/app/content/emptyStageOnStart=1", "--/app/file/ignoreUnsavedOnExit=1", "--/app/fastShutdown=1", "--/app/quitAfter=10", "--exec", "${root}/tools/custom/generate_mass_cli.py"],
     ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/omni.flux.app.service.documentation_cli_generator.kit", "--no-window", "--exec", "${root}/tools/custom/generate_app.py -id omni.flux.service.documentation -n omni.flux.app.service.documentation.cli"],
-    ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/omni.flux.app.stage_manager_generator.kit", "--no-window", "--exec", "${root}/tools/custom/generate_app.py -id omni.flux.stage_manager.core -n omni.flux.app.stage_manager"],
 ]
 
 [repo_build.fetch.pip]
@@ -373,7 +372,7 @@ apps = [
     "${root}/source/extensions/lightspeed.trex.project_wizard.core/apps/lightspeed.app.trex.project_wizard_cli.kit",
     "${root}/source/extensions/omni.flux.asset_importer.core/apps/omni.flux.app.asset_importer_cli.kit",
     "${root}/source/extensions/omni.flux.service.documentation/apps/omni.flux.app.service.documentation_cli.kit",
-    "${root}/source/extensions/omni.flux.stage_manager.core/apps/omni.flux.app.stage_manager.kit",
+    "${root}/source/extensions/omni.flux.stage_manager.window/apps/omni.flux.app.stage_manager.kit",
     "${root}/source/extensions/omni.flux.validator.manager.core/apps/omni.flux.app.validator_cli.kit",
     "${root}/source/extensions/omni.flux.validator.manager.window/apps/omni.flux.app.validator.kit",
     "${root}/source/extensions/omni.flux.validator.mass.core/apps/omni.flux.app.validator.mass_cli.kit",

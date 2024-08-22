@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 class TreeDelegateBase(ui.AbstractItemDelegate):
 
-    DEFAULT_IMAGE_ICON_SIZE = 24
+    DEFAULT_IMAGE_ICON_SIZE = ui.Pixel(24)
 
     def __init__(self):
         """
@@ -82,12 +82,13 @@ class TreeDelegateBase(ui.AbstractItemDelegate):
         Create a branch widget that opens or closes the subtree. To define the build function, override `_build_branch`.
         """
         if column_id == 0:
-            with ui.HStack(width=16 * (level + 2), height=self.DEFAULT_IMAGE_ICON_SIZE):
+            with ui.HStack(width=ui.Pixel(16 * (level + 2)), height=self.DEFAULT_IMAGE_ICON_SIZE):
+                ui.Spacer()
                 if model.can_item_have_children(item):
-                    with ui.Frame(mouse_released_fn=lambda x, y, b, m: self._item_expanded(b, item, not expanded)):
+                    with ui.Frame(
+                        width=0, mouse_released_fn=lambda x, y, b, m: self._item_expanded(b, item, not expanded)
+                    ):
                         self._build_branch(model, item, column_id, level, expanded)
-                else:
-                    ui.Spacer(width=ui.Pixel(16))
 
     def build_header(self, column_id: int):
         """

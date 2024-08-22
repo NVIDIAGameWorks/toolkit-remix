@@ -19,7 +19,6 @@ from typing import TYPE_CHECKING
 
 from omni import ui
 from omni.flux.stage_manager.factory.plugins import StageManagerColumnPlugin as _StageManagerColumnPlugin
-from pydantic import Field
 
 if TYPE_CHECKING:
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
@@ -27,25 +26,18 @@ if TYPE_CHECKING:
 
 
 class HorizontalColumnPlugin(_StageManagerColumnPlugin):
-    display_name: str = Field(...)
+    _HORIZONTAL_PADDING: int = 8
 
-    @property
-    def tooltip(self) -> str:
-        return self.display_name
-
-    def build_ui(
-        self,
-        model: "_StageManagerTreeModel",
-        item: "_StageManagerTreeItem",
-        column_id: int,
-        level: int,
-        expanded: bool,
-    ):
-        with ui.HStack():
+    def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
+        with ui.HStack(spacing=ui.Pixel(self._HORIZONTAL_PADDING)):
+            ui.Spacer(width=0, height=0)  # Add horizontal padding
             for widget in self.widgets:
-                widget.build_ui(model, item, column_id, level, expanded)
+                widget.build_ui(model, item, level, expanded)
+            ui.Spacer(width=0, height=0)  # Add horizontal padding
 
-    def build_result_ui(self, model: "_StageManagerTreeModel", column_id: int):
-        with ui.HStack():
+    def build_result_ui(self, model: "_StageManagerTreeModel"):
+        with ui.HStack(spacing=ui.Pixel(self._HORIZONTAL_PADDING)):
+            ui.Spacer(width=0, height=0)  # Add horizontal padding
             for widget in self.widgets:
-                widget.build_result_ui(model, column_id)
+                widget.build_result_ui(model)
+            ui.Spacer(width=0, height=0)  # Add horizontal padding

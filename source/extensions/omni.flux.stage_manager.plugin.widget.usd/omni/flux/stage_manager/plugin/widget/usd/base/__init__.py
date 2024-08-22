@@ -15,4 +15,5 @@
 * limitations under the License.
 """
 
+from .state_base import StageManagerStateWidgetPlugin
 from .usd_base import StageManagerUSDWidgetPlugin

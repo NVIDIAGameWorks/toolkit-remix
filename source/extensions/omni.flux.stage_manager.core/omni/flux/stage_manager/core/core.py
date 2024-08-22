@@ -15,8 +15,13 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+import carb
+from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.common.path_utils import read_json_file as _read_json_file
 
 from .schema import StageManagerSchema as _StageManagerSchema
+
+_SCHEMA_PATH_SETTING = "/exts/omni.flux.stage_manager.core/schema"
 
 
 class StageManagerCore:
@@ -25,8 +30,35 @@ class StageManagerCore:
     The `StageManagerCore` relies on a `StageManagerSchema` to define its internal data structure.
     """
 
-    def test(self, schema_dict: dict):
-        print("*" * 96)
-        print("SchemaDict :", schema_dict)
-        print("Schema     :", _StageManagerSchema(**schema_dict))
-        print("*" * 96)
+    def __init__(self, schema_path: str | None = None):
+        for attr, value in self.default_attr.items():
+            setattr(self, attr, value)
+
+        schema_path = schema_path or carb.settings.get_settings().get(_SCHEMA_PATH_SETTING)
+        if not schema_path:
+            raise ValueError("Schema path not provided. Please configure it in settings or pass as argument.")
+
+        self._schema = self.setup(_read_json_file(schema_path))
+
+    @property
+    def default_attr(self) -> dict[str, None]:
+        return {"_schema": None}
+
+    @property
+    def schema(self) -> _StageManagerSchema:
+        return self._schema
+
+    def setup(self, schema_dict: dict) -> _StageManagerSchema:
+        schema = _StageManagerSchema(**schema_dict)
+        context_data = schema.context.setup()
+
+        for interaction in schema.interactions:
+            if not interaction.enabled:
+                continue
+            # Set the context data in the interaction plugins
+            interaction.set_context_items(context_data, schema.context.data_type)
+
+        return schema
+
+    def destroy(self):
+        _reset_default_attrs(self)

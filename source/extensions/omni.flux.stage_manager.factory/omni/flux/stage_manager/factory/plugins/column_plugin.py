@@ -16,10 +16,11 @@
 """
 
 import abc
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from omni import ui
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from .base import StageManagerUIPluginBase as _StageManagerUIPluginBase
 from .widget_plugin import StageManagerWidgetPlugin
@@ -29,19 +30,37 @@ if TYPE_CHECKING:
     from .tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 
 
+class LengthUnit(Enum):
+    FRACTION = "Fraction"
+    PERCENT = "Percent"
+    PIXEL = "Pixel"
+
+
+class ColumnWidth(BaseModel):
+    unit: LengthUnit = Field(..., description="The unit of the column width")
+    value: float = Field(..., description="The value of the column width")
+
+
 class StageManagerColumnPlugin(_StageManagerUIPluginBase, abc.ABC):
     """
     A plugin that allows the grouping of multiple widgets in a column
     """
 
-    widgets: list[StageManagerWidgetPlugin] = Field(...)
+    display_name: str = Field(..., description="The name to display in the column header")
+    tooltip: str = Field("", description="The tooltip to display when hovering over the column header")
+    widgets: list[StageManagerWidgetPlugin] = Field(..., description="Widgets to be displayed in the column")
 
-    def build_header(self, _):
-        ui.Label(self.display_name)
+    width: ColumnWidth = Field(ColumnWidth(unit=LengthUnit.FRACTION, value=1), description="Width of the column")
+
+    def build_header(self):
+        """
+        Build the UI for the given column header.
+        """
+        ui.Label(self.display_name, height=ui.Pixel(24), alignment=ui.Alignment.CENTER, tooltip=self.tooltip)
 
     @abc.abstractmethod
     def build_ui(  # noqa PLW0221
-        self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", column_id: int, level: int, expanded: bool
+        self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool
     ):
         """
         Build the UI for the given column. This function will be used within a delegate and should therefore only build
@@ -50,7 +69,7 @@ class StageManagerColumnPlugin(_StageManagerUIPluginBase, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def build_result_ui(self, model: "_StageManagerTreeModel", column_id: int):
+    def build_result_ui(self, model: "_StageManagerTreeModel"):
         """
         Build the result UI for the given column. The result UI is displayed at the bottom the TreeView widget. It
         should be used to display additional information about all the items in the column.

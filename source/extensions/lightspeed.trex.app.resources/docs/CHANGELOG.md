@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0]
+### Added
+- Added a default Stage Manager schema
+
 ## [1.5.2]
 ### Fixed
 - Fix ingested asset hash
