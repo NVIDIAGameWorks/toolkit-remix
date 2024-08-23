@@ -22,6 +22,9 @@ from typing import Any, Callable, List, Optional
 import carb
 import omni.appwindow
 from omni import kit, ui, usd
+from omni.flux.asset_importer.core import destroy_scanner_dialog as _destroy_scanner_dialog
+from omni.flux.asset_importer.core import scan_folder as _scan_folder
+from omni.flux.asset_importer.core import setup_scanner_dialog as _setup_scanner_dialog
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
 from omni.flux.info_icon.widget import InfoIconWidget
@@ -94,6 +97,8 @@ class TextureImportListWidget:
             self._dropsub = app_window.get_window_drop_event_stream().create_subscription_to_pop(
                 self._on_drag_drop_external, name="ExternalDragDrop event", order=0
             )
+
+        _setup_scanner_dialog(callback={"texture_import": [self._model.add_items]})
 
     def _on_drag_drop_external(self, event: carb.events.IEvent):
         async def do_drag_drop():
@@ -170,6 +175,9 @@ class TextureImportListWidget:
 
                 with ui.HStack(height=ui.Pixel(self.__DEFAULT_UI_HEIGHT_PIXEL)):
                     self._add_button = ui.Button("Add", clicked_fn=self.__add_item, identifier="add_file")
+                    self._scan_folder_button = ui.Button(
+                        "Scan Folder", clicked_fn=_scan_folder, identifier="scan_folder"
+                    )
                     self._remove_button = ui.Button("Remove", clicked_fn=self.__remove_items, identifier="remove_file")
 
         self._normals_type_field_sub = normals_type_field.model.subscribe_item_changed_fn(
@@ -285,3 +293,4 @@ class TextureImportListWidget:
             self._normals_type_info_icon = None
 
         _reset_default_attrs(self)
+        _destroy_scanner_dialog()

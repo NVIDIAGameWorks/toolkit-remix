@@ -52,7 +52,7 @@ class TestAssetImporterE2E(omni.kit.test.AsyncTestCase):
     async def __setup_widget(self, schema_data: AssetImporter.Data):
         await arrange_windows(topleft_window="Stage")
 
-        window = ui.Window("TestAssetImporterWindow", height=400, width=400)
+        window = ui.Window("TestAssetImporterWindow", height=400, width=800)
         with window.frame:
             asset_importer = AssetImporter()
             parent_schema = Mock()

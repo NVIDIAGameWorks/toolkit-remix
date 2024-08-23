@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.16.9]
+### Added
+- Add a scan folder function
+
 ## [1.16.8]
 ### Fixed
 - Fixed hot-reload by allowing reuse of the validators

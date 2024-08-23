@@ -95,12 +95,14 @@ class TestTextureImportListWidget(omni.kit.test.AsyncTestCase):
         file_item_types = ui_test.find_all(f"{window.title}//Frame/**/ComboBox[*].identifier=='texture_type'")
         add_item = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='add_file'")
         remove_item = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='remove_file'")
+        scan_folder = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='scan_folder'")
 
         # Make sure everything is rendered correctly
         self.assertEqual(len(items), len(file_item_labels))
         self.assertEqual(len(items), len(file_item_types))
         self.assertIsNotNone(add_item)
         self.assertIsNotNone(remove_item)
+        self.assertIsNotNone(scan_folder)
 
     async def test_tree_change_type_should_trigger_event(self):
         # Setup the test
@@ -276,3 +278,56 @@ class TestTextureImportListWidget(omni.kit.test.AsyncTestCase):
         file_item_types = ui_test.find_all(f"{window.title}//Frame/**/ComboBox[*].identifier=='texture_type'")
         self.assertEqual(1, len(file_item_labels))
         self.assertEqual(1, len(file_item_types))
+
+    async def test_scan_folder(self):
+        # Setup the test
+        model = TextureImportListModel()
+        delegate = TextureImportListDelegate()
+
+        window = await self.__setup_widget(model=model, delegate=delegate)  # Keep in memory during test
+
+        # Start the test
+        scan_folder_button = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='scan_folder'")
+
+        # Make sure everything is rendered correctly
+        self.assertIsNotNone(scan_folder_button)
+
+        await scan_folder_button.click()
+        await ui_test.human_delay()
+
+        select_button = ui_test.find("Scan Folder//Frame/**/Image[*].identifier=='select_scan_folder'")
+
+        scan_button = ui_test.find("Scan Folder//Frame/**/Button[*].identifier=='scan_folder_button'")
+        input_folder_field = ui_test.find("Scan Folder//Frame/**/StringField[*].identifier=='input_folder_field'")
+        search_field = ui_test.find("Scan Folder//Frame/**/StringField[*].identifier=='scan_search_field'")
+
+        await select_button.click()
+        await ui_test.human_delay(50)
+        file_browser_path = ui_test.find(
+            "Choose Folder to Scan//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
+        )
+        choose_file_button = ui_test.find("Choose Folder to Scan//Frame/**/Button[*].text=='Choose'")
+        base_path = Path(self.temp_dir.name)
+        normal = base_path / "normal_gl.png"
+        normal.touch()
+        await file_browser_path.input(str(base_path), end_key=KeyboardInput.ENTER)
+        await choose_file_button.click()
+        await ui_test.human_delay(10)
+
+        input_folder_text = input_folder_field.model.get_value_as_string().lower()
+        self.assertEqual(str(base_path).replace("\\", "/").lower(), input_folder_text[:-1])
+
+        search_field.model.set_value("normal")
+        await scan_button.click()
+        await ui_test.human_delay(10)
+
+        normal_name = normal.name
+        normal_checkbox = ui_test.find(f"Scan Folder//Frame/**/CheckBox[*].name=='{normal_name}'")
+        self.assertIsNotNone(normal_checkbox)
+
+        choose_scanned_files_button = ui_test.find("Scan Folder//Frame/**/Button[*].identifier=='choose_scanned_files'")
+
+        await choose_scanned_files_button.click()
+        await ui_test.human_delay(10)
+
+        self.assertEqual(1, len(model.get_item_children(None)))
