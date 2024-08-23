@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.10.1]
+### Changed
+- Changed widget size in tests to account for additional button
+
 ## [2.10.0]
 ### Changed
 - Mark the `ContextBaseUSD` class as Abstract Base Class (abc.ABC)

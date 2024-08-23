@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.16.8"
+version = "1.16.9"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Mark Henderson <markh@nvidia.com>"]
@@ -33,8 +33,10 @@ icon = "data/icon.png"
 "omni.kit.asset_converter" = {}
 "omni.flux.pip_archive" = {}  # For Pydantic
 "omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
 "omni.client" = {}
 "omni.kit.usd.collect" = {}
+"omni.services.core" = {}
 
 [[python.module]]
 name = "omni.flux.asset_importer.core"

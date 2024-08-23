@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3403: Setup Stage Manager Core & Schema
 - REMIX-3404: Added Stage Manager Widget
 - REMIX-3440: Implemented USD Tree Plugins
+- REMIX-2874: Added a scan folder dialog for importing
 
 ### Changed
 - REMIX-3401: Changed all usages of factories to use the Centralized Generic factory
@@ -98,6 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create 2024.4.0-RC.2 build
 - REMIX-2593: Added a centralized TreeWidget with additional logic
 - REMIX-3075: Added a layer type check in validation
+- REMIX-2874: Added a scan folder dialog for importing
 
 ### Changed
 - REMIX-2593: Changed the LayerTree widget to work with multiselect

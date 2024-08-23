@@ -23,6 +23,9 @@ import carb
 import carb.events
 import omni.appwindow
 from omni import kit, ui, usd
+from omni.flux.asset_importer.core import destroy_scanner_dialog as _destroy_scanner_dialog
+from omni.flux.asset_importer.core import scan_folder as _scan_folder
+from omni.flux.asset_importer.core import setup_scanner_dialog as _setup_scanner_dialog
 from omni.flux.asset_importer.core.data_models import SUPPORTED_ASSET_EXTENSIONS as _SUPPORTED_ASSET_EXTENSIONS
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
@@ -105,6 +108,8 @@ class FileImportListWidget:
                 self._on_drag_drop_external, name="ExternalDragDrop event", order=0
             )
 
+        _setup_scanner_dialog(callback={"file_import": [self._model.add_items]})
+
     def _on_drag_drop_external(self, event: carb.events.IEvent):
         async def do_drag_drop():
             paths = event.payload.get("paths", ())
@@ -146,6 +151,9 @@ class FileImportListWidget:
 
                 with ui.HStack(height=ui.Pixel(self.__DEFAULT_UI_HEIGHT_PIXEL)):
                     self._add_button = ui.Button("Add", clicked_fn=self.__add_item, identifier="add_file")
+                    self._scan_folder_button = ui.Button(
+                        "Scan Folder", clicked_fn=_scan_folder, identifier="scan_folder"
+                    )
                     self._add_from_library_button = ui.Button(
                         "Add from library",
                         clicked_fn=partial(self._asset_browser.show_window, True),
@@ -251,3 +259,4 @@ class FileImportListWidget:
         self.__update_width_task = None
 
         _reset_default_attrs(self)
+        _destroy_scanner_dialog()

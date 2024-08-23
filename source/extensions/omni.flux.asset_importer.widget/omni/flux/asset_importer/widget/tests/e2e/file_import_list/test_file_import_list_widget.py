@@ -240,3 +240,55 @@ class TestFileImportListWidget(omni.kit.test.AsyncTestCase):
         # Should do nothing as the validation should not allow 0 items to be left
         file_items = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")
         self.assertEqual(1, len(file_items))
+
+    async def test_scan_folder(self):
+        # Setup the test
+        model = FileImportListModel()
+        delegate = FileImportListDelegate()
+
+        window = await self.__setup_widget(model=model, delegate=delegate)  # Keep in memory during test
+
+        # Start the test
+        scan_folder_button = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='scan_folder'")
+
+        # Make sure everything is rendered correctly
+        self.assertIsNotNone(scan_folder_button)
+
+        await scan_folder_button.click()
+        await ui_test.human_delay()
+
+        select_button = ui_test.find("Scan Folder//Frame/**/Image[*].identifier=='select_scan_folder'")
+
+        scan_button = ui_test.find("Scan Folder//Frame/**/Button[*].identifier=='scan_folder_button'")
+        input_folder_field = ui_test.find("Scan Folder//Frame/**/StringField[*].identifier=='input_folder_field'")
+        search_field = ui_test.find("Scan Folder//Frame/**/StringField[*].identifier=='scan_search_field'")
+
+        await select_button.click()
+        await ui_test.human_delay(50)
+        file_browser_path = ui_test.find(
+            "Choose Folder to Scan//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
+        )
+        choose_file_button = ui_test.find("Choose Folder to Scan//Frame/**/Button[*].text=='Choose'")
+        base_path = Path(self.temp_dir.name)
+        asset_file = base_path / "0.usda"
+        asset_file.touch()
+        await file_browser_path.input(str(base_path), end_key=KeyboardInput.ENTER)
+        await choose_file_button.click()
+        await ui_test.human_delay(10)
+
+        input_folder_text = input_folder_field.model.get_value_as_string().lower()
+        self.assertEqual(str(base_path).replace("\\", "/").lower(), input_folder_text[:-1])
+
+        search_field.model.set_value("0")
+        await scan_button.click()
+        await ui_test.human_delay(10)
+
+        asset_name = asset_file.name
+        asset_checkbox = ui_test.find(f"Scan Folder//Frame/**/CheckBox[*].name=='{asset_name}'")
+        self.assertIsNotNone(asset_checkbox)
+
+        choose_scanned_files_button = ui_test.find("Scan Folder//Frame/**/Button[*].identifier=='choose_scanned_files'")
+        await choose_scanned_files_button.click()
+        await ui_test.human_delay(10)
+
+        self.assertEqual(1, len(model.get_item_children(None)))
