@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3404: Added Stage Manager Widget
 - REMIX-3440: Implemented USD Tree Plugins
 - REMIX-2874: Added a scan folder dialog for importing
+- REMIX-3443: Implemented USD Visibility Plugins
 
 ### Changed
 - REMIX-3401: Changed all usages of factories to use the Centralized Generic factory

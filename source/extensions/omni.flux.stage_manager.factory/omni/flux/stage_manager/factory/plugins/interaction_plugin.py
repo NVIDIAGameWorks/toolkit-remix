@@ -29,6 +29,7 @@ from pydantic import Field, PrivateAttr, validator
 from .base import StageManagerUIPluginBase as _StageManagerUIPluginBase
 from .column_plugin import LengthUnit as _LengthUnit
 from .column_plugin import StageManagerColumnPlugin as _StageManagerColumnPlugin
+from .context_plugin import StageManagerContextPlugin as _StageManagerContextPlugin
 from .filter_plugin import StageManagerFilterPlugin as _StageManagerFilterPlugin
 from .tree_plugin import StageManagerTreePlugin as _StageManagerTreePlugin
 
@@ -46,11 +47,16 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     filters: list[_StageManagerFilterPlugin] = Field(..., description="Filters to display in the Interaction UI")
     columns: list[_StageManagerColumnPlugin] = Field(..., description="Columns to display in the TreeWidget")
 
-    context_filters: set[_StageManagerFilterPlugin] = Field(
-        set(), description="Filters to apply to the context plugin. The UI will be hidden."
+    context_filters: list[_StageManagerFilterPlugin] = Field(
+        [], description="Filters to apply to the context plugin. The UI will be hidden."
     )
 
-    tree_widget: ui.TreeView | None = None
+    tree_widget: ui.TreeView | None = Field(
+        None, description="The TreeView widget used to display the data", exclude=True
+    )
+
+    # The context will be set by the core. This will be used to get the context data.
+    _context: _StageManagerContextPlugin | None = PrivateAttr()
 
     _result_frames: list[ui.Frame] = PrivateAttr()
     _item_expansion_states: dict[int, bool] = PrivateAttr()
@@ -67,6 +73,8 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        self._context = None
 
         self._result_frames = []
         self._item_expansion_states = {}
@@ -89,7 +97,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._item_expanded_sub = self.tree.delegate.subscribe_item_expanded(self._on_item_expanded)
 
-    @validator("filters", allow_reuse=True)
+    @validator("filters", "context_filters", allow_reuse=True)
     def check_unique_filters(cls, v):  # noqa N805
         # Use a list + validator to keep the list order
         return list(dict.fromkeys(v))
@@ -132,7 +140,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     @classmethod
     def check_compatibility(cls, value: Any, compatible_items: list[Any] | None) -> Any:
         """
-        Check if the given value is compatible with the compatible items.
+        Check if the given value is contained within the compatible items.
 
         Args:
             value: The value to be checked.
@@ -151,23 +159,12 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             )
         return value
 
-    def set_context_items(self, value: list, data_type: _StageManagerDataTypes):
+    def set_context(self, value: _StageManagerContextPlugin):
         """
-        Set the context items for the interaction plugin Tree model and refresh the model.
-
-        Args:
-            value: The list of context items to be set
-            data_type: The data type provided by the context plugin
+        Set the context plugin providing data to the interaction plugin
         """
-        # Validate the compatibility of the context data type
-        if data_type != self.compatible_data_type:
-            raise ValueError(
-                f"The context plugin data type is not compatible with this interaction plugin -> {self.name} -> "
-                f"{data_type.value} != {self.compatible_data_type.value}"
-            )
-
-        self.tree.model.context_items = value
-        self.tree.model.refresh()
+        self._context = value
+        self._update_context_items()
 
     def build_ui(self):  # noqa PLW0221
         if not self.enabled:
@@ -277,6 +274,26 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._update_expansion_states()
 
+    def _on_item_expanded(self, item: ui.AbstractItem, expanded: bool):
+        self._item_expansion_states[hash(item)] = expanded
+
+    def _update_context_items(self):
+        """
+        Set the context items for the interaction plugin Tree model and refresh the model.
+
+        Raises:
+            ValueError: If the data type is not compatible with this plugin
+        """
+        # Validate the compatibility of the context data type
+        if self._context.data_type != self.compatible_data_type:
+            raise ValueError(
+                f"The context plugin data type is not compatible with this interaction plugin -> {self.name} -> "
+                f"{self._context.data_type.value} != {self.compatible_data_type.value}"
+            )
+
+        self.tree.model.context_items = self._context.setup()
+        self.tree.model.refresh()
+
     def _update_expansion_states(self):
         """
         Fire and forget the `_update_expansion_states_deferred` function
@@ -298,10 +315,15 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 continue
             self.tree_widget.set_expanded(item, expanded, False)
 
-    def _on_item_expanded(self, item: ui.AbstractItem, expanded: bool):
-        self._item_expansion_states[hash(item)] = expanded
-
     def destroy(self):
         if self._update_expansion_task:
             self._update_expansion_task.cancel()
             self._update_expansion_task = None
+
+    class Config(_StageManagerUIPluginBase.Config):
+        fields = {
+            **_StageManagerUIPluginBase.Config.fields,
+            "compatible_trees": {"exclude": True},
+            "compatible_filters": {"exclude": True},
+            "compatible_widgets": {"exclude": True},
+        }

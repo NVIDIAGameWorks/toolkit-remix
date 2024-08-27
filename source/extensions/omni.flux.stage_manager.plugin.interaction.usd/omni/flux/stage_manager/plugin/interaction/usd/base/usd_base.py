@@ -19,10 +19,50 @@ import abc
 
 from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
 from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugin as _StageManagerInteractionPlugin
+from pydantic import PrivateAttr
 
 
 class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
+
+    _context_name: str | None = PrivateAttr()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self._context_name = ""
+
     @classmethod
     @property
     def compatible_data_type(cls):
         return _StageManagerDataTypes.USD
+
+    def _update_context_items(self):
+        if hasattr(self._context, "context_name"):
+            self._set_context_name(self._context.context_name)
+
+        super()._update_context_items()
+
+    def _set_context_name(self, value: str):
+        attribute_name = "context_name"
+
+        self._context_name = value
+
+        # Propagate the value
+        if hasattr(self.tree, attribute_name):
+            self.tree.context_name = value
+
+        for filter_plugin in self.filters:
+            if hasattr(filter_plugin, attribute_name):
+                filter_plugin.context_name = value
+
+        for column_plugin in self.columns:
+            if hasattr(column_plugin, attribute_name):
+                column_plugin.context_name = value
+
+            for widget_plugin in column_plugin.widgets:
+                if hasattr(widget_plugin, attribute_name):
+                    widget_plugin.context_name = value
+
+        for context_filter_plugin in self.context_filters:
+            if hasattr(context_filter_plugin, attribute_name):
+                context_filter_plugin.context_name = value

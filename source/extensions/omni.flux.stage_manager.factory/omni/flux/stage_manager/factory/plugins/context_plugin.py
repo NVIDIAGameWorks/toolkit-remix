@@ -52,3 +52,8 @@ class StageManagerContextPlugin(_StageManagerPluginBase, abc.ABC):
         Set up the context for the other plugins to use
         """
         pass
+
+    class Config(_StageManagerPluginBase.Config):
+        fields = {
+            "display_name": {"exclude": True},
+        }

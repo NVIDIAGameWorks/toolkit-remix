@@ -18,7 +18,8 @@
 import abc
 
 from omni.flux.stage_manager.factory.plugins import StageManagerFilterPlugin as _StageManagerFilterPlugin
+from pydantic import Field
 
 
 class StageManagerUSDFilterPlugin(_StageManagerFilterPlugin, abc.ABC):
-    pass
+    context_name: str = Field("", description="The context name provided by the context plugin", exclude=True)

@@ -17,21 +17,22 @@
 
 from typing import Iterable
 
-from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeDelegate as _StageManagerTreeDelegate
-from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
-from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 from pxr import Usd
 
+from .base import StageManagerUSDTreeDelegate as _StageManagerUSDTreeDelegate
+from .base import StageManagerUSDTreeItem as _StageManagerUSDTreeItem
+from .base import StageManagerUSDTreeModel as _StageManagerUSDTreeModel
 from .base import StageManagerUSDTreePlugin as _StageManagerUSDTreePlugin
 
 
-class PrimGroupsItem(_StageManagerTreeItem):
+class PrimGroupsItem(_StageManagerUSDTreeItem):
+
     @property
-    def data(self) -> Usd.Prim:
-        return super().data
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
 
 
-class PrimGroupsModel(_StageManagerTreeModel):
+class PrimGroupsModel(_StageManagerUSDTreeModel):
 
     @property
     def default_attr(self) -> dict[str, None]:
@@ -47,11 +48,11 @@ class PrimGroupsModel(_StageManagerTreeModel):
             children = self._build_items_recursive(
                 self.filter_items((prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate)))
             )
-            items.append(PrimGroupsItem(str(prim.GetPath().name), str(prim.GetPath()), children=children, data=prim))
+            items.append(PrimGroupsItem(str(prim.GetPath().name), str(prim.GetPath()), children=children, prim=prim))
         return items
 
 
-class PrimGroupsDelegate(_StageManagerTreeDelegate):
+class PrimGroupsDelegate(_StageManagerUSDTreeDelegate):
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr

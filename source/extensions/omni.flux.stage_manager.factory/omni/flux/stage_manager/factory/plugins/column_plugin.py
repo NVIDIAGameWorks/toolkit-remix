@@ -75,3 +75,6 @@ class StageManagerColumnPlugin(_StageManagerUIPluginBase, abc.ABC):
         should be used to display additional information about all the items in the column.
         """
         pass
+
+    class Config(_StageManagerUIPluginBase.Config):
+        fields = {}  # We want to serialize the `display_name` and `tooltip` since they are dynamically set

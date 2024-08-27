@@ -24,6 +24,7 @@ from omni.flux.stage_manager.factory import get_instance as _get_stage_manager_f
 from omni.flux.stage_manager.factory.plugins import StageManagerContextPlugin as _StageManagerContextPlugin
 from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugin as _StageManagerInteractionPlugin
 from pydantic import BaseModel as _BaseModel
+from pydantic import validator
 
 if TYPE_CHECKING:
     from omni.flux.factory.base import FactoryBase as _FactoryBase
@@ -38,7 +39,12 @@ class StageManagerSchema(_BaseModel):
     """
 
     context: _StageManagerContextPlugin
-    interactions: set[_StageManagerInteractionPlugin]
+    interactions: list[_StageManagerInteractionPlugin]
+
+    @validator("interactions", allow_reuse=True)
+    def check_unique_interactions(cls, v):  # noqa N805
+        # Use a list + validator to keep the list order
+        return list(dict.fromkeys(v))
 
     def __init__(self, **data: dict):
         # Resolve all the plugins to their expected class
