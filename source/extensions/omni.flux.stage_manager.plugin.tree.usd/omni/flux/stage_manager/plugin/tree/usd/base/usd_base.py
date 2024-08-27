@@ -16,9 +16,59 @@
 """
 
 import abc
+from typing import TYPE_CHECKING
 
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
+from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeDelegate as _StageManagerTreeDelegate
+from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
+from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
+from pydantic import Field
+
+if TYPE_CHECKING:
+    from pxr import Usd
+
+
+class StageManagerUSDTreeItem(_StageManagerTreeItem):
+    def __init__(
+        self,
+        display_name: str,
+        tooltip: str,
+        children: list["StageManagerUSDTreeItem"] | None = None,
+        prim: "Usd.Prim" = None,
+    ):
+        super().__init__(display_name, tooltip=tooltip, children=children, data={"prim": prim})
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
+
+
+class StageManagerUSDTreeModel(_StageManagerTreeModel):
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
+
+
+class StageManagerUSDTreeDelegate(_StageManagerTreeDelegate):
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
 
 
 class StageManagerUSDTreePlugin(_StageManagerTreePlugin, abc.ABC):
-    pass
+    context_name: str = Field("", description="The context name provided by the context plugin", exclude=True)
+
+    @classmethod
+    @property
+    @abc.abstractmethod
+    def model(cls) -> StageManagerUSDTreeModel:
+        pass
+
+    @classmethod
+    @property
+    @abc.abstractmethod
+    def delegate(cls) -> StageManagerUSDTreeDelegate:
+        pass

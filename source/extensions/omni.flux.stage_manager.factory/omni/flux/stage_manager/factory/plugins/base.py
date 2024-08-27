@@ -18,7 +18,7 @@
 import abc
 
 from omni.flux.factory.base import PluginBase as _PluginBase
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class StageManagerPluginBase(_PluginBase, BaseModel, abc.ABC):
@@ -30,6 +30,12 @@ class StageManagerPluginBase(_PluginBase, BaseModel, abc.ABC):
     @property
     def name(cls) -> str:
         return cls.__name__
+
+    def dict(self, *args, **kwargs):  # noqa A003
+        # Override the dict method to include the `name` property
+        data = super().dict(*args, **kwargs)
+        data["name"] = self.name
+        return data
 
     def __eq__(self, other):
         if isinstance(other, StageManagerPluginBase):
@@ -48,7 +54,7 @@ class StageManagerUIPluginBase(StageManagerPluginBase, abc.ABC):
     An abstract base class for stage manager plugins that should build UI.
     """
 
-    enabled: bool = True
+    enabled: bool = Field(True, description="Whether the plugin should be enabled or not")
 
     @classmethod
     @property
@@ -74,3 +80,9 @@ class StageManagerUIPluginBase(StageManagerPluginBase, abc.ABC):
         The method used to build the UI for the plugin.
         """
         pass
+
+    class Config(StageManagerPluginBase.Config):
+        fields = {
+            "display_name": {"exclude": True},
+            "tooltip": {"exclude": True},
+        }

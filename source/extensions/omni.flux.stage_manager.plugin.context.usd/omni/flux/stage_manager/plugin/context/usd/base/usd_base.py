@@ -28,6 +28,12 @@ if TYPE_CHECKING:
 class StageManagerUSDContextPlugin(_StageManagerContextPlugin, abc.ABC):
     @classmethod
     @property
+    @abc.abstractmethod
+    def context_name(cls):
+        pass
+
+    @classmethod
+    @property
     def data_type(cls):
         return _StageManagerDataTypes.USD
 

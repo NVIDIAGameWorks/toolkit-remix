@@ -17,7 +17,9 @@
 
 from typing import TYPE_CHECKING
 
+import omni.kit.commands
 from omni import ui
+from pxr import Usd, UsdGeom
 
 from .base import StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin
 
@@ -27,23 +29,39 @@ if TYPE_CHECKING:
 
 
 class IsVisibleStateWidgetPlugin(_StageManagerStateWidgetPlugin):
-    # TODO StageManager: Build proper plugin
-
     def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
+        prim = item.data.get("prim")
+
+        enabled = prim and UsdGeom.Imageable(prim)
+
+        if enabled:
+            is_visible = UsdGeom.Imageable(prim).ComputeVisibility(Usd.TimeCode.Default()) != UsdGeom.Tokens.invisible
+
+            icon = "Eye" if is_visible else "EyeOff"
+            tooltip = (
+                f"The prim is {'visible' if is_visible else 'hidden'}. "
+                f"Click to {'hide' if is_visible else 'show'} the prim"
+            )
+        else:
+            icon = "EyeDisabled"
+            tooltip = "The prim cannot be hidden"
+
+        # Build the icon
         ui.Image(
             "",
             width=self._icon_size,
             height=self._icon_size,
-            name="Eye",
-            tooltip="The prim is visible",
-            mouse_released_fn=self._on_icon_clicked,
+            name=icon,
+            tooltip=tooltip,
+            enabled=enabled,
+            mouse_released_fn=lambda x, y, b, m: self._on_icon_clicked(b, enabled, prim),
         )
 
     def build_result_ui(self, model: "_StageManagerTreeModel"):
         pass
 
-    def _on_icon_clicked(self, x: int, y: int, button: int, modifier: int):
-        if button != 0:
+    def _on_icon_clicked(self, button: int, enabled: bool, prim: Usd.Prim):
+        if button != 0 or not enabled:
             return
 
-        print("Visible clicked")
+        omni.kit.commands.execute("ToggleVisibilitySelectedPrims", selected_paths=[prim.GetPath()])

@@ -15,4 +15,9 @@
 * limitations under the License.
 """
 
-from .usd_base import StageManagerUSDTreePlugin
+from .usd_base import (
+    StageManagerUSDTreeDelegate,
+    StageManagerUSDTreeItem,
+    StageManagerUSDTreeModel,
+    StageManagerUSDTreePlugin,
+)

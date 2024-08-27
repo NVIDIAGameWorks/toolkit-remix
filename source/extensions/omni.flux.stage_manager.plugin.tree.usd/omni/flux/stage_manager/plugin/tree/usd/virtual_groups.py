@@ -15,37 +15,31 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING
-
-from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeDelegate as _StageManagerTreeDelegate
-from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
-from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
-
+from .base import StageManagerUSDTreeDelegate as _StageManagerUSDTreeDelegate
+from .base import StageManagerUSDTreeItem as _StageManagerUSDTreeItem
+from .base import StageManagerUSDTreeModel as _StageManagerUSDTreeModel
 from .base import StageManagerUSDTreePlugin as _StageManagerUSDTreePlugin
 
-if TYPE_CHECKING:
-    from pxr import Usd
 
-
-class VirtualGroupsItem(_StageManagerTreeItem):
+class VirtualGroupsItem(_StageManagerUSDTreeItem):
     @property
-    def data(self) -> "Usd.Prim":
-        return super().data
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
 
 
-class VirtualGroupsModel(_StageManagerTreeModel):
+class VirtualGroupsModel(_StageManagerUSDTreeModel):
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
     def refresh(self):
         self._items = [
-            VirtualGroupsItem(str(prim.GetPath().name), str(prim.GetPath()), data=prim) for prim in self.context_items
+            VirtualGroupsItem(str(prim.GetPath().name), str(prim.GetPath()), prim=prim) for prim in self.context_items
         ]
         super().refresh()
 
 
-class VirtualGroupsDelegate(_StageManagerTreeDelegate):
+class VirtualGroupsDelegate(_StageManagerUSDTreeDelegate):
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr

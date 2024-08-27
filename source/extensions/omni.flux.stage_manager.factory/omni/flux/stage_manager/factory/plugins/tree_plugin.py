@@ -31,15 +31,16 @@ class StageManagerTreeItem(_TreeItemBase):
     """
 
     def __init__(
-        self, display_name: str, tooltip: str, children: list["StageManagerTreeItem"] | None = None, data: Any = None
+        self, display_name: str, tooltip: str, children: list["StageManagerTreeItem"] | None = None, data: dict = None
     ):
         super().__init__(children=children)
 
         self._display_name = display_name
         self._tooltip = tooltip
-        self._data = data
+        self._data = data or {}
 
     @property
+    @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
         default_attr = super().default_attr
         default_attr.update(
@@ -60,7 +61,7 @@ class StageManagerTreeItem(_TreeItemBase):
         return self._tooltip
 
     @property
-    def data(self) -> Any:
+    def data(self) -> dict:
         return self._data
 
     @property
@@ -277,3 +278,9 @@ class StageManagerTreePlugin(_StageManagerPluginBase, abc.ABC):
     @abc.abstractmethod
     def delegate(cls) -> StageManagerTreeDelegate:
         pass
+
+    class Config(_StageManagerPluginBase.Config):
+        fields = {
+            "model": {"exclude": True},
+            "delegate": {"exclude": True},
+        }
