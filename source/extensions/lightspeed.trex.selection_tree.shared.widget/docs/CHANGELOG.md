@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.2] - 2024-08-05
+### Added
+- Added asset not in project directory popup
+
+### Fixed
+- Improved flakey tests
+
 ## [1.3.1] - 2024-07-16
 ### Added
 - Copy menu hash disabling if there is no hash for the asset

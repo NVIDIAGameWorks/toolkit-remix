@@ -16,6 +16,8 @@
 * limitations under the License.
 """
 import os
+import shutil
+import tempfile
 
 import carb.input
 import omni.kit.clipboard
@@ -27,7 +29,9 @@ from lightspeed.common import constants as _constants
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SetupUI
+from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
+from omni.flux.validator.factory import BASE_HASH_KEY
 from omni.kit import ui_test
 from omni.kit.test.async_unittest import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage, wait_stage_loading
@@ -60,6 +64,16 @@ class TestSelectionTreeWidget(AsyncTestCase):
     async def __destroy(self, window, wid):
         wid.destroy()
         window.destroy()
+
+        # destroy prompt dialogs to avoid unwanted references
+        for other_window in ui.Workspace.get_windows():
+            if other_window.title in {
+                _constants.ASSET_NEED_INGEST_WINDOW_TITLE,
+                _constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE,
+            }:
+                prompt_dialog_window = ui_test.find(other_window.title)
+                if prompt_dialog_window:
+                    prompt_dialog_window.widget.destroy()
 
     async def test_select_one_prim_mesh(self):
         # setup
@@ -362,7 +376,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # It takes a while for the tree to update
         await ui_test.human_delay(50)
-        asset_path = _get_test_data("usd/ingested_assets/output/good/cube.usda")
+        asset_path = _get_test_data("usd/project_example/ingested_assets/output/good/cube.usda")
         await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
         await ui_test.human_delay(50)
 
@@ -452,7 +466,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # It takes a while for the tree to update
         await ui_test.human_delay(5)
-        asset_path = _get_test_data("usd/ingested_assets/output/good/cube.usda")
+        asset_path = _get_test_data("usd/project_example/ingested_assets/output/good/cube.usda")
         await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
         await ui_test.human_delay(3)
 
@@ -892,17 +906,17 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
     async def test_append_no_metadata_ref_ignore_ingest(self):
         await self.__ingest_wrong_asset_ignore_ingestion(
-            _get_test_data("usd/ingested_assets/output/no_metadata/cube.usda")
+            _get_test_data("usd/project_example/ingested_assets/output/no_metadata/cube.usda")
         )
 
     async def test_append_hash_different_ref_ignore_ingest(self):
         await self.__ingest_wrong_asset_ignore_ingestion(
-            _get_test_data("usd/ingested_assets/output/hash_different/cube.usda")
+            _get_test_data("usd/project_example/ingested_assets/output/hash_different/cube.usda")
         )
 
     async def test_append_ingestion_failed_ref_ignore_ingest(self):
         await self.__ingest_wrong_asset_ignore_ingestion(
-            _get_test_data("usd/ingested_assets/output/ingestion_failed/cube.usda")
+            _get_test_data("usd/project_example/ingested_assets/output/ingestion_failed/cube.usda")
         )
 
     async def __ingest_wrong_asset_ignore_ingestion(self, asset_path):
@@ -959,17 +973,17 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
     async def test_append_no_metadata_ref_cancel_ingest(self):
         await self.__ingest_wrong_asset_cancel_ingestion(
-            _get_test_data("usd/ingested_assets/output/no_metadata/cube.usda")
+            _get_test_data("usd/project_example/ingested_assets/output/no_metadata/cube.usda")
         )
 
     async def test_append_hash_different_ref_cancel_ingest(self):
         await self.__ingest_wrong_asset_cancel_ingestion(
-            _get_test_data("usd/ingested_assets/output/hash_different/cube.usda")
+            _get_test_data("usd/project_example/ingested_assets/output/hash_different/cube.usda")
         )
 
     async def test_append_ingestion_failed_ref_cancel_ingest(self):
         await self.__ingest_wrong_asset_cancel_ingestion(
-            _get_test_data("usd/ingested_assets/output/ingestion_failed/cube.usda")
+            _get_test_data("usd/project_example/ingested_assets/output/ingestion_failed/cube.usda")
         )
 
     async def __ingest_wrong_asset_cancel_ingestion(self, asset_path):
@@ -1052,7 +1066,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # It takes a while for the tree to update
         await ui_test.human_delay(50)
-        asset_path = _get_test_data("usd/ingested_assets/output/good/cube.usda")
+        asset_path = _get_test_data("usd/project_example/ingested_assets/output/good/cube.usda")
         await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
         await ui_test.human_delay(50)
 
@@ -1100,6 +1114,231 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await self.__destroy(_window, _wid)
 
+    async def test_append_outside_project_dir_cancel_ref(self):
+        # Setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
+
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        self.assertEqual(len(item_file_meshes), 2)
+
+        await item_file_meshes[0].click()
+
+        window_name = "Select a reference file"
+
+        # The file picker window should now be opened (0 < len(widgets))
+        self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
+
+        select_button = ui_test.find(f"{window_name}//Frame/**/Button[*].text=='Select'")
+        dir_path_field = ui_test.find(f"{window_name}//Frame/**/StringField[*].identifier=='filepicker_directory_path'")
+
+        self.assertIsNotNone(select_button)
+        self.assertIsNotNone(dir_path_field)
+
+        # Create a temp directory to mimic a location for an external asset
+        with tempfile.TemporaryDirectory(dir=_get_test_data("usd/")) as temp_dir:
+            shutil.copy(_get_test_data("usd/project_example/ingested_assets/output/good/cube.usda"), temp_dir)
+            shutil.copy(_get_test_data("usd/project_example/ingested_assets/output/good/cube.usda.meta"), temp_dir)
+
+            await ui_test.human_delay(50)
+            asset_path = _get_test_data(f"{temp_dir}/cube.usda")
+            await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
+            await ui_test.human_delay(50)
+
+            await select_button.click()
+            await ui_test.human_delay()
+
+        # Make sure that the ingestion window did not show
+        ignore_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+        cancel_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNone(ignore_ingestion_button)
+        self.assertIsNone(cancel_ingestion_button)
+
+        # Make sure the "Copy Asset" and "Cancel" buttons exist
+        copy_external_asset_button = ui_test.find(
+            f"{_constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+        cancel_external_asset_button = ui_test.find(
+            f"{_constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNotNone(copy_external_asset_button)
+        self.assertIsNotNone(cancel_external_asset_button)
+
+        # Cancel import and ensure the external asset was not imported
+        await cancel_external_asset_button.click()
+        await ui_test.human_delay(5)
+        self.assertEqual(len(item_prims), 2)  # we still have 2 prims: reference file + the regular mesh
+
+        await self.__destroy(_window, _wid)
+
+    async def test_append_outside_project_dir_copy_and_re_ref(self):
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
+
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        self.assertEqual(len(item_file_meshes), 2)
+
+        await item_file_meshes[0].click()
+
+        window_name = "Select a reference file"
+
+        # The file picker window should now be opened (0 < len(widgets))
+        self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
+
+        select_button = ui_test.find(f"{window_name}//Frame/**/Button[*].text=='Select'")
+        dir_path_field = ui_test.find(f"{window_name}//Frame/**/StringField[*].identifier=='filepicker_directory_path'")
+
+        self.assertIsNotNone(select_button)
+        self.assertIsNotNone(dir_path_field)
+
+        # Create a temp directory to mimic a location for an external asset
+        with tempfile.TemporaryDirectory(dir=_get_test_data("usd/")) as temp_dir:
+            shutil.copy(_get_test_data("usd/project_example/ingested_assets/output/good/cube.usda"), temp_dir)
+            shutil.copy(_get_test_data("usd/project_example/ingested_assets/output/good/cube.usda.meta"), temp_dir)
+
+            await ui_test.human_delay(50)
+            asset_path = _get_test_data(f"{temp_dir}/cube.usda")
+            await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
+            await ui_test.human_delay(50)
+
+            await select_button.click()
+            await ui_test.human_delay()
+
+            # Make sure that the ingestion window did not show
+            ignore_ingestion_button = ui_test.find(
+                f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+            )
+            cancel_ingestion_button = ui_test.find(
+                f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+            )
+            self.assertIsNone(ignore_ingestion_button)
+            self.assertIsNone(cancel_ingestion_button)
+
+            # Make sure the "Copy Asset" and "Cancel" buttons exist
+            copy_external_asset_button = ui_test.find(
+                f"{_constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+            )
+            cancel_external_asset_button = ui_test.find(
+                f"{_constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+            )
+            self.assertIsNotNone(copy_external_asset_button)
+            self.assertIsNotNone(cancel_external_asset_button)
+
+            # Copy the asset
+            await copy_external_asset_button.click()
+            await ui_test.human_delay(50)
+
+            # Make sure that new ref exists
+            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+            self.assertEqual(len(item_prims), 6)
+
+            # Check that the reference is from a new internal copy and not the original external asset
+            item_ref = item_prims[1].widget
+            self.assertEqual(item_ref.text, "cube.usda")
+            self.assertEqual(item_ref.tooltip, "./assets/ingested/cube.usda")
+
+            # Make sure the metadata matches
+            self.assertTrue(_path_utils.hash_match_metadata(file_path=asset_path, key=BASE_HASH_KEY))
+
+            # Select/expand orig reference file and un-select cube
+            usd_context.get_selection().set_selected_prim_paths(
+                ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False
+            )
+            await ui_test.human_delay(3)
+            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+            self.assertEqual(len(item_prims), 3)  # we have 3 prims: reference file + the regular mesh + new ref
+            await ui_test.human_delay(50)
+
+            # Delete the asset
+            delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+            await delete_ref_images[1].click()
+            await ui_test.human_delay(human_delay_speed=3)
+
+            # Test deletion
+            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+            item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+            item_instance_groups = ui_test.find_all(
+                f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'"
+            )
+            self.assertEqual(len(item_prims), 2)
+            self.assertEqual(len(item_file_meshes), 2)
+            self.assertEqual(len(item_instance_groups), 1)
+
+        # Delete the newly created project_example/assets/ingested subdirectory and its contents
+        shutil.rmtree(_get_test_data(f"usd/project_example/{_constants.REMIX_INGESTED_ASSETS_FOLDER}"))
+
+        await self.__destroy(_window, _wid)
+
+    async def test_append_outside_project_dir_no_metadata_cancel_ref(self):
+        # Setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
+
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        self.assertEqual(len(item_file_meshes), 2)
+
+        await item_file_meshes[0].click()
+
+        window_name = "Select a reference file"
+
+        # The file picker window should now be opened (0 < len(widgets))
+        self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
+
+        select_button = ui_test.find(f"{window_name}//Frame/**/Button[*].text=='Select'")
+        dir_path_field = ui_test.find(f"{window_name}//Frame/**/StringField[*].identifier=='filepicker_directory_path'")
+
+        self.assertIsNotNone(select_button)
+        self.assertIsNotNone(dir_path_field)
+
+        # Create a temp directory to mimic a location for an external asset
+        with tempfile.TemporaryDirectory(dir=_get_test_data("usd/")) as temp_dir:
+            shutil.copy(_get_test_data("usd/project_example/ingested_assets/output/good/cube.usda"), temp_dir)
+
+            await ui_test.human_delay(50)
+            asset_path = _get_test_data(f"{temp_dir}/cube.usda")
+            await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
+            await ui_test.human_delay(50)
+
+            await select_button.click()
+            await ui_test.human_delay()
+
+        # Make sure that the ingestion window appeared without the ignore button
+        ignore_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+        cancel_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNone(ignore_ingestion_button)
+        self.assertIsNotNone(cancel_ingestion_button)
+
+        # Cancel ingestion and check nothing was imported
+        await cancel_ingestion_button.click()
+        await ui_test.human_delay(5)
+        self.assertEqual(len(item_prims), 2)  # we still have 2 prims: reference file + the regular mesh
+
+        await self.__destroy(_window, _wid)
+
     async def test_item_centered(self):
         # setup
         _window, _wid = await self.__setup_widget(height=300)  # Keep in memory during test
@@ -1123,7 +1362,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
             # It takes a while for the tree to update
             await ui_test.human_delay(50)
-            asset_path = _get_test_data("usd/ingested_assets/output/good/cube.usda")
+            asset_path = _get_test_data("usd/project_example/ingested_assets/output/good/cube.usda")
             await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
             await ui_test.human_delay(50)
 
@@ -1170,6 +1409,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await item_prims[1].click(right_click=True)
         await ui_test.human_delay(5)
         await omni.kit.ui_test.menu.select_context_menu("Copy Prim Name")
+        await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
         self.assertEqual(copied_text, "mesh")
 
@@ -1177,6 +1417,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await item_prims[1].click(right_click=True)
         await ui_test.human_delay(5)
         await omni.kit.ui_test.menu.select_context_menu("Copy Prim Path")
+        await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
         self.assertEqual(copied_text, f"{MESH_ROOT_PATH}mesh_{MESH_HASH}/mesh")
 
@@ -1184,6 +1425,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await item_prims[1].click(right_click=True)
         await ui_test.human_delay(5)
         await omni.kit.ui_test.menu.select_context_menu("Copy Reference Path")
+        await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()  # the text should be the same because this option is disabled
         self.assertEqual(copied_text, f"{MESH_ROOT_PATH}mesh_{MESH_HASH}/mesh")
 
@@ -1191,6 +1433,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await item_prims[1].click(right_click=True)
         await ui_test.human_delay(5)
         await omni.kit.ui_test.menu.select_context_menu("Copy Hash")
+        await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
         self.assertEqual(copied_text, MESH_HASH)
 
@@ -1198,6 +1441,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await item_prims[0].click(right_click=True)
         await ui_test.human_delay(5)
         await omni.kit.ui_test.menu.select_context_menu("Copy Prim Name")
+        await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
         self.assertEqual(copied_text, f"mesh_{MESH_HASH}")
 
@@ -1205,6 +1449,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await item_prims[0].click(right_click=True)
         await ui_test.human_delay(5)
         await omni.kit.ui_test.menu.select_context_menu("Copy Prim Path")
+        await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
         self.assertEqual(copied_text, f"{MESH_ROOT_PATH}mesh_{MESH_HASH}")
 
@@ -1212,6 +1457,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await item_prims[0].click(right_click=True)
         await ui_test.human_delay(5)
         await omni.kit.ui_test.menu.select_context_menu("Copy Reference Path")
+        await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
 
         full_path = os.path.abspath(copied_text)
@@ -1221,8 +1467,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test hash copy on reference
         await item_prims[0].click(right_click=True)
-        await ui_test.human_delay()
+        await ui_test.human_delay(5)
         await omni.kit.ui_test.menu.select_context_menu("Copy Hash")
+        await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
         self.assertEqual(copied_text, MESH_HASH)
 

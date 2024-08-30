@@ -16,6 +16,8 @@
 """
 
 import os
+import shutil
+import tempfile
 from enum import Enum
 
 import carb
@@ -31,7 +33,9 @@ from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _Contexts
 from lightspeed.trex.material_properties.shared.widget import SetupUI as _MaterialPropertiesWidget
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
+from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
+from omni.flux.validator.factory import BASE_HASH_KEY
 from omni.kit import ui_test
 from omni.kit.test.async_unittest import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage, wait_stage_loading
@@ -132,6 +136,16 @@ class TestSelectionTreeWidget(AsyncTestCase):
         mesh_property_wid.destroy()
         selection_wid.destroy()
         window.destroy()
+
+        # destroy prompt dialogs to avoid unwanted references
+        for other_window in ui.Workspace.get_windows():
+            if other_window.title in {
+                _constants.ASSET_NEED_INGEST_WINDOW_TITLE,
+                _constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE,
+            }:
+                prompt_dialog_window = ui_test.find(other_window.title)
+                if prompt_dialog_window:
+                    prompt_dialog_window.widget.destroy()
 
     async def test_select_one_prim_mesh(self):
         # setup
@@ -343,6 +357,218 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
+    async def test_override_texture_ingested_texture_outside_project_dir_cancel(self):
+        # Setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # Select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+
+        await ui_test.human_delay(human_delay_speed=10)
+
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+        self.assertFalse(texture_file_fields)
+        self.assertTrue(property_branches)
+
+        # We expand
+        await property_branches[1].click()
+        await ui_test.human_delay(human_delay_speed=10)
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        await ui_test.human_delay(1)
+        self.assertTrue(texture_file_fields)
+
+        # Create a temp directory to mimic a location for an external asset
+        with tempfile.TemporaryDirectory(dir=_get_test_data("usd/")) as temp_dir:
+            shutil.copy(_get_test_data("usd/project_example/sources/textures/ingested/16px_Diffuse.dds"), temp_dir)
+            shutil.copy(_get_test_data("usd/project_example/sources/textures/ingested/16px_Diffuse.dds.meta"), temp_dir)
+            await ui_test.human_delay(50)
+
+            # We add a new texture
+            original_text = texture_file_fields[0].widget.model.get_value_as_string()
+            asset_path = _get_test_data(f"{temp_dir}/16px_Diffuse.dds")
+            await texture_file_fields[0].click()
+            await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
+            await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
+            await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+            await ui_test.human_delay(3)
+
+        # Ensure there is no ingestion window warning
+        ignore_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+        cancel_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNone(ignore_ingestion_button)
+        self.assertIsNone(cancel_ingestion_button)
+
+        # Make sure the "Copy Asset" and "Cancel" buttons exist
+        copy_external_asset_button = ui_test.find(
+            f"{_constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+        cancel_external_asset_button = ui_test.find(
+            f"{_constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNotNone(copy_external_asset_button)
+        self.assertIsNotNone(cancel_external_asset_button)
+
+        # Cancel import
+        await cancel_external_asset_button.click()
+        await ui_test.human_delay(5)
+
+        # Text field should revert to the original path
+        self.assertEquals(original_text, texture_file_fields[0].widget.model.get_value_as_string())
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_override_texture_ingested_texture_outside_project_dir_copy_and_re_ref(self):
+        # Setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # Select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+
+        await ui_test.human_delay(human_delay_speed=10)
+
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+        self.assertFalse(texture_file_fields)
+        self.assertTrue(property_branches)
+
+        # We expand
+        await property_branches[1].click()
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        await ui_test.human_delay(1)
+        self.assertTrue(texture_file_fields)
+
+        # Create a temp directory to mimic a location for an external asset
+        with tempfile.TemporaryDirectory(dir=_get_test_data("usd/")) as temp_dir:
+            shutil.copy(_get_test_data("usd/project_example/sources/textures/ingested/16px_Diffuse.dds"), temp_dir)
+            shutil.copy(_get_test_data("usd/project_example/sources/textures/ingested/16px_Diffuse.dds.meta"), temp_dir)
+            await ui_test.human_delay(50)
+
+            # We add a new texture
+            asset_path = _get_test_data(f"{temp_dir}/16px_Diffuse.dds")
+            await texture_file_fields[0].click()
+            await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
+            await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
+            await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+            await ui_test.human_delay(3)
+
+            # Ensure there is no ingestion window warning
+            ignore_ingestion_button = ui_test.find(
+                f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+            )
+            cancel_ingestion_button = ui_test.find(
+                f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+            )
+            self.assertIsNone(ignore_ingestion_button)
+            self.assertIsNone(cancel_ingestion_button)
+
+            # Make sure the "Copy Asset" and "Cancel" buttons exist
+            copy_external_asset_button = ui_test.find(
+                f"{_constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+            )
+            cancel_external_asset_button = ui_test.find(
+                f"{_constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+            )
+            self.assertIsNotNone(copy_external_asset_button)
+            self.assertIsNotNone(cancel_external_asset_button)
+
+            # Copy the asset
+            await copy_external_asset_button.click()
+            await ui_test.human_delay(50)
+
+            # The original (external) asset path should not equal the field text
+            self.assertNotEquals(asset_path, texture_file_fields[0].widget.model.get_value_as_string())
+
+            # Make sure the metadata matches
+            self.assertTrue(_path_utils.hash_match_metadata(file_path=asset_path, key=BASE_HASH_KEY))
+
+        # Delete the newly created project_example/assets/ingested subdirectory and its contents
+        shutil.rmtree(_get_test_data(f"usd/project_example/{str(_constants.REMIX_INGESTED_ASSETS_FOLDER)}"))
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_override_texture_not_ingested_texture_outside_project_dir_no_metadata_cancel(self):
+        # Setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # Select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+
+        await ui_test.human_delay(human_delay_speed=10)
+
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+        self.assertFalse(texture_file_fields)
+        self.assertTrue(property_branches)
+
+        # We expand
+        await property_branches[1].click()
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        await ui_test.human_delay(1)
+        self.assertTrue(texture_file_fields)
+
+        # Create a temp directory to mimic a location for an external asset
+        with tempfile.TemporaryDirectory(dir=_get_test_data("usd/")) as temp_dir:
+            shutil.copy(_get_test_data("usd/project_example/sources/textures/ingested/16px_Diffuse.dds"), temp_dir)
+            await ui_test.human_delay(50)
+
+            # We add a new texture
+            original_text = texture_file_fields[0].widget.model.get_value_as_string()
+            asset_path = _get_test_data(f"{temp_dir}/16px_Diffuse.dds")
+            await texture_file_fields[0].click()
+            await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
+            await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
+            await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+            await ui_test.human_delay(3)
+
+        # Make sure the ingestion window appears
+        ignore_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+        cancel_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNone(ignore_ingestion_button)
+        self.assertIsNotNone(cancel_ingestion_button)
+
+        # Make sure the copy asset popup buttons do not exist
+        copy_external_asset_button = ui_test.find(
+            f"{_constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+        cancel_external_asset_button = ui_test.find(
+            f"{_constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNone(copy_external_asset_button)
+        self.assertIsNone(cancel_external_asset_button)
+
+        # Cancel import
+        await cancel_ingestion_button.click()
+        await ui_test.human_delay(5)
+
+        # Text should go back like before
+        self.assertEquals(original_text, texture_file_fields[0].widget.model.get_value_as_string())
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
     async def test_drop_texture(self):
         # setup
         _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
@@ -451,7 +677,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await omni.kit.ui_test.menu.select_context_menu("Copy Material Path")
         await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
-        await ui_test.human_delay(5)
+        await ui_test.human_delay(10)
         self.assertEqual(copied_text, f"{MATERIAL_ROOT_PATH}mat_{MATERIAL_HASH}")
 
         # test hash copy
@@ -460,7 +686,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await omni.kit.ui_test.menu.select_context_menu("Copy Material Hash")
         await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
-        await ui_test.human_delay(5)
+        await ui_test.human_delay(10)
         self.assertEqual(copied_text, MATERIAL_HASH)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
@@ -492,7 +718,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await omni.kit.ui_test.menu.select_context_menu("Copy Full File Path")
         await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
-        await ui_test.human_delay(5)
+        await ui_test.human_delay(10)
 
         full_path = os.path.abspath(copied_text)
         start_index = full_path.find("project_example")
@@ -505,7 +731,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await omni.kit.ui_test.menu.select_context_menu("Copy File Path Hash")
         await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
-        await ui_test.human_delay(5)
+        await ui_test.human_delay(10)
         self.assertEqual(copied_text, MATERIAL_HASH)
 
         # test maps
@@ -516,7 +742,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await omni.kit.ui_test.menu.select_context_menu("Copy Full File Path")
             await ui_test.human_delay(5)
             copied_text = omni.kit.clipboard.paste()
-            await ui_test.human_delay(5)
+            await ui_test.human_delay(10)
 
             full_path = os.path.abspath(copied_text)
             start_index = full_path.find("project_example")

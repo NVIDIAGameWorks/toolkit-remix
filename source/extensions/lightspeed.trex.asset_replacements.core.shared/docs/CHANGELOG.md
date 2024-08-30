@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0] - 2024-08-06
+### Added
+- Asset within project directory checker
+- USD (+ metadata) copier
+- Added option to not ignore invalid paths for `was_the_asset_ingested()`
+
 ## [2.1.4]
 ### Fixed
 - Fixed hot-reload by allowing reuse of the validators

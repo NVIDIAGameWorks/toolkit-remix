@@ -45,7 +45,9 @@ class TestSharedViewportWidget(OmniUiTest):
         usd_context_1 = omni.usd.get_context(_CONTEXT_NAME)
         await open_stage(_get_test_data("usd/project_example/combined.usda"), usd_context=usd_context_1)
         usd_context_2 = omni.usd.create_context(_CONTEXT_2_NAME)
-        await open_stage(_get_test_data("usd/ingested_assets/source/cube.usda"), usd_context=usd_context_2)
+        await open_stage(
+            _get_test_data("usd/project_example/ingested_assets/source/cube.usda"), usd_context=usd_context_2
+        )
 
     # After running each test
     async def tearDown(self):

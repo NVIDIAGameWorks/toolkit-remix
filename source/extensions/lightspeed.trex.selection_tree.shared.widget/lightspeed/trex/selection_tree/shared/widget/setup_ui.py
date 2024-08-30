@@ -29,6 +29,7 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
+from lightspeed.trex.asset_replacements.core.shared.usd_copier import copy_usd_asset as _copy_usd_asset
 from lightspeed.trex.utils.common.file_utils import (
     is_usd_file_path_valid_for_filepicker as _is_usd_file_path_valid_for_filepicker,
 )
@@ -543,7 +544,7 @@ class SetupUI:
 
     def get_selection(self):
         """Return the selection consisting of both the primary and secondary (instance) selections."""
-        if self._tree_view is None or self._frame_none.visible:
+        if self._tree_view is None:
             return []
 
         # if there is a primary selection, add the secondary selection; otherwise just use the secondary
@@ -828,6 +829,7 @@ class SetupUI:
         self, add_reference_item: Union[_ItemAddNewReferenceFileMesh, _ItemReferenceFileMesh], asset_path: str
     ):
         if not self._core.was_the_asset_ingested(asset_path):
+            layer = self._context.get_stage().GetEditTarget().GetLayer()
             ingest_enabled = bool(
                 omni.kit.app.get_app()
                 .get_extension_manager()
@@ -838,6 +840,7 @@ class SetupUI:
                 message=constants.ASSET_NEED_INGEST_MESSAGE,
                 ok_handler=functools.partial(self.__ignore_warning_ingest_asset, add_reference_item, asset_path),
                 ok_label=constants.ASSET_NEED_INGEST_WINDOW_OK_LABEL,
+                disable_ok_button=not self._core.asset_is_in_project_dir(asset_path, layer),
                 disable_cancel_button=False,
                 disable_middle_button=not ingest_enabled,
                 middle_handler=self._go_to_ingest_tab,
@@ -848,8 +851,44 @@ class SetupUI:
         self._add_new_ref_mesh(add_reference_item, asset_path)
 
     def _add_new_ref_mesh(
-        self, add_reference_item: Union[_ItemAddNewReferenceFileMesh, _ItemReferenceFileMesh], asset_path: str
+        self,
+        add_reference_item: Union[_ItemAddNewReferenceFileMesh, _ItemReferenceFileMesh],
+        asset_path: str,
     ):
+        layer = self._context.get_stage().GetEditTarget().GetLayer()
+        if not self._core.asset_is_in_project_dir(asset_path, layer):
+            if self._core.was_the_asset_ingested(path=asset_path, ignore_invalid_paths=False):
+                # Prompt the user copy the asset into the project folder or cancel
+                _TrexMessageDialog(
+                    title=constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE,
+                    message=constants.ASSET_OUTSIDE_OF_PROJ_DIR_MESSAGE,
+                    disable_ok_button=False,
+                    ok_label=constants.ASSET_OUTSIDE_OF_PROJ_DIR_OK_LABEL,
+                    ok_handler=functools.partial(
+                        _copy_usd_asset,
+                        context=self._context,
+                        asset_path=asset_path,
+                        callback_func=lambda x: self._add_new_ref_mesh(
+                            add_reference_item=add_reference_item,
+                            asset_path=x,
+                        ),
+                    ),
+                    disable_middle_button=True,
+                    disable_cancel_button=False,
+                )
+            else:
+                # Prompt the user to ingest the external asset into the project folder
+                _TrexMessageDialog(
+                    title=constants.ASSET_OUTSIDE_OF_PROJ_DIR_AND_NEED_INGEST_TITLE,
+                    message=constants.ASSET_OUTSIDE_OF_PROJ_DIR_AND_NEED_INGEST_MESSAGE,
+                    disable_ok_button=True,
+                    disable_middle_button=False,
+                    middle_handler=self._go_to_ingest_tab,
+                    middle_label=constants.ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL,
+                    disable_cancel_button=False,
+                )
+            return
+
         stage = self._context.get_stage()
         with omni.kit.undo.group(), self._tree_model.refresh_only_at_the_end():
             new_ref, prim_path = self._core.add_new_reference(

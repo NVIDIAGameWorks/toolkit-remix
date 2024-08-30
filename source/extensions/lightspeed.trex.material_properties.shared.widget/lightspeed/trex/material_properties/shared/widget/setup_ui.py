@@ -29,6 +29,7 @@ import omni.kit.app
 from lightspeed.common import constants as _constants
 from lightspeed.tool.material.core import ToolMaterialCore as _ToolMaterialCore
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
+from lightspeed.trex.asset_replacements.core.shared.usd_copier import copy_non_usd_asset as _copy_non_usd_asset
 from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _Contexts
 from lightspeed.trex.material.core.shared import Setup as _MaterialCore
@@ -256,7 +257,7 @@ class SetupUI:
         for item in items:
             for value_model in item.value_models:
                 if usd_properties_utils.get_type_name(value_model.metadata) in [Sdf.ValueTypeNames.Asset]:
-                    value_model.set_callback_pre_set_value(self.__check_asset_was_ingested)
+                    value_model.set_callback_pre_set_value(self.__check_asset_was_ingested_and_in_proj_dir)
 
     def _texture_assignment(self, selected_paths, items, allow_dialog_skip=True, basename=None, found_paths=None):
         """
@@ -400,7 +401,7 @@ class SetupUI:
     def __ignore_warning_ingest_asset(self, callback, value):
         callback(value)
 
-    def __check_asset_was_ingested(self, callback, value):
+    def __check_asset_was_ingested_and_in_proj_dir(self, callback, value):
         layer = self._stage.GetEditTarget().GetLayer()
         try:
             abs_new_asset_path = omni.client.normalize_url(layer.ComputeAbsolutePath(value))
@@ -409,6 +410,12 @@ class SetupUI:
             # use the attribute, but override the value (like when we set metadata).
             callback(value)
             return
+
+        # If the file path is not in general valid, use callback and return
+        if not self._asset_replacement_core.is_file_path_valid(abs_new_asset_path, layer, log_error=False):
+            callback(value)
+            return
+
         if not self._asset_replacement_core.was_the_asset_ingested(abs_new_asset_path):
             ingest_enabled = bool(
                 omni.kit.app.get_app()
@@ -420,10 +427,29 @@ class SetupUI:
                 message=_constants.ASSET_NEED_INGEST_MESSAGE,
                 ok_handler=functools.partial(self.__ignore_warning_ingest_asset, callback, value),
                 ok_label=_constants.ASSET_NEED_INGEST_WINDOW_OK_LABEL,
+                disable_ok_button=not self._asset_replacement_core.asset_is_in_project_dir(
+                    path=abs_new_asset_path, layer=layer
+                ),
                 disable_cancel_button=False,
                 disable_middle_button=not ingest_enabled,
                 middle_label=_constants.ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL,
                 middle_handler=self._go_to_ingest_tab,
+            )
+            return
+        if not self._asset_replacement_core.asset_is_in_project_dir(path=abs_new_asset_path, layer=layer):
+            _TrexMessageDialog(
+                title=_constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE,
+                message=_constants.ASSET_OUTSIDE_OF_PROJ_DIR_MESSAGE,
+                disable_ok_button=False,
+                ok_label=_constants.ASSET_OUTSIDE_OF_PROJ_DIR_OK_LABEL,
+                ok_handler=functools.partial(
+                    _copy_non_usd_asset,
+                    context=self._context,
+                    asset_path=abs_new_asset_path,
+                    callback_func=callback,
+                ),
+                disable_middle_button=True,
+                disable_cancel_button=False,
             )
             return
         callback(value)

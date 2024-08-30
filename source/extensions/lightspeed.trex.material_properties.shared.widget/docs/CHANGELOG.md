@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.11] - 2024-08-06
+### Changed
+- External asset checker and importer
+
+### Fixed
+- Improved flakiness of copy menu tests
+
 ## [1.3.10] - 2024-07-25
 ### Added
 - Texture string field tooltip tests

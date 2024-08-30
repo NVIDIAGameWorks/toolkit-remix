@@ -196,6 +196,20 @@ ASSET_NEED_INGEST_WINDOW_TITLE = "##Ingestion"
 ASSET_NEED_INGEST_WINDOW_OK_LABEL = "Ignore and Import"
 ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL = "Ingest Asset"
 
+ASSET_OUTSIDE_OF_PROJ_DIR_MESSAGE = (
+    "The selected asset is not located within the project."
+    "\n\nAssets must be located within the project folder for referencing to work."
+    '\n\nWould you like to copy the asset into the project "assets/ingested/" folder?'
+)
+ASSET_OUTSIDE_OF_PROJ_DIR_TITLE = "##Outside of Project Directory"
+ASSET_OUTSIDE_OF_PROJ_DIR_OK_LABEL = "Copy Asset"
+
+ASSET_OUTSIDE_OF_PROJ_DIR_AND_NEED_INGEST_MESSAGE = (
+    "The selected asset is not located within the project and is not ingested."
+    "\n\nPlease ingest the asset into the project folder."
+)
+ASSET_OUTSIDE_OF_PROJ_DIR_AND_NEED_INGEST_TITLE = "##Outside of Project Directory and Not Ingested"
+
 MATERIAL_OVERRIDE_PATH = "{prim_node}/Looks"
 
 CREDITS = """

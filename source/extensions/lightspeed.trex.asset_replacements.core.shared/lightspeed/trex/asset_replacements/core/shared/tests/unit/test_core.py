@@ -15,8 +15,14 @@
 * limitations under the License.
 """
 
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import MagicMock, patch
+
 import omni.kit.commands
+import omni.usd
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
+from lightspeed.trex.asset_replacements.core.shared import usd_copier as _usd_copier
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit.test.async_unittest import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage, wait_stage_loading
@@ -27,10 +33,12 @@ class TestAssetReplacementsCore(AsyncTestCase):
     # Before running each test
     async def setUp(self):
         await open_stage(_get_test_data("usd/project_example/combined.usda"))
+        self.context = omni.usd.get_context()
 
     # After running each test
     async def tearDown(self):
         await wait_stage_loading()
+        self.stage = None
 
     async def test_filter_transformable(self):
         # setup
@@ -137,3 +145,93 @@ class TestAssetReplacementsCore(AsyncTestCase):
             core.filter_transformable_prims([Sdf.Path("/RootNode/instances/inst_BAC90CAA733B0859_0/Cylinder03")]),
             [],
         )
+
+    async def test_asset_is_in_proj_dir(self):
+        # Arrange
+        core = _AssetReplacementsCore("")
+        layer = self.context.get_stage().GetRootLayer()
+        mock_project_root = _get_test_data("usd/project_example/")
+
+        for path, scenario, expected_result in [
+            (f"{mock_project_root}/example_mesh.usd", "USD directly in project dir", True),
+            (f"{mock_project_root}/example_texture.n.rtex.dds", "Texture directly in project dir", True),
+            (f"{mock_project_root}/some_subdir/example_mesh.usd", "USD in project subdir", True),
+            (f"{mock_project_root}/assets/example_mesh.usd", "USD in assets subdir", True),
+            (f"{mock_project_root}/assets/models/example_mesh.usd", "USD in assets/models subdir", True),
+            (f"{mock_project_root}/assets/textures/example_texture.n.rtex.dds", "Texture in textures subdir", True),
+            (f"{mock_project_root}/deps/example_symlinked_mesh.usd", "USD in deps symlink dir", False),
+            (f"{mock_project_root}/deps/captures/meshes/example_symlinked_mesh.usd", "USD in deps subdir", False),
+            (f"{mock_project_root}/deps/captures/textures/example_texture.n.rtex.dds", "Texture in deps subdir", False),
+            ("C:/some_other_dir/assets/textures/example_mesh.usd", "USD outside of project dir", False),
+            ("C:/some_other_dir/assets/textures/example_texture.n.rtex.dds", "Texture outside of project dir", False),
+            ("C:/deps/captures/meshes/example_symlinked_mesh.usd", "USD outside of project dir and in deps", False),
+            ("C:/deps/captures/meshes/example_texture.n.rtex.dds", "Texture outside of project dir and in deps", False),
+        ]:
+            with self.subTest(name=f"Test path: {path}     Test layer: {layer}     Scenario: {scenario}"):
+                # Act
+                result = core.asset_is_in_project_dir(path, layer)
+
+                # Assert
+                self.assertEqual(result, expected_result)
+
+    async def test_copy_usd_asset(self):
+        # Arrange
+        test_asset_path = _get_test_data("usd/project_example/assets/ingested/test_asset.usd")
+        test_callback_func = MagicMock()
+
+        with patch.object(_usd_copier, "copy_usd_asset") as mock_copy_usd_asset:
+            # Act
+            _usd_copier.copy_usd_asset(
+                context=self.context,
+                asset_path=test_asset_path,
+                callback_func=test_callback_func,
+            )
+            # Assert
+            mock_copy_usd_asset.assert_called_once_with(
+                context=self.context,
+                asset_path=test_asset_path,
+                callback_func=test_callback_func,
+            )
+
+    async def test_copy_non_usd_asset(self):
+        # Arrange
+        test_asset_path = _get_test_data("usd/project_example/assets/ingested/test_asset.usd")
+        test_callback_func = MagicMock()
+
+        with patch.object(_usd_copier, "copy_non_usd_asset") as mock_copy_non_usd_asset:
+            # Act
+            _usd_copier.copy_non_usd_asset(
+                context=self.context, asset_path=test_asset_path, callback_func=test_callback_func
+            )
+            # Assert
+            mock_copy_non_usd_asset.assert_called_once_with(
+                context=self.context, asset_path=test_asset_path, callback_func=test_callback_func
+            )
+
+    async def test_is_valid_usd_file_throws(self):
+        # Arrange
+        temp_dir = TemporaryDirectory()
+        invalid_asset_paths = [
+            Path(temp_dir.name),
+            Path(temp_dir.name) / " ",
+            Path(temp_dir.name) / ".",
+            Path(temp_dir.name) / "asset",
+            Path(temp_dir.name) / "asset.",
+            Path(temp_dir.name) / "asset.u",
+            Path(temp_dir.name) / "asset.txt",
+            Path(temp_dir.name) / "asset.zip",
+            Path(temp_dir.name) / "asset.usr",
+            Path(temp_dir.name) / "asset.uusd",
+            Path(temp_dir.name) / "asset.usdd",
+            "C:\\..\\..my\\invalid\\path",
+        ]
+
+        for invalid_asset_path in invalid_asset_paths:
+            # Act
+            with self.assertRaises(ValueError) as cm:
+                _usd_copier.is_valid_usd_file(invalid_asset_path)
+
+            # Assert
+            self.assertEqual(f"'{invalid_asset_path}' is not a valid USD path", str(cm.exception))
+
+        temp_dir.cleanup()

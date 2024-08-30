@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.2]
+### Added
+- Added option to not ignore invalid paths for `is_asset_ingested()`
+
 ## [1.2.1]
 ### Changed
 - Changed repo link
