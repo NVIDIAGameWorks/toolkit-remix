@@ -28,6 +28,7 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
+from lightspeed.trex.asset_replacements.core.shared.usd_copier import copy_usd_asset as _copy_usd_asset
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
     ItemInstancesMeshGroup as _ItemInstancesMeshGroup,
@@ -315,7 +316,10 @@ class SetupUI:
             self._property_widget.show(False)
             # we take only the last value
             self._only_read_mesh_ref = True
-            self.set_ref_mesh_field(self._current_reference_file_mesh_items[-1].path)
+            self.set_ref_mesh_field(
+                path=self._current_reference_file_mesh_items[-1].path,
+                layer=self._current_reference_file_mesh_items[-1].layer,
+            )
             self._only_read_mesh_ref = False
             self._remix_categories_vstack.visible = False
             self._remix_categories_frame.visible = False
@@ -463,8 +467,8 @@ class SetupUI:
 
         _open_file_picker(
             "Select a reference file",
-            self.set_ref_mesh_field,
-            lambda *args: None,
+            callback=functools.partial(self.set_ref_mesh_field, layer=layer),
+            callback_cancel=lambda *args: None,
             current_file=navigate_to,
             fallback=fallback,
             file_extension_options=constants.READ_USD_FILE_EXTENSIONS_OPTIONS,
@@ -488,7 +492,7 @@ class SetupUI:
     def _on_mesh_ref_field_changed(self, _model):
         self._do_mesh_ref_field_changed()
 
-    def set_ref_mesh_field(self, path, change_prim_field=True):
+    def set_ref_mesh_field(self, path, change_prim_field=True, layer: "Sdf.Layer" = None):
         self.__will_change_prim_field = change_prim_field
         if self._only_read_mesh_ref:
             value = path
@@ -497,13 +501,39 @@ class SetupUI:
             if not self.__ignore_ingest_check and not self.__was_asset_ingested(value):
                 return
 
+            if layer is not None and not self._core.asset_is_in_project_dir(value, layer):
+                self.__prompt_user_to_copy_usd_asset(path=value, layer=layer)
+                return
+
         self._mesh_ref_field.model.set_value(value)
         if change_prim_field:
             self._ignore_mesh_ref_field_changed = True
             self.__set_ref_mesh_prim_field()
             self._ignore_mesh_ref_field_changed = False
 
+    def __prompt_user_to_copy_usd_asset(self, path: str, layer: "Sdf.Layer"):
+        self.__ignore_ingest_check = True
+
+        # Prompt the user copy the asset or cancel
+        _TrexMessageDialog(
+            title=constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE,
+            message=constants.ASSET_OUTSIDE_OF_PROJ_DIR_MESSAGE,
+            disable_ok_button=False,
+            ok_label=constants.ASSET_OUTSIDE_OF_PROJ_DIR_OK_LABEL,
+            ok_handler=functools.partial(
+                _copy_usd_asset,
+                context=self._context,
+                asset_path=path,
+                callback_func=lambda x: self.set_ref_mesh_field(path=x, change_prim_field=True, layer=layer),
+            ),
+            disable_middle_button=True,
+            disable_cancel_button=False,
+        )
+
     def __set_ref_mesh_prim_field(self):
+        if not self._current_reference_file_mesh_items:
+            return
+
         asset_path = self._mesh_ref_field.model.get_value_as_string()
         layer = self._current_reference_file_mesh_items[-1].layer
         if self._only_read_mesh_ref:
@@ -540,7 +570,10 @@ class SetupUI:
     def __reset_ingest_asset(self, go_to_ingest: bool = False):
         self._ignore_mesh_ref_field_changed = True
         self._only_read_mesh_ref = True
-        self.set_ref_mesh_field(self._current_reference_file_mesh_items[-1].path, change_prim_field=False)
+        self.set_ref_mesh_field(
+            path=self._current_reference_file_mesh_items[-1].path,
+            change_prim_field=False,
+        )
         self._ignore_mesh_ref_field_changed = False
         self._only_read_mesh_ref = False
         if go_to_ingest:
@@ -563,6 +596,8 @@ class SetupUI:
         if not self._only_read_mesh_ref and not self.__ref_mesh_field_is_editing and not self._from_mesh_ref_checkbox:
             layer = self._context.get_stage().GetEditTarget().GetLayer()
             abs_new_asset_path = omni.client.normalize_url(layer.ComputeAbsolutePath(path))
+
+            # Check if asset ingested
             if not self._core.was_the_asset_ingested(abs_new_asset_path):
                 ingest_enabled = bool(
                     omni.kit.app.get_app()
@@ -573,10 +608,11 @@ class SetupUI:
                 _TrexMessageDialog(
                     title=constants.ASSET_NEED_INGEST_WINDOW_TITLE,
                     message=constants.ASSET_NEED_INGEST_MESSAGE,
-                    ok_handler=functools.partial(self.__ignore_warning_ingest_asset, path),
+                    ok_handler=functools.partial(self.__ignore_warning_ingest_asset, path=path),
                     ok_label=constants.ASSET_NEED_INGEST_WINDOW_OK_LABEL,
                     cancel_handler=self.__reset_ingest_asset,
                     on_window_closed_fn=self.__reset_ingest_asset,
+                    disable_ok_button=not self._core.asset_is_in_project_dir(path=abs_new_asset_path, layer=layer),
                     disable_cancel_button=False,
                     disable_middle_button=not ingest_enabled,
                     middle_label=constants.ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL,
@@ -620,8 +656,6 @@ class SetupUI:
         if set_new_ref and not self.__ignore_ingest_check and not self.__was_asset_ingested(path):
             return
 
-        self.set_ref_mesh_field(path, change_prim_field=False)
-
         if self.__ref_mesh_field_is_editing:
             return
 
@@ -631,14 +665,23 @@ class SetupUI:
             if set_new_ref and not self.__is_ref_prim_field_path_valid(path, prim_path):
                 set_new_ref = False
 
-        if set_new_ref and not self._only_read_mesh_ref:
+        # if the path is a valid asset and outside of project hierarchy, prompt the user to copy or cancel
+        if self._core.is_file_path_valid(
+            path=abs_path, layer=layer, log_error=False
+        ) and not self._core.asset_is_in_project_dir(path=abs_path, layer=layer, include_deps_dir=True):
+            self.__prompt_user_to_copy_usd_asset(path=abs_path, layer=layer)
+
+        if set_new_ref and not self._only_read_mesh_ref and self._core.asset_is_in_project_dir(abs_path, layer):
             self.set_new_usd_reference()
         elif not self._from_mesh_ref_checkbox:
             only_read_mesh_ref_was_true = self._only_read_mesh_ref
             if not only_read_mesh_ref_was_true:
                 self._only_read_mesh_ref = True
             self._ignore_mesh_ref_field_changed = False
-            self.set_ref_mesh_field(self._current_reference_file_mesh_items[-1].path)
+            self.set_ref_mesh_field(
+                path=self._current_reference_file_mesh_items[-1].path,
+                layer=self._current_reference_file_mesh_items[-1].layer,
+            )
             if not only_read_mesh_ref_was_true:
                 self._only_read_mesh_ref = False
             self._ignore_mesh_ref_field_changed = True

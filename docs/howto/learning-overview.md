@@ -44,8 +44,10 @@ rtx-remix
 Projects ← Can be located anywhere -> Contains a list of Remix projects
 
 └ YOUR_PROJECT ← Automatically created after creating a project -> contains the files for your project
-│ ├ models ← (SUGGESTION) Manually Made -> Contains the ingested models
-│ ├ materials ← (SUGGESTION) Manually Made -> Contains the ingested materials
+│ ├ assets ← (SUGGESTION) Manually Made
+│ | ├ ingested ← (SUGGESTION) Manually Made
+│ | | ├ models ← (SUGGESTION) Manually Made -> Contains the ingested models
+│ | | ├ materials ← (SUGGESTION) Manually Made -> Contains the ingested materials
 │ ├ deps ← (Automatically created symlink to `rtx-remix` directory to make sure you have referenced files available)
 ```
 **Create a Desktop Shortcut**
@@ -65,11 +67,17 @@ Ensure that both your project drive and game install drive are formatted using N
 
 **Source and Ingested Assets**
 
-Have separate directories for source and output assets.
-Source directory: Store pre-ingestion assets & textures (FBX, USD, OBJ, etc.).
-Output directory: Keep ingested assets (USD) here.
+- It is best to have separate directories for source and ingested assets.
+- Source directory:
+  - Contains pre-ingestion assets & textures (FBX, USD, OBJ, etc.)
+  - Can be external from the project directory
+- Output directory
+  - Created manually and should be located somewhere within the project directory
+    - `(project_root)/assets/ingested/` is a good output directory
+  - The external asset copying feature uses `(project_root)/assets/ingested/` as a default output directory
+  - Contains ingested assets of type USD or DDS that will be referenced in the project
 
-> **IMPORTANT:** The output directory must be inside your project for correct references.
+> **IMPORTANT:** Referenced assets should exist within the project directory for references to work properly!
 
 **Linking Assets**
 

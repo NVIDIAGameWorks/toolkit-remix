@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.4] - 2024-07-19
+### Added
+- Add external asset warning popup text
+- Add `source/asset/models` path constant
+
 ## [1.0.3] - 2024-07-26
 ### Added
 - Added compiled `COMPILED_REGEX_HASH` for `REGEX_HASH`
