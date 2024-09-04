@@ -17,6 +17,7 @@
 
 import asyncio
 from functools import partial
+from pathlib import Path
 from typing import Any, Callable, List, Optional
 
 import carb
@@ -31,8 +32,9 @@ from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.path_utils import get_invalid_extensions as _get_invalid_extensions
 from omni.flux.utils.widget.file_pickers import open_file_picker as _open_file_picker
-from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
 
+from ..common.ingestion_checker import texture_validation_failed_callback as _texture_validation_failed_callback
+from ..common.ingestion_checker import validate_texture_selection as _validate_texture_selection
 from .delegate import TextureImportListDelegate
 from .items import TextureImportItem as _TextureImportItem
 from .model import TextureImportListModel
@@ -97,14 +99,29 @@ class TextureImportListWidget:
             self._dropsub = app_window.get_window_drop_event_stream().create_subscription_to_pop(
                 self._on_drag_drop_external, name="ExternalDragDrop event", order=0
             )
+        # Will be set to False during validation failure
+        self._allow_drop = True
 
         _setup_scanner_dialog(callback={"texture_import": [self._model.add_items]})
 
     def _on_drag_drop_external(self, event: carb.events.IEvent):
         async def do_drag_drop():
+            if not self._allow_drop:
+                # In validation failure dialog; don't allow more drops.
+                return
+
             paths = event.payload.get("paths", ())
             if not paths:
                 return
+            if not _validate_texture_selection(paths):
+
+                def reset_drop():
+                    self._allow_drop = True
+
+                self._allow_drop = False
+                _texture_validation_failed_callback(paths, callback=reset_drop)
+                bad_exts = _get_invalid_extensions(file_paths=paths, valid_extensions=_SUPPORTED_TEXTURE_EXTENSIONS)
+                paths = [path for path in paths if (pth := Path(path)).suffix not in bad_exts and not pth.is_dir()]
             if self.__drop_filter_fn:
                 paths = self.__drop_filter_fn(paths)
             if not paths:
@@ -203,29 +220,6 @@ class TextureImportListWidget:
         if self._file_tree_view.selection:
             current_file = self._file_tree_view.selection[0].path
 
-        def validate_selection(filenames):
-            return not _get_invalid_extensions(file_paths=filenames, valid_extensions=_SUPPORTED_TEXTURE_EXTENSIONS)
-
-        def validation_failed_callback(filenames):
-            invalid_extensions = _get_invalid_extensions(
-                file_paths=filenames, valid_extensions=_SUPPORTED_TEXTURE_EXTENSIONS, case_sensitive=False
-            )
-            if len(filenames) == 0:
-                error_message = "No file was selected."
-            else:
-                error_message = (
-                    "One or multiple of the selected files are invalid. "
-                    f"The following file type(s) are unsupported:\n\n     {', '.join(invalid_extensions)}"
-                    f"\n\nThese are the supported file types:\n\n     {', '.join(_SUPPORTED_TEXTURE_EXTENSIONS)}"
-                )
-
-            PromptManager.post_simple_prompt(
-                "Invalid file selected",
-                error_message,
-                ok_button_info=PromptButtonInfo("Okay", None),
-                modal=True,
-            )
-
         _open_file_picker(
             "Select a texture to import",
             self._model.add_items,
@@ -234,8 +228,8 @@ class TextureImportListWidget:
             file_extension_options=[(", ".join(_SUPPORTED_TEXTURE_EXTENSIONS), "")],
             select_directory=False,
             current_file=str(current_file) if current_file else None,
-            validate_selection=validate_selection,
-            validation_failed_callback=validation_failed_callback,
+            validate_selection=_validate_texture_selection,
+            validation_failed_callback=_texture_validation_failed_callback,
             allow_multi_selection=True,
         )
 

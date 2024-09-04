@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.9] - 2024-09-03
+### Added
+- Added validation dialog to ingestion drag-drop
+- Added validation of directories being dropped for ingestion
+### Changed
+- Refactored validation code into separate `ingestion_checker.py` file
+
 ## [2.5.8]
 ### Added
 - Adding scan folder buttons

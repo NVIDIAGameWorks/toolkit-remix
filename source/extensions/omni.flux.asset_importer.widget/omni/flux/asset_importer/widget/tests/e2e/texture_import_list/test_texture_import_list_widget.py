@@ -36,12 +36,17 @@ from omni.kit import ui_test
 from omni.kit.test_suite.helpers import arrange_windows, wait_stage_loading
 
 
+class DropEvent:
+    payload = {}
+
+
 class TestTextureImportListWidget(omni.kit.test.AsyncTestCase):
     # Before running each test
     async def setUp(self):
         await omni.usd.get_context().new_stage_async()
         self.stage = omni.usd.get_context().get_stage()
         self.temp_dir = TemporaryDirectory()
+        self.window = None
 
     # After running each test
     async def tearDown(self):
@@ -51,19 +56,22 @@ class TestTextureImportListWidget(omni.kit.test.AsyncTestCase):
         self.temp_dir.cleanup()
         self.stage = None
         self.temp_dir = None
+        if self.window:
+            self.window.destroy()
+        self.window = None
 
     async def __setup_widget(
         self, model: Optional[TextureImportListModel] = None, delegate: Optional[TextureImportListDelegate] = None
     ):
         await arrange_windows(topleft_window="Stage")
 
-        window = ui.Window("TestTextureImportListWindow", height=400, width=800)
-        with window.frame:
-            TextureImportListWidget(model=model, delegate=delegate)
+        self.window = ui.Window("TestTextureImportListWindow", height=400, width=800)
+        with self.window.frame:
+            self.texture_import_list_widget = TextureImportListWidget(model=model, delegate=delegate)
 
         await ui_test.human_delay()
 
-        return window
+        return self.window
 
     async def __setup_input_files(self, model):
         base_path = Path(self.temp_dir.name)
@@ -183,6 +191,7 @@ class TestTextureImportListWidget(omni.kit.test.AsyncTestCase):
 
         await add_item.click()
         await ui_test.human_delay()
+        await omni.kit.app.get_app().next_update_async()
 
         # File Picker
         window_name = "Select a texture to import"
@@ -331,3 +340,93 @@ class TestTextureImportListWidget(omni.kit.test.AsyncTestCase):
         await ui_test.human_delay(10)
 
         self.assertEqual(1, len(model.get_item_children(None)))
+
+    async def test_drop_valid_files(self):
+        model = TextureImportListModel()
+        delegate = TextureImportListDelegate()
+
+        base_path = Path(self.temp_dir.name)
+        good_items = [base_path / "0.jpg", base_path / "1.jpg"]
+        for item in good_items:
+            item.touch()
+
+        window = await self.__setup_widget(model=model, delegate=delegate)  # Keep in memory during test
+
+        # Start the test
+        widget = self.texture_import_list_widget
+        event = DropEvent()
+        event.payload = {"paths": [str(item) for item in good_items]}
+
+        file_items = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")
+        self.assertEqual(len(file_items), 0)
+
+        # Simulate dropping files on the widget
+        widget._on_drag_drop_external(event)  # noqa PLW0212 protected-access
+        await ui_test.human_delay(70)
+
+        file_items = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")
+        self.assertEqual(len(file_items), len(good_items))
+
+    async def test_drop_invalid_files(self):
+        # Setup the test
+        model = TextureImportListModel()
+        delegate = TextureImportListDelegate()
+
+        base_path = Path(self.temp_dir.name)
+        good_items = [base_path / "1.jpg", base_path / "2.usd"]
+        bad_items = [base_path / "3.nogood", base_path / "4.INVALID"]
+        for item in good_items:
+            item.touch()
+        for item in bad_items:
+            item.touch()
+        all_items = [str(item) for item in good_items] + [str(item) for item in bad_items]
+
+        window = await self.__setup_widget(model=model, delegate=delegate)  # Keep in memory during test
+
+        # Start the test
+        widget = self.texture_import_list_widget
+        event = DropEvent()
+        event.payload = {"paths": all_items}
+
+        file_items = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")
+        self.assertEqual(len(file_items), 0)
+
+        # Simulate dropping files on the widget The failed drop will raise an error dialog that we don't need here.
+        with patch("omni.flux.asset_importer.widget.texture_import_list.widget._texture_validation_failed_callback"):
+            widget._on_drag_drop_external(event)  # noqa PLW0212 protected-access
+            await ui_test.human_delay()
+
+        file_items = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")
+        # Only the good items should be added
+        self.assertEqual(len(file_items), len(good_items))
+
+    async def test_drop_directory(self):
+        # Setup the test
+        model = TextureImportListModel()
+        delegate = TextureImportListDelegate()
+
+        base_path = Path(self.temp_dir.name)
+        subdir1 = base_path / "sub1"
+        subdir2 = base_path / "sub2"
+        subdir1.mkdir(parents=True)
+        subdir2.mkdir(parents=True)
+        items = [subdir1, subdir2]
+
+        window = await self.__setup_widget(model=model, delegate=delegate)  # Keep in memory during test
+
+        # Start the test
+        widget = self.texture_import_list_widget
+        event = DropEvent()
+        event.payload = {"paths": items}
+
+        file_items = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")
+        self.assertEqual(len(file_items), 0)
+
+        # Simulate dropping files on the widget The failed drop will raise an error dialog that we don't need here.
+        with patch("omni.flux.asset_importer.widget.texture_import_list.widget._texture_validation_failed_callback"):
+            widget._on_drag_drop_external(event)  # noqa PLW0212 protected-access
+            await ui_test.human_delay()
+
+        file_items = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")
+        # Nothing should have been added
+        self.assertEqual(len(file_items), 0)
