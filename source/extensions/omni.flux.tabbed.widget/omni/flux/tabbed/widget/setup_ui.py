@@ -316,7 +316,7 @@ class SetupUI:
         self._selection_changed(self._tree.selection[0])
 
         for title, frame in self._all_frames.items():
-            frame.visible = title == self._tree.selection[0].title
+            frame.visible = frame.enabled = title == self._tree.selection[0].title
 
     def destroy(self):
         for frame in self._all_frames.values():
