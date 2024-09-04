@@ -16,9 +16,11 @@
 """
 
 import abc
+from typing import Iterable
 
 from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
 from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugin as _StageManagerInteractionPlugin
+from pxr import Usd
 from pydantic import PrivateAttr
 
 
@@ -36,15 +38,39 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
     def compatible_data_type(cls):
         return _StageManagerDataTypes.USD
 
+    @classmethod
+    @property
+    def recursive_traversal(cls) -> bool:
+        """
+        Whether the interaction plugin should perform a recursive traversal of the context items.
+
+        Returns:
+            bool: True if the interaction plugin should perform a recursive traversal, False otherwise.
+        """
+        return False
+
     def _update_context_items(self):
-        if hasattr(self._context, "context_name"):
-            self._set_context_name(self._context.context_name)
+        self._set_context_name()
 
-        super()._update_context_items()
+        context_items = self._context.get_items()
+        if self.recursive_traversal:
+            context_items = self._traverse_children_recursive(context_items)
+        else:
+            context_items = self._filter_context_items(context_items)
 
-    def _set_context_name(self, value: str):
+        self.tree.model.context_items = context_items
+        self.tree.model.refresh()
+
+    def _set_context_name(self):
+        """
+        Set the context name in the interaction and all children USD plugins using the USD context plugin.
+        """
         attribute_name = "context_name"
 
+        if not hasattr(self._context, attribute_name):
+            return
+
+        value = getattr(self._context, attribute_name, "")
         self._context_name = value
 
         # Propagate the value
@@ -63,6 +89,22 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
                 if hasattr(widget_plugin, attribute_name):
                     widget_plugin.context_name = value
 
-        for context_filter_plugin in self.context_filters:
-            if hasattr(context_filter_plugin, attribute_name):
-                context_filter_plugin.context_name = value
+    def _traverse_children_recursive(self, prims: Iterable[Usd.Prim], filter_prims: bool = True) -> list[Usd.Prim]:
+        """
+        Get a filtered list of all the prims and their children recursively.
+
+        Args:
+            prims: The list of prims to traverse
+
+        Returns:
+            A filtered list of all the prims and their children
+        """
+        filtered_prims = self._filter_context_items(prims) if filter_prims else list(prims)
+        children = filtered_prims.copy()
+        for prim in filtered_prims:
+            children.extend(
+                self._traverse_children_recursive(
+                    prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate), filter_prims=filter_prims
+                )
+            )
+        return children

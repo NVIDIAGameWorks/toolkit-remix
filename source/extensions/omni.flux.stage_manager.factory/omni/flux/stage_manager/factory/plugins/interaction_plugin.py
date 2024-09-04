@@ -18,13 +18,13 @@
 import abc
 from asyncio import Future, ensure_future
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, Iterable
+from typing import TYPE_CHECKING, Any, Iterable
 
 import carb
 import omni.kit.app
 from omni import ui
 from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
-from pydantic import Field, PrivateAttr, validator
+from pydantic import Field, PrivateAttr, root_validator, validator
 
 from .base import StageManagerUIPluginBase as _StageManagerUIPluginBase
 from .column_plugin import LengthUnit as _LengthUnit
@@ -44,11 +44,13 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     """
 
     tree: _StageManagerTreePlugin = Field(..., description="The tree plugin defining the model and delegate")
-    filters: list[_StageManagerFilterPlugin] = Field(..., description="Filters to display in the Interaction UI")
+    filters: list[_StageManagerFilterPlugin] = Field(..., description="Filters to apply to the context data")
     columns: list[_StageManagerColumnPlugin] = Field(..., description="Columns to display in the TreeWidget")
 
-    context_filters: list[_StageManagerFilterPlugin] = Field(
-        [], description="Filters to apply to the context plugin. The UI will be hidden."
+    required_filters: list[_StageManagerFilterPlugin] = Field(
+        [],
+        description="Mandatory filters defined by the interaction plugin. Will never be displayed in UI.",
+        exclude=True,
     )
 
     tree_widget: ui.TreeView | None = Field(
@@ -57,14 +59,12 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     # The context will be set by the core. This will be used to get the context data.
     _context: _StageManagerContextPlugin | None = PrivateAttr()
-
     _result_frames: list[ui.Frame] = PrivateAttr()
     _item_expansion_states: dict[int, bool] = PrivateAttr()
-
     _filter_items_changed_subs: list[carb.Subscription] = PrivateAttr()
     _item_expanded_sub: carb.Subscription = PrivateAttr()
-
     _update_expansion_task: Future | None = PrivateAttr()
+    _is_initialized: bool = PrivateAttr()
 
     _FILTERS_HORIZONTAL_PADDING: int = 24
     _FILTERS_VERTICAL_PADDING: int = 8
@@ -84,23 +84,27 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._update_expansion_task = None
 
-        # Subscribe to the on_filter_items_changed event to refresh the tree widget model
-        self.tree.model.context_filters.extend(self._subscribe_filter_items_changed(self.context_filters))
-        self.tree.model.filter_functions.extend(self._subscribe_filter_items_changed(self.filters))
+        self._is_initialized = False
 
-        enabled_columns = [c for c in self.columns if c.enabled]
-
-        self.tree.model.column_count = len(enabled_columns)
-
-        self.tree.delegate.column_header_builders = {i: c.build_header for i, c in enumerate(enabled_columns)}
-        self.tree.delegate.column_widget_builders = {i: c.build_ui for i, c in enumerate(enabled_columns)}
-
-        self._item_expanded_sub = self.tree.delegate.subscribe_item_expanded(self._on_item_expanded)
-
-    @validator("filters", "context_filters", allow_reuse=True)
+    @validator("filters", "required_filters", allow_reuse=True)
     def check_unique_filters(cls, v):  # noqa N805
         # Use a list + validator to keep the list order
         return list(dict.fromkeys(v))
+
+    @root_validator(allow_reuse=True)
+    def check_plugin_compatibility(cls, values):  # noqa N805
+        # In the root validator, plugins are already resolved
+        cls._check_plugin_compatibility(values.get("tree").name, values.get("compatible_trees"))
+        for filter_plugin in values.get("filters"):
+            cls._check_plugin_compatibility(filter_plugin.name, values.get("compatible_filters"))
+        for filter_plugin in values.get("required_filters"):
+            # The interaction filters are not instantiated at this point
+            cls._check_plugin_compatibility(filter_plugin.get("name"), values.get("compatible_filters"))
+        for column_plugin in values.get("columns"):
+            for widget_plugin in column_plugin.widgets:
+                cls._check_plugin_compatibility(widget_plugin.name, values.get("compatible_widgets"))
+
+        return values
 
     @classmethod
     @property
@@ -138,7 +142,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         pass
 
     @classmethod
-    def check_compatibility(cls, value: Any, compatible_items: list[Any] | None) -> Any:
+    def _check_plugin_compatibility(cls, value: Any, compatible_items: list[Any] | None) -> Any:
         """
         Check if the given value is contained within the compatible items.
 
@@ -159,16 +163,50 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             )
         return value
 
-    def set_context(self, value: _StageManagerContextPlugin):
+    def setup(self, value: _StageManagerContextPlugin):
         """
-        Set the context plugin providing data to the interaction plugin
+        Set up the interaction plugin with the given context.
+
+        Args:
+            value: the context the interaction plugin should use
         """
+
+        # Subscribe to the on_filter_items_changed event to refresh the tree widget model
+        self.tree.model.clear_filter_functions()
+        for filter_plugin in self.filters + self.required_filters:
+            if not filter_plugin.enabled:
+                continue
+            self._filter_items_changed_subs.append(
+                filter_plugin.subscribe_filter_items_changed(self._on_filter_items_changed)
+            )
+            # Some models might need to filter children items so pass the filter functions down
+            self.tree.model.add_filter_functions([filter_plugin.filter_items])
+
+        enabled_columns = [c for c in self.columns if c.enabled]
+
+        self.tree.model.column_count = len(enabled_columns)
+        self.tree.delegate.set_column_builders(enabled_columns)
+        self._item_expanded_sub = self.tree.delegate.subscribe_item_expanded(self._on_item_expanded)
+
         self._context = value
+        self._validate_data_type()
         self._update_context_items()
 
+        self._is_initialized = True
+
     def build_ui(self):  # noqa PLW0221
+        """
+        The method used to build the UI for the plugin.
+
+        Raises:
+            ValueError: If the plugin was not initialized before building the UI.
+        """
+
         if not self.enabled:
             return
+
+        if not self._is_initialized:
+            raise ValueError("InteractionPlugin.setup() must be called before build_ui()")
 
         self._result_frames.clear()
 
@@ -184,6 +222,9 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 ui.Spacer(height=0)
                 with ui.HStack(width=0, height=0, spacing=self._FILTERS_HORIZONTAL_PADDING):
                     for filter_plugin in enabled_filters:
+                        # Some filters should not be displayed in the UI
+                        if not filter_plugin.display:
+                            continue
                         ui.Frame(tooltip=filter_plugin.tooltip, build_fn=filter_plugin.build_ui)
                 ui.Spacer(width=12, height=0)
             ui.Spacer(height=ui.Pixel(self._FILTERS_VERTICAL_PADDING), width=0)
@@ -249,24 +290,11 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 length_class = ui.Pixel
         return length_class(column_width.value)
 
-    def _subscribe_filter_items_changed(
-        self, filters: Iterable[_StageManagerFilterPlugin]
-    ) -> list[Callable[[Iterable[Any]], list[Any]]]:
-        enabled_filters = []
-        for enabled_filter in filters:
-            if not enabled_filter.enabled:
-                continue
-            self._filter_items_changed_subs.append(
-                enabled_filter.subscribe_filter_items_changed(self._on_filter_items_changed)
-            )
-            enabled_filters.append(enabled_filter.filter_items)
-        return enabled_filters
-
     def _on_filter_items_changed(self):
         """
         Event handler for to execute when event widgets are updated
         """
-        self.tree.model.refresh()
+        self._update_context_items()
 
         # Rebuild the result UI with the update model data
         for frame in self._result_frames:
@@ -277,22 +305,41 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     def _on_item_expanded(self, item: ui.AbstractItem, expanded: bool):
         self._item_expansion_states[hash(item)] = expanded
 
-    def _update_context_items(self):
+    def _validate_data_type(self):
         """
-        Set the context items for the interaction plugin Tree model and refresh the model.
+        Validate the compatibility of the context data type
 
         Raises:
             ValueError: If the data type is not compatible with this plugin
         """
-        # Validate the compatibility of the context data type
         if self._context.data_type != self.compatible_data_type:
             raise ValueError(
                 f"The context plugin data type is not compatible with this interaction plugin -> {self.name} -> "
                 f"{self._context.data_type.value} != {self.compatible_data_type.value}"
             )
 
-        self.tree.model.context_items = self._context.setup()
+    def _update_context_items(self):
+        """
+        Set the context items for the interaction plugin Tree model and refresh the model.
+        """
+        self.tree.model.context_items = self._filter_context_items(self._context.get_items())
         self.tree.model.refresh()
+
+    def _filter_context_items(self, items: Iterable[Any]) -> list[Any]:
+        """
+        Filter the context items based on the enabled filters.
+
+        Args:
+            items: The items to be filtered
+
+        Returns:
+            A filtered list of items
+        """
+        filtered_items = list(items)
+        for filter_plugin in self.filters + self.required_filters:
+            if filter_plugin.enabled:
+                filtered_items = filter_plugin.filter_items(filtered_items)
+        return filtered_items
 
     def _update_expansion_states(self):
         """

@@ -15,29 +15,13 @@
 * limitations under the License.
 """
 
-from pydantic import root_validator
-
 from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin
 
 
 class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
-    display_name: str = "All Prims"
-    tooltip: str = "View all the available prims"
+    display_name: str = "Prims"
+    tooltip: str = "View the available prims"
 
     compatible_trees: list[str] = ["PrimGroupsTreePlugin", "VirtualGroupsTreePlugin"]
     compatible_filters: list[str] = ["IgnorePrimsFilterPlugin", "OmniPrimsFilterPlugin", "SearchFilterPlugin"]
     compatible_widgets: list[str] = ["PrimTreeWidgetPlugin", "IsVisibleStateWidgetPlugin"]
-
-    @root_validator(allow_reuse=True)
-    def check_tree_compatibility(cls, values):  # noqa N805
-        # In the root validator, plugins are already resolved
-        cls.check_compatibility(values.get("tree").name, values.get("compatible_trees"))
-        for filter_plugin in values.get("filters"):
-            cls.check_compatibility(filter_plugin.name, values.get("compatible_filters"))
-        for filter_plugin in values.get("context_filters"):
-            cls.check_compatibility(filter_plugin.name, values.get("compatible_filters"))
-        for column_plugin in values.get("columns"):
-            for widget_plugin in column_plugin.widgets:
-                cls.check_compatibility(widget_plugin.name, values.get("compatible_widgets"))
-
-        return values

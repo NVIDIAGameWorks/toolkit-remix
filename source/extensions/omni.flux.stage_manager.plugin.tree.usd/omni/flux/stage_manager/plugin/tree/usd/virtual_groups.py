@@ -15,13 +15,41 @@
 * limitations under the License.
 """
 
+from typing import TYPE_CHECKING
+
 from .base import StageManagerUSDTreeDelegate as _StageManagerUSDTreeDelegate
 from .base import StageManagerUSDTreeItem as _StageManagerUSDTreeItem
 from .base import StageManagerUSDTreeModel as _StageManagerUSDTreeModel
 from .base import StageManagerUSDTreePlugin as _StageManagerUSDTreePlugin
 
+if TYPE_CHECKING:
+    from pxr import Usd
+
 
 class VirtualGroupsItem(_StageManagerUSDTreeItem):
+    def __init__(
+        self,
+        display_name: str,
+        tooltip: str,
+        children: list["VirtualGroupsItem"] | None = None,
+        prim: "Usd.Prim" = None,
+        is_virtual: bool | None = None,
+    ):
+        """
+        Create a Virtual Group Item
+
+        Args:
+            display_name: The name to display in the Tree
+            tooltip: The tooltip to display when hovering an item in the Tree
+            children: The children items.
+            prim: The prim associated with the item. This should NOT BE SET for virtual groups
+            is_virtual: Can be set explicitly, otherwise it will be inferred from the prim argument
+        """
+
+        super().__init__(display_name, tooltip, children, prim)
+
+        self._data["virtual"] = (prim is None) if (is_virtual is None) else is_virtual
+
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr

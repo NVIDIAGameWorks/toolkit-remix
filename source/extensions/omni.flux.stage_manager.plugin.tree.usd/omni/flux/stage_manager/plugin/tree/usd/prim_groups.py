@@ -60,7 +60,10 @@ class PrimGroupsDelegate(_StageManagerUSDTreeDelegate):
 
 class PrimGroupsTreePlugin(_StageManagerUSDTreePlugin):
     """
-    A hierarchical tree of prims reflecting the actual USD structure
+    A hierarchical tree of prims reflecting the actual USD structure.
+
+    The plugin model expects a single context item representing the root of the USD stage. The children prims will be
+    fetched during item creation.
     """
 
     model: PrimGroupsModel = None

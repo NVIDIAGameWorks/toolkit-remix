@@ -47,9 +47,20 @@ class StageManagerContextPlugin(_StageManagerPluginBase, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def setup(self) -> list:
+    def setup(self):
         """
-        Set up the context for the other plugins to use
+        Set up the context. This will be called once by the core.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_items(self) -> list:
+        """
+        Get the items that should be used by the other plugins. This will be called whenever the interaction plugin
+        needs updated data.
+
+        Returns:
+            A list of items to be used by the other plugins.
         """
         pass
 

@@ -7,7 +7,11 @@
         {
             "name": "AllPrimsInteractionPlugin",
             "tree": { "name": "PrimGroupsTreePlugin" },
-            "filters": [ { "name": "SearchFilterPlugin" } ],
+            "filters": [
+                { "name": "SearchFilterPlugin" },
+                { "name": "OmniPrimsFilterPlugin", "display": false, "include_results": false },
+                { "name": "IgnorePrimsFilterPlugin", "display": false, "ignore_prim_paths": ["/remix_settings"] }
+            ],
             "columns": [
                 {
                     "name": "HorizontalColumnPlugin",
@@ -24,10 +28,32 @@
                         { "name": "IsVisibleStateWidgetPlugin" }
                     ]
                 }
+            ]
+        },
+        {
+            "name": "AllLightsInteractionPlugin",
+            "tree": { "name": "LightGroupsTreePlugin" },
+            "filters": [
+                { "name": "SearchFilterPlugin" },
+                { "name": "OmniPrimsFilterPlugin", "display": false, "include_results": false },
+                { "name": "IgnorePrimsFilterPlugin", "display": false, "ignore_prim_paths": ["/remix_settings", "/RootNode/instances/"] }
             ],
-            "context_filters": [
-                { "name": "OmniPrimsFilterPlugin" },
-                { "name": "IgnorePrimsFilterPlugin", "ignore_prim_paths": ["/remix_settings"] }
+            "columns": [
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Prims",
+                    "widgets": [
+                        { "name": "PrimTreeWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "State",
+                    "width": { "unit": "Pixel", "value": 100 },
+                    "widgets": [
+                        { "name": "IsVisibleStateWidgetPlugin" }
+                    ]
+                }
             ]
         }
     ]

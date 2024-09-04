@@ -50,12 +50,13 @@ class StageManagerCore:
 
     def setup(self, schema_dict: dict) -> _StageManagerSchema:
         schema = _StageManagerSchema(**schema_dict)
+        schema.context.setup()
 
         for interaction in schema.interactions:
             if not interaction.enabled:
                 continue
             # Set the context data in the interaction plugins
-            interaction.set_context(schema.context)
+            interaction.setup(schema.context)
 
         return schema
 

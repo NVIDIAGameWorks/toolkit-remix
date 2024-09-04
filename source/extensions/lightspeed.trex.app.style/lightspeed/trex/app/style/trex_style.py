@@ -416,6 +416,11 @@ current_dict.update(
         "Image::GeomSubset": {"image_url": _get_icons("hexagon-multiple-outline"), "color": _WHITE_80},
         "Image::Categories": {"image_url": _get_icons("categories"), "color": _WHITE_100},
         "Image::Categories:hovered": {"image_url": _get_icons("categories"), "color": _WHITE_60},
+        "Image::CylinderLightStatic": {"image_url": _get_icons("light_cylinder"), "color": _WHITE_60},
+        "Image::DiskLightStatic": {"image_url": _get_icons("light_disc"), "color": _WHITE_60},
+        "Image::DistantLightStatic": {"image_url": _get_icons("light_distant"), "color": _WHITE_60},
+        "Image::RectLightStatic": {"image_url": _get_icons("light_rect"), "color": _WHITE_60},
+        "Image::SphereLightStatic": {"image_url": _get_icons("light_point"), "color": _WHITE_60},
         "Image::ShowInViewport": {
             "image_url": _get_icons("axis-arrow"),
             "color": _WHITE_20,

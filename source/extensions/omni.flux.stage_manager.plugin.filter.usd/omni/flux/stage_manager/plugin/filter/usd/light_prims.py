@@ -17,7 +17,7 @@
 
 from typing import TYPE_CHECKING
 
-from omni.flux.utils.common import get_omni_prims as _get_omni_prims
+from pxr import UsdLux
 
 from .base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
 
@@ -25,9 +25,9 @@ if TYPE_CHECKING:
     from pxr import Usd
 
 
-class OmniPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
-    display_name: str = "Omniverse Prims"
-    tooltip: str = "Filter out Omniverse prims"
+class LightPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
+    display_name: str = "Light Prims"
+    tooltip: str = "Filter out light prims"
 
     def _filter_predicate(self, prim: "Usd.Prim") -> bool:
-        return prim.GetPath() in _get_omni_prims()
+        return prim.HasAPI(UsdLux.LightAPI) if hasattr(UsdLux, "LightAPI") else prim.IsA(UsdLux.Light)

@@ -21,13 +21,14 @@ import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
 from .ignore_prims import IgnorePrimsFilterPlugin as _IgnorePrimsFilterPlugin
+from .light_prims import LightPrimsFilterPlugin as _LightPrimsFilterPlugin
 from .omni_prims import OmniPrimsFilterPlugin as _OmniPrimsFilterPlugin
 from .search import SearchFilterPlugin as _SearchFilterPlugin
 
 
 class StageManagerUSDFilterPluginsExtension(omni.ext.IExt):
 
-    _PLUGINS = [_IgnorePrimsFilterPlugin, _OmniPrimsFilterPlugin, _SearchFilterPlugin]
+    _PLUGINS = [_IgnorePrimsFilterPlugin, _LightPrimsFilterPlugin, _OmniPrimsFilterPlugin, _SearchFilterPlugin]
 
     def on_startup(self, _):
         carb.log_info("[omni.flux.stage_manager.plugin.filter.usd] Startup")

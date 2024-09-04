@@ -18,6 +18,7 @@
 from typing import TYPE_CHECKING
 
 from omni import ui
+from pydantic import Field
 
 from .base import StageManagerUSDWidgetPlugin as _StageManagerUSDWidgetPlugin
 
@@ -30,8 +31,19 @@ class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin):
     display_name: str = "Prims"
     tooltip: str = ""
 
+    icon_size: int = Field(24 - 8, description="The size of the icon in pixels", exclude=True)
+    item_spacing: int = Field(8, description="The horizontal space between them items in pixels", exclude=True)
+
     def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
-        ui.Label(item.display_name, tooltip=item.tooltip)
+        with ui.HStack(spacing=ui.Pixel(self.item_spacing), tooltip=item.tooltip):
+            if item.icon:
+                ui.Image("", name=item.icon, width=ui.Pixel(self.icon_size), height=ui.Pixel(self.icon_size))
+            else:
+                ui.Spacer(height=0, width=0)
+            ui.Label(item.display_name)
 
     def build_result_ui(self, model: "_StageManagerTreeModel"):
-        ui.Label(f"{len(list(model.iter_items_children()))} items available")
+        # Make sure to only count prims, not virtual groups
+        prims_count = len([i for i in model.iter_items_children() if not i.data.get("virtual")])
+
+        ui.Label(f"{prims_count} item{'s' if prims_count > 1 else '' } available")

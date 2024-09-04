@@ -16,16 +16,13 @@
 """
 
 import abc
-from typing import TYPE_CHECKING
 
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeDelegate as _StageManagerTreeDelegate
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
+from pxr import Usd
 from pydantic import Field
-
-if TYPE_CHECKING:
-    from pxr import Usd
 
 
 class StageManagerUSDTreeItem(_StageManagerTreeItem):
@@ -44,7 +41,7 @@ class StageManagerUSDTreeItem(_StageManagerTreeItem):
         return super().default_attr
 
 
-class StageManagerUSDTreeModel(_StageManagerTreeModel):
+class StageManagerUSDTreeModel(_StageManagerTreeModel[Usd.Prim]):
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:

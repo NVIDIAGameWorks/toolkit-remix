@@ -16,13 +16,19 @@
 """
 
 import abc
-from typing import Any, Callable, Iterable
+from typing import TYPE_CHECKING, Any, Callable, Generic, Iterable, TypeVar
 
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
 
 from .base import StageManagerPluginBase as _StageManagerPluginBase
+
+if TYPE_CHECKING:
+    from .column_plugin import StageManagerColumnPlugin as _StageManagerColumnPlugin
+
+
+DataType = TypeVar("DataType")
 
 
 class StageManagerTreeItem(_TreeItemBase):
@@ -54,14 +60,30 @@ class StageManagerTreeItem(_TreeItemBase):
 
     @property
     def display_name(self) -> str:
+        """
+        The display name for the item. Can be used by the widgets
+        """
         return self._display_name
 
     @property
     def tooltip(self) -> str:
+        """
+        The tooltip displayed when hovering the item. Can be used by the widgets
+        """
         return self._tooltip
 
     @property
+    def icon(self) -> str | None:
+        """
+        The icon style name associated with the item. Can be used by the widgets
+        """
+        return None  # noqa R501
+
+    @property
     def data(self) -> dict:
+        """
+        Custom data held in the item. Can be used by the widgets
+        """
         return self._data
 
     @property
@@ -77,7 +99,7 @@ class StageManagerTreeItem(_TreeItemBase):
         return hash(self.display_name + self.tooltip + str(self.data))
 
 
-class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
+class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem], Generic[DataType]):
     """
     A TreeView model used to define the structure of the tree
     """
@@ -86,7 +108,6 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         super().__init__()
 
         self._context_items: list[Any] = []
-        self._context_filters: list[Callable[[Iterable[Any]], list[Any]]] = []
         self._filter_functions: list[Callable[[Iterable[Any]], list[Any]]] = []
         self._column_count = 0
 
@@ -98,7 +119,6 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
             {
                 "_items": None,
                 "_context_items": None,
-                "_context_filters": None,
                 "_filter_functions": None,
                 "_column_count": None,
             }
@@ -125,34 +145,6 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         Set items fetched in the context plugin
         """
         self._context_items = list(items)
-
-    @property
-    def context_filters(self) -> list[Any]:
-        """
-        Get items set by the context plugin
-        """
-        return self._context_filters
-
-    @context_filters.setter
-    def context_filters(self, items: Iterable[StageManagerTreeItem]):
-        """
-        Set items fetched in the context plugin
-        """
-        self._context_filters = list(items)
-
-    @property
-    def filter_functions(self) -> list[Callable[[Iterable[Any]], list[Any]]]:
-        """
-        Get the filter functions to apply to the items
-        """
-        return self._filter_functions
-
-    @filter_functions.setter
-    def filter_functions(self, value: list[Callable[[Iterable[Any]], list[Any]]]):
-        """
-        Set the filter functions to apply to the items
-        """
-        self._filter_functions = value
 
     @property
     def column_count(self) -> int:
@@ -185,7 +177,19 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
     def get_item_value_model_count(self, item: StageManagerTreeItem):
         return self.column_count
 
-    def filter_items(self, items: Iterable[Any]) -> list[Any]:
+    def add_filter_functions(self, value: list[Callable[[Iterable[DataType]], list[DataType]]]):
+        """
+        Extend the filter functions to apply to the items
+        """
+        self._filter_functions.extend(value)
+
+    def clear_filter_functions(self):
+        """
+        Clear the filter functions to apply to the items
+        """
+        self._filter_functions.clear()
+
+    def filter_items(self, items: Iterable[DataType]) -> list[DataType]:
         """
         Filter the given items using the active filter plugins
 
@@ -197,7 +201,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
         filtered_items = items
 
-        for filter_function in self.context_filters + self.filter_functions:
+        for filter_function in self._filter_functions:
             filtered_items = filter_function(filtered_items)
 
         return filtered_items
@@ -212,7 +216,7 @@ class StageManagerTreeDelegate(_TreeDelegateBase):
         super().__init__()
 
         self._column_widget_builders = {}
-        self._column_headers = {}
+        self._column_header_builders = {}
 
     @property
     @abc.abstractmethod
@@ -221,30 +225,15 @@ class StageManagerTreeDelegate(_TreeDelegateBase):
         default_attr.update(
             {
                 "_column_widget_builders": None,
-                "_column_headers": None,
+                "_column_header_builders": None,
             }
         )
         return default_attr
 
-    @property
-    def column_widget_builders(
-        self,
-    ) -> dict[int, Callable[[StageManagerTreeModel, StageManagerTreeItem, int, bool], None]]:
-        return self._column_widget_builders
-
-    @column_widget_builders.setter
-    def column_widget_builders(
-        self, value: dict[int, Callable[[StageManagerTreeModel, StageManagerTreeItem, int, bool], None]]
-    ):
-        self._column_widget_builders = value
-
-    @property
-    def column_header_builders(self) -> dict[int, Callable[[], None]]:
-        return self._column_headers
-
-    @column_header_builders.setter
-    def column_header_builders(self, value: dict[int, Callable[[], None]]):
-        self._column_headers = value
+    def set_column_builders(self, columns: list["_StageManagerColumnPlugin"]):
+        for index, column in enumerate(columns):
+            self._column_widget_builders[index] = column.build_ui
+            self._column_header_builders[index] = column.build_header
 
     def _build_widget(
         self,
@@ -254,12 +243,12 @@ class StageManagerTreeDelegate(_TreeDelegateBase):
         level: int,
         expanded: bool,
     ):
-        if column_id in self.column_widget_builders:
-            self.column_widget_builders[column_id](model, item, level, expanded)
+        if column_id in self._column_widget_builders:
+            self._column_widget_builders[column_id](model, item, level, expanded)
 
     def _build_header(self, column_id: int):
-        if column_id in self.column_header_builders:
-            self.column_header_builders[column_id]()
+        if column_id in self._column_header_builders:
+            self._column_header_builders[column_id]()
 
 
 class StageManagerTreePlugin(_StageManagerPluginBase, abc.ABC):

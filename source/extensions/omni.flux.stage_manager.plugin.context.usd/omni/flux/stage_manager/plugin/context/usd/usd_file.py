@@ -26,9 +26,8 @@ from .current_stage import CurrentStageContextPlugin as _CurrentStageContextPlug
 class UsdFileContextPlugin(_CurrentStageContextPlugin):
     file_path: str = Field(..., description="The file path to the USD File to load")
 
-    context_name: str = ""
-
     display_name: str = "USD File"
+    context_name: str = ""
 
     @validator("file_path", allow_reuse=True)
     def file_path_is_valid(cls, v):  # noqa N805
@@ -45,4 +44,4 @@ class UsdFileContextPlugin(_CurrentStageContextPlugin):
         if not stage:
             raise RuntimeError(f'An error occurred while opening the USD file -> "{self.file_path}"')
 
-        return super().setup()
+        super().setup()

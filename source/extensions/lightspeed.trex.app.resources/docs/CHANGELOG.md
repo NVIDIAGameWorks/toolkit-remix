@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.2]
+### Changed
+- Added more interactions to the Stage Manager schema
+
 ## [1.6.1] - 2024-07-19
 ### Changed
 - Changed `project_example` structure so that the assets are within the project
