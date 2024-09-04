@@ -37,7 +37,8 @@ class StageManagerUSDContextPlugin(_StageManagerContextPlugin, abc.ABC):
     def data_type(cls):
         return _StageManagerDataTypes.USD
 
-    def setup(self) -> list["Usd.Prim"]:
+    @abc.abstractmethod
+    def get_items(self) -> list["Usd.Prim"]:
         """
         Fetch the list of prims other plugins should use
 

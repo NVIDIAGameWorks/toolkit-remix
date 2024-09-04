@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.19.0]
+### Added
+- Added `lights` module to get a LightType enum from USD Lux light classes
+
 ## [2.18.0]
 ### Added
 - Added the ability to write lists to metadata

@@ -20,7 +20,7 @@ from typing import Any, Callable, Iterable
 
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from pydantic import PrivateAttr
+from pydantic import Field, PrivateAttr
 
 from .base import StageManagerUIPluginBase as _StageManagerUIPluginBase
 
@@ -29,6 +29,8 @@ class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
     """
     A plugin that allows filtering a list of items based on parameters controlled within the plugin
     """
+
+    display: bool = Field(True, description="Whether the filter plugin should be displayed in the UI")
 
     _on_filter_items_changed: _Event = PrivateAttr()
 

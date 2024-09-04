@@ -16,7 +16,8 @@
 """
 
 import omni.usd
-from pydantic import Field, validator
+from pxr import Usd
+from pydantic import Field, PrivateAttr, validator
 
 from .base import StageManagerUSDContextPlugin as _StageManagerUSDContextPlugin
 
@@ -24,11 +25,13 @@ from .base import StageManagerUSDContextPlugin as _StageManagerUSDContextPlugin
 class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
     context_name: str = Field(..., description="The name of the context from which to get the stage")
 
-    recursive_traversal: bool = Field(
-        False, description="Whether to get all the prims in the stage or just the root prims"
-    )
-
     display_name: str = "Current Stage"
+
+    _stage: Usd.Stage | None = PrivateAttr()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._stage = None
 
     @validator("context_name", allow_reuse=True)
     def context_name_is_valid(cls, v):  # noqa N805
@@ -37,13 +40,29 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
         return v
 
     def setup(self):
+        """
+        Set up the context. This will be called once by the core.
+
+        Raises:
+            ValueError: If no stage exists for the given context
+        """
         context = omni.usd.get_context(self.context_name)
-        stage = context.get_stage()
+        self._stage = context.get_stage()
 
-        if not stage:
-            raise RuntimeError(f'The context does not have a stage -> "{self.context_name}"')
+        if not self._stage:
+            raise ValueError(f'The context does not have a stage -> "{self.context_name}"')
 
-        if self.recursive_traversal:
-            return [prim for prim in stage.TraverseAll() if not omni.usd.is_hidden_type(prim)]
+    def get_items(self):
+        """
+        Fetch the list of prims other plugins should use
 
-        return stage.GetPseudoRoot().GetChildren()
+        Raises:
+            ValueError: If the context was not setup
+
+        Returns:
+            List of USD prims
+        """
+        if not self._stage:
+            raise ValueError("The context was not setup")
+
+        return self._stage.GetPseudoRoot().GetChildren()

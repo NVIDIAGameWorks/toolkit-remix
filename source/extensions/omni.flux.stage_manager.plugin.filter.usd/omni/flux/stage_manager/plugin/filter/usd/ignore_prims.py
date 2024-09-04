@@ -31,13 +31,28 @@ class IgnorePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
     display_name: str = "Ignore Prims"
     tooltip: str = "Filter out Omniverse prims.\nInput a comma-separated list of prim paths to ignore."
 
-    ignore_prim_paths: set[str] = Field(set(), description="A set of prim paths to filter out")
+    ignore_prim_paths: set[str] = Field(
+        set(),
+        description=(
+            "A set of prim paths to filter out. The filter will filter out the given prims paths and any children paths"
+        ),
+    )
 
     _string_field: ui.StringField = PrivateAttr()
     _value_changed_sub: carb.Subscription = PrivateAttr()
 
     def filter_items(self, prims: Iterable["Usd.Prim"]) -> list["Usd.Prim"]:
-        return [prim for prim in prims if str(prim.GetPath()) not in self.ignore_prim_paths]
+        filtered_prims = []
+        for prim in prims:
+            is_valid = True
+            for ignore_prim_path in self.ignore_prim_paths:
+                if str(prim.GetPath()).startswith(ignore_prim_path):
+                    is_valid = False
+                    break
+            if not is_valid:
+                continue
+            filtered_prims.append(prim)
+        return filtered_prims
 
     def build_ui(self):  # noqa PLW0221
         with ui.HStack(spacing=ui.Pixel(8)):

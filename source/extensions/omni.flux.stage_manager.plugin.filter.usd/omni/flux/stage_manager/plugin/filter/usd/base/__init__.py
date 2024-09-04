@@ -15,4 +15,5 @@
 * limitations under the License.
 """
 
+from .toggleable import ToggleableUSDFilterPlugin
 from .usd_base import StageManagerUSDFilterPlugin

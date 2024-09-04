@@ -48,24 +48,33 @@ class StageManagerSchema(_BaseModel):
 
     def __init__(self, **data: dict):
         # Resolve all the plugins to their expected class
-        data = self.__resolve_plugins_recursive(_get_stage_manager_factory_instance(), data)
+        data = self._resolve_plugins_recursive(_get_stage_manager_factory_instance(), data)
 
         super().__init__(**data)
 
-    def __resolve_plugins_recursive(self, factory: "_FactoryBase", data: dict) -> dict | list | _StageManagerPluginBase:
+    def _resolve_plugins_recursive(
+        self, factory: "_FactoryBase", data: dict | Iterable | _StageManagerPluginBase
+    ) -> dict | Iterable | _StageManagerPluginBase:
         if isinstance(data, dict):
             # The dict is not a plugin definition but a dict of plugins
             if "name" not in data:
-                data = {k: self.__resolve_plugins_recursive(factory, v) for k, v in data.items()}
+                return {k: self._resolve_plugins_recursive(factory, v) for k, v in data.items()}
             # The dict is a plugin definition, resolve
-            else:
-                plugin_class = factory.get_plugin_from_name(data["name"])
-                if not plugin_class:
-                    raise ValueError(f"An unregistered plugin was detected -> {data['name']}")
-                data = plugin_class(**{k: self.__resolve_plugins_recursive(factory, v) for k, v in data.items()})
+            plugin_class = factory.get_plugin_from_name(data["name"])
+            if not plugin_class:
+                raise ValueError(f"An unregistered plugin was detected -> {data['name']}")
+            resolved_plugin = plugin_class(**{k: self._resolve_plugins_recursive(factory, v) for k, v in data.items()})
+            # Resolve the plugin's attributes
+            fields = resolved_plugin.dict()
+            for field_name, field_value in fields.items():
+                resolved_value = self._resolve_plugins_recursive(factory, field_value)
+                if resolved_value != field_value:
+                    # Use Pydantic's __setattr__ to update the field
+                    setattr(resolved_plugin, field_name, resolved_value)
+            return resolved_plugin
 
         # The value is a list, resolve every item in the list
-        elif isinstance(data, Iterable) and not isinstance(data, (str, bytes)):
-            data = [self.__resolve_plugins_recursive(factory, item) for item in data]
+        if isinstance(data, Iterable) and not isinstance(data, (str, bytes)):
+            return [self._resolve_plugins_recursive(factory, item) for item in data]
 
         return data

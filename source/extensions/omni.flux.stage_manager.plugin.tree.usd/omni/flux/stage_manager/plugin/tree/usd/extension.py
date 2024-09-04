@@ -20,13 +20,14 @@ import carb.settings
 import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
+from .light_groups import LightGroupsTreePlugin as _LightGroupsTreePlugin
 from .prim_groups import PrimGroupsTreePlugin as _PrimGroupsTreePlugin
 from .virtual_groups import VirtualGroupsTreePlugin as _VirtualGroupsTreePlugin
 
 
 class StageManagerUSDTreePluginsExtension(omni.ext.IExt):
 
-    _PLUGINS = [_PrimGroupsTreePlugin, _VirtualGroupsTreePlugin]
+    _PLUGINS = [_LightGroupsTreePlugin, _PrimGroupsTreePlugin, _VirtualGroupsTreePlugin]
 
     def on_startup(self, _):
         carb.log_info("[omni.flux.stage_manager.plugin.tree.usd] Startup")

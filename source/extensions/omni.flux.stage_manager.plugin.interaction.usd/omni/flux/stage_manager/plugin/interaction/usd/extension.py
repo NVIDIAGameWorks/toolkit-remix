@@ -20,12 +20,13 @@ import carb.settings
 import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
+from .all_lights import AllLightsInteractionPlugin as _AllLightsInteractionPlugin
 from .all_prims import AllPrimsInteractionPlugin as _AllPrimsInteractionPlugin
 
 
 class StageManagerUSDInteractionPluginsExtension(omni.ext.IExt):
 
-    _PLUGINS = [_AllPrimsInteractionPlugin]
+    _PLUGINS = [_AllLightsInteractionPlugin, _AllPrimsInteractionPlugin]
 
     def on_startup(self, _):
         carb.log_info("[omni.flux.stage_manager.plugin.interaction.usd] Startup")
