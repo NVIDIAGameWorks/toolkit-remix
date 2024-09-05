@@ -873,6 +873,20 @@ class LayerManagerCore:
         root_layer = stage.GetRootLayer()
         self.set_custom_data_layer_type(root_layer, LayerType.workfile)
 
+    def is_valid_layer_type(self, file_path: str, layer_type: LayerType = None) -> bool:
+        """Check if layer type is of the given type or a Remix layer type."""
+        layer = Sdf.Layer.FindOrOpen(file_path)
+        if not layer:
+            return False
+        input_layer_type = self.get_custom_data_layer_type(layer)
+        if input_layer_type is None:
+            return False
+        if input_layer_type and input_layer_type != layer_type.value:
+            return False
+        if not layer_type and input_layer_type:
+            return any(input_layer_type == ltype.value for ltype in LayerType)
+        return True
+
     def destroy(self):
         if self._default_attr:
             _reset_default_attrs(self)

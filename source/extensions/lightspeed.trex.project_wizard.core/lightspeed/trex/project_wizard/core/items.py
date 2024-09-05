@@ -24,7 +24,11 @@ import omni.client
 from lightspeed.common import constants as _constants
 from lightspeed.common.constants import REGEX_RESERVED_FILENAME as _REGEX_RESERVED_FILENAME
 from lightspeed.common.constants import REGEX_VALID_PATH as _REGEX_VALID_PATH
+from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
+from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCore
+from lightspeed.trex.contexts import get_instance as _get_contexts_instance
+from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
 from pydantic import BaseModel, validator
 
@@ -83,6 +87,19 @@ class ProjectWizardSchema(BaseModel):
             raise ValueError(f"The path '{str(v)}' is not a USD file")
         # If we are opening a project:
         if values.get(ProjectWizardKeys.EXISTING_PROJECT.value, False):
+            contexts = _get_contexts_instance()
+            try:
+                context = contexts.get_current_context()
+            except RuntimeError:
+                context = None
+            if context is _TrexContexts.STAGE_CRAFT:
+                layer_manager = _LayerManagerCore(context.value)
+                valid = layer_manager.is_valid_layer_type(str(v), _LayerType.workfile)
+                if not valid:
+                    raise ValueError(
+                        "Unable to load layer as project file. Invalid layer type. "
+                        f"Needs to be of type {_LayerType.workfile.value}."
+                    )
             _, entry = omni.client.stat(str(v))
             # Make sure the project is not read-only
             if not (entry.flags & omni.client.ItemFlags.WRITEABLE_FILE):  # noqa PLC0325

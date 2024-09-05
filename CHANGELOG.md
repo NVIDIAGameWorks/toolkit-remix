@@ -26,9 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2518: Added external asset prevention/copying functionality
 - REMIX-2907: Added warning when invalid file types are dropped for ingestion
 - REMIX-3441: Implemented Lights interaction plugins
+- REMIX-3214: Checking layer type at project file import validation
+- REMIX-3215: Checking layer type at mod file import validation
 
 ### Changed
-- REMIX-3401: Changed all usages of factories to use the Centralized Generic factory
 
 ### Fixed
 - REMIX-3401: Fixed hot-reload by allowing reuse of validators

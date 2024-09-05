@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.2.17"
+version = "1.2.18"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -29,6 +29,7 @@ force_use_junction = false  # windows only
 "lightspeed.pip_archive" = {}  # Required for Pydantic
 "lightspeed.trex.capture.core.shared" = {}
 "lightspeed.trex.replacement.core.shared" = {}
+"lightspeed.trex.contexts" = {}
 "omni.client" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.usd.layers" = {}

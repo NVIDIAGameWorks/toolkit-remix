@@ -1,6 +1,7 @@
 #usda 1.0
 (
     customLayerData = {
+        string lightspeed_layer_type = "workfile"
         dictionary cameraSettings = {
             dictionary Front = {
                 double3 position = (7.464625848867054e21, -1777647190.0953894, 2363566333.8704176)
