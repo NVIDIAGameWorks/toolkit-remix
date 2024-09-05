@@ -19,10 +19,12 @@ import contextlib
 import os
 import shutil
 import tempfile
+from pathlib import Path
 
 import carb.input as carb_input
 import omni.ui as ui
 import omni.usd
+from carb.input import KeyboardInput
 from lightspeed.trex.properties_pane.shared.mod_setup.widget import ModSetupPane as _ModSetupPane
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
@@ -63,6 +65,13 @@ class TestModSetupWidget(AsyncTestCase):
     async def __destroy(self, window, wid):
         wid.destroy()
         window.destroy()
+        for other_window in ui.Workspace.get_windows():
+            try:
+                prompt_dialog = ui_test.find(other_window.title)
+                if prompt_dialog and not prompt_dialog.window.visible:
+                    prompt_dialog.widget.destroy()
+            except AttributeError:
+                pass
 
     async def test_capture_item_centered(self):
         context = omni.usd.get_context()
@@ -176,5 +185,99 @@ class TestModSetupWidget(AsyncTestCase):
             await ui_test.emulate_keyboard_press(carb_input.KeyboardInput.ENTER)
             self.assertEqual(capture_path_field.widget.model.get_value_as_string(), original_capture_path)
             self.assertFalse(empty_path_label.widget.visible)
+
+            await self.__destroy(_window, _wid)
+
+    async def test_mod_file_import_valid(self):
+        context = omni.usd.get_context()
+        async with make_temp_directory(context) as temp_dir:
+            # Setup
+            example_dir = _get_test_data("usd/project_example")
+            shutil.copytree(example_dir, f"{temp_dir.name}/project_example")
+            shutil.copyfile(f"{example_dir}/replacements.usda", f"{temp_dir.name}/project_example/replacements02.usda")
+            await open_stage(f"{temp_dir.name}/project_example/combined.usda")
+            _window, _wid = await self.__setup_widget("test_mod_file_import_valid")  # Keep in memory during test
+            await ui_test.human_delay(human_delay_speed=80)
+
+            load_mod_button = ui_test.find(f"{_window.title}//Frame/**/Button[*].text=='Load existing mod file'")
+            await load_mod_button.click()
+            await ui_test.human_delay(10)
+
+            # The choose mod file window should now be opened
+            file_picker_window_title = "Select an existing mod file"
+            select_button = ui_test.find(f"{file_picker_window_title}//Frame/**/Button[*].text=='Select'")
+
+            file_name_field = ui_test.find(
+                f"{file_picker_window_title}//Frame/**/StringField[*].style_type_name_override=='Field'"
+            )
+
+            self.assertIsNotNone(select_button)
+            self.assertIsNotNone(file_name_field)
+
+            await file_name_field.input("replacements02.usda", end_key=KeyboardInput.ENTER)
+            await ui_test.human_delay(100)
+
+            await select_button.click()
+            await ui_test.human_delay(100)
+
+            buttons = []
+            for other_window in ui.Workspace.get_windows():
+                button = ui_test.find(f"{other_window.title}//Frame/**/Button[*].text=='Okay'")
+                if button:
+                    buttons.append(button)
+
+            # Making sure that we are hitting a message dialog
+            self.assertEqual(len(buttons), 0)
+
+            await self.__destroy(_window, _wid)
+
+    async def test_mod_file_import_invalid(self):
+        context = omni.usd.get_context()
+        async with make_temp_directory(context) as temp_dir:
+            # Setup
+            example_dir = _get_test_data("usd/project_example")
+            shutil.copytree(example_dir, f"{temp_dir.name}/project_example")
+            dir_path = Path(temp_dir.name)
+            file_name = "test.usda"
+            layer_path = dir_path / "project_example" / file_name
+            layer_path.touch()
+            layer_path.write_text("#usda 1.0")
+            await open_stage(f"{temp_dir.name}/project_example/combined.usda")
+            _window, _wid = await self.__setup_widget("test_mod_file_import_invalid")  # Keep in memory during test
+            await ui_test.human_delay(human_delay_speed=80)
+
+            load_mod_button = ui_test.find(f"{_window.title}//Frame/**/Button[*].text=='Load existing mod file'")
+            await load_mod_button.click()
+            await ui_test.human_delay(10)
+
+            # The choose mod file window should now be opened
+            file_picker_window_title = "Select an existing mod file"
+            select_button = ui_test.find(f"{file_picker_window_title}//Frame/**/Button[*].text=='Select'")
+            file_name_field = ui_test.find(
+                f"{file_picker_window_title}//Frame/**/StringField[*].style_type_name_override=='Field'"
+            )
+
+            self.assertIsNotNone(select_button)
+            self.assertIsNotNone(file_name_field)
+
+            await file_name_field.input("test.usda", end_key=KeyboardInput.ENTER)
+            await ui_test.human_delay(150)
+
+            await select_button.click()
+            await ui_test.human_delay(100)
+
+            buttons = []
+            for other_window in ui.Workspace.get_windows():
+                button = ui_test.find(f"{other_window.title}//Frame/**/Button[*].text=='Okay'")
+                if button:
+                    buttons.append(button)
+
+            # Making sure that we are hitting a message dialog
+            self.assertEqual(len(buttons), 1)
+            await buttons[0].click()
+            await ui_test.human_delay(3)
+
+            file_browser = ui_test.find(file_picker_window_title)
+            file_browser.widget.destroy()
 
             await self.__destroy(_window, _wid)

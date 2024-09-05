@@ -16,6 +16,7 @@
 """
 
 import os
+import shutil
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -26,8 +27,11 @@ import omni.client
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.capture.core.shared import Setup as CaptureCore
+from lightspeed.trex.contexts import get_instance as _get_contexts_instance
+from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 from lightspeed.trex.project_wizard.core import ProjectWizardKeys, ProjectWizardSchema
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCore
+from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 
 
 class MockListEntry:
@@ -48,6 +52,12 @@ class TestItems(omni.kit.test.AsyncTestCase):
     async def tearDown(self):
         self.temp_dir.cleanup()
         self.temp_dir = None
+
+    async def copy_from_example_project(self, source: str, target: str):
+        example_dir = _get_test_data("usd/project_example")
+        shutil.copyfile(f"{example_dir}/{source}", f"{self.temp_dir.name}/{target}")
+        project_file = Path(self.temp_dir.name) / target
+        return project_file
 
     async def test_keys_have_expected_values(self):
         # This test only serves to make sure we preserve compatibility with existing schemas.
@@ -231,7 +241,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_not_writable_file_throws(self):
         # Arrange
-        project_file = Path(self.temp_dir.name) / "project.usda"
+        project_file = await self.copy_from_example_project("combined.usda", "project.usda")
 
         # Act
         with patch.object(omni.client, "stat") as mock:
@@ -252,7 +262,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_is_mod_file_throws(self):
         # Arrange
-        project_file = Path(self.temp_dir.name) / "project.usda"
+        project_file = await self.copy_from_example_project("combined.usda", "project.usda")
 
         # Act
         with (
@@ -279,7 +289,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_is_capture_file_throws(self):
         # Arrange
-        project_file = Path(self.temp_dir.name) / "project.usda"
+        project_file = await self.copy_from_example_project("combined.usda", "project.usda")
 
         # Act
         with (
@@ -464,7 +474,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_accepted_existing_returns_val(self):
         # Arrange
-        project_file = Path(self.temp_dir.name) / "project.usda"
+        project_file = await self.copy_from_example_project("combined.usda", "project.usda")
 
         # Act
         with (
@@ -783,3 +793,27 @@ class TestItems(omni.kit.test.AsyncTestCase):
         args, _ = mock.call_args
         self.assertEqual(str(capture_file), args[0])
         self.assertEqual(capture_file, value)
+
+    async def test_schema_is_existing_project_file_valid_layer_type_invalid(self):
+        # Arrange
+        project_file = await self.copy_from_example_project("replacements.usda", "project.usda")
+
+        # Act
+        with patch.object(omni.client, "stat") as mock:
+            mock.return_value = (
+                omni.client.Result.OK,
+                MockListEntry(str(project_file.parent), flags=omni.client.ItemFlags.READABLE_FILE),
+            )
+
+            with self.assertRaises(ValueError) as cm:
+                context = _get_contexts_instance()
+                context.set_current_context(_TrexContexts.STAGE_CRAFT)
+                ProjectWizardSchema.is_project_file_valid(
+                    project_file, {ProjectWizardKeys.EXISTING_PROJECT.value: True}
+                )
+
+        # Assert
+        self.assertEqual(
+            "Unable to load layer as project file. Invalid layer type. Needs to be of type workfile.",
+            str(cm.exception),
+        )

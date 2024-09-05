@@ -1,3 +1,4 @@
+# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -18,6 +19,7 @@
 import asyncio
 import functools
 import os
+from pathlib import Path
 
 import carb.input
 import omni.appwindow
@@ -29,6 +31,8 @@ from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER as _GAME_READY_
 from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS as _READ_USD_FILE_EXTENSIONS_OPTIONS
 from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
 from lightspeed.error_popup.window import ErrorPopup as _ErrorPopup
+from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
+from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
 from lightspeed.trex.capture_tree.model import CaptureTreeDelegate, CaptureTreeModel
 from lightspeed.trex.project_wizard.window import get_instance as _get_project_wizard_window_instance
@@ -112,6 +116,7 @@ class ModSetupPane:
             "_refresh_capture_detail_panel_callback_task": None,
             "_error_popup": None,
             "_fake_frame_for_scroll": None,
+            "_validation_error_msg": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -154,6 +159,8 @@ class ModSetupPane:
         self.__on_select_vehicle_pressed_event = _Event()
         self.__on_import_capture_layer = _Event()
         self.__on_import_replacement_layer = _Event()
+
+        self._validation_error_msg = ""
 
         self.__create_ui()
 
@@ -511,7 +518,9 @@ class ModSetupPane:
                                                 )
                                             with ui.HStack():
                                                 ui.Spacer(width=ui.Pixel(8))
-                                                self._mod_file_field = ui.StringField(read_only=True, height=0)
+                                                self._mod_file_field = ui.StringField(
+                                                    read_only=True, height=0, identifier="mod_file_field"
+                                                )
                                                 self._mod_file_field.model.set_value("...")
                                                 self._sub_mod_field_changed = (
                                                     self._mod_file_field.model.subscribe_value_changed_fn(
@@ -538,9 +547,21 @@ class ModSetupPane:
         self._mod_file_field.model.set_value(path)
 
     def _validate_file_path(self, existing_file, dirname, filename):
-        return self._core_replacement.is_path_valid(
+        valid = self._core_replacement.is_path_valid(
             omni.client.normalize_url(omni.client.combine_urls(dirname, filename)), existing_file=existing_file
         )
+        if not valid:
+            return False
+
+        if existing_file:
+            layer_manager = _LayerManagerCore(self._context_name)
+            valid = layer_manager.is_valid_layer_type(str(Path(dirname, filename)), _LayerType.replacement)
+            if not valid:
+                self._validation_error_msg = (
+                    f"Existing mod file is not the correct type, {_LayerType.replacement.value}."
+                )
+
+        return valid
 
     def _on_load_existing_mod(self):
         value = self._mod_file_field.model.get_value_as_string()
@@ -580,11 +601,14 @@ class ModSetupPane:
 
     def _on_validation_error(self, read_file: bool):
         fill_word = "selected" if read_file else "created"
-        message = (
-            f"The {fill_word} mod file is not valid.\n\n"
-            f"Make sure the {fill_word} mod file is a writable USD file and is not located in a "
-            f'"{_GAME_READY_ASSETS_FOLDER}" or "{_REMIX_CAPTURE_FOLDER}" directory.'
-        )
+        message = f"The {fill_word} mod file is not valid.\n\n"
+        if self._validation_error_msg:
+            message = f"{message}{self._validation_error_msg}"
+        else:
+            message = (
+                f"{message}Make sure the {fill_word} mod file is a writable USD file and is not located in a "
+                f'"{_GAME_READY_ASSETS_FOLDER}" or "{_REMIX_CAPTURE_FOLDER}" directory.'
+            )
         TrexMessageDialog(
             message=message,
             disable_cancel_button=True,

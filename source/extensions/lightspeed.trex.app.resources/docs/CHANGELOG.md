@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.3]
+### Added
+- Added layer type for validation tests
+
 ## [1.6.2]
 ### Changed
 - Added more interactions to the Stage Manager schema
