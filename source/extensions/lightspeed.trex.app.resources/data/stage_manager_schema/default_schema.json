@@ -10,7 +10,7 @@
             "filters": [
                 { "name": "SearchFilterPlugin" },
                 { "name": "OmniPrimsFilterPlugin", "display": false, "include_results": false },
-                { "name": "IgnorePrimsFilterPlugin", "display": false, "ignore_prim_paths": ["/remix_settings"] }
+                { "name": "IgnorePrimsFilterPlugin", "display": false, "ignore_prim_paths": ["/RootNode/cameras", "/remix_settings"] }
             ],
             "columns": [
                 {

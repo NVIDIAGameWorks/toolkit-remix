@@ -16,22 +16,30 @@
 """
 
 import abc
+from asyncio import Future, ensure_future
 from typing import Iterable
 
+import omni.kit.app
+import omni.kit.usd.layers as _layers
+import omni.usd
 from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
 from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugin as _StageManagerInteractionPlugin
+from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.common.decorators import (
+    ignore_function_decorator_and_reset_value as _ignore_function_decorator_and_reset_value,
+)
+from omni.flux.utils.common.utils import get_omni_prims as _get_omni_prims
 from pxr import Usd
-from pydantic import PrivateAttr
+from pydantic import Field, PrivateAttr
 
 
 class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
+    synchronize_selection: bool = Field(True, description="Synchronize the USD selection between the stage and the UI")
 
-    _context_name: str | None = PrivateAttr()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        self._context_name = ""
+    _context_name: str = PrivateAttr("")
+    _selection_update_lock: bool = PrivateAttr(False)
+    _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr([])
+    _update_context_task: Future | None = PrivateAttr(None)
 
     @classmethod
     @property
@@ -49,7 +57,59 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         """
         return False
 
+    @classmethod
+    @property
+    def _select_all_children(cls) -> bool:
+        return True
+
+    def _setup_listeners(self):
+        # Context Will be a USD Context, so we can subscribe to the USD Base Context events
+        self._listener_event_occurred_subs.extend(
+            self._context.subscribe_listener_event_occurred(_layers.LayerEventType, self._on_layer_event_occurred)
+        )
+        self._listener_event_occurred_subs.extend(
+            self._context.subscribe_listener_event_occurred(omni.usd.StageEventType, self._on_stage_event_occurred)
+        )
+        self._listener_event_occurred_subs.extend(
+            self._context.subscribe_listener_event_occurred(Usd.Notice.ObjectsChanged, self._on_usd_event_occurred)
+        )
+
+    def _on_layer_event_occurred(self, event_type: _layers.LayerEventType):
+        if event_type in [_layers.LayerEventType.MUTENESS_STATE_CHANGED, _layers.LayerEventType.SUBLAYERS_CHANGED]:
+            self._update_context_items()
+
+    def _on_stage_event_occurred(self, event_type: omni.usd.StageEventType):
+        if event_type == omni.usd.StageEventType.SELECTION_CHANGED:
+            self._update_tree_selection()
+        elif event_type == omni.usd.StageEventType.ACTIVE_LIGHT_COUNTS_CHANGED:
+            self._update_context_items()
+
+    def _on_usd_event_occurred(self, notice: Usd.Notice.ObjectsChanged):
+        refresh = False
+        for path in notice.GetChangedInfoOnlyPaths() + notice.GetResyncedPaths():
+            # Don't refresh the stage manager when Omni Prims are updated
+            if any(path.HasPrefix(omni_path) for omni_path in _get_omni_prims()):
+                continue
+            # Don't refresh the stage manager when Custom Layer Data is updated
+            if any(field == "customLayerData" for field in notice.GetChangedFields(path)):
+                continue
+            refresh = True
+
+        if not refresh:
+            return
+
+        self._update_context_items()
+
     def _update_context_items(self):
+        # Use a deferred method to combine all the updates caught within 1 frame into a single call
+        if self._update_context_task:
+            self._update_context_task.cancel()
+        self._update_context_task = ensure_future(self._update_context_items_deferred())
+
+    @omni.usd.handle_exception
+    async def _update_context_items_deferred(self):
+        await omni.kit.app.get_app().next_update_async()
+
         self._set_context_name()
 
         context_items = self._context.get_items()
@@ -60,6 +120,8 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
 
         self.tree.model.context_items = context_items
         self.tree.model.refresh()
+
+        self._update_tree_selection()
 
     def _set_context_name(self):
         """
@@ -108,3 +170,39 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
                 )
             )
         return children
+
+    @_ignore_function_decorator_and_reset_value(attrs={"_selection_update_lock": True})
+    def _update_tree_selection(self):
+        if not self.synchronize_selection:
+            return
+
+        selection = omni.usd.get_context(self._context_name).get_selection().get_selected_prim_paths()
+
+        if selection:
+            self._item_expansion_states.clear()
+
+        def is_selected_item(selected_prim_paths, item) -> bool:
+            prim = item.data.get("prim")
+            should_select = prim and prim.GetPath() in selected_prim_paths
+
+            # Expand the selected items and their parents
+            if should_select:
+                self._item_expansion_states[hash(item)] = should_select
+                parent = item.parent
+                while parent:
+                    self._item_expansion_states[hash(parent)] = should_select
+                    parent = parent.parent
+
+            return should_select
+
+        self.tree_widget.selection = self.tree.model.find_items(lambda item: is_selected_item(selection, item))
+        self._update_expansion_states()
+
+    def _on_selection_changed(self, items):
+        if self._selection_update_lock or not self.synchronize_selection:
+            return
+
+        selection_prim_paths = [str(item.data.get("prim").GetPath()) for item in items if item.data.get("prim")]
+        selection = omni.usd.get_context(self._context_name).get_selection()
+        if selection.get_selected_prim_paths() != selection_prim_paths:
+            selection.set_selected_prim_paths(selection_prim_paths)

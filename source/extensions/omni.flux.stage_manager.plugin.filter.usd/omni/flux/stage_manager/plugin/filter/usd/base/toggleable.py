@@ -18,8 +18,8 @@
 import abc
 from typing import TYPE_CHECKING, Iterable
 
-import carb
 from omni import ui
+from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import Field, PrivateAttr
 
 from .usd_base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
@@ -34,7 +34,7 @@ class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
     include_results: bool = Field(True, description="Include or exclude prims")
 
     _checkbox: ui.CheckBox | None = PrivateAttr()
-    _value_changed_sub: carb.Subscription | None = PrivateAttr()
+    _value_changed_sub: _EventSubscription | None = PrivateAttr()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

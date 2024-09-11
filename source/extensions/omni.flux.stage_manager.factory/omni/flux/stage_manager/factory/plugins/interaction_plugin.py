@@ -20,10 +20,11 @@ from asyncio import Future, ensure_future
 from functools import partial
 from typing import TYPE_CHECKING, Any, Iterable
 
-import carb
 import omni.kit.app
 from omni import ui
 from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
+from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.widget.tree_widget import TreeWidget as _TreeWidget
 from pydantic import Field, PrivateAttr, root_validator, validator
 
 from .base import StageManagerUIPluginBase as _StageManagerUIPluginBase
@@ -31,6 +32,7 @@ from .column_plugin import LengthUnit as _LengthUnit
 from .column_plugin import StageManagerColumnPlugin as _StageManagerColumnPlugin
 from .context_plugin import StageManagerContextPlugin as _StageManagerContextPlugin
 from .filter_plugin import StageManagerFilterPlugin as _StageManagerFilterPlugin
+from .tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
 from .tree_plugin import StageManagerTreePlugin as _StageManagerTreePlugin
 
 if TYPE_CHECKING:
@@ -53,38 +55,30 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         exclude=True,
     )
 
-    tree_widget: ui.TreeView | None = Field(
+    tree_widget: _TreeWidget | None = Field(
         None, description="The TreeView widget used to display the data", exclude=True
     )
 
-    # The context will be set by the core. This will be used to get the context data.
-    _context: _StageManagerContextPlugin | None = PrivateAttr()
-    _result_frames: list[ui.Frame] = PrivateAttr()
-    _item_expansion_states: dict[int, bool] = PrivateAttr()
-    _filter_items_changed_subs: list[carb.Subscription] = PrivateAttr()
-    _item_expanded_sub: carb.Subscription = PrivateAttr()
-    _update_expansion_task: Future | None = PrivateAttr()
-    _is_initialized: bool = PrivateAttr()
+    _context: _StageManagerContextPlugin | None = PrivateAttr(None)
+
+    _result_frames: list[ui.Frame] = PrivateAttr([])
+
+    _item_expansion_states: dict[int, bool] = PrivateAttr({})
+
+    _item_expanded_sub: _EventSubscription | None = PrivateAttr(None)
+    _selection_changed_sub: _EventSubscription | None = PrivateAttr(None)
+
+    _filter_items_changed_subs: list[_EventSubscription] = PrivateAttr([])
+    _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr([])
+
+    _update_expansion_task: Future | None = PrivateAttr(None)
+
+    _is_initialized: bool = PrivateAttr(False)
 
     _FILTERS_HORIZONTAL_PADDING: int = 24
     _FILTERS_VERTICAL_PADDING: int = 8
     _RESULTS_HORIZONTAL_PADDING: int = 16
     _RESULTS_VERTICAL_PADDING: int = 4
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        self._context = None
-
-        self._result_frames = []
-        self._item_expansion_states = {}
-
-        self._filter_items_changed_subs = []
-        self._item_expanded_sub = None
-
-        self._update_expansion_task = None
-
-        self._is_initialized = False
 
     @validator("filters", "required_filters", allow_reuse=True)
     def check_unique_filters(cls, v):  # noqa N805
@@ -97,12 +91,13 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         cls._check_plugin_compatibility(values.get("tree").name, values.get("compatible_trees"))
         for filter_plugin in values.get("filters"):
             cls._check_plugin_compatibility(filter_plugin.name, values.get("compatible_filters"))
-        for filter_plugin in values.get("required_filters"):
-            # The interaction filters are not instantiated at this point
-            cls._check_plugin_compatibility(filter_plugin.get("name"), values.get("compatible_filters"))
         for column_plugin in values.get("columns"):
             for widget_plugin in column_plugin.widgets:
                 cls._check_plugin_compatibility(widget_plugin.name, values.get("compatible_widgets"))
+
+        # The interaction filter plugins are not resolved at this point
+        for filter_plugin in values.get("required_filters"):
+            cls._check_plugin_compatibility(filter_plugin.get("name"), values.get("compatible_filters"))
 
         return values
 
@@ -112,7 +107,23 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         """
         The data type this plugin supports
         """
-        return _StageManagerDataTypes.GENERIC
+        return _StageManagerDataTypes.NONE
+
+    @classmethod
+    @property
+    def _select_all_children(cls) -> bool:
+        """
+        Whether the tree should select all children items when selecting a parent item or not
+        """
+        return False
+
+    @classmethod
+    @property
+    def _validate_action_selection(cls) -> bool:
+        """
+        Whether the tree selection should be validated & updated to include the item being right-clicked on or not
+        """
+        return True
 
     @classmethod
     @property
@@ -138,6 +149,13 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     def compatible_widgets(cls) -> list[str]:
         """
         Get the list of widget plugins compatible with this interaction plugin
+        """
+        pass
+
+    @abc.abstractmethod
+    def _setup_listeners(self):
+        """
+        Subscribe to the context's listeners event occurred subscriptions and react to them
         """
         pass
 
@@ -171,25 +189,14 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             value: the context the interaction plugin should use
         """
 
-        # Subscribe to the on_filter_items_changed event to refresh the tree widget model
-        self.tree.model.clear_filter_functions()
-        for filter_plugin in self.filters + self.required_filters:
-            if not filter_plugin.enabled:
-                continue
-            self._filter_items_changed_subs.append(
-                filter_plugin.subscribe_filter_items_changed(self._on_filter_items_changed)
-            )
-            # Some models might need to filter children items so pass the filter functions down
-            self.tree.model.add_filter_functions([filter_plugin.filter_items])
-
-        enabled_columns = [c for c in self.columns if c.enabled]
-
-        self.tree.model.column_count = len(enabled_columns)
-        self.tree.delegate.set_column_builders(enabled_columns)
-        self._item_expanded_sub = self.tree.delegate.subscribe_item_expanded(self._on_item_expanded)
-
         self._context = value
+
         self._validate_data_type()
+
+        self._setup_filters()
+        self._setup_columns()
+        self._setup_listeners()
+
         self._update_context_items()
 
         self._is_initialized = True
@@ -233,13 +240,18 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 with ui.VStack():
                     # Tree UI
                     with ui.ScrollingFrame(name="TreePanelBackground"):
-                        self.tree_widget = ui.TreeView(
+                        self.tree_widget = _TreeWidget(
                             self.tree.model,
                             delegate=self.tree.delegate,
+                            select_all_children=self._select_all_children,
+                            validate_action_selection=self._validate_action_selection,
                             root_visible=False,
                             header_visible=True,
                             columns_resizable=False,  # There's no way to resize the results after resizing a column
                             column_widths=column_widths,
+                        )
+                        self._selection_changed_sub = self.tree_widget.subscribe_selection_changed(
+                            self._on_selection_changed
                         )
 
                     # Results UI
@@ -290,6 +302,32 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 length_class = ui.Pixel
         return length_class(column_width.value)
 
+    def _setup_filters(self):
+        """
+        Subscribe to the on_filter_items_changed event to refresh the tree widget model & add the filter functions to
+        the tree model.
+        """
+        self.tree.model.clear_filter_functions()
+        for filter_plugin in self.filters + self.required_filters:
+            if not filter_plugin.enabled:
+                continue
+            self._filter_items_changed_subs.append(
+                filter_plugin.subscribe_filter_items_changed(self._on_filter_items_changed)
+            )
+            # Some models might need to filter children items so pass the filter functions down
+            self.tree.model.add_filter_functions([filter_plugin.filter_items])
+
+    def _setup_columns(self):
+        """
+        Set up the tree delegate to have the right column information
+        """
+        enabled_columns = [c for c in self.columns if c.enabled]
+
+        self.tree.model.column_count = len(enabled_columns)
+        self.tree.delegate.set_column_builders(enabled_columns)
+
+        self._item_expanded_sub = self.tree.delegate.subscribe_item_expanded(self._on_item_expanded)
+
     def _on_filter_items_changed(self):
         """
         Event handler for to execute when event widgets are updated
@@ -302,8 +340,24 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._update_expansion_states()
 
-    def _on_item_expanded(self, item: ui.AbstractItem, expanded: bool):
+    def _on_item_expanded(self, item: _StageManagerTreeItem, expanded: bool):
+        """
+        A callback executed whenever a tree item is expanded or collapsed.
+
+        Args:
+            item: The item that was expanded or collapsed.
+            expanded: The expansion state
+        """
         self._item_expansion_states[hash(item)] = expanded
+
+    def _on_selection_changed(self, items: list[_StageManagerTreeItem]):
+        """
+        A callback executed whenever the tree selection changes.
+
+        Args:
+            items: The list of items selected in the tree.
+        """
+        pass
 
     def _validate_data_type(self):
         """
@@ -349,6 +403,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             self._update_expansion_task.cancel()
         self._update_expansion_task = ensure_future(self._update_expansion_states_deferred())
 
+    @omni.usd.handle_exception
     async def _update_expansion_states_deferred(self):
         """
         Wait 1 frame, then update the expansion state of the Tree items based on their cached state
@@ -356,7 +411,9 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         await omni.kit.app.get_app().next_update_async()
 
         items_dict = self.tree.model.items_dict
-        for item_hash, expanded in self._item_expansion_states.items():
+
+        # Expand the items that were previously expanded
+        for item_hash, expanded in reversed(self._item_expansion_states.items()):
             item = items_dict.get(item_hash)
             if not item:
                 continue

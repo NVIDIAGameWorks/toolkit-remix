@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+### Added
+- Added listener subscriptions to the USD Base
+- Added selection synchronization to the USD Base
+
 ## [1.2.0]
 ### Added
 - Add recursive traversal option in the `StageManagerUSDInteractionPlugin` base

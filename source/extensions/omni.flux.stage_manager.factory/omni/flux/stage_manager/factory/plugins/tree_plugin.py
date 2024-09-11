@@ -37,13 +37,22 @@ class StageManagerTreeItem(_TreeItemBase):
     """
 
     def __init__(
-        self, display_name: str, tooltip: str, children: list["StageManagerTreeItem"] | None = None, data: dict = None
+        self,
+        display_name: str,
+        tooltip: str,
+        children: list["StageManagerTreeItem"] | None = None,
+        data: dict = None,
     ):
         super().__init__(children=children)
+
+        for child in children or []:
+            child.parent = self
 
         self._display_name = display_name
         self._tooltip = tooltip
         self._data = data or {}
+
+        self._parent = None
 
     @property
     @abc.abstractmethod
@@ -53,6 +62,7 @@ class StageManagerTreeItem(_TreeItemBase):
             {
                 "_display_name": None,
                 "_tooltip": None,
+                "_parent": None,
                 "_data": None,
             }
         )
@@ -73,11 +83,18 @@ class StageManagerTreeItem(_TreeItemBase):
         return self._tooltip
 
     @property
-    def icon(self) -> str | None:
+    def parent(self) -> "StageManagerTreeItem":
         """
-        The icon style name associated with the item. Can be used by the widgets
+        The parent item for which this item is a child
         """
-        return None  # noqa R501
+        return self._parent
+
+    @parent.setter
+    def parent(self, value: "StageManagerTreeItem"):
+        """
+        Set the parent item for which this item is a child
+        """
+        self._parent = value
 
     @property
     def data(self) -> dict:
@@ -85,6 +102,13 @@ class StageManagerTreeItem(_TreeItemBase):
         Custom data held in the item. Can be used by the widgets
         """
         return self._data
+
+    @property
+    def icon(self) -> str | None:
+        """
+        The icon style name associated with the item. Can be used by the widgets
+        """
+        return None  # noqa R501
 
     @property
     def can_have_children(self) -> bool:
@@ -165,6 +189,16 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem], Generic[DataTy
         Method called when the `self._items` attribute should be refreshed
         """
         self._item_changed(None)
+
+    def find_items(self, predicate: Callable[[StageManagerTreeItem], bool]) -> list[StageManagerTreeItem]:
+        """
+        Get a tree item from its data
+        """
+        results = []
+        for item in self.iter_items_children():
+            if predicate(item):
+                results.append(item)
+        return results
 
     def get_item_children(self, item: StageManagerTreeItem | None):
         """
@@ -270,6 +304,7 @@ class StageManagerTreePlugin(_StageManagerPluginBase, abc.ABC):
 
     class Config(_StageManagerPluginBase.Config):
         fields = {
+            **_StageManagerPluginBase.Config.fields,
             "model": {"exclude": True},
             "delegate": {"exclude": True},
         }

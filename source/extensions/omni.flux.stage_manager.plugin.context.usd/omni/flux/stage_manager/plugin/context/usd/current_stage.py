@@ -16,6 +16,7 @@
 """
 
 import omni.usd
+from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pxr import Usd
 from pydantic import Field, PrivateAttr, validator
 
@@ -27,11 +28,8 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
 
     display_name: str = "Current Stage"
 
-    _stage: Usd.Stage | None = PrivateAttr()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._stage = None
+    _stage: Usd.Stage | None = PrivateAttr(None)
+    _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr([])
 
     @validator("context_name", allow_reuse=True)
     def context_name_is_valid(cls, v):  # noqa N805
@@ -52,6 +50,12 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
         if not self._stage:
             raise ValueError(f'The context does not have a stage -> "{self.context_name}"')
 
+        super().setup()
+
+        self._listener_event_occurred_subs.extend(
+            self.subscribe_listener_event_occurred(omni.usd.StageEventType, self._on_stage_event_occurred)
+        )
+
     def get_items(self):
         """
         Fetch the list of prims other plugins should use
@@ -63,6 +67,11 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
             List of USD prims
         """
         if not self._stage:
-            raise ValueError("The context was not setup")
+            raise ValueError("The context plugin was not setup")
 
         return self._stage.GetPseudoRoot().GetChildren()
+
+    def _on_stage_event_occurred(self, event_type: omni.usd.StageEventType):
+        # Make sure to update the cached stage when the stage changes
+        if event_type in [omni.usd.StageEventType.OPENED, omni.usd.StageEventType.CLOSED]:
+            self.setup()

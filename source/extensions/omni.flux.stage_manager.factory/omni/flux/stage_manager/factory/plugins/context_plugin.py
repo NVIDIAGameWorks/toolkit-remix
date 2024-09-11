@@ -16,10 +16,14 @@
 """
 
 import abc
+from typing import Any, Callable
 
 from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
+from omni.flux.utils.common import EventSubscription as _EventSubscription
+from pydantic import Field, validator
 
 from .base import StageManagerPluginBase as _StageManagerPluginBase
+from .listener_plugin import StageManagerListenerPlugin as _StageManagerListenerPlugin
 
 
 class StageManagerContextPlugin(_StageManagerPluginBase, abc.ABC):
@@ -29,13 +33,22 @@ class StageManagerContextPlugin(_StageManagerPluginBase, abc.ABC):
     There should only ever be one context plugin active at any time.
     """
 
+    listeners: list[_StageManagerListenerPlugin] = Field(
+        ..., description="The listeners that should be used to notify the plugins when data changes"
+    )
+
+    @validator("listeners", allow_reuse=True)
+    def check_unique_listeners(cls, v):  # noqa N805
+        # Use a list + validator to keep the list order
+        return list(dict.fromkeys(v))
+
     @classmethod
     @property
     def data_type(cls) -> _StageManagerDataTypes:
         """
         The data type that this plugin provides.
         """
-        return _StageManagerDataTypes.GENERIC
+        return _StageManagerDataTypes.NONE
 
     @classmethod
     @property
@@ -43,13 +56,6 @@ class StageManagerContextPlugin(_StageManagerPluginBase, abc.ABC):
     def display_name(cls) -> str:
         """
         The string to display when displaying the plugin in the UI
-        """
-        pass
-
-    @abc.abstractmethod
-    def setup(self):
-        """
-        Set up the context. This will be called once by the core.
         """
         pass
 
@@ -64,7 +70,56 @@ class StageManagerContextPlugin(_StageManagerPluginBase, abc.ABC):
         """
         pass
 
+    def setup(self):
+        """
+        Set up the context. This will be called once by the core.
+        """
+        self._validate_data_type()
+
+        for listener in self.listeners:
+            listener.setup()
+
+    def subscribe_listener_event_occurred(
+        self, event_type: type, function: Callable[[Any], None]
+    ) -> list[_EventSubscription]:
+        """
+        Subscribe to any listener that utilizes a matching event type.
+
+        Args:
+            event_type: The event type to listen to
+            function: The callback to execute when an event of the given type is executed
+
+        Raises
+            ValueError: If no listener is compatible with the given event type
+
+        Returns:
+            A list of Event Subscriptions that will unsubscribe automatically on deletion
+        """
+        expected_listeners = []
+        for listener in self.listeners:
+            if listener.event_type == event_type:
+                expected_listeners.append(listener)
+        if not expected_listeners:
+            raise ValueError(f"No listener is compatible with event type -> {event_type}")
+
+        return [listener.subscribe_event_occurred(function) for listener in expected_listeners]
+
+    def _validate_data_type(self):
+        """
+        Validate the compatibility of the context data type
+
+        Raises:
+            ValueError: If the data type is not compatible with this plugin
+        """
+        for listener in self.listeners:
+            if self.data_type != listener.compatible_data_type:
+                raise ValueError(
+                    f"The listener plugin data type is not compatible with this context plugin -> {listener.name} -> "
+                    f"{self.data_type.value} != {listener.compatible_data_type.value}"
+                )
+
     class Config(_StageManagerPluginBase.Config):
         fields = {
+            **_StageManagerPluginBase.Config.fields,
             "display_name": {"exclude": True},
         }

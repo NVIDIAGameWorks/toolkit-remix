@@ -47,6 +47,7 @@ class StageManagerPluginBase(_PluginBase, BaseModel, abc.ABC):
 
     class Config:
         arbitrary_types_allowed = True
+        fields = {}
 
 
 class StageManagerUIPluginBase(StageManagerPluginBase, abc.ABC):
@@ -83,6 +84,7 @@ class StageManagerUIPluginBase(StageManagerPluginBase, abc.ABC):
 
     class Config(StageManagerPluginBase.Config):
         fields = {
+            **StageManagerPluginBase.Config.fields,
             "display_name": {"exclude": True},
             "tooltip": {"exclude": True},
         }

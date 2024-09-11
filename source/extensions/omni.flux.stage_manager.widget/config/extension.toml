@@ -3,7 +3,7 @@ order = 100  # to start always after the plugins
 
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.0.0"
+version = "1.0.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -36,6 +36,7 @@ icon = "data/images/icon.png"
 "omni.flux.stage_manager.core" = {}
 "omni.flux.utils.common" = {}
 "omni.ui" = {}
+"omni.usd" = {}
 
 [[python.module]]
 name = "omni.flux.stage_manager.widget"

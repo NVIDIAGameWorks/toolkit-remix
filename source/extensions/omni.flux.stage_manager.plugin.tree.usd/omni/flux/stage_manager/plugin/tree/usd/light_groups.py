@@ -90,6 +90,8 @@ class LightGroupsModel(_VirtualGroupsModel):
         return super().default_attr
 
     def refresh(self):
+        self._items.clear()
+
         # Expect all the light prims to be present in the context_items, so no need to recursively look for children
         grouped_items = {}
         for prim in self.context_items:

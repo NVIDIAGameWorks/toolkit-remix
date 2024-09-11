@@ -20,12 +20,19 @@ from typing import TYPE_CHECKING
 
 from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
 from omni.flux.stage_manager.factory.plugins import StageManagerContextPlugin as _StageManagerContextPlugin
+from omni.flux.stage_manager.factory.plugins import StageManagerListenerPlugin as _StageManagerListenerPlugin
 
 if TYPE_CHECKING:
     from pxr import Usd
 
 
 class StageManagerUSDContextPlugin(_StageManagerContextPlugin, abc.ABC):
+    listeners: list[_StageManagerListenerPlugin] = [
+        {"name": "StageManagerUSDLayersListenerPlugin"},
+        {"name": "StageManagerUSDNoticeListenerPlugin"},
+        {"name": "StageManagerUSDStageListenerPlugin"},
+    ]
+
     @classmethod
     @property
     @abc.abstractmethod
@@ -46,3 +53,15 @@ class StageManagerUSDContextPlugin(_StageManagerContextPlugin, abc.ABC):
             List of USD prims
         """
         pass
+
+    def setup(self):
+        for listener in self.listeners:
+            listener.context_name = self.context_name
+
+        super().setup()
+
+    class Config(_StageManagerContextPlugin.Config):
+        fields = {
+            **_StageManagerContextPlugin.Config.fields,
+            "listeners": {"exclude": True},
+        }
