@@ -50,7 +50,7 @@ class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
         """
         pass
 
-    def subscribe_filter_items_changed(self, callback: Callable[[], None]):
+    def subscribe_filter_items_changed(self, callback: Callable[[], None]) -> _EventSubscription:
         """
         Return the object that will automatically unsubscribe when destroyed.
         """

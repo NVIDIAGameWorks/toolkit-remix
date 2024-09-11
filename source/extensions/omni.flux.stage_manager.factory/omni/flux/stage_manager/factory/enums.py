@@ -19,6 +19,6 @@ from enum import Enum
 
 
 class StageManagerDataTypes(Enum):
-    GENERIC = "Generic"
+    NONE = "None"
     USD = "USD"
     FILE = "File"

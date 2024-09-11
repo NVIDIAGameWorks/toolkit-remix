@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.4]
+### Changed
+- Ignore cameras prim paths in the stage manager schema
+
 ## [1.6.3]
 ### Added
 - Added layer type for validation tests

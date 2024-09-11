@@ -16,9 +16,11 @@
 """
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from omni import ui
+from omni.flux.utils.common import Event as _Event
+from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.decorators import limit_recursion as _limit_recursion
 
@@ -63,6 +65,8 @@ class TreeWidget(ui.TreeView):
 
         if self._select_all_children:
             self.set_selection_changed_fn(self.on_selection_changed)
+
+        self.__on_selection_changed = _Event()
 
     @property
     @abc.abstractmethod
@@ -109,6 +113,11 @@ class TreeWidget(ui.TreeView):
         selection_list = list(selection)
         self.selection = selection_list
         self._delegate.selection = selection_list
+
+        self.__on_selection_changed(selection_list)
+
+    def subscribe_selection_changed(self, callback: Callable[[list["_TreeItemBase"]], None]) -> _EventSubscription:
+        return _EventSubscription(self.__on_selection_changed, callback)
 
     def destroy(self):
         _reset_default_attrs(self)

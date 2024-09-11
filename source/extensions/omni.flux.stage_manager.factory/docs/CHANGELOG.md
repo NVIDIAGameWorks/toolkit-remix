@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+### Added
+- Added listener plugins
+
+### Changed
+- Changed the `GENERIC` data type to `NONE`
+
 ## [1.2.0]
 ### Changed
 - Split context plugins setup between `setup()` and `get_items()`

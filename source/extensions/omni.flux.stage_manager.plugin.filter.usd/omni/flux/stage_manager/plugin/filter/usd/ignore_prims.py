@@ -17,8 +17,8 @@
 
 from typing import TYPE_CHECKING, Iterable
 
-import carb
 from omni import ui
+from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import Field, PrivateAttr
 
 from .base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
@@ -39,7 +39,7 @@ class IgnorePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
     )
 
     _string_field: ui.StringField = PrivateAttr()
-    _value_changed_sub: carb.Subscription = PrivateAttr()
+    _value_changed_sub: _EventSubscription | None = PrivateAttr()
 
     def filter_items(self, prims: Iterable["Usd.Prim"]) -> list["Usd.Prim"]:
         filtered_prims = []

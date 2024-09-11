@@ -19,7 +19,7 @@ from asyncio import ensure_future
 from functools import partial
 
 import carb
-from omni import ui
+from omni import ui, usd
 from omni.flux.stage_manager.core import StageManagerCore as _StageManagerCore
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit import app
@@ -153,6 +153,7 @@ class StageManagerWidget:
             self.__resize_task.cancel()
         self.__resize_task = ensure_future(self._resize_tabs_deferred())
 
+    @usd.handle_exception
     async def _resize_tabs_deferred(self):
         """
         Wait 1 frame for the widget to be drawn on screen, then resize all the tabs to be the same size as the largest
