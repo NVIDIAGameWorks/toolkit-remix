@@ -25,9 +25,7 @@ import omni.usd
 from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
 from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugin as _StageManagerInteractionPlugin
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from omni.flux.utils.common.decorators import (
-    ignore_function_decorator_and_reset_value as _ignore_function_decorator_and_reset_value,
-)
+from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common.utils import get_omni_prims as _get_omni_prims
 from pxr import Usd
 from pydantic import Field, PrivateAttr
@@ -39,6 +37,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
     _context_name: str = PrivateAttr("")
     _selection_update_lock: bool = PrivateAttr(False)
     _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr([])
+    _set_active_task: Future | None = PrivateAttr(None)
     _update_context_task: Future | None = PrivateAttr(None)
 
     @classmethod
@@ -62,6 +61,23 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
     def _select_all_children(cls) -> bool:
         return True
 
+    def set_active(self, value: bool):
+        if self._set_active_task:
+            self._set_active_task.cancel()
+        self._set_active_task = ensure_future(self.set_active_async(value))
+
+    async def set_active_async(self, value: bool):
+        super().set_active(value)
+
+        # If the plugin is active, update the tree selection to make sure it's up-to-date
+        if value:
+            # Wait 2 frames after having updated the model to make sure the items exist
+            # - Frame 1: _update_context_items updates the model items
+            # - Frame 2: the items are rendered in the UI
+            for _ in range(2):
+                await omni.kit.app.get_app().next_update_async()
+            self._update_tree_selection()
+
     def _setup_listeners(self):
         # Context Will be a USD Context, so we can subscribe to the USD Base Context events
         self._listener_event_occurred_subs.extend(
@@ -73,6 +89,9 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         self._listener_event_occurred_subs.extend(
             self._context.subscribe_listener_event_occurred(Usd.Notice.ObjectsChanged, self._on_usd_event_occurred)
         )
+
+    def _clear_listeners(self):
+        self._listener_event_occurred_subs.clear()
 
     def _on_layer_event_occurred(self, event_type: _layers.LayerEventType):
         if event_type in [_layers.LayerEventType.MUTENESS_STATE_CHANGED, _layers.LayerEventType.SUBLAYERS_CHANGED]:
@@ -109,6 +128,9 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
     @omni.usd.handle_exception
     async def _update_context_items_deferred(self):
         await omni.kit.app.get_app().next_update_async()
+
+        if not self._is_active:
+            return
 
         self._set_context_name()
 
@@ -171,9 +193,9 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             )
         return children
 
-    @_ignore_function_decorator_and_reset_value(attrs={"_selection_update_lock": True})
+    @_ignore_function_decorator(attrs=["_selection_update_lock"])
     def _update_tree_selection(self):
-        if not self.synchronize_selection:
+        if not self.synchronize_selection or not self._is_active:
             return
 
         selection = omni.usd.get_context(self._context_name).get_selection().get_selected_prim_paths()

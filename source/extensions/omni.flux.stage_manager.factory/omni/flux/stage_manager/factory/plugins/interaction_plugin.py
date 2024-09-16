@@ -74,6 +74,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     _update_expansion_task: Future | None = PrivateAttr(None)
 
     _is_initialized: bool = PrivateAttr(False)
+    _is_active: bool = PrivateAttr(False)
 
     _FILTERS_HORIZONTAL_PADDING: int = 24
     _FILTERS_VERTICAL_PADDING: int = 8
@@ -159,6 +160,13 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    def _clear_listeners(self):
+        """
+        Clear the subscriptions to the context's listeners events
+        """
+        pass
+
     @classmethod
     def _check_plugin_compatibility(cls, value: Any, compatible_items: list[Any] | None) -> Any:
         """
@@ -195,7 +203,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._setup_filters()
         self._setup_columns()
-        self._setup_listeners()
 
         self._update_context_items()
 
@@ -282,6 +289,22 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                                 ui.Rectangle(width=ui.Pixel(2), name="WizardSeparator")
                     # Spacing for the scrollbar
                     ui.Spacer(width=self._RESULTS_HORIZONTAL_PADDING, height=0)
+
+    def set_active(self, value: bool):
+        """
+        Whether the interaction plugin is active or not. Only 1 interaction plugin should be active at a time.
+        Active status should be managed by the widget
+
+        Args:
+            value: whether the interaction plugin is active or not
+        """
+        self._is_active = value
+
+        if self._is_active:
+            self._setup_listeners()
+            self._update_context_items()
+        else:
+            self._clear_listeners()
 
     @staticmethod
     def _get_ui_length(column_width: "_ColumnWidth") -> ui.Length:
@@ -376,6 +399,9 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         """
         Set the context items for the interaction plugin Tree model and refresh the model.
         """
+        if not self._is_active:
+            return
+
         self.tree.model.context_items = self._filter_context_items(self._context.get_items())
         self.tree.model.refresh()
 
@@ -390,6 +416,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             A filtered list of items
         """
         filtered_items = list(items)
+
         for filter_plugin in self.filters + self.required_filters:
             if filter_plugin.enabled:
                 filtered_items = filter_plugin.filter_items(filtered_items)
