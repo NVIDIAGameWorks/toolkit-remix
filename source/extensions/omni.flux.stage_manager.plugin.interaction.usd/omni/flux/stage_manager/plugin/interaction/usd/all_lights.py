@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import omni.kit.app
 from omni.flux.stage_manager.factory.plugins import StageManagerFilterPlugin as _StageManagerFilterPlugin
 
 from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin
@@ -36,7 +37,12 @@ class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     ]
     compatible_widgets: list[str] = ["PrimTreeWidgetPlugin", "IsVisibleStateWidgetPlugin"]
 
-    def _update_context_items(self):
+    async def _update_context_items_deferred(self):
+        await omni.kit.app.get_app().next_update_async()
+
+        if not self._is_active:
+            return
+
         self._set_context_name()
 
         # Only filter the items after getting all the children

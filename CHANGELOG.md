@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3215: Checking layer type at mod file import validation
 - REMIX-3477: Implemented USD listeners for the stage manager
 - REMIX-3478: Implemented selection syncing for the stage manager
+- REMIX-3479: Added the ability to deactivate interaction plugins when not visible
 
 ### Changed
 

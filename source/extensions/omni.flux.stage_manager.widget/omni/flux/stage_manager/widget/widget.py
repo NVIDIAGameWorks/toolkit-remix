@@ -91,7 +91,7 @@ class StageManagerWidget:
                             mouse_released_fn=partial(self._select_tab, index),
                         ):
                             # Cache the tab widgets
-                            self._tab_backgrounds[id(interaction)] = ui.Rectangle(name=self._inactive_style)
+                            self._tab_backgrounds[hash(interaction)] = ui.Rectangle(name=self._inactive_style)
                             ui.Label(
                                 interaction.display_name,
                                 name="PropertiesWidgetLabel",
@@ -100,8 +100,8 @@ class StageManagerWidget:
 
                 for interaction in enabled_interactions:
                     # Cache the interaction widgets
-                    self._frames[id(interaction)] = ui.ZStack(visible=False)
-                    with self._frames[id(interaction)]:
+                    self._frames[hash(interaction)] = ui.ZStack(visible=False)
+                    with self._frames[hash(interaction)]:
                         ui.Rectangle(name=self._active_style)
                         interaction.build_ui()
 
@@ -136,14 +136,23 @@ class StageManagerWidget:
             frame.visible = False
 
         # Set the interaction tab and frame to active
-        enabled_interactions = [i for i in self._core.schema.interactions if i.enabled]
+        enabled_interactions = []
+        for interaction in self._core.schema.interactions:
+            interaction.set_active(False)
+            if interaction.enabled:
+                enabled_interactions.append(interaction)
+
         if index >= len(enabled_interactions):
             carb.log_warn("An invalid tab was selected.")
             return
 
         interaction = enabled_interactions[index]
-        self._tab_backgrounds[id(interaction)].name = self._active_style
-        self._frames[id(interaction)].visible = True
+
+        self._tab_backgrounds[hash(interaction)].name = self._active_style
+        self._frames[hash(interaction)].visible = True
+
+        # Make sure the interaction is visible before making it active
+        interaction.set_active(True)
 
     def _resize_tabs(self):
         """
