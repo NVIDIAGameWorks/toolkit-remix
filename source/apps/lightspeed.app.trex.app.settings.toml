@@ -60,5 +60,15 @@ ui.background.brightness = 0.9
 
 # Enable sending stack traces to Sentry
 [telemetry]
-enableSentry = false  # TODO: waiting OM-110733
+# Set this to `true` to enable Sentry reporting
+enableSentry = false
 dsn = "https://df3fec669240482a8e6e1323b818d631@o4505230501543936.ingest.sentry.io/4505230654308352"
+# Set this to `false` to not scrub PII from Sentry reports
+removePIISentry = true
+# This is the location of the `kit` executable in the path. It will be resolved at application runtime so that it will
+# work with both local development code and distributed executables.
+appRootPath = "${kit}/.."
+
+[privacy]
+# This is required for Sentry to work
+externalBuild = false
