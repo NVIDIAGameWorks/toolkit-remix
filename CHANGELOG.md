@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3477: Implemented USD listeners for the stage manager
 - REMIX-3478: Implemented selection syncing for the stage manager
 - REMIX-3479: Added the ability to deactivate interaction plugins when not visible
+- REMIX-3398: Added settings for enabling Sentry reporting
 
 ### Changed
 
