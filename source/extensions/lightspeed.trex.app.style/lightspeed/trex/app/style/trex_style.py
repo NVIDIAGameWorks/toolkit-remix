@@ -411,6 +411,7 @@ current_dict.update(
         "Image::ModOpenHovered": {"image_url": _get_icons("mod_open"), "color": _BLUE_ACTION},
         "Image::ModRemasterHovered": {"image_url": _get_icons("mod_remaster"), "color": _BLUE_ACTION},
         "Image::Drag": {"image_url": _get_icons("drag_handle"), "color": _WHITE_30},
+        "Image::Capture": {"image_url": _get_icons("database"), "color": _WHITE_80},
         "Image::Collection": {"image_url": _get_icons("link"), "color": _WHITE_80},
         "Image::Mesh": {"image_url": _get_icons("hexagon-outline"), "color": _WHITE_80},
         "Image::GeomSubset": {"image_url": _get_icons("hexagon-multiple-outline"), "color": _WHITE_80},

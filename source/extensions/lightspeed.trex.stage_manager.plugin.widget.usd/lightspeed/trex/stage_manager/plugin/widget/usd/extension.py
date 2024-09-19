@@ -15,14 +15,24 @@
 * limitations under the License.
 """
 
-from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin
+import carb
+import carb.settings
+import omni.ext
+from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
+
+from .state_is_capture import IsCaptureStateWidgetPlugin as _IsCaptureStateWidgetPlugin
 
 
-class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
-    display_name: str = "Prims"
-    tooltip: str = "View the available prims"
+class LightspeedStageManagerUSDWidgetPluginsExtension(omni.ext.IExt):
 
-    compatible_trees: list[str] = ["PrimGroupsTreePlugin", "VirtualGroupsTreePlugin"]
-    compatible_filters: list[str] = ["IgnorePrimsFilterPlugin", "OmniPrimsFilterPlugin", "SearchFilterPlugin"]
-    # TODO StageManager: We have LSS plugin names in the flux ext because of this system
-    compatible_widgets: list[str] = ["PrimTreeWidgetPlugin", "IsVisibleStateWidgetPlugin", "IsCaptureStateWidgetPlugin"]
+    _PLUGINS = [_IsCaptureStateWidgetPlugin]
+
+    def on_startup(self, _):
+        carb.log_info("[lightspeed.trex.stage_manager.plugin.widget.usd] Startup")
+
+        _get_factory_instance().register_plugins(self._PLUGINS)
+
+    def on_shutdown(self):
+        carb.log_info("[lightspeed.trex.stage_manager.plugin.widget.usd] Shutdown")
+
+        _get_factory_instance().unregister_plugins(self._PLUGINS)

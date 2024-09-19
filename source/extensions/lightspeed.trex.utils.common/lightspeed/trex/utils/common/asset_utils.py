@@ -18,6 +18,7 @@
 __all__ = [
     "get_texture_type_input_name",
     "is_asset_ingested",
+    "is_layer_from_capture",
     "is_mesh_from_capture",
     "is_texture_from_capture",
 ]
@@ -66,6 +67,11 @@ def is_asset_ingested(asset_path: str | Path, ignore_invalid_paths: bool = True)
         return False
 
     return True
+
+
+def is_layer_from_capture(layer_path: str) -> bool:
+    path = Path(layer_path).resolve()
+    return bool(constants.CAPTURE_FOLDER in path.parts or constants.REMIX_CAPTURE_FOLDER in path.parts)
 
 
 def is_mesh_from_capture(asset_path: str) -> bool:

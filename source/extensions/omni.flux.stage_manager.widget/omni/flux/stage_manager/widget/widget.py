@@ -44,7 +44,7 @@ class StageManagerWidget:
         self._inactive_style = inactive_style
 
         self._tab_backgrounds = {}
-        self._frames = {}
+        self._interaction_frame = None
         self._active_interaction = -1
 
         self.__resize_task = None
@@ -60,7 +60,7 @@ class StageManagerWidget:
             "_active_style": None,
             "_inactive_style": None,
             "_tabs": None,
-            "_frames": None,
+            "_interaction_frame": None,
             "_active_interaction": None,
         }
 
@@ -75,7 +75,6 @@ class StageManagerWidget:
 
         # Clear the cached dictionaries
         self._tab_backgrounds.clear()
-        self._frames.clear()
 
         # Build the widget
         with ui.ZStack():
@@ -98,12 +97,9 @@ class StageManagerWidget:
                                 alignment=ui.Alignment.CENTER,
                             )
 
-                for interaction in enabled_interactions:
-                    # Cache the interaction widgets
-                    self._frames[hash(interaction)] = ui.ZStack(visible=False)
-                    with self._frames[hash(interaction)]:
-                        ui.Rectangle(name=self._active_style)
-                        interaction.build_ui()
+                with ui.ZStack():
+                    ui.Rectangle(name=self._active_style)
+                    self._interaction_frame = ui.Frame()
 
         # Set the first tab as active
         self._select_tab(0)
@@ -132,10 +128,7 @@ class StageManagerWidget:
         # Reset the widget to the original state
         for tab in self._tab_backgrounds.values():
             tab.name = self._inactive_style
-        for frame in self._frames.values():
-            frame.visible = False
 
-        # Set the interaction tab and frame to active
         enabled_interactions = []
         for interaction in self._core.schema.interactions:
             interaction.set_active(False)
@@ -149,7 +142,10 @@ class StageManagerWidget:
         interaction = enabled_interactions[index]
 
         self._tab_backgrounds[hash(interaction)].name = self._active_style
-        self._frames[hash(interaction)].visible = True
+
+        self._interaction_frame.clear()
+        with self._interaction_frame:
+            interaction.build_ui()
 
         # Make sure the interaction is visible before making it active
         interaction.set_active(True)

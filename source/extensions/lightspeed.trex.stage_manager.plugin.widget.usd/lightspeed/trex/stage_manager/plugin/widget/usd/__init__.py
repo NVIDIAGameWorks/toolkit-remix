@@ -15,14 +15,6 @@
 * limitations under the License.
 """
 
-from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin
+__all__ = ["LightspeedStageManagerUSDWidgetPluginsExtension"]
 
-
-class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
-    display_name: str = "Prims"
-    tooltip: str = "View the available prims"
-
-    compatible_trees: list[str] = ["PrimGroupsTreePlugin", "VirtualGroupsTreePlugin"]
-    compatible_filters: list[str] = ["IgnorePrimsFilterPlugin", "OmniPrimsFilterPlugin", "SearchFilterPlugin"]
-    # TODO StageManager: We have LSS plugin names in the flux ext because of this system
-    compatible_widgets: list[str] = ["PrimTreeWidgetPlugin", "IsVisibleStateWidgetPlugin", "IsCaptureStateWidgetPlugin"]
+from .extension import LightspeedStageManagerUSDWidgetPluginsExtension

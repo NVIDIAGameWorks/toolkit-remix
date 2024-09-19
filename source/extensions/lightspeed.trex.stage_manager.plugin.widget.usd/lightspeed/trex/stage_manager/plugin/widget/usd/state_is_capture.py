@@ -17,33 +17,31 @@
 
 from typing import TYPE_CHECKING
 
+from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementCore
 from omni import ui
-from pydantic import Field
-
-from .base import StageManagerUSDWidgetPlugin as _StageManagerUSDWidgetPlugin
+from omni.flux.stage_manager.plugin.widget.usd.base import (
+    StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,
+)
 
 if TYPE_CHECKING:
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 
 
-class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin):
-    display_name: str = "Prims"
-    tooltip: str = ""
-
-    icon_size: int = Field(24 - 8, description="The size of the icon in pixels", exclude=True)
-    item_spacing: int = Field(8, description="The horizontal space between them items in pixels", exclude=True)
-
+class IsCaptureStateWidgetPlugin(_StageManagerStateWidgetPlugin):
     def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
-        with ui.HStack(spacing=ui.Pixel(self.item_spacing), tooltip=item.tooltip):
-            if item.icon:
-                ui.Image("", name=item.icon, width=ui.Pixel(self.icon_size), height=ui.Pixel(self.icon_size))
-            else:
-                ui.Spacer(height=0, width=0)
-            ui.Label(item.display_name)
+        prim = item.data.get("prim")
+        if prim:
+            is_captured = _AssetReplacementCore.prim_is_from_a_capture_reference(prim)
+            ui.Image(
+                "",
+                width=self._icon_size,
+                height=self._icon_size,
+                name="Capture" if is_captured else "Collection",
+                tooltip=f"The prim originates from a {'capture' if is_captured else 'mod'} layer.",
+            )
+        else:
+            ui.Spacer(width=self._icon_size, height=self._icon_size)
 
     def build_result_ui(self, model: "_StageManagerTreeModel"):
-        # Make sure to only count prims, not virtual groups
-        prims_count = len([i for i in model.iter_items_children() if not i.data.get("virtual")])
-
-        ui.Label(f"{prims_count} prim{'s' if prims_count > 1 else '' } available")
+        pass

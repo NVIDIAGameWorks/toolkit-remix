@@ -22,7 +22,7 @@
                 },
                 {
                     "name": "HorizontalColumnPlugin",
-                    "display_name": "State",
+                    "display_name": "Actions",
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
                         { "name": "IsVisibleStateWidgetPlugin" }
@@ -48,7 +48,15 @@
                 },
                 {
                     "name": "HorizontalColumnPlugin",
-                    "display_name": "State",
+                    "display_name": "States",
+                    "width": { "unit": "Pixel", "value": 100 },
+                    "widgets": [
+                        { "name": "IsCaptureStateWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Actions",
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
                         { "name": "IsVisibleStateWidgetPlugin" }
