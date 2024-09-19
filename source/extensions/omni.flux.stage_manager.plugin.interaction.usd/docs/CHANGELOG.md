@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.1]
+### Changed
+- Allow `IsCaptureStateWidgetPlugin` to be used
+
 ## [1.4.0]
 ### Changed
 - Implemented methods required to activate/deactivate interaction plugins

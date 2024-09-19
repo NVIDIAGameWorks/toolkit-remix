@@ -32,6 +32,7 @@ from lightspeed.layer_manager.core.data_models import LayerType as _LayerType
 from lightspeed.tool.material.core import ToolMaterialCore as _ToolMaterialCore
 from lightspeed.trex.utils.common.asset_utils import get_texture_type_input_name as _get_texture_type_attribute
 from lightspeed.trex.utils.common.asset_utils import is_asset_ingested as _is_asset_ingested
+from lightspeed.trex.utils.common.asset_utils import is_layer_from_capture as _is_layer_from_capture
 from lightspeed.trex.utils.common.asset_utils import is_mesh_from_capture as _is_mesh_from_capture
 from lightspeed.trex.utils.common.asset_utils import is_texture_from_capture as _is_texture_from_capture
 from lightspeed.trex.utils.common.prim_utils import filter_prims_paths as _filter_prims_paths
@@ -345,8 +346,8 @@ class Setup:
         stacks = prim.GetPrimStack()
         if stacks:
             for stack in stacks:
-                if Setup.ref_path_is_from_capture(stack.layer.realPath):
-                    # this is a mesh from the capture folder
+                if _is_layer_from_capture(stack.layer.realPath):
+                    # The layer is a capture layer
                     return True
         return False
 

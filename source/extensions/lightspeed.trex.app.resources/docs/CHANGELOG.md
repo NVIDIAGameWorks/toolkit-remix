@@ -1,6 +1,14 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.5]
+### Added
+- Added a capture icon (database)
+- Added the capture state widget to the States column
+
+### Changed
+- Split the state column into States & Actions
+
 ## [1.6.4]
 ### Changed
 - Ignore cameras prim paths in the stage manager schema
