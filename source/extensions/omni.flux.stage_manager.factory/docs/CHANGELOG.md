@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Changed
+- Refresh interaction plugin widgets on tree model item changed
+- Renamed `build_result_ui` to `build_overview_ui`
+
 ## [1.4.0]
 ### Added
 - Added the ability to deactivate interaction plugins for performance optimizations

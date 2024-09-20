@@ -23,6 +23,11 @@ class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     tooltip: str = "View the available prims"
 
     compatible_trees: list[str] = ["PrimGroupsTreePlugin", "VirtualGroupsTreePlugin"]
-    compatible_filters: list[str] = ["IgnorePrimsFilterPlugin", "OmniPrimsFilterPlugin", "SearchFilterPlugin"]
+    compatible_filters: list[str] = [
+        "IgnorePrimsFilterPlugin",
+        "IsCaptureFilterPlugin",
+        "OmniPrimsFilterPlugin",
+        "SearchFilterPlugin",
+    ]
     # TODO StageManager: We have LSS plugin names in the flux ext because of this system
     compatible_widgets: list[str] = ["PrimTreeWidgetPlugin", "IsVisibleStateWidgetPlugin", "IsCaptureStateWidgetPlugin"]

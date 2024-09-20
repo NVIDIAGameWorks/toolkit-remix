@@ -39,6 +39,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
     _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr([])
     _set_active_task: Future | None = PrivateAttr(None)
     _update_context_task: Future | None = PrivateAttr(None)
+    _items_changed_task: Future | None = PrivateAttr(None)
 
     @classmethod
     @property
@@ -62,6 +63,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         return True
 
     def set_active(self, value: bool):
+        # Convert `set_active` to an async method since `_update_context_items` is also async
         if self._set_active_task:
             self._set_active_task.cancel()
         self._set_active_task = ensure_future(self.set_active_async(value))
@@ -142,6 +144,22 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
 
         self.tree.model.context_items = context_items
         self.tree.model.refresh()
+
+    def _on_item_changed(self, model, item):
+        # Convert `_on_item_changed` to an async method since `_update_context_items` is also async
+        if self._items_changed_task:
+            self._items_changed_task.cancel()
+        self._items_changed_task = ensure_future(self._on_item_changed_async(model, item))
+
+    async def _on_item_changed_async(self, model, item):
+        """
+        Async implementation for the `_on_item_changed` function. Waits 1 frame between the super function and selection
+        update calls to ensure the items are rendered before updating the selection
+        """
+        super()._on_item_changed(model, item)
+
+        # Wait for the updated items to be rendered
+        await omni.kit.app.get_app().next_update_async()
 
         self._update_tree_selection()
 

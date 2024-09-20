@@ -37,5 +37,5 @@ class StageManagerWidgetPlugin(_StageManagerUIPluginBase, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def build_result_ui(self, model: "_StageManagerTreeModel"):
+    def build_overview_ui(self, model: "_StageManagerTreeModel"):
         pass

@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.6]
+### Changed
+- Updated `default_schema` filters
+
 ## [1.6.5]
 ### Added
 - Added a capture icon (database)

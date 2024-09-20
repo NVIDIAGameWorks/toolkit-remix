@@ -1,13 +1,13 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.3.2"
+version = "1.0.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 
 # The title and description fields are primarly for displaying extension info in UI
-description = "A repository of USD widget plugins for the stage manager"
-title = "Flux Stage Manager USD Widget Plugins"
+description = "A repository of USD filter plugins for the Remix stage manager"
+title = "Remix Stage Manager USD Filter Plugins"
 
 # Path (relative to the root) or content of readme markdown file for UI.
 readme = "docs/README.md"
@@ -16,7 +16,7 @@ readme = "docs/README.md"
 category = "internal"
 
 # Keywords for the extension
-keywords = ["kit", "flux", "stage", "manager", "plugin", "widget", "usd"]
+keywords = ["remix", "stage", "manager", "plugin", "filter", "usd"]
 
 # Location of change log file in target (final) folder of extension, relative to the root.
 # More info on writing changelog: https://keepachangelog.com/en/1.0.0/
@@ -30,14 +30,14 @@ preview_image = "data/images/preview.png"
 icon = "data/images/icon.png"
 
 [dependencies]
-"omni.flux.stage_manager.factory" = {}
-"omni.kit.commands" = {}
+"lightspeed.trex.asset_replacements.core.shared" = {}
+"omni.flux.stage_manager.plugin.filter.usd" = {}
 "omni.ui" = {}
 
 [[python.module]]
-name = "omni.flux.stage_manager.plugin.widget.usd"
+name = "lightspeed.trex.stage_manager.plugin.filter.usd"
 
 [[test]]
 dependencies = [
-    "omni.flux.tests.dependencies",
+    "lightspeed.trex.tests.dependencies",
 ]
