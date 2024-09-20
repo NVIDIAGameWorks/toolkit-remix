@@ -65,6 +65,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     _item_expansion_states: dict[int, bool] = PrivateAttr({})
 
+    _item_changed_sub: _EventSubscription | None = PrivateAttr(None)
     _item_expanded_sub: _EventSubscription | None = PrivateAttr(None)
     _selection_changed_sub: _EventSubscription | None = PrivateAttr(None)
 
@@ -201,6 +202,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._validate_data_type()
 
+        self._setup_model()
         self._setup_filters()
         self._setup_columns()
 
@@ -272,7 +274,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                                         ui.Frame(
                                             width=column_widths[index],
                                             horizontal_clipping=True,
-                                            build_fn=partial(column.build_result_ui, self.tree.model),
+                                            build_fn=partial(column.build_overview_ui, self.tree.model),
                                         )
                                     )
                                 # Spacing for the scrollbar
@@ -325,6 +327,12 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 length_class = ui.Pixel
         return length_class(column_width.value)
 
+    def _setup_model(self):
+        """
+        Subscribe to the `_item_changed` event triggered by the tree model to rebuild the result UI frames
+        """
+        self._item_changed_sub = self.tree.model.subscribe_item_changed_fn(self._on_item_changed)
+
     def _setup_filters(self):
         """
         Subscribe to the on_filter_items_changed event to refresh the tree widget model & add the filter functions to
@@ -351,17 +359,21 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._item_expanded_sub = self.tree.delegate.subscribe_item_expanded(self._on_item_expanded)
 
-    def _on_filter_items_changed(self):
+    def _on_item_changed(self, _model: ui.AbstractItemModel, _item: ui.AbstractItem):
         """
-        Event handler for to execute when event widgets are updated
+        Event handler to execute when the tree model's items change
         """
-        self._update_context_items()
-
         # Rebuild the result UI with the update model data
         for frame in self._result_frames:
             frame.rebuild()
 
         self._update_expansion_states()
+
+    def _on_filter_items_changed(self):
+        """
+        Event handler to execute when event filter widgets are updated
+        """
+        self._update_context_items()
 
     def _on_item_expanded(self, item: _StageManagerTreeItem, expanded: bool):
         """

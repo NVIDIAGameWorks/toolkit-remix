@@ -8,7 +8,6 @@
             "name": "AllPrimsInteractionPlugin",
             "tree": { "name": "PrimGroupsTreePlugin" },
             "filters": [
-                { "name": "SearchFilterPlugin" },
                 { "name": "OmniPrimsFilterPlugin", "display": false, "include_results": false },
                 { "name": "IgnorePrimsFilterPlugin", "display": false, "ignore_prim_paths": ["/RootNode/cameras", "/remix_settings"] }
             ],
@@ -34,7 +33,7 @@
             "name": "AllLightsInteractionPlugin",
             "tree": { "name": "LightGroupsTreePlugin" },
             "filters": [
-                { "name": "SearchFilterPlugin" },
+                { "name": "IsCaptureFilterPlugin" },
                 { "name": "OmniPrimsFilterPlugin", "display": false, "include_results": false },
                 { "name": "IgnorePrimsFilterPlugin", "display": false, "ignore_prim_paths": ["/remix_settings", "/RootNode/meshes/"] }
             ],

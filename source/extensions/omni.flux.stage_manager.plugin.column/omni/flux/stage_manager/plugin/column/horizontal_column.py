@@ -35,9 +35,9 @@ class HorizontalColumnPlugin(_StageManagerColumnPlugin):
                 widget.build_ui(model, item, level, expanded)
             ui.Spacer(width=0, height=0)  # Add horizontal padding
 
-    def build_result_ui(self, model: "_StageManagerTreeModel"):
+    def build_overview_ui(self, model: "_StageManagerTreeModel"):
         with ui.HStack(spacing=ui.Pixel(self._HORIZONTAL_PADDING)):
             ui.Spacer(width=0, height=0)  # Add horizontal padding
             for widget in self.widgets:
-                widget.build_result_ui(model)
+                widget.build_overview_ui(model)
             ui.Spacer(width=0, height=0)  # Add horizontal padding

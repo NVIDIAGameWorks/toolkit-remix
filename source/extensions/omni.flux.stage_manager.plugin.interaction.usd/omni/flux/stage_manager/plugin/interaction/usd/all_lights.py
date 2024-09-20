@@ -31,6 +31,7 @@ class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     compatible_trees: list[str] = ["LightGroupsTreePlugin", "PrimGroupsTreePlugin", "VirtualGroupsTreePlugin"]
     compatible_filters: list[str] = [
         "IgnorePrimsFilterPlugin",
+        "IsCaptureFilterPlugin",
         "LightPrimsFilterPlugin",
         "OmniPrimsFilterPlugin",
         "SearchFilterPlugin",
