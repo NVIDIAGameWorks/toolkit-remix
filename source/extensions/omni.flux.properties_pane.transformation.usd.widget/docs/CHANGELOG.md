@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.2]
+### Added
+- Add support for editing multiple prims at once
+
 ## [2.6.1]
 ### Changed
 - Update deps

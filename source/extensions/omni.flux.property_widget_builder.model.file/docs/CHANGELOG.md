@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.1]
+### Changed
+- Updated names after refactor of property_widget_builder
+
 ## [1.7.0]
 ### Changed
 - Use centralized LayerTree widget

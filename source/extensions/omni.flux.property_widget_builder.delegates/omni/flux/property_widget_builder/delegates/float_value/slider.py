@@ -71,6 +71,7 @@ class FloatSliderField(AbstractField):
                         max=self.max_value,
                         step=self.step,
                     )
+                    self.set_dynamic_tooltip_fn(widget, value_model)
                     widgets.append(widget)
                     ui.Spacer(height=ui.Pixel(2))
         return widgets

@@ -34,6 +34,7 @@ from lightspeed.trex.contexts.setup import Contexts as _Contexts
 from lightspeed.trex.material_properties.shared.widget import SetupUI as _MaterialPropertiesWidget
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
 from omni.flux.utils.common import path_utils as _path_utils
+from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.flux.validator.factory import BASE_HASH_KEY
 from omni.kit import ui_test
@@ -250,7 +251,8 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNone(cancel_ingestion_button)
 
         # text should be the asset path
-        self.assertEquals(asset_path, texture_file_fields[0].widget.model.get_value_as_string())
+        asset_path_posix = OmniUrl(asset_path).path
+        self.assertEquals(asset_path_posix, texture_file_fields[0].widget.model.get_value_as_string())
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -353,7 +355,8 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(20)
 
         # text should be the asset path
-        self.assertEquals(asset_path, texture_file_fields[0].widget.model.get_value_as_string())
+        asset_path_posix = OmniUrl(asset_path).path
+        self.assertEquals(asset_path_posix, texture_file_fields[0].widget.model.get_value_as_string())
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 

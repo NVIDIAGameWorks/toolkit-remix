@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.14.0]
+### Added
+- Added support for multi-edit and displaying "mixed" values
+
+### Changed
+- Refactored value model classes to clarify and share more code
+
 ## [2.13.1]
 ### Fixed
 - Fixed material property builder string field tooltip and copy menus

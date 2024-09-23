@@ -42,7 +42,7 @@ from PIL import Image
 from ..item_model.attr_value import UsdAttributeValueModel as _UsdAttributeValueModel
 
 if TYPE_CHECKING:
-    from omni.flux.property_widget_builder.widget import ItemModel
+    from omni.flux.property_widget_builder.widget import ItemModelBase
 
 
 class FileTexturePicker(_FilePicker):
@@ -70,10 +70,9 @@ class FileTexturePicker(_FilePicker):
         # Populated during a right click event within `_show_copy_menu` to avoid garbage collection
         self._context_menu: ui.Menu | None = None
 
-        self.__field_changed_by_used = False
+        self.__field_changed_by_user = False
 
     def build_ui(self, item) -> list[ui.Widget]:
-        # TODO: build "mixed" overlay (when multiple selection have different values)
         widgets = []
         self._sub_field_begin_edit = []
         self._sub_field_end_edit = []
@@ -84,31 +83,28 @@ class FileTexturePicker(_FilePicker):
                     ui.Spacer(width=ui.Pixel(8))
                     with ui.VStack():
                         ui.Spacer(height=ui.Pixel(2))
-                        if item.value_models[i].read_only:
-                            # string field is bigger than 16px h
-                            widget = ui.StringField(
-                                model=item.value_models[i],
-                                read_only=True,
-                                style_type_name_override=f"{self.style_name}Read",
-                                identifier="file_texture_string_field_read",
-                                mouse_pressed_fn=functools.partial(self._show_copy_menu, item.value_models[i]),
-                            )
-                        else:
-                            widget = ui.StringField(
-                                model=item.value_models[i],
-                                style_type_name_override=self.style_name,
-                                identifier="file_texture_string_field",
-                                mouse_pressed_fn=functools.partial(self._show_copy_menu, item.value_models[i]),
-                            )
+                        read_only = item.value_models[i].read_only
+                        # string field is bigger than 16px h
+                        widget = ui.StringField(
+                            model=item.value_models[i],
+                            read_only=read_only,
+                            style_type_name_override=f"{self.style_name}Read" if read_only else self.style_name,
+                            identifier="file_texture_string_field",
+                            mouse_pressed_fn=functools.partial(self._show_copy_menu, item.value_models[i]),
+                        )
 
                         def _update_tooltip_value(hovered: bool, value_index=i, string_field_widget=widget):
-                            tooltip = item.value_models[value_index].get_value().resolvedPath
-
-                            # If there was no resolved path, use fallback paths
-                            if tooltip is None or tooltip == "":
-                                tooltip = self.__get_value_model_fallback_path(
-                                    item.value_models[value_index], must_be_absolute=False
-                                )
+                            if item.value_models[value_index].is_mixed:
+                                # TODO: We should probably display resolved paths here too. We
+                                #  need to store assetPath object in `value_model._values` to make that happen.
+                                tooltip = item.value_models[value_index].get_tool_tip()
+                            else:
+                                tooltip = item.value_models[value_index].get_value().resolvedPath
+                                # If there was no resolved path, use fallback paths
+                                if tooltip is None or tooltip == "":
+                                    tooltip = self.__get_value_model_fallback_path(
+                                        item.value_models[value_index], must_be_absolute=False
+                                    )
                             string_field_widget.tooltip = str(tooltip)
 
                         widget.set_mouse_hovered_fn(_update_tooltip_value)
@@ -155,7 +151,6 @@ class FileTexturePicker(_FilePicker):
 
             # Initialize the preview window with a unique title/window ID so that it has its own instance in memory
             item_raw_value = item.value_models[0].get_attributes_raw_value(0)
-
             # Use the texture path as part of the title and fallback on using the asset name
             if item_raw_value is not None and item_raw_value != "":
                 title_path = os.path.basename(item_raw_value.resolvedPath)
@@ -172,7 +167,7 @@ class FileTexturePicker(_FilePicker):
             )
         return widgets
 
-    def _preview_image(self, value_model: "ItemModel", element_index, x, y, button, modifier):
+    def _preview_image(self, value_model: "ItemModelBase", element_index, x, y, button, modifier):
         if button != 0:
             return
 
@@ -358,7 +353,7 @@ class FileTexturePicker(_FilePicker):
         self, path, widget: ui.AbstractField, value_model: "_UsdAttributeValueModel", element_current_idx: int
     ) -> bool:
         edit_target_layer = value_model.stage.GetEditTarget().GetLayer()
-        if not self.__field_changed_by_used:  # we grab the layer that the attribute use
+        if not self.__field_changed_by_user:  # we grab the layer that the attribute use
             attribute_path = value_model.attribute_paths[element_current_idx]
             prim = value_model.stage.GetPrimAtPath(attribute_path.GetPrimPath())
             if prim.IsValid():
@@ -428,13 +423,13 @@ class FileTexturePicker(_FilePicker):
         self, widget: ui.AbstractField, value_model: "_UsdAttributeValueModel", element_current_idx: int, model
     ):
         # we only set the value of the texture at the end of the edit
-        self.__field_changed_by_used = True
+        self.__field_changed_by_user = True
         value_model.block_set_value(True)
 
     def _on_field_end(
         self, widget: ui.AbstractField, value_model: "_UsdAttributeValueModel", element_current_idx: int, model
     ):
-        self.__field_changed_by_used = False
+        self.__field_changed_by_user = False
         value_model.block_set_value(False)
         value_model.set_value(value_model.cached_blocked_value)
 
@@ -459,7 +454,7 @@ class FileTexturePicker(_FilePicker):
             widget: the widget field to set
             path: the path that was selected from the file picker
         """
-        self.__field_changed_by_used = True
+        self.__field_changed_by_user = True
         value_model.block_set_value(False)
         if not self.__is_field_path_valid(path, widget, value_model, element_current_idx):
             return
@@ -467,7 +462,7 @@ class FileTexturePicker(_FilePicker):
             omni.usd.make_path_relative_to_current_edit_target(path, stage=value_model.stage)
         ).replace("\\", "/")
         super()._set_field(widget, value_model, element_current_idx, relative_path)
-        self.__field_changed_by_used = False
+        self.__field_changed_by_user = False
 
     def _show_copy_menu(self, value_model: "_UsdAttributeValueModel", x: float, y: float, b: int, m: int):
         """

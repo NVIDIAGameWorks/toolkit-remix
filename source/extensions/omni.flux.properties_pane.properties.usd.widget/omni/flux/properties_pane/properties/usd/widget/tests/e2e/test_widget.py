@@ -15,6 +15,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+
+import carb.input
 import omni.kit.clipboard
 import omni.kit.undo
 import omni.ui as ui
@@ -60,7 +62,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
 
     async def test_setting_a_value_by_script_update_ui(self):
         """
-        Test that is we set a value not from the UI (for example here, directly in USD), check that the UI is updated
+        Test that if we set a value not from the UI (for example here, directly in USD), check that the UI is updated
         """
         # setup
         _window, _widget = await self.__setup_widget()  # Keep in memory during test
@@ -81,5 +83,78 @@ class TestUSDPropertiesWidget(AsyncTestCase):
 
         # we check that the value of the UI element changed
         self.assertEqual(property_branches[0].widget.model.get_value_as_int(), 123456789.0)
+
+        await self.__destroy(_window, _widget)
+
+    async def test_multi_prim_bool_widget(self):
+        """
+        Test that a property can be edited on multiple prims and that it will be accurately represented.
+        """
+        # setup
+        _window, _widget = await self.__setup_widget()  # Keep in memory during test
+        _widget.refresh(["/Xform/Cube", "/Xform/Cube2"])
+        await omni.kit.ui_test.wait_n_updates(15)
+
+        double_sided_widget = ui_test.find(
+            f"{_window.title}//Frame/**/CheckBox[*].identifier=='/Xform/Cube.doubleSided,/Xform/Cube2.doubleSided'"  # noqa
+        )
+        # one cube is double sided and the other is not, so this should be mixed
+        self.assertEqual(double_sided_widget.widget.model.is_mixed, True)
+        self.assertEqual(double_sided_widget.widget.model.get_value(), True)
+        self.assertEqual(double_sided_widget.widget.model.get_value_as_bool(), True)
+
+        # Act: toggle bool widget
+        self.assertEqual(double_sided_widget.widget.checked, True)  # returns False!
+        await omni.kit.ui_test.emulate_mouse_move(double_sided_widget.position + omni.kit.ui_test.Vec2(3, 3))
+        await omni.kit.ui_test.emulate_mouse_click()
+        self.assertEqual(double_sided_widget.widget.checked, False)
+
+        # we check that the value of the UI element changed
+        self.assertEqual(double_sided_widget.widget.model.get_value(), False)
+        self.assertEqual(double_sided_widget.widget.model.get_value_as_bool(), False)
+        self.assertEqual(double_sided_widget.widget.model.is_mixed, False)
+        # and that both cubes now have the correct value
+        usd_context = omni.usd.get_context()
+        stage = usd_context.get_stage()
+        for prim_path in ("/Xform/Cube", "/Xform/Cube2"):
+            prim = stage.GetPrimAtPath(prim_path)
+            xf_tr = prim.GetAttribute("doubleSided")
+            self.assertEqual(xf_tr.Get(), False)
+
+        await self.__destroy(_window, _widget)
+
+    async def test_multi_prim_xform_widget(self):
+        """
+        Test that a property can be edited on multiple prims and that it will be accurately represented.
+        """
+        # setup
+        _window, _widget = await self.__setup_widget()  # Keep in memory during test
+        _widget.refresh(["/Xform/Cube", "/Xform/Cube2"])
+        await omni.kit.ui_test.wait_n_updates(15)
+
+        # find the translate field UI
+        property_branches = ui_test.find_all(
+            f"{_window.title}//Frame/**/FloatField[*].identifier=='/Xform/Cube.xformOp:translate,"
+            f"/Xform/Cube2.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube2.xformOp:translate,"
+            f"/Xform/Cube.xformOp:translate,/Xform/Cube2.xformOp:translate'"  # noqa
+        )
+        self.assertEqual(len(property_branches), 3)
+        translate_x_widget = property_branches[0]
+        self.assertEqual(translate_x_widget.widget.model.is_mixed, True)
+        # Act: click on field, set a value and then click off of it
+        await translate_x_widget.double_click()
+        await omni.kit.ui_test.emulate_char_press("2.2")
+        await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
+
+        # we check that the value of the UI element changed
+        self.assertEqual(property_branches[0].widget.model.get_value_as_float(), 2.2)
+        self.assertEqual(translate_x_widget.widget.model.is_mixed, False)
+        # and that both cubes now have the correct value
+        usd_context = omni.usd.get_context()
+        stage = usd_context.get_stage()
+        for prim_path in ("/Xform/Cube", "/Xform/Cube2"):
+            prim = stage.GetPrimAtPath(prim_path)
+            xf_tr = prim.GetAttribute("xformOp:translate")
+            self.assertEqual(xf_tr.Get(), Gf.Vec3d(2.2, 0.0, 0.0))
 
         await self.__destroy(_window, _widget)

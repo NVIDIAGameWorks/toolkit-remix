@@ -75,7 +75,7 @@ class TextureDialog(ui.Window):
 
 class SetupUI:
 
-    COLUMN_WIDTH_PERCENT = 40
+    MATERIAL_LABEL_NAME_SIZE = 32
 
     def __init__(self, context_name: str):
         """Nvidia StageCraft Viewport UI"""
@@ -162,7 +162,6 @@ class SetupUI:
                 with ui.VStack():
                     ui.Spacer(height=ui.Pixel(8))
                     with ui.HStack(height=ui.Pixel(24)):
-                        ui.Spacer(width=ui.Pixel(50), height=0)
                         ui.Label(
                             "Material:",
                             name="PropertiesWidgetLabel",
@@ -170,7 +169,7 @@ class SetupUI:
                             width=ui.Pixel(30),
                         )
                         ui.Spacer(width=ui.Pixel(8), height=0)
-                        with ui.ZStack(width=ui.Percent(60)):
+                        with ui.ZStack():
                             ui.Rectangle(width=ui.Percent(100))
                             with ui.HStack(height=ui.Pixel(24)):
                                 ui.Spacer(width=ui.Pixel(8), height=0)
@@ -180,13 +179,15 @@ class SetupUI:
                                     identifier="material_label",
                                     alignment=ui.Alignment.LEFT_CENTER,
                                     tooltip="",
-                                    width=ui.Percent(80),
+                                    elided_text=True,
                                     mouse_pressed_fn=lambda x, y, b, m: self._show_copy_menu(b),
                                 )
+                        ui.Spacer(width=ui.Pixel(8), height=0)
                         ui.Image(
                             "",
                             name="MenuBurger",
                             height=ui.Pixel(24),
+                            width=ui.Pixel(24),
                             mouse_pressed_fn=lambda x, y, b, m: self.__show_material_menu(),
                         )
                     ui.Spacer(height=ui.Pixel(8))
@@ -202,7 +203,6 @@ class SetupUI:
                     ui.Spacer(height=ui.Pixel(8))
                     self._material_properties_widget = _MaterialPropertyWidget(
                         self._context_name,
-                        tree_column_widths=[ui.Percent(self.COLUMN_WIDTH_PERCENT)],
                         create_color_space_attributes=False,
                         field_builders=self.get_custom_field_builders(),
                     )
@@ -483,8 +483,14 @@ class SetupUI:
             self.__on_material_changed()
 
     @staticmethod
-    def _shorten_string(input_string, size, delimiter):
-        return input_string[-size:].partition(delimiter)[-1] if delimiter in input_string else input_string
+    def _shorten_material_id_string(input_string, size, delimiter):
+        """Give the most interesting part of a prim path"""
+        if len(input_string) > size:
+            input_string = input_string[-size:]
+            # try not to crop in the middle of a parent...
+            input_string = input_string.partition(delimiter)[-1] if delimiter in input_string else input_string
+            return "..." + delimiter + input_string
+        return input_string
 
     @staticmethod
     def _concat_list_to_string(items):
@@ -517,23 +523,27 @@ class SetupUI:
             # we select the material
             self._selected_prims = [item.prim for item in items if isinstance(item, _ItemPrim)]
             if self._selected_prims:
-                materials = set()
+                materials = []
                 for prim in self._selected_prims or []:
                     for mat in self._core.get_materials_from_prim(prim):
-                        materials.add(mat)
-                materials = list(materials)
+                        if mat not in materials:
+                            materials.append(mat)
                 if materials:
                     asyncio.ensure_future(self._refresh_material_menu())
+                    self._material_properties_widget.show(True)
+                    # TODO: Selection is not ordered by user but by tree view position, so displaying only one value
+                    #  value where user cannot control which one is shown is not the best UX.
+                    self._material_properties_widget.refresh(materials)
+                    material_label_text = self._shorten_material_id_string(
+                        str(materials[0]), self.MATERIAL_LABEL_NAME_SIZE, "/"
+                    )
                     if len(materials) == 1:
-                        # when we have just one material available, show properties
-                        self._material_properties_widget.show(True)
-                        self._material_properties_widget.refresh(materials)
-                        self._set_material_label(str(materials[0]))
+                        self._set_material_label(material_label_text)
                         self._current_single_material = materials[0]
                     else:
-                        # hide properties when multiple prims selected as this isnt supported yet
-                        self._material_properties_widget.show(False)  # to disable the listener
-                        self._set_material_label("Multiple Selected", SetupUI._concat_list_to_string(materials))
+                        multiple_info_text = f"Multiple Selected (editing all, displaying {material_label_text})"
+                        multiple_info_details = multiple_info_text + "\n\n" + SetupUI._concat_list_to_string(materials)
+                        self._set_material_label(multiple_info_text, tooltip=multiple_info_details)
                         self._current_single_material = None
 
                     return
@@ -543,7 +553,7 @@ class SetupUI:
         self._set_material_label("None")
 
     def _set_material_label(self, label, tooltip=None):
-        self._current_material_label.text = SetupUI._shorten_string(label, 32, "/")
+        self._current_material_label.text = label
         self._current_material_label.tooltip = label if tooltip is None else tooltip
 
     def _has_material_override(self, prims: List[Usd.Prim]) -> bool:

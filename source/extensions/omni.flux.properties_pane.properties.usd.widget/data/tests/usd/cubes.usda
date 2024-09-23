@@ -20,6 +20,7 @@ def Xform "Xform"
 
     def Cube "Cube"
     {
+        uniform bool doubleSided = 1
         float3[] extent = [(-50, -50, -50), (50, 50, 50)]
         double size = 100
         double3 xformOp:rotateXYZ = (0, 0, 0)
@@ -30,6 +31,7 @@ def Xform "Xform"
 
     def Cube "Cube2"
     {
+        uniform bool doubleSided = 0
         float3[] extent = [(-50, -50, -50), (50, 50, 50)]
         double size = 100
         double3 xformOp:rotateXYZ = (0, 0, 0)

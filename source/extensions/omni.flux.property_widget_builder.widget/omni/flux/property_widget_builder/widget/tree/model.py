@@ -28,10 +28,10 @@ from typing import List, Mapping, Optional
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
 
-from .item_model import ItemGroupModel as _ItemGroupModel
+from .item_model import ItemGroupNameModel as _ItemGroupNameModel
 
 if typing.TYPE_CHECKING:
-    from .item_model import ItemModel
+    from .item_model import ItemModelBase
 
 
 HEADER_DICT = {0: "Name", 1: "Value"}
@@ -43,8 +43,8 @@ class Item(_TreeItemBase):
     def __init__(self):
         super().__init__()
 
-        self._name_models = []
-        self._value_models = []
+        self._name_models: list[ItemModelBase] = []
+        self._value_models: list[ItemModelBase] = []
 
     @property
     @abc.abstractmethod
@@ -59,12 +59,12 @@ class Item(_TreeItemBase):
         return default_attr
 
     @property
-    def name_models(self) -> List["ItemModel"]:
+    def name_models(self) -> List["ItemModelBase"]:
         """The name model that will be showed on the tree"""
         return self._name_models
 
     @property
-    def value_models(self) -> List["ItemModel"]:
+    def value_models(self) -> List["ItemModelBase"]:
         """The name that will be showed on the tree"""
         return self._value_models
 
@@ -119,25 +119,16 @@ class Item(_TreeItemBase):
 
 
 class ItemGroup(Item):
-    """Item of the model"""
+    """Item Group of the model"""
 
     def __init__(self, name):
         super().__init__()
-
-        self._name_models = [_ItemGroupModel(name)]
-        self._value_models = []
+        self._name_models = [_ItemGroupNameModel(name)]
 
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
-        default_attr = super().default_attr
-        default_attr.update(
-            {
-                "_name_models": None,
-                "_value_models": None,
-            }
-        )
-        return default_attr
+        return super().default_attr
 
     @property
     def can_have_children(self) -> bool:

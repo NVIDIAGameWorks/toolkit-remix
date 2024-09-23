@@ -28,7 +28,6 @@ class MultilineField(AbstractField):
         self._line_count = line_count
 
     def build_ui(self, item) -> list[ui.Widget]:
-        # TODO: build "mixed" overlay (when multiple selection have different values)
         widgets = []
         with ui.HStack(height=ui.Pixel(20 * self._line_count)):
             for i in range(item.element_count):
@@ -45,6 +44,7 @@ class MultilineField(AbstractField):
                         read_only=item.value_models[i].read_only,
                         style_type_name_override=style_override,
                     )
+                    self.set_dynamic_tooltip_fn(widget, item.value_models[i])
                     widgets.append(widget)
                     ui.Spacer(height=ui.Pixel(2))
         return widgets

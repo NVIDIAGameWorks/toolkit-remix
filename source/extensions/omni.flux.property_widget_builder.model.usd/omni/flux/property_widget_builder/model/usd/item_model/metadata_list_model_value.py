@@ -19,28 +19,27 @@ import omni.kit.commands
 import omni.kit.undo
 import omni.usd
 
-from ..mapping import DEFAULT_VALUE_TABLE
 from ..utils import get_default_attribute_value as _get_default_attribute_value
 from .base_list_model_value import UsdListModelBaseValueModel as _UsdListModelBaseValueModel
 
 
-class UsdListModelBaseValueModel(_UsdListModelBaseValueModel):
+class UsdAttributeMetadataValueModel(_UsdListModelBaseValueModel):
     """Represent metadata of an attribute"""
 
     @property
     def is_default(self):
         """If the value model has the default USD value"""
         for attribute in self.attributes:
-            default_value = self.__get_default_value(attribute)
+            default_value = _get_default_attribute_value(attribute)
             if default_value is None:
                 continue
             # colorSpace dropdown
-            if attribute.GetMetadata("colorSpace") is not None and self.value != "auto":
+            if attribute.GetMetadata("colorSpace") is not None and self.get_value() != "auto":
                 return False
             # Attempt to find the value in the list
             if (
                 isinstance(default_value, int)
-                and [c.model.as_string for c in self.get_item_children(None)].index(self.value) != default_value
+                and [c.model.as_string for c in self.get_item_children()].index(self.get_value()) != default_value
             ):
                 return False
         return True
@@ -48,18 +47,17 @@ class UsdListModelBaseValueModel(_UsdListModelBaseValueModel):
     def reset_default_value(self):
         """Reset the model's value back to the USD default"""
         for attribute in self.attributes:
-            default_value = self.__get_default_value(attribute)
+            default_value = _get_default_attribute_value(attribute)
             if default_value is None:
                 continue
             # colorSpace dropdown
             if attribute.GetMetadata("colorSpace") is not None:
                 # "auto" is the default value for colorSpace
-                self.set_value([c.model.as_string for c in self.get_item_children(None)].index("auto"))
+                self.set_value([c.model.as_string for c in self.get_item_children()].index("auto"))
             elif isinstance(default_value, int):
                 self.set_value(default_value)
 
-    def _set_attribute_value(self, attr, new_value: int):
-        new_value = self._list_options[int(new_value)]
+    def _set_attribute_value(self, attr, new_value: str):
         with omni.kit.undo.group():
             omni.kit.commands.execute(
                 "ChangeMetadata",
@@ -72,10 +70,3 @@ class UsdListModelBaseValueModel(_UsdListModelBaseValueModel):
     def _get_attribute_value(self, attr) -> str:
         value = self.metadata.get(self._key, self._default_value)
         return value
-
-    def __get_default_value(self, attribute):
-        return (
-            DEFAULT_VALUE_TABLE[attribute.GetName()]
-            if attribute.GetName() in DEFAULT_VALUE_TABLE
-            else _get_default_attribute_value(attribute)
-        )

@@ -288,9 +288,6 @@ class AssetReplacementsPane:
         self._sub_tree_selection_changed = self._selection_tree_widget.subscribe_tree_selection_changed(
             self._on_tree_selection_changed
         )
-        self._sub_tree_model_emptied = self._selection_tree_widget.subscribe_tree_model_emptied(
-            self._on_tree_selection_changed
-        )
 
         self._sub_go_to_ingest_tab1 = self._mesh_properties_widget.subscribe_go_to_ingest_tab(self._go_to_ingest_tab)
         self._sub_go_to_ingest_tab2 = self._selection_tree_widget.subscribe_go_to_ingest_tab(self._go_to_ingest_tab)

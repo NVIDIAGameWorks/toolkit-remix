@@ -58,8 +58,11 @@ if typing.TYPE_CHECKING:
 
 
 class SetupUI:
+
+    COLUMN_0_WIDTH: ui.Length = ui.Percent(30)
+
     def __init__(self, context_name: str):
-        """Nvidia StageCraft Viewport UI"""
+        """Mesh Properties Widget"""
 
         self._default_attr = {
             "_frame_none": None,
@@ -232,32 +235,42 @@ class SetupUI:
                 with ui.VStack(spacing=8):
                     self._transformation_widget = _TransformPropertyWidget(self._context_name)
                     with ui.HStack():
-                        ui.Spacer(height=0)
-                        self._object_property_line = ui.Line(name="PropertiesPaneSectionTitle", width=ui.Percent(60))
+                        ui.Spacer(height=0, width=self.COLUMN_0_WIDTH)
+                        self._object_property_line = ui.Line(name="PropertiesPaneSectionTitle")
                     self._property_widget = _PropertyWidget(self._context_name)
                     with ui.HStack():
-                        ui.Spacer(height=0)
-                        self._object_category_line = ui.Line(name="PropertiesPaneSectionTitle", width=ui.Percent(60))
-                    self._remix_categories_vstack = ui.VStack(spacing=8, height=32)
+                        ui.Spacer(height=0, width=self.COLUMN_0_WIDTH)
+                        self._object_category_line = ui.Line(name="PropertiesPaneSectionTitle")
+                    self._remix_categories_vstack = ui.VStack(spacing=8)
                     with self._remix_categories_vstack:
-                        with ui.HStack(height=ui.Pixel(32)):
-                            ui.Spacer(width=ui.Pixel(25))
-                            ui.Label("Set Remix Categories:  ", name="TreePanelTitleItemTitle", width=ui.Pixel(40))
+                        with ui.HStack(height=ui.Pixel(24)):
+                            with ui.HStack(width=self.COLUMN_0_WIDTH):
+                                ui.Label(
+                                    "Set Remix Categories:",
+                                    name="PropertiesWidgetLabel",
+                                    alignment=ui.Alignment.RIGHT,
+                                )
+                                ui.Spacer(width=ui.Pixel(8))
                             self._remix_categories_button = ui.Image(
                                 "",
-                                height=ui.Pixel(32),
-                                width=ui.Pixel(32),
+                                height=ui.Pixel(24),
+                                width=ui.Pixel(24),
                                 name="Categories",
                                 tooltip="Please note that not all categories are available in the Toolkit Viewport.",
                                 mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(b),
                             )
-                        self._remix_categories_frame = ui.ScrollingFrame(
-                            visible=False,
-                            vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_AS_NEEDED,
-                            tooltip="To set categories, use the Remix Categories window.",
-                            mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(b),
-                            name="CategoriesFrame",
-                        )
+                        with ui.HStack():
+                            ui.Spacer(height=0, width=self.COLUMN_0_WIDTH)
+                            self._remix_categories_frame = ui.ScrollingFrame(
+                                visible=False,
+                                vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_AS_NEEDED,
+                                tooltip="To set categories, use the Remix Categories window.",
+                                mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(b),
+                                name="CategoriesFrame",
+                            )
+                    with ui.HStack():
+                        ui.Spacer(height=0, width=self.COLUMN_0_WIDTH)
+                        self._object_category_line = ui.Line(name="PropertiesPaneSectionTitle")
 
     def refresh(
         self,
@@ -355,13 +368,15 @@ class SetupUI:
                         UsdGeom.Tokens.doubleSided: {
                             "name": "Double Sided",
                             "group": None,
-                            "read_only": self._core.prim_is_from_a_capture_reference(mesh_prims[0]),
+                            "read_only": any(
+                                self._core.prim_is_from_a_capture_reference(mesh_prim) for mesh_prim in mesh_prims
+                            ),
                         },
                     }
                 )
                 self._refresh_remix_categories(mesh_prims)
                 self._property_widget.set_lookup_table(lookup_table)
-                self._property_widget.refresh([mesh_prims[0].GetPath()])
+                self._property_widget.refresh([mesh_prim.GetPath() for mesh_prim in mesh_prims])
                 self._remix_categories_vstack.visible = True
                 self._remix_categories_frame.visible = True
             else:
@@ -384,6 +399,9 @@ class SetupUI:
                     prim_paths.append(to_select_path)
 
             xformable_prims = self._core.filter_transformable_prims(prim_paths)
+            # remove duplicates while preserving order:
+            xformable_prims = list(dict.fromkeys(xformable_prims))
+
             self._transformation_widget.show(bool(xformable_prims))
             self._property_widget.show(bool(xformable_prims))
 
@@ -431,12 +449,12 @@ class SetupUI:
             if xformable_prims:
                 self._mesh_properties_frames[_ItemPrim].visible = True
                 self._mesh_properties_frames[None].visible = False
-                self._transformation_widget.refresh([xformable_prims[0]])
-                self._property_widget.refresh([xformable_prims[0]])
             else:
                 # we show the none panel
                 self._mesh_properties_frames[_ItemPrim].visible = False
                 self._mesh_properties_frames[None].visible = True
+            self._transformation_widget.refresh(xformable_prims)
+            self._property_widget.refresh(xformable_prims)
 
         self._object_property_line.visible = all([self._transformation_widget.visible, self._property_widget.visible])
         self._object_category_line.visible = all([self._property_widget.visible, self._remix_categories_button.visible])
@@ -766,24 +784,21 @@ class SetupUI:
         any_true = [v for v in remix_attrs.values() if v]
         # If there are no values or they are all False, hide the scrolling frame
         if not any_true or not remix_attrs:
-            self._remix_categories_vstack.height = ui.Pixel(32)
+            self._remix_categories_vstack.height = ui.Pixel(24)
             with self._remix_categories_frame:
                 ui.VStack()
             return
 
-        style = ui.Style.get_instance().default
-        style["Label::RemixAttrLabel"] = {"font_size": 10}
         with self._remix_categories_frame:
             with ui.VStack():
                 for key, value in remix_attrs.items():
                     if not value:
                         continue
                     with ui.HStack(height=ui.Pixel(20)):
-                        ui.Spacer(width=ui.Pixel(56))
-                        ui.Label(key, name="RemixAttrLabel")
-                        ui.Spacer(width=ui.Pixel(5))
-                        ui.CheckBox(enabled=False).model.set_value(value)
-                    ui.Spacer(height=ui.Pixel(10))
+                        ui.CheckBox(enabled=False, width=24).model.set_value(value)
+                        ui.Spacer(width=8)
+                        ui.Label(key, name="RemixAttrLabel", alignment=ui.Alignment.LEFT)
+                        ui.Spacer()
         self._remix_categories_vstack.height = ui.Pixel(100)
 
     def _add_remix_category(self, b):

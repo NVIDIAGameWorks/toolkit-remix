@@ -35,7 +35,6 @@ class FileAccess(AbstractField):
         return text
 
     def build_ui(self, item) -> list[ui.Widget]:
-        # TODO: build "mixed" overlay (when multiple selection have different values)
         widgets = []
         with ui.HStack(height=ui.Pixel(20 * 3)):
             for i in range(item.element_count):
@@ -43,15 +42,14 @@ class FileAccess(AbstractField):
                 with ui.VStack():
                     ui.Spacer(height=ui.Pixel(2))
                     item.value_models[i].set_display_fn(self.convert)
-                    if item.value_models[i].read_only:
-                        # string field is bigger than 16px h
-                        widget = ui.StringField(
-                            model=item.value_models[i],
-                            read_only=True,
-                            style_type_name_override=f"{self.style_name}Read",
-                        )
-                    else:
-                        widget = ui.StringField(model=item.value_models[i], style_type_name_override=self.style_name)
+                    read_only = item.value_models[i].read_only
+                    # string field is bigger than 16px h
+                    widget = ui.StringField(
+                        model=item.value_models[i],
+                        read_only=read_only,
+                        style_type_name_override=f"{self.style_name}Read" if read_only else self.style_name,
+                    )
+                    self.set_dynamic_tooltip_fn(widget, item.value_models[i])
                     widgets.append(widget)
                     ui.Spacer(height=ui.Pixel(2))
         return widgets

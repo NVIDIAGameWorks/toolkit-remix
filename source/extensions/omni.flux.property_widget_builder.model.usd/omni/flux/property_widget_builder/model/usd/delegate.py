@@ -50,8 +50,9 @@ class Row:
     name: str
     selected: bool = False
 
-    background_widgets: list[ui.Rectangle] = dataclasses.field(default_factory=list)
+    override_background_widgets: list[ui.Rectangle] = dataclasses.field(default_factory=list)
     default_indicator_widget: Optional[ui.Circle] = None
+    mixed_indicator_widget: Optional[ui.Image] = None
     more_widget: Optional[ui.HStack] = None
     attribute_widgets: list[ui.Widget] = dataclasses.field(default_factory=list)
 
@@ -110,12 +111,18 @@ class USDDelegate(_Delegate):
         if row:
             has_override = any(v.is_overriden for v in item.value_models)
             is_default = all(v.is_default for v in item.value_models)
-            for bg_widget in row.background_widgets:
+            is_mixed = any(v.is_mixed for v in item.value_models)
+            for bg_widget in row.override_background_widgets:
                 bg_widget.visible = has_override
             if row.default_indicator_widget is not None:
                 row.default_indicator_widget.visible = not is_default
             if row.more_widget is not None:
                 row.more_widget.visible = has_override
+            if row.mixed_indicator_widget is not None:
+                if is_mixed:
+                    row.mixed_indicator_widget.name = "Mixed"
+                else:
+                    row.mixed_indicator_widget.name = ""
 
     def _get_default_field_builders(self) -> list[FieldBuilder]:
         return ALL_FIELD_BUILDERS
@@ -159,11 +166,12 @@ class USDDelegate(_Delegate):
             ):
                 with ui.VStack():
                     ui.Spacer()
-                    row.background_widgets.append(
+                    row.override_background_widgets.append(
                         ui.Rectangle(
                             name="OverrideBackground",
                             height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE + 2),
                             visible=has_override,
+                            style_type_name_override="OverrideBackground",
                         )
                     )
                     ui.Spacer()
@@ -208,15 +216,17 @@ class USDDelegate(_Delegate):
 
         has_override = any(v.is_overriden for v in item.value_models)
         is_default = all(v.is_default for v in item.value_models)
+        is_mixed = any(v.is_mixed for v in item.value_models)
 
         with ui.ZStack(mouse_hovered_fn=lambda hovered: self._on_item_hovered(hovered, id(item))):
             with ui.VStack():
                 ui.Spacer()
-                row.background_widgets.append(
+                row.override_background_widgets.append(
                     ui.Rectangle(
                         name="OverrideBackground",
                         height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE + 2),
                         visible=has_override,
+                        style_type_name_override="OverrideBackground",
                     )
                 )
                 ui.Spacer()
@@ -226,12 +236,28 @@ class USDDelegate(_Delegate):
                         super()._build_branch(model, item, column_id, level, expanded)
                 else:
                     # Z Stack is used to reserve the space
+                    with ui.ZStack(width=ui.Pixel((self.DEFAULT_IMAGE_ICON_SIZE / 2) + 8)):
+                        with ui.HStack():
+                            ui.Spacer(width=ui.Pixel(8))
+                            with ui.VStack():
+                                ui.Spacer(height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 4))
+                                row.mixed_indicator_widget = ui.Image(
+                                    "",
+                                    name="Mixed" if is_mixed else "",
+                                    height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 2),
+                                    width=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 2),
+                                    visible=True,
+                                    tooltip="Multiple Values: hover over value widget to see them.",
+                                )
                     with ui.ZStack(width=ui.Pixel((self.DEFAULT_IMAGE_ICON_SIZE / 2) + 16)):
                         with ui.HStack():
                             ui.Spacer(width=ui.Pixel(8))
                             row.default_indicator_widget = ui.Circle(
                                 style_type_name_override="OverrideIndicator",
-                                tooltip="Reset the attribute to the default USD value",
+                                tooltip=(
+                                    "Not the default USD value. Click to reset the "
+                                    "attribute to the default USD value."
+                                ),
                                 width=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 2),
                                 visible=not is_default,
                                 mouse_released_fn=lambda x, y, b, m: self._on_reset_item(b, item),
@@ -250,7 +276,7 @@ class USDDelegate(_Delegate):
     def _on_item_hovered(self, hovered, item_id, force=False):
         row = self._rows.get(item_id)
         if row is not None:
-            for background_widget in row.background_widgets:
+            for background_widget in row.override_background_widgets:
                 if not force and row.selected:
                     style_name = "OverrideBackgroundSelected"
                 else:

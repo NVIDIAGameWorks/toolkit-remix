@@ -21,8 +21,9 @@ __all__ = [
     "Delegate",
     "FieldBuilder",
     "FieldBuilderList",
-    "BaseItemModel",
+    "ItemModelBase",
     "ItemModel",
+    "ItemValueModel",
     "Serializable",
     "Item",
     "ItemGroup",
@@ -32,5 +33,5 @@ __all__ = [
 from .property_widget_builder import PropertyWidget
 from .tree import clipboard
 from .tree.delegate import Delegate, FieldBuilder, FieldBuilderList
-from .tree.item_model import BaseItemModel, ItemModel, Serializable
+from .tree.item_model import ItemModel, ItemModelBase, ItemValueModel, Serializable
 from .tree.model import Item, ItemGroup, Model

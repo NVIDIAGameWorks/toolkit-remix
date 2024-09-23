@@ -34,21 +34,22 @@ class DefaultLabelField(AbstractField):
         super().__init__(style_name=style_name, identifier=identifier)
         self.widget_type_name = widget_type_name
 
-    def build_ui(self, item) -> None:
-        # TODO: build "mixed" overlay (when multiple selection have different values)
+    def build_ui(self, item) -> list[ui.Widget]:
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer(height=ui.Pixel(4))
             with ui.HStack(width=ui.Percent(60), height=ui.Pixel(16)):
                 ui.Spacer(width=ui.Pixel(8))
-                ui.Label(
+                widget = ui.Label(
                     f"{item.value_models[0].get_value_as_string()}: {self.widget_type_name}",
                     name="USDPropertiesWidgetLabelValue",
                     alignment=ui.Alignment.LEFT,
                     height=0,
                     identifier=self.identifier or "",
                 )
+                self.set_dynamic_tooltip_fn(widget, item.value_models[0])
                 ui.Spacer()
             ui.Spacer(height=ui.Pixel(4))
+        return [widget]
 
 
 class NameField(AbstractField):
