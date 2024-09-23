@@ -136,6 +136,7 @@ class PropertyWidget:
             prims = [stage.GetPrimAtPath(path) for path in self._paths]
 
             group_items = {}
+            attrs_added = {}
             # pre-pass to check valid prims with the attribute
             for prim in prims:
                 if not prim.IsValid():
@@ -146,39 +147,54 @@ class PropertyWidget:
                     attr_name = attr.GetName()
                     if self._specific_attributes is not None and attr_name not in self._specific_attributes:
                         continue
-                    display_attr_names = [attr_name]
-                    display_name = attr.GetMetadata(Sdf.PropertySpec.DisplayNameKey)
-                    display_read_only = False
-                    if display_name:
-                        display_attr_names = [display_name]
-                    if attr_name in self._lookup_table:
-                        display_attr_names = [self._lookup_table[attr_name]["name"]]
-                        display_read_only = self._lookup_table[attr_name].get("read_only", False)
+                    attrs_added.setdefault(attr_name, []).append(attr)
 
-                    attr_item = _USDAttributeItem(self._context_name, [attr.GetPath()], read_only=display_read_only)
-                    # we don't need to repeat the attribute name multiple time here
-                    if attr_item.element_count != 1:
-                        display_attr_names.extend([""] * (attr_item.element_count - 1))
-                    attr_item.set_display_attr_names(display_attr_names)
+            num_prims = len(valid_paths)
+            if num_prims > 1:
+                # TODO: Show that multiple items are selected!
+                pass
 
-                    attr_display_group = attr.GetDisplayGroup()
-                    group_name = None
-                    if attr_display_group and attr_name not in self._lookup_table:
-                        group_name = attr_display_group
-                    # if this is in the lookup table, we override
-                    elif attr_name in self._lookup_table:
-                        group_name = self._lookup_table[attr_name]["group"]
+            for attr_name, attrs in attrs_added.items():
+                if 1 < len(attrs) != num_prims:
+                    continue
+                attr = attrs[0]
 
-                    if group_name is not None:
-                        if group_name not in group_items:
-                            group = _ItemGroup(group_name)
-                            group_items[group_name] = group
-                            items.append(group)
-                        else:
-                            group = group_items[group_name]
-                        group.children.append(attr_item)
+                display_attr_names = [attr_name]
+                display_read_only = False
+                display_name = attr.GetMetadata(Sdf.PropertySpec.DisplayNameKey)
+                if display_name:
+                    display_attr_names = [display_name]
+                if attr_name in self._lookup_table:
+                    display_attr_names = [self._lookup_table[attr_name]["name"]]
+                    display_read_only = self._lookup_table[attr_name].get("read_only", False)
+
+                attr_item = _USDAttributeItem(
+                    self._context_name, [attr_.GetPath() for attr_ in attrs], read_only=display_read_only
+                )
+
+                # we don't need to repeat the attribute name multiple time here
+                if attr_item.element_count != 1:
+                    display_attr_names.extend([""] * (attr_item.element_count - 1))
+                attr_item.set_display_attr_names(display_attr_names)
+
+                attr_display_group = attr.GetDisplayGroup()
+                group_name = None
+                if attr_display_group and attr_name not in self._lookup_table:
+                    group_name = attr_display_group
+                # if this is in the lookup table, we override
+                elif attr_name in self._lookup_table:
+                    group_name = self._lookup_table[attr_name]["group"]
+
+                if group_name is not None:
+                    if group_name not in group_items:
+                        group = _ItemGroup(group_name)
+                        group_items[group_name] = group
+                        items.append(group)
                     else:
-                        items.append(attr_item)
+                        group = group_items[group_name]
+                    group.children.append(attr_item)
+                else:
+                    items.append(attr_item)
 
         self._property_model.set_prim_paths(valid_paths)
         self._property_model.set_items(items)

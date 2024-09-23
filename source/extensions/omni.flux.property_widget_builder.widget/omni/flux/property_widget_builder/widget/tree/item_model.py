@@ -16,10 +16,12 @@
 """
 
 __all__ = (
-    "BaseItemModel",
+    "_SetValueCallbackManager",
     "Serializable",
+    "ItemModelBase",
+    "ItemValueModel",
     "ItemModel",
-    "ItemGroupModel",
+    "ItemGroupNameModel",
 )
 
 import abc
@@ -30,8 +32,8 @@ import omni.ui as ui
 from . import clipboard
 
 
-class BaseItemModel:
-    """Base item that should be used with ItemModel"""
+class _SetValueCallbackManager:
+    """Callback manager for `ItemModelBase`"""
 
     def __init__(self):
         super().__init__()
@@ -74,7 +76,7 @@ class BaseItemModel:
             self._callback_post_set_value(callback, value)
 
 
-class Serializable:
+class Serializable(abc.ABC):
     """
     Mixin class to add serialization methods.
 
@@ -85,7 +87,7 @@ class Serializable:
         super().__init__()
         self.register_serializer_hooks(clipboard.SERIALIZER)
 
-    def register_serializer_hooks(self, serializer):
+    def register_serializer_hooks(self, serializer):  # noqa B027 optional to override
         """
         Register serialization hooks for clipboard copy/paste.
 
@@ -117,19 +119,18 @@ class Serializable:
         self.set_value(value)
 
 
-class ItemModel(Serializable, ui.AbstractValueModel):
-    """The value model that handle the value of an attribute (name or value)"""
+class ItemModelBase(Serializable, abc.ABC):
+    """The base class for item models that will be used with `Item` and `Model`"""
 
-    def __init__(self, base_item_model: BaseItemModel = None):
+    def __init__(self):
         super().__init__()
-        if base_item_model is None:
-            base_item_model = BaseItemModel()
-        self._base_item_model = base_item_model
-        self._read_only = True
-        self._multiline = (False, 0)
-        self.__display_fn = None  # noqa PLW0238
+        self._set_value_callback_manager = _SetValueCallbackManager()
+
         self.__block_set_value = False
         self.__cached_blocked_value = None
+
+        self._read_only = True
+        self._multiline = (False, 0)
 
     def set_callback_pre_set_value(self, callback: Callable[[Callable[[Any], Any], Any], Any]):
         """
@@ -143,7 +144,7 @@ class ItemModel(Serializable, ui.AbstractValueModel):
         Returns:
             None
         """
-        self._base_item_model.set_callback_pre_set_value(callback)
+        self._set_value_callback_manager.set_callback_pre_set_value(callback)
 
     def set_callback_post_set_value(self, callback: Callable[[Callable[[Any], Any], Any], Any]):
         """
@@ -156,47 +157,7 @@ class ItemModel(Serializable, ui.AbstractValueModel):
         Returns:
             None
         """
-        self._base_item_model.set_callback_post_set_value(callback)
-
-    @abc.abstractmethod
-    def refresh(self):
-        """Called by the watcher when something change"""
-        pass
-
-    def get_tool_tip(self):
-        pass
-
-    def get_value_as_string(self) -> str:
-        value = self._get_value_as_string()
-        return self.__display_fn(value, self) if self.__display_fn is not None else value
-
-    def get_value_as_float(self) -> float:
-        value = self._get_value_as_float()
-        return self.__display_fn(value, self) if self.__display_fn is not None else value
-
-    def get_value_as_bool(self) -> bool:
-        value = self._get_value_as_bool()
-        return self.__display_fn(value, self) if self.__display_fn is not None else value
-
-    def get_value_as_int(self) -> int:
-        value = self._get_value_as_int()
-        return self.__display_fn(value, self) if self.__display_fn is not None else value
-
-    @abc.abstractmethod
-    def _get_value_as_string(self) -> str:
-        return ""
-
-    @abc.abstractmethod
-    def _get_value_as_float(self) -> float:
-        return 0.0
-
-    @abc.abstractmethod
-    def _get_value_as_bool(self) -> bool:
-        return False
-
-    @abc.abstractmethod
-    def _get_value_as_int(self) -> int:
-        return 0
+        self._set_value_callback_manager.set_callback_post_set_value(callback)
 
     def block_set_value(self, value: bool):
         """
@@ -219,11 +180,17 @@ class ItemModel(Serializable, ui.AbstractValueModel):
         """Return the cached value when the set value function is blocked"""
         return self.__cached_blocked_value
 
+    @abc.abstractmethod
+    def _set_value(self, value: Any):
+        raise NotImplementedError
+
     def set_value(self, value: Any):
         """
-        This function should NOT be overridden. Please uses `_set_value()`.
+        Function to override ui.AbstractValueModel._set_value()
+
+        This function should NOT be overridden. Please use `_set_value()`.
         Set the value. If "__block_set_value" is True, the value will not be set but cached into
-        "__cached_blocked_value". This can be used by a custom delegate to set a value when it wants (being_edit_fn,
+        "__cached_blocked_value". This can be used by a custom delegate to set a value when it wants (begin_edit_fn,
         end_edit_fn, etc).
 
         Args:
@@ -235,26 +202,24 @@ class ItemModel(Serializable, ui.AbstractValueModel):
         if self.__block_set_value:
             if value != self.__cached_blocked_value:
                 self.__cached_blocked_value = value
-                self._value_changed()
+                self._on_dirty()
             return
         self.__cached_blocked_value = None
-        self._base_item_model.set_value(value, self._set_value)
+        self._set_value_callback_manager.set_value(value, self._set_value)
 
-    def _set_value(self, value: Any):
-        """
-        Function to override/implement to set the value of ui.AbstractValueModel
-
-        Args:
-            value: value to set
-        """
+    @abc.abstractmethod
+    def _on_dirty(self):
+        """Called by the watcher when something change"""
         pass
 
-    def set_display_fn(self, display_fn: Callable[[Any, "ItemModel"], Any]):
-        """
-        Function that will be called to filter the current value we want to show
-        For example, if the value is "hello", but we want to show "Hello"
-        """
-        self.__display_fn = display_fn
+    @abc.abstractmethod
+    def refresh(self):
+        """Called by the watcher when something change"""
+        pass
+
+    def get_tool_tip(self):
+        """Get the tooltip that best represents the current value"""
+        pass
 
     @property
     def read_only(self):
@@ -263,15 +228,81 @@ class ItemModel(Serializable, ui.AbstractValueModel):
 
     @property
     def multiline(self):
-        """Used by the delegate to see if the item is read only or not"""
+        """Used by the delegate to see if the item is multiline or not"""
         return self._multiline
+
+    @property
+    def is_mixed(self):
+        """Return true if this ItemModel currently represents multiple values"""
+        return False
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.get_value()!r})"
 
 
-class ItemGroupModel(ItemModel):
-    """The value model that handle the value of an attribute (name or value)"""
+# These two classes resolve the metaclass conflict and allow us to have
+#  abstract subclasses of these ui classes.
+class AbstractValueModelMeta(type(ui.AbstractValueModel), abc.ABCMeta):
+    pass
+
+
+class AbstractItemValueMeta(type(ui.AbstractItemModel), abc.ABCMeta):
+    pass
+
+
+class ItemValueModel(ItemModelBase, ui.AbstractValueModel, metaclass=AbstractValueModelMeta):
+    """Base value model class that can handle the value of an attribute (name or value)"""
+
+    def __init__(self):
+        super().__init__()
+        self.__display_fn = None  # noqa PLW0238
+
+    def get_value_as_string(self) -> str:
+        value = self._get_value_as_string()
+        return self.__display_fn(value, self) if self.__display_fn is not None else value
+
+    def get_value_as_float(self) -> float:
+        value = self._get_value_as_float()
+        return self.__display_fn(value, self) if self.__display_fn is not None else value
+
+    def get_value_as_bool(self) -> bool:
+        value = self._get_value_as_bool()
+        return self.__display_fn(value, self) if self.__display_fn is not None else value
+
+    def get_value_as_int(self) -> int:
+        value = self._get_value_as_int()
+        return self.__display_fn(value, self) if self.__display_fn is not None else value
+
+    def set_display_fn(self, display_fn: Callable[[Any, "ItemValueModel"], Any]):
+        """
+        Function that will be called to filter the current value we want to show
+        For example, if the value is "hello", but we want to show "Hello"
+        """
+        self.__display_fn = display_fn
+
+    @abc.abstractmethod
+    def _get_value_as_string(self) -> str:
+        pass
+
+    @abc.abstractmethod
+    def _get_value_as_float(self) -> float:
+        pass
+
+    @abc.abstractmethod
+    def _get_value_as_bool(self) -> bool:
+        pass
+
+    @abc.abstractmethod
+    def _get_value_as_int(self) -> int:
+        pass
+
+
+class ItemModel(ItemModelBase, ui.AbstractItemModel, metaclass=AbstractItemValueMeta):
+    """Base class for item models that can handle multiple value models."""
+
+
+class ItemGroupNameModel(ItemValueModel):
+    """The value model that handle the name an attribute"""
 
     def __init__(self, name):
         super().__init__()

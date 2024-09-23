@@ -18,11 +18,11 @@
 from typing import Optional
 
 import omni.usd
-from omni.flux.property_widget_builder.widget import ItemModel as _ItemModel
+from omni.flux.property_widget_builder.widget import ItemValueModel as _ItemValueModel
 from pxr import Sdf
 
 
-class UsdAttributeNameModel(_ItemModel):
+class UsdAttributeNameModel(_ItemValueModel):
     def __init__(
         self,
         context_name: str,

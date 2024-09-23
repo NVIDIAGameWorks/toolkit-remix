@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.8.1]
+### Added
+- Add support for multi-edit
+
 ## [2.8.0]
 ### Added
 - Added a test to check that UI is updated

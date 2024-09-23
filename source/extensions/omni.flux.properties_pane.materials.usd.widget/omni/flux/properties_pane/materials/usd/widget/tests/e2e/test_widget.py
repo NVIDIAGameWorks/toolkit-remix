@@ -14,6 +14,7 @@ import omni.kit.ui_test
 import omni.ui as ui
 import omni.usd
 from omni.flux.properties_pane.materials.usd.widget import MaterialPropertyWidget
+from omni.flux.utils.common.omni_url import OmniUrl
 from pxr import UsdShade
 
 
@@ -109,10 +110,11 @@ class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
             )
             await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
             asset_path = self.get_test_data("16px_Diffuse2.dds")
+            posix_asset_path = OmniUrl(asset_path).path
 
             await widget_ref.input(asset_path, end_key=carb.input.KeyboardInput.ENTER)
             await omni.kit.ui_test.human_delay(human_delay_speed=3)
-            self.assertEquals(widget_ref.widget.model.get_value_as_string(), asset_path)
+            self.assertEquals(widget_ref.widget.model.get_value_as_string(), posix_asset_path)
 
     async def test_preview_window(self):
 

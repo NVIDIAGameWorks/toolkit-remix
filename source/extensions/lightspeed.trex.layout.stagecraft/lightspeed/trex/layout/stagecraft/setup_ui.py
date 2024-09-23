@@ -81,7 +81,7 @@ class Pages(Enum):
 
 class SetupUI(TrexLayout):
     WIDTH_COMPONENT_PANEL = 256
-    WIDTH_PROPERTY_PANEL = 400
+    WIDTH_PROPERTY_PANEL = 600
 
     def __init__(self, ext_id):
         super().__init__(ext_id)

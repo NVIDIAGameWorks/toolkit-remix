@@ -28,7 +28,7 @@ from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as 
 from ..base import AbstractField
 
 if typing.TYPE_CHECKING:
-    from omni.flux.property_widget_builder.widget import ItemModel
+    from omni.flux.property_widget_builder.widget import ItemModelBase
 
 
 class FilePicker(AbstractField):
@@ -51,7 +51,6 @@ class FilePicker(AbstractField):
         self._sub_field_changed = []
 
     def build_ui(self, item) -> list[ui.Widget]:
-        # TODO: build "mixed" overlay (when multiple selection have different values)
         widgets = []
         self._sub_field_begin_edit = []
         self._sub_field_end_edit = []
@@ -69,6 +68,7 @@ class FilePicker(AbstractField):
                         read_only=item.value_models[i].read_only,
                         style_type_name_override=style_name,
                     )
+                    self.set_dynamic_tooltip_fn(widget, item.value_models[i])
 
                     self._sub_field_begin_edit.append(
                         widget.model.subscribe_begin_edit_fn(
@@ -99,16 +99,18 @@ class FilePicker(AbstractField):
                     ui.Spacer()
         return widgets
 
-    def _on_field_begin(self, widget: ui.AbstractField, value_model: "ItemModel", element_current_idx: int, model):
+    def _on_field_begin(self, widget: ui.AbstractField, value_model: "ItemModelBase", element_current_idx: int, model):
         pass
 
-    def _on_field_end(self, widget: ui.AbstractField, value_model: "ItemModel", element_current_idx: int, model):
+    def _on_field_end(self, widget: ui.AbstractField, value_model: "ItemModelBase", element_current_idx: int, model):
         pass
 
-    def _on_field_changed(self, widget: ui.AbstractField, value_model: "ItemModel", element_current_idx: int, model):
+    def _on_field_changed(
+        self, widget: ui.AbstractField, value_model: "ItemModelBase", element_current_idx: int, model
+    ):
         pass
 
-    def _on_navigate_to(self, path, value_model: "ItemModel", element_current_idx: int) -> Tuple[bool, str]:
+    def _on_navigate_to(self, path, value_model: "ItemModelBase", element_current_idx: int) -> Tuple[bool, str]:
         """
         Function that defines the path to navigate to by default when we open the file picker
 
@@ -126,7 +128,7 @@ class FilePicker(AbstractField):
         return fallback, path
 
     def _on_open_file_pressed(
-        self, widget: ui.AbstractField, value_model: "ItemModel", element_current_idx: int, x, y, button, modifier
+        self, widget: ui.AbstractField, value_model: "ItemModelBase", element_current_idx: int, x, y, button, modifier
     ):
         if button != 0:
             return
@@ -144,5 +146,5 @@ class FilePicker(AbstractField):
             file_extension_options=self._file_extension_options,
         )
 
-    def _set_field(self, widget: ui.AbstractField, value_model: "ItemModel", element_current_idx: int, path: str):
+    def _set_field(self, widget: ui.AbstractField, value_model: "ItemModelBase", element_current_idx: int, path: str):
         widget.model.set_value(path)

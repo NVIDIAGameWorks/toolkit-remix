@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.6]
+### Added
+- Add support for multi-edit
+
 ## [1.6.5] - 2024-06-26
 ### Change
 - Updated test window reference title

@@ -18,10 +18,10 @@
 from typing import Any
 
 import omni.client
-from omni.flux.property_widget_builder.widget import ItemModel as _ItemModel
+from omni.flux.property_widget_builder.widget import ItemValueModel as _ItemValueModel
 
 
-class FileAttributeValueModel(_ItemModel):
+class FileAttributeValueModel(_ItemValueModel):
     def __init__(self, path: str, attribute: str):
         """
         Value model of the value of an attribute of a file

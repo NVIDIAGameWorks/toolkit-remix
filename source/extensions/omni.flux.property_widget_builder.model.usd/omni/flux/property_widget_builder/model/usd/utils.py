@@ -23,6 +23,8 @@ from omni.kit.usd.layers import LayerUtils as _LayerUtils
 from omni.usd.commands import remove_prim_spec as _remove_prim_spec
 from pxr import Sdf, Usd
 
+from .mapping import DEFAULT_VALUE_TABLE
+
 
 def get_type_name(metadata: Dict[Any, Any]):
     """
@@ -88,6 +90,10 @@ def get_item_attributes(stage, attribute_paths):
 
 
 def get_default_attribute_value(attribute):
+    default_value = DEFAULT_VALUE_TABLE.get(attribute.GetName())
+    if default_value is not None:
+        return default_value
+
     if not isinstance(attribute, Usd.Attribute):
         return None
 

@@ -28,7 +28,7 @@ from omni.flux.property_widget_builder.delegates.string_value.multiline_field im
 from omni.flux.property_widget_builder.widget import Delegate as _Delegate
 
 if TYPE_CHECKING:
-    from omni.flux.property_widget_builder.widget import ItemModel as _ItemModel
+    from omni.flux.property_widget_builder.widget import ItemModelBase as _ItemModelBase
 
 
 class FileDelegate(_Delegate):
@@ -66,7 +66,7 @@ class FileDelegate(_Delegate):
 
         return None
 
-    def _is_multiline_field(self, values: List["_ItemModel"]):
+    def _is_multiline_field(self, values: List["_ItemModelBase"]):
         for value in values:
             if value.multiline[0]:
                 return value.multiline

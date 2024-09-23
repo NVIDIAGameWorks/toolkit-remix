@@ -30,7 +30,7 @@ from unittest import mock
 import omni.kit.app
 import omni.kit.ui_test
 import omni.ui as ui
-from omni.flux.property_widget_builder.widget import Delegate, FieldBuilder, Item, ItemModel, Model, PropertyWidget
+from omni.flux.property_widget_builder.widget import Delegate, FieldBuilder, Item, ItemValueModel, Model, PropertyWidget
 
 # NOTE: This can be swapped out with typing.Self once we update our version of typing.
 AsyncTestPropertyWidgetT = TypeVar("AsyncTestPropertyWidgetT", bound="AsyncTestPropertyWidget")
@@ -71,7 +71,7 @@ class MockClipboard:
         return self._data
 
 
-class TestItemModel(ItemModel):
+class TestItemModel(ItemValueModel):
     def __init__(self, value):
         super().__init__()
         self._value = value
@@ -83,7 +83,10 @@ class TestItemModel(ItemModel):
     def _set_value(self, value):
         if value != self._value:
             self._value = value
-            self._value_changed()
+            self._on_dirty()
+
+    def _on_dirty(self):
+        self._value_changed()
 
     def refresh(self):
         pass

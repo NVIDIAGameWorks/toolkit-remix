@@ -182,7 +182,9 @@ class MaterialPropertyWidget:
             shader_paths = []
             mtl_paths = []
             material_annotations = {}
-            attr_added = {}
+            # relative attr name to item
+            attr_added: dict[str, list[_USDAttributeItem]] = {}
+
             with _USDDisableAllListenersBlock(self.__usd_listener_instance):
                 for prim in prims:
                     if not prim.IsValid():
@@ -221,18 +223,17 @@ class MaterialPropertyWidget:
                         await _load_mdl_parameters_for_prim_async(self._context, shader_prim, recreate=True)
 
                         # get child attributes
-                        if prim.GetPath().pathString not in attr_added:
-                            attr_added[prim.GetPath().pathString] = {}
                         for shader_attr in shader_prim.GetAttributes():
                             if shader_attr.IsHidden():
                                 continue
+                            attr_name = shader_attr.GetName()
                             # check if shader attribute already exists in material
-                            material_attr = prim.GetAttribute(shader_attr.GetName())
+                            material_attr = prim.GetAttribute(attr_name)
                             if material_attr.IsHidden():
                                 continue
                             if material_attr:
                                 # use material attribute NOT shader attribute
-                                attr_added[prim.GetPath().pathString][shader_attr] = material_attr
+                                attr_added.setdefault(attr_name, []).append(material_attr)
                                 continue
 
                             # add paths to usd_changed watch list
@@ -241,7 +242,7 @@ class MaterialPropertyWidget:
                                 valid_paths.append(prim_path)
 
                             if not any(name in shader_attr.GetName() for name in ignore_list):
-                                attr_added[prim.GetPath().pathString][shader_attr] = shader_attr
+                                attr_added.setdefault(attr_name, []).append(shader_attr)
 
                         # add source color space
                         if shader.GetShaderId() == "UsdUVTexture":
@@ -258,85 +259,88 @@ class MaterialPropertyWidget:
                                 if not tokens:
                                     # fix missing tokens on attribute
                                     attr_mat.SetMetadata("allowedTokens", ["auto", "raw", "sRGB"])
-                            attr_added[prim.GetPath().pathString][attr_mat] = attr_mat
+                            attr_added.setdefault(attr_name, []).append(attr_mat)
 
                         valid_paths.append(shader_prim.GetPath())
 
                     valid_paths.append(prim.GetPath())
 
-                    attrs = attr_added[prim.GetPath().pathString]
-                    group_items = {}
-                    for attr in attrs:
-                        attr_name = attr.GetName()
-                        display_attr_names = [attr_name]
-                        display_name = attr.GetMetadata(Sdf.PropertySpec.DisplayNameKey)
-                        if display_name:
-                            display_attr_names = [display_name]
-                        if attr_name in self._lookup_table:
-                            display_attr_names = [self._lookup_table[attr_name]["name"]]
+                group_items = {}
+                num_prims = len(prims)
+                for attr_name, attrs in attr_added.items():
+                    # Only allow editing common attributes
+                    if 1 < num_prims != len(attrs):
+                        # skipping attribute because not all prims have it
+                        continue
+                    attr = attrs[0]
+                    attr_name = attr.GetName()
+                    display_attr_names = [attr_name]
+                    attribute_paths = [attr_.GetPath() for attr_ in attrs]
+                    display_name = attr.GetMetadata(Sdf.PropertySpec.DisplayNameKey)
+                    if display_name:
+                        display_attr_names = [display_name]
+                    if attr_name in self._lookup_table:
+                        display_attr_names = [self._lookup_table[attr_name]["name"]]
 
-                        # description
-                        shade_input = UsdShade.Input(attr)
-                        description = "No description"
-                        metadata = attr.GetAllMetadata()
-                        if shade_input and metadata.get("documentation"):
-                            description = metadata.get("documentation", description)
-                        descriptions = [description]
+                    # description
+                    shade_input = UsdShade.Input(attr)
+                    description = "No description"
+                    metadata = attr.GetAllMetadata()
+                    if shade_input and metadata.get("documentation"):
+                        description = metadata.get("documentation", description)
+                    descriptions = [description]
 
-                        if shade_input and shade_input.HasRenderType() and shade_input.HasSdrMetadataByKey("options"):
-                            options = shade_input.GetSdrMetadataByKey("options").split("|")
+                    if shade_input and shade_input.HasRenderType() and shade_input.HasSdrMetadataByKey("options"):
+                        options = shade_input.GetSdrMetadataByKey("options").split("|")
 
-                            # This is not the standard USD way to get default. The
-                            # standard way is Sdr. But out shader compiler produces
-                            # this metadata in the session layer, so it will be
-                            # working for MDL
-                            custom = attr.GetCustomData()
-                            default_value = custom.get("default", 0)
+                        # This is not the standard USD way to get default. The
+                        # standard way is Sdr. But out shader compiler produces
+                        # this metadata in the session layer, so it will be
+                        # working for MDL
+                        custom = attr.GetCustomData()
+                        default_value = custom.get("default", 0)
 
-                            str_options = [option.split(":")[0] for option in options]
-                            attr_item = _USDAttrListItem(
-                                self._context_name,
-                                [attr.GetPath()],
-                                None,
-                                str_options[default_value],
-                                str_options,
-                                display_attr_names=display_attr_names,
-                                display_attr_names_tooltip=descriptions,
-                            )
-                        else:
-                            attr_item = _USDAttributeItem(self._context_name, [attr.GetPath()])
-                            # we don't need to repeat the attribute name multiple time here
-                            if attr_item.element_count != 1:
-                                display_attr_names.extend([""] * (attr_item.element_count - 1))
-                                descriptions.extend([""] * (attr_item.element_count - 1))
-                            attr_item.set_display_attr_names(display_attr_names)
-                            attr_item.set_display_attr_names_tooltip(descriptions)
+                        str_options = [option.split(":")[0] for option in options]
+                        attr_item = _USDAttrListItem(
+                            self._context_name,
+                            attribute_paths,
+                            None,
+                            str_options[default_value],
+                            str_options,
+                            display_attr_names=display_attr_names,
+                            display_attr_names_tooltip=descriptions,
+                        )
+                    else:
+                        attr_item = _USDAttributeItem(self._context_name, attribute_paths)
+                        # we don't need to repeat the attribute name multiple time here
+                        if attr_item.element_count != 1:
+                            display_attr_names.extend([""] * (attr_item.element_count - 1))
+                            descriptions.extend([""] * (attr_item.element_count - 1))
+                        attr_item.set_display_attr_names(display_attr_names)
+                        attr_item.set_display_attr_names_tooltip(descriptions)
 
-                        attr_display_group = attr.GetDisplayGroup()
-                        if attr_display_group:
-                            group_name = attr_display_group
-                        # if this is in the lookup table, we override
-                        elif attr_name in self._lookup_table:
-                            group_name = self._lookup_table[attr_name]["group"]
-                        elif attr_name.startswith("inputs"):
-                            group_name = "Inputs"
-                        elif attr_name.startswith("output"):
-                            group_name = "Outputs"
-                        else:
-                            group_name = "Other"
+                    attr_display_group = attr.GetDisplayGroup()
+                    if attr_display_group:
+                        group_name = attr_display_group
+                    # if this is in the lookup table, we override
+                    elif attr_name in self._lookup_table:
+                        group_name = self._lookup_table[attr_name]["group"]
+                    elif attr_name.startswith("inputs"):
+                        group_name = "Inputs"
+                    elif attr_name.startswith("output"):
+                        group_name = "Outputs"
+                    else:
+                        group_name = "Other"
 
-                        # texture attribute will get color space attribute
-                        color_space_item = None
-                        color_space_metadata = None
-
-                        if self._create_color_space_attributes:
-                            color_space_metadata = attr.GetMetadata("colorSpace")
-
+                    # texture attribute will get color space attribute
+                    color_space_item = None
+                    if self._create_color_space_attributes:
+                        color_space_metadata = attr.GetMetadata("colorSpace")
                         if color_space_metadata:
                             # this is a texture
                             color_space_item = _USDMetadataListItem(
                                 self._context_name,
-                                [attr.GetPath()],
+                                attribute_paths,
                                 "colorSpace",
                                 "auto",
                                 ["auto", "raw", "sRGB"],
@@ -344,20 +348,20 @@ class MaterialPropertyWidget:
                                 display_attr_names_tooltip=descriptions,
                             )
 
-                        if group_name is not None:
-                            if group_name not in group_items:
-                                group = _ItemGroup(group_name)
-                                group_items[group_name] = group
-                                items.append(group)
-                            else:
-                                group = group_items[group_name]
-                            group.children.append(attr_item)
-                            if color_space_item:
-                                group.children.append(color_space_item)
+                    if group_name is not None:
+                        if group_name not in group_items:
+                            group = _ItemGroup(group_name)
+                            group_items[group_name] = group
+                            items.append(group)
                         else:
-                            items.append(attr_item)
-                            if color_space_item:
-                                items.append(color_space_item)
+                            group = group_items[group_name]
+                        group.children.append(attr_item)
+                        if color_space_item:
+                            group.children.append(color_space_item)
+                    else:
+                        items.append(attr_item)
+                        if color_space_item:
+                            items.append(color_space_item)
 
         self._property_model.set_prim_paths(valid_paths)
         self._property_model.set_items(items)

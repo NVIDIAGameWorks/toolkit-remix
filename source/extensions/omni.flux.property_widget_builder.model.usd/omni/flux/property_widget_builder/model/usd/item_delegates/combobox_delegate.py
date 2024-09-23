@@ -23,11 +23,11 @@ from omni.flux.property_widget_builder.delegates.base import AbstractField
 
 class ComboboxField(AbstractField):
     def build_ui(self, item) -> list[ui.Widget]:
-        # TODO: build "mixed" overlay (when multiple selection have different values)
         with ui.HStack(height=ui.Pixel(24)):
             ui.Spacer(width=ui.Pixel(8))
             with ui.VStack():
                 ui.Spacer(height=ui.Pixel(2))
                 widgets = [ui.ComboBox(item.value_models[0], style_type_name_override=self.style_name)]
+                self.set_dynamic_tooltip_fn(widgets[0], item.value_models[0])
                 ui.Spacer(height=ui.Pixel(2))
         return widgets

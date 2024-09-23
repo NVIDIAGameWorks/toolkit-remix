@@ -150,12 +150,12 @@ class TransformPropertyWidget:
         if stage is not None:  # noqa PLR1702
             prims = [stage.GetPrimAtPath(path) for path in self._paths]
 
+            attrs_added = {}
             # pre-pass to check valid prims with the attribute
             for prim in prims:
                 if not prim.IsValid():
                     continue
                 valid_paths.append(prim.GetPath())
-                processed_attrs = []
 
                 xform = UsdGeom.Xformable(prim)
                 xform_ops = xform.GetOrderedXformOps() or []
@@ -163,23 +163,33 @@ class TransformPropertyWidget:
                 for xform_op in xform_ops:
                     attr = xform_op.GetAttr()
                     attr_name = attr.GetName()
-                    if attr_name not in processed_attrs:  # if we already processed it, we show the real attribute name
-                        processed_attrs.append(attr_name)
-                    items.append(
-                        (
-                            xform_op.GetOpType(),
-                            _USDAttributeXformItem(
-                                self._context_name,
-                                [attr.GetPath()],
-                                display_attr_names=self.__get_xform_custom_name(attr_name),
-                            ),
-                        )
-                    )
+                    attrs_added.setdefault((attr_name, xform_op.GetOpType()), []).append(attr)
 
+            num_prims = len(valid_paths)
+            for (attr_name, xform_op_type), attrs in attrs_added.items():
+                if 1 < len(attrs) != num_prims:
+                    continue
+
+                items.append(
+                    (
+                        xform_op_type,
+                        _USDAttributeXformItem(
+                            self._context_name,
+                            [attr_.GetPath() for attr_ in attrs],
+                            display_attr_names=self.__get_xform_custom_name(attr_name),
+                        ),
+                    )
+                )
+
+            if num_prims == 1:
+                prim = stage.GetPrimAtPath(valid_paths[0])
+                xform = UsdGeom.Xformable(prim)
+                xform_ops = xform.GetOrderedXformOps() or []
                 virtual_items = self._get_virtual_xform_ops(prim, [op.GetOpType() for op in xform_ops])
                 self._has_virtual_ops = bool(virtual_items)
                 items.extend(virtual_items)
-                items.sort(key=lambda i: _OPS_UI_ATTR_OP_ORDER_TABLE.get(i[0], float("inf")))
+
+            items.sort(key=lambda i: _OPS_UI_ATTR_OP_ORDER_TABLE.get(i[0], float("inf")))
 
         self._property_model.set_prim_paths(valid_paths)
         self._property_model.set_items([i for (_, i) in items])

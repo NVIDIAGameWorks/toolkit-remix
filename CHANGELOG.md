@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3398: Added settings for enabling Sentry reporting
 - REMIX-3536: Implemented a widget to display captured & replaced prims
 - REMIX-3535: Implemented a filter to display captured & replaced prims
+- REMIX-2605: Added support for editing multiple meshes, materials or lights
 
 ### Changed
 

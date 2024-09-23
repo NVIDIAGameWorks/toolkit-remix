@@ -39,7 +39,6 @@ class DefaultField(AbstractField):
         self.widget_type = widget_type
 
     def build_ui(self, item) -> list[ui.Widget]:
-        # TODO: build "mixed" overlay (when multiple selection have different values)
         widgets = []
         with ui.HStack(height=ui.Pixel(24)):
             for i in range(item.element_count):
@@ -53,6 +52,7 @@ class DefaultField(AbstractField):
                         read_only=item.value_models[i].read_only,
                         identifier=self.identifier or "",
                     )
+                    self.set_dynamic_tooltip_fn(widget, item.value_models[i])
                     widgets.append(widget)
                     ui.Spacer(height=ui.Pixel(2))
         return widgets

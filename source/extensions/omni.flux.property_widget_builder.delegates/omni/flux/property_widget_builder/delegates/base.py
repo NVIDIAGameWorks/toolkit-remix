@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 __all__ = ("AbstractField",)
 
 import abc
@@ -24,6 +26,7 @@ import omni.ui as ui
 
 if TYPE_CHECKING:
     from omni.flux.property_widget_builder.widget import Item
+    from omni.flux.property_widget_builder.widget.tree.item_model import ItemModelBase
 
 
 ItemT = TypeVar("ItemT", bound="Item")
@@ -44,3 +47,14 @@ class AbstractField(Generic[ItemT]):
     @abc.abstractmethod
     def build_ui(self, item: ItemT) -> ui.Widget | list[ui.Widget] | None:
         raise NotImplementedError
+
+    @staticmethod
+    def set_dynamic_tooltip_fn(widget: ui.Widget, item_value_model: ItemModelBase) -> None:
+        """Helper method to set dynamic tooltip function on a built widget."""
+
+        def update_tooltip(hovered: bool):
+            tool_tip = item_value_model.get_tool_tip()
+            if tool_tip is not None:
+                widget.tooltip = tool_tip
+
+        widget.set_mouse_hovered_fn(update_tooltip)

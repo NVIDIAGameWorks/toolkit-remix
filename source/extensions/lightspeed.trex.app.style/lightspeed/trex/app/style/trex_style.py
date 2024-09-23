@@ -75,10 +75,12 @@ _WHITE_100 = 0xFFFFFFFF
 
 _YELLOW = 0xFF00FFFF
 
+_PALE_ORANGE_40 = 0x4D4682B4
+_PALE_ORANGE_60 = 0x994682B4
 _ORANGE = 0xFF00AEFF
 
 _DEFAULT_FIELD_READ_VALUE = {
-    "background_color": _DARK_00,  # 01 for alpha or it will show a default color
+    "background_color": _DARK_00,
     "color": 0x90FFFFFF,
     "border_width": 1,
     "border_radius": 5,
@@ -89,6 +91,24 @@ _DEFAULT_FIELD_READ_VALUE = {
 _DEFAULT_FIELD_READ_ERROR_VALUE = {
     "background_color": _RED_05,
     "color": 0xFF7868FF,
+    "border_width": 1,
+    "border_radius": 5,
+    "border_color": 0x0DFFFFFF,
+    "font_size": 14,
+}
+
+_DEFAULT_FIELD_MIXED_VALUE = {
+    "background_color": _PALE_ORANGE_60,
+    "color": _WHITE_60,
+    "border_width": 1,
+    "border_radius": 5,
+    "border_color": _WHITE_20,
+    "font_size": 14,
+}
+
+_DEFAULT_FIELD_READ_ONLY_MIXED_VALUE = {
+    "background_color": _PALE_ORANGE_40,
+    "color": 0x90FFFFFF,
     "border_width": 1,
     "border_radius": 5,
     "border_color": 0x0DFFFFFF,
@@ -351,6 +371,7 @@ current_dict.update(
         "Image::Frame": {"image_url": _get_icons("frame"), "color": _WHITE_60},
         "Image::Frame:hovered": {"image_url": _get_icons("frame"), "color": _WHITE_100},
         "Image::Bookmark": {"image_url": _get_icons("bookmark"), "color": _WHITE_80},
+        "Image::Mixed": {"image_url": _get_icons("mixed_checkbox"), "color": _WHITE_100},
         "Image::Nickname": {"image_url": _get_icons("nickname"), "color": _WHITE_60},
         "Image::Nickname:hovered": {"image_url": _get_icons("nickname"), "color": _WHITE_100},
         "Image::SubtractDisabled": {"image_url": _get_icons("subtract"), "color": _WHITE_30},
@@ -459,6 +480,7 @@ current_dict.update(
             "font_size": 16,
             "image_url": _get_fonts("NVIDIASans_A_Md"),
         },  # checked == hovered
+        "Label::RemixAttrLabel": {"font_size": 14},
         "Label::WizardTitle": {
             "color": _WHITE_80,
             "font_size": 18,
@@ -653,19 +675,8 @@ current_dict.update(
             "color": _RED_80,
             "font_size": 14,
         },
-        "PropertiesWidgetField": {
-            "background_color": _GREY_50,  # 01 for alpha or it will show a default color
-            "color": _WHITE_80,
-            "border_width": 1,
-            "border_radius": 5,
-            "border_color": _WHITE_20,
-            "font_size": 14,
-        },
-        "PropertiesWidgetField:hovered": {
-            "background_color": _GREY_50,
-        },
         "ColorsWidgetFieldRead": {
-            "background_color": _DARK_00,  # 01 for alpha or it will show a default color
+            "background_color": _DARK_00,
             "color": 0x90FFFFFF,
             "border_color": 0x0,
             "font_size": 14,
@@ -698,12 +709,22 @@ current_dict.update(
         },
         "Rectangle::SelectableToolTipBackground": _DEFAULT_FIELD_READ_VALUE,
         "Rectangle::SelectableToolTipBackground:hovered": _DEFAULT_FIELD_READ_HOVERED_VALUE,
+        "PropertiesWidgetField": {
+            "background_color": _GREY_50,
+            "color": _WHITE_80,
+            "border_width": 1,
+            "border_radius": 5,
+            "border_color": _WHITE_20,
+            "font_size": 14,
+        },
+        "PropertiesWidgetField:hovered": {
+            "background_color": _BLUE_HOVERED,
+        },
+        "PropertiesWidgetFieldMixed": _DEFAULT_FIELD_MIXED_VALUE,
         "PropertiesWidgetFieldRead": _DEFAULT_FIELD_READ_VALUE,
         "PropertiesWidgetFieldRead:hovered": _DEFAULT_FIELD_READ_HOVERED_VALUE,
-        "PropertiesWidgetFieldBoolRead": {
-            "background_color": _GREY_70,
-            "color": _WHITE_30,
-        },
+        "PropertiesWidgetFieldReadMixed": _DEFAULT_FIELD_READ_ONLY_MIXED_VALUE,
+        # Note: cannot be both Read (only) and Selected for editing
         "PropertiesWidgetFieldSelected": {
             "background_color": _DARK_40,
             "color": _WHITE_100,
@@ -711,6 +732,31 @@ current_dict.update(
             "border_radius": 5,
             "border_color": _WHITE_40,
             "font_size": 14,
+        },
+        "PropertiesWidgetFieldSelectedMixed": {  # selected + mixed
+            "background_color": _PALE_ORANGE_60,
+            "color": _WHITE_100,
+            "border_width": 1,
+            "border_radius": 5,
+            "border_color": _WHITE_40,
+            "font_size": 14,
+        },
+        # Note: bool field cannot be "selected"
+        "PropertiesWidgetFieldBool": {
+            "background_color": _GREY_50,
+            "color": _WHITE_30,
+        },
+        "PropertiesWidgetFieldBoolRead": {
+            "background_color": _GREY_70,
+            "color": _WHITE_30,
+        },
+        "PropertiesWidgetFieldBoolMixed": {
+            "background_color": _PALE_ORANGE_60,
+            "color": _WHITE_30,
+        },
+        "PropertiesWidgetFieldBoolReadMixed": {
+            "background_color": _PALE_ORANGE_40,
+            "color": _WHITE_30,
         },
         "PropertiesWidgetLabel": {
             "color": _WHITE_70,

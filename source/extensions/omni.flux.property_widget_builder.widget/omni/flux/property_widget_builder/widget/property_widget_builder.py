@@ -80,9 +80,12 @@ class PropertyWidget:
             self._delegate,
             root_visible=False,
             header_visible=False,
-            column_widths=(
-                [ui.Percent(40), ui.Percent(60)] if self._tree_column_widths is None else self._tree_column_widths
-            ),
+            column_widths=([ui.Percent(30)] if self._tree_column_widths is None else self._tree_column_widths),
+            # It would be great to use min_column_widths here to start the label columns out at a reasonable size
+            # and then have them expand slowly but min doesn't work properly: it will lock the width to this pixel
+            # length and not expand.
+            # min_column_widths=[ui.Pixel(210)],
+            # columns_resizable=True,  # causes crash when resizing! Bug: OMPE-22477
             name="PropertyWidget",
         )
 

@@ -38,8 +38,7 @@ from .item_model.attr_name import UsdAttributeNameModel as _UsdAttributeNameMode
 from .item_model.attr_name import UsdAttributeNameModelVirtual as _UsdAttributeNameModelVirtual
 from .item_model.attr_value import UsdAttributeValueModel as _UsdAttributeValueModel
 from .item_model.attr_value import UsdAttributeValueModelVirtual as _UsdAttributeValueModelVirtual
-from .item_model.base_list_model_value import UsdListModelBaseValueModel as _UsdListModelBaseValueModel
-from .item_model.metadata_list_model_value import UsdListModelBaseValueModel as _UsdAttributeMetadataValueModel
+from .item_model.metadata_list_model_value import UsdAttributeMetadataValueModel as _UsdAttributeMetadataValueModel
 from .mapping import CHANNEL_ELEMENT_BUILDER_TABLE
 from .mapping import DEFAULT_PRECISION as _DEFAULT_PRECISION
 from .mapping import OPS_ATTR_ORDER_TABLE as _OPS_ATTR_ORDER_TABLE
@@ -307,6 +306,10 @@ class USDAttributeXformItem(USDAttributeItem):
 class _BaseListModelItem(_Item):
     """Item of the model"""
 
+    value_model_class: Type[_UsdListModelAttrValueModel] | Type[_UsdAttributeMetadataValueModel] = (
+        _UsdListModelAttrValueModel
+    )
+
     def __init__(
         self,
         context_name: str,
@@ -314,7 +317,6 @@ class _BaseListModelItem(_Item):
         key: Optional[str],
         default: str,
         options: List[str],
-        value_model: Type[_UsdListModelBaseValueModel],
         read_only: bool = False,
         display_attr_names: Optional[List[str]] = None,
         display_attr_names_tooltip: Optional[List[str]] = None,
@@ -354,7 +356,7 @@ class _BaseListModelItem(_Item):
             )
         ]
         self._value_models = [
-            value_model(
+            self.value_model_class(
                 context_name,
                 attribute_paths,
                 key,
@@ -448,44 +450,7 @@ class _BaseListModelItem(_Item):
 class USDMetadataListItem(_BaseListModelItem):
     """Item of the model"""
 
-    def __init__(
-        self,
-        context_name: str,
-        attribute_paths: List[Sdf.Path],
-        key: str,
-        default: str,
-        options: List[str],
-        read_only: bool = False,
-        display_attr_names: Optional[List[str]] = None,
-        display_attr_names_tooltip: Optional[List[str]] = None,
-        not_implemented: bool = False,
-    ):
-        """
-        Item that represent the key of a metadata of an USD attribute on the tree
-
-        Args:
-            context_name: the context name
-            attribute_paths: the list of USD attribute(s) the item will represent
-            key: the metadata key to show
-            default: the metadata key default value
-            options: the metadata available options
-            read_only: read only or not
-            display_attr_names: override the name(s) of the attribute(s) to show by those one
-            display_attr_names_tooltip: tooltip to show on the attribute name
-            not_implemented: if not implement
-        """
-        super().__init__(
-            context_name,
-            attribute_paths,
-            key,
-            default,
-            options,
-            _UsdAttributeMetadataValueModel,
-            read_only=read_only,
-            display_attr_names=display_attr_names,
-            display_attr_names_tooltip=display_attr_names_tooltip,
-            not_implemented=not_implemented,
-        )
+    value_model_class = _UsdAttributeMetadataValueModel
 
     @property
     @abc.abstractmethod
@@ -496,44 +461,7 @@ class USDMetadataListItem(_BaseListModelItem):
 class USDAttrListItem(_BaseListModelItem):
     """Item of the model"""
 
-    def __init__(
-        self,
-        context_name: str,
-        attribute_paths: List[Sdf.Path],
-        key: Optional[str],
-        default: str,
-        options: List[str],
-        read_only: bool = False,
-        display_attr_names: Optional[List[str]] = None,
-        display_attr_names_tooltip: Optional[List[str]] = None,
-        not_implemented: bool = False,
-    ):
-        """
-        Item that represent the key of a metadata of an USD attribute on the tree
-
-        Args:
-            context_name: the context name
-            attribute_paths: the list of USD attribute(s) the item will represent
-            key: the metadata key to show
-            default: the metadata key default value
-            options: the metadata available options
-            read_only: read only or not
-            display_attr_names: override the name(s) of the attribute(s) to show by those one
-            display_attr_names_tooltip: tooltip to show on the attribute name
-            not_implemented: if not implement
-        """
-        super().__init__(
-            context_name,
-            attribute_paths,
-            key,
-            default,
-            options,
-            _UsdListModelAttrValueModel,
-            read_only=read_only,
-            display_attr_names=display_attr_names,
-            display_attr_names_tooltip=display_attr_names_tooltip,
-            not_implemented=not_implemented,
-        )
+    value_model_class = _UsdListModelAttrValueModel
 
     @property
     @abc.abstractmethod

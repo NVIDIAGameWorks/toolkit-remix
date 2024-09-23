@@ -24,7 +24,7 @@ __all__ = (
 import abc
 import asyncio
 import dataclasses
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 import carb
 import omni.ui as ui
@@ -35,6 +35,9 @@ from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegate
 
 from . import clipboard
 from .model import HEADER_DICT, Item, Model
+
+if TYPE_CHECKING:
+    from .item_model import ItemModelBase
 
 
 @dataclasses.dataclass
@@ -147,11 +150,12 @@ class Delegate(_TreeDelegateBase):
     ) -> list[ui.Widget] | None:
         if column_id == 0:
             builder = NameField()
-            return builder(item)
-        if column_id == 1:
+        elif column_id == 1:
             builder = self.get_widget_builder(item, default=DefaultField(ui.StringField))
-            return builder(item)
-        return None
+        else:
+            return None
+        widgets = builder(item)
+        return widgets
 
     def _build_widget(self, model: Model, item: Item, column_id, level, expanded):
         widgets = self._build_item_widgets(model, item, column_id, level, expanded)
@@ -170,6 +174,7 @@ class Delegate(_TreeDelegateBase):
             asyncio.ensure_future(self.__resize_name_height(widgets, item))
 
         self.set_model_edit_fn(widgets, item)
+        self.set_model_value_changed_fn(widgets, item)
 
     def _build_header(self, column_id):
         """Build the header"""
@@ -179,17 +184,67 @@ class Delegate(_TreeDelegateBase):
 
     def set_model_edit_fn(self, widgets: list[ui.Widget], item):
         """
-        Set the callback when the value of the item is edited
+        Set the callbacks when the item is being edited.
 
         Args:
             widgets: the list of widgets that show the item
             item: the item
         """
         for value_model in item.value_models:
-            self._subscriptions.append(value_model.subscribe_end_edit_fn(lambda m: self.value_model_updated(item)))
             for widget in widgets:
                 value_model.add_begin_edit_fn(lambda m, w=widget: self._set_selected_style(w, True))
                 value_model.add_end_edit_fn(lambda m, w=widget: self._set_selected_style(w, False))
+
+    def set_model_value_changed_fn(self, widgets: list[ui.Widget], item):
+        """
+        Set the callbacks when the value of the item changes.
+
+        Args:
+            widgets: the list of widgets that show the item
+            item: the item
+        """
+        for value_model in item.value_models:
+            # subscribe the delegate to each items value change
+            self._subscriptions.append(value_model.subscribe_value_changed_fn(lambda m: self.value_model_updated(item)))
+
+            for widget in widgets:
+                self._subscriptions.append(
+                    value_model.subscribe_value_changed_fn(
+                        lambda m, item_value_model=value_model, w=widget: self._set_mixed_style(item_value_model, w)
+                    )
+                )
+                self._set_mixed_style(value_model, widget)
+
+    @staticmethod
+    def _set_style_state(widget: ui.Widget, selected: bool | None = None, mixed: bool | None = None):
+        """
+        Set the correct style override name for the current state.
+
+        Args:
+            widget: the value widget
+            selected: whether to change the styling to "selected" state. None value will stay same.
+            mixed: whether to change the styling to "mixed" state. None value will stay same.
+        """
+        style_override = widget.style_type_name_override
+
+        def check_and_strip_existing(style_override_, suffix_, arg_):
+            if style_override_.endswith(suffix_):
+                if arg_ is None:
+                    arg_ = True
+                style_override_ = style_override_[: -len(suffix_)]
+            return style_override_, arg_
+
+        selected_suffix = "Selected"
+        mixed_suffix = "Mixed"
+        # "Mixed" will always be second, i.e. DelegateSelectedMixed
+        style_override, mixed = check_and_strip_existing(style_override, mixed_suffix, mixed)
+        style_override, selected = check_and_strip_existing(style_override, selected_suffix, selected)
+        if selected:
+            style_override = f"{style_override}{selected_suffix}"
+        if mixed:
+            style_override = f"{style_override}{mixed_suffix}"
+        if widget.style_type_name_override != style_override:
+            widget.style_type_name_override = style_override
 
     def _set_selected_style(self, widget: ui.Widget, value: bool):
         """
@@ -199,11 +254,17 @@ class Delegate(_TreeDelegateBase):
             widget: the widget that is edited (or not)
             value: edited or not
         """
-        suffix = "Selected"
-        if value:
-            widget.style_type_name_override = f"{widget.style_type_name_override}{suffix}"
-        elif widget.style_type_name_override.endswith(suffix):
-            widget.style_type_name_override = widget.style_type_name_override[: -len(suffix)]
+        self._set_style_state(widget, selected=value)
+
+    def _set_mixed_style(self, item_value_model: "ItemModelBase", widget: ui.Widget):
+        """
+        Set the style name override of the widget when the widget represents
+
+        Args:
+            widget: the widget that is edited (or not)
+            value: edited or not
+        """
+        self._set_style_state(widget, mixed=item_value_model.is_mixed)
 
     def _show_context_menu(self, model: Model, item: Item):
         """
