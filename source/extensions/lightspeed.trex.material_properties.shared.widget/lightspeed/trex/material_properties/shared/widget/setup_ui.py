@@ -290,7 +290,7 @@ class SetupUI:
             if similar_len == 0:
                 continue
             if _TEXTURE_TYPE_INPUT_MAP[texture_type] not in texture_dict and similar_len >= base_parts_len - 1:
-                texture_dict[_TEXTURE_TYPE_INPUT_MAP[texture_type]] = path
+                texture_dict[_TEXTURE_TYPE_INPUT_MAP[texture_type].replace("inputs:", "")] = path
 
         if not texture_dict:
             carb.log_warn("Could not determine texture type(s) or no textures found. Skipping...")
@@ -317,6 +317,7 @@ class SetupUI:
                         if checked_boxes and display_name not in checked_boxes:
                             continue
                         if display_name in paths:
+                            value_model.block_set_value(False)
                             rel_path = omni.client.normalize_url(
                                 usd.make_path_relative_to_current_edit_target(paths[display_name], stage=self._stage)
                             ).replace("\\", "/")

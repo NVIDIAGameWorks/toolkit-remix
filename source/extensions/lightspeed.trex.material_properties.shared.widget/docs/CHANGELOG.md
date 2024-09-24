@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.13]
+### Fixed
+- Fixing texture set assignment
+
 ## [1.3.12]
 ### Added
 - Added support for multi-edit

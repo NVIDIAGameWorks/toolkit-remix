@@ -19,6 +19,7 @@ import os
 import shutil
 import tempfile
 from enum import Enum
+from pathlib import Path
 
 import carb
 import carb.input
@@ -658,6 +659,58 @@ class TestSelectionTreeWidget(AsyncTestCase):
             "\\", "/"
         )
         self.assertEquals(rel_path, texture_file_fields[0].widget.model.get_value_as_string())
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_texture_set_multiple_assignment(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+        asset_path = _get_test_data("usd/project_example/sources/textures/ingested/16px_metallic.m.rtex.dds")
+
+        await ui_test.human_delay(human_delay_speed=10)
+        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+
+        # we expand
+        await property_branches[2].click()
+        await property_branches[3].click()
+
+        assign_button = ui_test.find_all(f"{_window.title}//Frame/**/Button[*].name=='AssignTextureSetButton'")
+
+        # Check that the texture in a similar texture set is also assigned
+        await assign_button[0].click()
+        await ui_test.human_delay(3)
+
+        picker_buttons = await self.__find_file_picker_buttons("Select Texture Set")
+        await ui_test.human_delay(50)
+        await picker_buttons[TestComponents.FILE_PICKER_DIRECTORY].input(asset_path, end_key=KeyboardInput.ENTER)
+        await picker_buttons[TestComponents.FILE_PICKER_OPEN].click()
+        await ui_test.human_delay(10)
+
+        action_button = ui_test.find_all("Texture Assignment//Frame/**/Button[*].name=='AssignButton'")
+        await action_button[0].click()
+        await ui_test.human_delay(3)
+
+        texture_names = {
+            "16px_metallic.m.rtex.dds": 0,
+            "16px_normal_OTH_Normal.n.rtex.dds": 2,
+        }
+
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+
+        for texture_name, index in texture_names.items():
+            dirname = Path(asset_path).parent
+            texture = dirname / texture_name
+            rel_path = omni.client.normalize_url(
+                omni.usd.make_path_relative_to_current_edit_target(str(texture))
+            ).replace("\\", "/")
+            with self.subTest(name=rel_path):
+                self.assertEquals(rel_path, texture_file_fields[index].widget.model.get_value_as_string())
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
