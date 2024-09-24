@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3058: Fixed material file path tooltips and copy menus
 - Fixed changelog checker with type casting to support semantic versioning
 - Corrected documentation typo
+- REMIX-3385: Fixing texture set assignment
 
 ### Removed
 

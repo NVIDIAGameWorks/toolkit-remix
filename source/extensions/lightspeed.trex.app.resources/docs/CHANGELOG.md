@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.8]
+### Added
+- Another image for testing
+
 ## [1.6.7]
 ### Added
 - Mixed icon
