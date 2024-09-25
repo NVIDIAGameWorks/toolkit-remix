@@ -23,7 +23,7 @@ from unittest.mock import PropertyMock, patch
 import omni.kit
 import omni.kit.test
 import omni.usd
-from carb.input import KeyboardInput
+from carb.input import KEYBOARD_MODIFIER_FLAG_SHIFT, KeyboardEventType, KeyboardInput
 from omni import ui
 from omni.flux.asset_importer.widget.file_import_list import (
     FileImportListDelegate,
@@ -265,21 +265,31 @@ class TestFileImportListWidget(omni.kit.test.AsyncTestCase):
         await scan_folder_button.click()
         await ui_test.human_delay()
 
-        select_button = ui_test.find("Scan Folder//Frame/**/Image[*].identifier=='select_scan_folder'")
+        scan_dialog_title = "Scan Directory for Input Files"
+        select_button = ui_test.find(f"{scan_dialog_title}//Frame/**/Image[*].identifier=='select_scan_folder'")
+        choose_scanned_files_button = ui_test.find(
+            f"{scan_dialog_title}//Frame/**/Button[*].identifier=='choose_scanned_files'"
+        )
+        # The 'Select' button should be disabled on creation
+        self.assertFalse(choose_scanned_files_button.widget.enabled)
 
-        scan_button = ui_test.find("Scan Folder//Frame/**/Button[*].identifier=='scan_folder_button'")
-        input_folder_field = ui_test.find("Scan Folder//Frame/**/StringField[*].identifier=='input_folder_field'")
-        search_field = ui_test.find("Scan Folder//Frame/**/StringField[*].identifier=='scan_search_field'")
+        scan_button = ui_test.find(f"{scan_dialog_title}//Frame/**/Button[*].identifier=='scan_folder_button'")
+        input_folder_field = ui_test.find(
+            f"{scan_dialog_title}//Frame/**/StringField[*].identifier=='input_folder_field'"
+        )
+        search_field = ui_test.find(f"{scan_dialog_title}//Frame/**/StringField[*].identifier=='scan_search_field'")
 
         await select_button.click()
         await ui_test.human_delay(50)
         file_browser_path = ui_test.find(
-            "Choose Folder to Scan//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
+            "Select Directory to Scan//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
         )
-        choose_file_button = ui_test.find("Choose Folder to Scan//Frame/**/Button[*].text=='Choose'")
+        choose_file_button = ui_test.find("Select Directory to Scan//Frame/**/Button[*].text=='Select'")
         base_path = Path(self.temp_dir.name)
         asset_file = base_path / "0.usda"
         asset_file.touch()
+        asset_file2 = base_path / "1.usda"
+        asset_file2.touch()
         await file_browser_path.input(str(base_path), end_key=KeyboardInput.ENTER)
         await choose_file_button.click()
         await ui_test.human_delay(10)
@@ -292,14 +302,128 @@ class TestFileImportListWidget(omni.kit.test.AsyncTestCase):
         await ui_test.human_delay(10)
 
         asset_name = asset_file.name
-        asset_checkbox = ui_test.find(f"Scan Folder//Frame/**/CheckBox[*].name=='{asset_name}'")
+        asset_checkbox = ui_test.find(f"{scan_dialog_title}//Frame/**/CheckBox[*].name=='{asset_name}'")
         self.assertIsNotNone(asset_checkbox)
+        # The 'Select' button should now be enabled, since there are now items to add to the queue.
+        self.assertTrue(choose_scanned_files_button.widget.enabled)
 
-        choose_scanned_files_button = ui_test.find("Scan Folder//Frame/**/Button[*].identifier=='choose_scanned_files'")
         await choose_scanned_files_button.click()
         await ui_test.human_delay(10)
 
         self.assertEqual(1, len(model.get_item_children(None)))
+
+    async def test_scan_folder_multiple(self):
+        # Setup the test
+        model = FileImportListModel()
+        delegate = FileImportListDelegate()
+
+        window = await self.__setup_widget(model=model, delegate=delegate)  # Keep in memory during test
+
+        # Start the test
+        scan_folder_button = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='scan_folder'")
+
+        # Make sure everything is rendered correctly
+        self.assertIsNotNone(scan_folder_button)
+
+        await scan_folder_button.click()
+        await ui_test.human_delay()
+
+        scan_dialog_title = "Scan Directory for Input Files"
+        select_button = ui_test.find(f"{scan_dialog_title}//Frame/**/Image[*].identifier=='select_scan_folder'")
+        search_field = ui_test.find(f"{scan_dialog_title}//Frame/**/StringField[*].identifier=='scan_search_field'")
+
+        scan_button = ui_test.find(f"{scan_dialog_title}//Frame/**/Button[*].identifier=='scan_folder_button'")
+        await select_button.click()
+        await ui_test.human_delay(50)
+        file_browser_path = ui_test.find(
+            "Select Directory to Scan//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
+        )
+        choose_file_button = ui_test.find("Select Directory to Scan//Frame/**/Button[*].text=='Select'")
+        base_path = Path(self.temp_dir.name)
+        asset_file = base_path / "0.usda"
+        asset_file.touch()
+        asset_file2 = base_path / "1.usda"
+        asset_file2.touch()
+        # Making sure the search field is empty, so all items will be found.
+        search_field.model.set_value("")
+        await file_browser_path.input(str(base_path), end_key=KeyboardInput.ENTER)
+        await choose_file_button.click()
+        await ui_test.human_delay(10)
+
+        await scan_button.click()
+        await ui_test.human_delay(10)
+
+        asset_name = asset_file.name
+        asset_checkbox = ui_test.find(f"{scan_dialog_title}//Frame/**/CheckBox[*].name=='{asset_name}'")
+        asset_name2 = asset_file2.name
+        asset_checkbox2 = ui_test.find(f"{scan_dialog_title}//Frame/**/CheckBox[*].name=='{asset_name2}'")
+
+        # Shift selecting both items
+        await ui_test.emulate_mouse_move_and_click(
+            ui_test.Vec2(asset_checkbox.widget.screen_position_x - 2, asset_checkbox.widget.screen_position_y)
+        )
+        await ui_test.input.emulate_keyboard(
+            KeyboardEventType.KEY_PRESS, KeyboardInput.LEFT_SHIFT, KEYBOARD_MODIFIER_FLAG_SHIFT
+        )
+        await ui_test.emulate_mouse_move_and_click(
+            ui_test.Vec2(asset_checkbox2.widget.screen_position_x - 2, asset_checkbox2.widget.screen_position_y)
+        )
+
+        # Since both items are selected, affecting the checkbox for one will update the other.
+        await ui_test.emulate_mouse_move_and_click(asset_checkbox.position)
+        self.assertEqual(asset_checkbox.model.get_value_as_bool(), asset_checkbox2.model.get_value_as_bool())
+
+        # Set them back to checked and send them to the queue
+        await ui_test.emulate_mouse_move_and_click(asset_checkbox.position)
+        choose_scanned_files_button = ui_test.find(
+            f"{scan_dialog_title}//Frame/**/Button[*].identifier=='choose_scanned_files'"
+        )
+
+        await choose_scanned_files_button.click()
+        await ui_test.human_delay(10)
+
+        self.assertEqual(2, len(model.get_item_children(None)))
+
+        # Disable the dialog
+        cancel_button = ui_test.find(f"{scan_dialog_title}//Frame/**/Button[*].identifier=='cancel'")
+        await cancel_button.click()
+
+    async def test_scan_folder_empty_dir(self):
+        # Setup the test
+        model = FileImportListModel()
+        delegate = FileImportListDelegate()
+
+        window = await self.__setup_widget(model=model, delegate=delegate)  # Keep in memory during test
+
+        # Start the test
+        scan_folder_button = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='scan_folder'")
+
+        # Make sure everything is rendered correctly
+        self.assertIsNotNone(scan_folder_button)
+
+        await scan_folder_button.click()
+        await ui_test.human_delay()
+
+        # Hitting the scan button without a directory should do nothing, so make sure that the 'Select' button
+        # should be disabled both before and after hitting the 'Scan' button.
+        scan_dialog_title = "Scan Directory for Input Files"
+        scan_button = ui_test.find(f"{scan_dialog_title}//Frame/**/Button[*].identifier=='scan_folder_button'")
+        choose_scanned_files_button = ui_test.find(
+            f"{scan_dialog_title}//Frame/**/Button[*].identifier=='choose_scanned_files'"
+        )
+        input_folder_field = ui_test.find(
+            f"{scan_dialog_title}//Frame/**/StringField[*].identifier=='input_folder_field'"
+        )
+        input_folder_field.model.set_value("")
+        self.assertFalse(choose_scanned_files_button.widget.enabled)
+
+        await scan_button.click()
+        await ui_test.human_delay()
+
+        self.assertFalse(choose_scanned_files_button.widget.enabled)
+        # Disable the dialog
+        cancel_button = ui_test.find(f"{scan_dialog_title}//Frame/**/Button[*].identifier=='cancel'")
+        await cancel_button.click()
 
     async def test_drop_valid_files(self):
         model = FileImportListModel()
