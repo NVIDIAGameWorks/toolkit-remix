@@ -76,3 +76,7 @@ class Model(ui.AbstractItemModel):
         for item in self.__children:
             item.selected = item in items
         self._items_selected_changed()
+
+    def get_selected_items(self):
+        """Returns the selected items from the tree"""
+        return [item for item in self.__children if item.selected is True]

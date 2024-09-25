@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.10]
+### Changed
+- Updating tests for scan folder button
+
 ## [2.5.9] - 2024-09-03
 ### Added
 - Added validation dialog to ingestion drag-drop

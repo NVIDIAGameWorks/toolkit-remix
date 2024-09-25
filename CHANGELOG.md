@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed changelog checker with type casting to support semantic versioning
 - Corrected documentation typo
 - REMIX-3385: Fixing texture set assignment
+- Addressing scan folder issues
 
 ### Removed
 
