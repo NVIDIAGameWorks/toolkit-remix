@@ -681,8 +681,18 @@ current_dict.update(
             "border_color": 0x0,
             "font_size": 14,
         },
+        "ColorsWidgetFieldReadMixed": {
+            "background_color": _PALE_ORANGE_40,
+            "color": 0x90FFFFFF,
+            "border_color": 0x0,
+            "font_size": 14,
+        },
         "ColorWidget::ColorsWidgetFieldRead": {
             "border_color": _WHITE_20,
+            "border_radius": 5,
+        },
+        "ColorWidget::ColorsWidgetFieldReadMixed": {
+            "background_color": _PALE_ORANGE_40,
             "border_radius": 5,
         },
         "Rectangle::ColorsWidgetSeparator": {
@@ -702,6 +712,42 @@ current_dict.update(
             "draw_mode": ui.SliderDrawMode.FILLED,
             "background_color": _GREY_50,
             "secondary_color": _BLUE_SELECTED,
+            "border_width": 1,
+            "border_radius": 5,
+            "border_color": _WHITE_40,
+            "font_size": 14,
+        },
+        "FloatSliderFieldMixed": {
+            "draw_mode": ui.SliderDrawMode.FILLED,
+            "background_color": _GREY_50,
+            "secondary_color": _PALE_ORANGE_60,
+            "border_width": 1,
+            "border_radius": 5,
+            "border_color": _WHITE_20,
+            "font_size": 14,
+        },
+        "FloatSliderFieldRead": {
+            "draw_mode": ui.SliderDrawMode.FILLED,
+            "background_color": _GREY_70,
+            "secondary_color": _BLUE_SEMI_SELECTED,
+            "border_width": 1,
+            "border_radius": 5,
+            "border_color": _WHITE_20,
+            "font_size": 14,
+        },
+        "FloatSliderFieldReadMixed": {
+            "draw_mode": ui.SliderDrawMode.FILLED,
+            "background_color": _GREY_70,
+            "secondary_color": _PALE_ORANGE_40,
+            "border_width": 1,
+            "border_radius": 5,
+            "border_color": _WHITE_20,
+            "font_size": 14,
+        },
+        "FloatSliderFieldSelectedMixed": {
+            "draw_mode": ui.SliderDrawMode.FILLED,
+            "background_color": _GREY_50,
+            "secondary_color": _PALE_ORANGE_60,
             "border_width": 1,
             "border_radius": 5,
             "border_color": _WHITE_40,
@@ -743,7 +789,7 @@ current_dict.update(
         },
         # Note: bool field cannot be "selected"
         "PropertiesWidgetFieldBool": {
-            "background_color": _GREY_50,
+            "background_color": _GREY_32,  # make visible against _GREY_50 background
             "color": _WHITE_30,
         },
         "PropertiesWidgetFieldBoolRead": {

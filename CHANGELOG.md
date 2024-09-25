@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3536: Implemented a widget to display captured & replaced prims
 - REMIX-3535: Implemented a filter to display captured & replaced prims
 - REMIX-2605: Added support for editing multiple meshes, materials or lights
+- REMIX-2605: Added support for editing multiple mesh xforms
 
 ### Changed
 
@@ -44,7 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed changelog checker with type casting to support semantic versioning
 - Corrected documentation typo
 - REMIX-3385: Fixing texture set assignment
-- Addressing scan folder issues
+- REMIX-2874: Improved look of scan file window
+- REMIX-2605: Fixed some property widget styling
 
 ### Removed
 
