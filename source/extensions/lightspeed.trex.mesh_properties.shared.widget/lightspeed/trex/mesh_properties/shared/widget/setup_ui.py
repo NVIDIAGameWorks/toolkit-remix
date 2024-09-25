@@ -342,11 +342,12 @@ class SetupUI:
                 [i.path for i in item_prims], [i.path for i in self._current_instance_items]
             )
             transformable_prim_paths = self._core.filter_transformable_prims(instances)
+            transformable_prim_paths = list(dict.fromkeys(transformable_prim_paths))
             mesh_prims = self._core.filter_imageable_prims([item.prim for item in item_prims])
             # Refresh of the transform
             self._transformation_widget.show(bool(transformable_prim_paths))
             if transformable_prim_paths:
-                self._transformation_widget.refresh([transformable_prim_paths[0]])
+                self._transformation_widget.refresh(transformable_prim_paths)
                 # for a regular prim, we don't show others properties
                 self._property_widget.show(False)
             if mesh_prims:
@@ -399,7 +400,6 @@ class SetupUI:
                     prim_paths.append(to_select_path)
 
             xformable_prims = self._core.filter_transformable_prims(prim_paths)
-            # remove duplicates while preserving order:
             xformable_prims = list(dict.fromkeys(xformable_prims))
 
             self._transformation_widget.show(bool(xformable_prims))

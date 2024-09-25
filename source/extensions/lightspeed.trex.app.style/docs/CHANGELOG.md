@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.4]
+### Added
+- Added Mixed style for Color and Slider widgets
+
 ## [1.3.3]
 ### Added
 - Added Mixed style for PropertyFields

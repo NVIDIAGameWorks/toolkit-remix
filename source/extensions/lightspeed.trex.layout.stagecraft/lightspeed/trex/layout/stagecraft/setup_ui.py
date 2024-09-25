@@ -82,6 +82,7 @@ class Pages(Enum):
 class SetupUI(TrexLayout):
     WIDTH_COMPONENT_PANEL = 256
     WIDTH_PROPERTY_PANEL = 600
+    MIN_WIDTH_PROPERTY_PANEL = 300
 
     def __init__(self, ext_id):
         super().__init__(ext_id)
@@ -574,8 +575,8 @@ class SetupUI(TrexLayout):
 
     @_ignore_function_decorator(attrs=["_ignore_property_viewport_splitter_change"])
     def _on_property_viewport_splitter_change(self, x):
-        if x.value <= self.WIDTH_COMPONENT_PANEL + self.WIDTH_PROPERTY_PANEL:
-            self._splitter_property_viewport.offset_x = self.WIDTH_COMPONENT_PANEL + self.WIDTH_PROPERTY_PANEL
+        if x.value <= self.WIDTH_COMPONENT_PANEL + self.MIN_WIDTH_PROPERTY_PANEL:
+            self._splitter_property_viewport.offset_x = self.WIDTH_COMPONENT_PANEL + self.MIN_WIDTH_PROPERTY_PANEL
         if (
             self._last_property_viewport_splitter_x is not None
             and self._splitter_property_viewport.offset_x.value >= self._last_property_viewport_splitter_x.value
@@ -588,8 +589,8 @@ class SetupUI(TrexLayout):
     @omni.usd.handle_exception
     async def __deferred_on_property_viewport_splitter_change(self, x):
         await omni.kit.app.get_app_interface().next_update_async()
-        if x.value < self.WIDTH_COMPONENT_PANEL + self.WIDTH_PROPERTY_PANEL:
-            x = ui.Pixel(self.WIDTH_COMPONENT_PANEL + self.WIDTH_PROPERTY_PANEL)
+        if x.value < self.WIDTH_COMPONENT_PANEL + self.MIN_WIDTH_PROPERTY_PANEL:
+            x = ui.Pixel(self.WIDTH_COMPONENT_PANEL + self.MIN_WIDTH_PROPERTY_PANEL)
         self._property_panel_frame.width = ui.Pixel(x - self.WIDTH_COMPONENT_PANEL)
         self._last_property_viewport_splitter_x = x
 
