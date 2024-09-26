@@ -16,10 +16,15 @@
 """
 
 import abc
+from typing import TYPE_CHECKING
 
 from omni import ui
 
 from .usd_base import StageManagerUSDWidgetPlugin as _StageManagerUSDWidgetPlugin
+
+if TYPE_CHECKING:
+    from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
+    from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 
 
 class StageManagerStateWidgetPlugin(_StageManagerUSDWidgetPlugin, abc.ABC):
@@ -29,3 +34,13 @@ class StageManagerStateWidgetPlugin(_StageManagerUSDWidgetPlugin, abc.ABC):
     @property
     def _icon_size(self) -> ui.Length:
         return ui.Pixel(20)
+
+    @abc.abstractmethod
+    def build_icon_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
+        pass
+
+    def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
+        with ui.VStack():
+            ui.Spacer(width=0)
+            self.build_icon_ui(model, item, level, expanded)
+            ui.Spacer(width=0)

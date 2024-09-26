@@ -18,6 +18,7 @@
 import abc
 from typing import TYPE_CHECKING, Any, Callable, Generic, Iterable, TypeVar
 
+from omni import ui
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
@@ -246,8 +247,11 @@ class StageManagerTreeDelegate(_TreeDelegateBase):
     A TreeView delegate used to define the look of every element in the tree
     """
 
-    def __init__(self):
+    def __init__(self, header_height: int = 24, row_height: int = 24):
         super().__init__()
+
+        self._header_height = header_height
+        self._row_height = row_height
 
         self._column_widget_builders = {}
         self._column_header_builders = {}
@@ -258,16 +262,48 @@ class StageManagerTreeDelegate(_TreeDelegateBase):
         default_attr = super().default_attr
         default_attr.update(
             {
+                "_header_height": None,
+                "_row_height": None,
                 "_column_widget_builders": None,
                 "_column_header_builders": None,
             }
         )
         return default_attr
 
+    @property
+    def header_height(self) -> int:
+        return self._header_height
+
+    @header_height.setter
+    def header_height(self, value: int):
+        self._header_height = max(0, value)
+
+    @property
+    def row_height(self) -> int:
+        return self._row_height
+
+    @row_height.setter
+    def row_height(self, value: int):
+        self._row_height = max(0, value)
+
     def set_column_builders(self, columns: list["_StageManagerColumnPlugin"]):
         for index, column in enumerate(columns):
             self._column_widget_builders[index] = column.build_ui
             self._column_header_builders[index] = column.build_header
+
+    def call_item_clicked(
+        self, button: int, should_validate: bool, model: "StageManagerTreeModel", item: "StageManagerTreeItem"
+    ):
+        """
+        Trigger the `_item_clicked` event
+
+        Args:
+            button: The mouse button that triggered the event
+            should_validate: Whether the TreeView selection should be validated or not
+            model: The tree model
+            item: The tree item that was clicked
+        """
+        self._item_clicked(button, should_validate, model, item)
 
     def _build_widget(
         self,
@@ -277,12 +313,20 @@ class StageManagerTreeDelegate(_TreeDelegateBase):
         level: int,
         expanded: bool,
     ):
-        if column_id in self._column_widget_builders:
-            self._column_widget_builders[column_id](model, item, level, expanded)
+        with ui.Frame(height=self.row_height):
+            if column_id in self._column_widget_builders:
+                self._column_widget_builders[column_id](model, item, level, expanded)
+
+    def _build_branch(
+        self, _model: "_TreeModelBase", item: "_TreeItemBase", column_id: int, level: int, expanded: bool
+    ):
+        with ui.Frame(height=self.row_height):
+            super()._build_branch(_model, item, column_id, level, expanded)
 
     def _build_header(self, column_id: int):
-        if column_id in self._column_header_builders:
-            self._column_header_builders[column_id]()
+        with ui.Frame(height=self.header_height):
+            if column_id in self._column_header_builders:
+                self._column_header_builders[column_id]()
 
 
 class StageManagerTreePlugin(_StageManagerPluginBase, abc.ABC):

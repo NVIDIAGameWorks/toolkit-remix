@@ -51,12 +51,20 @@ class StageManagerColumnPlugin(_StageManagerUIPluginBase, abc.ABC):
     widgets: list[StageManagerWidgetPlugin] = Field(..., description="Widgets to be displayed in the column")
 
     width: ColumnWidth = Field(ColumnWidth(unit=LengthUnit.FRACTION, value=1), description="Width of the column")
+    centered_title: bool = Field(False, description="Whether the title should be centered or left-aligned")
 
     def build_header(self):
         """
         Build the UI for the given column header.
         """
-        ui.Label(self.display_name, height=ui.Pixel(24), alignment=ui.Alignment.CENTER, tooltip=self.tooltip)
+        with ui.HStack():
+            if not self.centered_title:
+                ui.Spacer(width=ui.Pixel(8 + 4), height=0)
+            ui.Label(
+                self.display_name,
+                alignment=ui.Alignment.CENTER if self.centered_title else ui.Alignment.LEFT_CENTER,
+                tooltip=self.tooltip,
+            )
 
     @abc.abstractmethod
     def build_ui(  # noqa PLW0221

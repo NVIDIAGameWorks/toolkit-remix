@@ -37,7 +37,11 @@ class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
         "SearchFilterPlugin",
     ]
     # TODO StageManager: We have LSS plugin names in the flux ext because of this system
-    compatible_widgets: list[str] = ["PrimTreeWidgetPlugin", "IsVisibleStateWidgetPlugin", "IsCaptureStateWidgetPlugin"]
+    compatible_widgets: list[str] = [
+        "PrimTreeWidgetPlugin",
+        "IsVisibleActionWidgetPlugin",
+        "IsCaptureStateWidgetPlugin",
+    ]
 
     async def _update_context_items_deferred(self):
         await omni.kit.app.get_app().next_update_async()

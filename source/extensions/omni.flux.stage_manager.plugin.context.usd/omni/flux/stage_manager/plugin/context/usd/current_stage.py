@@ -48,7 +48,8 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
         self._stage = context.get_stage()
 
         if not self._stage:
-            raise ValueError(f'The context does not have a stage -> "{self.context_name}"')
+            context.new_stage()
+            self._stage = context.get_stage()
 
         super().setup()
 

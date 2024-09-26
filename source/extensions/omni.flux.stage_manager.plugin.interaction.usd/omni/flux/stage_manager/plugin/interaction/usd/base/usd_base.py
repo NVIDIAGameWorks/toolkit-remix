@@ -235,7 +235,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
 
             return should_select
 
-        self.tree_widget.selection = self.tree.model.find_items(lambda item: is_selected_item(selection, item))
+        self._tree_widget.selection = self.tree.model.find_items(lambda item: is_selected_item(selection, item))
         self._update_expansion_states()
 
     def _on_selection_changed(self, items):

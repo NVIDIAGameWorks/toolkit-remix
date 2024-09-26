@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 class IsCaptureStateWidgetPlugin(_StageManagerStateWidgetPlugin):
-    def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
+    def build_icon_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
         prim = item.data.get("prim")
         if prim:
             is_captured = _AssetReplacementCore.prim_is_from_a_capture_reference(prim)

@@ -28,8 +28,8 @@ if TYPE_CHECKING:
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 
 
-class IsVisibleStateWidgetPlugin(_StageManagerStateWidgetPlugin):
-    def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
+class IsVisibleActionWidgetPlugin(_StageManagerStateWidgetPlugin):
+    def build_icon_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
         prim = item.data.get("prim")
 
         enabled = prim and UsdGeom.Imageable(prim)
@@ -54,14 +54,24 @@ class IsVisibleStateWidgetPlugin(_StageManagerStateWidgetPlugin):
             name=icon,
             tooltip=tooltip,
             enabled=enabled,
-            mouse_released_fn=lambda x, y, b, m: self._on_icon_clicked(b, enabled, prim),
+            mouse_released_fn=lambda x, y, b, m: self._on_icon_clicked(b, enabled, model, item),
         )
 
     def build_overview_ui(self, model: "_StageManagerTreeModel"):
         pass
 
-    def _on_icon_clicked(self, button: int, enabled: bool, prim: Usd.Prim):
+    def _on_icon_clicked(
+        self, button: int, enabled: bool, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem"
+    ):
         if button != 0 or not enabled:
             return
 
-        omni.kit.commands.execute("ToggleVisibilitySelectedPrims", selected_paths=[prim.GetPath()])
+        # TODO StageManager: We change the selection after the selection.
+        #  Ideally we don't change the selection after the action is performed to keep multi-selections.
+
+        self._item_clicked(button, True, model, item)
+
+        context = omni.usd.get_context(self.context_name)
+        omni.kit.commands.execute(
+            "ToggleVisibilitySelectedPrims", selected_paths=context.get_selection().get_selected_prim_paths()
+        )

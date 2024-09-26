@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0]
+### Added
+- Added the ability to left-align column titles
+
+### Changed
+- Made the background of the interaction plugin tree alternating colors
+- Bubble the `_item_clicked` event in the delegate when the widgets trigger the event
+
 ## [1.5.0]
 ### Changed
 - Refresh interaction plugin widgets on tree model item changed
