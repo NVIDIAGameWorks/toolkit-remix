@@ -16,6 +16,7 @@
 """
 
 import abc
+import math
 from asyncio import Future, ensure_future
 from functools import partial
 from typing import TYPE_CHECKING, Any, Iterable
@@ -55,9 +56,19 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         exclude=True,
     )
 
-    tree_widget: _TreeWidget | None = Field(
-        None, description="The TreeView widget used to display the data", exclude=True
+    row_height: int = Field(24 + 4, description="The height of the Tree rows in pixels.", exclude=True)
+    header_height: int = Field(
+        24 + 4,
+        description="The height of the header in pixels. Will be used to offset the alternating row background",
+        exclude=True,
     )
+    alternate_row_colors: bool = Field(
+        True, description="Whether the tree's rows should alternate in color", exclude=True
+    )
+
+    _row_background_frame: ui.Frame | None = PrivateAttr(None)
+    _tree_frame: ui.Frame | None = PrivateAttr(None)
+    _tree_widget: _TreeWidget | None = PrivateAttr(None)
 
     _context: _StageManagerContextPlugin | None = PrivateAttr(None)
 
@@ -69,9 +80,11 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     _item_expanded_sub: _EventSubscription | None = PrivateAttr(None)
     _selection_changed_sub: _EventSubscription | None = PrivateAttr(None)
 
+    _widget_item_clicked_subs: list[_EventSubscription] | None = PrivateAttr([])
     _filter_items_changed_subs: list[_EventSubscription] = PrivateAttr([])
     _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr([])
 
+    _draw_row_background_task: Future | None = PrivateAttr(None)
     _update_expansion_task: Future | None = PrivateAttr(None)
 
     _is_initialized: bool = PrivateAttr(False)
@@ -202,7 +215,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._validate_data_type()
 
-        self._setup_model()
+        self._setup_tree()
         self._setup_filters()
         self._setup_columns()
 
@@ -226,71 +239,81 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._result_frames.clear()
 
+        self.tree.delegate.header_height = self.header_height
+        self.tree.delegate.row_height = self.row_height
+
         enabled_filters = [f for f in self.filters if f.enabled]
         enabled_columns = [c for c in self.columns if c.enabled]
 
         column_widths = [self._get_ui_length(c.width) for c in enabled_columns]
 
-        with ui.VStack():
-            # Filters UI
-            ui.Spacer(height=ui.Pixel(self._FILTERS_VERTICAL_PADDING), width=0)
-            with ui.HStack(height=0):
-                ui.Spacer(height=0)
-                with ui.HStack(width=0, height=0, spacing=self._FILTERS_HORIZONTAL_PADDING):
-                    for filter_plugin in enabled_filters:
-                        # Some filters should not be displayed in the UI
-                        if not filter_plugin.display:
-                            continue
-                        ui.Frame(tooltip=filter_plugin.tooltip, build_fn=filter_plugin.build_ui)
-                ui.Spacer(width=12, height=0)
-            ui.Spacer(height=ui.Pixel(self._FILTERS_VERTICAL_PADDING), width=0)
+        root_frame = ui.Frame(computed_content_size_changed_fn=self._draw_row_background)
+        with root_frame:
+            with ui.VStack():
+                # Filters UI
+                ui.Spacer(height=ui.Pixel(self._FILTERS_VERTICAL_PADDING), width=0)
+                with ui.HStack(height=0):
+                    ui.Spacer(height=0)
+                    with ui.HStack(width=0, height=0, spacing=self._FILTERS_HORIZONTAL_PADDING):
+                        for filter_plugin in enabled_filters:
+                            # Some filters should not be displayed in the UI
+                            if not filter_plugin.display:
+                                continue
+                            ui.Frame(tooltip=filter_plugin.tooltip, build_fn=filter_plugin.build_ui)
+                    ui.Spacer(width=12, height=0)
+                ui.Spacer(height=ui.Pixel(self._FILTERS_VERTICAL_PADDING), width=0)
 
-            with ui.ZStack():
-                with ui.VStack():
-                    # Tree UI
-                    with ui.ScrollingFrame(name="TreePanelBackground"):
-                        self.tree_widget = _TreeWidget(
-                            self.tree.model,
-                            delegate=self.tree.delegate,
-                            select_all_children=self._select_all_children,
-                            validate_action_selection=self._validate_action_selection,
-                            root_visible=False,
-                            header_visible=True,
-                            columns_resizable=False,  # There's no way to resize the results after resizing a column
-                            column_widths=column_widths,
-                        )
-                        self._selection_changed_sub = self.tree_widget.subscribe_selection_changed(
-                            self._on_selection_changed
-                        )
-
-                    # Results UI
-                    with ui.ZStack(height=0):
-                        ui.Rectangle(name="TabBackground")
-                        with ui.VStack():
-                            ui.Spacer(height=self._RESULTS_VERTICAL_PADDING, width=0)
-                            with ui.HStack():
-                                for index, column in enumerate(enabled_columns):
-                                    self._result_frames.append(
-                                        ui.Frame(
-                                            width=column_widths[index],
-                                            horizontal_clipping=True,
-                                            build_fn=partial(column.build_overview_ui, self.tree.model),
-                                        )
+                with ui.ZStack():
+                    with ui.VStack():
+                        # Tree UI
+                        with ui.ScrollingFrame(name="TreePanelBackground"):
+                            with ui.ZStack():
+                                self._row_background_frame = ui.Frame(vertical_clipping=True, separate_window=True)
+                                self._tree_frame = ui.ZStack(content_clipping=True)
+                                with self._tree_frame:
+                                    self._tree_widget = _TreeWidget(
+                                        self.tree.model,
+                                        delegate=self.tree.delegate,
+                                        select_all_children=self._select_all_children,
+                                        validate_action_selection=self._validate_action_selection,
+                                        root_visible=False,
+                                        header_visible=True,
+                                        columns_resizable=False,  # Can't resize the results after resizing a column
+                                        column_widths=column_widths,
                                     )
-                                # Spacing for the scrollbar
-                                ui.Spacer(width=self._RESULTS_HORIZONTAL_PADDING, height=0)
-                            ui.Spacer(height=self._RESULTS_VERTICAL_PADDING, width=0)
+                                    self._selection_changed_sub = self._tree_widget.subscribe_selection_changed(
+                                        self._on_selection_changed
+                                    )
 
-                # Column separators
-                with ui.HStack():
-                    for index, _ in enumerate(enabled_columns):
-                        with ui.HStack(width=column_widths[index]):
-                            ui.Spacer(height=0)
-                            # Don't draw a line at the end of the tree
-                            if index < len(enabled_columns) - 1:
-                                ui.Rectangle(width=ui.Pixel(2), name="WizardSeparator")
-                    # Spacing for the scrollbar
-                    ui.Spacer(width=self._RESULTS_HORIZONTAL_PADDING, height=0)
+                        # Results UI
+                        with ui.ZStack(height=self.row_height):
+                            ui.Rectangle(name="TabBackground")
+                            with ui.VStack():
+                                ui.Spacer(height=self._RESULTS_VERTICAL_PADDING, width=0)
+                                with ui.HStack():
+                                    for index, column in enumerate(enabled_columns):
+                                        self._result_frames.append(
+                                            ui.Frame(
+                                                width=column_widths[index],
+                                                horizontal_clipping=True,
+                                                build_fn=partial(column.build_overview_ui, self.tree.model),
+                                            )
+                                        )
+                                    # Spacing for the scrollbar
+                                    ui.Spacer(width=self._RESULTS_HORIZONTAL_PADDING, height=0)
+                                ui.Spacer(height=self._RESULTS_VERTICAL_PADDING, width=0)
+
+                    # Column separators
+                    with ui.Frame(separate_window=True):
+                        with ui.HStack():
+                            for index, _ in enumerate(enabled_columns):
+                                with ui.HStack(width=column_widths[index]):
+                                    ui.Spacer(height=0)
+                                    # Don't draw a line at the end of the tree
+                                    if index < len(enabled_columns) - 1:
+                                        ui.Rectangle(width=ui.Pixel(2), name="ColumnSeparator")
+                            # Spacing for the scrollbar
+                            ui.Spacer(width=self._RESULTS_HORIZONTAL_PADDING, height=0)
 
     def set_active(self, value: bool):
         """
@@ -327,11 +350,18 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 length_class = ui.Pixel
         return length_class(column_width.value)
 
-    def _setup_model(self):
+    def _setup_tree(self):
         """
         Subscribe to the `_item_changed` event triggered by the tree model to rebuild the result UI frames
         """
         self._item_changed_sub = self.tree.model.subscribe_item_changed_fn(self._on_item_changed)
+
+        # Make sure the widgets' `_item_clicked` event triggers the delegate's `_item_clicked` event
+        for column in self.columns:
+            for widget in column.widgets:
+                self._widget_item_clicked_subs.append(
+                    widget.subscribe_item_clicked(self.tree.delegate.call_item_clicked)
+                )
 
     def _setup_filters(self):
         """
@@ -384,6 +414,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             expanded: The expansion state
         """
         self._item_expansion_states[hash(item)] = expanded
+        self._draw_row_background()
 
     def _on_selection_changed(self, items: list[_StageManagerTreeItem]):
         """
@@ -434,6 +465,28 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 filtered_items = filter_plugin.filter_items(filtered_items)
         return filtered_items
 
+    def _draw_row_background(self):
+        if self._draw_row_background_task:
+            self._draw_row_background_task.cancel()
+        self._draw_row_background_task = ensure_future(self._draw_row_background_deferred())
+
+    async def _draw_row_background_deferred(self):
+        if not self._row_background_frame or not self.alternate_row_colors:
+            return
+
+        await omni.kit.app.get_app().next_update_async()
+
+        row_count = math.ceil(self._tree_frame.computed_height / self.row_height)
+
+        self._row_background_frame.clear()
+        with self._row_background_frame:
+            with ui.VStack():
+                ui.Spacer(height=ui.Pixel(self.header_height))
+                for i in range(row_count):
+                    ui.Rectangle(name=("Alternate" if i % 2 else "") + "Row", height=ui.Pixel(self.row_height))
+
+        self._row_background_frame.height = self._tree_frame.computed_height
+
     def _update_expansion_states(self):
         """
         Fire and forget the `_update_expansion_states_deferred` function
@@ -456,12 +509,13 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             item = items_dict.get(item_hash)
             if not item:
                 continue
-            self.tree_widget.set_expanded(item, expanded, False)
+            self._tree_widget.set_expanded(item, expanded, False)
 
     def destroy(self):
+        if self._draw_row_background_task:
+            self._draw_row_background_task.cancel()
         if self._update_expansion_task:
             self._update_expansion_task.cancel()
-            self._update_expansion_task = None
 
     class Config(_StageManagerUIPluginBase.Config):
         fields = {

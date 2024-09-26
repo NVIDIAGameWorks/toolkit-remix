@@ -16,7 +16,6 @@
 """
 
 from omni import ui
-from omni.flux.stage_manager.core import StageManagerCore as _StageManagerCore
 from omni.flux.stage_manager.widget import StageManagerWidget as _StageManagerWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
@@ -57,7 +56,7 @@ class StageManagerManagerWindow:
         )
 
         with self._window.frame:
-            self._widget = _StageManagerWidget(_StageManagerCore())
+            self._widget = _StageManagerWidget()
 
         _window_instance = self._window
 

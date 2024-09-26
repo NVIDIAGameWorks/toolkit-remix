@@ -1,13 +1,13 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.5.1"
+version = "1.0.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 
 # The title and description fields are primarly for displaying extension info in UI
-description = "A repository of USD interaction plugins for the stage manager"
-title = "Flux Stage Manager USD Interaction Plugins"
+description = "A stage manager widget extension pulling all the required dependencies"
+title = "Remix Stage Manager Widget"
 
 # Path (relative to the root) or content of readme markdown file for UI.
 readme = "docs/README.md"
@@ -16,7 +16,7 @@ readme = "docs/README.md"
 category = "internal"
 
 # Keywords for the extension
-keywords = ["kit", "flux", "stage", "manager", "plugin", "interaction", "usd"]
+keywords = ["remix", "stage", "manager", "widget"]
 
 # Location of change log file in target (final) folder of extension, relative to the root.
 # More info on writing changelog: https://keepachangelog.com/en/1.0.0/
@@ -30,15 +30,25 @@ preview_image = "data/images/preview.png"
 icon = "data/images/icon.png"
 
 [dependencies]
-"omni.flux.pip_archive" = {}  # For Pydantic
-"omni.flux.stage_manager.factory" = {}
-"omni.kit.usd.layers" = {}
-"omni.usd" = {}
+"lightspeed.trex.stage_manager.plugin.filter.usd" = {}
+"lightspeed.trex.stage_manager.plugin.widget.usd" = {}
+"omni.flux.stage_manager.plugin.column" = {}
+"omni.flux.stage_manager.plugin.context.usd" = {}
+"omni.flux.stage_manager.plugin.filter.usd" = {}
+"omni.flux.stage_manager.plugin.interaction.usd" = {}
+"omni.flux.stage_manager.plugin.listener.usd" = {}
+"omni.flux.stage_manager.plugin.tree.usd" = {}
+"omni.flux.stage_manager.plugin.widget.usd" = {}
+"omni.flux.stage_manager.widget" = {}
+"omni.ui" = {}
+
+[settings.exts."omni.flux.stage_manager.core"]
+schema = "${lightspeed.trex.app.resources}/data/stage_manager_schema/default_schema.json"
 
 [[python.module]]
-name = "omni.flux.stage_manager.plugin.interaction.usd"
+name = "lightspeed.trex.stage_manager.widget"
 
 [[test]]
 dependencies = [
-    "omni.flux.tests.dependencies",
+    "lightspeed.trex.tests.dependencies",
 ]

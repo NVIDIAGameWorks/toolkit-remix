@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3535: Implemented a filter to display captured & replaced prims
 - REMIX-2605: Added support for editing multiple meshes, materials or lights
 - REMIX-2605: Added support for editing multiple mesh xforms
+- REMIX-3541: Docked Stage Manager in Modding layout
 
 ### Changed
 

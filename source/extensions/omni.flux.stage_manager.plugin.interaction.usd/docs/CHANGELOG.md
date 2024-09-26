@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.1]
+### Changed
+- Use renamed `_tree_widget`
+
 ## [1.5.0]
 ### Changed
 - Override newly added `_on_item_changed` to work asynchronously

@@ -37,7 +37,10 @@ class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin):
     def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
         with ui.HStack(spacing=ui.Pixel(self.item_spacing), tooltip=item.tooltip):
             if item.icon:
-                ui.Image("", name=item.icon, width=ui.Pixel(self.icon_size), height=ui.Pixel(self.icon_size))
+                with ui.VStack(width=0):
+                    ui.Spacer(width=0)
+                    ui.Image("", name=item.icon, width=ui.Pixel(self.icon_size), height=ui.Pixel(self.icon_size))
+                    ui.Spacer(width=0)
             else:
                 ui.Spacer(height=0, width=0)
             ui.Label(item.display_name)

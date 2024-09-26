@@ -52,6 +52,7 @@ _DARK_85 = 0xD9000000
 _TRUE_DARK = 0xFF000000
 
 _GREY_32 = 0xFF202020
+_GREY_40 = 0xFF282828
 _GREY_42 = 0xFF2A2A2A
 _GREY_50 = 0xFF303030
 _GREY_60 = 0xFF3C3C3C
@@ -941,6 +942,9 @@ current_dict.update(
         "Window": {"background_color": 0xFF0F0F0F},
         "Rectangle::TransparentBackground": {"background_color": 0x0},
         "Rectangle::TabBackground": {"background_color": _GREY_42},
+        "Rectangle::Row": {"background_color": _GREY_42},
+        "Rectangle::AlternateRow": {"background_color": _GREY_40},
+        "Rectangle::ColumnSeparator": {"background_color": _WHITE_10},
     }
 )
 style.default = current_dict

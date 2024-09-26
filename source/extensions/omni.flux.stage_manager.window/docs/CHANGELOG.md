@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.0]
+### Changed
+- Use the default widget core
+- Updated `test_schema` widget to use renamed `IsVisibleActionWidgetPlugin`
+
 ## [1.0.3]
 ### Changed
 - Renamed the `State` column to Actions

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.2]
+### Changed
+- Display light type icons for every item
+
 ## [1.3.1]
 ### Fixed
 - Clear the items on refresh before re-adding new items

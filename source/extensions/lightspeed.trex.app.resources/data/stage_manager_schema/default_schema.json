@@ -9,7 +9,16 @@
             "tree": { "name": "PrimGroupsTreePlugin" },
             "filters": [
                 { "name": "OmniPrimsFilterPlugin", "display": false, "include_results": false },
-                { "name": "IgnorePrimsFilterPlugin", "display": false, "ignore_prim_paths": ["/RootNode/cameras", "/remix_settings"] }
+                {
+                    "name": "IgnorePrimsFilterPlugin",
+                    "display": false,
+                    "ignore_prim_paths": [
+                        "/RootNode/cameras",
+                        "/RootNode/Camera",
+                        "/Viewport_Waypoints",
+                        "/remix_settings"
+                    ]
+                }
             ],
             "columns": [
                 {
@@ -24,7 +33,7 @@
                     "display_name": "Actions",
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
-                        { "name": "IsVisibleStateWidgetPlugin" }
+                        { "name": "IsVisibleActionWidgetPlugin" }
                     ]
                 }
             ]
@@ -35,7 +44,17 @@
             "filters": [
                 { "name": "IsCaptureFilterPlugin" },
                 { "name": "OmniPrimsFilterPlugin", "display": false, "include_results": false },
-                { "name": "IgnorePrimsFilterPlugin", "display": false, "ignore_prim_paths": ["/remix_settings", "/RootNode/meshes/"] }
+                {
+                    "name": "IgnorePrimsFilterPlugin",
+                    "display": false,
+                    "ignore_prim_paths": [
+                        "/RootNode/cameras",
+                        "/RootNode/Camera",
+                        "/RootNode/meshes/",
+                        "/Viewport_Waypoints",
+                        "/remix_settings"
+                    ]
+                }
             ],
             "columns": [
                 {
@@ -58,7 +77,7 @@
                     "display_name": "Actions",
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
-                        { "name": "IsVisibleStateWidgetPlugin" }
+                        { "name": "IsVisibleActionWidgetPlugin" }
                     ]
                 }
             ]

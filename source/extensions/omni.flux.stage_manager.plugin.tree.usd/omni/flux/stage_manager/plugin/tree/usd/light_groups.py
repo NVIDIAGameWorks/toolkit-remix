@@ -99,7 +99,11 @@ class LightGroupsModel(_VirtualGroupsModel):
             type_name = prim.GetTypeName()
             if type_name not in grouped_items:
                 grouped_items[type_name] = []
-            grouped_items[type_name].append(LightGroupsItem(str(prim.GetPath().name), str(prim.GetPath()), prim=prim))
+            grouped_items[type_name].append(
+                LightGroupsItem(
+                    str(prim.GetPath().name), str(prim.GetPath()), prim=prim, light_type=_get_light_type(type_name)
+                )
+            )
 
         for type_name, items in grouped_items.items():
             light_type = _get_light_type(type_name)
@@ -107,9 +111,7 @@ class LightGroupsModel(_VirtualGroupsModel):
                 continue
             # Since this is a group, make plural
             display_name = f"{light_type.value}s"
-            self._items.append(
-                LightGroupsItem(display_name, f"{display_name} Group", children=items, light_type=light_type)
-            )
+            self._items.append(LightGroupsItem(display_name, f"{display_name} Group", children=items))
 
         self._item_changed(None)
 

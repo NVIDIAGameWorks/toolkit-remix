@@ -28,20 +28,34 @@ from omni.kit import app
 class StageManagerWidget:
     def __init__(
         self,
-        core: _StageManagerCore,
+        core: _StageManagerCore | None = None,
         tab_height: int = 32,
         tab_padding: int = 32,
         active_style: str = "WorkspaceBackground",
         inactive_style: str = "TransparentBackground",
+        **kwargs,
     ):
+        """
+        A configurable StageManager widget.
+
+        Args:
+            core: The StageManagerCore driving the widget
+            tab_height: The height of the tabs built in the widget
+            tab_padding: The padding around the text in the tabs
+            active_style: The style to use for the currently selected tab.
+                          Will also be the widget's interaction plugin background
+            inactive_style: The style for unselected tabs
+            kwargs: Args to pass to the top-level frame
+        """
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
 
-        self._core = core
+        self._core = core or _StageManagerCore()
         self._tab_height = tab_height
         self._tab_padding = tab_padding
         self._active_style = active_style
         self._inactive_style = inactive_style
+        self._kwargs = kwargs
 
         self._tab_backgrounds = {}
         self._interaction_frame = None
@@ -59,51 +73,61 @@ class StageManagerWidget:
             "_tab_padding": None,
             "_active_style": None,
             "_inactive_style": None,
-            "_tabs": None,
+            "_kwargs": None,
+            "_tab_backgrounds": None,
             "_interaction_frame": None,
             "_active_interaction": None,
         }
 
     def build_ui(self):
-        # If no interactions are enabled, display a message
-        enabled_interactions = [i for i in self._core.schema.interactions if i.enabled]
-        if not enabled_interactions:
-            with ui.ZStack():
-                ui.Rectangle(name=self._active_style)
-                ui.Label("No interactions enabled.", name="TreePanelTitleItemTitle", alignment=ui.Alignment.CENTER)
-            return
-
-        # Clear the cached dictionaries
-        self._tab_backgrounds.clear()
-
-        # Build the widget
-        with ui.ZStack():
-            ui.Rectangle(name="TabBackground")
-            with ui.VStack():
-                # Stack the tabs horizontally
-                with ui.HStack(height=0):
-                    for index, interaction in enumerate(enabled_interactions):
-                        with ui.ZStack(
-                            width=0,
-                            height=ui.Pixel(self._tab_height),
-                            tooltip=interaction.tooltip,
-                            mouse_released_fn=partial(self._select_tab, index),
-                        ):
-                            # Cache the tab widgets
-                            self._tab_backgrounds[hash(interaction)] = ui.Rectangle(name=self._inactive_style)
-                            ui.Label(
-                                interaction.display_name,
-                                name="PropertiesWidgetLabel",
-                                alignment=ui.Alignment.CENTER,
-                            )
-
+        with ui.Frame(**self._kwargs):
+            # If no interactions are enabled, display a message
+            enabled_interactions = [i for i in self._core.schema.interactions if i.enabled]
+            if not enabled_interactions:
                 with ui.ZStack():
                     ui.Rectangle(name=self._active_style)
-                    self._interaction_frame = ui.Frame()
+                    ui.Label("No interactions enabled.", name="TreePanelTitleItemTitle", alignment=ui.Alignment.CENTER)
+                return
+
+            # Clear the cached dictionaries
+            self._tab_backgrounds.clear()
+
+            # Build the widget
+            with ui.ZStack():
+                ui.Rectangle(name="TabBackground")
+                with ui.VStack():
+                    # Stack the tabs horizontally
+                    with ui.HStack(height=0):
+                        for index, interaction in enumerate(enabled_interactions):
+                            with ui.ZStack(
+                                width=0,
+                                height=ui.Pixel(self._tab_height),
+                                tooltip=interaction.tooltip,
+                                mouse_released_fn=partial(self._select_tab, index),
+                            ):
+                                # Cache the tab widgets
+                                self._tab_backgrounds[hash(interaction)] = ui.Rectangle(name=self._inactive_style)
+                                ui.Label(
+                                    interaction.display_name,
+                                    name="PropertiesWidgetLabel",
+                                    alignment=ui.Alignment.CENTER,
+                                )
+
+                    with ui.ZStack():
+                        ui.Rectangle(name=self._active_style)
+                        self._interaction_frame = ui.Frame()
 
         # Set the first tab as active
         self._select_tab(0)
-        self._resize_tabs()
+        self.resize_tabs()
+
+    def resize_tabs(self):
+        """
+        Fire and forget the `_resize_tabs_deferred` asynchronous method
+        """
+        if self.__resize_task:
+            self.__resize_task.cancel()
+        self.__resize_task = ensure_future(self._resize_tabs_deferred())
 
     def _select_tab(self, index: int, *args):
         """
@@ -149,14 +173,6 @@ class StageManagerWidget:
 
         # Make sure the interaction is visible before making it active
         interaction.set_active(True)
-
-    def _resize_tabs(self):
-        """
-        Fire and forget the `_resize_tabs_deferred` asynchronous method
-        """
-        if self.__resize_task:
-            self.__resize_task.cancel()
-        self.__resize_task = ensure_future(self._resize_tabs_deferred())
 
     @usd.handle_exception
     async def _resize_tabs_deferred(self):

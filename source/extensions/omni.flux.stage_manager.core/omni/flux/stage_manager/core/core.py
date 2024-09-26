@@ -34,11 +34,13 @@ class StageManagerCore:
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
 
+        self._schema = None
+
         schema_path = schema_path or carb.settings.get_settings().get(_SCHEMA_PATH_SETTING)
         if not schema_path:
             raise ValueError("Schema path not provided. Please configure it in settings or pass as argument.")
 
-        self._schema = self.setup(_read_json_file(schema_path))
+        self.setup(_read_json_file(schema_path))
 
     @property
     def default_attr(self) -> dict[str, None]:
@@ -48,7 +50,7 @@ class StageManagerCore:
     def schema(self) -> _StageManagerSchema:
         return self._schema
 
-    def setup(self, schema_dict: dict) -> _StageManagerSchema:
+    def setup(self, schema_dict: dict):
         schema = _StageManagerSchema(**schema_dict)
         schema.context.setup()
 
@@ -58,7 +60,7 @@ class StageManagerCore:
             # Set the context data in the interaction plugins
             interaction.setup(schema.context)
 
-        return schema
+        self._schema = schema
 
     def destroy(self):
         _reset_default_attrs(self)
