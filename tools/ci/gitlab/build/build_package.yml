@@ -5,7 +5,7 @@ build-package-windows:
   stage: build_package
   before_script:
     # Ensure that Sentry is enabled in the built product
-    - .\enable_sentry.bat $CI_COMMIT_REF_NAME $CI_PIPELINE_SOURCE
+    - python tools\utils\enable_sentry.py
     - .\build.bat --rebuild --release
   script:
     - .\repo.bat publish_exts --verify
@@ -28,7 +28,7 @@ build-package-linux:
     - .linux_agent
   stage: build_package
   before_script:
-    - ./enable_sentry.sh
+    - python tools/utils/enable_sentry.py
     - ./build.sh --rebuild --release
   script:
     - ./repo.sh publish_exts --verify
