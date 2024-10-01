@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2605: Added support for editing multiple mesh xforms
 - REMIX-3541: Docked Stage Manager in Modding layout
 - REMIX-3583: Added a Feature Flags system
+- REMIX-3567: Enable Sentry for built versions
 
 ### Changed
 
