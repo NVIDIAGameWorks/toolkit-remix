@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.12.0] - 2024-09-18
+### Added
+- Added UI for the executors to enable parallel-process ingestion
+- Added functionality that updates the process count for parallel-process ingestion
+
 ## [1.11.10]
 ### Fixed
 - Fixed test plugins to implement all abstract methods

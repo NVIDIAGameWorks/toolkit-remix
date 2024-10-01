@@ -73,7 +73,7 @@ def main():
         cmd.extend([arg])
 
     # Every args between "--start-future-args-remove" and "--end-future-args-remove" will be deleted if the CLI
-    # run another process from the CLI (see process_executor.py)
+    # run another process from the CLI (see external_process_executor.py)
     cmd.append("--start-future-args-remove")
     cmd.append("--no-window")
 

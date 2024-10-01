@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import os
 from unittest.mock import PropertyMock, patch
 
 import omni.ui as ui
@@ -268,6 +269,57 @@ class TestMassWidget(AsyncTestCase):
         self.assertEqual(len(job_labels), 0)
         self.assertEqual(len(action_context_buttons), 0)
         self.assertEqual(len(action_check_buttons), 0)
+
+        await self.__destroy_setup(window, _wid)
+
+    async def test_adjust_processor_count(self):
+        # setup
+        window, _wid = await self.__setup_widget("test_add_to_queue")  # Keep in memory during test
+
+        # grab the combo boxes
+        executors_cb = ui_test.find(f"{window.title}//Frame/**/ComboBox[*].identifier=='executors_combo_box'")
+        processors_cb = ui_test.find(
+            f"{window.title}//Frame/**/ComboBox[*].identifier=='external_processors_count_combo_box'"
+        )
+        self.assertIsNotNone(executors_cb)
+        self.assertIsNotNone(processors_cb)
+
+        # make sure the processor count combo box has the expected amount of cores
+        self.assertEqual(len(processors_cb.widget.model.get_item_children()), os.cpu_count())
+
+        # select a different processor count
+        await processors_cb.click()
+        await ui_test.emulate_mouse_move_and_click(processors_cb.position + ui_test.Vec2(30, 95))
+        await ui_test.human_delay()
+        self.assertNotEqual(processors_cb.model.get_item_value_model().get_value_as_int() + 1, 1)
+
+        # switch to current process executor
+        await executors_cb.click()
+        await ui_test.emulate_mouse_move_and_click(executors_cb.position + ui_test.Vec2(30, 25))
+        await ui_test.human_delay()
+
+        # ensure the combo box for the process count is no longer visible
+        processors_cb = ui_test.find(
+            f"{window.title}//Frame/**/ComboBox[*].identifier=='external_processors_count_combo_box'"
+        )
+        self.assertIsNone(processors_cb)
+
+        # switch back to process executor
+        await executors_cb.click()
+        await ui_test.emulate_mouse_move_and_click(executors_cb.position + ui_test.Vec2(30, 45))
+        await ui_test.human_delay()
+
+        # ensure the box for the process count is visible again
+        processors_cb = ui_test.find(
+            f"{window.title}//Frame/**/ComboBox[*].identifier=='external_processors_count_combo_box'"
+        )
+        self.assertIsNotNone(processors_cb)
+
+        # select a different processor count
+        await processors_cb.click()
+        await ui_test.emulate_mouse_move_and_click(processors_cb.position + ui_test.Vec2(30, 135))
+        await ui_test.human_delay()
+        self.assertNotEqual(processors_cb.model.get_item_value_model().get_value_as_int() + 1, 1)
 
         await self.__destroy_setup(window, _wid)
 

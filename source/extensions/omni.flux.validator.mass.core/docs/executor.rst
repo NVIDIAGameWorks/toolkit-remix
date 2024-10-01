@@ -1,7 +1,7 @@
 executor
 ########
 
-.. automodule:: omni.flux.validator.mass.core.executors.async_executor
+.. automodule:: omni.flux.validator.mass.core.executors.current_process_executor
     :platform: Windows-x86_64, Linux-x86_64
     :members:
     :undoc-members:
