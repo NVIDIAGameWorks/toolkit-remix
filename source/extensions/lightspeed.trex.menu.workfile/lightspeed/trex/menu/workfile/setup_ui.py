@@ -18,6 +18,7 @@
 import asyncio
 
 import carb.tokens
+import omni.flux.feature_flags.window
 import omni.kit.window.about
 import omni.kit.window.preferences
 import omni.ui as ui
@@ -143,6 +144,17 @@ class SetupUI:
         asyncio.ensure_future(async_focus_window("Preferences"))
 
     @staticmethod
+    def _show_feature_flags() -> None:
+        inst = omni.flux.feature_flags.window.get_instance()
+        if not inst:
+            error_prompt("Feature flags extension is not loaded yet")
+            return
+
+        inst.show(True)
+        # Force the tab to be the active/focused tab (this currently needs to be done in async)
+        asyncio.ensure_future(async_focus_window("Feature Flags"))
+
+    @staticmethod
     def _show_about_window() -> None:
         inst = omni.kit.window.about.get_instance()
         if not inst:
@@ -225,6 +237,11 @@ class SetupUI:
                 "Preferences",
                 identifier="preferences",
                 triggered_fn=self._show_preferences_window,
+            )
+            ui.MenuItem(
+                "Feature Flags",
+                identifier="feature_flags",
+                triggered_fn=self._show_feature_flags,
             )
             create_separator()
             ui.MenuItem(

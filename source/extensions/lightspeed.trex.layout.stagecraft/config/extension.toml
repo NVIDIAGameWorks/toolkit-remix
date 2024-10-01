@@ -1,5 +1,5 @@
 [package]
-version = "1.4.0"
+version = "1.4.1"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix layout for the StageCraft"
 description = "Layout for NVIDIA RTX Remix StageCraft App"
@@ -28,6 +28,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 "lightspeed.trex.utils.widget" = {}
 "lightspeed.trex.viewports.shared.widget" = {}
 "lightspeed.trex.welcome_pads.stagecraft.models" = {}
+"omni.flux.feature_flags.core" = {}
 "omni.flux.footer.widget" = {}
 "omni.flux.header_nvidia.widget" = {}
 "omni.flux.utils.widget" = {}
@@ -35,6 +36,11 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 "omni.kit.widget.filebrowser" = {}
 "omni.kit.window.filepicker" = {}
 "omni.ui" = {}
+
+[settings.exts."omni.flux.feature_flags.core".flags.stage_manager]
+display_name = "Stage Manager"
+tooltip = "Enable or Disable the Stage Manager panel from the 'Modding' tab"
+value = false
 
 [[python.module]]
 name = "lightspeed.trex.layout.stagecraft"
