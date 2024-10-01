@@ -27,7 +27,7 @@ from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
 
 from .data_models import Executors
-from .executors import AsyncExecutor, ProcessExecutor
+from .executors import CurrentProcessExecutor, ExternalProcessExecutor
 from .schema_tree import model as _schema_model
 
 SCHEMA_PATH_SETTING = "/exts/omni.flux.validator.mass.widget/schemas"  # list of paths of schema separated by a coma
@@ -43,7 +43,7 @@ class ManagerMassCore:
 
         """
         self.__standalone = standalone
-        self.__executors = [AsyncExecutor(max_concurrent=1), ProcessExecutor(max_concurrent=1)]
+        self.__executors = [CurrentProcessExecutor(), ExternalProcessExecutor()]
 
         if schema_paths is None:
             schema_paths = []
@@ -120,6 +120,7 @@ class ManagerMassCore:
         self,
         executor: Executors,
         data: List[Dict[Any, Any]],
+        custom_executors: Tuple[CurrentProcessExecutor, ExternalProcessExecutor] = None,
         print_result: bool = False,
         silent: bool = False,
         timeout: Optional[int] = None,
@@ -130,8 +131,9 @@ class ManagerMassCore:
         Run the validation using the current schema
 
         Args:
-            executor: the executor to use
+            executor: the executor used to select an actual executor with int index
             data: list of schemas to run
+            custom_executors: optional override executors
             print_result: print the result or not into stdout
             silent: silent the stdout
             timeout: the maximum time a task should take
@@ -145,8 +147,8 @@ class ManagerMassCore:
         size = len(data)
         for schema in data:
             core = _ManagerCore(schema)
-
-            task = self.__executors[int(executor)].submit(
+            actual_executor = custom_executors[int(executor)] if custom_executors else self.__executors[int(executor)]
+            task = actual_executor.submit(
                 core,
                 print_result=print_result,
                 silent=silent,

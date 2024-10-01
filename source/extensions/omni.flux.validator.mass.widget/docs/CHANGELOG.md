@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0] - 2024-09-18
+### Added
+- Current Process Executor (async) and External Process Executor UI for parallel-process ingestion
+
+### Changed
+- Refactored async executor to "current process executor"
+- Refactored process executor to "external process executor"
+
 ## [1.7.3]
 ### Fixed
 - Fixed test plugins to implement all abstract methods

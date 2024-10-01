@@ -25,18 +25,9 @@ if TYPE_CHECKING:
 
 
 class BaseExecutor:
-    def __init__(self, max_concurrent=None):
-        """
-        Executor that will run job in async locally.
-
-        Args:
-            max_concurrent: number of job(s) we would want to run concurrently
-        """
-        if max_concurrent and not isinstance(max_concurrent, int):
-            raise ValueError("max_concurrent must type int")
-        if max_concurrent and max_concurrent < 0:
-            raise ValueError("max_concurrent must be greater than 0")
-        self._max_concurrent = max_concurrent or os.cpu_count()
+    def __init__(self):
+        """Executor that will run jobs locally."""
+        self._cpu_count = os.cpu_count()
 
     @abc.abstractmethod
     def submit(

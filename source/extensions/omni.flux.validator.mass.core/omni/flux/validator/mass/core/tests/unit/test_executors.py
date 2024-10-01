@@ -39,7 +39,7 @@ class TestExecutors(AsyncTestCase):
     async def tearDown(self):
         _unregister_fake_plugins()
 
-    async def test_create_task_async_executor(self):
+    async def test_create_task_current_process_executor(self):
         core = _ManagerMassCore(schema_paths=self.SCHEMAS)
         items = core.schema_model.get_item_children(None)
 
@@ -53,7 +53,7 @@ class TestExecutors(AsyncTestCase):
             run_mock.assert_called_once()
             core_added_mock.assert_called_once()
 
-    async def test_create_tasks_async_executor(self):
+    async def test_create_tasks_current_process_executor(self):
         core = _ManagerMassCore(schema_paths=self.SCHEMAS)
         items = core.schema_model.get_item_children(None)
 
@@ -75,7 +75,7 @@ class TestExecutors(AsyncTestCase):
             self.assertEqual(core_added_mock.call_count, 4)
             self.assertIsNotNone(result)
 
-    async def test_create_task_process_executor(self):
+    async def test_create_task_external_process_executor(self):
         with patch("subprocess.run") as run_mock:
             run_mock.return_value.returncode = 0
             core = _ManagerMassCore(schema_paths=self.SCHEMAS)
@@ -89,7 +89,7 @@ class TestExecutors(AsyncTestCase):
                 run_mock.assert_called_once()
                 core_added_mock.assert_called_once()
 
-    async def test_create_tasks_process_executor(self):
+    async def test_create_tasks_external_process_executor(self):
         with patch("subprocess.run") as run_mock:
             run_mock.return_value.returncode = 0
             core = _ManagerMassCore(schema_paths=self.SCHEMAS)

@@ -17,7 +17,6 @@
 
 import asyncio
 import functools
-import os
 from typing import TYPE_CHECKING, Optional
 
 import carb
@@ -28,16 +27,16 @@ if TYPE_CHECKING:
     from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
 
 
-class AsyncExecutor(_BaseExecutor):
-    def __init__(self, max_concurrent=None):
+class CurrentProcessExecutor(_BaseExecutor):
+    def __init__(self, max_concurrent: int = 1):
         """
-        Executor that will run job in async locally.
+        Executor that will run job(s) locally using asyncio.Semaphore(). Only one worker is necessary.
 
         Args:
             max_concurrent: number of job(s) we would want to run concurrently
         """
-        super().__init__(max_concurrent=max_concurrent)
-        self._sem = asyncio.Semaphore(max_concurrent or os.cpu_count())
+        super().__init__()
+        self._sem = asyncio.Semaphore(max_concurrent)
         self._sub_run_finished = {}
 
     async def _clear_sub(self, future: asyncio.Future):

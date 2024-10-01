@@ -19,5 +19,13 @@ from enum import IntEnum
 
 
 class Executors(IntEnum):
-    ASYNC_EXECUTOR = 0
-    PROCESS_EXECUTOR = 1
+    CURRENT_PROCESS_EXECUTOR = 0
+    EXTERNAL_PROCESS_EXECUTOR = 1
+
+    @classmethod
+    def get_names(cls):
+        formatted_names = []
+        for executor in cls:
+            formatted_name = " ".join(part.capitalize() for part in executor.name.split("_")[:-1])
+            formatted_names.append(formatted_name)
+        return formatted_names

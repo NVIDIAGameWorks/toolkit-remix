@@ -28,6 +28,7 @@ import carb.settings
 import carb.tokens
 import omni.client
 import omni.kit.app
+import omni.ui as ui
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.validator.manager.core import EXTS_MASS_VALIDATOR_SERVICE_PREFIX as _EXTS_MASS_VALIDATOR_SERVICE_PREFIX
 from omni.flux.validator.manager.core import (
@@ -49,21 +50,41 @@ OVERRIDE_EXPERIENCE = (
 )
 
 
-class ProcessExecutor(_BaseExecutor):
+class ExternalProcessExecutor(_BaseExecutor):
 
     _EXECUTOR = None
 
-    def __init__(self, max_concurrent=None):
+    def __init__(self):
         """
-        Executor that will run job in async locally.
-
-        Args:
-            max_concurrent: number of job(s) we would want to run concurrently
+        Executor that will run job(s) in ThreadPoolExecutor. Multiple processes can be set from the UI.
         """
-        super().__init__(max_concurrent=max_concurrent)
+        super().__init__()
         self.__settings = carb.settings.get_settings()
+
+        # Default to one processor
+        self._enabled_processor_count = 1
         if self._EXECUTOR is None:
-            self._EXECUTOR = _ThreadPoolExecutor(max_workers=self._max_concurrent)
+            self._EXECUTOR = _ThreadPoolExecutor(max_workers=self._enabled_processor_count)
+
+    def create_ui(self):
+        # Expose the processor count option dropdown
+        with ui.HStack(spacing=ui.Pixel(8)):
+            ui.Label("Processors:")
+            available_processors = [str(i) for i in range(1, self._cpu_count + 1)]
+
+            processors_cb = ui.ComboBox(
+                self._enabled_processor_count - 1,
+                *available_processors,
+                width=ui.Pixel(56),
+                identifier="external_processors_count_combo_box",
+            )
+            processors_cb.model.add_item_changed_fn(
+                lambda m, i: self._update_processor_count(m.get_item_value_model().get_value_as_int() + 1)
+            )
+
+    def _update_processor_count(self, processor_count: int):
+        self._enabled_processor_count = processor_count
+        self._EXECUTOR = _ThreadPoolExecutor(max_workers=self._enabled_processor_count)
 
     def _worker(
         self,
