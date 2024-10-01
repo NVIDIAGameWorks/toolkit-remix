@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.5.0]
+### Changed
+- Update hdremix with new remixsdk
+
 ## [0.4.1]
 ### Added
 - Texture file hot-reload on HdRemix side: recreate an HdRemix material when WinAPI detects a file change
