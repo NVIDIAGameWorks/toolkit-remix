@@ -42,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3113: Parallel process count dropdown for ingestion
 
 ### Changed
+- Updated runtime to 0.6.0-rc2
+- Updated hdremix to a1863ffe
 
 ### Fixed
 - REMIX-3401: Fixed hot-reload by allowing reuse of validators
