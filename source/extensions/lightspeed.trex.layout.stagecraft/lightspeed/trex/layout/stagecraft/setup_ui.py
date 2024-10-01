@@ -56,6 +56,7 @@ from lightspeed.trex.welcome_pads.stagecraft.models import (
     RecentWorkFileItem,
     ResumeWorkFileItem,
 )
+from omni.flux.feature_flags.core import FeatureFlagsCore as _FeatureFlagsCore
 from omni.flux.footer.widget import FooterWidget
 from omni.flux.header_nvidia.widget import HeaderWidget
 from omni.flux.utils.common import Event as _Event
@@ -90,6 +91,8 @@ class SetupUI(TrexLayout):
 
     def __init__(self, ext_id):
         super().__init__(ext_id)
+
+        self._feature_flags_core = _FeatureFlagsCore()
 
         self._welcome_pad_widgets = []
         self._all_frames = []
@@ -273,12 +276,14 @@ class SetupUI(TrexLayout):
         default_attr.update(
             {
                 "_header_nvidia_widget": None,
+                "_feature_flags_core": None,
                 "_welcome_pad_widgets": None,
                 "_subcription_app_window_size_changed": None,
                 "_welcome_pads_new_model": None,
                 "_welcome_pads_recent_model": None,
                 "_frame_home_page": None,
                 "_frame_workspace": None,
+                "_feature_flags_changed_subs": None,
                 "_header_refreshed_task": None,
                 "_viewport": None,
                 "_stage_manager_frame": None,
@@ -322,10 +327,17 @@ class SetupUI(TrexLayout):
             pad.resize_tree_content()
 
     def __resize_stage_manager(self):
+        if not self._splitter_stage_manager:
+            return
+
         window = omni.appwindow.get_default_app_window()
 
+        if self._stage_manager_frame is not None and self._stage_manager_frame.computed_height > 0:
+            stage_manager_height = self._stage_manager_frame.computed_height
+        else:
+            stage_manager_height = self.HEIGHT_STAGE_MANAGER_PANEL
+
         window_height = window.get_height() / window.get_dpi_scale()
-        stage_manager_height = self._stage_manager_frame.computed_height or self.HEIGHT_STAGE_MANAGER_PANEL
         header_height = self.HEIGHT_HEADER
 
         self._splitter_stage_manager.offset_y = ui.Pixel(window_height - stage_manager_height - header_height)
@@ -467,6 +479,7 @@ class SetupUI(TrexLayout):
                 name=Pages.WORKSPACE_PAGE.value,
                 visible=False,
             )
+
             self._all_frames.append(self._frame_workspace)
             with self._frame_workspace:
                 with ui.HStack():
@@ -505,37 +518,21 @@ class SetupUI(TrexLayout):
                     with ui.ZStack():
                         with ui.VStack():
                             self._viewport = _create_viewport_instance(self._context_name)
-                            ui.Spacer(height=ui.Pixel(12))
+                            stage_manager_frame = ui.Frame(build_fn=self._build_stage_manager, height=0)
+                        stage_manager_splitter_frame = ui.Frame(build_fn=self._build_stage_manager_splitter, height=0)
 
-                            self._stage_manager_frame = ui.ZStack(
-                                height=ui.Pixel(self.HEIGHT_STAGE_MANAGER_PANEL), content_clipping=True
-                            )
-                            with self._stage_manager_frame:
-                                self._stage_manager = _StageManagerWidget()
+        def rebuild_stage_manager():
+            # Clear the existing UI in case the feature flag is disabled
+            stage_manager_frame.clear()
+            stage_manager_splitter_frame.clear()
+            # Rebuild the UI if required
+            stage_manager_frame.rebuild()
+            stage_manager_splitter_frame.rebuild()
 
-                        self._splitter_stage_manager = ui.Placer(
-                            draggable=True,
-                            offset_y=0,
-                            drag_axis=ui.Axis.Y,
-                            height=ui.Pixel(12),
-                            offset_y_changed_fn=self._on_stage_manager_splitter_changed,
-                        )
-                        self.__resize_stage_manager()
-
-                        with self._splitter_stage_manager:
-                            with ui.ZStack(opaque_for_mouse_events=True):
-                                ui.Rectangle(name="WorkspaceBackground")
-                                with ui.HStack():
-                                    for _ in range(3):
-                                        ui.Image(
-                                            "",
-                                            name="TreePanelLinesBackground",
-                                            fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP,
-                                            height=ui.Pixel(12),
-                                        )
-
-                                splitter = ui.Rectangle(name="TreePanelBackgroundSplitter")
-                                _hover_helper(splitter)
+        # Rebuild feature-flag-gated UI when feature flags change
+        self._feature_flags_changed_subs = self._feature_flags_core.subscribe_feature_flags_changed(
+            lambda *_: rebuild_stage_manager()
+        )
 
         # subscribe to the burger menu
         self._sub_menu_burger_pressed = self._components_pane.get_ui_widget().menu_burger_widget.set_mouse_pressed_fn(
@@ -576,6 +573,44 @@ class SetupUI(TrexLayout):
 
     def show(self, value: bool):
         pass
+
+    def _build_stage_manager(self):
+        if not self._feature_flags_core.is_enabled("stage_manager"):
+            return
+
+        ui.Spacer(height=ui.Pixel(12))
+
+        self._stage_manager_frame = ui.ZStack(height=ui.Pixel(self.HEIGHT_STAGE_MANAGER_PANEL), content_clipping=True)
+        with self._stage_manager_frame:
+            self._stage_manager = _StageManagerWidget()
+
+    def _build_stage_manager_splitter(self):
+        if not self._feature_flags_core.is_enabled("stage_manager"):
+            return
+
+        self._splitter_stage_manager = ui.Placer(
+            draggable=True,
+            offset_y=0,
+            drag_axis=ui.Axis.Y,
+            height=ui.Pixel(12),
+            offset_y_changed_fn=self._on_stage_manager_splitter_changed,
+        )
+        self.__resize_stage_manager()
+
+        with self._splitter_stage_manager:
+            with ui.ZStack(opaque_for_mouse_events=True):
+                ui.Rectangle(name="WorkspaceBackground")
+                with ui.HStack():
+                    for _ in range(3):
+                        ui.Image(
+                            "",
+                            name="TreePanelLinesBackground",
+                            fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP,
+                            height=ui.Pixel(12),
+                        )
+
+                splitter = ui.Rectangle(name="TreePanelBackgroundSplitter")
+                _hover_helper(splitter)
 
     def _frame_prim(self, prim: "Usd.Prim"):
         if prim and prim.IsValid():

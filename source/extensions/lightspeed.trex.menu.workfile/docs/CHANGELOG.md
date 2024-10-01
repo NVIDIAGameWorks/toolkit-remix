@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.0]
+### Added
+- Added `Feature Flags` entry to the menu
+
 ## [1.0.5] - 2024-08-13
 ### Added
 - Added "unload stage" and "reload last stage" menu items
