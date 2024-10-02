@@ -33,8 +33,9 @@ class FeatureFlagsWidget:
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
 
-        self._model = None
-        self._delegate = None
+        self._model = FeatureFlagModel()
+        self._delegate = FeatureFlagDelegate()
+
         self._tree_view = None
 
         self._build_ui()
@@ -63,14 +64,16 @@ class FeatureFlagsWidget:
             ui.Spacer(height=0, width=0)
             with ui.VStack(spacing=self._VERTICAL_PADDING):
                 ui.Spacer(height=0, width=0)
-                ui.Label("Enable or Disable Feature Flags:", height=0, alignment=ui.Alignment.CENTER)
-
-                self._model = FeatureFlagModel()
-                self._delegate = FeatureFlagDelegate()
+                ui.Label(
+                    "Enable or Disable Feature Flags:",
+                    height=0,
+                    alignment=ui.Alignment.CENTER,
+                    identifier="feature_flag_title",
+                )
 
                 with ui.ZStack():
-                    ui.Rectangle(name="TreePanelBackground")
-                    with ui.ScrollingFrame(name="PropertiesPaneSection"):
+                    ui.Rectangle(name="TreePanelBackground", id="feature_flag_background")
+                    with ui.ScrollingFrame(name="PropertiesPaneSection", id="feature_flag_scrolling_frame"):
                         self._tree_view = ui.TreeView(
                             self._model,
                             delegate=self._delegate,
@@ -80,8 +83,16 @@ class FeatureFlagsWidget:
                         )
 
                 with ui.HStack(spacing=self._HORIZONTAL_PADDING, height=0):
-                    ui.Button("Enable All", clicked_fn=partial(self._model.set_enabled_all, True))
-                    ui.Button("Disable All", clicked_fn=partial(self._model.set_enabled_all, False))
+                    ui.Button(
+                        "Enable All",
+                        clicked_fn=partial(self._model.set_enabled_all, True),
+                        identifier="feature_flag_enable",
+                    )
+                    ui.Button(
+                        "Disable All",
+                        clicked_fn=partial(self._model.set_enabled_all, False),
+                        identifier="feature_flag_disable",
+                    )
                 ui.Spacer(height=0, width=0)
             ui.Spacer(height=0, width=0)
 

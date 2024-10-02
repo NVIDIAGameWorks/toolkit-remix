@@ -35,7 +35,7 @@ class FeatureFlagDelegate(ui.AbstractItemDelegate):
                 ui.Spacer(height=0)
                 with ui.VStack():
                     ui.Spacer(width=0)
-                    checkbox = ui.CheckBox(width=0, height=0)
+                    checkbox = ui.CheckBox(width=0, height=0, identifier="feature_flag_checkbox")
                     ui.Spacer(width=0)
                 ui.Spacer(height=0)
 
@@ -46,7 +46,7 @@ class FeatureFlagDelegate(ui.AbstractItemDelegate):
         if column_id == 1:
             with ui.HStack(height=self._ROW_HEIGHT, spacing=self._HORIZONTAL_PADDING, tooltip=item.tooltip):
                 ui.Spacer(width=0, height=0)
-                ui.Label(item.display_name)
+                ui.Label(item.display_name, identifier="feature_flag_label")
 
     def build_header(self, column_id: int):
         with ui.HStack(height=self._ROW_HEIGHT, spacing=self._HORIZONTAL_PADDING):
@@ -55,4 +55,5 @@ class FeatureFlagDelegate(ui.AbstractItemDelegate):
                 FeatureFlagModel.HEADER_DICT[column_id],
                 alignment=ui.Alignment.LEFT_CENTER,
                 style_type_name_override="TreeView.Header",
+                identifier="feature_flag_title",
             )

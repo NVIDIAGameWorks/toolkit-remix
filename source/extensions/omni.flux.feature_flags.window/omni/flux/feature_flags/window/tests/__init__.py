@@ -15,7 +15,4 @@
 * limitations under the License.
 """
 
-__all__ = ["FeatureFlagsCore", "FeatureFlag"]
-
-from .core import FeatureFlagsCore
-from .items import FeatureFlag
+from .e2e.test_window import TestFeatureFlagsWindow

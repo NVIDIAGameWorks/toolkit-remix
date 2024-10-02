@@ -17,6 +17,8 @@
 """
 __all__ = ["FeatureFlagsCore"]
 
+import contextlib
+
 import carb
 
 from .items import FeatureFlag
@@ -93,7 +95,9 @@ class FeatureFlagsCore:
             feature_flag_key: The key used in the settings to identify the feature flag
             value: Whether the feature flag should be enabled or disabled.
         """
-        self._settings.set(f"{self._PERSISTENT_PREFIX}{self._FEATURE_FLAGS_SETTING}/{feature_flag_key}/value", value)
+        self._settings.set_bool(
+            f"{self._PERSISTENT_PREFIX}{self._FEATURE_FLAGS_SETTING}/{feature_flag_key}/value", value
+        )
 
     def is_enabled(self, feature_flag_key: str) -> bool:
         """
@@ -102,12 +106,15 @@ class FeatureFlagsCore:
         Args:
             feature_flag_key: The key used in the settings to identify the feature flag
 
+        Raises:
+            ValueError: If the feature flag with the given key is not found in the settings.
+
         Returns:
             True if a feature flag is enabled, False otherwise.
         """
         return self.get_flag(feature_flag_key).value
 
-    def subscribe_feature_flags_changed(self, callback: callable) -> list[carb.Subscription]:
+    def subscribe_feature_flags_changed(self, callback: callable) -> list[carb.settings.SubscriptionId]:
         """
         Subscribe to changes to any of the feature flags' values.
 
@@ -115,7 +122,7 @@ class FeatureFlagsCore:
             callback: The callback function to be called when a feature flag's value changes.
 
         Returns:
-            A list of objects that will automatically unsubscribe when destroyed.
+            A list of subscription IDs to use when unsubscribing.
         """
         subscriptions = []
         for feature_flag in self.get_all_flags():
@@ -130,6 +137,37 @@ class FeatureFlagsCore:
                 )
             )
         return subscriptions
+
+    def unsubscribe_feature_flags_changed(self, subscription_ids: list[carb.settings.SubscriptionId]):
+        """
+        Unsubscribe from the `feature_flags_changed` events.
+
+        Args:
+            subscription_ids: A list of subscription IDs to unsubscribe from
+        """
+        for subscription_id in subscription_ids:
+            self._settings.unsubscribe_to_change_events(subscription_id)
+
+    @contextlib.contextmanager
+    def feature_flags_changed(self, callback: callable) -> list[carb.settings.SubscriptionId]:
+        """
+        A context manager to subscribe and unsubscribe from the `feature_flags_changed` events automatically.
+
+        Since the subscription will be cleaned up automatically when the context manager exits, this is not viable for
+        long-running code, but can be useful in short-lived scripts.
+
+        Args:
+            callback: The callback to executed when the event is triggered.
+
+        Returns:
+            A list of subscription IDs created when subscribing to the events.
+        """
+        subscriptions = self.subscribe_feature_flags_changed(callback)
+
+        try:
+            yield subscriptions
+        finally:
+            self.unsubscribe_feature_flags_changed(subscriptions)
 
     def _cleanup_persistent_settings(self, transient: dict, persistent: dict):
         """

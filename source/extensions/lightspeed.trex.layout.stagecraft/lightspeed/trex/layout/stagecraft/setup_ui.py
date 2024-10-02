@@ -714,10 +714,15 @@ class SetupUI(TrexLayout):
         self._properties_pane.show_panel(title=selection[0].title)
 
     def destroy(self):
+        if self._feature_flags_changed_subs:
+            self._feature_flags_core.unsubscribe_feature_flags_changed(self._feature_flags_changed_subs)
+
         if self.__enable_items_task:
             self.__enable_items_task.cancel()
         self.__enable_items_task = None
+
         if self.__background_switcher_task:
             self.__background_switcher_task.cancel()
         self.__background_switcher_task = None
+
         super().destroy()
