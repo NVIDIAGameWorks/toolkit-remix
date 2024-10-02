@@ -60,7 +60,8 @@ class FeatureFlagModel(ui.AbstractItemModel):
                 lambda *_: self.refresh()
             )
             self.refresh()
-        else:
+        elif self._feature_flags_changed_subs:
+            self._feature_flags_core.unsubscribe_feature_flags_changed(self._feature_flags_changed_subs)
             self._feature_flags_changed_subs = None
 
     def refresh(self):
@@ -75,7 +76,7 @@ class FeatureFlagModel(ui.AbstractItemModel):
             return self._items
         return []
 
-    def get_item_value_model_count(self, item: FeatureFlagItem):
+    def get_item_value_model_count(self, item: FeatureFlagItem | None):
         return len(self.HEADER_DICT.keys())
 
     def set_enabled(self, item: FeatureFlagItem, value: bool):
@@ -98,4 +99,6 @@ class FeatureFlagModel(ui.AbstractItemModel):
         self._feature_flags_core.set_enabled_all(value)
 
     def destroy(self):
+        if self._feature_flags_changed_subs:
+            self._feature_flags_core.unsubscribe_feature_flags_changed(self._feature_flags_changed_subs)
         reset_default_attrs(self)

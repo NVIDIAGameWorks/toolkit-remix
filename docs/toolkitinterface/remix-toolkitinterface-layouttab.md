@@ -4,20 +4,26 @@
 
 ![Mod Setup 1](../data/images/remix-layout-modsetup-001.png)
 
-| Ref | Option | Description |
-|:---:|:---|:---|
-| 1 | Hamburger Menu | Save (Ctrl + S), Save As (Ctrl + Shift + S), Undo (Ctrl + Z), Redo (Ctrl + Y), About |
+| Ref | Option | Description                                                                                                                                                |
+|:---:|:---|:-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1 | Hamburger Menu | Unload Stage, Reload Stage, Save (Ctrl + S), Save As (Ctrl + Shift + S), Undo (Ctrl + Z), Redo (Ctrl + Y), Preferences, Feature Flags`*`, Show Logs`**`, About |
 | 2 | Project Title |
-| 3 | Mod Setup Tab | Set the details of your mod project |
+| 3 | Mod Setup Tab | Set the details of your mod project                                                                                                                        |
 | 4 | Asset Replacements Tab |
 | 5 | Mod Packaging Tab |
-| 7 | Open Project Wizard | Wizard	Launches the [Project Wizard](remix-toolkitinterface-projectwizard.md) Panel |
-| 8 | Capture File | Load the captured game file scene |
-| 9 | Capture File Location | Directory location of the captured file |
+| 7 | Open Project Wizard | Wizard	Launches the [Project Wizard](remix-toolkitinterface-projectwizard.md) Panel                                                                        |
+| 8 | Capture File | Load the captured game file scene                                                                                                                          |
+| 9 | Capture File Location | Directory location of the captured file                                                                                                                    |
 | 10 | Loaded Capture |
-| 11 | Replaces Prims | Background color indicates the percent of the replacements (Red = 0%, Green = 100%)  |
-| 12 | Total Prims in Capture | Background color indicates the percent of the replacements (Red = 0%, Green = 100%) |
-| 13 | Capture Details | Displays details from the captured layer file loaded into the stage |
+| 11 | Replaces Prims | Background color indicates the percent of the replacements (Red = 0%, Green = 100%)                                                                        |
+| 12 | Total Prims in Capture | Background color indicates the percent of the replacements (Red = 0%, Green = 100%)                                                                        |
+| 13 | Capture Details | Displays details from the captured layer file loaded into the stage                                                                                        |
+
+`*` Feature Flags: Some experimental features can be enabled early by opening the Feature Flags menu and enabling the various features.
+
+    **NOTE:** Experimental features may not be fully stable and may not be completed yet.
+
+`**` Show Logs: If you experience an issue with the Toolkit, the logs most likely contain the information required to diagnose the problem. If you create a GitHub ticket, please attach the related logs to your ticket.
 
 ![Mod Setup 2](../data/images/remix-layout-modsetup-002.png)
 
@@ -114,7 +120,7 @@
 | 2   | Open the File Explorer
 | 3   | Referenced Prim
 | 4   | Use default Prim instead checkbox
- 
+
 * Displays different properties based on what you select in the panel above. If the panel is hidden, nothing will be shown.
 * A blue circle indicates that the property has a different value than the default.
 * A darker background means the property has override(s) from layer(s).
