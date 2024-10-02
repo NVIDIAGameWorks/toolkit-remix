@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3385: Fixing texture set assignment
 - REMIX-2874: Improved look of scan file window
 - REMIX-2605: Fixed some property widget styling
+- REMIX-3567: Fixed shell script permission
 
 ### Removed
 
