@@ -90,7 +90,7 @@ class Setup:
         return PrimsResponseModel(asset_paths=self.get_selected_prim_paths())
 
     def select_prim_paths_with_data_model(self, body: SetSelectionPathParamModel):
-        self.select_prim_paths(body.asset_path)
+        self.select_prim_paths(body.asset_paths)
 
     def get_prim_paths_with_data_model(self, query: GetPrimsQueryModel) -> PrimsResponseModel:
         prim_paths = []
