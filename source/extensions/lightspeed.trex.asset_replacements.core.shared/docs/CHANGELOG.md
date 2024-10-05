@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.1]
+### Fixed
+- Fixed `select_prim_paths_with_data_model` function crash
+
 ## [2.3.0]
 ### Changed
 - Changed `prim_is_from_a_capture_reference` to work with any prim, not just meshes
