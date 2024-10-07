@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.2]
+### Fixed
+- Fixed `append_reference_with_data_model` function crash
+
 ## [2.3.1]
 ### Fixed
 - Fixed `select_prim_paths_with_data_model` function crash

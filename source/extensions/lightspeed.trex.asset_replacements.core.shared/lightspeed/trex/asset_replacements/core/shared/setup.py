@@ -180,7 +180,7 @@ class Setup:
             edit_target_layer = stage.GetEditTarget().GetLayer()
             reference, child_prim_path = self.add_new_reference(
                 stage,
-                params.asset_path,
+                Sdf.Path(str(params.asset_path)),
                 self.switch_ref_abs_to_rel_path(stage, str(body.asset_file_path)),
                 self.get_ref_default_prim_tag(),
                 edit_target_layer,
