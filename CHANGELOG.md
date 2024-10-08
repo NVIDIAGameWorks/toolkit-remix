@@ -41,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3567: Enable Sentry for built versions
 - REMIX-3113: Parallel process count dropdown for ingestion
 - REMIX-3583: Added tests for the Feature Flags system
-- Fix `select_prim_paths_with_data_model` crash for the Rest API
+- Added a tutorial on how to use the REST API to build a Blender Add-On
 
 ### Changed
 - Updated runtime to 0.6.0-rc2
@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2874: Improved look of scan file window
 - REMIX-2605: Fixed some property widget styling
 - REMIX-3567: Fixed shell script permission
+- Fix `select_prim_paths_with_data_model` crash for the Rest API
 - Fix `append_reference_with_data_model` crash for the Rest API
 
 ### Removed
