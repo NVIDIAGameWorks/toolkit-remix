@@ -7,55 +7,12 @@ Remix utilizes Omniverse's standard USD (for scenes) and MDL (for materials) fil
 
 Apps in Omniverse are loaded with the Asset Converter extension. With it, users can convert models into USD using the [**Asset Converter**](https://docs.omniverse.nvidia.com/composer/latest/common/formats.html#asset-converter) service. Below is a list of formats it can convert to USD.
 
-| Level                | Operating System  | CPU                   | CPU Cores | RAM     | GPU                | VRAM  | Disk           |
-| :------------------: | :---------------: | :-------------------: | :-------: | :-----: | :----------------: | :---: | :------------: |
-| Min              |   Windows 10/11   | Intel I7 or AMD Ryzen | 4         | 16 GB   | GeForce RTX 3060Ti | 8 GB  | 512 GB SSD     |
-| Rec          |   Windows 10/11   | Intel I7 or AMD Ryzen | 8         | 32 GB   | GeForce RTX 4070   | 12 GB | 512 GB M.2 SSD |
-
-
-<table>
-  <tr>
-   <td><strong>Extension</strong>
-   </td>
-   <td><strong>Format</strong>
-   </td>
-   <td><strong>Description</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>.fbx
-   </td>
-   <td>Autodesk FBX Interchange File
-   </td>
-   <td>Common 3D model saved in the Autodesk Filmbox format
-   </td>
-  </tr>
-  <tr>
-   <td>.obj
-   </td>
-   <td>Object File Format
-   </td>
-   <td>Common 3D Model format
-   </td>
-  </tr>
-  <tr>
-   <td>.gltf
-   </td>
-   <td>GL Transmission Format File
-   </td>
-   <td>Common 3D Scene Description
-   </td>
-  </tr>
-  <tr>
-   <td>.lxo
-   </td>
-   <td>Foundry MODO 3D Image Format
-   </td>
-   <td>Foundry MODO is a type of software used for rendering, 3D modeling, and animation.
-   </td>
-  </tr>
-</table>
-
+| Extension | Format | Description |
+| :------- | :--------- | :------------------------- |
+| `.fbx` | Autodesk FBX Interchange File | Common 3D model saved in the Autodesk Filmbox format |
+| `.obj` | Object File Format | Common 3D Model format |
+| `.gltf` | GL Transmission Format File | Common 3D Scene Description |
+| `.lxo` | Foundry MODO 3D Image Format | Foundry MODO is a type of software used for rendering, 3D modeling, and animation |
 
 ## [Materials](#materials)
 
@@ -66,134 +23,27 @@ NVIDIA has developed a custom schema in USD to represent material assignments an
 
 MDL Materials throughout Omniverse can accept texture files in the following formats.
 
-
-<table>
-  <tr>
-   <td><strong>Extension</strong>
-   </td>
-   <td><strong>Format</strong>
-   </td>
-   <td><strong>Description</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>.bmp
-   </td>
-   <td>Bitmap Image File
-   </td>
-   <td>Common image format developed by Microsoft.
-   </td>
-  </tr>
-  <tr>
-   <td>.dds
-   </td>
-   <td>DirectDraw Surface
-   </td>
-   <td>Microsoft DirectX format for textures and environments.
-   </td>
-  </tr>
-  <tr>
-   <td>.gif
-   </td>
-   <td>Graphical Interchange Format File
-   </td>
-   <td>Common color constrained lossless web format developed by CompuServe.
-   </td>
-  </tr>
-  <tr>
-   <td>.hdr
-   </td>
-   <td>High Dynamic Range Image File
-   </td>
-   <td>High Dynamic Range format developed by Industrial Light and Magic.
-   </td>
-  </tr>
-  <tr>
-   <td>.pgm
-   </td>
-   <td>Portable Gray Map
-   </td>
-   <td>Files that store grayscale 2D images. Each pixel within the image contains only one or two bytes of information (8 or 16 bits)
-   </td>
-  </tr>
-  <tr>
-   <td>.jpg
-   </td>
-   <td>Joint Photographic Experts Group
-   </td>
-   <td>Common “lossy” compressed graphic format.
-   </td>
-  </tr>
-  <tr>
-   <td>.pic
-   </td>
-   <td>PICtor raster image format
-   </td>
-   <td>DOS imaging standard mainly used by Graphics Animation System for Professionals (GRASP) and Pictor Paint.
-   </td>
-  </tr>
-  <tr>
-   <td>.png
-   </td>
-   <td>Portable Network Graphics File
-   </td>
-   <td>Common “lossless” compressed graphics format.
-   </td>
-  </tr>
-  <tr>
-   <td>.ppm
-   </td>
-   <td>Adobe Photoshop Document
-   </td>
-   <td>The native format for Adobe Photoshop documents.
-   </td>
-  </tr>
-</table>
-
-
-
+| Extension | Format | Description |
+| :------- | :--------- | :------------------------- |
+|`.bmp`|Bitmap Image File|Common image format developed by Microsoft|
+|`.dds`|DirectDraw Surface|Microsoft DirectX format for textures and environments|
+|`.gif`|Graphical Interchange Format File|Common color constrained lossless web format developed by CompuServe|
+|`.hdr`|High Dynamic Range Image File|High Dynamic Range format developed by Industrial Light and Magic|
+|`.pgm`|Portable Gray Map|Files that store grayscale 2D images. Each pixel within the image contains only one or two bytes of information (8 or 16 bits)|
+|`.jpg`|Joint Photographic Experts Group|Common “lossy” compressed graphic format|
+|`.pic`|PICtor raster image format|DOS imaging standard mainly used by Graphics Animation System for Professionals (GRASP) and Pictor Paint|
+|`.png`|Portable Network Graphics File|Common “lossless” compressed graphics format|
+|`.ppm`|Adobe Photoshop Document|The native format for Adobe Photoshop documents|
 
 ## USD File Formats
 
 Universal Scene Description (USD) is a versatile framework designed to encode data that can be scaled, organized hierarchically, and sampled over time. Its primary purpose is to facilitate the exchange and enhancement of data among different digital content creation applications.
 
-
-<table>
-  <tr>
-   <td><strong>Extension</strong>
-   </td>
-   <td><strong>Format</strong>
-   </td>
-   <td><strong>Description</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>.usd
-   </td>
-   <td>Universal Scene Description (Binary)
-   </td>
-   <td>This is the standard binary or ASCII file format for USD. It stores the 3D scene and asset data in a compact, binary form, making it efficient for storage and processing.
-   </td>
-  </tr>
-  <tr>
-   <td>.usda
-   </td>
-   <td>Universal Scene Description (ASCII)
-   </td>
-   <td>This format stores USD data in a human-readable, ASCII text format. It's primarily used for debugging and as a reference because it's easier for humans to read and modify. However, it's less efficient in terms of file size and loading speed compared to the binary format.
-   </td>
-  </tr>
-  <tr>
-   <td>.usdc
-   </td>
-   <td>Universal Scene Description (Crate)
-   </td>
-   <td>This is a binary format for USD, but it's optimized for high-performance data storage and retrieval. .usdc files are typically used as the primary format for asset storage and production pipelines, as they offer faster loading and saving times compared to .usd files.
-   </td>
-  </tr>
-</table>
-
-
+| Extension | Format | Description |
+| :------- | :--------- | :------------------------- |
+|`.usd`|Universal Scene Description (Binary)|This is the standard binary or ASCII file format for USD. It stores the 3D scene and asset data in a compact, binary form, making it efficient for storage and processing|
+|`.usda`|Universal Scene Description (ASCII)|This format stores USD data in a human-readable, ASCII text format. It's primarily used for debugging and as a reference because it's easier for humans to read and modify. However, it's less efficient in terms of file size and loading speed compared to the binary format|
+|`.usdc`|Universal Scene Description (Crate)|This is a binary format for USD, but it's optimized for high-performance data storage and retrieval. .usdc files are typically used as the primary format for asset storage and production pipelines, as they offer faster loading and saving times compared to .usd files|
 
 <!----- Placeholder for where Release Notes will go  ----->
 
