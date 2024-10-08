@@ -15,6 +15,7 @@ docs/remix-installation
 docs/howto/index
 docs/runtimeinterface/index
 docs/toolkitinterface/index
+docs/tutorials/index
 docs/remix-formats
 docs/remix-changelog
 docs/remix-glossary

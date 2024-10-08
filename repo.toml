@@ -428,15 +428,22 @@ def build_service_docs(app):
     output_file.parent.mkdir(parents=True)
     shutil.copy2(source_file, output_file)
 
-def copy_videos(app, exc):
+def copy_assets(app, exc):
+    # Copy videos
     video_dir = pathlib.Path(app.builder.outdir).joinpath("docs", "videos")
-    src = pathlib.Path.cwd().joinpath("docs", "videos")
-    print(f"copying videos from {video_dir} to {src}")
-    shutil.copytree(src, video_dir)
+    video_src = pathlib.Path.cwd().joinpath("docs", "videos")
+    print(f"copying videos from {video_dir} to {video_src}")
+    shutil.copytree(video_src, video_dir)
+
+    # Copy Zips
+    zip_dir = pathlib.Path(app.builder.outdir).joinpath("docs", "zips")
+    zip_src = pathlib.Path.cwd().joinpath("docs", "zips")
+    print(f"copying zips from {zip_dir} to {zip_src}")
+    shutil.copytree(zip_src, zip_dir)
 
 sphinx_event_handlers = [
     ("builder-inited", build_service_docs),
-    ("build-finished", copy_videos),
+    ("build-finished", copy_assets),
 ]
 
 autodoc_mock_imports = [
