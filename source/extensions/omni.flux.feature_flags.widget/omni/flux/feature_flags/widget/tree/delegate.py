@@ -52,7 +52,7 @@ class FeatureFlagDelegate(ui.AbstractItemDelegate):
         with ui.HStack(height=self._ROW_HEIGHT, spacing=self._HORIZONTAL_PADDING):
             ui.Spacer(width=0, height=0)
             ui.Label(
-                FeatureFlagModel.HEADER_DICT[column_id],
+                FeatureFlagModel.headers.get(column_id),
                 alignment=ui.Alignment.LEFT_CENTER,
                 style_type_name_override="TreeView.Header",
                 identifier="feature_flag_title",

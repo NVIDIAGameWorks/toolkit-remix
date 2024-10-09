@@ -17,20 +17,25 @@
 """
 __all__ = ["FeatureFlagsWindow"]
 
+import carb
 from omni import ui
 from omni.flux.feature_flags.widget import FeatureFlagsWidget
 from omni.flux.utils.common import reset_default_attrs
 
 
 class FeatureFlagsWindow:
-    def __init__(self, **kwargs):
-        self._window = None
-        self._widget = None
+    FEATURE_FLAGS_WINDOW_TITLE = "/exts/omni.flux.feature_flags.window/title"
 
+    def __init__(self, **kwargs):
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
 
-        self._build_ui(**kwargs)
+        self._window = None
+        self._widget = None
+
+        title = carb.settings.get_settings().get(self.FEATURE_FLAGS_WINDOW_TITLE) or "Feature Flags"
+
+        self._build_ui(title, **kwargs)
 
     @property
     def default_attr(self) -> dict[str, None]:
@@ -39,6 +44,10 @@ class FeatureFlagsWindow:
             "_widget": None,
         }
         return default_attr
+
+    @property
+    def window(self) -> ui.Window | None:
+        return self._window
 
     def show(self, value: bool):
         """
@@ -59,13 +68,12 @@ class FeatureFlagsWindow:
         if self._widget:
             self._widget.show(value)
 
-    def _build_ui(self, **kwargs):
-        window_name = "Feature Flags"
+    def _build_ui(self, title: str, **kwargs):
         self._window = ui.Window(
-            window_name,
-            name=window_name,
-            width=500,
-            height=400,
+            title,
+            name=kwargs.get("name") or title,
+            width=kwargs.get("width") or 500,
+            height=kwargs.get("height") or 400,
             visibility_changed_fn=self._on_visibility_changed,
             **kwargs,
         )

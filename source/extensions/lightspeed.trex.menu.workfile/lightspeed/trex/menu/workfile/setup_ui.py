@@ -39,7 +39,7 @@ async def async_focus_window(window_name: str):
     """
     window = ui.Workspace.get_window(window_name)
     if window is None:
-        raise ValueError(f"Could not find window named {window_name:!r}")
+        raise ValueError(f"Could not find window named {window_name}")
     window.focus()
 
 
@@ -152,7 +152,7 @@ class SetupUI:
 
         inst.show(True)
         # Force the tab to be the active/focused tab (this currently needs to be done in async)
-        asyncio.ensure_future(async_focus_window("Feature Flags"))
+        asyncio.ensure_future(async_focus_window(inst.window.title))
 
     @staticmethod
     def _show_about_window() -> None:
@@ -239,7 +239,7 @@ class SetupUI:
                 triggered_fn=self._show_preferences_window,
             )
             ui.MenuItem(
-                "Feature Flags",
+                "Experimental Features",
                 identifier="feature_flags",
                 triggered_fn=self._show_feature_flags,
             )
