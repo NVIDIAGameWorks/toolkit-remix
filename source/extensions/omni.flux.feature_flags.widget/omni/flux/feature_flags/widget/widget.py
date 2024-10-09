@@ -19,6 +19,7 @@ __all__ = ["FeatureFlagsWidget"]
 
 from functools import partial
 
+import carb
 from omni import ui
 from omni.flux.utils.common import reset_default_attrs
 
@@ -26,6 +27,8 @@ from .tree import FeatureFlagDelegate, FeatureFlagModel
 
 
 class FeatureFlagsWidget:
+    FEATURE_FLAGS_WIDGET_LABEL = "/exts/omni.flux.feature_flags.widget/label"
+
     _HORIZONTAL_PADDING = ui.Pixel(8)
     _VERTICAL_PADDING = ui.Pixel(8)
 
@@ -64,8 +67,14 @@ class FeatureFlagsWidget:
             ui.Spacer(height=0, width=0)
             with ui.VStack(spacing=self._VERTICAL_PADDING):
                 ui.Spacer(height=0, width=0)
+
+                label = (
+                    carb.settings.get_settings().get(self.FEATURE_FLAGS_WIDGET_LABEL)
+                    or "Enable or Disable Feature Flags:"
+                )
+
                 ui.Label(
-                    "Enable or Disable Feature Flags:",
+                    label,
                     height=0,
                     alignment=ui.Alignment.CENTER,
                     identifier="feature_flag_title",

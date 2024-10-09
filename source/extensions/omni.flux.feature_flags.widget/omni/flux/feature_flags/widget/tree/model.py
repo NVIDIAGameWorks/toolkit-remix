@@ -17,6 +17,7 @@
 """
 __all__ = ["FeatureFlagModel"]
 
+import carb
 from omni import ui
 from omni.flux.feature_flags.core import FeatureFlagsCore
 from omni.flux.utils.common import reset_default_attrs
@@ -25,7 +26,7 @@ from .item import FeatureFlagItem
 
 
 class FeatureFlagModel(ui.AbstractItemModel):
-    HEADER_DICT = {0: "", 1: "Feature Flag"}
+    FEATURE_FLAGS_WIDGET_HEADERS = "/exts/omni.flux.feature_flags.widget/tree/headers"
 
     def __init__(self):
         super().__init__()
@@ -45,6 +46,12 @@ class FeatureFlagModel(ui.AbstractItemModel):
             "_items": None,
             "_feature_flags_changed_subs": None,
         }
+
+    @classmethod
+    @property
+    def headers(cls) -> dict[int, str]:
+        settings_headers = carb.settings.get_settings().get(cls.FEATURE_FLAGS_WIDGET_HEADERS)
+        return dict(enumerate(settings_headers)) if settings_headers else {0: "", 1: "Feature Flag"}
 
     def enable_listeners(self, value: bool):
         """
@@ -77,7 +84,7 @@ class FeatureFlagModel(ui.AbstractItemModel):
         return []
 
     def get_item_value_model_count(self, item: FeatureFlagItem | None):
-        return len(self.HEADER_DICT.keys())
+        return len(self.headers.keys())
 
     def set_enabled(self, item: FeatureFlagItem, value: bool):
         """

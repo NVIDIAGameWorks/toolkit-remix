@@ -115,7 +115,7 @@ class TestFeatureFlagModel(AsyncTestCase):
                 count = self.model.get_item_value_model_count(item)
 
                 # Assert
-                self.assertEqual(count, len(FeatureFlagModel.HEADER_DICT.keys()))
+                self.assertEqual(count, len(FeatureFlagModel.headers.keys()))
 
     async def test_set_enabled_should_call_core_set_enabled(self):
         # Arrange
