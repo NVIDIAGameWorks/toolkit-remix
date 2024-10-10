@@ -63,8 +63,7 @@ class TreeWidget(ui.TreeView):
         if self._validate_action_selection:
             self._sub_selection_changed = self._delegate.subscribe_item_clicked(self._on_item_clicked)
 
-        if self._select_all_children:
-            self.set_selection_changed_fn(self.on_selection_changed)
+        self.set_selection_changed_fn(self.on_selection_changed)
 
         self.__on_selection_changed = _Event()
 
@@ -103,18 +102,16 @@ class TreeWidget(ui.TreeView):
         Args:
             items: The list of items selected
         """
-        if not self._select_all_children:
-            return
+        if self._select_all_children:
+            selection = set(self.selection)
+            for item in items:
+                selection.update(self._model.iter_items_children([item]))
 
-        selection = set(self.selection)
-        for item in items:
-            selection.update(self._model.iter_items_children([item]))
+            selection_list = list(selection)
+            self.selection = selection_list
+            self._delegate.selection = selection_list
 
-        selection_list = list(selection)
-        self.selection = selection_list
-        self._delegate.selection = selection_list
-
-        self.__on_selection_changed(selection_list)
+        self.__on_selection_changed(self.selection)
 
     def subscribe_selection_changed(self, callback: Callable[[list["_TreeItemBase"]], None]) -> _EventSubscription:
         return _EventSubscription(self.__on_selection_changed, callback)

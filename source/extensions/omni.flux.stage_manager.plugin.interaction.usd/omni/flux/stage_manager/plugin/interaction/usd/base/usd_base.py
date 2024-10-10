@@ -57,11 +57,6 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         """
         return False
 
-    @classmethod
-    @property
-    def _select_all_children(cls) -> bool:
-        return True
-
     def set_active(self, value: bool):
         # Convert `set_active` to an async method since `_update_context_items` is also async
         if self._set_active_task:
@@ -108,6 +103,9 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
     def _on_usd_event_occurred(self, notice: Usd.Notice.ObjectsChanged):
         refresh = False
         for path in notice.GetChangedInfoOnlyPaths() + notice.GetResyncedPaths():
+            # Don't refresh if the update comes from the camera
+            if str(path.GetPrimPath()) in {"/RootNode/Camera"}:
+                continue
             # Don't refresh the stage manager when Omni Prims are updated
             if any(path.HasPrefix(omni_path) for omni_path in _get_omni_prims()):
                 continue

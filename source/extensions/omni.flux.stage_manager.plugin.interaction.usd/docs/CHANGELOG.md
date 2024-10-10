@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.2]
+### Fixed
+- Don't select all children when selecting an item
+- Don't update the tree when moving the camera
+
 ## [1.5.1]
 ### Changed
 - Use renamed `_tree_widget`
