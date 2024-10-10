@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.18.1]
+### Fixed
+- Fixed an issue in `TreeWidget` where `subscribe_selection_changed` is not triggered if `select_all_children` is False
+
 ## [1.18.0]
 ### Changed
 - Added `subscribe_selection_changed` function to the `TreeWidget`
