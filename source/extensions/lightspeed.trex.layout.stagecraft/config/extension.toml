@@ -1,5 +1,5 @@
 [package]
-version = "1.4.2"
+version = "1.4.3"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix layout for the StageCraft"
 description = "Layout for NVIDIA RTX Remix StageCraft App"
