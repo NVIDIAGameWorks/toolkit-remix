@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.3]
+### Fixed
+- Destroy the stage manager on when disabling the feature flag to disable event listeners
+
 ## [1.4.2]
 ### Changed
 - Unsubscribe from the Feature Flag core on destroy

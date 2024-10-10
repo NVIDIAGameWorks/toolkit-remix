@@ -196,4 +196,8 @@ class StageManagerWidget:
             self.__resize_task.cancel()
             self.__resize_task = None
 
+        if self._core:
+            for interaction in self._core.schema.interactions:
+                interaction.set_active(False)
+
         _reset_default_attrs(self)

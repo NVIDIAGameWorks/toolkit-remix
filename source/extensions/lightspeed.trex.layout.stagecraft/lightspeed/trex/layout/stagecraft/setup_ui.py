@@ -525,6 +525,11 @@ class SetupUI(TrexLayout):
             # Clear the existing UI in case the feature flag is disabled
             stage_manager_frame.clear()
             stage_manager_splitter_frame.clear()
+
+            # Destroy the stage manager to disable listeners
+            if self._stage_manager:
+                self._stage_manager.destroy()
+
             # Rebuild the UI if required
             stage_manager_frame.rebuild()
             stage_manager_splitter_frame.rebuild()
