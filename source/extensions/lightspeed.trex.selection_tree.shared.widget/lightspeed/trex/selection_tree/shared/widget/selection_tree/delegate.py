@@ -35,14 +35,15 @@ from omni.flux.utils.widget.color import hex_to_color as _hex_to_color
 from omni.flux.utils.widget.gradient import create_gradient as _create_gradient
 
 from .model import HEADER_DICT
+from .model import AnyItemType as _AnyItemType
 from .model import ItemAddNewLiveLight as _ItemAddNewLiveLight
-from .model import ItemAddNewReferenceFileMesh as _ItemAddNewReferenceFileMesh
-from .model import ItemInstanceMesh as _ItemInstanceMesh
-from .model import ItemInstancesMeshGroup as _ItemInstancesMeshGroup
+from .model import ItemAddNewReferenceFile as _ItemAddNewReferenceFileMesh
+from .model import ItemAsset as _ItemAsset
+from .model import ItemInstance as _ItemInstance
+from .model import ItemInstancesGroup as _ItemInstancesGroup
 from .model import ItemLiveLightGroup as _ItemLiveLightGroup
-from .model import ItemMesh as _ItemMesh
 from .model import ItemPrim as _ItemPrim
-from .model import ItemReferenceFileMesh as _ItemReferenceFileMesh
+from .model import ItemReferenceFile as _ItemReferenceFile
 
 if typing.TYPE_CHECKING:
     from pxr import Usd
@@ -142,11 +143,11 @@ class Delegate(ui.AbstractItemDelegate):
         self.__on_frame_prim = _Event()
         self.__on_reset_released = _Event()
 
-    def _duplicate_reference(self, item: _ItemReferenceFileMesh):
+    def _duplicate_reference(self, item: _ItemReferenceFile):
         """Call the event object that has the list of functions"""
         self.__on_duplicate_reference(item)
 
-    def subscribe_duplicate_reference(self, function: Callable[[_ItemReferenceFileMesh], None]):
+    def subscribe_duplicate_reference(self, function: Callable[[_ItemReferenceFile], None]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
@@ -162,11 +163,11 @@ class Delegate(ui.AbstractItemDelegate):
         """
         return _EventSubscription(self.__on_duplicate_prim, function)
 
-    def _delete_reference(self, item: _ItemReferenceFileMesh):
+    def _delete_reference(self, item: _ItemReferenceFile):
         """Call the event object that has the list of functions"""
         self.__on_delete_reference(item)
 
-    def subscribe_delete_reference(self, function: Callable[[_ItemReferenceFileMesh], None]):
+    def subscribe_delete_reference(self, function: Callable[[_ItemReferenceFile], None]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
@@ -232,18 +233,20 @@ class Delegate(ui.AbstractItemDelegate):
     def get_path_scroll_frames(self):
         return self._path_scroll_frames
 
-    def __generate_tool_tip(self, item) -> str:
-        if isinstance(item, _ItemMesh):
+    def __generate_tool_tip(self, item: _AnyItemType) -> str:
+        if isinstance(item, _ItemAsset):
             return item.path
-        if isinstance(item, _ItemReferenceFileMesh):
-            return item.path
-        if isinstance(item, (_ItemAddNewReferenceFileMesh, _ItemAddNewLiveLight, _ItemLiveLightGroup)):
+        if isinstance(item, _ItemReferenceFile):
+            return f"Reference: {item.path}"
+        if isinstance(
+            item, (_ItemAddNewReferenceFileMesh, _ItemAddNewLiveLight, _ItemLiveLightGroup, _ItemInstancesGroup)
+        ):
             return item.display
-        if isinstance(item, _ItemInstancesMeshGroup):
-            return item.display
-        if isinstance(item, _ItemInstanceMesh):
-            return item.path
-        return ""
+        if isinstance(item, _ItemInstance):
+            return f"Instance: {item.path}"
+        if isinstance(item, _ItemPrim):
+            return f"Prim: {item.path}"
+        return f"{item.__class__.__name__}: "
 
     def build_branch(self, model, item, column_id, level, expanded):
         """Create a branch widget that opens or closes subtree"""
@@ -279,12 +282,12 @@ class Delegate(ui.AbstractItemDelegate):
                         if isinstance(
                             item,
                             (
-                                _ItemMesh,
-                                _ItemReferenceFileMesh,
+                                _ItemAsset,
+                                _ItemReferenceFile,
                                 _ItemAddNewReferenceFileMesh,
                                 _ItemAddNewLiveLight,
                                 _ItemLiveLightGroup,
-                                _ItemInstancesMeshGroup,
+                                _ItemInstancesGroup,
                                 _ItemPrim,
                             ),
                         ):
@@ -292,13 +295,13 @@ class Delegate(ui.AbstractItemDelegate):
                                 ui.Spacer(height=0, width=ui.Pixel(8))
                                 with ui.VStack(width=ui.Pixel(16)):
                                     ui.Spacer(width=0)
-                                    if isinstance(item, _ItemReferenceFileMesh):
+                                    if isinstance(item, _ItemReferenceFile):
                                         ui.Image("", height=ui.Pixel(16), name="Collection")
-                                    elif isinstance(item, _ItemMesh):
+                                    elif isinstance(item, _ItemAsset):
                                         ui.Image("", height=ui.Pixel(16), name="Mesh")
                                     elif isinstance(item, (_ItemAddNewReferenceFileMesh, _ItemAddNewLiveLight)):
                                         ui.Image("", height=ui.Pixel(16), name="Add")
-                                    elif isinstance(item, _ItemInstancesMeshGroup):
+                                    elif isinstance(item, _ItemInstancesGroup):
                                         ui.Image(
                                             "",
                                             height=ui.Pixel(16),
@@ -313,6 +316,8 @@ class Delegate(ui.AbstractItemDelegate):
                                             icon = "GeomSubset"
                                         elif item.is_mesh():
                                             icon = "Mesh"
+                                        elif item.is_usd_light():
+                                            icon = f"{item.prim.GetTypeName()}Static"
                                         elif item.is_xformable():
                                             icon = "Xform"
                                         elif item.is_scope():
@@ -361,14 +366,14 @@ class Delegate(ui.AbstractItemDelegate):
                                         )
                                         with self._path_scroll_frames[id(item)]:
                                             with ui.HStack():
-                                                if isinstance(item, _ItemMesh):
+                                                if isinstance(item, _ItemAsset):
                                                     ui.Label(
                                                         item.prim.GetName(),
                                                         name="PropertiesPaneSectionTreeItem",
                                                         tooltip=item.path,
                                                         identifier="item_mesh",
                                                     )
-                                                elif isinstance(item, (_ItemReferenceFileMesh, _ItemPrim)):
+                                                elif isinstance(item, (_ItemReferenceFile, _ItemPrim)):
                                                     ui.Label(
                                                         os.path.basename(item.path),
                                                         name="PropertiesPaneSectionTreeItem",
@@ -383,13 +388,13 @@ class Delegate(ui.AbstractItemDelegate):
                                                         name="PropertiesPaneSectionTreeItem60",
                                                         identifier="item_file_mesh",
                                                     )
-                                                elif isinstance(item, (_ItemInstancesMeshGroup, _ItemLiveLightGroup)):
+                                                elif isinstance(item, (_ItemInstancesGroup, _ItemLiveLightGroup)):
                                                     ui.Label(
                                                         item.display,
                                                         name="PropertiesPaneSectionTreeItem",
                                                         identifier="item_instance_group",
                                                     )
-                                                elif isinstance(item, _ItemInstanceMesh):
+                                                elif isinstance(item, _ItemInstance):
                                                     ui.Label(
                                                         os.path.basename(item.path),
                                                         name="PropertiesPaneSectionTreeItem",
@@ -414,7 +419,7 @@ class Delegate(ui.AbstractItemDelegate):
                                                     name="HeaderNvidiaBackground",
                                                 )
                                                 self.__do_refresh_gradient_color(item)
-                            if isinstance(item, _ItemMesh):
+                            if isinstance(item, _ItemAsset):
                                 ui.Spacer(height=0, width=ui.Pixel(8))
                                 with ui.VStack(
                                     width=ui.Pixel(16),
@@ -430,7 +435,7 @@ class Delegate(ui.AbstractItemDelegate):
                                         identifier="restore",
                                     )
                                     ui.Spacer(width=0)
-                            elif isinstance(item, _ItemReferenceFileMesh):
+                            elif isinstance(item, _ItemReferenceFile):
                                 ui.Spacer(height=0, width=ui.Pixel(8))
                                 with ui.VStack(
                                     width=ui.Pixel(16 + 16 + 8),
@@ -458,7 +463,7 @@ class Delegate(ui.AbstractItemDelegate):
                                             ),
                                         )
                                     ui.Spacer(width=0)
-                            elif isinstance(item, _ItemInstanceMesh):
+                            elif isinstance(item, _ItemInstance):
                                 ui.Spacer(height=0, width=ui.Pixel(8))
                                 with ui.VStack(
                                     width=ui.Pixel(16),
@@ -517,6 +522,8 @@ class Delegate(ui.AbstractItemDelegate):
                         ui.Spacer(height=0, width=ui.Pixel(8))
 
     def _on_item_hovered(self, hovered, item):
+        if isinstance(item, _ItemAsset):
+            return  # don't highlight top item because it can't be selected
         self._hovered_items[id(item)] = hovered
         for rectangle in self._background_rectangle.get(id(item), []):
             rectangle.style_type_name_override = self.__get_item_background_style(item, hovered)
@@ -570,7 +577,7 @@ class Delegate(ui.AbstractItemDelegate):
         Display a menu if the item was right-clicked to show clipboard copy options.
         """
         # Avoid menu if the item is not an applicable type
-        if not isinstance(item, (_ItemInstanceMesh, _ItemMesh, _ItemPrim, _ItemReferenceFileMesh)):
+        if not isinstance(item, (_ItemInstance, _ItemAsset, _ItemPrim, _ItemReferenceFile)):
             return
 
         # NOTE: This menu is stored on the object to avoid garbage collection and being prematurely destroyed
@@ -593,7 +600,7 @@ class Delegate(ui.AbstractItemDelegate):
             ui.MenuItem(
                 "Copy Reference Path",
                 identifier="copy_reference_path",
-                enabled=isinstance(item, _ItemReferenceFileMesh),
+                enabled=isinstance(item, _ItemReferenceFile),
                 triggered_fn=lambda: omni.kit.clipboard.copy(item.absolute_path),
             )
             ui.MenuItem(
@@ -610,7 +617,7 @@ class Delegate(ui.AbstractItemDelegate):
 
     def __do_refresh_gradient_color(self, item):
         if id(item) not in self._gradient_image_provider or isinstance(
-            item, (_ItemInstanceMesh, _ItemInstancesMeshGroup)
+            item, (_ItemInstance, _ItemInstancesGroup, _ItemReferenceFile)
         ):
             return
         is_hovered = self._hovered_items.get(id(item), False)
@@ -638,6 +645,9 @@ class Delegate(ui.AbstractItemDelegate):
 
     def __get_item_background_style(self, item, hovered=False):
         if item in self._primary_selection:
+            if isinstance(item, _ItemReferenceFile):
+                # make these less bright since they can't actually be selected on stage
+                return "TreeView.Item.semi_selected"
             return "TreeView.Item.selected"
         if item in self._secondary_selection:
             return "TreeView.Item.semi_selected"
@@ -645,7 +655,7 @@ class Delegate(ui.AbstractItemDelegate):
             return "TreeView.Item.IsHovered"
         return "TreeView.Item"
 
-    def build_header(self, column_id):
+    def build_header(self, column_id: int = 0):
         """Build the header"""
         style_type_name = "TreeView.Header"
         with ui.HStack():

@@ -56,15 +56,15 @@ from pxr import Sdf, Usd
 
 if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
-        ItemAddNewReferenceFileMesh as _ItemAddNewReferenceFileMesh,
+        ItemAddNewReferenceFile as _ItemAddNewReferenceFileMesh,
     )
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
+    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemAsset as _ItemAsset
+    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstance as _ItemInstance
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
-        ItemInstancesMeshGroup as _ItemInstancesMeshGroup,
+        ItemInstancesGroup as _ItemInstancesGroup,
     )
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemMesh as _ItemMesh
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
-        ItemReferenceFileMesh as _ItemReferenceFileMesh,
+        ItemReferenceFile as _ItemReferenceFile,
     )
 
 
@@ -501,11 +501,11 @@ class SetupUI:
         self,
         items: List[
             Union[
-                "_ItemMesh",
-                "_ItemReferenceFileMesh",
+                "_ItemAsset",
+                "_ItemReferenceFile",
                 "_ItemAddNewReferenceFileMesh",
-                "_ItemInstancesMeshGroup",
-                "_ItemInstanceMesh",
+                "_ItemInstancesGroup",
+                "_ItemInstance",
                 _ItemPrim,
             ]
         ],

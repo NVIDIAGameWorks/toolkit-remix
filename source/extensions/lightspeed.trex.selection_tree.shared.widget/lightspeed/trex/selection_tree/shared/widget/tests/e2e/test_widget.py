@@ -582,9 +582,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()
-        primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection  # noqa PLW0212
 
-        self.assertEqual(primary_and_secondary_selection, [all_items[5], all_items[8], all_items[7]])
+        # make sure new light and group are selected (since only one light so all lights are selected):
+        self.assertEqual(set(tree_view.widget.selection), {all_items[4], all_items[5]})
+        # make sure instance and instance group are selected:
+        self.assertEqual(set(_wid._instance_selection), {all_items[7], all_items[8]})
         current_selection = usd_context.get_selection().get_selected_prim_paths()
         self.assertEqual(current_selection, ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/DiskLight"])
 
@@ -603,9 +605,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()
-        primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection  # noqa PLW0212
 
-        self.assertEqual(primary_and_secondary_selection, [all_items[6], all_items[9], all_items[8]])
+        # make sure new light is selected:
+        self.assertEqual(set(tree_view.widget.selection), {all_items[6]})
+        # make sure instance and instance group are selected:
+        self.assertEqual(set(_wid._instance_selection), {all_items[8], all_items[9]})
+
         current_selection = usd_context.get_selection().get_selected_prim_paths()
         self.assertEqual(current_selection, ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/DistantLight"])
 
@@ -625,9 +630,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()
-        primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection  # noqa PLW0212
+        # make sure first light and group are selected:
+        self.assertEqual(set(tree_view.widget.selection), {all_items[4], all_items[5]})
+        # make sure instance and instance group are selected:
+        self.assertEqual(set(_wid._instance_selection), {all_items[7], all_items[8]})
 
-        self.assertEqual(primary_and_secondary_selection, [all_items[5], all_items[8], all_items[7]])
         current_selection = usd_context.get_selection().get_selected_prim_paths()
         self.assertEqual(current_selection, ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/DiskLight"])
 
@@ -643,9 +650,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()
-        primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection  # noqa PLW0212
+        # make sure new light is selected:
+        self.assertEqual(set(tree_view.widget.selection), {all_items[6]})
+        # make sure instance and instance group are selected:
+        self.assertEqual(set(_wid._instance_selection), {all_items[8], all_items[9]})
 
-        self.assertEqual(primary_and_secondary_selection, [all_items[6], all_items[9], all_items[8]])
         current_selection = usd_context.get_selection().get_selected_prim_paths()
         self.assertEqual(current_selection, ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/DistantLight"])
 
@@ -729,6 +738,50 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(
             usd_context.get_selection().get_selected_prim_paths(),
             ["/RootNode/instances/inst_BAC90CAA733B0859_2/DistantLight"],
+        )
+
+        await self.__destroy(_window, _wid)
+
+    async def test_select_stage_light_group(self):
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/instances/inst_BAC90CAA733B0859_1/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+        )
+        await ui_test.human_delay(human_delay_speed=3)
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+
+        await item_file_meshes[1].click()
+
+        # add 2 lights
+        window_name = "Light creator"
+        light_disk_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDisk'")
+        await light_disk_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+        await item_file_meshes[1].click()
+        light_distant_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDistant'")
+        await light_distant_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        self.assertEqual(len(item_instance_meshes), 3)
+
+        await item_instance_meshes[0].click()
+        self.assertEqual(
+            usd_context.get_selection().get_selected_prim_paths(),
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/DistantLight"],
+        )
+
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        await item_groups[0].click()
+        self.assertEqual(
+            usd_context.get_selection().get_selected_prim_paths(),
+            [
+                "/RootNode/instances/inst_BAC90CAA733B0859_0/DiskLight",
+                "/RootNode/instances/inst_BAC90CAA733B0859_0/DistantLight",
+            ],
         )
 
         await self.__destroy(_window, _wid)
@@ -1511,26 +1564,23 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # ensure we have the desired items
         # grab the ref items (ref items also use "item_prim" as identifier)
-        item_refs = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEqual(len(item_refs), 5)
+        item_refs_and_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_refs_and_prims), 5)
 
         # select first (top) ref and then shift + click the ref below
-        await item_refs[0].click()
+        await item_refs_and_prims[0].click()
         await ui_test.human_delay(human_delay_speed=3)
 
         async with ModifierKeyDownScope(key=KeyboardInput.LEFT_SHIFT):
-            await item_refs[1].click()
+            await item_refs_and_prims[1].click()
 
         # ensure that the proper refs are selected within the tree view
         tree_view = ui_test.find(f"{_window.title}//Frame/**/TreeView[*].identifier=='LiveSelectionTreeView'")
         tree_model_items = tree_view.widget.model.get_all_items()
 
-        self.assertEqual(len(tree_view.widget.selection), 2)
-        self.assertListEqual(tree_view.widget.selection, [tree_model_items[1], tree_model_items[3]])
-
-        # ensure that the actual prims aren't selected because it should only be the refs
-        selected_prim_paths = usd_context.get_selection().get_selected_prim_paths()
-        self.assertEqual(len(selected_prim_paths), 0)
+        # no use case for multi select, so will just get last selection
+        self.assertEqual(len(tree_view.widget.selection), 1)
+        self.assertEqual(tree_view.widget.selection, [tree_model_items[3]])
 
         # expand two other references to see more prims
         expand_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='Expand'")
@@ -1539,18 +1589,18 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(human_delay_speed=1)
 
         # select the bottom item and shift + click the item two above
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        await item_prims[5].click()
+        item_refs_and_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        await item_refs_and_prims[5].click()
         await ui_test.human_delay(human_delay_speed=1)
 
         async with ModifierKeyDownScope(key=KeyboardInput.LEFT_SHIFT):
-            await item_prims[2].click()
+            await item_refs_and_prims[2].click()
 
         # ensure that the proper items are selected within the tree view
-        self.assertEqual(len(tree_view.widget.selection), 4)
-        self.assertListEqual(
-            tree_view.widget.selection,
-            [tree_model_items[3], tree_model_items[4], tree_model_items[5], tree_model_items[6]],
+        self.assertEqual(len(tree_view.widget.selection), 3)
+        self.assertEqual(
+            set(tree_view.widget.selection),
+            {tree_model_items[4], tree_model_items[5], tree_model_items[6]},
         )
 
         # ensure that the proper prims are selected within the usd context

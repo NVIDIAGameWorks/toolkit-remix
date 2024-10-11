@@ -82,6 +82,8 @@ class Pages(Enum):
 
 
 class SetupUI(TrexLayout):
+    """Stagecraft Layout"""
+
     HEIGHT_HEADER = 93  # Weirdly specific number of the only way to align the placer correctly
     HEIGHT_STAGE_MANAGER_PANEL = 400
     MIN_HEIGHT_STAGE_MANAGER_PANEL = 100
@@ -306,6 +308,7 @@ class SetupUI(TrexLayout):
                 "_layer_manager": None,
                 "_last_property_viewport_splitter_x": None,
                 "_sub_frame_prim_selection_panel": None,
+                "_sub_go_to_ingest": None,
             }
         )
         return default_attr
@@ -565,8 +568,8 @@ class SetupUI(TrexLayout):
             ComponentsEnumItems.ASSET_REPLACEMENTS
         ).selection_tree_widget.subscribe_frame_prim(self._frame_prim)
 
-        # connect the go to ingest
-        self._sub_frame_prim_selection_panel = self._properties_pane.get_frame(
+        # connect the go to ingest event
+        self._sub_go_to_ingest = self._properties_pane.get_frame(
             ComponentsEnumItems.ASSET_REPLACEMENTS
         ).subscribe_go_to_ingest_tab(partial(self.show_layout_by_name, "Ingestion"))
 

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.5]
+### Changed
+- consistently display reference file parameters if a ref is selected even if prim last clicked
+
 ## [1.1.4]
 ### Added
 - Added support for mesh multi-edit

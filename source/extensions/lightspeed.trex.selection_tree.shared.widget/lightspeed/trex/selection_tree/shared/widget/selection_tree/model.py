@@ -21,7 +21,7 @@ import multiprocessing
 import re
 import typing
 from contextlib import contextmanager
-from typing import Dict, List, Optional, Tuple, Type, Union
+from typing import Dict, List, Optional, Tuple, Type, TypeAlias, Union
 
 import carb.events
 import omni.kit.commands
@@ -42,10 +42,10 @@ if typing.TYPE_CHECKING:
 HEADER_DICT = {0: "Path"}
 
 
-class ItemInstanceMesh(ui.AbstractItem):
-    """Item of the model that represent a mesh"""
+class ItemInstance(ui.AbstractItem):
+    """Item of the model that represents an instance"""
 
-    def __init__(self, prim: "Usd.Prim", parent: "ItemInstancesMeshGroup"):
+    def __init__(self, prim: "Usd.Prim", parent: "ItemInstancesGroup"):
         super().__init__()
         self._parent = parent
         self._prim = prim
@@ -69,17 +69,17 @@ class ItemInstanceMesh(ui.AbstractItem):
         return self._value_model
 
     def __repr__(self):
-        return f'"{self.path}"'
+        return f"{self.__class__.__name__}('{self.path}')"
 
 
-class ItemInstancesMeshGroup(ui.AbstractItem):
-    """Item of the model that represent a mesh"""
+class ItemInstancesGroup(ui.AbstractItem):
+    """Item of the model that groups together all instances of the same asset"""
 
-    def __init__(self, instance_prims: List["Usd.Prim"], parent: "ItemMesh"):
+    def __init__(self, instance_prims: List["Usd.Prim"], parent: "ItemAsset"):
         super().__init__()
         self._parent = parent
         self._display = "Instance(s)"
-        self._instances = [ItemInstanceMesh(instance_prim, self) for instance_prim in instance_prims]
+        self._instances = [ItemInstance(instance_prim, self) for instance_prim in instance_prims]
         self._value_model = ui.SimpleStringModel(self._display)
 
     @property
@@ -103,9 +103,9 @@ class ItemInstancesMeshGroup(ui.AbstractItem):
 
 
 class ItemLiveLightGroup(ui.AbstractItem):
-    """Item of the model that represent a mesh"""
+    """Item of the model that groups together lights"""
 
-    def __init__(self, parent: "ItemMesh", context_name: str):
+    def __init__(self, parent: "ItemAsset", context_name: str):
         super().__init__()
         self._parent = parent
         self._context_name = context_name
@@ -118,7 +118,14 @@ class ItemLiveLightGroup(ui.AbstractItem):
     def get_live_lights(self) -> List[Usd.Prim]:
         """Get lights that are not from a ref"""
         core = _AssetReplacementsCore(self._context_name)
-        return core.get_children_from_prim(self.parent.prim, only_prim_not_from_ref=True, level=1, skip_remix_ref=True)
+        children = core.get_children_from_prim(
+            self.parent.prim, only_prim_not_from_ref=True, level=1, skip_remix_ref=True
+        )
+        return [
+            child
+            for child in children
+            if (child.HasAPI(UsdLux.LightAPI) if hasattr(UsdLux, "LightAPI") else child.IsA(UsdLux.Light))
+        ]
 
     @property
     def parent(self):
@@ -140,10 +147,10 @@ class ItemLiveLightGroup(ui.AbstractItem):
         return f'"{self.display}"'
 
 
-class ItemAddNewReferenceFileMesh(ui.AbstractItem):
-    """Item of the model that represent a mesh"""
+class ItemAddNewReferenceFile(ui.AbstractItem):
+    """Item of the model that represents a button to add a new file reference"""
 
-    def __init__(self, prim: "Usd.Prim", parent: "ItemMesh"):
+    def __init__(self, prim: "Usd.Prim", parent: "ItemAsset"):
         super().__init__()
         self._parent = parent
         self._prim = prim
@@ -171,9 +178,9 @@ class ItemAddNewReferenceFileMesh(ui.AbstractItem):
 
 
 class ItemAddNewLiveLight(ui.AbstractItem):
-    """Item of the model that represent a mesh"""
+    """Item of the model that represents a button to add a new light"""
 
-    def __init__(self, prim: "Usd.Prim", parent: "ItemMesh"):
+    def __init__(self, prim: "Usd.Prim", parent: "ItemAsset"):
         super().__init__()
         self._parent = parent
         self._prim = prim
@@ -201,13 +208,13 @@ class ItemAddNewLiveLight(ui.AbstractItem):
 
 
 class ItemPrim(ui.AbstractItem):
-    """Item of the model that represent a mesh"""
+    """Item of the model that represents a prim"""
 
     def __init__(
         self,
         prim: "Usd.Prim",
-        reference_item: Optional["ItemReferenceFileMesh"],
-        parent: Union["ItemPrim", "ItemReferenceFileMesh"],
+        reference_item: Optional["ItemReferenceFile"],
+        parent: Union["ItemPrim", "ItemReferenceFile"],
         context_name: str,
         from_live_light_group: bool = False,
     ):
@@ -271,11 +278,11 @@ class ItemPrim(ui.AbstractItem):
         return bool(UsdGeom.Scope(self.prim))
 
     def __repr__(self):
-        return f'"{self.path}"'
+        return f"{self.__class__.__name__}('{self.path}')"
 
 
-class ItemReferenceFileMesh(ui.AbstractItem):
-    """Item of the model that represent a mesh"""
+class ItemReferenceFile(ui.AbstractItem):
+    """Item of the model that represents an asset file reference"""
 
     def __init__(
         self,
@@ -284,7 +291,7 @@ class ItemReferenceFileMesh(ui.AbstractItem):
         layer: "Sdf.Layer",
         ref_index: int,
         size_ref_index: int,
-        parent: "ItemMesh",
+        parent: "ItemAsset",
         context_name: str,
     ):
         super().__init__()
@@ -348,30 +355,31 @@ class ItemReferenceFileMesh(ui.AbstractItem):
         return self._child_prim_items
 
     def __repr__(self):
-        return f'"{self.path}"'
+        return f"{self.__class__.__name__}('{self.path}')"
 
 
-class ItemMesh(ui.AbstractItem):
-    """Item of the model that represent a mesh"""
+class ItemAsset(ui.AbstractItem):
+    """Item of the model that represents a captured asset prototype"""
 
     def __init__(self, prim: "Usd.Prim", instance_prims: List["Usd.Prim"], context_name: str):
         super().__init__()
+        # top prototype prim that references the original captured asset file
         self._prim = prim
         self._path = str(prim.GetPath())
         self._value_model = ui.SimpleStringModel(self._path)
 
-        self._add_new_reference_item = ItemAddNewReferenceFileMesh(self._prim, self)
+        self._add_new_reference_item = ItemAddNewReferenceFile(self._prim, self)
         self._add_new_live_light = ItemAddNewLiveLight(self._prim, self)
         self._live_light_group = ItemLiveLightGroup(self, context_name)
-        # instance also for light, to have a selected itme to show properties
-        self._instance_group_item = ItemInstancesMeshGroup(instance_prims, self)
+        # instance also for light, to have a selected item to show properties
+        self._instance_group_item = ItemInstancesGroup(instance_prims, self)
         prim_paths, total_ref = self.__reference_file_paths(self._prim)
         self._reference_items = [
-            ItemReferenceFileMesh(_prim, ref, layer, i, total_ref, self, context_name)
+            ItemReferenceFile(_prim, ref, layer, i, total_ref, self, context_name)
             for _prim, ref, layer, i in prim_paths
         ]
 
-    def is_light(self):
+    def is_light(self) -> bool:
         regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
         return bool(regex_pattern.match(self._path))
 
@@ -438,7 +446,20 @@ class ItemMesh(ui.AbstractItem):
         return prim_paths, i
 
     def __repr__(self):
-        return f'"{self.path}"'
+        return f"{self.__class__.__name__}('{self.path}')"
+
+
+# list of concrete item types
+AnyItemType: TypeAlias = Union[
+    ItemAsset,
+    ItemReferenceFile,
+    ItemAddNewReferenceFile,
+    ItemAddNewLiveLight,
+    ItemLiveLightGroup,
+    ItemInstancesGroup,
+    ItemInstance,
+    ItemPrim,
+]
 
 
 class ListModel(ui.AbstractItemModel):
@@ -455,12 +476,12 @@ class ListModel(ui.AbstractItemModel):
         }
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
-        self.__children = []
-        self.__children_last_get_all_items = []
-        self.__children_last_get_all_items_last_result = []
-        self.__children_last_get_all_items_by_type = []
-        self.__children_last_get_all_items_by_type_result = {}
-        self._stage = None
+        self.__children: list[ItemAsset] = []
+        self.__children_last_get_all_items: list[ItemAsset] = []
+        self.__children_last_get_all_items_last_result: list[AnyItemType] = []
+        self.__children_last_get_all_items_by_type: list[ItemAsset] = []
+        self.__children_last_get_all_items_by_type_result: dict[type[AnyItemType], list[AnyItemType]] = {}
+        self._stage: Usd.Stage | None = None
         self._ignore_refresh = False
         self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
@@ -661,7 +682,7 @@ class ListModel(ui.AbstractItemModel):
             """
             return [atoi(c) for c in split_re.split(text)]
 
-        mesh_items = []
+        asset_items: list[ItemAsset] = []
         if self.stage:
             paths = self._context.get_selection().get_selected_prim_paths()
             if paths:
@@ -679,38 +700,20 @@ class ListModel(ui.AbstractItemModel):
                 for mesh in meshes:
                     mesh_prim = self.stage.GetPrimAtPath(mesh)
                     sdf_mesh_path = mesh_prim.GetPath()
-                    mesh_items.append(
-                        ItemMesh(
+                    asset_items.append(
+                        ItemAsset(
                             mesh_prim,
                             sorted(instances_data.get(sdf_mesh_path, []), key=lambda x: natural_keys(x.GetName())),
                             self._context_name,
                         )
                     )
-        self.__children = mesh_items
+        self.__children = asset_items
         self._item_changed(None)
 
     def get_item_children_type(
         self,
-        item_type: Type[
-            Union[
-                ItemMesh,
-                ItemReferenceFileMesh,
-                ItemAddNewReferenceFileMesh,
-                ItemInstancesMeshGroup,
-                ItemInstanceMesh,
-                ItemPrim,
-            ]
-        ],
-    ) -> List[
-        Union[
-            ItemMesh,
-            ItemReferenceFileMesh,
-            ItemAddNewReferenceFileMesh,
-            ItemInstancesMeshGroup,
-            ItemInstanceMesh,
-            ItemPrim,
-        ]
-    ]:
+        item_type: Type[AnyItemType],
+    ) -> List[AnyItemType]:
         result = []
 
         def get_children(_items):
@@ -724,34 +727,9 @@ class ListModel(ui.AbstractItemModel):
 
     def get_first_item_parent_type(
         self,
-        item: Union[
-            ItemMesh,
-            ItemReferenceFileMesh,
-            ItemAddNewReferenceFileMesh,
-            ItemInstancesMeshGroup,
-            ItemInstanceMesh,
-            ItemPrim,
-        ],
-        item_type: Type[
-            Union[
-                ItemMesh,
-                ItemReferenceFileMesh,
-                ItemAddNewReferenceFileMesh,
-                ItemInstancesMeshGroup,
-                ItemInstanceMesh,
-                ItemPrim,
-            ]
-        ],
-    ) -> Optional[
-        Union[
-            ItemMesh,
-            ItemReferenceFileMesh,
-            ItemAddNewReferenceFileMesh,
-            ItemInstancesMeshGroup,
-            ItemInstanceMesh,
-            ItemPrim,
-        ]
-    ]:
+        item: AnyItemType,
+        item_type: Type[AnyItemType],
+    ) -> Optional[AnyItemType]:
         def get_parent(_item):
             if isinstance(_item, item_type):
                 return _item
@@ -777,13 +755,14 @@ class ListModel(ui.AbstractItemModel):
         self.__children_last_get_all_items_last_result = result
         return result
 
-    def get_all_items_by_type(self):
+    def get_all_items_by_type(self) -> dict[type[AnyItemType], list[AnyItemType]]:
+        """Recursively get all items by type"""
         # opti cache
         if self.__children == self.__children_last_get_all_items_by_type:
             return self.__children_last_get_all_items_by_type_result
         result = {}
 
-        def get_children(_items):
+        def get_children(_items: list[AnyItemType]):
             for item in _items:
                 typ = type(item)
                 if typ not in result:
@@ -796,11 +775,11 @@ class ListModel(ui.AbstractItemModel):
         self.__children_last_get_all_items_by_type_result = result
         return result
 
-    def get_item_children(self, item):
+    def get_item_children(self, item: AnyItemType = None) -> List[AnyItemType]:
         """Returns all the children when the widget asks it."""
         if item is None:
             return self.__children
-        if isinstance(item, ItemMesh):
+        if isinstance(item, ItemAsset):
             result = []
             if not item.is_light():
                 result = item.reference_items + [item.add_new_reference_item]
@@ -812,9 +791,9 @@ class ListModel(ui.AbstractItemModel):
             return result
         if isinstance(item, ItemLiveLightGroup):
             return item.lights
-        if isinstance(item, ItemInstancesMeshGroup):
+        if isinstance(item, ItemInstancesGroup):
             return item.instances
-        if isinstance(item, (ItemReferenceFileMesh, ItemPrim)):
+        if isinstance(item, (ItemReferenceFile, ItemPrim)):
             return item.child_prim_items
         return []
 
