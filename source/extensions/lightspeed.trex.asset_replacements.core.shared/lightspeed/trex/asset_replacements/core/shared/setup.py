@@ -48,9 +48,9 @@ from omni.usd.commands import remove_prim_spec as _remove_prim_spec
 from pxr import Sdf, Usd, UsdGeom, UsdShade, UsdSkel
 
 if typing.TYPE_CHECKING:
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
+    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstance as _ItemInstance
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
-        ItemReferenceFileMesh as _ItemReferenceFileMesh,
+        ItemReferenceFile as _ItemReferenceFile,
     )
 
 from .data_models import (
@@ -269,7 +269,7 @@ class Setup:
         stage,
         from_prim,
         from_reference_layer_path,
-        instance_items: list["_ItemInstanceMesh"],
+        instance_items: list["_ItemInstance"],
         only_xformable: bool = False,
         only_imageable: bool = False,
         filter_scope_prim_without_imageable: bool = False,
@@ -423,8 +423,8 @@ class Setup:
 
     def get_prim_from_ref_items(
         self,
-        ref_items: list["_ItemReferenceFileMesh"],
-        parent_items: list[Union["_ItemInstanceMesh", "_ItemReferenceFileMesh"]],
+        ref_items: list["_ItemReferenceFile"],
+        parent_items: list[Union["_ItemInstance", "_ItemReferenceFile"]],
         only_xformable: bool = False,
         only_imageable: bool = False,
         level: Optional[int] = None,

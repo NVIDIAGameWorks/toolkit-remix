@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3113: Parallel process count dropdown for ingestion
 - REMIX-3583: Added tests for the Feature Flags system
 - Added a tutorial on how to use the REST API to build a Blender Add-On
+- REMIX-3600: Selection panel behavior improvements and fixes
 
 ### Changed
 - Updated runtime to 0.6.0-rc2
@@ -61,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix `append_reference_with_data_model` crash for the Rest API
 - REMIX-3602: Fix most important performance issues with the Stage Manager
 - Clear all listeners when disabling the Stage Manager feature flag
+- REMIX-3565: Fixed icon display for lights in selection panel
 
 ### Removed
 

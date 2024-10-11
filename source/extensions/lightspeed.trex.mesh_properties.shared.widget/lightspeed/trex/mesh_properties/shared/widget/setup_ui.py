@@ -29,14 +29,10 @@ import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.asset_replacements.core.shared.usd_copier import copy_usd_asset as _copy_usd_asset
-from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
-from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
-    ItemInstancesMeshGroup as _ItemInstancesMeshGroup,
-)
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstance as _ItemInstance
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstancesGroup as _ItemInstancesGroup
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemPrim as _ItemPrim
-from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
-    ItemReferenceFileMesh as _ItemReferenceFileMesh,
-)
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemReferenceFile as _ItemReferenceFile
 from lightspeed.trex.utils.common.file_utils import (
     is_usd_file_path_valid_for_filepicker as _is_usd_file_path_valid_for_filepicker,
 )
@@ -52,9 +48,9 @@ from pxr import Sdf, UsdGeom, UsdLux
 
 if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
-        ItemAddNewReferenceFileMesh as _ItemAddNewReferenceFileMesh,
+        ItemAddNewReferenceFile as _ItemAddNewReferenceFileMesh,
     )
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemMesh as _ItemMesh
+    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemAsset as _ItemAsset
 
 
 class SetupUI:
@@ -79,7 +75,7 @@ class SetupUI:
             "_only_read_mesh_ref": False,
             "_from_mesh_ref_checkbox": False,
             "_core": None,
-            "_current_reference_file_mesh_items": None,
+            "_current_reference_file_items": None,
             "_sub_mesh_ref_field_changed": None,
             "_sub_mesh_ref_prim_field_changed": None,
             "_sub_mesh_ref_default_prim_checkbox_changed": None,
@@ -101,7 +97,7 @@ class SetupUI:
         self._mesh_properties_frames = {}
         self.__ignore_ingest_check = False
         self.__ref_mesh_field_is_editing = False
-        self._current_reference_file_mesh_items = []
+        self._current_reference_file_items = []
         self._current_instance_items = []
         self.__will_change_prim_field = False
 
@@ -134,7 +130,7 @@ class SetupUI:
                             ui.Spacer()
                         ui.Spacer(height=0)
             self._frame_mesh_ref = ui.Frame(visible=False, identifier="frame_mesh_ref")
-            self._mesh_properties_frames[_ItemReferenceFileMesh] = self._frame_mesh_ref
+            self._mesh_properties_frames[_ItemReferenceFile] = self._frame_mesh_ref
             with self._frame_mesh_ref:
                 with ui.VStack():
                     ui.Spacer(height=ui.Pixel(8))
@@ -276,11 +272,11 @@ class SetupUI:
         self,
         items: List[
             Union[
-                "_ItemMesh",
-                "_ItemReferenceFileMesh",
+                "_ItemAsset",
+                "_ItemReferenceFile",
                 "_ItemAddNewReferenceFileMesh",
-                "_ItemInstancesMeshGroup",
-                "_ItemInstanceMesh",
+                "_ItemInstancesGroup",
+                "_ItemInstance",
                 "_ItemPrim",
             ]
         ],
@@ -297,11 +293,11 @@ class SetupUI:
         if not found:
             self._mesh_properties_frames[None].visible = True
 
-        self._current_reference_file_mesh_items = [
-            item for item in items if isinstance(item, _ItemReferenceFileMesh) and item.prim.IsValid()
+        self._current_reference_file_items = [
+            item for item in items if isinstance(item, _ItemReferenceFile) and item.prim.IsValid()
         ]
         self._current_instance_items = [
-            item for item in items if isinstance(item, _ItemInstanceMesh) and item.prim.IsValid()
+            item for item in items if isinstance(item, _ItemInstance) and item.prim.IsValid()
         ]
         item_prims = [
             item
@@ -322,16 +318,18 @@ class SetupUI:
         item_light_instance_groups = [
             item
             for item in items
-            if isinstance(item, _ItemInstancesMeshGroup) and regex_light_pattern.match(item.parent.path)
+            if isinstance(item, _ItemInstancesGroup) and regex_light_pattern.match(item.parent.path)
         ]
-        if self._current_reference_file_mesh_items:
+        if self._current_reference_file_items:
             self._transformation_widget.show(False)
             self._property_widget.show(False)
+            # prefer ref properties if both present for consistency
+            self._mesh_properties_frames[_ItemPrim].visible = False
             # we take only the last value
             self._only_read_mesh_ref = True
             self.set_ref_mesh_field(
-                path=self._current_reference_file_mesh_items[-1].path,
-                layer=self._current_reference_file_mesh_items[-1].layer,
+                path=self._current_reference_file_items[-1].path,
+                layer=self._current_reference_file_items[-1].layer,
             )
             self._only_read_mesh_ref = False
             self._remix_categories_vstack.visible = False
@@ -466,7 +464,7 @@ class SetupUI:
 
         # Open the file picker to current asset location
         fallback = False
-        layer = self._current_reference_file_mesh_items[0].layer
+        layer = self._current_reference_file_items[0].layer
         stage = self._context.get_stage()
         if not navigate_to:
             if stage and not stage.GetRootLayer().anonymous:
@@ -549,19 +547,19 @@ class SetupUI:
         )
 
     def __set_ref_mesh_prim_field(self):
-        if not self._current_reference_file_mesh_items:
+        if not self._current_reference_file_items:
             return
 
         asset_path = self._mesh_ref_field.model.get_value_as_string()
-        layer = self._current_reference_file_mesh_items[-1].layer
+        layer = self._current_reference_file_items[-1].layer
         if self._only_read_mesh_ref:
             ref_prim_path = (
-                str(self._current_reference_file_mesh_items[-1].ref.primPath) or self._core.get_ref_default_prim_tag()
+                str(self._current_reference_file_items[-1].ref.primPath) or self._core.get_ref_default_prim_tag()
             )
         else:
             edit_target_layer = self._context.get_stage().GetEditTarget().GetLayer()
             ref_prim_path = self._core.get_reference_prim_path_from_asset_path(
-                asset_path, layer, edit_target_layer, self._current_reference_file_mesh_items[-1].ref
+                asset_path, layer, edit_target_layer, self._current_reference_file_items[-1].ref
             )
         prim_path_is_default = self._core.ref_prim_path_is_default_prim(ref_prim_path)
         self._mesh_ref_prim_field.model.set_value(ref_prim_path)
@@ -578,9 +576,9 @@ class SetupUI:
             self._mesh_ref_prim_field.model.set_value(self._core.get_ref_default_prim_tag())
         else:
             asset_path = self._mesh_ref_field.model.get_value_as_string()
-            layer = self._current_reference_file_mesh_items[-1].layer
+            layer = self._current_reference_file_items[-1].layer
             ref_prim_path = self._core.get_reference_prim_path_from_asset_path(
-                asset_path, layer, layer, self._current_reference_file_mesh_items[-1].ref, can_return_default=False
+                asset_path, layer, layer, self._current_reference_file_items[-1].ref, can_return_default=False
             )
             self._mesh_ref_prim_field.model.set_value(ref_prim_path)
         self._from_mesh_ref_checkbox = False
@@ -589,7 +587,7 @@ class SetupUI:
         self._ignore_mesh_ref_field_changed = True
         self._only_read_mesh_ref = True
         self.set_ref_mesh_field(
-            path=self._current_reference_file_mesh_items[-1].path,
+            path=self._current_reference_file_items[-1].path,
             change_prim_field=False,
         )
         self._ignore_mesh_ref_field_changed = False
@@ -646,7 +644,7 @@ class SetupUI:
         will_change_prim_field = bool(self.__will_change_prim_field)
         self._overlay_mesh_ref_label.visible = not bool(path.strip())
         is_abs = self._core.is_absolute_path(path)
-        layer = self._current_reference_file_mesh_items[0].layer
+        layer = self._current_reference_file_items[0].layer
         abs_path = omni.client.normalize_url(layer.ComputeAbsolutePath(path))
         set_new_ref = True
         # If read mode, we don't change the path.
@@ -657,7 +655,7 @@ class SetupUI:
                 path = self._core.switch_ref_abs_to_rel_path(self._context.get_stage(), path)
             else:  # If the path is relative, we regenerate it relative to the edit layer
                 if self._from_mesh_ref_checkbox and self._mesh_ref_field_valid:
-                    layer = self._current_reference_file_mesh_items[0].layer
+                    layer = self._current_reference_file_items[0].layer
                 else:
                     layer = self._context.get_stage().GetEditTarget().GetLayer()
                 abs_path = omni.client.normalize_url(layer.ComputeAbsolutePath(path))
@@ -697,8 +695,8 @@ class SetupUI:
                 self._only_read_mesh_ref = True
             self._ignore_mesh_ref_field_changed = False
             self.set_ref_mesh_field(
-                path=self._current_reference_file_mesh_items[-1].path,
-                layer=self._current_reference_file_mesh_items[-1].layer,
+                path=self._current_reference_file_items[-1].path,
+                layer=self._current_reference_file_items[-1].layer,
             )
             if not only_read_mesh_ref_was_true:
                 self._only_read_mesh_ref = False
@@ -706,7 +704,7 @@ class SetupUI:
 
     def __is_ref_field_path_valid(self, path) -> bool:
         if self._only_read_mesh_ref or self._from_mesh_ref_checkbox:
-            layer = self._current_reference_file_mesh_items[0].layer
+            layer = self._current_reference_file_items[0].layer
         else:
             layer = self._context.get_stage().GetEditTarget().GetLayer()
         if not self._core.is_file_path_valid(path, layer, log_error=False):
@@ -719,7 +717,7 @@ class SetupUI:
 
     def __is_ref_prim_field_path_valid(self, path, prim_path) -> bool:
         if self._only_read_mesh_ref or self._from_mesh_ref_checkbox:
-            layer = self._current_reference_file_mesh_items[0].layer
+            layer = self._current_reference_file_items[0].layer
         else:
             layer = self._context.get_stage().GetEditTarget().GetLayer()
         if not self._core.is_ref_prim_path_valid(path, prim_path, layer, log_error=False):
@@ -731,9 +729,9 @@ class SetupUI:
     def set_new_usd_reference(self):
         with omni.kit.undo.group():
             stage = self._context.get_stage()
-            prim_path = self._current_reference_file_mesh_items[-1].prim.GetPath()
-            current_ref = self._current_reference_file_mesh_items[-1].ref
-            current_layer = self._current_reference_file_mesh_items[-1].layer
+            prim_path = self._current_reference_file_items[-1].prim.GetPath()
+            current_ref = self._current_reference_file_items[-1].ref
+            current_layer = self._current_reference_file_items[-1].layer
 
             # first we delete the ref
             self._core.remove_reference(stage, prim_path, current_ref, current_layer, remove_if_remix_ref=False)

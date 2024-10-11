@@ -1,6 +1,22 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Added
+- Use specific icons for light types
+- Added more info to tooltips
+
+### Changed
+- Made it harder to unintentionally deselect via the selection panel
+- Applied Group selection behavior to both group types
+- Cleaned up selection expansion logic and add typing
+- Made it so clicking top group has no side effect since it can't be selected
+
+### Fixed
+- Fixed behavior where panel was not cleared completely on model change
+- Fixed bug where add light button was triggered by shift selecting across it
+- Only show light prims under "stage lights"
+
 ## [1.3.3]
 ### Fixed
 - Fixed case where signals emitted before secondary selection was cleared on model change.

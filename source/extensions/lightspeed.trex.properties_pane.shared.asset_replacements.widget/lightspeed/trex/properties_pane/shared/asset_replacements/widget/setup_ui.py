@@ -29,11 +29,9 @@ from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshProper
 from lightspeed.trex.replacement.core.shared import Setup as _AssetReplacementCore
 from lightspeed.trex.replacement.core.shared.layers import AssetReplacementLayersCore as _AssetReplacementLayersCore
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
-from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstanceMesh as _ItemInstanceMesh
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstance as _ItemInstance
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemPrim as _ItemPrim
-from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
-    ItemReferenceFileMesh as _ItemReferenceFileMesh,
-)
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemReferenceFile as _ItemReferenceFile
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui
 from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as _UsdBookmarkCollectionModel
@@ -238,7 +236,7 @@ class AssetReplacementsPane:
                                 collapsed=False,
                                 pinnable=True,
                                 pinned_text_fn=lambda: self._get_selection_name_by_type(
-                                    [_ItemReferenceFileMesh, _ItemPrim, _ItemInstanceMesh]
+                                    [_ItemReferenceFile, _ItemPrim, _ItemInstance]
                                 ),
                                 unpinned_fn=self._refresh_mesh_properties_widget,
                             )
