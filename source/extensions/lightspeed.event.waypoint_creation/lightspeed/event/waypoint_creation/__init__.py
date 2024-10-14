@@ -15,6 +15,6 @@
 * limitations under the License.
 """
 
-__all__ = ["EventWaypointGameCameraExtension"]
+__all__ = ["EventWaypointCreationExtension"]
 
-from .extension import EventWaypointGameCameraExtension
+from .extension import EventWaypointCreationExtension
