@@ -1,12 +1,12 @@
 [package]
-version = "1.1.2"
+version = "2.0.0"
 authors = ["Shona Gillard <sgillard@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
 keywords = ["event", "waypoint"]
-title = "Lightspeed Event Waypoint Game Camera"
-description = "Extension that creates a waypoint for the game camera"
+title = "Lightspeed Event Waypoint Creation"
+description = "Extension that creates a waypoint for the game camera and manages other waypoints"
 icon = "data/icon.png"
 category = "internal"
 preview_image = "data/preview.png"
@@ -19,7 +19,7 @@ preview_image = "data/preview.png"
 "omni.kit.waypoint.core" = {}
 
 [[python.module]]
-name = "lightspeed.event.waypoint_game_camera"
+name = "lightspeed.event.waypoint_creation"
 
 [[test]]
 dependencies = [

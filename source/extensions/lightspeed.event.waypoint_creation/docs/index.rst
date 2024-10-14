@@ -1,4 +1,4 @@
-lightspeed.event.waypoint_game_camera
+lightspeed.event.waypoint_creation
 ################################
 
 
