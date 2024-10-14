@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3583: Added tests for the Feature Flags system
 - Added a tutorial on how to use the REST API to build a Blender Add-On
 - REMIX-3600: Selection panel behavior improvements and fixes
+- REMIX-3576: Implement auto scroll to selection behavior for Stage Manager
 
 ### Changed
 - Updated runtime to 0.6.0-rc2

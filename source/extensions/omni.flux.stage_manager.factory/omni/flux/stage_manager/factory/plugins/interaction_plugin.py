@@ -69,6 +69,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     _row_background_frame: ui.Frame | None = PrivateAttr(None)
     _tree_frame: ui.Frame | None = PrivateAttr(None)
     _tree_widget: _TreeWidget | None = PrivateAttr(None)
+    _tree_scroll_frame: ui.Frame | None = PrivateAttr(None)
 
     _context: _StageManagerContextPlugin | None = PrivateAttr(None)
 
@@ -86,6 +87,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     _draw_row_background_task: Future | None = PrivateAttr(None)
     _update_expansion_task: Future | None = PrivateAttr(None)
+    _update_scroll_frame_task: Future | None = PrivateAttr(None)
 
     _is_initialized: bool = PrivateAttr(False)
     _is_active: bool = PrivateAttr(False)
@@ -131,6 +133,14 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         Whether the tree should select all children items when selecting a parent item or not
         """
         return False
+
+    @classmethod
+    @property
+    def _scroll_to_selection(cls) -> bool:
+        """
+        Whether the tree should scroll to the first item in the selection when selection changes
+        """
+        return True
 
     @classmethod
     @property
@@ -266,7 +276,8 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 with ui.ZStack():
                     with ui.VStack():
                         # Tree UI
-                        with ui.ScrollingFrame(name="TreePanelBackground"):
+                        self._tree_scroll_frame = ui.ScrollingFrame(name="TreePanelBackground")
+                        with self._tree_scroll_frame:
                             with ui.ZStack():
                                 self._row_background_frame = ui.Frame(vertical_clipping=True, separate_window=True)
                                 self._tree_frame = ui.ZStack(content_clipping=True)
@@ -510,6 +521,53 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             if not item:
                 continue
             self._tree_widget.set_expanded(item, expanded, False)
+
+    def _update_scroll_frame(self):
+        """
+        Fire and forget the `_update_scroll_frame_deferred` function
+        """
+        if not self._scroll_to_selection:
+            return
+
+        if self._update_scroll_frame_task:
+            self._update_scroll_frame_task.cancel()
+        self._update_scroll_frame_task = ensure_future(self._update_scroll_frame_deferred())
+
+    @omni.usd.handle_exception
+    async def _update_scroll_frame_deferred(self):
+        """
+        Wait 2 frame, then update the scroll frame to display selection
+        """
+        # make sure this occurs after tree items have been expanded
+        for _ in range(2):
+            await omni.kit.app.get_app().next_update_async()
+
+        # Scroll to first item in selection
+        self._scroll_to_items(self._tree_widget.selection)
+
+    def _scroll_to_items(self, items: Iterable[_StageManagerTreeItem], center_ratio: float = 0.2):
+        """
+        Scroll to reveal the first item in `items`.
+
+        Args:
+            center_ratio: where to frame first item (0.0: top, 0.5: center, 1.0: bottom)
+        """
+        if not self._tree_scroll_frame:
+            return
+
+        items = set(items)
+        for i, child in enumerate(self._tree_widget.iter_visible_children()):
+            if child in items:
+                idx_item = i
+                break
+        else:
+            return
+
+        # find out how far down the first item's center is
+        scroll_y = (idx_item + 0.5) * self.tree.delegate.row_height
+        # since that would scroll to the item, subtract some height to center the item
+        target_from_top = self._tree_scroll_frame.computed_content_height * center_ratio
+        self._tree_scroll_frame.scroll_y = scroll_y - target_from_top
 
     def destroy(self):
         if self._draw_row_background_task:
