@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import abc
 from typing import TYPE_CHECKING, Callable
 
@@ -33,8 +35,8 @@ if TYPE_CHECKING:
 class TreeWidget(ui.TreeView):
     def __init__(
         self,
-        model: "_TreeModelBase",
-        delegate: "_TreeDelegateBase",
+        model: _TreeModelBase,
+        delegate: _TreeDelegateBase,
         select_all_children: bool = True,
         validate_action_selection: bool = True,
         **kwargs,
@@ -74,11 +76,10 @@ class TreeWidget(ui.TreeView):
             "_model": None,
             "_delegate": None,
             "_select_all_children": None,
-            "_update_right_click_selection": None,
             "_sub_selection_changed": None,
         }
 
-    def _on_item_clicked(self, should_validate: bool, model: "_TreeModelBase", item: "_TreeItemBase"):
+    def _on_item_clicked(self, should_validate: bool, model: _TreeModelBase, item: _TreeItemBase):
         """
         This makes sure the right-clicked items is in the selection
         """
@@ -93,7 +94,7 @@ class TreeWidget(ui.TreeView):
             self._delegate.selection = to_select
 
     @_limit_recursion()
-    def on_selection_changed(self, items: list["_TreeItemBase"]):
+    def on_selection_changed(self, items: list[_TreeItemBase]):
         """
         Function to be called whenever the tree widget selection widget changes (`set_selection_changed_fn`).
 
@@ -113,8 +114,30 @@ class TreeWidget(ui.TreeView):
 
         self.__on_selection_changed(self.selection)
 
-    def subscribe_selection_changed(self, callback: Callable[[list["_TreeItemBase"]], None]) -> _EventSubscription:
+    def subscribe_selection_changed(self, callback: Callable[[list[_TreeItemBase]], None]) -> _EventSubscription:
         return _EventSubscription(self.__on_selection_changed, callback)
+
+    def iter_visible_children(self, items=None, recursive: bool = True):
+        """
+        Iterate through expanded children of items
+
+        Args:
+            items: The collection of items to get children from
+            recursive: Whether to get the children recursively or only the direct children
+        """
+        if items is None:
+            # top items are always visible
+            items = list(self._model.get_item_children(item=None))
+            yield from items
+            if not recursive:
+                return
+
+        for item in items:
+            if self.is_expanded(item):
+                for child in self._model.get_item_children(item=item):
+                    yield child
+                    if recursive:
+                        yield from self.iter_visible_children(items=[child], recursive=recursive)
 
     def destroy(self):
         _reset_default_attrs(self)

@@ -235,6 +235,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
 
         self._tree_widget.selection = self.tree.model.find_items(lambda item: is_selected_item(selection, item))
         self._update_expansion_states()
+        self._update_scroll_frame()
 
     def _on_selection_changed(self, items):
         if self._selection_update_lock or not self.synchronize_selection:
