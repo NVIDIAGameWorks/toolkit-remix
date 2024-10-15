@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.1] - 2024-10-14
+### Fixed
+- Added missing deps
+
 ## [2.0.0] - 2024-09-05
 ### Changed
 - Module name from `lightspeed.event.waypoint_game_camera` to `lightspeed.event.waypoint_creation`
