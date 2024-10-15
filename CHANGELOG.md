@@ -47,7 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated runtime to 0.6.0-rc2
+- Updated runtime to 0.6.0-rc3
 - Updated hdremix to a1863ffe
+- Updated hdremix to e57c4c6
 - Renamed `Feature Flags` to `Experimental Features`
 
 ### Fixed
