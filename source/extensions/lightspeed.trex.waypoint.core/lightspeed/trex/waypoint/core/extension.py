@@ -51,7 +51,6 @@ class WaypointExtension(omni.ext.IExt):
         try:
             self.waypoint_obj = get_waypoint_instance()
             self.waypoint_obj.set_viewport_widget(get_viewport_api(context_name))
-            self.waypoint_obj.hide_in_stage_window_disabled = True
             self.waypoint_obj.set_main_window_name(_WINDOW_NAME)
         except TypeError:
             self.waypoint_obj = None

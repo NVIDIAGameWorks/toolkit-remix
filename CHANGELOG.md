@@ -66,7 +66,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3602: Fix most important performance issues with the Stage Manager
 - Clear all listeners when disabling the Stage Manager feature flag
 - REMIX-3565: Fixed icon display for lights in selection panel
-- REMIX-3072: Fix waypoint startup bug now waypoint operations occur on project the layer
 
 ### Removed
 

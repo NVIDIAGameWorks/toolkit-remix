@@ -20,10 +20,10 @@ import omni.ext
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
-from .core import WaypointCreationCore
+from .core import WaypointGameCameraCore
 
 
-class EventWaypointCreationExtension(omni.ext.IExt):
+class EventWaypointGameCameraExtension(omni.ext.IExt):
     """Standard extension support class, necessary for extension management"""
 
     def __init__(self, *args, **kwargs):
@@ -35,11 +35,11 @@ class EventWaypointCreationExtension(omni.ext.IExt):
 
     # noinspection PyUnusedLocal
     def on_startup(self, ext_id):
-        carb.log_info("[lightspeed.event.waypoint_creation] Lightspeed Event Validate Project startup")
-        self._core = WaypointCreationCore()
+        carb.log_info("[lightspeed.event.waypoint_game_camera] Lightspeed Event Validate Project startup")
+        self._core = WaypointGameCameraCore()
         _get_event_manager_instance().register_event(self._core)
 
     def on_shutdown(self):
-        carb.log_info("[lightspeed.event.waypoint_creation] Lightspeed Events Validate Project shutdown")
+        carb.log_info("[lightspeed.event.waypoint_game_camera] Lightspeed Events Validate Project shutdown")
         _get_event_manager_instance().unregister_event(self._core)
         _reset_default_attrs(self)
