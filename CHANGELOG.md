@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [2024.5.0-RC.2]
+
+### Added
 - Create 2024.4.1 build
 - REMIX-2988: Added manual CI test to measure app startup times
 - REMIX-3401: Added Centralized Generic factory
