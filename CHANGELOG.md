@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated hdremix to e57c4c6
 - Renamed `Feature Flags` to `Experimental Features`
 - Updated Nucleus Registry accounts
+- Updated Repo Tools to the latest public versions
 
 ### Fixed
 - REMIX-3401: Fixed hot-reload by allowing reuse of validators
