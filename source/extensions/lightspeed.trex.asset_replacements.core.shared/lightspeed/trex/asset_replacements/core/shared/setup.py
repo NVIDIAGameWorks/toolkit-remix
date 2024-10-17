@@ -97,7 +97,7 @@ class Setup:
 
         selection = None
         if query.return_selection:
-            selection = _get_extended_selection(self._context_name)
+            selection = _get_extended_selection(context_name=self._context_name)
 
         for prim_type in query.asset_types if query.asset_types is not None else [None]:
             prim_paths += _get_prim_paths(
@@ -119,12 +119,12 @@ class Setup:
         self, params: PrimTexturesPathParamModel, query: GetTexturesQueryModel
     ) -> TexturesResponseModel:
         return TexturesResponseModel(
-            textures=self.get_textures_from_material_path(params.asset_path, query.texture_types)
+            textures=self.get_textures_from_material_path(params.asset_path, texture_types=query.texture_types)
         )
 
     def get_reference_with_data_model(self, params: PrimReferencePathParamModel) -> ReferenceResponseModel:
         stage = self._context.get_stage()
-        prim = stage.GetPrimAtPath(params.asset_path)
+        prim = stage.GetPrimAtPath(str(params.asset_path))
 
         references = omni.usd.get_composed_references_from_prim(prim)
 
@@ -143,15 +143,17 @@ class Setup:
             if body.existing_asset_layer_id and body.existing_asset_file_path:
                 current_layer = Sdf.Layer.FindOrOpen(str(body.existing_asset_layer_id))
                 current_ref = Sdf.Reference(
-                    assetPath=_OmniUrl(body.existing_asset_file_path).path, primPath=params.asset_path
+                    assetPath=_OmniUrl(body.existing_asset_file_path).path, primPath=str(params.asset_path)
                 )
             else:
-                prim = stage.GetPrimAtPath(params.asset_path)
+                prim = stage.GetPrimAtPath(str(params.asset_path))
                 references = omni.usd.get_composed_references_from_prim(prim)
                 current_ref, current_layer = references[0]
 
             # Remove the existing reference
-            self.remove_reference(stage, params.asset_path, current_ref, current_layer, remove_if_remix_ref=False)
+            self.remove_reference(
+                stage, Sdf.Path(str(params.asset_path)), current_ref, current_layer, remove_if_remix_ref=False
+            )
 
             # Get the new reference prim path
             ref_prim_path = self.get_reference_prim_path_from_asset_path(
@@ -161,7 +163,7 @@ class Setup:
             # Add the new reference prim path
             reference, child_prim_path = self.add_new_reference(
                 stage,
-                params.asset_path,
+                Sdf.Path(str(params.asset_path)),
                 self.switch_ref_abs_to_rel_path(stage, str(body.asset_file_path)),
                 ref_prim_path,
                 edit_target_layer,
