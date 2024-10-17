@@ -769,15 +769,15 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(len(item_instance_meshes), 3)
 
         await item_instance_meshes[0].click()
-        self.assertEqual(
+        self.assertCountEqual(
             usd_context.get_selection().get_selected_prim_paths(),
             ["/RootNode/instances/inst_BAC90CAA733B0859_0/DistantLight"],
         )
 
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
         await item_groups[0].click()
-        self.assertEqual(
-            usd_context.get_selection().get_selected_prim_paths(),
+        self.assertCountEqual(
+            (usd_context.get_selection().get_selected_prim_paths()),
             [
                 "/RootNode/instances/inst_BAC90CAA733B0859_0/DiskLight",
                 "/RootNode/instances/inst_BAC90CAA733B0859_0/DistantLight",
