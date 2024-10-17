@@ -69,6 +69,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clear all listeners when disabling the Stage Manager feature flag
 - REMIX-3565: Fixed icon display for lights in selection panel
 - Fix `replace_reference_with_data_model` crash for the Rest API
+- REMIX-3072: Fix waypoint startup bug now waypoint operations occur on project the layer
+- Added missing waypoint event extension deps
+- REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs
 
 ### Removed
 

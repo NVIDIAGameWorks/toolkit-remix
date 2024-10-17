@@ -281,3 +281,55 @@ class TestModSetupWidget(AsyncTestCase):
             file_browser.widget.destroy()
 
             await self.__destroy(_window, _wid)
+
+    async def test_capture_window_hover(self):
+        context = omni.usd.get_context()
+        async with make_temp_directory(context) as temp_dir:
+            # Setup
+            example_dir = _get_test_data("usd/project_example")
+            shutil.copytree(example_dir, f"{temp_dir.name}/project_example")
+            dir_path = Path(temp_dir.name)
+            file_name = "test.usda"
+            layer_path = dir_path / "project_example" / file_name
+            layer_path.touch()
+            layer_path.write_text("#usda 1.0")
+            await open_stage(f"{temp_dir.name}/project_example/combined.usda")
+            _window, _wid = await self.__setup_widget("test_mod_file_import_invalid")  # Keep in memory during test
+            await ui_test.human_delay(human_delay_speed=80)
+
+            # Make sure we have the capture window and it's not visible.
+            capture_window = ui_test.find("Capture tree window")
+            self.assertIsNotNone(capture_window)
+            self.assertFalse(capture_window.widget.visible)
+
+            # Hover over the capture file to make the capture window visible.
+            capture_item = ui_test.find(f"{_window.title}//Frame/**/Label[*].identifier=='item_title'")
+            await ui_test.emulate_mouse_move(capture_item.position)
+            await ui_test.human_delay(80)
+
+            self.assertTrue(capture_window.widget.visible)
+
+            # Make sure when interacting with the capture dir field, the behavior remains by moving over
+            # the capture window a few times.
+            capture_dir_field = ui_test.find(f"{_window.title}//Frame/**/StringField[*].name=='CapturePathField'")
+            click_pos = ui_test.Vec2(
+                capture_dir_field.widget.screen_position_x + 10, capture_dir_field.widget.screen_position_y + 5
+            )
+            await ui_test.emulate_mouse_move_and_click(click_pos)
+            await ui_test.human_delay(5)
+            await ui_test.emulate_mouse_move(capture_item.position)
+
+            self.assertTrue(capture_window.widget.visible)
+
+            capture_dir_label = ui_test.find(f"{_window.title}//Frame/**/Label[*].text=='Capture'")
+            await ui_test.emulate_mouse_move_and_click(capture_dir_label.position)
+            await ui_test.human_delay(5)
+
+            self.assertFalse(capture_window.widget.visible)
+
+            await ui_test.emulate_mouse_move(capture_item.position)
+            await ui_test.human_delay(5)
+
+            self.assertTrue(capture_window.widget.visible)
+
+            await self.__destroy(_window, _wid)
