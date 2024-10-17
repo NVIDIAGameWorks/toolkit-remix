@@ -980,6 +980,10 @@ class ModSetupPane:
         self.__last_capture_field_value = path
         self.refresh_capture_detail_panel()
 
+        # Sometimes, the capture field change happens in the middle of the hover process for the
+        # capture tree window. If this isn't set back to False, it'll no longer trigger the hover action.
+        self.__ignore_capture_tree_hovered = False
+
     @_ignore_function_decorator(attrs=["_ignore_mod_file_field_changed"])
     def _on_mod_file_field_changed(self, model):
         path = model.get_value_as_string()
@@ -988,6 +992,8 @@ class ModSetupPane:
         self.refresh_mod_detail_panel()
 
     def _destroy_capture_properties(self):
+        if self._window_capture_tree:
+            self._window_capture_tree.visible = False
         if self.__file_listener_instance and self._capture_details_model and self._capture_details_delegate:
             self.__file_listener_instance.remove_model(self._capture_details_model)
         if self._capture_tree_hovered_task:
