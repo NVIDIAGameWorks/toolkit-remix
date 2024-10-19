@@ -488,6 +488,7 @@ sphinx_exclude_patterns = [
     "source/extensions/lightspeed.tool.material.*",
     "source/extensions/lightspeed.tool.octahedral_converter*",
     "source/extensions/lightspeed.trex.layout.*",
+    "source/extensions/lightspeed.trex.stage_manager.plugin.widget.usd*",  # Excluded to avoid viewports import doc build failure
     "source/extensions/lightspeed.trex.viewports.shared.*",  # Kit is Executing extension-logic at the module-level which crashes docs generation
     "source/extensions/lightspeed.upscale.*",
     "source/extensions/lightspeed.widget.content_viewer*",

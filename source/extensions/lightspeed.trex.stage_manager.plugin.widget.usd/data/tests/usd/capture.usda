@@ -1,0 +1,98 @@
+#usda 1.0
+(
+    customLayerData = {
+        dictionary cameraSettings = {
+            dictionary Front = {
+                double3 position = (500, 0, 0)
+                double radius = 500
+            }
+            dictionary Perspective = {
+                double3 position = (500, 500, 500)
+                double3 target = (-0.000003978038705554354, -0.000003978038478180679, 0.000007956076956361358)
+            }
+            dictionary Right = {
+                double3 position = (0, -500, 0)
+                double radius = 500
+            }
+            dictionary Top = {
+                double3 position = (0, 0, 500)
+                double radius = 500
+            }
+            string boundCamera = "/RootNode/Camera"
+        }
+        string lightspeed_layer_type = "capture"
+    }
+    defaultPrim = "RootNode"
+    endTimeCode = 0
+    metersPerUnit = 1
+    startTimeCode = 0
+    timeCodesPerSecond = 24
+    upAxis = "Z"
+)
+
+def "RootNode"
+{
+    def "meshes"
+    {
+        def Sphere "mesh_one"
+        {
+            def SphereLight "SphereLight" (
+                prepend apiSchemas = ["ShapingAPI"]
+            )
+            {
+                float3[] extent = [(-5, -5, -5), (5, 5, 5)]
+                float inputs:intensity = 100
+                float inputs:radius = 5
+                float inputs:shaping:cone:angle = 180
+                float inputs:shaping:cone:softness
+                float inputs:shaping:focus
+                color3f inputs:shaping:focusTint
+                asset inputs:shaping:ies:file
+                double3 xformOp:rotateXYZ = (90, 0, 90)
+                double3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0, 0, 292.11800703265476)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+            }
+        }
+    }
+
+    def "Looks"
+    {
+        def "mat_7546356AB6B4A5D2"
+        {
+            def "Shader"
+            {
+                asset inputs:diffuse_texture = @./assets/sample_asset.a.rtex.dds@ (
+                    customData = {
+                        asset default = @@
+                    }
+                    displayGroup = "Base Material"
+                    displayName = "Albedo/Opacity Map"
+                    doc = "The texture specifying the albedo value and the optional opacity value to use in the alpha channel"
+                    hidden = false
+                    renderType = "texture_2d"
+                )
+            }
+        }
+    }
+
+    def "instances"
+    {
+        def "inst_4381216431E468DC_1"
+        {
+            def Sphere "mesh"
+            {
+                custom string name = "random_instance_example"
+            }
+        }
+    }
+
+    def "Other"
+    {
+        def "some_random_prim"
+        {
+            custom string name = "this_is_some_random_useless_prim"
+        }
+    }
+}
+
