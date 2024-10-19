@@ -11,3 +11,4 @@
       export PATH="$PWD/tempbin:$PATH"
     - !reference [ .osec:vault:v3:linux, codesign:perform_vault_requests ]
     - !reference [ .osec:vault:v3:linux, packman_s3:perform_vault_requests ]
+    - !reference [ .osec:vault:v3:linux, nucleus:kit-extensions.ov.nvidia.com:kit-extension-svc:perform_vault_requests ]

@@ -7,8 +7,6 @@ publish-extensions-windows:
   needs:
     - job: build-package-windows
       artifacts: true
-    - job: build-package-linux
-      artifacts: true
   before_script:
     - !reference [ .windows_vault, before_script ]
     # Cleanup the Kit dir to avoid failure
@@ -37,8 +35,6 @@ publish-extensions-linux:
     - .linux_agent
     - .linux_vault
   needs:
-    - job: build-package-windows
-      artifacts: true
     - job: build-package-linux
       artifacts: true
   before_script:
