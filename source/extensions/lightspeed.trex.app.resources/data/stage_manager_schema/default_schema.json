@@ -13,6 +13,7 @@
                     "name": "IgnorePrimsFilterPlugin",
                     "display": false,
                     "ignore_prim_paths": [
+                        "/Bookmarks",
                         "/RootNode/cameras",
                         "/RootNode/Camera",
                         "/Viewport_Waypoints",
@@ -33,6 +34,7 @@
                     "display_name": "Actions",
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
+                        { "name": "FocusInViewportActionWidgetPlugin" },
                         { "name": "IsVisibleActionWidgetPlugin" }
                     ]
                 }
@@ -48,6 +50,7 @@
                     "name": "IgnorePrimsFilterPlugin",
                     "display": false,
                     "ignore_prim_paths": [
+                        "/Bookmarks",
                         "/RootNode/cameras",
                         "/RootNode/Camera",
                         "/RootNode/meshes/",
@@ -77,6 +80,7 @@
                     "display_name": "Actions",
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
+                        { "name": "FocusInViewportActionWidgetPlugin" },
                         { "name": "IsVisibleActionWidgetPlugin" }
                     ]
                 }

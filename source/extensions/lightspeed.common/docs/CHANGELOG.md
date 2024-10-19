@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.5] - 2024-10-18
+### Added
+- Added constants for "focus in viewport" widget tooltips
+
 ## [1.0.4] - 2024-07-19
 ### Added
 - Add external asset warning popup text

@@ -32,6 +32,7 @@ class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     # TODO StageManager: We have LSS plugin names in the flux ext because of this system
     compatible_widgets: list[str] = [
         "PrimTreeWidgetPlugin",
+        "FocusInViewportActionWidgetPlugin",
         "IsVisibleActionWidgetPlugin",
         "IsCaptureStateWidgetPlugin",
     ]

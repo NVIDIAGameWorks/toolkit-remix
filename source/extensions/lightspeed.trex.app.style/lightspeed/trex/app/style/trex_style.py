@@ -369,6 +369,7 @@ current_dict.update(
         "Image::ImportLayer": {"image_url": _get_icons("import-layer"), "color": _WHITE_60},
         "Image::ImportLayer:hovered": {"image_url": _get_icons("import-layer"), "color": _WHITE_100},
         "Image::FolderClosed": {"image_url": _get_icons("folder-closed"), "color": _WHITE_80},
+        "Image::FrameDisabled": {"image_url": _get_icons("frame"), "color": _WHITE_30},
         "Image::Frame": {"image_url": _get_icons("frame"), "color": _WHITE_60},
         "Image::Frame:hovered": {"image_url": _get_icons("frame"), "color": _WHITE_100},
         "Image::Bookmark": {"image_url": _get_icons("bookmark"), "color": _WHITE_80},

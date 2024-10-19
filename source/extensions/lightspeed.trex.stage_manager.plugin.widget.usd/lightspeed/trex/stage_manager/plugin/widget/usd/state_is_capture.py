@@ -39,6 +39,7 @@ class IsCaptureStateWidgetPlugin(_StageManagerStateWidgetPlugin):
                 height=self._icon_size,
                 name="Capture" if is_captured else "Collection",
                 tooltip=f"The prim originates from a {'capture' if is_captured else 'mod'} layer.",
+                identifier="capture_state_widget_image",
             )
         else:
             ui.Spacer(width=self._icon_size, height=self._icon_size)
