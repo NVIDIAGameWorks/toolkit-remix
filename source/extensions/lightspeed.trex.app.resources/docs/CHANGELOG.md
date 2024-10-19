@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.10]
+### Added
+- Updated `default_schema` widget to include the `FocusInViewportActionWidgetPlugin`
+
 ## [1.6.9]
 ### Changed
 - Updated `default_schema` widget to use renamed `IsVisibleActionWidgetPlugin`

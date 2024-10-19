@@ -210,6 +210,9 @@ ASSET_OUTSIDE_OF_PROJ_DIR_AND_NEED_INGEST_MESSAGE = (
 )
 ASSET_OUTSIDE_OF_PROJ_DIR_AND_NEED_INGEST_TITLE = "##Outside of Project Directory and Not Ingested"
 
+FOCUS_IN_VIEWPORT_TOOLTIP_ENABLED = "Frame prim in the viewport (F)"
+FOCUS_IN_VIEWPORT_TOOLTIP_DISABLED = "Prim cannot be framed within the viewport"
+
 MATERIAL_OVERRIDE_PATH = "{prim_node}/Looks"
 
 CREDITS = """

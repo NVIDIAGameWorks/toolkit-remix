@@ -40,7 +40,7 @@ class StageManagerStateWidgetPlugin(_StageManagerUSDWidgetPlugin, abc.ABC):
         pass
 
     def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
-        with ui.VStack():
+        with ui.VStack(width=0):
             ui.Spacer(width=0)
             self.build_icon_ui(model, item, level, expanded)
             ui.Spacer(width=0)
