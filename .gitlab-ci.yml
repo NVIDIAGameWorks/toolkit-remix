@@ -40,7 +40,7 @@ include:
   - local: tools/ci/gitlab/docs/build_docs.yml
   - local: tools/ci/gitlab/docs/publish_docs.yml
   - local: tools/ci/gitlab/build/build_package.yml
-  - local: tools/ci/gitlab/build/measure_startup_time.yml
+  - local: tools/ci/gitlab/metrics/measure_startup_time.yml
   - local: tools/ci/gitlab/publishing/publish_extensions.yml
   - local: tools/ci/gitlab/publishing/publish_package.yml
   - local: tools/ci/gitlab/publishing/publish_package_scheduled.yml
@@ -57,10 +57,14 @@ include:
   - local: tools/ci/gitlab/defaults/vault/windows_vault.yml
   # Vault definitions
   - project: 'omniverse/sectools/vault'
-    file: '/templates/v3/linux/packman_s3.gitlab-ci.yml'
+    file: 'templates/v3/linux/packman_s3.gitlab-ci.yml'
   - project: 'omniverse/sectools/vault'
     file: 'templates/v3/linux/codesign.gitlab-ci.yml'
+  - project: 'omniverse/sectools/vault'
+    file: "templates/v3/linux/nucleus/kit-extensions.ov.nvidia.com/kit-extension-svc.gitlab-ci.yml"
   - project: 'omniverse/sectools/vault'
     file: 'templates/v3/windows/packman_s3.gitlab-ci.yml'
   - project: 'omniverse/sectools/vault'
     file: 'templates/v3/windows/codesign.gitlab-ci.yml'
+  - project: 'omniverse/sectools/vault'
+    file: 'templates/v3/windows/nucleus/kit-extensions.ov.nvidia.com/kit-extension-svc.gitlab-ci.yml'
