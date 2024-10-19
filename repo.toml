@@ -354,7 +354,8 @@ publish_verification = true
 # To be able to publish with an older Kit you can update settings for a publishing tool to set an account from the env
 # vars provided by Vault (assuming you use shared CI yml scripts, otherwise update your scripts too):
 kit_extra_args = [
-    "--/exts/omni.kit.registry.nucleus/accounts/0/write=${env:OMNI_KIT_EXTENSIONS_USERNAME}:${env:OMNI_KIT_EXTENSIONS_KEY}"
+    "--/exts/omni.kit.registry.nucleus/accounts/0/read=${env:OMNI_KIT_EXTENSIONS_USERNAME}:${env:OMNI_KIT_EXTENSIONS_KEY}",
+    "--/exts/omni.kit.registry.nucleus/accounts/0/write=${env:OMNI_KIT_EXTENSIONS_USERNAME}:${env:OMNI_KIT_EXTENSIONS_KEY}",
 ]
 
 
