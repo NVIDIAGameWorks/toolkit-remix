@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0]
+### Added
+- Added IsCapture widget & filter to the AllPrims interaction
+
 ## [1.7.0]
 ### Changed
 - Use added `context_filters` instead of hidden filters

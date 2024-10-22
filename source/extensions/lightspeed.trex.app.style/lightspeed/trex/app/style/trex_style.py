@@ -617,6 +617,7 @@ current_dict.update(
         },
         "Label::ProgressLabel": {"color": _WHITE_100},
         "Label::PropertiesWidgetLabel": {"color": _WHITE_70, "font_size": 18, "font": ui.url.nvidia_md},
+        "Label::ExperimentalFeatureLabel": {"color": _WHITE_50, "font_size": 18, "font": ui.url.nvidia_md},
         "Label::USDPropertiesWidgetValueOverlay": {"color": _WHITE_20},
         "Label::Title0": {"color": _WHITE_80, "font_size": 22},
         "Label::Title1": {"color": _WHITE_80, "font_size": 18},

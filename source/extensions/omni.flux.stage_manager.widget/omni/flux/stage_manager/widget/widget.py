@@ -120,6 +120,9 @@ class StageManagerWidget:
                                         name="PropertiesWidgetLabel",
                                     )
                                     ui.Spacer(height=0)
+                        ui.Spacer(height=0)
+                        ui.Label("Experimental Feature", name="ExperimentalFeatureLabel", width=0)
+                        ui.Spacer(width=ui.Pixel(16), height=0)
 
                     with ui.ZStack():
                         ui.Rectangle(name=self._active_style)

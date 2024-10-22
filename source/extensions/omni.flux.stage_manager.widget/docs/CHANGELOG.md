@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.1]
+### Added
+- Added `Experimental Feature` label
+
 ## [1.4.0]
 ### Changed
 - Made `select_tab` public & deferred
