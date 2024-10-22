@@ -84,7 +84,7 @@ class Pages(Enum):
 class SetupUI(TrexLayout):
     """Stagecraft Layout"""
 
-    HEIGHT_HEADER = 93  # Weirdly specific number of the only way to align the placer correctly
+    HEIGHT_STAGE_MANAGER_SPLITTER = 12
     HEIGHT_STAGE_MANAGER_PANEL = 400
     MIN_HEIGHT_STAGE_MANAGER_PANEL = 100
     WIDTH_COMPONENT_PANEL = 256
@@ -329,25 +329,25 @@ class SetupUI(TrexLayout):
         for pad in self._welcome_pad_widgets:
             pad.resize_tree_content()
 
-    def __resize_stage_manager(self):
+    @omni.usd.handle_exception
+    async def __resize_stage_manager_deferred(self):
         if not self._splitter_stage_manager:
             return
 
-        window = omni.appwindow.get_default_app_window()
+        await omni.kit.app.get_app_interface().next_update_async()
+        if self._frame_workspace.computed_height <= 0:
+            return
 
         if self._stage_manager_frame is not None and self._stage_manager_frame.computed_height > 0:
             stage_manager_height = self._stage_manager_frame.computed_height
         else:
             stage_manager_height = self.HEIGHT_STAGE_MANAGER_PANEL
 
-        window_height = window.get_height() / window.get_dpi_scale()
-        header_height = self.HEIGHT_HEADER
-
-        self._splitter_stage_manager.offset_y = ui.Pixel(window_height - stage_manager_height - header_height)
+        self._set_stage_manager_splitter_offset(ui.Pixel(self._frame_workspace.computed_height - stage_manager_height))
 
     def _on_app_window_size_changed(self, event: carb.events.IEvent):
         self.__refresh_welcome_pad_tree()
-        self.__resize_stage_manager()
+        asyncio.ensure_future(self.__resize_stage_manager_deferred())
 
     def _on_button_clicked(self, x, y, b, m):  # noqa PLC0103
         super()._on_button_clicked(x, y, b, m)
@@ -586,11 +586,14 @@ class SetupUI(TrexLayout):
         if not self._feature_flags_core.is_enabled("stage_manager"):
             return
 
-        ui.Spacer(height=ui.Pixel(12))
+        with ui.VStack():
+            ui.Spacer(height=ui.Pixel(self.HEIGHT_STAGE_MANAGER_SPLITTER))
 
-        self._stage_manager_frame = ui.ZStack(height=ui.Pixel(self.HEIGHT_STAGE_MANAGER_PANEL), content_clipping=True)
-        with self._stage_manager_frame:
-            self._stage_manager = _StageManagerWidget()
+            self._stage_manager_frame = ui.ZStack(
+                height=ui.Pixel(self.HEIGHT_STAGE_MANAGER_PANEL), content_clipping=True
+            )
+            with self._stage_manager_frame:
+                self._stage_manager = _StageManagerWidget()
 
     def _build_stage_manager_splitter(self):
         if not self._feature_flags_core.is_enabled("stage_manager"):
@@ -600,10 +603,9 @@ class SetupUI(TrexLayout):
             draggable=True,
             offset_y=0,
             drag_axis=ui.Axis.Y,
-            height=ui.Pixel(12),
-            offset_y_changed_fn=self._on_stage_manager_splitter_changed,
+            height=ui.Pixel(self.HEIGHT_STAGE_MANAGER_SPLITTER),
+            offset_y_changed_fn=self._set_stage_manager_splitter_offset,
         )
-        self.__resize_stage_manager()
 
         with self._splitter_stage_manager:
             with ui.ZStack(opaque_for_mouse_events=True):
@@ -619,6 +621,8 @@ class SetupUI(TrexLayout):
 
                 splitter = ui.Rectangle(name="TreePanelBackgroundSplitter")
                 _hover_helper(splitter)
+
+        asyncio.ensure_future(self.__resize_stage_manager_deferred())
 
     def _frame_prim(self, prim: "Usd.Prim"):
         if prim and prim.IsValid():
@@ -672,20 +676,20 @@ class SetupUI(TrexLayout):
         """
         return self._properties_pane.get_frame(ComponentsEnumItems.MOD_SETUP).subscribe_import_capture_layer(function)
 
-    def _on_stage_manager_splitter_changed(self, y):
-        window_height = (
-            omni.appwindow.get_default_app_window().get_height()
-            / omni.appwindow.get_default_app_window().get_dpi_scale()
-        )
-        header_height = self.HEIGHT_HEADER
-
+    def _set_stage_manager_splitter_offset(self, y):
         min_offset = 0
-        max_offset = window_height - header_height - self.MIN_HEIGHT_STAGE_MANAGER_PANEL
+        max_offset = (
+            self._frame_workspace.computed_height
+            - self.MIN_HEIGHT_STAGE_MANAGER_PANEL
+            - self.HEIGHT_STAGE_MANAGER_SPLITTER
+        )
 
-        clamped_offset = ui.Pixel(min(max(y.value, min_offset), max_offset))
+        clamped_offset = ui.Pixel(min(max(y.value, min_offset), max(max_offset, min_offset)))
         self._splitter_stage_manager.offset_y = clamped_offset
 
-        self._stage_manager_frame.height = ui.Pixel(window_height - clamped_offset - header_height)
+        self._stage_manager_frame.height = ui.Pixel(
+            self._frame_workspace.computed_height - clamped_offset - self.HEIGHT_STAGE_MANAGER_SPLITTER
+        )
 
     @_ignore_function_decorator(attrs=["_ignore_property_viewport_splitter_change"])
     def _on_property_viewport_splitter_change(self, x):

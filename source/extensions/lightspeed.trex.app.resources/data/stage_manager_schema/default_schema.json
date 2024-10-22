@@ -6,6 +6,9 @@
     "interactions": [
         {
             "name": "AllPrimsInteractionPlugin",
+            "filters": [
+                { "name": "IsCaptureFilterPlugin" }
+            ],
             "context_filters": [
                 { "name": "OmniPrimsFilterPlugin", "include_results": false },
                 {
@@ -26,6 +29,14 @@
                     "display_name": "Prims",
                     "widgets": [
                         { "name": "PrimTreeWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "States",
+                    "width": { "unit": "Pixel", "value": 100 },
+                    "widgets": [
+                        { "name": "IsCaptureStateWidgetPlugin" }
                     ]
                 },
                 {

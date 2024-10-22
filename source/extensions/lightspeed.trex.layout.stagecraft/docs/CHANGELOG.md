@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.5]
+### Fixed
+- Fixed placer handle positioning on various DPIs
+
 ## [1.4.4]
 ### Fixed
 - Fix for frame prim button not firing
