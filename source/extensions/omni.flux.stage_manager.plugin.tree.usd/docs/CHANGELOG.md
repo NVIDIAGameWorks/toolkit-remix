@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Changed
+- Use updated refresh logic and `build_items` & `build_item` methods to build the tree on refresh
+
 ## [1.3.2]
 ### Changed
 - Display light type icons for every item

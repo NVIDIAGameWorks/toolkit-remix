@@ -15,10 +15,13 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import abc
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
 from omni import ui
+from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import Field, PrivateAttr
 
@@ -42,15 +45,12 @@ class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
         self._checkbox = None
         self._value_changed_sub = None
 
-    def filter_items(self, prims: Iterable["Usd.Prim"]) -> list["Usd.Prim"]:
-        if self.filter_active:
+    def filter_predicate(self, item: _StageManagerItem) -> bool:
+        if not self.filter_active:
+            return True
 
-            def filter_prim(prim: "Usd.Prim") -> bool:
-                result = self._filter_predicate(prim)
-                return result if self.include_results else not result
-
-            return [prim for prim in prims if filter_prim(prim)]
-        return list(prims)
+        result = self._filter_predicate(item.data)
+        return result if self.include_results else not result
 
     def build_ui(self):  # noqa PLW0221
         with ui.VStack(width=0):
@@ -75,7 +75,7 @@ class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
         self._filter_items_changed()
 
     @abc.abstractmethod
-    def _filter_predicate(self, prim: "Usd.Prim") -> bool:
+    def _filter_predicate(self, prim: Usd.Prim) -> bool:
         """
         The predicate function to filter prims.
 

@@ -1,5 +1,12 @@
-﻿# Changelog
+# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [1.7.0]
+### Changed
+- Use added `context_filters` instead of hidden filters
+
+### Fixed
+- Fixed `ignore_prim_paths` missing a prim for updated filtering logic
 
 ## [1.6.10]
 ### Added

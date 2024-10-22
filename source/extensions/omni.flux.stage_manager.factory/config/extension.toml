@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.6.1"
+version = "2.0.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -35,6 +35,7 @@ icon = "data/images/icon.png"
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
 "omni.ui" = {}
+"omni.usd" = {}
 
 [[python.module]]
 name = "omni.flux.stage_manager.factory"

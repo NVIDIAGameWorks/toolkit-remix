@@ -18,10 +18,11 @@
 import abc
 from typing import Any, Callable
 
-from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import Field, validator
 
+from ..enums import StageManagerDataTypes as _StageManagerDataTypes
+from ..items import StageManagerItem as _StageManagerItem
 from .base import StageManagerPluginBase as _StageManagerPluginBase
 from .listener_plugin import StageManagerListenerPlugin as _StageManagerListenerPlugin
 
@@ -60,7 +61,7 @@ class StageManagerContextPlugin(_StageManagerPluginBase, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_items(self) -> list:
+    def get_items(self) -> list[_StageManagerItem]:
         """
         Get the items that should be used by the other plugins. This will be called whenever the interaction plugin
         needs updated data.

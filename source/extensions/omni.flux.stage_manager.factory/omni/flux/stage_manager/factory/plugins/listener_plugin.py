@@ -18,11 +18,11 @@
 import abc
 from typing import Callable, Generic, TypeVar
 
-from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import PrivateAttr
 
+from ..enums import StageManagerDataTypes as _StageManagerDataTypes
 from .base import StageManagerPluginBase as _StageManagerPluginBase
 
 T = TypeVar("T")

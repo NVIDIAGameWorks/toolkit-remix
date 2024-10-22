@@ -6,15 +6,16 @@
     "interactions": [
         {
             "name": "AllPrimsInteractionPlugin",
-            "tree": { "name": "PrimGroupsTreePlugin" },
             "filters": [
-                { "name": "SearchFilterPlugin" },
-                { "name": "OmniPrimsFilterPlugin", "display": false, "include_results": false },
+                { "name": "SearchFilterPlugin" }
+            ],
+            "context_filters": [
+                { "name": "OmniPrimsFilterPlugin", "include_results": false },
                 {
                     "name": "IgnorePrimsFilterPlugin",
-                    "display": false,
                     "ignore_prim_paths": [
                         "/Bookmarks",
+                        "/Render",
                         "/RootNode/cameras",
                         "/RootNode/Camera",
                         "/Viewport_Waypoints",
@@ -42,15 +43,16 @@
         },
         {
             "name": "AllLightsInteractionPlugin",
-            "tree": { "name": "LightGroupsTreePlugin" },
             "filters": [
-                { "name": "SearchFilterPlugin" },
-                { "name": "OmniPrimsFilterPlugin", "display": false, "include_results": false },
+                { "name": "SearchFilterPlugin" }
+            ],
+            "context_filters": [
+                { "name": "OmniPrimsFilterPlugin", "include_results": false },
                 {
                     "name": "IgnorePrimsFilterPlugin",
-                    "display": false,
                     "ignore_prim_paths": [
                         "/Bookmarks",
+                        "/Render",
                         "/RootNode/cameras",
                         "/RootNode/Camera",
                         "/RootNode/meshes/",

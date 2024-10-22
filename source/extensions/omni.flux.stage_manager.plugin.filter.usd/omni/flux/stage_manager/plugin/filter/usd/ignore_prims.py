@@ -15,16 +15,12 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING, Iterable
-
 from omni import ui
+from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import Field, PrivateAttr
 
 from .base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
-
-if TYPE_CHECKING:
-    from pxr import Usd
 
 
 class IgnorePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
@@ -41,18 +37,13 @@ class IgnorePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
     _string_field: ui.StringField = PrivateAttr()
     _value_changed_sub: _EventSubscription | None = PrivateAttr()
 
-    def filter_items(self, prims: Iterable["Usd.Prim"]) -> list["Usd.Prim"]:
-        filtered_prims = []
-        for prim in prims:
-            is_valid = True
-            for ignore_prim_path in self.ignore_prim_paths:
-                if str(prim.GetPath()).startswith(ignore_prim_path):
-                    is_valid = False
-                    break
-            if not is_valid:
-                continue
-            filtered_prims.append(prim)
-        return filtered_prims
+    def filter_predicate(self, item: _StageManagerItem) -> bool:
+        is_valid = True
+        for ignore_prim_path in self.ignore_prim_paths:
+            if item.data.GetPath().HasPrefix(ignore_prim_path):
+                is_valid = False
+                break
+        return is_valid
 
     def build_ui(self):  # noqa PLW0221
         with ui.HStack(spacing=ui.Pixel(8)):
