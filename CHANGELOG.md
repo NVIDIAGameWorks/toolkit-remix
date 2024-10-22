@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `Feature Flags` to `Experimental Features`
 - Updated Nucleus Registry accounts
 - Updated Repo Tools to the latest public versions
+- Refactored the Stage Manager to optimize performance and add flexibility
 
 ### Fixed
 - REMIX-3401: Fixed hot-reload by allowing reuse of validators

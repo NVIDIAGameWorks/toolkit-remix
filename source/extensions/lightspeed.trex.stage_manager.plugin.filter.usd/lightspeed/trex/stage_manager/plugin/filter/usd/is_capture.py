@@ -16,17 +16,17 @@
 """
 
 from enum import Enum
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementCore
 from omni import ui
+from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.stage_manager.plugin.filter.usd.base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
 from pydantic import Field, PrivateAttr
 
 if TYPE_CHECKING:
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
-    from pxr import Usd
 
 
 class ReferenceType(Enum):
@@ -54,18 +54,15 @@ class IsCaptureFilterPlugin(_StageManagerUSDFilterPlugin):
 
     _ref_type_combobox: ui.ComboBox | None = PrivateAttr(None)
 
-    def filter_items(self, items: Iterable["Usd.Prim"]) -> list["Usd.Prim"]:
-        def predicate(prim: "Usd.Prim") -> bool:
-            match self.reference_type:
-                case ReferenceType.ALL:
-                    return True
-                case ReferenceType.CAPTURED:
-                    return _AssetReplacementCore.prim_is_from_a_capture_reference(prim)
-                case ReferenceType.REPLACED:
-                    return not _AssetReplacementCore.prim_is_from_a_capture_reference(prim)
-            return False
-
-        return [item for item in items if predicate(item)]
+    def filter_predicate(self, item: _StageManagerItem) -> bool:
+        match self.reference_type:
+            case ReferenceType.ALL:
+                return True
+            case ReferenceType.CAPTURED:
+                return _AssetReplacementCore.prim_is_from_a_capture_reference(item.data)
+            case ReferenceType.REPLACED:
+                return not _AssetReplacementCore.prim_is_from_a_capture_reference(item.data)
+        return False
 
     def build_ui(self):
         with ui.HStack(spacing=ui.Pixel(8)):

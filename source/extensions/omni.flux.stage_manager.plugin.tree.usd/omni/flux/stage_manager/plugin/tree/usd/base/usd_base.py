@@ -21,27 +21,17 @@ from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _S
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeDelegate as _StageManagerTreeDelegate
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
-from pxr import Usd
 from pydantic import Field
 
 
 class StageManagerUSDTreeItem(_StageManagerTreeItem):
-    def __init__(
-        self,
-        display_name: str,
-        tooltip: str,
-        children: list["StageManagerUSDTreeItem"] | None = None,
-        prim: "Usd.Prim" = None,
-    ):
-        super().__init__(display_name, tooltip=tooltip, children=children, data={"prim": prim})
-
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
 
-class StageManagerUSDTreeModel(_StageManagerTreeModel[Usd.Prim]):
+class StageManagerUSDTreeModel(_StageManagerTreeModel):
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:

@@ -35,7 +35,7 @@ class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin):
     item_spacing: int = Field(8, description="The horizontal space between them items in pixels", exclude=True)
 
     def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
-        with ui.HStack(spacing=ui.Pixel(self.item_spacing), tooltip=item.tooltip):
+        with ui.HStack(spacing=ui.Pixel(self.item_spacing), tooltip=item.tooltip or ""):
             if item.icon:
                 with ui.VStack(width=0):
                     ui.Spacer(width=0)
@@ -47,6 +47,6 @@ class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin):
 
     def build_overview_ui(self, model: "_StageManagerTreeModel"):
         # Make sure to only count prims, not virtual groups
-        prims_count = len([i for i in model.iter_items_children() if not i.data.get("virtual")])
+        prims_count = len([i for i in model.iter_items_children() if not (hasattr(i, "is_virtual") and i.is_virtual)])
 
         ui.Label(f"{prims_count} prim{'s' if prims_count > 1 else '' } available")

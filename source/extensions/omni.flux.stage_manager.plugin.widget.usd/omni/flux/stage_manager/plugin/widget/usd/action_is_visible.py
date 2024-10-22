@@ -30,12 +30,12 @@ if TYPE_CHECKING:
 
 class IsVisibleActionWidgetPlugin(_StageManagerStateWidgetPlugin):
     def build_icon_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
-        prim = item.data.get("prim")
-
-        enabled = prim and UsdGeom.Imageable(prim)
+        enabled = item.data and UsdGeom.Imageable(item.data)
 
         if enabled:
-            is_visible = UsdGeom.Imageable(prim).ComputeVisibility(Usd.TimeCode.Default()) != UsdGeom.Tokens.invisible
+            is_visible = (
+                UsdGeom.Imageable(item.data).ComputeVisibility(Usd.TimeCode.Default()) != UsdGeom.Tokens.invisible
+            )
 
             icon = "Eye" if is_visible else "EyeOff"
             tooltip = (

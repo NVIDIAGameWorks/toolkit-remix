@@ -15,14 +15,10 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING, Iterable
-
 from omni import ui
+from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 
 from .base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
-
-if TYPE_CHECKING:
-    from pxr import Usd
 
 
 class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
@@ -31,8 +27,8 @@ class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
     display_name: str = "Search"
     tooltip: str = "Search through the list of prims"
 
-    def filter_items(self, items: Iterable["Usd.Prim"]) -> list["Usd.Prim"]:
-        return list(items)
+    def filter_predicate(self, item: _StageManagerItem) -> bool:
+        return True
 
     def build_ui(self):  # noqa PLW0221
         with ui.HStack(spacing=ui.Pixel(8)):

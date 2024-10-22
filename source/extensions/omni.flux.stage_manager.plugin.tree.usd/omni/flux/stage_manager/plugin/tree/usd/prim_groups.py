@@ -15,9 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Iterable
-
-from pxr import Usd
+from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 
 from .base import StageManagerUSDTreeDelegate as _StageManagerUSDTreeDelegate
 from .base import StageManagerUSDTreeItem as _StageManagerUSDTreeItem
@@ -38,18 +36,9 @@ class PrimGroupsModel(_StageManagerUSDTreeModel):
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
-    def refresh(self):
-        self._items = self._build_items_recursive(self.context_items)
-        super().refresh()
-
-    def _build_items_recursive(self, prims: Iterable[Usd.Prim]) -> list[PrimGroupsItem]:
-        items = []
-        for prim in prims:
-            children = self._build_items_recursive(
-                self.filter_items((prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate)))
-            )
-            items.append(PrimGroupsItem(str(prim.GetPath().name), str(prim.GetPath()), children=children, prim=prim))
-        return items
+    def _build_item(self, item: _StageManagerItem, children: list[PrimGroupsItem] = None) -> PrimGroupsItem:
+        prim_path = item.data.GetPath()
+        return PrimGroupsItem(str(prim_path.name), item.data, tooltip=str(prim_path), children=children)
 
 
 class PrimGroupsDelegate(_StageManagerUSDTreeDelegate):

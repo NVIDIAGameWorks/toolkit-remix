@@ -136,8 +136,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
 
         # Create sample data
         light_prim = self.stage.GetPrimAtPath("/RootNode/meshes/mesh_one/SphereLight")
-        sample_data = {"prim": light_prim, "virtual": False}
-        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=sample_data)
+        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=light_prim)
 
         # Build the widget icon with the capture layer sample data
         with _window.frame:
@@ -159,8 +158,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
 
         # Create sample data
         light_prim = self.stage.GetPrimAtPath("/RootNode/meshes/mesh_two/SphereLight")
-        sample_data = {"prim": light_prim, "virtual": False}
-        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=sample_data)
+        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=light_prim)
 
         # Build the widget icon with the mod layer sample data
         with _window.frame:
@@ -189,8 +187,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create sample data for a light
         light_prim = self.stage.GetPrimAtPath("/RootNode/meshes/mesh_one/SphereLight")
-        sample_data = {"prim": light_prim, "virtual": False}
-        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=sample_data)
+        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=light_prim)
 
         # Build the widget icon with the capture layer sample data
         with _window.frame:
@@ -212,8 +209,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create sample data for a mesh
         mesh_prim = self.stage.GetPrimAtPath("/RootNode/meshes/mesh_one")
-        sample_data = {"prim": mesh_prim, "virtual": False}
-        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=sample_data)
+        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=mesh_prim)
 
         # Build the widget icon with the capture layer sample data
         with _window.frame:
@@ -235,8 +231,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create sample data for an instance
         instance_prim = self.stage.GetPrimAtPath("/RootNode/instances/inst_4381216431E468DC_1/mesh")
-        sample_data = {"prim": instance_prim, "virtual": False}
-        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=sample_data)
+        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=instance_prim)
 
         # Build the widget icon with the capture layer sample data
         with _window.frame:
@@ -258,8 +253,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create sample data for a parent mesh prim
         parent_mesh_prim = self.stage.GetPrimAtPath("/RootNode/meshes")
-        sample_data = {"prim": parent_mesh_prim, "virtual": False}
-        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=sample_data)
+        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=parent_mesh_prim)
 
         # Build the widget icon with the capture layer sample data
         with _window.frame:
@@ -281,8 +275,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create sample data for the RootNode
         root_node_prim = self.stage.GetPrimAtPath("/RootNode")
-        sample_data = {"prim": root_node_prim, "virtual": False}
-        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=sample_data)
+        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=root_node_prim)
 
         # Build the widget icon with the capture layer sample data
         with _window.frame:
@@ -304,8 +297,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create sample data for a material prim
         material_prim = self.stage.GetPrimAtPath("/RootNode/Looks/mat_7546356AB6B4A5D2/Shader")
-        sample_data = {"prim": material_prim, "virtual": False}
-        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=sample_data)
+        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=material_prim)
 
         # Build the widget icon with the capture layer sample data
         with _window.frame:
@@ -327,8 +319,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create sample data for a "other" prim
         other_prim = self.stage.GetPrimAtPath("/RootNode/Other/some_random_prim")
-        sample_data = {"prim": other_prim, "virtual": False}
-        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=sample_data)
+        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=other_prim)
 
         # Build the widget icon with the capture layer sample data
         with _window.frame:
@@ -366,8 +357,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
 
         # Create sample data for a waypoint prim
         waypoint_prim = self.stage.GetPrimAtPath("/Viewport_Waypoints/Waypoint_01")
-        sample_data = {"prim": waypoint_prim, "virtual": False}
-        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=sample_data)
+        item = _StageManagerTreeItem(display_name="sample_item", tooltip="foobar", data=waypoint_prim)
 
         # Build the widget icon with the capture layer sample data
         with _window.frame:

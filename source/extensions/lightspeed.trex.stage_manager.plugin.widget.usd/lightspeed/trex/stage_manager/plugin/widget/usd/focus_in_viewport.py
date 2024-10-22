@@ -34,8 +34,7 @@ if TYPE_CHECKING:
 class FocusInViewportActionWidgetPlugin(_StageManagerStateWidgetPlugin):
     def build_icon_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
         # Build the icon
-        prim = item.data.get("prim")
-        enabled = prim and UsdGeom.Imageable(prim)
+        enabled = item.data and UsdGeom.Imageable(item.data)
 
         if enabled:
             icon = "Frame"

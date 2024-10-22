@@ -15,12 +15,16 @@
 * limitations under the License.
 """
 
+from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
+
 from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin
 
 
 class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     display_name: str = "Prims"
     tooltip: str = "View the available prims"
+
+    tree: _StageManagerTreePlugin = {"name": "PrimGroupsTreePlugin"}
 
     compatible_trees: list[str] = ["PrimGroupsTreePlugin", "VirtualGroupsTreePlugin"]
     compatible_filters: list[str] = [

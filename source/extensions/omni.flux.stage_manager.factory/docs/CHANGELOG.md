@@ -1,6 +1,27 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.0]
+### Added
+- Introduced new `StageManagerItem` dataclass to transfer data between the context and interaction/tree/filter plugins
+- Added `context_filters` to the interaction plugin
+- Added a `_context_items_changed` event to the interaction plugin
+- Added a 2-pass pipeline for data filtering (context filtering & user-filtering)
+- Added `_build_items` and `_build_item` methods to the tree plugin to customize how items are refreshed
+
+### Changed
+- Moved `tree` definition from the schema to an abstract property in the interaction plugin
+- Renamed `required_filters` to `internal_filters` in the interaction plugin
+- Moved the tree refresh call to the `_context_items_changed` listener of the interaction plugin
+- Simplified the alternating colors drawing logic in the interaction plugin
+- Centralized the refresh logic in the tree plugin
+- Filtering is now down in an upside-down manner to make sure we keep parent prims that have valid children
+
+### Fixed
+- Added missing `@omni.usd.handle_exception` decorators to the interaction plugin
+- Fixed bugs hidden by the missing decorators
+- Fixed circular imports due to absolute import paths
+
 ## [1.6.1]
 ### Added
 - Added auto scroll to selection functionality

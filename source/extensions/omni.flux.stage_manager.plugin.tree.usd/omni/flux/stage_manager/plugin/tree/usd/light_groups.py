@@ -15,8 +15,11 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
+from typing import TYPE_CHECKING, Iterable
+
+from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.utils.common.lights import LightTypes as _LightTypes
 from omni.flux.utils.common.lights import get_light_type as _get_light_type
 
@@ -33,9 +36,9 @@ class LightGroupsItem(_VirtualGroupsItem):
     def __init__(
         self,
         display_name: str,
-        tooltip: str,
+        data: Usd.Prim | None,
+        tooltip: str = None,
         children: list["LightGroupsItem"] | None = None,
-        prim: "Usd.Prim" = None,
         light_type: _LightTypes | None = None,
     ):
         """
@@ -43,14 +46,14 @@ class LightGroupsItem(_VirtualGroupsItem):
 
         Args:
             display_name: The name to display in the Tree
-            tooltip: The tooltip to display when hovering an item in the Tree
-            children: The children items. Because the Lights Group is a flat list, this should ONLY BE SET for virtual
-                      groups
-            prim: The prim associated with the light. This should NOT BE SET for virtual groups
-            light_type: The type of light to be grouped. This should ONLY BE SET for virtual groups
+            data: The USD Prim this item represents
+            tooltip: The tooltip to display when hovering an item in the TreeView
+            children: The children items.
+                      Because the Lights Group is a flat list, this should ONLY BE SET for virtual groups
+            light_type: The type of light to be grouped. Will be used to determine the icon
         """
 
-        super().__init__(display_name, tooltip, children=children, prim=prim, is_virtual=prim is None)
+        super().__init__(display_name, data, tooltip=tooltip, children=children, is_virtual=data is None)
 
         self._light_type = light_type
 
@@ -89,31 +92,34 @@ class LightGroupsModel(_VirtualGroupsModel):
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
-    def refresh(self):
-        self._items.clear()
+    def _build_items(self, items: Iterable[_StageManagerItem]) -> list[LightGroupsItem] | None:
+        tree_items = []
 
-        # Expect all the light prims to be present in the context_items, so no need to recursively look for children
+        # Expect the interaction to pass a flat list, so no need to build recursively
+        # Group prims by light type & build the items for every light
         grouped_items = {}
-        for prim in self.context_items:
+        for item in items:
             # Beautified names for the light type for the UI
-            type_name = prim.GetTypeName()
+            type_name = item.data.GetTypeName()
             if type_name not in grouped_items:
                 grouped_items[type_name] = []
+            prim_path = item.data.GetPath()
             grouped_items[type_name].append(
                 LightGroupsItem(
-                    str(prim.GetPath().name), str(prim.GetPath()), prim=prim, light_type=_get_light_type(type_name)
+                    str(prim_path.name), item.data, tooltip=str(prim_path), light_type=_get_light_type(type_name)
                 )
             )
 
-        for type_name, items in grouped_items.items():
+        # Build the group items with the associated children items
+        for type_name, children in grouped_items.items():
             light_type = _get_light_type(type_name)
             if not light_type:
                 continue
             # Since this is a group, make plural
             display_name = f"{light_type.value}s"
-            self._items.append(LightGroupsItem(display_name, f"{display_name} Group", children=items))
+            tree_items.append(LightGroupsItem(display_name, None, tooltip=f"{display_name} Group", children=children))
 
-        self._item_changed(None)
+        return tree_items
 
 
 class LightGroupsDelegate(_VirtualGroupsDelegate):

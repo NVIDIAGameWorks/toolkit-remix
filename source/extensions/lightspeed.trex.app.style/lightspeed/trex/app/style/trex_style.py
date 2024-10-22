@@ -445,6 +445,8 @@ current_dict.update(
         "Image::DistantLightStatic": {"image_url": _get_icons("light_distant"), "color": _WHITE_60},
         "Image::RectLightStatic": {"image_url": _get_icons("light_rect"), "color": _WHITE_60},
         "Image::SphereLightStatic": {"image_url": _get_icons("light_point"), "color": _WHITE_60},
+        # TODO: Should add a proper Dome Light Icon
+        "Image::DomeLightStatic": {"image_url": _get_icons("light_rect"), "color": _WHITE_60},
         "Image::ShowInViewport": {
             "image_url": _get_icons("axis-arrow"),
             "color": _WHITE_20,
