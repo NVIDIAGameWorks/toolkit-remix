@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Changed
+- `get_items` function now returns `StageManagerItem` objects instead of arbitrary data
+- Current Stage plugin now returns the full USD tree instead of only the root prims
+
 ## [1.4.0]
 ### Changed
 - Create a new stage when no stage exists in a context instead of crashing

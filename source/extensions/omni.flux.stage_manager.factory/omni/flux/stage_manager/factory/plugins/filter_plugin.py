@@ -16,12 +16,13 @@
 """
 
 import abc
-from typing import Any, Callable, Iterable
+from typing import Callable
 
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import Field, PrivateAttr
 
+from ..items import StageManagerItem as _StageManagerItem
 from .base import StageManagerUIPluginBase as _StageManagerUIPluginBase
 
 
@@ -35,13 +36,13 @@ class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
     _on_filter_items_changed: _Event = PrivateAttr(_Event())
 
     @abc.abstractmethod
-    def filter_items(self, items: Iterable[Any]) -> list[Any]:
+    def filter_predicate(self, item: _StageManagerItem) -> bool:
         """
         Args:
-            items: The list of items to filter.
+            item: The Stage Manager item to filter.
 
         Returns:
-            A list of filtered items.
+            Whether the item should be kept or not.
         """
         pass
 
@@ -54,5 +55,9 @@ class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
     def _filter_items_changed(self):
         """
         Trigger the `on_items_changed` event.
+
+        This event should be triggered whenever the user modifies the filter's parameters via the UI.
+
+        It will cause the TreeWidget model to refresh the items and re-filter the context items.
         """
         self._on_filter_items_changed()

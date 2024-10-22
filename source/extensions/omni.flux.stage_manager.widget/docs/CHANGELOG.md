@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Changed
+- Made `select_tab` public & deferred
+- Only set active/inactive once during the tab update process
+
 ## [1.3.1]
 ### Fixed
 - Disable all interaction plugins on destroy to clear all listeners

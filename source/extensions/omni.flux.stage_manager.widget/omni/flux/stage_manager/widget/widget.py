@@ -58,10 +58,13 @@ class StageManagerWidget:
         self._kwargs = kwargs
 
         self._tab_backgrounds = {}
+        self._tab_labels = {}
+
         self._interaction_frame = None
         self._active_interaction = -1
 
         self.__resize_task = None
+        self.__select_tab_task = None
 
         self.build_ui()
 
@@ -75,6 +78,7 @@ class StageManagerWidget:
             "_inactive_style": None,
             "_kwargs": None,
             "_tab_backgrounds": None,
+            "_tab_labels": None,
             "_interaction_frame": None,
             "_active_interaction": None,
         }
@@ -91,6 +95,7 @@ class StageManagerWidget:
 
             # Clear the cached dictionaries
             self._tab_backgrounds.clear()
+            self._tab_labels.clear()
 
             # Build the widget
             with ui.ZStack():
@@ -103,22 +108,25 @@ class StageManagerWidget:
                                 width=0,
                                 height=ui.Pixel(self._tab_height),
                                 tooltip=interaction.tooltip,
-                                mouse_released_fn=partial(self._select_tab, index),
+                                mouse_released_fn=partial(self.select_tab, index),
                             ):
                                 # Cache the tab widgets
                                 self._tab_backgrounds[hash(interaction)] = ui.Rectangle(name=self._inactive_style)
-                                ui.Label(
-                                    interaction.display_name,
-                                    name="PropertiesWidgetLabel",
-                                    alignment=ui.Alignment.CENTER,
-                                )
+                                with ui.HStack():
+                                    ui.Spacer(height=0)
+                                    self._tab_labels[hash(interaction)] = ui.Label(
+                                        interaction.display_name,
+                                        width=0,
+                                        name="PropertiesWidgetLabel",
+                                    )
+                                    ui.Spacer(height=0)
 
                     with ui.ZStack():
                         ui.Rectangle(name=self._active_style)
                         self._interaction_frame = ui.Frame()
 
         # Set the first tab as active
-        self._select_tab(0)
+        self.select_tab(0)
         self.resize_tabs()
 
     def resize_tabs(self):
@@ -129,7 +137,33 @@ class StageManagerWidget:
             self.__resize_task.cancel()
         self.__resize_task = ensure_future(self._resize_tabs_deferred())
 
-    def _select_tab(self, index: int, *args):
+    def select_tab(self, index: int, *args):
+        """
+        Fire and forget the `_select_tab_deferred` asynchronous method
+        """
+        if self.__select_tab_task:
+            self.__select_tab_task.cancel()
+        self.__select_tab_task = ensure_future(self._select_tab_deferred(index, *args))
+
+    @usd.handle_exception
+    async def _resize_tabs_deferred(self):
+        """
+        Wait 1 frame for the widget to be drawn on screen, then resize all the tabs to be the same size as the largest
+        tab rendered.
+        """
+        await app.get_app().next_update_async()
+
+        if not self._tab_backgrounds:
+            return
+
+        widest_label = max(w.computed_width for w in self._tab_labels.values())
+        tab_width = (ui.Workspace.get_dpi_scale() * widest_label) + self._tab_padding
+
+        for tab in self._tab_backgrounds.values():
+            tab.width = ui.Pixel(tab_width)
+
+    @usd.handle_exception
+    async def _select_tab_deferred(self, index: int, *args):
         """
         Set a given tab to be active
 
@@ -153,12 +187,7 @@ class StageManagerWidget:
         for tab in self._tab_backgrounds.values():
             tab.name = self._inactive_style
 
-        enabled_interactions = []
-        for interaction in self._core.schema.interactions:
-            interaction.set_active(False)
-            if interaction.enabled:
-                enabled_interactions.append(interaction)
-
+        enabled_interactions = [i for i in self._core.schema.interactions if i.enabled]
         if index >= len(enabled_interactions):
             carb.log_warn("An invalid tab was selected.")
             return
@@ -172,24 +201,8 @@ class StageManagerWidget:
             interaction.build_ui()
 
         # Make sure the interaction is visible before making it active
-        interaction.set_active(True)
-
-    @usd.handle_exception
-    async def _resize_tabs_deferred(self):
-        """
-        Wait 1 frame for the widget to be drawn on screen, then resize all the tabs to be the same size as the largest
-        tab rendered.
-        """
-        await app.get_app().next_update_async()
-
-        if not self._tab_backgrounds:
-            return
-
-        widest_tab = max(w.computed_width for w in self._tab_backgrounds.values())
-        tab_width = (ui.Workspace.get_dpi_scale() * widest_tab) + self._tab_padding
-
-        for tab in self._tab_backgrounds.values():
-            tab.width = ui.Pixel(tab_width)
+        for enabled_interaction in enabled_interactions:
+            enabled_interaction.set_active(enabled_interaction == interaction)
 
     def destroy(self):
         if self.__resize_task:

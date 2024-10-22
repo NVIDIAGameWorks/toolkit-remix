@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from .base import StageManagerUSDTreeDelegate as _StageManagerUSDTreeDelegate
@@ -30,9 +32,9 @@ class VirtualGroupsItem(_StageManagerUSDTreeItem):
     def __init__(
         self,
         display_name: str,
-        tooltip: str,
+        data: Usd.Prim,
+        tooltip: str = None,
         children: list["VirtualGroupsItem"] | None = None,
-        prim: "Usd.Prim" = None,
         is_virtual: bool | None = None,
     ):
         """
@@ -40,15 +42,15 @@ class VirtualGroupsItem(_StageManagerUSDTreeItem):
 
         Args:
             display_name: The name to display in the Tree
-            tooltip: The tooltip to display when hovering an item in the Tree
+            data: The USD Prim this item represents
+            tooltip: The tooltip to display when hovering an item in the TreeView
             children: The children items.
-            prim: The prim associated with the item. This should NOT BE SET for virtual groups
-            is_virtual: Can be set explicitly, otherwise it will be inferred from the prim argument
+            is_virtual: Can be set explicitly, otherwise it will be inferred from the data argument
         """
 
-        super().__init__(display_name, tooltip, children, prim)
+        super().__init__(display_name, data, tooltip=tooltip, children=children)
 
-        self._data["virtual"] = (prim is None) if (is_virtual is None) else is_virtual
+        self._is_virtual = (data is None) if (is_virtual is None) else is_virtual
 
     @property
     def default_attr(self) -> dict[str, None]:
@@ -59,12 +61,6 @@ class VirtualGroupsModel(_StageManagerUSDTreeModel):
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
-
-    def refresh(self):
-        self._items = [
-            VirtualGroupsItem(str(prim.GetPath().name), str(prim.GetPath()), prim=prim) for prim in self.context_items
-        ]
-        super().refresh()
 
 
 class VirtualGroupsDelegate(_StageManagerUSDTreeDelegate):

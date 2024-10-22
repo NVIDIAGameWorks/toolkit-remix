@@ -15,8 +15,11 @@
 * limitations under the License.
 """
 
-import omni.kit.app
+from typing import Iterable
+
+from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.stage_manager.factory.plugins import StageManagerFilterPlugin as _StageManagerFilterPlugin
+from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
 
 from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin
 
@@ -25,8 +28,8 @@ class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     display_name: str = "Lights"
     tooltip: str = "View the available lights, grouped by light type"
 
-    required_filters: list[_StageManagerFilterPlugin] = [{"name": "LightPrimsFilterPlugin"}]
-    recursive_traversal: bool = True
+    internal_filters: list[_StageManagerFilterPlugin] = [{"name": "LightPrimsFilterPlugin"}]
+    tree: _StageManagerTreePlugin = {"name": "LightGroupsTreePlugin"}
 
     compatible_trees: list[str] = ["LightGroupsTreePlugin", "PrimGroupsTreePlugin", "VirtualGroupsTreePlugin"]
     compatible_filters: list[str] = [
@@ -44,24 +47,42 @@ class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
         "IsCaptureStateWidgetPlugin",
     ]
 
-    async def _update_context_items_deferred(self):
-        await omni.kit.app.get_app().next_update_async()
-
+    def _update_context_items(self):
         if not self._is_active:
             return
 
         self._set_context_name()
 
-        # Only filter the items after getting all the children
-        context_items = self._filter_context_items(
-            self._traverse_children_recursive(self._context.get_items(), filter_prims=False)
+        def flatten_items(items: Iterable[_StageManagerItem]):
+            flat_items = []
+            for item in items:
+                flat_items.append(item)
+                flat_items.extend(flatten_items(item.children))
+            return flat_items
+
+        self.tree.model.context_items = self._filter_context_items(  # noqa PLE1101
+            flatten_items(self._context.get_items())
         )
 
-        self.tree.model.context_items = context_items
-        self.tree.model.refresh()
+        self._context_items_changed()
 
-    class Config(_StageManagerUSDInteractionPlugin.Config):
-        fields = {
-            **_StageManagerUSDInteractionPlugin.Config.fields,
-            "recursive_traversal": {"exclude": True},
-        }
+    def _filter_context_items(self, items: Iterable[_StageManagerItem]) -> list[_StageManagerItem]:
+        """
+        Filter the given items using the active context & internal filter plugins.
+
+        Since the items will be store as a flat list, we can simply apply the predicates to every item
+
+        Args:
+            items: A list of items to filter
+
+        Returns:
+            The filtered list of items
+        """
+
+        predicates = [
+            filter_plugin.filter_predicate
+            for filter_plugin in (self.filters + self.internal_filters)
+            if filter_plugin.enabled
+        ]
+
+        return [item for item in items if all(predicate(item) for predicate in predicates)]

@@ -16,14 +16,10 @@
 """
 
 import abc
-from typing import TYPE_CHECKING
 
 from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
 from omni.flux.stage_manager.factory.plugins import StageManagerContextPlugin as _StageManagerContextPlugin
 from omni.flux.stage_manager.factory.plugins import StageManagerListenerPlugin as _StageManagerListenerPlugin
-
-if TYPE_CHECKING:
-    from pxr import Usd
 
 
 class StageManagerUSDContextPlugin(_StageManagerContextPlugin, abc.ABC):
@@ -43,16 +39,6 @@ class StageManagerUSDContextPlugin(_StageManagerContextPlugin, abc.ABC):
     @property
     def data_type(cls):
         return _StageManagerDataTypes.USD
-
-    @abc.abstractmethod
-    def get_items(self) -> list["Usd.Prim"]:
-        """
-        Fetch the list of prims other plugins should use
-
-        Returns:
-            List of USD prims
-        """
-        pass
 
     def setup(self):
         for listener in self.listeners:

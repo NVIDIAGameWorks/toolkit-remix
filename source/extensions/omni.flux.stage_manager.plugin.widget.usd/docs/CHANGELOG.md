@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Changed
+- Use updated `item.data` data structure. The data is now the prim itself.
+
 ## [1.4.1]
 ### Fixed
 - Gave the icon widget vertical stack a width of 0 to take only required space
