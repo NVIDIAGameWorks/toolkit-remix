@@ -1,0 +1,39 @@
+[package]
+version = "2.0.0"
+authors = ["Nicos Kendall-Bar <nkendallbar@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["event", "app"]
+title = "Lightspeed Event On App Shutdown"
+description = "Extension that triggers events just before the app shuts down"
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+
+[dependencies]
+"omni.kit.window.file" = {}
+"lightspeed.events_manager" = {}
+"omni.flux.utils.common" = {}
+
+[[python.module]]
+name = "lightspeed.event.shutdown_base"
+
+[[test]]
+args = [
+    "--no-window",
+    # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
+    # Need to use a .kit file
+    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
+]
+
+dependencies = [
+    "omni.flux.utils.widget",
+    "lightspeed.trex.tests.dependencies"
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.scene_view.opengl] No UsdRender.Product was found at '{render_product_path}'*",
+    "*[omni.usd] Stage opening or closing already in progress!*",
+]

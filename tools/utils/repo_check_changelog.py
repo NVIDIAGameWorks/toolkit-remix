@@ -63,8 +63,13 @@ def find_changed_extensions(changed_files: list[tuple[str, str]], prefix_path: P
     return [prefix_path / ext_name for ext_name in ext_name_parts]
 
 
-def validate_extension_changes(source_hash: str, original_hash: str, changed_extension: Path,
-                               extension_changelog_file: str, extension_config_file:str) -> str | None:
+def validate_extension_changes(
+    source_hash: str,
+    original_hash: str,
+    changed_extension: Path,
+    extension_changelog_file: str,
+    extension_config_file: str,
+) -> str | None:
     """
     Given a changed extension's path, check that the required changes have been made.
         - that the version in `config/extension.toml` has been incremented
@@ -102,12 +107,12 @@ def validate_extension_changes(source_hash: str, original_hash: str, changed_ext
             ValueError: If either version is not in 'x.y.z' format
         """
         try:
-            major1, minor1, patch1 = first_version.split('.')
+            major1, minor1, patch1 = first_version.split(".")
             major1, minor1, patch1 = int(major1), int(minor1), int(patch1)
         except ValueError:
             raise ValueError(f"Invalid semantic version string: {first_version}") from None
         try:
-            major2, minor2, patch2 = second_version.split('.')
+            major2, minor2, patch2 = second_version.split(".")
             major2, minor2, patch2 = int(major2), int(minor2), int(patch2)
         except ValueError:
             raise ValueError(f"Invalid semantic version string: {second_version}") from None
@@ -304,7 +309,11 @@ def setup_repo_tool(parser, _):
         # Validate that all changed extensions have an incremented version as well as a CHANGELOG update
         failures = []
         for changed_extension in changed_extensions:
-            failures.append(validate_extension_changes(source_hash, original_hash, changed_extension, extension_changelog_file, extension_config_file))
+            failures.append(
+                validate_extension_changes(
+                    source_hash, original_hash, changed_extension, extension_changelog_file, extension_config_file
+                )
+            )
         # If there are any non-empty failures, fail.
         if any(failures):
             failures_string = ""

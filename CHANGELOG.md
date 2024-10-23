@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3600: Selection panel behavior improvements and fixes
 - REMIX-3576: Implement auto scroll to selection behavior for Stage Manager
 - REMIX-3537: Added a "Focus in Viewport" widget plugin for Stage Manager
+- REMIX-3399: Added Sentry metrics for unique users and app elapsed time
 
 ### Changed
 - Updated runtime to 0.6.0-rc2

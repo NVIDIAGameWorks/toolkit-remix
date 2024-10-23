@@ -15,4 +15,4 @@
 * limitations under the License.
 """
 
-from .extension import TrexStageCraftControlExtension
+from .test_shutdown_event import TestEventSentryManagerOnShutdown, TestSentryShutdownInterrupter

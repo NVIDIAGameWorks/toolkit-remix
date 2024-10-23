@@ -15,4 +15,25 @@
 * limitations under the License.
 """
 
-from .extension import TrexStageCraftControlExtension
+import carb
+import omni.ext
+
+from .manager import SentryManager as _SentryManager
+
+_manager = None
+
+
+def get_instance():
+    return _manager
+
+
+class SentryExtension(omni.ext.IExt):
+    def on_startup(self, _):
+        global _manager
+        carb.log_info("[lightspeed.sentry_manager.core] Startup")
+        _manager = _SentryManager()
+
+    def on_shutdown(self, _):
+        carb.log_info("[lightspeed.sentry_manager.core] Shutdown")
+        global _manager
+        _manager = None
