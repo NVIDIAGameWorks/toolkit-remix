@@ -3,6 +3,6 @@
     <package name="python" version="3.10.10+nv1-${platform}" />
   </dependency>
   <dependency name="rtx-remix-omni_core_materials" linkPath="../_build/${platform}/${config}/omni_core_materials">
-    <package name="rtx-remix-omni_core_materials" version="13" />
+    <package name="rtx-remix-omni_core_materials" version="15" />
   </dependency>
 </project>

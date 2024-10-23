@@ -37,6 +37,7 @@ MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name(
 )
 MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:emissive_intensity", USDFloatSliderField(0.0, 65504.0))
 MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:displace_in", USDFloatSliderField(0.0, 2.0))
+MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:displace_out", USDFloatSliderField(0.0, 2.0))
 MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name(
     "inputs:subsurface_measurement_distance", USDFloatSliderField(0.0, 16.0)
 )

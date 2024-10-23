@@ -40,10 +40,10 @@ Adding a Material typically refers to incorporating a new Material alongside exi
 4. **Choose Mesh:** Pick your mesh for texture replacement.
 5. **Selection Tab:** Look at the "Selection" tab, where you'll find the original Material hash and the converted/captured USD.
 6. **Add New Reference (Optional):** If you are replacing a model, follow the steps above for “Replacing, Adding, or Appending an Asset”.
-7. **Material Properties:** Scroll down to view the “Material Properties” tab on your selected asset. 
-8. **Assigning Textures:** Click the arrow next to a material property to see a list of adjustments you can make. 
+7. **Material Properties:** Scroll down to view the “Material Properties” tab on your selected asset.
+8. **Assigning Textures:** Click the arrow next to a material property to see a list of adjustments you can make.
     * _For example:_ In the Base Material dropdown, you can add an Albedo, Roughness, Metallic, and Normal Map texture.
-    * If you are replacing a texture on a captured model, the original captured texture will be present in the “Albedo” channel. 
+    * If you are replacing a texture on a captured model, the original captured texture will be present in the “Albedo” channel.
 9. **Selecting Textures:** Click the browse icon to navigate to your texture file pathing and then select it to add the texture to that channel
 
 
@@ -64,14 +64,22 @@ Displacement is a family of techniques used to make simple geometry appear more 
 
 **Depth of a Pixel**
 
-In Remix, four factors determine the depth of the displacement, which is calculated as:
-(height_map_pixel * displace_in * rtx.displacement.displacementFactor)
+In Remix, five factors determine the apparent depth of the displacement, which is calculated like this:
 
-* <code>Height_map_pixel</code> A black pixel will be displaced back the full distance, a white pixel will not be displaced at all.
-* <code>displace_in</code> A material property that determines how deep a particular material appears
+<code>(height_map_pixel * (displace_in + displace_out) - displace_in) * displacementFactor * UV_to_world</code>
+
+* <code>Height_map_pixel</code> A black pixel will be displaced back to max_depth, a white pixel will be displaced forward to max_height.
+* <code>displace_in</code> A material property that determines how far below the original surface a pixel can appear
+* <code>displace_out</code> A material property that determines how far above the original surface a pixel can appear
 * <code>rtx.displacement.displacementFactor</code> A global RtxOption primarily used for debugging.  We recommend leaving this at 1.0.
-* UV density of a given surface (i.e. how often the texture tiles)
-* For example, if you have a wall panel that tiles every 1.5 meters, a black pixel will appear to be 1.5 * <code>displace_in</code> meters behind the wall. A gray pixel will be 0.75 meters behind the wall, and a white pixel will not be changed.
+* <code>UV_to_world</code> The UV density of a given surface (i.e. how many world units to go from u=0 to u=1, or how often the texture tiles)
+* For example, if you have a wall panel that repeats every 1.5 meters, a black pixel will appear to be 1.5 * <code>displace_in</code> meters behind the wall. A white pixel will be 1.5 * <code>displace_out</code> meters in front of the wall.
+
+A few useful calculations:
+
+<code>total_height = displace_out + displace_in</code> The total possible range of the displacement (before factoring in displacementFactor or uv scale)
+
+<code>neutral_height = displace_in / total_height</code> The height_map value to have no displacement
 
 **Comparison with Substance Designer**
 
@@ -79,12 +87,13 @@ In Substance Designer, a black pixel on the height map is 1 unit * <code>height_
 
 **Adjusting displace_in for Consistency**
 
-* To match the depth of the surface in Remix with Substance Designer's preview, adjust <code>displace_in</code> as follows: <code>displace_in = height_scale</code> / 100.
+* To match the depth of the surface in Remix with Substance Designer's preview, adjust <code>displace_in</code> as follows: <code>displace_in = height_scale / 100</code>.
 * This adjustment ensures that the displacement scale in Remix is consistent with Substance Designer's default preview mesh.
+* If outwards displacement is desired, <code>displace_in + displace_out</code> should equal <code>height_scale / 100</code>
 
 **Considerations for Custom Meshes**
 
-If the artist uses a custom mesh in Substance Designer, the adjustment factor for <code>displace_in</code> may need to be fine-tuned based on the specific characteristics of the custom mesh.  Substance Designer does not factor in the UV density when calculating depth, so rather than simply dividing by 100, they will need to divide by the UV density of their custom mesh.
+If the artist uses a custom mesh in Substance Designer, the adjustment factor for <code>displace_in</code> and <code>displace_out</code> may need to be fine-tuned based on the specific characteristics of the custom mesh.  Substance Designer does not factor in the UV density when calculating depth, so rather than simply dividing by 100, they will need to divide by the UV density of their custom mesh.
 
 ## Animated Materials
 
@@ -102,7 +111,7 @@ Working with animated textures involves a few additional steps. Follow this easy
 
 ### Animated Materials using a Sprite Sheet
 
-To bring animations from a sprite sheet into the application, it's a simple process. The user just needs to specify three things: 
+To bring animations from a sprite sheet into the application, it's a simple process. The user just needs to specify three things:
 1. The number of rows
 1. The number of columns
 1. The desired frames per second
