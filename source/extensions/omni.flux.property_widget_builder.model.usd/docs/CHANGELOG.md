@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.15.0]
+### Added
+- Added slider widget for material attribute displace_out
+
 ## [2.14.0]
 ### Added
 - Added support for multi-edit and displaying "mixed" values
