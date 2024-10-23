@@ -35,6 +35,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
 
     _context_name: str = PrivateAttr("")
     _selection_update_lock: bool = PrivateAttr(False)
+    _ignore_selection_update: bool = PrivateAttr(False)
     _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr([])
     _items_changed_task: Future | None = PrivateAttr(None)
 
@@ -96,6 +97,11 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
 
     @_ignore_function_decorator(attrs=["_selection_update_lock"])
     def _update_tree_selection(self):
+        # Cache the value to be used in `_update_expansion_states_deferred`
+        scroll_to_selection = not self._ignore_selection_update
+        # Make sure to reset the value so next time we update the tree selection we have the right value
+        self._ignore_selection_update = False
+
         if not self.synchronize_selection or not self._is_active:
             return
 
@@ -121,11 +127,16 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
 
         if self._update_expansion_task:  # noqa PLE0203
             self._update_expansion_task.cancel()  # noqa PLE0203
-        self._update_expansion_task = ensure_future(self._update_expansion_states_deferred())
+        self._update_expansion_task = ensure_future(
+            self._update_expansion_states_deferred(scroll_to_selection_override=scroll_to_selection)
+        )
 
     def _on_selection_changed(self, items):
         if self._selection_update_lock or not self.synchronize_selection:
             return
+
+        # Will trigger _on_stage_event_occurred -> _update_tree_selection -> self._ignore_selection_update = False
+        self._ignore_selection_update = True
 
         selection_prim_paths = [str(item.data.GetPath()) for item in items if item.data]
         selection = omni.usd.get_context(self._context_name).get_selection()

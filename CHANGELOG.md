@@ -83,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3565: Fixed icon display for lights in selection panel
 - Fix `replace_reference_with_data_model` crash for the Rest API
 - Fix extension publication job in CI
+- REMIX-3638: Fixed scroll to item behavior for tree selection
 
 ### Removed
 
