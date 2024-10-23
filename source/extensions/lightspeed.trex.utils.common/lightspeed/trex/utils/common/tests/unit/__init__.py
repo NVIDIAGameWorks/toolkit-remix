@@ -15,4 +15,4 @@
 * limitations under the License.
 """
 
-from .extension import TrexStageCraftControlExtension
+from .test_user_utils import TestUserUtils

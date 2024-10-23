@@ -18,8 +18,10 @@
 import carb
 import carb.settings
 import omni.ext
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 
 from .setup import Setup
+from .unsaved_stage import EventUnsavedStageOnShutdown
 
 _stagecraft_control_instance: Setup | None = None
 
@@ -37,9 +39,16 @@ def get_instance():
 class TrexStageCraftControlExtension(omni.ext.IExt):
     """Create Final Configuration"""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._unsaved_event = None
+
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.trex.control.stagecraft] Startup")
-        _create_instance()
+        instance = _create_instance()
+        self._unsaved_event = EventUnsavedStageOnShutdown()
+        self._unsaved_event.register_interrupter(instance)
+        _get_event_manager_instance().register_event(self._unsaved_event)
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.control.stagecraft] Shutdown")
@@ -47,3 +56,4 @@ class TrexStageCraftControlExtension(omni.ext.IExt):
         if _stagecraft_control_instance:
             _stagecraft_control_instance.destroy()
         _stagecraft_control_instance = None
+        self._unsaved_event = None

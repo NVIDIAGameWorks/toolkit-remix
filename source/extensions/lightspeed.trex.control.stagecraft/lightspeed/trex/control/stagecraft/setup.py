@@ -18,6 +18,7 @@
 from functools import partial
 from typing import Callable
 
+import carb
 import omni.ui
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
@@ -33,6 +34,8 @@ from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCoreSet
 from lightspeed.trex.stage.core.shared import Setup as _StageCoreSetup
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+
+_TREX_IGNORE_UNSAVED_STAGE_ON_EXIT = "/app/file/trexIgnoreUnsavedOnExit"
 
 
 class Setup:
@@ -154,7 +157,8 @@ class Setup:
             callback()
 
     def should_interrupt_shutdown(self):
-        return self._context.can_close_stage() and self._context.has_pending_edit()
+        ignore_unsaved_stage = carb.settings.get_settings().get(_TREX_IGNORE_UNSAVED_STAGE_ON_EXIT) or False
+        return (not ignore_unsaved_stage) and (self._context.can_close_stage() and self._context.has_pending_edit())
 
     def interrupt_shutdown(self, shutdown_callback):
         def callback():

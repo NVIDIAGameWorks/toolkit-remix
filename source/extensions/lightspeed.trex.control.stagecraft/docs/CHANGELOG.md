@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.2]
+### Fixed
+- Refactored shutdown event
+
 ## [1.2.1]
 ### Fixed
 - Fixed tests
@@ -15,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.1.5]
 ### Fixed
-- Removed test dependency on lightspeed.event.shutdown
+- Removed test dependency on lightspeed.event.shutdown_base
 
 ## [1.1.4]
 ### Changed

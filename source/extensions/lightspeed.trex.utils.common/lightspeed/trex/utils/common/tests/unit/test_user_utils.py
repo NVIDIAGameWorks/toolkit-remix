@@ -15,4 +15,19 @@
 * limitations under the License.
 """
 
-from .extension import TrexStageCraftControlExtension
+import omni.kit.test
+from lightspeed.trex.utils.common.user_utils import get_user_key
+
+
+class TestUserUtils(omni.kit.test.AsyncTestCase):
+    def test_get_user_key(self):
+        # Act
+        key1 = get_user_key()
+        key2 = get_user_key()
+
+        # Assert
+        # Verify that keys are hex values
+        self.assert_(int(key1, 16))
+        self.assert_(int(key2, 16))
+        # Verify that it is consistent
+        self.assertEqual(key1, key2)

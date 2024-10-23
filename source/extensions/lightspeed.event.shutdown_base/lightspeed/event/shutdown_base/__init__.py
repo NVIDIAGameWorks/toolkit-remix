@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .extension import TrexStageCraftControlExtension
+__all__ = ["EventOnShutdownBase", "InterrupterBase"]
+
+from .base import EventOnShutdownBase, InterrupterBase

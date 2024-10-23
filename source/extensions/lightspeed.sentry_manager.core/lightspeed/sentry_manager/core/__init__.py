@@ -15,4 +15,5 @@
 * limitations under the License.
 """
 
-from .extension import TrexStageCraftControlExtension
+from .extension import SentryExtension, get_instance
+from .manager import ELAPSED_TIME_METRIC_TYPE, METRICS_MESSAGE_TOPIC, TIMING_METRIC_TYPE

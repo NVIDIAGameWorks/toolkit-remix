@@ -15,4 +15,18 @@
 * limitations under the License.
 """
 
-from .extension import TrexStageCraftControlExtension
+import carb
+import omni.ext
+
+from .shutdown_event import EventSentryManagerOnShutdown as _EventSentryManagerOnShutdown
+
+
+class SentryEvent(omni.ext.IExt):
+    def on_startup(self, _):
+        carb.log_info("[lightspeed.sentry_manager.event] Startup")
+        # Need to instantiate the class to have it fire at shutdown
+        self._event = _EventSentryManagerOnShutdown()
+
+    def on_shutdown(self, _):
+        carb.log_info("[lightspeed.sentry_manager.event] Shutdown")
+        self._event = None

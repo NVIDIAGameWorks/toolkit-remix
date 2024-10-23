@@ -15,4 +15,11 @@
 * limitations under the License.
 """
 
-from .extension import TrexStageCraftControlExtension
+from lightspeed.event.shutdown_base import EventOnShutdownBase as _EventOnShutdownBase
+
+
+class EventUnsavedStageOnShutdown(_EventOnShutdownBase):
+    @property
+    def name(self) -> str:
+        """Name of the event"""
+        return "Event Unsaved On Shutdown"

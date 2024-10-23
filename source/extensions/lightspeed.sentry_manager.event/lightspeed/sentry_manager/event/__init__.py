@@ -15,4 +15,7 @@
 * limitations under the License.
 """
 
-from .extension import TrexStageCraftControlExtension
+__all__ = ["EventSentryManagerOnShutdown", "SentryShutdownInterrupter"]
+
+from .extension import SentryEvent as _SentryEvent
+from .shutdown_event import EventSentryManagerOnShutdown, SentryShutdownInterrupter

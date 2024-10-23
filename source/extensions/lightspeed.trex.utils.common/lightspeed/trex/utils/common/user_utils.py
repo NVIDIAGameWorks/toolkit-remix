@@ -15,4 +15,13 @@
 * limitations under the License.
 """
 
-from .extension import TrexStageCraftControlExtension
+import uuid
+
+
+def get_user_key():
+    """
+    Return a value unique to the machine this is being run on that does not contain PII.
+
+    There may be a similar machine-specific identifier in omni somewhere, but no one was able to locate it.
+    """
+    return uuid.uuid5(uuid.NAMESPACE_DNS, "nvidia.com").hex
