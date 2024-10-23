@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.1]
+### Changed
+- Don't scroll to item on tree selection updated
+
 ## [1.7.0]
 ### Changed
 - Use updated, centralized `_update_context_items` logic for the USD base

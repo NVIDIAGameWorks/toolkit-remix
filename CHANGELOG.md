@@ -75,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix `replace_reference_with_data_model` crash for the Rest API
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs
 - Fix extension publication job in CI
+- REMIX-3638: Fixed scroll to item behavior for tree selection
 
 ### Removed
 
