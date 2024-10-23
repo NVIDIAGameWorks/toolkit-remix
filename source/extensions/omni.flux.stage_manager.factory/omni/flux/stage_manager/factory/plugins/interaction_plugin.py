@@ -551,7 +551,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                     ui.Rectangle(name=("Alternate" if i % 2 else "") + "Row", height=ui.Pixel(self.row_height))
 
     @omni.usd.handle_exception
-    async def _update_expansion_states_deferred(self):
+    async def _update_expansion_states_deferred(self, scroll_to_selection_override: bool = True):
         """
         Wait 1 frame, then update the expansion state of the Tree items based on their cached state
         """
@@ -566,7 +566,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 continue
             self._tree_widget.set_expanded(item, expanded, False)
 
-        if self._scroll_to_selection and self._tree_scroll_frame:
+        if scroll_to_selection_override and self._scroll_to_selection and self._tree_scroll_frame:
             await omni.kit.app.get_app().next_update_async()
             self._scroll_to_items(self._tree_widget.selection)
 
