@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.1]
+### Fixed
+- Added missing `is_virtual` property in the `VirtualGroupsItem` class
+
 ## [1.4.0]
 ### Changed
 - Use updated refresh logic and `build_items` & `build_item` methods to build the tree on refresh

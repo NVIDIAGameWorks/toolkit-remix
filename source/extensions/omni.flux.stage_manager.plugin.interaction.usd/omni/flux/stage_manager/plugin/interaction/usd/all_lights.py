@@ -81,7 +81,7 @@ class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
 
         predicates = [
             filter_plugin.filter_predicate
-            for filter_plugin in (self.filters + self.internal_filters)
+            for filter_plugin in (self.context_filters + self.internal_filters)
             if filter_plugin.enabled
         ]
 
