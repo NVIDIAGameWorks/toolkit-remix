@@ -44,9 +44,9 @@ class StageManagerUtils:
         def filter_item(item):
             valid_children = []
             for child in item.children:
-                if filter_item(child) is None:
-                    continue
-                valid_children.append(child)
+                valid_child = filter_item(child)
+                if valid_child is not None:
+                    valid_children.append(valid_child)
 
             if all(predicate(item) for predicate in predicates) or valid_children:
                 # Create a new item with valid children instead of modifying original
