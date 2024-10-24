@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-## [2024.5.0-RC.2]
+## [2024.5.0-RC.3]
 
 ### Added
 - Create 2024.4.1 build
