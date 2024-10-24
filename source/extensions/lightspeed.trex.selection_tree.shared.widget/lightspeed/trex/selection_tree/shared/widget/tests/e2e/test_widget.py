@@ -16,6 +16,7 @@
 * limitations under the License.
 """
 import os
+import re
 import shutil
 import tempfile
 
@@ -423,6 +424,107 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
 
         self.assertEqual(len(item_prims), 2)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_append_and_delete_captured_ref(self):
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 2)
+
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        self.assertEqual(len(item_file_meshes), 2)
+
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        self.assertEqual(len(item_instances), 0)
+
+        await item_file_meshes[0].click()
+
+        window_name = "Select a reference file"
+
+        # The file picker window should now be opened (0 < len(widgets))
+        self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
+
+        select_button = ui_test.find(f"{window_name}//Frame/**/Button[*].text=='Select'")
+        dir_path_field = ui_test.find(f"{window_name}//Frame/**/StringField[*].identifier=='filepicker_directory_path'")
+
+        self.assertIsNotNone(select_button)
+        self.assertIsNotNone(dir_path_field)
+
+        # It takes a while for the tree to update
+        await ui_test.human_delay(50)
+        asset_path = _get_test_data("usd/project_example/ingested_assets/output/good/cube.usda")
+        await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(50)
+
+        await select_button.click()
+        await ui_test.human_delay()
+
+        ignore_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+        )
+
+        cancel_ingestion_button = ui_test.find(
+            f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='cancel_button'"
+        )
+        self.assertIsNone(ignore_ingestion_button)
+        self.assertIsNone(cancel_ingestion_button)
+
+        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+
+        # delete
+        await delete_ref_images[0].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # test
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+
+        self.assertEqual(len(item_prims), 5)
+        self.assertEqual(len(item_file_meshes), 2)
+        self.assertEqual(len(item_instance_groups), 1)
+
+        # test that the selections in the usd context are correct
+        selection = usd_context.get_selection().get_selected_prim_paths()
+        self.assertEqual(len(selection), 2)
+        mesh, instance = selection[0], selection[1]
+        self.assertIsNotNone(re.match("/RootNode/meshes/mesh_0AB745B8BEE1F16B/ref_[a-z0-9]*?/Toto", mesh))
+        self.assertIsNotNone(re.match("/RootNode/instances/inst_0AB745B8BEE1F16B_0/ref_[a-z0-9]*?/Toto", instance))
+
+        # test that the actual instance prim is not selected
+        self.assertNotIn("/RootNode/instances/inst_0AB745B8BEE1F16B_0", selection)
+
+        # undo
+        omni.kit.undo.undo()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+
+        self.assertEqual(len(item_prims), 6)
+
+        # undo
+        omni.kit.undo.redo()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+
+        self.assertEqual(len(item_prims), 5)
+
+        # test that the selections in the usd context are correct
+        selection = usd_context.get_selection().get_selected_prim_paths()
+        self.assertEqual(len(selection), 2)
+        mesh, instance = selection[0], selection[1]
+        self.assertIsNotNone(re.match("/RootNode/meshes/mesh_0AB745B8BEE1F16B/ref_[a-z0-9]*?/Toto", mesh))
+        self.assertIsNotNone(re.match("/RootNode/instances/inst_0AB745B8BEE1F16B_0/ref_[a-z0-9]*?/Toto", instance))
+
+        # test that the actual instance prim is not selected
+        self.assertNotIn("/RootNode/instances/inst_0AB745B8BEE1F16B_0", selection)
 
         await self.__destroy(_window, _wid)
 
