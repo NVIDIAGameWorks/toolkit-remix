@@ -115,6 +115,7 @@ kit_d3d9.log
 kit.dxvk-cache
 metrics.txt
 PIC-V.log
+rtx-remix/logs/
 
 # Ignore internal repo tools
 /deps/repo-deps-internal.packman.xml

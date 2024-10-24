@@ -54,7 +54,17 @@ class VirtualGroupsItem(_StageManagerUSDTreeItem):
 
     @property
     def default_attr(self) -> dict[str, None]:
-        return super().default_attr
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_is_virtual": None,
+            }
+        )
+        return default_attr
+
+    @property
+    def is_virtual(self) -> bool:
+        return self._is_virtual
 
 
 class VirtualGroupsModel(_StageManagerUSDTreeModel):
