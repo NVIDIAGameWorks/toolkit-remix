@@ -346,7 +346,6 @@ class SetupUI:
 
         # save the current selection
         to_select = []
-        previous_asset_item = item.parent
         previous_selected_instance_items = [
             _item for _item in self._previous_instance_selection if isinstance(_item, _ItemInstance)
         ]
@@ -364,51 +363,44 @@ class SetupUI:
                 or (_item.from_live_light_group and _item.is_usd_light)
             )
         ]
-        previous_selection = self._core.get_selected_prim_paths()
 
-        # select the first prim of the previous mesh from the first ref
-        if len(previous_selected_prim_items) < 1:
+        if not previous_selected_prim_items:
+            # select the first prim of the previous mesh from the first ref
             parent = item.parent
             for ref_item in parent.reference_items:
                 if ref_item == item:
                     continue
                 if ref_item.child_prim_items:
                     prims = self._core.get_prim_from_ref_items(
-                        [ref_item], previous_selected_instance_items, only_xformable=True, level=1, skip_remix_ref=True
+                        ref_items=[ref_item],
+                        parent_items=previous_selected_instance_items,
+                        only_xformable=True,
+                        level=1,
+                        skip_remix_ref=True,
                     )
                     if prims:
-                        for prim in prims:
-                            to_select.append(str(prim.GetPath()))
+                        to_select = [str(prim.GetPath()) for prim in prims]
                         break
+        else:
+            # select the first previously prim item from the tree selection
+            to_select = [previous_selected_prim_items[0].path]
 
-        # if we dont have any prims anymore, we select the previous instance
-        if not to_select and previous_selected_instance_items:
-            to_select = [previous_selected_instance_items[0].path]
-
-        # if we dont have selected instance, we select the previous mesh
         if not to_select:
-            to_select = [previous_asset_item.path]
+            # if we don't have any prims anymore, we select the previous instance
+            if previous_selected_instance_items:
+                to_select = [previous_selected_instance_items[0].path]
+            else:
+                # if we don't have a selected instance, we select the mesh
+                to_select = [item.parent.path]
+
+        # keep the currently selected prims
+        current_selection = self._core.get_selected_prim_paths()
+        to_select.extend(current_selection)
+
+        # filter out any invalid prim path
+        to_select = [prim_path for prim_path in to_select if stage.GetPrimAtPath(prim_path).IsValid()]
 
         with omni.kit.undo.group(), self._tree_model.refresh_only_at_the_end():
-            current_selection = self._core.get_selected_prim_paths()
-
-            to_select = [prim_path for prim_path in to_select if stage.GetPrimAtPath(prim_path).IsValid()]
-            if to_select:
-                # take only the first one
-                to_select = [to_select[0]]
-
-            for prim_path in previous_selection:
-                prim = stage.GetPrimAtPath(prim_path)
-                if not prim.IsValid():
-                    continue
-                to_select.append(prim_path)
-
-            # if there is nothing to select, we select the instance itself
-            if not to_select:
-                if previous_selected_instance_items:
-                    to_select.append(previous_selected_instance_items[0].path)
-                else:
-                    to_select.append(item.parent.path)
             self._core.select_prim_paths(to_select, current_selection=current_selection)
             self._core.remove_reference(stage, item.prim.GetPath(), item.ref, item.layer)
 
