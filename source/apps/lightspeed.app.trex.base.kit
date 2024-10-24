@@ -24,9 +24,9 @@ This base experience regroup all extensions shared between all NVIDIA RTX Remix 
 "lightspeed.dependencies" = { order = -15000}  # Try to load the splash screen
 
 # PIP Archives
-"lightspeed.pip_archive" = { order = -10002 }  # Load before `omni.flux.pip_archive` to ensure we override the pip deps
-"omni.flux.pip_archive" = { order = -10001 }  # Load before `lightspeed.hydra.remix.core` to ensure we override the pip deps
-"omni.flux.internal_pip_archive" = { order = -10001 }  # Load before `lightspeed.hydra.remix.core` to ensure we override the pip deps
+"lightspeed.pip_archive" = { order = -10003 }  # Load before `omni.flux` pip_archives to ensure we override the pip deps
+"omni.flux.internal_pip_archive" = { order = -10002 }  # Load before `lightspeed.hydra.remix.core` to ensure we override the pip deps
+"omni.flux.pip_archive" = { order = -10001 }  # Load after `omni.flux.internal_pip_archive` to avoid trumping numpy version for ai tools
 
 # Trex shared extensions
 "lightspeed.hydra.remix.core" = { order = -10000 }
