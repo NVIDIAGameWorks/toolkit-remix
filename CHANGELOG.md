@@ -80,6 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix extension publication job in CI
 - REMIX-3638: Fixed scroll to item behavior for tree selection
 - REMIX-3615: Updating texture set search for better comparisons
+- REMIX-3628: Fixed AI Tools "Current Process" executor mode.
 
 ### Removed
 
