@@ -54,6 +54,8 @@ from omni.flux.utils.widget.file_pickers import open_file_picker as _open_file_p
 from omni.kit.window.drop_support import ExternalDragDrop as _ExternalDragDrop
 from pxr import Sdf, Usd
 
+from .texture_assignment_model import Delegate, Model
+
 if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
         ItemAddNewReferenceFile as _ItemAddNewReferenceFileMesh,
@@ -76,6 +78,7 @@ class TextureDialog(ui.Window):
 class SetupUI:
 
     MATERIAL_LABEL_NAME_SIZE = 32
+    _WIDGET_PADDING = 16
 
     def __init__(self, context_name: str):
         """Nvidia StageCraft Viewport UI"""
@@ -195,7 +198,7 @@ class SetupUI:
                         ui.Spacer(width=ui.Pixel(50), height=0)
                         ui.Button(
                             text="Assign Texture Sets",
-                            name="AssignTextureSetButton",
+                            identifier="AssignTextureSetButton",
                             clicked_fn=self.__check_for_similar_textures,
                             height=ui.Pixel(8),
                             width=ui.Pixel(12),
@@ -267,29 +270,42 @@ class SetupUI:
         texture_dict = {}
 
         basename_parts = _parse_texture_paths([basename])
-        base_parts_len = len(basename_parts[basename])
+        # If it's an already ingested texture, we can just ignore the tags
+        if basename_parts[basename][-1] == "rtex":
+            basename_parts = basename_parts[basename][:-2]
+        else:
+            basename_parts = basename_parts[basename]
+        base_parts_len = len(basename_parts)
+        all_path_parts = _parse_texture_paths([p.name for p in selected_paths])
 
         for path in selected_paths:
             if path.suffix != ".dds":
                 continue
             texture_type = _get_texture_type_from_filename(str(path))
-            similar_len = len([c for c in basename_parts[basename] if c in path.name])
+            # If it's an already ingested texture, we can just ignore the tags
+            path_parts = all_path_parts[path.name]
+            if path_parts[-1] == "rtex":
+                path_parts = path_parts[:-2]
+            similar_len = len([c for c in basename_parts if c in path_parts])
             if similar_len == 0:
                 continue
             if texture_type and similar_len >= base_parts_len - 1:
                 name = _TEXTURE_TYPE_INPUT_MAP[texture_type].replace("inputs:", "")
-                texture_dict[name] = str(path)
+                if name not in texture_dict:
+                    texture_dict[name] = str(path)
 
         for _, value in texture_dict.items():
             selected_paths.remove(Path(value))
 
         texture_types = _determine_ideal_types([str(path) for path in selected_paths])
         for path, texture_type in texture_types.items():
+            if _TEXTURE_TYPE_INPUT_MAP[texture_type].replace("inputs:", "") in texture_dict:
+                continue
             path_name = Path(path).name
-            similar_len = len([c for c in basename_parts[basename] if c in path_name])
+            similar_len = len([c for c in basename_parts if c in path_name])
             if similar_len == 0:
                 continue
-            if _TEXTURE_TYPE_INPUT_MAP[texture_type] not in texture_dict and similar_len >= base_parts_len - 1:
+            if similar_len >= base_parts_len - 1:
                 texture_dict[_TEXTURE_TYPE_INPUT_MAP[texture_type].replace("inputs:", "")] = path
 
         if not texture_dict:
@@ -301,15 +317,21 @@ class SetupUI:
             )
             return
 
-        msg = "Would you like to assign any of the found textures?"
+        msg = "Select the textures that should be assigned to this material."
 
-        def assign_texture(check_boxes=None, paths=None):
+        def assign_texture(paths=None):
             if not paths:
                 paths = texture_dict
+            check_boxes = delegate.get_checkboxes()
             if check_boxes:
-                checked_boxes = [box.name for box in check_boxes if box.model.get_value_as_bool()]
+                checked_boxes = [box.name for key, box in check_boxes.items() if box.model.get_value_as_bool()]
             else:
                 checked_boxes = []
+
+            if not checked_boxes and self._dialog:
+                self._dialog.hide()
+                return
+
             with omni.kit.undo.group():
                 for item in items:
                     for value_model in item.value_models:
@@ -331,12 +353,15 @@ class SetupUI:
             assign_texture()
             return
 
+        base_height = 124
+        for _ in range(len(texture_dict)):
+            base_height += 24
         # Dialog to ask for one or all textures
         self._dialog = TextureDialog(
             "Texture Assignment",
             visible=True,
-            width=550,
-            height=250,
+            width=500,
+            height=400,
             dockPreference=ui.DockPreference.DISABLED,
             flags=(
                 ui.WINDOW_FLAGS_NO_COLLAPSE
@@ -344,35 +369,48 @@ class SetupUI:
                 | ui.WINDOW_FLAGS_NO_RESIZE
                 | ui.WINDOW_FLAGS_NO_CLOSE
                 | ui.WINDOW_FLAGS_MODAL
+                | ui.WINDOW_FLAGS_NO_SCROLLBAR
             ),
         )
 
-        checkboxes = []
+        model = Model()
+        for texture_type, texture_path in texture_dict.items():
+            model.add_item(Path(texture_path).name, texture_type)
+        delegate = Delegate()
         with self._dialog.frame:
-            with ui.VStack():
-                ui.Label(msg)
-                ui.Spacer()
-                for name, texture in texture_dict.items():
-                    with ui.HStack(height=ui.Pixel(25)):
-                        ui.Label(Path(texture).stem)
-                        ui.Spacer(width=ui.Pixel(10))
-                        checkbox = ui.CheckBox()
-                        checkbox.model.set_value(True)
-                        checkbox.name = name.replace("inputs:", "")
-                        checkboxes.append(checkbox)
-                ui.Spacer()
-                with ui.HStack():
-                    ui.Spacer()
-                    ui.Button(
-                        text="Assign",
-                        name="AssignButton",
-                        clicked_fn=functools.partial(assign_texture, checkboxes),
-                        width=75,
-                        height=30,
-                    )
-                    ui.Button(text="Cancel", name="CancelButton", clicked_fn=self._dialog.hide, width=75, height=30)
-                    ui.Spacer()
-                ui.Spacer()
+            with ui.HStack(spacing=ui.Pixel(self._WIDGET_PADDING)):
+                ui.Spacer(width=0)
+                with ui.VStack(spacing=ui.Pixel(self._WIDGET_PADDING)):
+                    ui.Spacer(height=0)
+                    ui.Label(msg, height=0)
+                    with ui.ZStack():
+                        ui.Rectangle(name="TreePanelBackground")
+                        with ui.VStack(spacing=ui.Pixel(self._WIDGET_PADDING)):
+                            ui.Spacer(height=0)
+                            with ui.ScrollingFrame(
+                                name="PropertiesPaneSection",
+                                horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                            ):
+                                texture_tree = ui.TreeView(
+                                    model,
+                                    delegate=delegate,
+                                    root_visible=False,
+                                    header_visible=False,
+                                )
+                                texture_tree.set_selection_changed_fn(model.set_items_selected)
+                            ui.Spacer(height=0)
+
+                    with ui.HStack(height=0, spacing=ui.Pixel(self._WIDGET_PADDING)):
+                        ui.Spacer()
+                        ui.Button(
+                            text="Assign",
+                            identifier="AssignButton",
+                            clicked_fn=functools.partial(assign_texture),
+                        )
+                        ui.Button(text="Cancel", identifier="CancelButton", clicked_fn=self._dialog.hide)
+                        ui.Spacer()
+                    ui.Spacer(height=0)
+                ui.Spacer(width=0)
 
     def __check_for_similar_textures(self):
         """

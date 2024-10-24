@@ -598,7 +598,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         omni.appwindow.get_default_app_window().get_window_drop_event_stream().push(0, 0, {"paths": [asset_path]})
         await ui_test.human_delay(20)
 
-        action_button = ui_test.find_all("Texture Assignment//Frame/**/Button[*].name=='AssignButton'")
+        action_button = ui_test.find_all("Texture Assignment//Frame/**/Button[*].identifier=='AssignButton'")
         await action_button[0].click()
         await ui_test.human_delay(3)
 
@@ -635,7 +635,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # we expand
         await property_branches[2].click()
 
-        assign_button = ui_test.find_all(f"{_window.title}//Frame/**/Button[*].name=='AssignTextureSetButton'")
+        assign_button = ui_test.find_all(f"{_window.title}//Frame/**/Button[*].identifier=='AssignTextureSetButton'")
 
         # Check that the texture in a similar texture set is also assigned
         await assign_button[0].click()
@@ -647,7 +647,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await picker_buttons[TestComponents.FILE_PICKER_OPEN].click()
         await ui_test.human_delay(10)
 
-        action_button = ui_test.find_all("Texture Assignment//Frame/**/Button[*].name=='AssignButton'")
+        action_button = ui_test.find_all("Texture Assignment//Frame/**/Button[*].identifier=='AssignButton'")
         await action_button[0].click()
         await ui_test.human_delay(3)
 
@@ -666,51 +666,101 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # setup
         _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
 
-        # select
-        usd_context = omni.usd.get_context()
-        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
-        asset_path = _get_test_data("usd/project_example/sources/textures/ingested/16px_metallic.m.rtex.dds")
+        # Create a temp directory to create a variety of files
+        with tempfile.TemporaryDirectory(
+            dir=_get_test_data("usd/project_example/sources/textures/ingested/")
+        ) as temp_dir:
+            temp_dir_obj = Path(temp_dir)
+            shutil.copy(
+                _get_test_data("usd/project_example/sources/textures/ingested/16px_metallic.m.rtex.dds"),
+                temp_dir_obj / "testa_metallic.m.rtex.dds",
+            )
+            shutil.copy(
+                _get_test_data("usd/project_example/sources/textures/ingested/16px_metallic.m.rtex.dds.meta"),
+                temp_dir_obj / "testa_metallic.m.rtex.dds.meta",
+            )
+            shutil.copy(
+                _get_test_data("usd/project_example/sources/textures/ingested/16px_metallic.m.rtex.dds"),
+                temp_dir_obj / "testb_metallic.m.rtex.dds",
+            )
+            shutil.copy(
+                _get_test_data("usd/project_example/sources/textures/ingested/16px_metallic.m.rtex.dds"),
+                temp_dir_obj / "testc_metallic.m.rtex.dds",
+            )
+            shutil.copy(
+                _get_test_data("usd/project_example/sources/textures/ingested/16px_normal_OTH_Normal.n.rtex.dds.meta"),
+                temp_dir_obj / "testa_normal_OTH_Normal.n.rtex.dds",
+            )
+            shutil.copy(
+                _get_test_data("usd/project_example/sources/textures/ingested/16px_normal_OTH_Normal.n.rtex.dds.meta"),
+                temp_dir_obj / "testa_normal_OTH_Normal.n.rtex.dds.meta",
+            )
+            shutil.copy(
+                _get_test_data("usd/project_example/sources/textures/ingested/16px_normal_OTH_Normal.n.rtex.dds"),
+                temp_dir_obj / "testb_normal_OTH_Normal.n.rtex.dds",
+            )
+            shutil.copy(
+                _get_test_data("usd/project_example/sources/textures/ingested/16px_normal_OTH_Normal.n.rtex.dds"),
+                temp_dir_obj / "testc_normal_OTH_Normal.n.rtex.dds",
+            )
 
-        await ui_test.human_delay(human_delay_speed=10)
-        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+            # select
+            usd_context = omni.usd.get_context()
+            usd_context.get_selection().set_selected_prim_paths(
+                ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False
+            )
+            asset_path = temp_dir_obj / "testa_metallic.m.rtex.dds"
 
-        # we expand
-        await property_branches[2].click()
-        await property_branches[3].click()
+            await ui_test.human_delay(human_delay_speed=10)
+            property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
 
-        assign_button = ui_test.find_all(f"{_window.title}//Frame/**/Button[*].name=='AssignTextureSetButton'")
+            # we expand
+            await property_branches[2].click()
+            await property_branches[3].click()
 
-        # Check that the texture in a similar texture set is also assigned
-        await assign_button[0].click()
-        await ui_test.human_delay(3)
+            assign_button = ui_test.find_all(
+                f"{_window.title}//Frame/**/Button[*].identifier=='AssignTextureSetButton'"
+            )
 
-        picker_buttons = await self.__find_file_picker_buttons("Select Texture Set")
-        await ui_test.human_delay(50)
-        await picker_buttons[TestComponents.FILE_PICKER_DIRECTORY].input(asset_path, end_key=KeyboardInput.ENTER)
-        await picker_buttons[TestComponents.FILE_PICKER_OPEN].click()
-        await ui_test.human_delay(10)
+            # Check that the texture in a similar texture set is also assigned
+            await assign_button[0].click()
+            await ui_test.human_delay(3)
 
-        action_button = ui_test.find_all("Texture Assignment//Frame/**/Button[*].name=='AssignButton'")
-        await action_button[0].click()
-        await ui_test.human_delay(3)
+            picker_buttons = await self.__find_file_picker_buttons("Select Texture Set")
+            await ui_test.human_delay(50)
+            await picker_buttons[TestComponents.FILE_PICKER_DIRECTORY].input(
+                str(asset_path), end_key=KeyboardInput.ENTER
+            )
+            await picker_buttons[TestComponents.FILE_PICKER_OPEN].click()
+            await ui_test.human_delay(10)
 
-        texture_names = {
-            "16px_metallic.m.rtex.dds": 0,
-            "16px_normal_OTH_Normal.n.rtex.dds": 2,
-        }
+            action_button = ui_test.find_all("Texture Assignment//Frame/**/Button[*].identifier=='AssignButton'")
+            await action_button[0].click()
+            await ui_test.human_delay(3)
 
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
+            ignore_ingestion_button = ui_test.find(
+                f"{_constants.ASSET_NEED_INGEST_WINDOW_TITLE}//Frame/**/Button[*].name=='confirm_button'"
+            )
+            await ignore_ingestion_button.click()
+            await ui_test.human_delay(3)
 
-        for texture_name, index in texture_names.items():
-            dirname = Path(asset_path).parent
-            texture = dirname / texture_name
-            rel_path = omni.client.normalize_url(
-                omni.usd.make_path_relative_to_current_edit_target(str(texture))
-            ).replace("\\", "/")
-            with self.subTest(name=rel_path):
-                self.assertEquals(rel_path, texture_file_fields[index].widget.model.get_value_as_string())
+            texture_names = {
+                "testa_metallic.m.rtex.dds": 0,
+                "testa_normal_OTH_Normal.n.rtex.dds": 2,
+            }
+
+            texture_file_fields = ui_test.find_all(
+                f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+            )
+
+            for texture_name, index in texture_names.items():
+                dirname = Path(asset_path).parent
+                texture = dirname / texture_name
+                rel_path = omni.client.normalize_url(
+                    omni.usd.make_path_relative_to_current_edit_target(str(texture))
+                ).replace("\\", "/")
+                with self.subTest(name=rel_path):
+                    self.assertEquals(rel_path, texture_file_fields[index].widget.model.get_value_as_string())
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 

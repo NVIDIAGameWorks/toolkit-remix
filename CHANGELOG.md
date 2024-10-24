@@ -79,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs
 - Fix extension publication job in CI
 - REMIX-3638: Fixed scroll to item behavior for tree selection
+- REMIX-3615: Updating texture set search for better comparisons
 
 ### Removed
 
