@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import Iterable
-
 import omni.usd
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.utils.common import EventSubscription as _EventSubscription
@@ -73,23 +71,22 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
         if not self._stage:
             raise ValueError("The context plugin was not setup")
 
-        return self._build_items_recursive(self._stage.GetPseudoRoot().GetChildren())
+        items = {}
+        current_layer = self._stage.GetPseudoRoot().GetChildren()
 
-    def _build_items_recursive(self, prims: Iterable[Usd.Prim]) -> list[_StageManagerItem]:
-        """
-        Recursively build the stage manager items from the USD Prim Tree
+        while current_layer:
+            next_layer = []
 
-        Args:
-            prims: The USD Prims to build the items from
+            for prim in current_layer:
+                item = _StageManagerItem(hash(prim), prim, parent=items.get(hash(prim.GetParent())))
+                items[item.identifier] = item
 
-        Returns:
-            A list of stage manager items
-        """
-        items = []
-        for prim in prims:
-            children = self._build_items_recursive((prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate)))
-            items.append(_StageManagerItem(hash(prim), prim, children=children))
-        return items
+                # Add children to the next layer
+                next_layer.extend(prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate))
+
+            current_layer = next_layer
+
+        return list(items.values())
 
     def _on_stage_event_occurred(self, event_type: omni.usd.StageEventType):
         """

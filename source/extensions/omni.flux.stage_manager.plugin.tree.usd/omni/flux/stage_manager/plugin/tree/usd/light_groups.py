@@ -38,7 +38,6 @@ class LightGroupsItem(_VirtualGroupsItem):
         display_name: str,
         data: Usd.Prim | None,
         tooltip: str = None,
-        children: list["LightGroupsItem"] | None = None,
         light_type: _LightTypes | None = None,
     ):
         """
@@ -48,12 +47,10 @@ class LightGroupsItem(_VirtualGroupsItem):
             display_name: The name to display in the Tree
             data: The USD Prim this item represents
             tooltip: The tooltip to display when hovering an item in the TreeView
-            children: The children items.
-                      Because the Lights Group is a flat list, this should ONLY BE SET for virtual groups
             light_type: The type of light to be grouped. Will be used to determine the icon
         """
 
-        super().__init__(display_name, data, tooltip=tooltip, children=children, is_virtual=data is None)
+        super().__init__(display_name, data, tooltip=tooltip)
 
         self._light_type = light_type
 
@@ -93,33 +90,26 @@ class LightGroupsModel(_VirtualGroupsModel):
         return super().default_attr
 
     def _build_items(self, items: Iterable[_StageManagerItem]) -> list[LightGroupsItem] | None:
-        tree_items = []
+        tree_items = {}
 
-        # Expect the interaction to pass a flat list, so no need to build recursively
-        # Group prims by light type & build the items for every light
-        grouped_items = {}
-        for item in items:
-            # Beautified names for the light type for the UI
-            type_name = item.data.GetTypeName()
-            if type_name not in grouped_items:
-                grouped_items[type_name] = []
-            prim_path = item.data.GetPath()
-            grouped_items[type_name].append(
-                LightGroupsItem(
-                    str(prim_path.name), item.data, tooltip=str(prim_path), light_type=_get_light_type(type_name)
-                )
-            )
-
-        # Build the group items with the associated children items
-        for type_name, children in grouped_items.items():
-            light_type = _get_light_type(type_name)
-            if not light_type:
-                continue
+        # Build the group items
+        for light_type in _LightTypes:
             # Since this is a group, make plural
             display_name = f"{light_type.value}s"
-            tree_items.append(LightGroupsItem(display_name, None, tooltip=f"{display_name} Group", children=children))
+            tree_items[light_type] = LightGroupsItem(display_name, None, tooltip=f"{display_name} Group")
 
-        return tree_items
+        # Add light items to the groups
+        for item in items:
+            light_type = _get_light_type(item.data.GetTypeName())
+            if light_type not in tree_items:
+                continue
+            prim_path = item.data.GetPath()
+            tree_items[light_type].add_child(
+                LightGroupsItem(str(prim_path.name), item.data, tooltip=str(prim_path), light_type=light_type)
+            )
+
+        # Filter out empty groups
+        return [item for item in tree_items.values() if item.children]
 
 
 class LightGroupsDelegate(_VirtualGroupsDelegate):

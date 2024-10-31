@@ -440,6 +440,7 @@ current_dict.update(
         "Image::GeomSubset": {"image_url": _get_icons("hexagon-multiple-outline"), "color": _WHITE_80},
         "Image::Categories": {"image_url": _get_icons("categories"), "color": _WHITE_100},
         "Image::Categories:hovered": {"image_url": _get_icons("categories"), "color": _WHITE_60},
+        "Image::TimerStatic": {"image_url": _get_icons("timer"), "color": _WHITE_80},
         "Image::CylinderLightStatic": {"image_url": _get_icons("light_cylinder"), "color": _WHITE_60},
         "Image::DiskLightStatic": {"image_url": _get_icons("light_disc"), "color": _WHITE_60},
         "Image::DistantLightStatic": {"image_url": _get_icons("light_distant"), "color": _WHITE_60},
@@ -949,6 +950,12 @@ current_dict.update(
         "Rectangle::Row": {"background_color": _GREY_42},
         "Rectangle::AlternateRow": {"background_color": _GREY_40},
         "Rectangle::ColumnSeparator": {"background_color": _WHITE_10},
+        "Rectangle::LoadingBackground": {"background_color": 0x80303030},
+        "Label::LoadingLabel": {
+            "color": _WHITE_80,
+            "font_size": 18,
+            "font": ui.url.nvidia_md,
+        },
     }
 )
 style.default = current_dict

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Changed
+- Use the updated `context_data` data structure and filter utils function
+
 ## [1.4.1]
 ### Fixed
 - Added missing `is_virtual` property in the `VirtualGroupsItem` class

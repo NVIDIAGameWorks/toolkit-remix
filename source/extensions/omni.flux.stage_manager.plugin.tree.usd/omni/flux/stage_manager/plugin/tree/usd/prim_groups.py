@@ -36,9 +36,9 @@ class PrimGroupsModel(_StageManagerUSDTreeModel):
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
-    def _build_item(self, item: _StageManagerItem, children: list[PrimGroupsItem] = None) -> PrimGroupsItem:
+    def _build_item(self, item: _StageManagerItem) -> PrimGroupsItem:
         prim_path = item.data.GetPath()
-        return PrimGroupsItem(str(prim_path.name), item.data, tooltip=str(prim_path), children=children)
+        return PrimGroupsItem(str(prim_path.name), item.data, tooltip=str(prim_path))
 
 
 class PrimGroupsDelegate(_StageManagerUSDTreeDelegate):
