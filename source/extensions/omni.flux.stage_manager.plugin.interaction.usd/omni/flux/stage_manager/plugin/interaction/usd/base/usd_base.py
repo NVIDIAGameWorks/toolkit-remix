@@ -44,13 +44,14 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
     def compatible_data_type(cls):
         return _StageManagerDataTypes.USD
 
-    def _update_context_items(self):
+    @omni.usd.handle_exception
+    async def _update_context_items(self):
         if not self._is_active:
             return
 
         self._set_context_name()
 
-        super()._update_context_items()
+        await super()._update_context_items()
 
     def _setup_listeners(self):
         # Context Will be a USD Context, so we can subscribe to the USD Base Context events
@@ -145,13 +146,13 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
 
     def _on_layer_event_occurred(self, event_type: _layers.LayerEventType):
         if event_type in [_layers.LayerEventType.MUTENESS_STATE_CHANGED, _layers.LayerEventType.SUBLAYERS_CHANGED]:
-            self._update_context_items()
+            self._queue_update_context_items()
 
     def _on_stage_event_occurred(self, event_type: omni.usd.StageEventType):
         if event_type == omni.usd.StageEventType.SELECTION_CHANGED:
             self._update_tree_selection()
         elif event_type == omni.usd.StageEventType.ACTIVE_LIGHT_COUNTS_CHANGED:
-            self._update_context_items()
+            self._queue_update_context_items()
 
     def _on_usd_event_occurred(self, notice: Usd.Notice.ObjectsChanged):
         refresh = False
@@ -170,7 +171,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         if not refresh:
             return
 
-        self._update_context_items()
+        self._queue_update_context_items()
 
     def _on_item_changed(self, model, item):
         # Convert `_on_item_changed` to an async method since `_update_context_items` is also async

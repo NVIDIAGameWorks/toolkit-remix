@@ -81,6 +81,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     _tree_frame: ui.Frame | None = PrivateAttr(None)
     _tree_widget: _TreeWidget | None = PrivateAttr(None)
     _tree_scroll_frame: ui.Frame | None = PrivateAttr(None)
+    _loading_frame: ui.ZStack | None = PrivateAttr(None)
 
     _context: _StageManagerContextPlugin | None = PrivateAttr(None)
 
@@ -99,9 +100,11 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     _filter_items_changed_subs: list[_EventSubscription] = PrivateAttr([])
     _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr([])
 
+    _update_context_items_task: Future | None = PrivateAttr(None)
     _update_content_size_task: Future | None = PrivateAttr(None)
     _draw_row_background_task: Future | None = PrivateAttr(None)
     _update_expansion_task: Future | None = PrivateAttr(None)
+    _model_refresh_task: Future | None = PrivateAttr(None)
 
     _is_initialized: bool = PrivateAttr(False)
     _is_active: bool = PrivateAttr(False)
@@ -139,7 +142,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self._context_items_changed_sub = self.subscribe_context_items_changed(self._on_context_items_changed)
+        self._context_items_changed_sub = self.subscribe_context_items_changed(self._refresh_tree_model)
 
     @classmethod
     @property
@@ -261,7 +264,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         self._setup_filters()
         self._setup_columns()
 
-        self._update_context_items()
+        self._queue_update_context_items()
 
         self._is_initialized = True
 
@@ -289,74 +292,85 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         column_widths = [self._get_ui_length(c.width) for c in enabled_columns]
 
-        with ui.VStack():
-            # Filters UI
-            ui.Spacer(height=ui.Pixel(self._FILTERS_VERTICAL_PADDING), width=0)
-            with ui.HStack(height=0):
-                ui.Spacer(height=0)
-                with ui.HStack(width=0, height=0, spacing=self._FILTERS_HORIZONTAL_PADDING):
-                    for filter_plugin in enabled_filters:
-                        # Some filters should not be displayed in the UI
-                        if not filter_plugin.display:
-                            continue
-                        ui.Frame(tooltip=filter_plugin.tooltip, build_fn=filter_plugin.build_ui)
-                ui.Spacer(width=12, height=0)
-            ui.Spacer(height=ui.Pixel(self._FILTERS_VERTICAL_PADDING), width=0)
+        with ui.ZStack():
+            with ui.VStack():
+                # Filters UI
+                ui.Spacer(height=ui.Pixel(self._FILTERS_VERTICAL_PADDING), width=0)
+                with ui.HStack(height=0):
+                    ui.Spacer(height=0)
+                    with ui.HStack(width=0, height=0, spacing=self._FILTERS_HORIZONTAL_PADDING):
+                        for filter_plugin in enabled_filters:
+                            # Some filters should not be displayed in the UI
+                            if not filter_plugin.display:
+                                continue
+                            ui.Frame(tooltip=filter_plugin.tooltip, build_fn=filter_plugin.build_ui)
+                    ui.Spacer(width=12, height=0)
+                ui.Spacer(height=ui.Pixel(self._FILTERS_VERTICAL_PADDING), width=0)
 
-            with ui.ZStack():
-                with ui.VStack():
-                    # Tree UI
-                    self._tree_scroll_frame = ui.ScrollingFrame(name="TreePanelBackground")
-                    with self._tree_scroll_frame:
-                        with ui.ZStack():
-                            self._row_background_frame = ui.Frame(vertical_clipping=True, separate_window=True)
-                            self._tree_frame = ui.ZStack(
-                                content_clipping=True, computed_content_size_changed_fn=self._on_content_size_changed
-                            )
-                            with self._tree_frame:
-                                self._tree_widget = _TreeWidget(
-                                    self.tree.model,
-                                    delegate=self.tree.delegate,
-                                    select_all_children=self._select_all_children,
-                                    validate_action_selection=self._validate_action_selection,
-                                    root_visible=False,
-                                    header_visible=True,
-                                    columns_resizable=False,  # Can't resize the results after resizing a column
-                                    column_widths=column_widths,
+                with ui.ZStack():
+                    with ui.VStack():
+                        # Tree UI
+                        self._tree_scroll_frame = ui.ScrollingFrame(name="TreePanelBackground")
+                        with self._tree_scroll_frame:
+                            with ui.ZStack():
+                                self._row_background_frame = ui.Frame(vertical_clipping=True, separate_window=True)
+                                self._tree_frame = ui.ZStack(
+                                    content_clipping=True,
+                                    computed_content_size_changed_fn=self._on_content_size_changed,
                                 )
-                                self._selection_changed_sub = self._tree_widget.subscribe_selection_changed(
-                                    self._on_selection_changed
-                                )
-
-                    # Results UI
-                    with ui.ZStack(height=self.row_height):
-                        ui.Rectangle(name="TabBackground")
-                        with ui.VStack():
-                            ui.Spacer(height=self._RESULTS_VERTICAL_PADDING, width=0)
-                            with ui.HStack():
-                                for index, column in enumerate(enabled_columns):
-                                    self._result_frames.append(
-                                        ui.Frame(
-                                            width=column_widths[index],
-                                            horizontal_clipping=True,
-                                            build_fn=partial(column.build_overview_ui, self.tree.model),
-                                        )
+                                with self._tree_frame:
+                                    self._tree_widget = _TreeWidget(
+                                        self.tree.model,
+                                        delegate=self.tree.delegate,
+                                        select_all_children=self._select_all_children,
+                                        validate_action_selection=self._validate_action_selection,
+                                        root_visible=False,
+                                        header_visible=True,
+                                        columns_resizable=False,  # Can't resize the results after resizing a column
+                                        column_widths=column_widths,
                                     )
-                                # Spacing for the scrollbar
-                                ui.Spacer(width=self._RESULTS_HORIZONTAL_PADDING, height=0)
-                            ui.Spacer(height=self._RESULTS_VERTICAL_PADDING, width=0)
+                                    self._selection_changed_sub = self._tree_widget.subscribe_selection_changed(
+                                        self._on_selection_changed
+                                    )
 
-                # Column separators
-                with ui.Frame(separate_window=True):
-                    with ui.HStack():
-                        for index, _ in enumerate(enabled_columns):
-                            with ui.HStack(width=column_widths[index]):
-                                ui.Spacer(height=0)
-                                # Don't draw a line at the end of the tree
-                                if index < len(enabled_columns) - 1:
-                                    ui.Rectangle(width=ui.Pixel(2), name="ColumnSeparator")
-                        # Spacing for the scrollbar
-                        ui.Spacer(width=self._RESULTS_HORIZONTAL_PADDING, height=0)
+                        # Results UI
+                        with ui.ZStack(height=self.row_height):
+                            ui.Rectangle(name="TabBackground")
+                            with ui.VStack():
+                                ui.Spacer(height=self._RESULTS_VERTICAL_PADDING, width=0)
+                                with ui.HStack():
+                                    for index, column in enumerate(enabled_columns):
+                                        self._result_frames.append(
+                                            ui.Frame(
+                                                width=column_widths[index],
+                                                horizontal_clipping=True,
+                                                build_fn=partial(column.build_overview_ui, self.tree.model),
+                                            )
+                                        )
+                                    # Spacing for the scrollbar
+                                    ui.Spacer(width=self._RESULTS_HORIZONTAL_PADDING, height=0)
+                                ui.Spacer(height=self._RESULTS_VERTICAL_PADDING, width=0)
+
+                    # Column separators
+                    with ui.Frame(separate_window=True):
+                        with ui.HStack():
+                            for index, _ in enumerate(enabled_columns):
+                                with ui.HStack(width=column_widths[index]):
+                                    ui.Spacer(height=0)
+                                    # Don't draw a line at the end of the tree
+                                    if index < len(enabled_columns) - 1:
+                                        ui.Rectangle(width=ui.Pixel(2), name="ColumnSeparator")
+                            # Spacing for the scrollbar
+                            ui.Spacer(width=self._RESULTS_HORIZONTAL_PADDING, height=0)
+
+            self._loading_frame = ui.ZStack(content_clipping=True, visible=False)
+            with self._loading_frame:
+                ui.Rectangle(name="LoadingBackground", tooltip="Fetching updated data")
+                with ui.VStack(spacing=ui.Pixel(4)):
+                    ui.Spacer(width=0)
+                    ui.Image("", name="TimerStatic", height=32)
+                    ui.Label("Updating", name="LoadingLabel", height=0, alignment=ui.Alignment.CENTER)
+                    ui.Spacer(width=0)
 
     def set_active(self, value: bool):
         """
@@ -370,9 +384,11 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         if self._is_active:
             self._setup_listeners()
-            self._update_context_items()
+            self._queue_update_context_items()
         else:
             self._clear_listeners()
+            if self._update_context_items_task:
+                self._update_context_items_task.cancel()
 
     @staticmethod
     def _get_ui_length(column_width: "_ColumnWidth") -> ui.Length:
@@ -393,6 +409,16 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 length_class = ui.Pixel
         return length_class(column_width.value)
 
+    def _show_loading_overlay(self, show: bool):
+        """
+        Show or hide the loading overlay
+
+        Args:
+            show: whether to show or hide the loading overlay
+        """
+        if self._loading_frame:
+            self._loading_frame.visible = show
+
     def _setup_tree(self):
         """
         Subscribe to the `_item_changed` event triggered by the tree model to rebuild the result UI frames
@@ -411,12 +437,21 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         Subscribe to the on_filter_items_changed event to refresh the tree widget model & add the filter functions to
         the tree model.
         """
+        self.tree.model.clear_context_predicates()
+        self.tree.model.add_context_predicates(
+            [
+                filter_plugin.filter_predicate
+                for filter_plugin in (self.context_filters + self.internal_filters)
+                if filter_plugin.enabled
+            ]
+        )
+
         self.tree.model.clear_filter_predicates()
         for filter_plugin in self.filters:
             if not filter_plugin.enabled:
                 continue
             self._filter_items_changed_subs.append(
-                filter_plugin.subscribe_filter_items_changed(self._on_filter_items_changed)
+                filter_plugin.subscribe_filter_items_changed(self._refresh_tree_model)
             )
             # Some models might need to filter children items so pass the filter functions down
             self.tree.model.add_filter_predicates([filter_plugin.filter_predicate])
@@ -431,6 +466,16 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         self.tree.delegate.set_column_builders(enabled_columns)
 
         self._item_expanded_sub = self.tree.delegate.subscribe_item_expanded(self._on_item_expanded)
+
+    def _refresh_tree_model(self):
+        """
+        Callback to execute when context items are updated
+        """
+        self._show_loading_overlay(True)
+
+        if self._model_refresh_task:
+            self._model_refresh_task.cancel()
+        self._model_refresh_task = ensure_future(self.tree.model.refresh())
 
     def _on_item_changed(self, _model: ui.AbstractItemModel, _item: ui.AbstractItem):
         """
@@ -448,11 +493,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             self._draw_row_background_task.cancel()
         self._draw_row_background_task = ensure_future(self._draw_row_background_deferred())
 
-    def _on_filter_items_changed(self):
-        """
-        Event handler to execute when event filter widgets are updated
-        """
-        self.tree.model.refresh()
+        self._show_loading_overlay(False)
 
     def _on_item_expanded(self, item: _StageManagerTreeItem, expanded: bool):
         """
@@ -491,12 +532,26 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 f"{self._context.data_type.value} != {self.compatible_data_type.value}"
             )
 
-    def _update_context_items(self):
+    def _queue_update_context_items(self):
+        """
+        Queue up the update of the context items using the `_update_context_items` function.
+        """
+        if self._update_context_items_task:
+            self._update_context_items_task.cancel()
+        self._update_context_items_task = ensure_future(self._update_context_items())
+
+    @omni.usd.handle_exception
+    async def _update_context_items(self):
         """
         Set the context items for the interaction plugin TreeView model and trigger the `_context_items_changed` event.
         """
         if not self._is_active:
             return
+
+        # Debounce the calls by waiting 1 frame
+        await omni.kit.app.get_app().next_update_async()
+
+        self._show_loading_overlay(True)
 
         predicates = [
             filter_plugin.filter_predicate
@@ -504,7 +559,11 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             if filter_plugin.enabled
         ]
 
-        self.tree.model.context_items = _StageManagerUtils.filter_items(self._context.get_items(), predicates)
+        filtered_items = await _StageManagerUtils.filter_items(self._context.get_items(), predicates)
+        if filtered_items is None:
+            return
+
+        self.tree.model.set_context_items(filtered_items)
 
         self._context_items_changed()
 
@@ -591,12 +650,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         target_from_top = self._tree_scroll_frame.computed_content_height * center_ratio
         self._tree_scroll_frame.scroll_y = scroll_y - target_from_top
 
-    def _on_context_items_changed(self):
-        """
-        Callback to execute when context items are updated
-        """
-        self.tree.model.refresh()
-
     def subscribe_context_items_changed(self, callback: Callable[[], None]) -> _EventSubscription:
         """
         Execute the callback when context items are updated.
@@ -610,12 +663,16 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         return _EventSubscription(self._context_items_changed, callback)
 
     def destroy(self):
+        if self._update_context_items_task:
+            self._update_context_items_task.cancel()
         if self._update_content_size_task:
             self._update_content_size_task.cancel()
         if self._draw_row_background_task:
             self._draw_row_background_task.cancel()
         if self._update_expansion_task:
             self._update_expansion_task.cancel()
+        if self._model_refresh_task:
+            self._model_refresh_task.cancel()
 
     class Config(_StageManagerUIPluginBase.Config):
         fields = {

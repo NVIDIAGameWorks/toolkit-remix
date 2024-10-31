@@ -34,7 +34,6 @@ class VirtualGroupsItem(_StageManagerUSDTreeItem):
         display_name: str,
         data: Usd.Prim,
         tooltip: str = None,
-        children: list["VirtualGroupsItem"] | None = None,
         is_virtual: bool | None = None,
     ):
         """
@@ -44,11 +43,10 @@ class VirtualGroupsItem(_StageManagerUSDTreeItem):
             display_name: The name to display in the Tree
             data: The USD Prim this item represents
             tooltip: The tooltip to display when hovering an item in the TreeView
-            children: The children items.
             is_virtual: Can be set explicitly, otherwise it will be inferred from the data argument
         """
 
-        super().__init__(display_name, data, tooltip=tooltip, children=children)
+        super().__init__(display_name, data, tooltip=tooltip)
 
         self._is_virtual = (data is None) if (is_virtual is None) else is_virtual
 

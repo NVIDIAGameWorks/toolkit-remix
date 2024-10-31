@@ -1,6 +1,11 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Added
+- Added loading overlay styles
+- Added Timer icon style
+
 ## [1.3.8]
 ### Added
 - Added experimental feature style

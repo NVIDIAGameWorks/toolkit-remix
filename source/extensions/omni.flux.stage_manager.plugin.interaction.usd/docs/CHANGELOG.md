@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0]
+### Changed
+- Use the updated interaction plugins methods and the flat data structure
+- Removed the overrides for the AllLights interaction plugin
+
 ## [1.7.2]
 ### Fixed
 - Fixed a context filtering bug in the Lights interaction plugin

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1]
+### Fixed
+- Fixed `ignore_prim_paths` for the lights interaction
+
 ## [1.2.0]
 ### Changed
 - Use added `context_filters` instead of hidden filters

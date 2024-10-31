@@ -64,7 +64,7 @@
                         "/Render",
                         "/RootNode/cameras",
                         "/RootNode/Camera",
-                        "/RootNode/meshes/",
+                        "/RootNode/meshes",
                         "/Viewport_Waypoints",
                         "/remix_settings"
                     ]

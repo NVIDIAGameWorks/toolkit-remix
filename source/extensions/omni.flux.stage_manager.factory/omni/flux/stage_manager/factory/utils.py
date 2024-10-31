@@ -15,42 +15,77 @@
 * limitations under the License.
 """
 
+__all__ = ["StageManagerUtils"]
+
+import asyncio
+import concurrent
 from typing import Callable, Iterable
 
-from .items import StageManagerItem as _StageManagerItem
+import omni.usd
+
+from .items import StageManagerItem
 
 
 class StageManagerUtils:
-
-    @staticmethod
-    def filter_items(
-        items: Iterable[_StageManagerItem], predicates: Iterable[Callable[[_StageManagerItem], bool]]
-    ) -> list[_StageManagerItem]:
+    @classmethod
+    @omni.usd.handle_exception
+    async def filter_items(
+        cls, items: Iterable[StageManagerItem], predicates: Iterable[Callable[[StageManagerItem], bool]]
+    ) -> list[StageManagerItem]:
         """
-        Filter the given items using the given filter predicates.
-
-        Filter the items from bottom to top to make sure the children are filtered before the parent.
-
-        Items with at least 1 valid child will be kept to ensure they appear in the UI.
+        Filter items using predicates with parallel processing.
 
         Args:
-            items: A list of items to filter
-            predicates: A list of predicates to execute on each item
+            items: Items to filter
+            predicates: Predicates to execute on each item
 
         Returns:
-            The list of filtered items
+            Filtered items list
         """
+        loop = asyncio.get_event_loop()
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            # Submit the jobs in an async thread to avoid locking up the UI
+            tasks = await loop.run_in_executor(pool, cls._submit_jobs, items, predicates, loop, pool)
+            await asyncio.gather(*tasks)
 
-        def filter_item(item):
-            valid_children = []
-            for child in item.children:
-                valid_child = filter_item(child)
-                if valid_child is not None:
-                    valid_children.append(valid_child)
+        # Filter out the invalid items
+        return list(filter(lambda f: f.is_valid, items))
 
-            if all(predicate(item) for predicate in predicates) or valid_children:
-                # Create a new item with valid children instead of modifying original
-                return _StageManagerItem(item.identifier, item.data, children=valid_children)
-            return None
+    @classmethod
+    def _submit_jobs(
+        cls,
+        items: Iterable[StageManagerItem],
+        predicates: Iterable[Callable[[StageManagerItem], bool]],
+        loop: asyncio.AbstractEventLoop,
+        pool: concurrent.futures.ThreadPoolExecutor,
+    ) -> list[asyncio.Future]:
+        """
+        Submit jobs to update the item state in parallel
 
-        return [item for item in map(filter_item, items) if item is not None]
+        Args:
+            items: The items to update
+            predicates: The predicates to apply
+            loop: The Asyncio event loop
+            pool: The thread pool
+
+        Returns:
+            A list of futures for the submitted jobs
+        """
+        futures = []
+        for item in items:
+            # Reset the filter state
+            item.reset_filter_state()
+            # Start filtering
+            futures.append(loop.run_in_executor(pool, cls._update_item_state, item, predicates))
+        return futures
+
+    @classmethod
+    def _update_item_state(cls, item: StageManagerItem, predicates: Iterable[Callable[[StageManagerItem], bool]]):
+        """
+        Update the item state based on the predicates
+
+        Args:
+            item: The item to update
+            predicates: The predicates to apply
+        """
+        item.is_valid = all(predicate(item) for predicate in predicates)

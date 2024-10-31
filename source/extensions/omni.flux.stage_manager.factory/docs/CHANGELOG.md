@@ -1,6 +1,16 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0]
+### Added
+- Added a loading overlay when the interaction plugin data is loading
+
+### Changed
+- Use asynchronous data filtering and refreshing methods in the interaction plugin
+- Use flat list to represent the StageItems instead of a recursive tree
+- Changed filtering to be threaded & async to avoid locking up the UI and parallelize work
+- Changed the Tree Plugins `_build_items` and `_build_item` methods to use the flat list instead of the tree structure
+
 ## [2.0.2]
 ### Fixed
 - Fixed the `filter_items` method from the `StageManagerUtils` that didn't use filtered children

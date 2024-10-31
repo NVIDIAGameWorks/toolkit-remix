@@ -20,7 +20,7 @@ from __future__ import annotations
 import abc
 from typing import TYPE_CHECKING, Any, Callable, Iterable
 
-from omni import ui
+from omni import ui, usd
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
@@ -43,12 +43,8 @@ class StageManagerTreeItem(_TreeItemBase):
         display_name: str,
         data: Any,
         tooltip: str = None,
-        children: list["StageManagerTreeItem"] | None = None,
     ):
-        super().__init__(children=children)
-
-        for child in children or []:
-            child.parent = self
+        super().__init__()
 
         self._display_name = display_name
         self._tooltip = tooltip
@@ -114,7 +110,23 @@ class StageManagerTreeItem(_TreeItemBase):
 
     @property
     def can_have_children(self) -> bool:
+        """
+        Whether the item can have children or not
+
+        Returns:
+            By default, items that have children will return True, and items without children will return False
+        """
         return bool(self._children)
+
+    def add_child(self, item: "StageManagerTreeItem"):
+        """
+        Add a child item
+
+        Args:
+            item: The child item to add
+        """
+        item.parent = self
+        self._children.append(item)
 
     def __eq__(self, other):
         if isinstance(other, StageManagerTreeItem):
@@ -137,6 +149,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
 
         self._context_items: list[_StageManagerItem] = []
         self._filter_predicates: list[Callable[[_StageManagerItem], bool]] = []
+        self._context_predicates: list[Callable[[_StageManagerItem], bool]] = []
         self._column_count = 0
 
     @property
@@ -148,6 +161,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
                 "_items": None,
                 "_context_items": None,
                 "_filter_predicates": None,
+                "_context_predicates": None,
                 "_column_count": None,
             }
         )
@@ -160,15 +174,16 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
         return {hash(item): item for item in self.iter_items_children()}
 
-    @property
-    def context_items(self) -> list[_StageManagerItem]:
+    @usd.handle_exception
+    async def get_context_items(self) -> list[_StageManagerItem]:
         """
-        Get items set by the context plugin
-        """
-        return _StageManagerUtils.filter_items(self._context_items, self._filter_predicates) or []
+        Get items set by the context plugin.
 
-    @context_items.setter
-    def context_items(self, items: Iterable[_StageManagerItem]):
+        Items are filtered before they are returned
+        """
+        return await _StageManagerUtils.filter_items(self._context_items, self._filter_predicates) or []
+
+    def set_context_items(self, items: Iterable[_StageManagerItem]):
         """
         Set items fetched in the context plugin
         """
@@ -188,11 +203,17 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
         self._column_count = value
 
-    def refresh(self):
+    @usd.handle_exception
+    async def refresh(self):
         """
         Method called when the `self._items` attribute should be refreshed
         """
-        self._items = self._build_items(self.context_items)
+        filtered_items = await self.get_context_items()
+
+        for item in filtered_items:
+            item.tree_item = None
+
+        self._items = self._build_items(filtered_items)
         self._item_changed(None)
 
     def find_items(self, predicate: Callable[[StageManagerTreeItem], bool]) -> list[StageManagerTreeItem]:
@@ -228,6 +249,18 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
         self._filter_predicates.clear()
 
+    def add_context_predicates(self, value: list[Callable[[_StageManagerItem], bool]]):
+        """
+        Extend the context filter predicates that can be used by the model if required
+        """
+        self._context_predicates.extend(value)
+
+    def clear_context_predicates(self):
+        """
+        Clear the context filter predicates that can be used by the model if required
+        """
+        self._context_predicates.clear()
+
     def _build_items(self, items: Iterable[_StageManagerItem]) -> list[StageManagerTreeItem] | None:
         """
         Recursively build the model items from Stage Manager items
@@ -238,24 +271,32 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         Returns:
             A list of Stage Manager items or None if the input items are None
         """
+
         tree_items = []
         for item in items:
-            children = self._build_items(item.children or [])
-            tree_items.append(self._build_item(item, children=children))
+            tree_item = self._build_item(item)
+            item.tree_item = tree_item
+
+            if item.parent is None:
+                # Add to the root
+                tree_items.append(tree_item)
+            else:
+                # Add to the parent
+                item.parent.tree_item.add_child(tree_item)
+
         return tree_items
 
-    def _build_item(self, item: _StageManagerItem, children: list[StageManagerTreeItem] = None) -> StageManagerTreeItem:
+    def _build_item(self, item: _StageManagerItem) -> StageManagerTreeItem:
         """
         Function used to transform Stage Manager items into TreeView items
 
         Args:
             item: Stage Manager item
-            children: A list of already converted TreeView items
 
         Returns:
             A fully built TreeView item
         """
-        return StageManagerTreeItem(item.identifier, item.data, children=children)
+        return StageManagerTreeItem(item.identifier, item.data)
 
 
 class StageManagerTreeDelegate(_TreeDelegateBase):
