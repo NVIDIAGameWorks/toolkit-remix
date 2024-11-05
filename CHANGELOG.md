@@ -89,18 +89,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3640: Fixed various stage manager bugs
 - REMIX-3386: Fix transform manipulator bug that occurred after captured asset deletion
 
-### Removed
-
 ## [2024.4.1]
 
 ### Added
 - Create 2024.4.0-RC.6 build
-
-### Changed
-
-### Fixed
-
-### Removed
 
 ## [2024.4.0-RC.6]
 
@@ -114,8 +106,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fix `AllTextures` plugin
 
-### Removed
-
 ## [2024.4.0-RC.5]
 
 ### Added
@@ -128,8 +118,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed AI Tools by settings the internal pip archive import order
 - REMIX-3058: Fixed material file path tooltips and copy menus
 - Fixed changelog checker with type casting to support semantic versioning
-
-### Removed
 
 ## [2024.4.0-RC.4]
 
@@ -148,8 +136,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Open Project microservice endpoint + Added tests for service
 - Textures are now reloaded when the corresponding files are overwritten
 
-### Removed
-
 ## [2024.4.0-RC.3]
 
 ### Added
@@ -166,8 +152,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix manipulator that was giving wrong data
 - Re-add event that was mistakenly removed
 - Fixed inconsistent RC versions
-
-### Removed
 
 ## [2024.4.0-RC.2]
 
@@ -242,18 +226,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2684: Created camera light event
 - Fixed various issues with microservices & added new endpoints and improved functionality
 
-### Removed
-
 ## [2024.3.1]
-
-### Added
 
 ### Changed
 - Update runtime build to 0.5.1
-
-### Fixed
-
-### Removed
 
 ## [2024.3.0]
 
@@ -272,11 +248,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3002: Fix when the process executor is run from a Kit that is in a folder with a space
 - REMIX-1090: Fixed capture list popup height math
 
-### Removed
-
 ## [2024.3.0-RC.3]
-
-### Added
 
 ### Changed
 - REMIX-2674: Adding a check for similar textures and auto-populating texture fields on value change
@@ -295,8 +267,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2939: Fix item progression update for the Ingestion and AI Tool (using process executor)
 - REMIX-2422: Fixed Teleport to properly work with prototypes and instances
 
-### Removed
-
 ## [2024.3.0-RC.2]
 
 ### Added
@@ -313,11 +283,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - REMIX-2731: Fix AI tools failing for captured DDSs
 
-### Removed
-
 ## [2024.3.0-RC.1]
-
-### Added
 
 - REMIX-2658: Added a menu option to Unload Stage to reclaim resources without closing app
 - REMIX-2640: Always use a group for material properties
@@ -352,8 +318,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2715: Fix various issues with the ColorField
 - REMIX-2866: Corrected imports in several test directories
 - REMIX-1090: Capture list header adjustment
-
-### Removed
 
 
 ## [2024.2.1]
