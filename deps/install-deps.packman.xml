@@ -1,6 +1,6 @@
 <project toolsVersion="5.6">
   <dependency name="rtx-remix-remix_runtime" linkPath="../../deps/remix_runtime">
-    <package name="rtx-remix-remix_runtime" version="remix-0.6.0-rc3" />
+    <package name="rtx-remix-remix_runtime" version="remix-0.6.0" />
   </dependency>
   <dependency name="nvtt-exporter-standalone" linkPath="../../deps/tools/nvtt">
     <package name="nvtt-exporter-standalone" version="2023.4.0.1-dev-windows-x86_64" />
@@ -12,7 +12,7 @@
     <package name="rtx-remix-lookdev-modeling" version="2023.0.0" />
   </dependency>
   <dependency name="rtx-remix-hdremix" linkPath="../../deps/hdremix">
-    <package name="rtx-remix-hdremix" version="e57c4c6" />
+    <package name="rtx-remix-hdremix" version="132d6dc" />
   </dependency>
   <dependency name="remix-models-i2m-artifacts" linkPath="../../deps/ai_tools/i2m">
     <package name="remix-models-i2m-artifacts" version="1.1.0" />
