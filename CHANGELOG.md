@@ -53,8 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Updated runtime to 0.6.0-rc2
 - Updated runtime to 0.6.0-rc3
+- Updated runtime to 0.6.0
 - Updated hdremix to a1863ffe
 - Updated hdremix to e57c4c6
+- Updated hdremix to 132d6dc
 - Renamed `Feature Flags` to `Experimental Features`
 - Updated Nucleus Registry accounts
 - Updated Repo Tools to the latest public versions
