@@ -72,29 +72,30 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         """
         Set the context name in the interaction and all children USD plugins using the USD context plugin.
         """
-        attribute_name = "context_name"
+        context_attribute_name = "context_name"
+        set_context_method_name = "set_context_name"
 
-        if not hasattr(self._context, attribute_name):
+        if not hasattr(self._context, context_attribute_name):
             return
 
-        value = getattr(self._context, attribute_name, "")
+        value = getattr(self._context, context_attribute_name, "")
         self._context_name = value
 
         # Propagate the value
-        if hasattr(self.tree, attribute_name):
-            self.tree.context_name = value
+        if hasattr(self.tree, set_context_method_name):
+            self.tree.set_context_name(value)
 
         for filter_plugin in self.filters:
-            if hasattr(filter_plugin, attribute_name):
-                filter_plugin.context_name = value
+            if hasattr(filter_plugin, set_context_method_name):
+                filter_plugin.set_context_name(value)
 
         for column_plugin in self.columns:
-            if hasattr(column_plugin, attribute_name):
-                column_plugin.context_name = value
+            if hasattr(column_plugin, set_context_method_name):
+                column_plugin.set_context_name(value)
 
             for widget_plugin in column_plugin.widgets:
-                if hasattr(widget_plugin, attribute_name):
-                    widget_plugin.context_name = value
+                if hasattr(widget_plugin, set_context_method_name):
+                    widget_plugin.set_context_name(value)
 
     @_ignore_function_decorator(attrs=["_selection_update_lock"])
     def _update_tree_selection(self):
