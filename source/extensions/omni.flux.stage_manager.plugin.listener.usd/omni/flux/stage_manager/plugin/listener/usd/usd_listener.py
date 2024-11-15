@@ -37,7 +37,7 @@ class StageManagerUSDNoticeListenerPlugin(_StageManagerUSDListenerPlugin[Usd.Not
         self._usd_listener = None
 
     def setup(self):
-        stage = omni.usd.get_context(self.context_name).get_stage()
+        stage = omni.usd.get_context(self._context_name).get_stage()
         self._usd_listener = Tf.Notice.Register(Usd.Notice.ObjectsChanged, self._on_usd_event, stage)
 
     def _on_usd_event(self, notice: Usd.Notice.ObjectsChanged, _: Usd.Stage):

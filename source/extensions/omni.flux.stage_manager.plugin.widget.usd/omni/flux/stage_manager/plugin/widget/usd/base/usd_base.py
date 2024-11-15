@@ -18,8 +18,12 @@
 import abc
 
 from omni.flux.stage_manager.factory.plugins import StageManagerWidgetPlugin as _StageManagerWidgetPlugin
-from pydantic import Field
+from pydantic import PrivateAttr
 
 
 class StageManagerUSDWidgetPlugin(_StageManagerWidgetPlugin, abc.ABC):
-    context_name: str = Field("", description="The context name provided by the context plugin", exclude=True)
+    _context_name: str = PrivateAttr("")
+
+    def set_context_name(self, name: str):
+        """Set usd context to initialize plugin before items are rebuilt."""
+        self._context_name = name

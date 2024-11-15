@@ -68,6 +68,6 @@ class FocusInViewportActionWidgetPlugin(_StageManagerStateWidgetPlugin):
 
         self._item_clicked(button, True, model, item)
 
-        context = omni.usd.get_context(self.context_name)
+        context = omni.usd.get_context(self._context_name)
         selected_prim_paths = context.get_selection().get_selected_prim_paths()
         _get_active_viewport().frame_viewport_selection(selected_prim_paths)

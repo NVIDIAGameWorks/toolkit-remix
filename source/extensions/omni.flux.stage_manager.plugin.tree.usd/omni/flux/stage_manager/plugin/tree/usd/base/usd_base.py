@@ -21,7 +21,7 @@ from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _S
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeDelegate as _StageManagerTreeDelegate
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
-from pydantic import Field
+from pydantic import PrivateAttr
 
 
 class StageManagerUSDTreeItem(_StageManagerTreeItem):
@@ -46,7 +46,11 @@ class StageManagerUSDTreeDelegate(_StageManagerTreeDelegate):
 
 
 class StageManagerUSDTreePlugin(_StageManagerTreePlugin, abc.ABC):
-    context_name: str = Field("", description="The context name provided by the context plugin", exclude=True)
+    _context_name: str = PrivateAttr("")
+
+    def set_context_name(self, name: str):
+        """Set usd context to initialize plugin before items are rebuilt."""
+        self._context_name = name
 
     @classmethod
     @property

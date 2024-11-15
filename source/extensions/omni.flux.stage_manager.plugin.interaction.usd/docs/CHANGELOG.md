@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.0]
+### Changed
+- Make set_context_name() an explicit method for plugins
+
 ## [1.8.0]
 ### Changed
 - Use the updated interaction plugins methods and the flat data structure

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Changed
+- Make set_context_name() an explicit method for plugins
+
 ## [1.3.0]
 ### Changed
 - Use updated `filter_predicate` method

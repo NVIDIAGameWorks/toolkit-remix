@@ -42,7 +42,8 @@ class StageManagerUSDContextPlugin(_StageManagerContextPlugin, abc.ABC):
 
     def setup(self):
         for listener in self.listeners:
-            listener.context_name = self.context_name
+            if hasattr(listener, "set_context_name"):
+                listener.set_context_name(self.context_name)
 
         super().setup()
 
