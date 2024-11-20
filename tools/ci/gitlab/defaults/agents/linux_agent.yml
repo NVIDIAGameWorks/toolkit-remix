@@ -1,3 +1,9 @@
 .linux_agent:
-  tags: &linux_agent_tags
+  tags:
     - linux
+
+.linux_agent_gpu:
+  tags:
+    - linux
+    - ada_rtx6000
+    - nv-driver-stable

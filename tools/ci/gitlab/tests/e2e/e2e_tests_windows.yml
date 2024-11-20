@@ -1,9 +1,8 @@
 .e2e_tests_windows:
   extends:
     - .defaults
-    - .gpu_agent
     - .windows_vault
-    - .windows_agent
+    - .windows_agent_gpu
   needs:
     - check-lint
   before_script:

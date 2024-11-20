@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs
+- Fixed CI Agent tags
 
 ### Removed
 
