@@ -1,3 +1,9 @@
 .windows_agent:
-  tags: &windows_agent_tags
+  tags:
     - windows
+
+.windows_agent_gpu:
+  tags:
+    - windows
+    - ada_rtx6000
+    - nv-driver-stable
