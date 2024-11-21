@@ -29,12 +29,7 @@ class StageManagerUSDNoticeListenerPlugin(_StageManagerUSDListenerPlugin[Usd.Not
 
     event_type: type = Usd.Notice.ObjectsChanged
 
-    _usd_listener = PrivateAttr()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        self._usd_listener = None
+    _usd_listener = PrivateAttr(None)
 
     def setup(self):
         stage = omni.usd.get_context(self._context_name).get_stage()

@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.0]
+### Added
+- Added `debounce_frames` field for interaction plugins to debounce the item refresh function overloads
+- Added `_queue_update` method to the interaction plugin to queue an update with debouncing
+
+### Removed
+- Removed `_queue_update_context_items`.
+
 ## [3.0.0]
 ### Added
 - Added a loading overlay when the interaction plugin data is loading

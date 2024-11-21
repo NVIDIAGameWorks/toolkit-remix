@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated hdremix to dd92d0f
 - REMIX-3640: Use Async Threaded Processing for Filtering of the Stage Manager items
 - Stage Manager: Add set_context_name() as a way to refresh plugins before building tree.
+- REMIX-3639: Reduce the number of refreshes requested by the USD Event Callback in the Stage Manager
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs

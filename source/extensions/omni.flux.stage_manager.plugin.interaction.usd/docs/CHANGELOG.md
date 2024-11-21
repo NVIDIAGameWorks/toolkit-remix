@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.10.0]
+### Added
+- Added `filtering_rules` field for the USD interaction plugin base to guide the USD event filtering
+
+### Changed
+- Made the USD event callback smarter about refreshing the tree
+
 ## [1.9.0]
 ### Changed
 - Make set_context_name() an explicit method for plugins

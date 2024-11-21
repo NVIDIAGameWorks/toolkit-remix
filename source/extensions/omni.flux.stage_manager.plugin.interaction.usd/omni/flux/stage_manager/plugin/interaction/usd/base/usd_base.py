@@ -27,11 +27,31 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common.utils import get_omni_prims as _get_omni_prims
 from pxr import Usd
-from pydantic import Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr
+
+
+class USDEventFilteringRules(BaseModel):
+    ignore_properties_events: list[str] = Field(["xformOpOrder"], description="List of property names to ignore")
+    ignore_paths_events: list[str] = Field(
+        ["/RootNode/Camera"],
+        description="List of prim paths to ignore (Only exact matches for the Prim Path will be ignored)",
+    )
+    ignore_xform_events: bool = Field(
+        True, description="Whether the XForm events emitted by the USD listener should be ignored or not"
+    )
+    ignore_omni_prims_events: bool = Field(
+        True, description="Whether the events emitted on Omniverse Prims should be ignored or not"
+    )
+    ignore_custom_layer_data_events: bool = Field(
+        True, description="Whether the events emitted for Custom Layer Data should be ignored or not"
+    )
 
 
 class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
     synchronize_selection: bool = Field(True, description="Synchronize the USD selection between the stage and the UI")
+    filtering_rules: USDEventFilteringRules = Field(
+        USDEventFilteringRules(), description="Rules used for the USD events in the callback"
+    )
 
     _context_name: str = PrivateAttr("")
     _selection_update_lock: bool = PrivateAttr(False)
@@ -146,33 +166,80 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             selection.set_selected_prim_paths(selection_prim_paths)
 
     def _on_layer_event_occurred(self, event_type: _layers.LayerEventType):
+        """
+        Callback for layer events.
+
+        Args:
+            event_type: The `LayerEventType` object containing the layer event type.
+        """
         if event_type in [_layers.LayerEventType.MUTENESS_STATE_CHANGED, _layers.LayerEventType.SUBLAYERS_CHANGED]:
-            self._queue_update_context_items()
+            self._queue_update()
 
     def _on_stage_event_occurred(self, event_type: omni.usd.StageEventType):
+        """
+        Callback for stage events.
+
+        Args:
+            event_type: The `omni.usd.StageEventType` object containing the stage event type.
+        """
         if event_type == omni.usd.StageEventType.SELECTION_CHANGED:
             self._update_tree_selection()
         elif event_type == omni.usd.StageEventType.ACTIVE_LIGHT_COUNTS_CHANGED:
-            self._queue_update_context_items()
+            self._queue_update()
 
     def _on_usd_event_occurred(self, notice: Usd.Notice.ObjectsChanged):
-        refresh = False
-        for path in notice.GetChangedInfoOnlyPaths() + notice.GetResyncedPaths():
-            # Don't refresh if the update comes from the camera
-            if str(path.GetPrimPath()) in {"/RootNode/Camera"}:
-                continue
-            # Don't refresh the stage manager when Omni Prims are updated
-            if any(path.HasPrefix(omni_path) for omni_path in _get_omni_prims()):
-                continue
-            # Don't refresh the stage manager when Custom Layer Data is updated
-            if any(field == "customLayerData" for field in notice.GetChangedFields(path)):
-                continue
-            refresh = True
+        """
+        Callback for USD events.
 
-        if not refresh:
-            return
+        Args:
+            notice: The `Usd.Notice.ObjectsChanged` object containing the changed paths.
+        """
+        changed_info_only_paths = notice.GetChangedInfoOnlyPaths()
+        resynced_paths = notice.GetResyncedPaths()
 
-        self._queue_update_context_items()
+        def should_refresh(paths: set, exclude_list: set | None = None):
+            for path in paths:
+                if path.IsPropertyPath():
+                    # Don't refresh if the update comes from ignored properties
+                    if path.name in self.filtering_rules.ignore_properties_events:
+                        continue
+                    # # Don't refresh if the update comes from Xform properties
+                    if self.filtering_rules.ignore_xform_events and path.name.startswith("xformOp:"):
+                        continue
+                # Get the prim path for the changed path
+                prim_path = path.GetPrimPath()
+                # If the path is in the exclude list, don't refresh
+                if exclude_list is not None and prim_path in exclude_list:
+                    continue
+                # Don't refresh if the update comes from ignored paths
+                if str(prim_path) in self.filtering_rules.ignore_paths_events:
+                    continue
+                # Don't refresh the stage manager when Omni Prims are updated
+                if self.filtering_rules.ignore_omni_prims_events and any(
+                    path.HasPrefix(omni_path) for omni_path in _get_omni_prims()
+                ):
+                    continue
+                # Don't refresh the stage manager when Custom Layer Data is updated
+                # This should include camera updates on newer mods
+                if self.filtering_rules.ignore_custom_layer_data_events and all(
+                    field == "customLayerData" for field in notice.GetChangedFields(path)
+                ):
+                    continue
+                return True
+            return False
+
+        # Check if the context items should be updated first
+        # If `resynced_paths` is empty, no need to compute the exclude list
+        if resynced_paths and should_refresh(
+            resynced_paths, exclude_list={p.GetPrimPath() for p in changed_info_only_paths}
+        ):
+            self._queue_update(update_context_items=True)
+        # If not, check if the delegates should be updated
+        # If `changed_info_only_paths` is empty, no need to compute the exclude list
+        elif changed_info_only_paths and should_refresh(
+            changed_info_only_paths, exclude_list={p.GetPrimPath() for p in resynced_paths}
+        ):
+            self._queue_update(update_context_items=False)
 
     def _on_item_changed(self, model, item):
         # Convert `_on_item_changed` to an async method since `_update_context_items` is also async
