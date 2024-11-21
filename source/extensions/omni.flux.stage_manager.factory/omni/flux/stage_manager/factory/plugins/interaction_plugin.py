@@ -17,7 +17,7 @@
 
 import abc
 import math
-from asyncio import Future, ensure_future
+from asyncio import Future, Queue, ensure_future
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Iterable
 
@@ -77,6 +77,9 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         True, description="Whether the tree's rows should alternate in color", exclude=True
     )
 
+    debounce_frames: int = Field(
+        5, description="The number of frames that should be used to debounce the item update requests", exclude=True
+    )
     _row_background_frame: ui.Frame | None = PrivateAttr(None)
     _tree_frame: ui.Frame | None = PrivateAttr(None)
     _tree_widget: _TreeWidget | None = PrivateAttr(None)
@@ -100,11 +103,13 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     _filter_items_changed_subs: list[_EventSubscription] = PrivateAttr([])
     _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr([])
 
-    _update_context_items_task: Future | None = PrivateAttr(None)
     _update_content_size_task: Future | None = PrivateAttr(None)
     _draw_row_background_task: Future | None = PrivateAttr(None)
     _update_expansion_task: Future | None = PrivateAttr(None)
     _model_refresh_task: Future | None = PrivateAttr(None)
+    _update_items_task: Future | None = PrivateAttr(None)
+
+    _update_queue: Queue = PrivateAttr(Queue())
 
     _is_initialized: bool = PrivateAttr(False)
     _is_active: bool = PrivateAttr(False)
@@ -120,6 +125,12 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     def check_unique_filters(cls, v):  # noqa N805
         # Use a list + validator to keep the list order
         return list(dict.fromkeys(v))
+
+    @validator("debounce_frames", allow_reuse=True)
+    def check_positive_frame_count(cls, v):  # noqa N805
+        if v < 0:
+            raise ValueError("Value must be 0 or larger")
+        return v
 
     @root_validator(allow_reuse=True)
     def check_plugin_compatibility(cls, values):  # noqa N805
@@ -264,7 +275,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         self._setup_filters()
         self._setup_columns()
 
-        self._queue_update_context_items()
+        self._queue_update()
 
         self._is_initialized = True
 
@@ -384,11 +395,11 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         if self._is_active:
             self._setup_listeners()
-            self._queue_update_context_items()
+            self._queue_update()
         else:
             self._clear_listeners()
-            if self._update_context_items_task:
-                self._update_context_items_task.cancel()
+            if self._update_items_task:
+                self._update_items_task.cancel()
 
     @staticmethod
     def _get_ui_length(column_width: "_ColumnWidth") -> ui.Length:
@@ -532,13 +543,45 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 f"{self._context.data_type.value} != {self.compatible_data_type.value}"
             )
 
-    def _queue_update_context_items(self):
+    def _queue_update(self, update_context_items: bool = True):
         """
-        Queue up the update of the context items using the `_update_context_items` function.
+        Queue up an update of the tree widget
+
+        Args:
+            update_context_items: Whether the context items should be updated or the delegates should be refreshed
         """
-        if self._update_context_items_task:
-            self._update_context_items_task.cancel()
-        self._update_context_items_task = ensure_future(self._update_context_items())
+        self._update_queue.put_nowait(update_context_items)
+        if not self._update_items_task or self._update_items_task.done():
+            self._update_items_task = ensure_future(self._update_queue_worker())
+
+    @omni.usd.handle_exception
+    async def _update_queue_worker(self):
+        """
+        Worker method for the items update queue.
+
+        The worker debounces all the requests for `self.debounce_frames` frames before requesting any updates.
+
+        If a context item request is part of the queue, it has priority over the delegate refresh requests.
+
+        Once the debounce delay is over, all items in the queue are processed at once.
+        """
+        update_context = False
+
+        # Debounce the updates
+        while not self._update_queue.empty():
+            # Consume all items
+            while not self._update_queue.empty():
+                # Keep track of the refresh type required
+                queue_item = await self._update_queue.get()
+                update_context = update_context or queue_item
+            # Wait 1 frame for more items to be added to the queue
+            for _ in range(self.debounce_frames):
+                await omni.kit.app.get_app().next_update_async()
+
+        if update_context:
+            await self._update_context_items()
+        else:
+            self._tree_widget.dirty_widgets()
 
     @omni.usd.handle_exception
     async def _update_context_items(self):
@@ -547,9 +590,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         """
         if not self._is_active:
             return
-
-        # Debounce the calls by waiting 1 frame
-        await omni.kit.app.get_app().next_update_async()
 
         self._show_loading_overlay(True)
 
@@ -663,8 +703,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         return _EventSubscription(self._context_items_changed, callback)
 
     def destroy(self):
-        if self._update_context_items_task:
-            self._update_context_items_task.cancel()
         if self._update_content_size_task:
             self._update_content_size_task.cancel()
         if self._draw_row_background_task:
@@ -673,6 +711,8 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             self._update_expansion_task.cancel()
         if self._model_refresh_task:
             self._model_refresh_task.cancel()
+        if self._update_items_task:
+            self._update_items_task.cancel()
 
     class Config(_StageManagerUIPluginBase.Config):
         fields = {
