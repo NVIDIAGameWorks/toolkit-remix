@@ -7,17 +7,22 @@ provides tips and tricks utilized by team members to enhance their development e
 
 ### Prerequisites
 
-- PyCharm Pro installed on your system (the community edition will not suffice).
+- PyCharm Professional installed on your system (the community edition will not suffice).
 - Basic knowledge of Python programming.
 
 ### Debugging Steps
 
 #### Step 1: Configuring the Debug Server
 
-1. Launch PyCharm Pro.
+1. Launch PyCharm Professional.
 2. On the right-hand side, click on "Edit Configurations."
 3. Create a new Python debug server configuration.
 4. Change the port number to 33100 and save the configuration.
+
+#### [OPTIONAL STEP] Workaround for PyCharm 2024.3
+
+1. Disable `python.debug.use.single.port` in **Help | Find Action | Registry**.
+2. Restart PyCharm.
 
 #### Step 2: Starting the Debugger
 
@@ -29,10 +34,10 @@ provides tips and tricks utilized by team members to enhance their development e
 1. Execute the following command in your terminal or command prompt:
 
     ```
-    lightspeed.app.trex.bat --/app/extensions/registryEnabled=1 --enable omni.kit.debug.pycharm --/exts/omni.kit.debug.pycharm/pycharm_location="C:/Program Files/JetBrains/PyCharm 2023.1.3"
+    lightspeed.app.trex.bat --enable omni.flux.debug.pycharm --/exts/omni.flux.debug.pycharm/pycharm_location="%APPDATA%\Local\Programs\PyCharm Professional"
     ```
 
-   In this command, replace `C:/Program Files/JetBrains/PyCharm 2023.1.3` with the actual path where your PyCharm is
+   In this command, replace `%APPDATA%\Local\Programs\PyCharm Professional` with the actual path where your PyCharm is
    installed.
 
 Please note that starting the PyCharm server before using the additional options is essential for proper functionality.
