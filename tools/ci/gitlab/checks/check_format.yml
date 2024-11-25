@@ -2,6 +2,7 @@ check-format:
   extends:
     - .defaults
     - .windows_agent
+    - .soak_check_rules
   stage: check_format
   needs:
     - check-changelog
@@ -10,3 +11,6 @@ check-format:
   script:
     - .\format_code.bat --verify
   timeout: 10m
+  rules:
+    - !reference [.defaults, rules]
+    - !reference [.soak_check_rules, rules]

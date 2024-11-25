@@ -7,4 +7,6 @@ build_and_measure:
   script:
     - .\repo.bat measure_startup_time --webhook_url $env:SLACK_WEBHOOK_APP_TIME
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $RUN_STARTUP_TEST == "TRUE"
+      when: always
+    - when: never
