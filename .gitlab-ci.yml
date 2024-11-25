@@ -49,6 +49,7 @@ include:
   - local: tools/ci/gitlab/gitlab/publish_release.yml
   # Base definitions shared between jobs
   - local: tools/ci/gitlab/defaults/defaults.yml
+  - local: tools/ci/gitlab/defaults/soak_test_rules.yml
   - local: tools/ci/gitlab/defaults/gitlab_release.yml
   - local: tools/ci/gitlab/defaults/agents/linux_agent.yml
   - local: tools/ci/gitlab/defaults/agents/windows_agent.yml

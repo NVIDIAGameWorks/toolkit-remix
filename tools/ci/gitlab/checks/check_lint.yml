@@ -2,9 +2,13 @@ check-lint:
   extends:
     - .defaults
     - .windows_agent
+    - .soak_check_rules
   stage: check_lint
   needs:
     - check-format
   script:
     - .\lint_code.bat all
   timeout: 10m
+  rules:
+    - !reference [.defaults, rules]
+    - !reference [.soak_check_rules, rules]

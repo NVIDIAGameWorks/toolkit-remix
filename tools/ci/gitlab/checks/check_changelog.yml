@@ -2,6 +2,11 @@ check-changelog:
   extends:
     - .defaults
     - .windows_agent
+    - .soak_check_rules
+  needs: []
   stage: check_mr
   script:
     - .\repo.bat check_changelog -s "$CI_COMMIT_SHA" -t "$CI_MERGE_REQUEST_DIFF_BASE_SHA"
+  rules:
+    - !reference [.defaults, rules]
+    - !reference [.soak_check_rules, rules]

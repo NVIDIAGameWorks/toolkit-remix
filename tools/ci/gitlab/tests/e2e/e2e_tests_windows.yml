@@ -3,9 +3,14 @@
     - .defaults
     - .windows_vault
     - .windows_agent_gpu
+    - .soak_test_rules
   needs:
-    - check-lint
+    - job: check-lint
+      optional: true
   before_script:
     - !reference [ .windows_vault, before_script ]
     - .\build.bat --rebuild --release
     - .\repo.bat publish_exts --verify
+  rules:
+    - !reference [.defaults, rules]
+    - !reference [.soak_test_rules, rules]

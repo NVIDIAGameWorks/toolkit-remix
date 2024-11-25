@@ -1,0 +1,12 @@
+.soak_test_rules:
+  rules:
+    # This rule allows jobs to run as part of a scheduled pipeline where the variable `NIGHTLY_SOAK_TEST` has 
+    # been defined as `TRUE` in the scheduled pipeline UI
+    # Scheduled pipelines: https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/pipeline_schedules
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $NIGHTLY_SOAK_TEST == "TRUE"
+      when: always
+
+.soak_check_rules:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never

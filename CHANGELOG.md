@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fixed linux build script syntax
 - REMIX-3048: Added slider widget for material attribute displace_out
 - Added PyCharm Debugger extension
+- REMIX-3656: Added nightly GitLab CI SOAK test pipelines
 
 ### Changed
 - Updated hdremix to dd92d0f

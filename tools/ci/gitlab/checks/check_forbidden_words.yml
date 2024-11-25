@@ -2,6 +2,10 @@ check-forbidden-words:
   extends:
     - .defaults
     - .windows_agent
+    - .soak_check_rules
   stage: check_mr
   script:
     - .\repo.bat check_forbidden_words
+  rules:
+    - !reference [.defaults, rules]
+    - !reference [.soak_check_rules, rules]
