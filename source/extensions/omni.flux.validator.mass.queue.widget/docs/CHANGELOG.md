@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.3]
+### Fixed
+- Fixed tests flakiness
+
 ## [1.4.2]
 ### Changed
 - Use renamed mass queue core singleton

@@ -1,5 +1,5 @@
 [package]
-version = "1.5.4"
+version = "1.5.5"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -37,4 +37,8 @@ name = "lightspeed.trex.properties_pane.shared.mod_setup.widget"
 [[test]]
 dependencies = [
     "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

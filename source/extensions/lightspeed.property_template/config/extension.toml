@@ -1,5 +1,5 @@
 [package]
-version = "0.1.2"
+version = "0.1.3"
 authors = ["markh@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -36,4 +36,5 @@ dependencies = [
 stdoutFailPatterns.exclude = [
     "*[omni.ui] Failed to upload UI Image*",
     "*[gpu.foundation.plugin] Failed to read texture file*",
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

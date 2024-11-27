@@ -91,7 +91,7 @@ class TestModSetupWidget(AsyncTestCase):
             await open_stage(f"{temp_dir.name}/project_example/combined.usda")
             _window, _wid = await self.__setup_widget("test_capture_item_centered")  # Keep in memory during test
 
-            await ui_test.human_delay(human_delay_speed=10)
+            await ui_test.human_delay(human_delay_speed=50)
 
             tree_capture_scroll_frame = ui_test.find(
                 f"{_window.title}//Frame/**/ScrollingFrame[*].identifier=='TreeCaptureScrollFrame'"
@@ -214,6 +214,8 @@ class TestModSetupWidget(AsyncTestCase):
             self.assertIsNotNone(select_button)
             self.assertIsNotNone(file_name_field)
 
+            # Clear the value of the filename field
+            file_name_field.widget.model.set_value("")
             await file_name_field.input("replacements02.usda", end_key=KeyboardInput.ENTER)
             await ui_test.human_delay(100)
 

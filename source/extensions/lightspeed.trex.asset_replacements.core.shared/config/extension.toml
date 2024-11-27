@@ -1,5 +1,5 @@
 [package]
-version = "2.3.4"
+version = "2.3.5"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Asset Replacements extension for the StageCraft"
 description = "Extension that works on asset replacement data for NVIDIA RTX Remix StageCraft App"
@@ -33,4 +33,8 @@ name = "lightspeed.trex.asset_replacements.core.shared"
 [[test]]
 dependencies = [
     "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

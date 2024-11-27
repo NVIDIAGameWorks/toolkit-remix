@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.1]
+### Fixed
+- Fixed tests flakiness
+
 ## [2.7.0]
 ### Changed
 - Refactored ItemModels to clarify relationship with base omni.ui classes

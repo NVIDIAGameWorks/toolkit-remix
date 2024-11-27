@@ -3,7 +3,7 @@ order = 100  # to start always after the plugins
 
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.4.1"
+version = "1.4.2"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -44,4 +44,8 @@ name = "omni.flux.stage_manager.widget"
 [[test]]
 dependencies = [
     "omni.flux.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

@@ -1,5 +1,5 @@
 [package]
-version = "1.0.5"
+version = "1.0.6"
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "Mod Packaging Details Widget"
 description = "Mod Packaging Details Widget implementation"
@@ -24,4 +24,8 @@ name = "lightspeed.trex.mod_packaging_details.widget"
 [[test]]
 dependencies = [
     "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

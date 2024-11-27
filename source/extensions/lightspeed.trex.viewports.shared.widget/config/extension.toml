@@ -1,5 +1,5 @@
 [package]
-version = "1.2.8"
+version = "1.2.9"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Viewports implementation"
 description = "Viewports implementation for NVIDIA RTX Remix App"
@@ -57,4 +57,5 @@ args = [
 stdoutFailPatterns.exclude = [
     "*Multiple textures for pxr engine is not currently supported*",
     "*Setting hydra_engine to pxr failed*",
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

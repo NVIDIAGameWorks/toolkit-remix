@@ -1,5 +1,5 @@
 [package]
-version = "1.1.0"
+version = "1.1.1"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Micro-Service Core"
 description = "Micro-Service for NVIDIA RTX Remix Core"
@@ -34,6 +34,10 @@ args = [
 
 dependencies = [
     "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]
 
 # Settings to configure the microservices

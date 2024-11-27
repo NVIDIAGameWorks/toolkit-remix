@@ -1,5 +1,5 @@
 [package]
-version = "1.0.4"
+version = "1.0.5"
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Omni.UI Scene Sample For Manipulating Select Light"
 description = "This example show an 3D manipulator for a selected light"
@@ -30,11 +30,12 @@ name = "lightspeed.ui_scene.light_manipulator"
 args = [
     "--/app/window/dpiScaleOverride=1.0",
     "--/app/window/scaleToMonitor=false",
-    "--/app/fastShutdown=1",
-    "--/app/hangDetector/enabled=0",
-    "--no-window"
 ]
 dependencies = [
     "lightspeed.trex.tests.dependencies",
     "omni.kit.widget.viewport"
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

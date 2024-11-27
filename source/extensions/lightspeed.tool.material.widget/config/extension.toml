@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.0.3"
+version = "1.0.4"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alex Dunn <adunn@nvidia.com>", "Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -49,4 +49,5 @@ name = "lightspeed.tool.material.widget"
 [[test]]
 stdoutFailPatterns.exclude = [
     "*[gpu.foundation.plugin] Failed to*",
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

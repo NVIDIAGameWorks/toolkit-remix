@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.12.1]
+### Fixed
+- Fixed tests flakiness
+
 ## [1.12.0] - 2024-09-18
 ### Added
 - Added UI for the executors to enable parallel-process ingestion

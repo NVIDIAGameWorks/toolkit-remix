@@ -1,5 +1,5 @@
 [package]
-version = "2.2.3"
+version = "2.2.4"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -38,4 +38,5 @@ dependencies = [
 stdoutFailPatterns.exclude = [
     "*Can't find the layer type*",  # Exclude error log for save_layer_as when layer is None
     "*Failed to save layer type*",  # Exclude error log for save_layer_as when export fails
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

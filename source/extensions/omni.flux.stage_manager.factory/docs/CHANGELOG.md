@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.1]
+### Fixed
+- Fixed tests flakiness
+
 ## [3.1.0]
 ### Added
 - Added `debounce_frames` field for interaction plugins to debounce the item refresh function overloads

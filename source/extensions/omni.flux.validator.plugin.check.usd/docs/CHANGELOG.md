@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.13.2]
+### Fixed
+- Fixed tests flakiness
+
 ## [3.13.1]
 ### Fixed
 - Fixed import order for the internal pip archive

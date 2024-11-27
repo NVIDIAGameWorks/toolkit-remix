@@ -1,5 +1,5 @@
 [package]
-version = "1.0.5"
+version = "1.0.6"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix replacement/mod extension for the StageCraft"
 description = "Extension that works on replacement data for NVIDIA RTX Remix StageCraft App"
@@ -33,4 +33,5 @@ stdoutFailPatterns.exclude = [
     "*' is not writeable*",  # Exclude error log for non-writable replacement layer path
     "*' is in the * directory*",  # Exclude error log for replacement layer in capture directory
     "*' is in a * directory*",  # Exclude error log for replacement layer in gameReadyAssets directory
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

@@ -1,5 +1,5 @@
 [package]
-version = "2.0.8"
+version = "2.0.9"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix layout for the IngestCraft"
 description = "Layout for NVIDIA RTX Remix IngestCraft App"
@@ -33,4 +33,8 @@ args = [
     # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
     # Need to use a .kit file
     "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

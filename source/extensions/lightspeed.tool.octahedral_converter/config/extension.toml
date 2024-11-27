@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.1.5"
+version = "0.1.6"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Mark Henderson <markh@nvidia.com>"]
@@ -44,4 +44,8 @@ name = "lightspeed.tool.octahedral_converter"
 [[test]]
 dependencies = [
     "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

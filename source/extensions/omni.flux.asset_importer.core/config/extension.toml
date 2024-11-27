@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.16.10"
+version = "1.16.11"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Mark Henderson <markh@nvidia.com>"]
@@ -55,5 +55,6 @@ stdoutFailPatterns.exclude = [
     "*omni.kit.window.filepicker*",
     "*omni.kit.window.file_importer*",
     "*omni.kit.window.file_exporter*",
-    "*omni.kit.window.file*"
+    "*omni.kit.window.file*",
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

@@ -33,7 +33,10 @@ exclude = []
 args = [
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
+    "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
     "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
 timeout = 1800
@@ -56,7 +59,10 @@ args = [
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.unit.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
+    "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
     "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
 timeout = 300
@@ -79,7 +85,10 @@ args = [
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.unit.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
+    "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
     "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
 timeout = 300
@@ -98,7 +107,10 @@ args = [
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.unit.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
+    "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
     "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
 timeout = 900
@@ -117,7 +129,10 @@ args = [
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.unit.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
+    "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
     "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
 timeout = 900
@@ -136,7 +151,10 @@ args = [
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.unit.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
+    "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
     "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
 timeout = 900
@@ -155,7 +173,10 @@ args = [
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.unit.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
+    "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
     "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
 timeout = 900
@@ -176,7 +197,10 @@ args = [
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.e2e.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
+    "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
     "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
 timeout = 1800
@@ -197,7 +221,10 @@ args = [
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.e2e.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
+    "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
     "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
 timeout = 1800
@@ -221,7 +248,10 @@ args = [
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.e2e.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
+    "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
     "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
 timeout = 1800
@@ -242,7 +272,10 @@ args = [
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.e2e.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
+    "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
+    "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
     "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
 timeout = 1800

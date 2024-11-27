@@ -1,5 +1,5 @@
 [package]
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Scott Fitzpatrick <scfitzpatric@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -25,4 +25,8 @@ name = "lightspeed.event.context_change"
 dependencies = [
     "lightspeed.trex.contexts",
     "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

@@ -153,10 +153,8 @@ def validate_extension_changes(
     # The version has been properly updated. Make sure that it is documented.
     # The format we need is a line with `## [x.y.z]`, where `x.y.z` is the original version
     log_file = changed_extension / extension_changelog_file
-    original_lines = get_source(log_file, original_hash).splitlines()
-    source_lines = get_source(log_file, source_hash).splitlines()
-    diff_lines = difflib.context_diff(original_lines, source_lines)
-    added = [ln.lstrip("+ ") for ln in diff_lines if ln.startswith("+ ")]
+    diff_lines = get_diff_lines(str(log_file), source_hash, original_hash)
+    added = [ln.lstrip("+") for ln in diff_lines if ln.startswith("+")]
 
     # There needs to be one line with the new version header, and at least one valid comment line for the change
     version_found = False
