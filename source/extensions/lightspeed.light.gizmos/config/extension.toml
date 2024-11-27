@@ -1,5 +1,5 @@
 [package]
-version = "1.0.7"
+version = "1.0.8"
 authors = ["Alex Dunn <adunn@nvidia.com>", "Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Light gizmos extension"
 description = "Render light gizmos using omni.ui.scene"
@@ -31,4 +31,8 @@ dependencies = [
     "omni.kit.renderer.core",
     "omni.kit.renderer.capture",
     "omni.kit.viewport.utility",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

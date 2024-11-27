@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.9]
+### Fixed
+- Fixed tests flakiness
+
 ## [2.0.8]
 ### Changed
 - Changed repo link

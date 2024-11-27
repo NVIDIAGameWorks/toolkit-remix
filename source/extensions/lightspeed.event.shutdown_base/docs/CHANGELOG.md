@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.1]
+### Fixed
+- Fixed tests flakiness
+
 ## [2.0.0]
 ### Changed
 - Refactored to base classes for use with any extension

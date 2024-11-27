@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.8.2"
+version = "1.8.3"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -45,4 +45,8 @@ dependencies = [
     "omni.flux.validator.manager.core",
     "omni.flux.validator.plugin.check.usd",
     "omni.flux.validator.plugin.context.usd_stage",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

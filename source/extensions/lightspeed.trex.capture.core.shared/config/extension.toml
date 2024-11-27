@@ -1,5 +1,5 @@
 [package]
-version = "1.1.7"
+version = "1.1.8"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -29,4 +29,8 @@ name = "lightspeed.trex.capture.core.shared"
 dependencies = [
     "lightspeed.layer_manager.core",
     "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

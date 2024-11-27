@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.6.6"
+version = "1.6.7"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -56,4 +56,5 @@ args = [
 stdoutFailPatterns.exclude = [
     # Exclude log message when a path can't be read for file_texture_picker widget
     "*[omni.flux.utils.common.path_utils] * can't be read*",
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

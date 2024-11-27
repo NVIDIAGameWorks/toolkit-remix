@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.0.0"
+version = "1.0.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Aleksei Rusev <arusev@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -52,10 +52,13 @@ name = "omni.flux.debug.pycharm"
 args = [
     "--/exts/omni.flux.debug.pycharm/pip_install_pydevd=0",
 ]
+
 stdoutFailPatterns.exclude = [
-"*Could not setup pydevd module*",
-"*Failed to startup python extension*",
+    "*Could not setup pydevd module*",
+    "*Failed to startup python extension*",
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]
+
 dependencies = [
     "omni.flux.tests.dependencies",
 ]

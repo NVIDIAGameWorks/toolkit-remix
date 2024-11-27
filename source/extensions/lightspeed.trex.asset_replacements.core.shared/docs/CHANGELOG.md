@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.5]
+### Fixed
+- Fixed tests flakiness
+
 ## [2.3.4]
 ### Changed
 - Fixed `replace_reference_with_data_model` function crash

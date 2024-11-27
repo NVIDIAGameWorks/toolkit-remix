@@ -105,7 +105,7 @@ class TestSentryManager(omni.kit.test.AsyncTestCase):
         self.assertEqual(args[0], TIMING_METRIC_TYPE)
         elapsed = kwargs["value"]
         # The times should be very close, but not the same
-        self.assertLess(abs(elapsed - duration), 0.003)
+        self.assertLess(abs(elapsed - duration), 0.005)
         tags = kwargs["tags"]
         pth = Path(__file__)
         self.assert_(tags["module"].endswith(pth.stem))

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.3]
+### Fixed
+- Fixed flaky test
+
 ## [1.4.2]
 ### Fixed
 - Fix unnecessary selection of instance occurring after prim deletion

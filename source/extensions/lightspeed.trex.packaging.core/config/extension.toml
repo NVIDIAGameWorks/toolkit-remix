@@ -1,5 +1,5 @@
 [package]
-version = "1.0.18"
+version = "1.0.19"
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "Mod Packaging Core"
 description = "Mod Packaging Core implementation"
@@ -38,4 +38,8 @@ args = [
 dependencies = [
     "lightspeed.trex.tests.dependencies",
     "omni.kit.material.library",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

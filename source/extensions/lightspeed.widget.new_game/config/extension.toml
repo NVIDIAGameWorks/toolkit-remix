@@ -1,5 +1,5 @@
 [package]
-version = "0.1.4"
+version = "0.1.5"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -26,3 +26,12 @@ preview_image = "data/preview.png"
 
 [[python.module]]
 name = "lightspeed.widget.new_game"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]

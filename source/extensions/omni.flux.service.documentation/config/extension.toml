@@ -3,7 +3,7 @@ order = 10000  # to start always after the other service extensions
 
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.0.0"
+version = "1.0.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -42,4 +42,8 @@ name = "omni.flux.service.documentation"
 [[test]]
 dependencies = [
     "omni.flux.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]

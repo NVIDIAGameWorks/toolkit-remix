@@ -147,7 +147,7 @@ class TestCore(omni.kit.test.AsyncTestCase):
         context_mock.get_stage.return_value = stage_mock
 
         input_material_prim_mock = Mock()
-        input_material_name_mock = Mock()
+        input_material_name_mock = "MaterialName"  # Need a real value to have a valid Sdf.Path
         input_material_prim_mock.GetName.return_value = input_material_name_mock
         input_material_path_mock = Sdf.Path(f"{root_prim_path}/Looks/{input_material_name_mock}")
         input_material_next_path_mock = Sdf.Path(f"{root_prim_path}/Looks/{input_material_name_mock}_1")

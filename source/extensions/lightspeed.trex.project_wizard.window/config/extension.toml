@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.2.3"
+version = "1.2.4"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -42,6 +42,6 @@ dependencies = [
 ]
 
 stdoutFailPatterns.exclude = [
-    "*An unknown error occurred: Set changed size during iteration*",
     "*Can't create a checkpoint for file*",
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]
