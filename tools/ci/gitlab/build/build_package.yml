@@ -25,7 +25,7 @@ build-package-windows:
 build-package-linux:
   extends:
     - .defaults
-    - .linux_agent
+    - .linux_agent_gpu
   stage: build_package
   before_script:
     - ./tools/utils/enable_sentry.sh
