@@ -1,4 +1,141 @@
+# RTX Remix Release 0.6 Notes (12/3/2024)
+
+The latest release of the RTX Remix Toolkit and Runtime brings powerful new features and enhancements designed to take your modding experience to the next level. Here’s some of what the release has in store:
+
+- **Introducing Experimental Features:** Dive into cutting-edge tools early with the new “Experimental Features” menu. This allows you to test in-progress features and provide valuable feedback to shape their development.
+
+- **Stage Manager (Experimental):** the first experimental feature, Stage Manager, is a helpful UI that allows you to visualize every prim in your scene from an interactive list. For the first time, modders can easily access and edit prims that aren’t selectable within the viewport, and streamline their workflows. Share your feedback and ideas on our [GitHub](https://github.com/NVIDIAGameWorks/toolkit-remix/) to help us refine Stage Manager and other experimental features.
+
+- **RTX Remix in the NVIDIA App:** RTX Remix is now available in the new [NVIDIA App Launcher](https://www.nvidia.com/en-us/software/nvidia-app/), offering faster startup times, reduced CPU overhead, and a seamless modding experience. We highly recommend all users download and mod through the NVIDIA App to take full advantage of these performance improvements.
+
+Keep reading to see our detailed breakdown.
+
+## RTX Remix Runtime Release 0.6
+
+### Features
+**Big News for Gamers and Modders!**
+32-Bit Games Now Supported by the RTX Remix Runtime SDK!
+Elevate your favorite classic games with cutting-edge RTX technology.
+
+**Huge Performance Upgrades**
+The RTX Remix Runtime 0.6 delivers a major leap forward in performance, offering large performance improvements in GPU and CPU-bound scenes. Whether you're working on graphically demanding environments or intricate, processor-heavy setups, this update ensures a smoother and faster modding experience.
+
+**Enhanced Compatibility with Render Targets**
+Introducing support for Render Targets, a technique used in classic games like Half-Life 2 to project scenes within scenes. This addition expands the range of games that can leverage RTX Remix, allowing modders to recreate and enhance iconic visual effects with greater fidelity.
+
+Look below for our detailed release notes, and for a full changelog, please click [here](remix-full-changelog.md)
+
+<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/render_target.mp4" title="RenderTarget"></video>
+
+## RTX Remix Toolkit Release 2024.5.1
+
+### Features
+
+**“Experimental Features” Menu**
+Try the latest cutting-edge tools under development with the new "Experimental Features" menu. Access this option from the top-left hamburger menu and enable features that are still being fine-tuned. While experimental features may have some bugs, they provide an exciting glimpse into the future of RTX Remix. If you encounter issues or have feedback, help shape the development by filing an issue on [GitHub](https://github.com/NVIDIAGameWorks/toolkit-remix/).
+
+<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/experimentalfeatures.mp4" title="ExperimentalFeatures"></video>
+
+**Assign Texture Sets**
+Simplify your asset texturing process with the new "Assign Texture Sets" option. Select one texture from a folder, and RTX Remix automatically pulls all relevant textures for that asset, saving you time and streamlining your workflow.
+
+<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/assign_texture_sets.mp4" title="AssignTextureSets"></video>
+
+
+**Stage Manager (Experimental)**
+Revolutionize your project management with the all-new Stage Manager. This powerful tool provides a clear, categorized view of every prim in your scene—meshes, textures, lights, and more—allowing you to easily isolate, edit, or replace assets.
+
+<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/stagemanager_filtering.mp4" title="StageManagerFiltering"></video>
+
+*Note:* Stage Manager is experimental and may experience performance issues with larger projects (10,000+ prims).
+
+- **Advanced Filtering:** Quickly identify and manage unreplaced or replaced assets.
+- **Multi-Asset Editing:** Make bulk changes to selected prims directly from the Stage Manager.
+- **Viewport Integration:** Center the camera on any asset, hide or unhide assets for efficient modding, and even edit elements not selectable in the viewport (like particles).
+- **Example Workflow:** Mod a tight, hard-to-navigate space, such as a train cabin, by hiding walls, editing interior assets, and unhiding the walls to complete your scene.
+
+In the future, we’ll be looking to add more functionality into the Stage Manager. We hope you enjoy this early introduction.
+
+**Standalone NVIDIA App Installer/Launcher**
+RTX Remix now operates independently via the NVApp Launcher. Enjoy faster startup times, seamless updates, and optimized CPU utilization for a smoother, more efficient experience.
+
+**End to End REST API Tutorial**
+Added a tutorial on how to use the REST API to build a Blender Add-On.
+
+### Quality of Life Improvements
+
+**Multi-Selection & Multi-Editing**
+Make broad changes with ease. Select multiple objects—like lights—and adjust their properties simultaneously, such as intensity or color. This improvement streamlines your workflow, saving time and effort on repetitive edits.
+
+<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/multiselection_multiediting.mp4" title="Multiselection"></
+
+- REMIX-3600: Clarified Selection widget behavior and fixed issues.
+- REMIX-3051: Configured the save prompt to open during stage unloads with unsaved changes.
+- REMIX-2907: Added a warning when invalid file types are dropped for ingestion.
+- REMIX-3214, REMIX-3215: Added checks for layer type validation during project and mod file imports.
+- Improved the look of the scan file window.
+
+### Bug Fixes
+
+- **Hot-Reload Stability:** Fixed hot-reload functionality by allowing the reuse of validators, improving reliability and reducing errors during reloads.
+- **Material Tooltips:** Resolved issues with material file path tooltips and copy menus for a smoother user experience.
+- **Texture Set Assignment:** Addressed problems with assigning texture sets, ensuring consistent and accurate assignments.
+- **Lighting Panel:** Fixed icon display issues for lights in the selection panel.
+- **Stage Manager Performance:** Resolved significant performance issues with the Stage Manager, enhancing usability, especially in larger projects.
+- **Shell Script Permissions:** Corrected shell script permission issues for better compatibility.
+- **REST API Crashes:** Fixed crashes in the REST API for select_prim_paths_with_data_model and append_reference_with_data_model, improving API stability.
+- **Stage Manager Cleanup:** Ensured all listeners are cleared when disabling the Stage Manager feature flag to prevent residual issues.
+
+### Features
+
+- REMIX-3052: Added a new "reload last stage" workfile menu item.
+- REMIX-2874: Added a scan folder dialog for importing.
+- REMIX-3113: Added control over Parallel process count dropdown for ingestion.
+- REMIX-2518: Added external asset prevention/copying functionality.
+
+### Compatibility Improvements
+- Added Data Migration documentation.
+
 # RTX Remix Release Notes (5/13/2024)
+
+## RTX Remix Toolkit Release 2024.4.1
+
+**Light Shaping Tools**
+Take control of your scene's lighting with the ability to visualize and adjust attributes like intensity, radius, and direction directly from the viewport. Perfect your lighting with intuitive tools that make your scene shine.
+
+<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/light_shaping_1.mp4" title="LightShaping1"></video>
+
+<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/light_shaping_2.mp4" title="LightShaping2"></video>
+
+### Features
+- REMIX-2674: Adding a check for similar textures and auto-populating texture fields.
+- REMIX-2779, REMIX-2780, REMIX-2781: Added light manipulators for RectLight, DistantLight, and DiskLight.
+- REMIX-2782: Added light manipulator for SphereLight.
+- REMIX-2137, REMIX-2138, REMIX-2139, REMIX-2142, REMIX-2842: Added microservices for the "Modding" & "Ingestion" sub-apps.
+- REMIX-3096: Added a right-click copy menu for selection tree items.
+- Added lightweight kit app for HdRemix image testing: lightspeed.hdremix.test-0.0.0.
+- C function binding to set RtxOption directly into the Remix Renderer.
+
+### Quality of Life
+- REMIX-2722: Reduced default light intensities.
+- REMIX-3112: Changed displace_in slider range and default value to improve usability.
+- REMIX-3125: Calculate float slider default step size lazily.
+- Fixed documentation URL for release notes.
+- Fixed release notes version to match the release version.
+
+### Compatibility Improvements
+- REMIX-2876: Updated to Kit Kernel 106.
+- OM-122163: Updated Remix manipulator to adapt omni.kit.manipulator.prim renaming.
+- REMIX-2880: Improved CI setup for merged repos.
+- REMIX-2880: Split PIP Archives between LSS, Flux & Internal Flux.
+- REMIX-2880: Updated to the latest public Kit SDK.
+
+### Bug Fixes
+- REMIX-2872: Made the non-ingested asset message more descriptive.
+- REMIX-2789: Fixed ingestion queue scrollbar issues.
+- REMIX-2943: Made file extension validation case-insensitive.
+- REMIX-2684: Created camera light event.
+- Fixed various issues with microservices, added new endpoints, and improved functionality.
 
 ## RTX Remix Toolkit Release 2024.4.0-RC.1
 ### Changed
