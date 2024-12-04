@@ -21,7 +21,7 @@ from unittest.mock import PropertyMock, patch
 import omni.ui as ui
 from omni.flux.validator.mass.widget import ValidatorMassWidget as _ValidatorMassWidget
 from omni.kit import ui_test
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path
 
 from .fake_plugins import register_fake_plugins as _register_fake_plugins

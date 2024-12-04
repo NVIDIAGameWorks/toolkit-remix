@@ -23,7 +23,7 @@ import omni.ui as ui
 import omni.usd
 from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
 from omni.kit import ui_test
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import get_test_data_path, open_stage, wait_stage_loading
 from pxr import Gf
 

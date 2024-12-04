@@ -23,7 +23,7 @@ import carb.settings
 from omni.flux.validator.manager.core import ValidationSchema as _ValidationSchema
 from omni.flux.validator.mass.core import SCHEMA_PATH_SETTING as _SCHEMA_PATH_SETTING
 from omni.flux.validator.mass.core import ManagerMassCore as _ManagerMassCore
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import get_test_data_path
 
 from .fake_plugins import FakeCheck as _FakeCheck

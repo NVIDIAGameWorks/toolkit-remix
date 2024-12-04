@@ -16,7 +16,7 @@
 """
 
 from omni.flux.feature_flags.core import FeatureFlag
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 
 
 class TestFeatureFlag(AsyncTestCase):

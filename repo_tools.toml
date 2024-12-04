@@ -4,6 +4,22 @@ command = "auto_update_deps"
 # [python module name or path]:[function name]
 entry_point = "${root}/tools/utils/repo_auto_update_deps.py:setup_repo_tool"
 
+[repo_bump_changed_extensions]
+# Tool name
+command = "bump_changed_extensions"
+# [python module name or path]:[function name]
+entry_point = "${root}/tools/utils/repo_bump_changed_extensions.py:setup_repo_tool"
+
+# The target commit to compare the changelog against
+original_commit = "origin/main"
+# The source commit to compare the changelog against
+source_commit = "HEAD"
+# Path prefix for extensions
+extension_path_prefix = "source/extensions"
+# Default changelog text
+default_changelog_text = "## Changed\n- "
+
+
 [repo_check_changelog]
 # Tool name
 command = "check_changelog"

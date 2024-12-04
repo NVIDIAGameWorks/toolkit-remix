@@ -22,7 +22,7 @@ import omni.kit.app
 import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core.data_models import LayerType as _LayerType
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from pxr import Usd, UsdGeom
 
 

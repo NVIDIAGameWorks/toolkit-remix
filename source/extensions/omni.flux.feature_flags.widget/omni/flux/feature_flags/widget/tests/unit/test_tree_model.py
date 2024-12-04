@@ -19,7 +19,7 @@ from unittest.mock import Mock, call, patch
 
 from omni.flux.feature_flags.core import FeatureFlag, FeatureFlagsCore
 from omni.flux.feature_flags.widget.tree import FeatureFlagModel
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 
 
 class TestFeatureFlagModel(AsyncTestCase):

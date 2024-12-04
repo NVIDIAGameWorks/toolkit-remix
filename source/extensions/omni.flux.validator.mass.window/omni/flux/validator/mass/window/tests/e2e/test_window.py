@@ -16,7 +16,7 @@
 """
 
 from omni import kit
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 
 
 class TestMassWindow(AsyncTestCase):

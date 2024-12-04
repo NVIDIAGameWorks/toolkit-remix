@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 
 
 class TestTextureReplacementsCore(AsyncTestCase):

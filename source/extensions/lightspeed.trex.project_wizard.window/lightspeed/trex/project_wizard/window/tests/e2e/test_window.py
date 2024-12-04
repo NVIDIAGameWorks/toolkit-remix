@@ -33,7 +33,7 @@ from lightspeed.trex.project_wizard.core import SETTING_JUNCTION_NAME as _SETTIN
 from lightspeed.trex.project_wizard.window import ProjectWizardWindow as _ProjectWizardWindow
 from omni import ui, usd
 from omni.kit import ui_test
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, wait_stage_loading
 from pxr import Sdf
 

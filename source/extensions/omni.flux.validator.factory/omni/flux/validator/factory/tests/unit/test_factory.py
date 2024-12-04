@@ -21,7 +21,7 @@ import omni.usd
 from omni.flux.validator.factory import SelectorBase as _SelectorBase
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.flux.validator.factory import get_instance as _get_factory_instance
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 
 _FAKE_PLUGIN_NAME = "FakePlugin"
 
