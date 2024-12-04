@@ -5,20 +5,20 @@
 
 RTX Remix is a modding platform for remastering a catalog of fixed-function DirectX 8 and 9 games with cutting edge graphics. With NVIDIA RTX Remix, experienced modders can upgrade textures with AI, easily replace game assets with high fidelity assets built with physically accurate (PBR) materials, and inject RTX ray tracing, DLSS and Reflex technologies into the game. It's like giving your old games a makeover with gorgeous modern-looking graphical mods.
 
-Remix consists of two components; there’s the RTX Remix Application (also known as the Toolkit), which is used for creating lights, revamping textures with AI, and adding remastered assets into a game scene that you’ve made with your favorite DCC tool. The second component is the RTX Remix Runtime, which helps you capture classic game scenes to bring into the RTX Remix application to begin your mod. The runtime also is responsible for making your mod “work” when a gamer is playing your mod–in real time, it replaces any old asset with the remastered assets you’ve added to the game scene, and relights the game with path tracing at playback. With the release of the RTX Remix application in Open Beta, the full power of RTX Remix is now in the hands of modders to make next level RTX mods.
+Remix consists of two main parts. The first part is the [RTX Remix Runtime](../docs/runtimeinterface/index.md), which allows you to capture classic game scenes for your mod. The runtime is also responsible for making your mod “work” when a gamer is playing your mod–in real time, it replaces any old asset with the remastered assets you’ve added to the game scene, and re-lights the game with path tracing at playback. The second part is the [RTX Remix Application](../docs/toolkitinterface/index.md) (also known as the Toolkit), which is used for creating lights, revamping textures with AI, and adding remastered assets into a game scene that you’ve made with your favorite DCC tool. With the release of the RTX Remix Application in Open Beta, the full power of RTX Remix is now in the hands of modders to make next level RTX mods.
 
 
 ## [How Does It Work](#how-does-it-work)
 
-You don't need to be a computer expert to use RTX Remix. It does most of the hard work for you. But it helps to know a bit about how it works. RTX Remix has two main parts, the runtime which attaches to the game while being played, and the toolkit which is used to edit assets for the game offline (without needing to have the game running).
+You don't need to be a computer expert to use RTX Remix. It does most of the hard work for you, but it helps to know a bit about how it works. As we said above, RTX Remix has two main parts; the RTX Remix Runtime which attaches to the game while being played, and the RTX Remix Toolkit which is used to edit assets for the game offline (without needing to have the game running).
 
-The runtime has two components, the Remix Bridge and Renderer.  The Bridge is like a middleman. It sits next to the game and listens to what the game wants to do. It then sends this information to another program called NvRemixBridge.exe, which is a special program that allows the original games renderer to operate in  64-bit, allowing the game to use more of the systems memory than is available in 32-bit (which most classic games are) and because of this, we can use raytracing to render high resolution textures and meshes.
+The RTX Remix Runtime also has two components: the Remix Bridge and the Renderer. The Bridge is like a middleman. It sits next to the game and listens to what the game wants to do. It then sends this information to another program called NvRemixBridge.exe, which is a special program that allows the original game's renderer to operate in 64-bit, allowing the game to use more of the systems memory than is available in 32-bit (which most classic games are) and because of this, we can use raytracing to render high resolution textures and meshes.
 
-The Bridge acts as the messenger - it sends all the game instructions to another part called the RTX Remix Renderer. This Renderer Is a super powerful graphics engine. It takes all the things the game wants to draw, like characters and objects,but does so using a powerful real-time path-tracing engine.
+The Bridge acts as the messenger - it sends all the game instructions to the Renderer. This Renderer is a super powerful graphics engine. It takes all the things the game wants to draw, like characters and objects, but does so using a powerful real-time path-tracing engine.
 
-The renderer also knows how to swap out the old game stuff with new and improved things from an RTX Remix Mod that you put in a special folder. It keeps track of what's what using special codes (hash IDs) so it knows what to change in the game as you play.
+The Renderer also knows how to swap out the old game stuff with new and improved things from an RTX Remix Mod that you put in a special folder. It keeps track of what's what using special codes (hash IDs) so it knows what to change in the game as you play.
 
-Finally, using  the RTX Remix Toolkit, you are able to easily make and add new game objects, materials, and lights. And since it's built on the NVIDIA Omniverse ecosystem, you'll have lots of cool tools to make your game look even better.
+Finally, using the RTX Remix Toolkit, you are able to easily make and add new game objects, materials, and lights. And since it's built on the NVIDIA Omniverse ecosystem, you'll have lots of cool tools to make your game look even better.
 
 
 <!----- ON HOLD - Need to figure out how to handle this section
@@ -36,17 +36,16 @@ Finally, using  the RTX Remix Toolkit, you are able to easily make and add new g
 RTX Remix and its mods are built to run on RTX-powered machines. For ideal performance, we recommend using GeForce RTX™ 4070 or higher. For latest drivers, visit  [NVIDIA Driver Downloads](https://www.nvidia.com/Download/index.aspx)s. For Quadro, select 'Quadro New Feature Driver (QNF).
 
 
-| Level                | Operating System  | CPU                   | CPU Cores | RAM     | GPU                | VRAM  | Disk           |
-| :------------------: | :---------------: | :-------------------: | :-------: | :-----: | :----------------: | :---: | :------------: |
-| Min              |   Windows 10/11   | Intel I7 or AMD Ryzen 7 | 4         | 16 GB   | GeForce RTX 3060Ti | 8 GB  | 512 GB SSD     |
-| Rec          |   Windows 10/11   | Intel I7 or AMD Ryzen 7 | 8         | 32 GB   | GeForce RTX 4070   | 12 GB | 512 GB M.2 SSD |
+| Level                | Operating System  | CPU                   | CPU Cores | RAM     | GPU                | VRAM  |     Disk      |
+| :------------------: | :---------------: | :-------------------: | :-------: | :-----: | :----------------: | :---: |:-------------:|
+| Min              |   Windows 10/11   | Intel I7 or AMD Ryzen 7 | 4         | 16 GB   | GeForce RTX 3060Ti | 8 GB  |   10 GB SSD   |
+| Rec          |   Windows 10/11   | Intel I7 or AMD Ryzen 7 | 8         | 32 GB   | GeForce RTX 4070   | 12 GB | 10 GB M.2 SSD |
 
-We recommend that you review the [Omniverse Technical Requirement Documentation](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/common/technical-requirements.html) for further details on what is required to use Applications within the Omniverse Platform.
+Since the RTX Remix Application is built using the Omniverse Kit SDK, We recommend that you review the [Omniverse Technical Requirement Documentation](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/common/technical-requirements.html) for further details on what is required to use Applications within the Omniverse Platform.
 
 ## Requirements For Modders
 
 * Windows 10 or 11
-* [NVIDIA Omniverse](https://www.nvidia.com/en-us/omniverse/download/)
 
 ## RTX Remix Runtime Requirements for Developers
 
@@ -63,7 +62,7 @@ We recommend that you review the [Omniverse Technical Requirement Documentation]
 
 # Compatibility
 
-The RTX Remix Runtime is primarily targeting DirectX 8 and 9 games with a fixed function pipeline for compatibility. Injecting the Remix runtime into other content is unlikely to work. It is important to state that even amongst DX8/9 games with fixed function pipelines, there is diversity in how they utilize certain shader techniques or handle rendering. As a result, there are crashes and unexpected rendering scenarios that require improvements to the RTX Remix Runtime for content to work perfectly.
+The RTX Remix Runtime is primarily targeting DirectX 8 and 9 games with a fixed function pipeline for compatibility. Injecting the RTX Remix Runtime into other content is unlikely to work. It is important to state that even amongst DX8/9 games with fixed function pipelines, there is diversity in how they utilize certain shader techniques or handle rendering. As a result, there are crashes and unexpected rendering scenarios that require improvements to the RTX Remix Runtime for content to work perfectly.
 
 It is our goal to work in parallel with the community to identify these errors and improve the runtime to widen compatibility with as many DX8 and 9 fixed function games as possible.  As Remix development continues, we will be adding revisions to the RTX Remix Runtime that will expand compatibility for more and more titles.  Some of those solutions will be code contributions submitted by our talented [developer community](http://discord.gg/rtxremix), which we will receive on our [GitHub as pull requests](https://github.com/NVIDIAGameWorks/rtx-remix/pulls) and integrate into the main RTX Remix Runtime.  RTX Remix is a first of its kind modding platform for reimagining a diverse set of classic games with the same workflow, but it's going to take some investigation and work to achieve that broad compatibility.
 
@@ -73,17 +72,15 @@ Games are 'compatible' if the majority of their draw calls can be intercepted by
 
 This also doesn't mean that everything in the game will be Remix compatible - often specific effects will either need to be replaced using the existing replacements flow, or will need some kind of custom support added to the runtime.
 
-
 ## [Fixed Function Pipelines](#fixed-function-pipelines)
 
 Remix functions by intercepting the data the game sends to the GPU, recreating the game's scene based on that data, and then path tracing that recreated scene. With a fixed function graphics pipeline, the game is just sending textures and meshes to the GPU, using standardized data formats. It's reasonable (though not easy) to recreate a scene from this standardized data.
 
-Part of why RTX Remix targets DX8 and 9 titles with fixed function pipelines is because  later games utilize shader graphics pipelines, where the game can send the data in any format, and the color of a given surface isn't determined until it is actually drawn on the screen. This makes it very difficult for RTX Remix to recreate the scene - which, amongst other problems, causes the game to be incompatible.
+Part of why RTX Remix targets DX8 and 9 titles with fixed function pipelines is because later games utilize shader graphics pipelines, where the game can send the data in any format, and the color of a given surface isn't determined until it is actually drawn on the screen. This makes it very difficult for RTX Remix to recreate the scene - which, amongst other problems, causes the game to be incompatible.
 
 The transition from 100% fixed function to 100% shader was gradual - most early DirectX 9.0 games only used shaders for particularly tricky cases, while later DirectX 9.0 games (like most made with 9.0c) may not use the fixed function pipeline at all. Applying Remix to a game using a mix of techniques will likely result in the fixed function objects showing up, and the shader dependent objects either looking wrong, or not showing up at all.
 
 We have some experimental code to handle very simple vertex shaders, which will enable some objects which would otherwise fail. Currently, though, this is very limited. See the ‘Vertex Shader Capture’ option in ‘Game Setup -> Parameters’.
-
 
 ## [DirectX Versions](#directx-versions)
 
@@ -93,7 +90,8 @@ However, there exists various wrapper libraries which can translate from early O
 
 We are not currently aware of any wrapper libraries for DirectX 7 to fixed function DirectX 9, but in theory such a wrapper could be created to extend RTX Remix compatibility further.
 
-## ModDB Compatibility Table
+## [ModDB Compatibility Table](#moddb-compatibility-table)
+
 ModDB’s community has banded together to make modding with RTX Remix even easier. You can visit the [ModDB website](https://www.moddb.com/rtx/) and see a community maintained compatibility table, which indicates every game the mod community has found currently works with RTX Remix. It also specifies the last RTX Remix runtime that was tested with any given game, and provides config files (called “rtx.conf” files) that make any compatible game work with RTX Remix out of the box. Take a look, and be sure to contribute and update the table if you make any discoveries of your own.
 
 ## [Rules of Thumb](#rules-of-thumb)
