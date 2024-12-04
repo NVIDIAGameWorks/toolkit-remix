@@ -1,7 +1,7 @@
 build-docs:
   extends:
     - .defaults
-    - .linux_agent
+    - .linux_agent_gpu
     - .linux_vault
   stage: build_docs
   needs:

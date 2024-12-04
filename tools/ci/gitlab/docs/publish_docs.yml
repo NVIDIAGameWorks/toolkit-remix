@@ -1,7 +1,7 @@
 publish-docs:
   extends:
     - .defaults
-    - .linux_agent
+    - .linux_agent_gpu
     - .linux_vault
   stage: publish_docs
   before_script:

@@ -21,7 +21,7 @@ from unittest.mock import patch
 
 import omni.usd
 from lightspeed.trex.texture_replacements.core.shared.data_models import TextureReplacementsValidators
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import wait_stage_loading
 from pxr import Sdf, UsdShade
 

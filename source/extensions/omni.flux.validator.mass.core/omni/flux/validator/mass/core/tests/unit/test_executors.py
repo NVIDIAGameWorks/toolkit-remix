@@ -19,7 +19,7 @@ from unittest.mock import patch
 
 import omni.kit.app
 from omni.flux.validator.mass.core import ManagerMassCore as _ManagerMassCore
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import get_test_data_path
 
 from .fake_plugins import register_fake_plugins as _register_fake_plugins

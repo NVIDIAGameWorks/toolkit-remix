@@ -24,7 +24,7 @@ import omni.ui as ui
 import omni.usd
 from omni.flux.wizard.widget import WizardModel, WizardPage, WizardWidget
 from omni.kit import ui_test
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, wait_stage_loading
 
 DEFAULT_PREVIOUS_TEXT = "Previous"

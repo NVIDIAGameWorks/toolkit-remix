@@ -19,7 +19,7 @@ from contextlib import nullcontext
 
 import omni.usd
 from lightspeed.trex.asset_replacements.core.shared.data_models import AssetReplacementsValidators
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import wait_stage_loading
 
 

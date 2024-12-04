@@ -25,7 +25,7 @@ import omni.usd
 from carb.input import KeyboardInput
 from omni.flux.layer_tree.usd.widget import LayerDelegate, LayerModel, LayerTreeWidget
 from omni.kit import ui_test
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, wait_stage_loading
 from pxr import Sdf
 

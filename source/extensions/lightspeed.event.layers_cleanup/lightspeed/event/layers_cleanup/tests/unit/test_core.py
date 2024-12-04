@@ -20,7 +20,7 @@ import shutil
 import tempfile
 
 import omni.kit.app
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import get_test_data_path, open_stage, wait_stage_loading
 
 

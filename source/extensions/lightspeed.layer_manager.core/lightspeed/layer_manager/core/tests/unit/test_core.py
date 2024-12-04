@@ -33,7 +33,7 @@ from lightspeed.layer_manager.core.layers.workfile import WorkfileLayer
 from omni.flux.layer_tree.usd.core import LayerCustomData
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.tests.context_managers import open_test_project
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import get_test_data_path, open_stage, wait_stage_loading
 from omni.kit.usd.layers import LayerUtils
 from pxr import Sdf, Usd

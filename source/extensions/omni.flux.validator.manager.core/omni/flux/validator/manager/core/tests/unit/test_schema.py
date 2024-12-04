@@ -16,7 +16,7 @@
 """
 
 from omni.flux.validator.manager.core import ValidationSchema as _ValidationSchema
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from pydantic import ValidationError
 
 

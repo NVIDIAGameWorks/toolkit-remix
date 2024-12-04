@@ -18,7 +18,7 @@
 import omni.ui as ui
 from omni.flux.tabbed.widget import SetupUI as _TabbedFrame
 from omni.kit import ui_test
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows
 
 

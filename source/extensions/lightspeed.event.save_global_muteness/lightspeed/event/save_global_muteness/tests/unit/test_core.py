@@ -17,7 +17,7 @@
 
 import omni.kit.app
 import omni.usd
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from pxr import Usd
 
 

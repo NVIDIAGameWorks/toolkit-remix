@@ -21,7 +21,7 @@ from fastapi.testclient import TestClient
 from omni.flux.service.factory import get_instance as get_service_factory_instance
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.tests.context_managers import open_test_project
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import get_test_data_path
 from omni.services.core import main
 
