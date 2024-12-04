@@ -16,7 +16,7 @@
 """
 
 from omni.flux.factory.base import FactoryBase, PluginBase
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 
 _PLUGIN_NAME_1 = "test_plugin"
 _PLUGIN_NAME_2 = "another_test_plugin"

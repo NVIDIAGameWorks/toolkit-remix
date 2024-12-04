@@ -17,7 +17,7 @@
 
 from omni.flux.feature_flags.core import FeatureFlag
 from omni.flux.feature_flags.widget.tree import FeatureFlagItem
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 
 
 class TestFeatureFlagItem(AsyncTestCase):

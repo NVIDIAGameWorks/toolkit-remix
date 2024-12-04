@@ -22,7 +22,7 @@ from lightspeed.layer_manager.core import LayerType, LayerTypeKeys
 from lightspeed.layer_manager.core.data_models import LayerManagerValidators
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.tests.context_managers import open_test_project
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import get_test_data_path, wait_stage_loading
 from pxr import Sdf
 

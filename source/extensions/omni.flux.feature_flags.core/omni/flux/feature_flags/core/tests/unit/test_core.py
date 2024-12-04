@@ -19,7 +19,7 @@ from unittest.mock import Mock
 
 import carb
 from omni.flux.feature_flags.core import FeatureFlagsCore
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 
 
 class TestFeatureFlagsCore(AsyncTestCase):

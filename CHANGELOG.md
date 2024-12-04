@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added PyCharm Debugger extension
 - REMIX-3656: Added nightly GitLab CI SOAK test pipelines
 - Added 7 videos to remix-releasenotes.md for 0.6 Release Notes Documentation
+- New repo tool to help when making similar changes across many extensions: `.\repo bump_changed_extensions`
 
 ### Changed
 - Updated hdremix to dd92d0f
@@ -23,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stage Manager: Add set_context_name() as a way to refresh plugins before building tree.
 - REMIX-3639: Reduce the number of refreshes requested by the USD Event Callback in the Stage Manager
 - Updated remix-releasenotes.md with 0.6 Release Notes
+- Updated to import AsyncTestCase from public api
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs

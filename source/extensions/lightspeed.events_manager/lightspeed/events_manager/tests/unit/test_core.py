@@ -21,7 +21,7 @@ import carb
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.events_manager import get_instance as _get_instance
 from lightspeed.events_manager.core import EventsManagerCore as _EventsManagerCore
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 
 
 class _FakeEvent(_ILSSEvent):

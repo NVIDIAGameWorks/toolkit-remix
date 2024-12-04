@@ -31,7 +31,7 @@ from lightspeed.layer_manager.core import LayerManagerCore
 from lightspeed.trex.control.stagecraft import get_instance as _get_control_stagecraft
 from lightspeed.trex.layout.stagecraft import get_instance as _get_stagecraft_layout
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage, wait_stage_loading
 from omni.kit.window.file import FileWindowExtension
 

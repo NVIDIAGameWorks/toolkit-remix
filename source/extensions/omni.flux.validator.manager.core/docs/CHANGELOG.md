@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.12]
+## Changed
+- update to use omni.kit.test public api
+
 ## [1.17.11]
 ### Fixed
 - Fixed tests flakiness

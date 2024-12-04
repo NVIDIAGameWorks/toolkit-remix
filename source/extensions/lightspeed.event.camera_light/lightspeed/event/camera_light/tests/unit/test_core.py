@@ -23,7 +23,7 @@ import carb
 import omni.kit.app
 from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage, wait_stage_loading
 
 _CONTEXT_NAME = ""

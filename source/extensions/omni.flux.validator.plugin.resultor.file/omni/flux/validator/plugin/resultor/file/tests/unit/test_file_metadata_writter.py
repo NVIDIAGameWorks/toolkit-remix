@@ -28,7 +28,7 @@ from omni.flux.validator.factory import VALIDATION_PASSED as _VALIDATION_PASSED
 from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
 from omni.flux.validator.plugin.check.usd.example.print_prims import PrintPrims as _PrintPrims
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, open_stage, wait_stage_loading
 from pydantic import Extra
 

@@ -20,7 +20,7 @@ from unittest.mock import call, patch
 from fastapi import Depends, Query
 from omni.flux.service.factory import ServiceBase
 from omni.flux.service.shared import BaseServiceModel
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.services.core import exceptions, routers
 
 

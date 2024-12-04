@@ -17,7 +17,7 @@
 
 import omni.usd
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, open_stage, wait_stage_loading
 from pxr import Sdf
 

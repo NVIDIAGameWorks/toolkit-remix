@@ -21,7 +21,7 @@ import omni.kit.app
 from lightspeed.event.shutdown_base import EventOnShutdownBase as _EventOnShutdownBase
 from lightspeed.event.shutdown_base import InterrupterBase as _InterrupterBase
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 
 EVENT_NAME = "Shutdown Test"
 

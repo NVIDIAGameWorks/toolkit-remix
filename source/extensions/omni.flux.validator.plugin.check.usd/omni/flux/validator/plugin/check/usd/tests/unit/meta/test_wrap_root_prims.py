@@ -18,7 +18,7 @@
 import omni.usd
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
 from omni.flux.validator.plugin.check.usd.meta.wrap_root_prims import WrapRootPrims
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import get_test_data_path, open_stage, wait_stage_loading
 
 

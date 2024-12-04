@@ -21,7 +21,7 @@ import carb
 from omni.flux.feature_flags.core import FeatureFlagsCore
 from omni.flux.feature_flags.window import get_instance
 from omni.kit import ui_test
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows
 
 

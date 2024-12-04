@@ -24,7 +24,7 @@ import omni.usd
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.asset_replacements.core.shared import usd_copier as _usd_copier
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
-from omni.kit.test.async_unittest import AsyncTestCase
+from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage, wait_stage_loading
 from pxr import Sdf
 
