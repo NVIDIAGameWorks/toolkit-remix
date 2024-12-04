@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3639: Reduce the number of refreshes requested by the USD Event Callback in the Stage Manager
 - Updated remix-releasenotes.md with 0.6 Release Notes
 - Updated to import AsyncTestCase from public api
+- Updated remix-overview.md with correct specs and improved documentation
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs
