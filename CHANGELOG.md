@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed CI Agent tags
 - Fixed Flaky tests
 - Fixed Linux Agents
+- GH-PR1: Conform table format style in docs and cleanup bad table (Thanks @gordongrace)
 
 ### Removed
 
