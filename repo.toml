@@ -377,12 +377,12 @@ exts."platform:linux-x86_64".include = [
     "omni.flux.pip_archive.*",
 ]  # we only test pip archive for linux
 exts.exclude = [
-    "lightspeed.app.*",
     "lightspeed_example.*",
 ]
 
 # verify before publishing
-publish_verification = true
+# skip so that lightspeed.apps can be published without separate changelogs
+publish_verification = false
 
 # To be able to publish with an older Kit you can update settings for a publishing tool to set an account from the env
 # vars provided by Vault (assuming you use shared CI yml scripts, otherwise update your scripts too):
