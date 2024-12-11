@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Flaky tests
 - Fixed Linux Agents
 - GH-PR1: Conform table format style in docs and cleanup bad table (Thanks @gordongrace)
+- Fixed disclosure icon display so tree view and panels mean the same thing
 
 ### Removed
 
