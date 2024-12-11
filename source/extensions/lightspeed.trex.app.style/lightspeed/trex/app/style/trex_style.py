@@ -917,7 +917,7 @@ current_dict.update(
         "TreeView.Item.selected": {"background_color": _BLUE_SELECTED},
         "TreeView.Item.semi_selected": {"background_color": _BLUE_SEMI_SELECTED},
         "TreeView.Item.IsHovered": {"background_color": _BLUE_HOVERED},
-        "TreeView.Item.Minus": {"image_url": _get_icons("disclosure-collapsed"), "color": _WHITE_60},
+        "TreeView.Item.Minus": {"image_url": _get_icons("disclosure-expanded"), "color": _WHITE_60},
         "TreeView.Item.Plus": {"image_url": _get_icons("disclosure-collapsed_h"), "color": _WHITE_60},
         "TreeView.ScrollingFrame::WelcomePad": {"background_color": 0x0},
         "ViewportStats::FloatField": {

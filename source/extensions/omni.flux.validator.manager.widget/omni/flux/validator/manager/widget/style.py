@@ -120,6 +120,6 @@ style = {
         "background_selected_color": 0x0,
     },  # background_selected_color = hovered
     "TreeView.Selection:selected": {"background_color": 0x0},
-    "TreeView.Item.Minus": {"image_url": _get_icons("disclosure-collapsed"), "color": _WHITE_60},
+    "TreeView.Item.Minus": {"image_url": _get_icons("disclosure-expanded"), "color": _WHITE_60},
     "TreeView.Item.Plus": {"image_url": _get_icons("disclosure-collapsed_h"), "color": _WHITE_60},
 }
