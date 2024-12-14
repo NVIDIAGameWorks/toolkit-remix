@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.18]
+### Fixed
+- Fixed `Assign Texture Sets` button layout
+
 ## [1.3.17]
 ## Changed
 - update to use omni.kit.test public api

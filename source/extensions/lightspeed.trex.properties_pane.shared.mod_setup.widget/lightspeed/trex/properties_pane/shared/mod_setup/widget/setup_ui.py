@@ -501,14 +501,14 @@ class ModSetupPane:
                             with self._mod_file_collapsable_frame:
                                 with ui.VStack(spacing=ui.Pixel(8)):
                                     with ui.HStack(height=ui.Pixel(32)):
-                                        ui.Button("Load existing mod file", clicked_fn=self._on_load_existing_mod)
+                                        ui.Button("Load Existing File", clicked_fn=self._on_load_existing_mod)
                                         ui.Spacer(width=ui.Pixel(8))
-                                        ui.Button("Create a new mod file", clicked_fn=self._on_create_mod)
+                                        ui.Button("Create New File", clicked_fn=self._on_create_mod)
 
                                     self._mod_file_frame = ui.Frame()
                                     with self._mod_file_frame:
                                         with ui.HStack():
-                                            with ui.HStack(width=ui.Percent(40)):
+                                            with ui.HStack(width=ui.Percent(30)):
                                                 ui.Spacer()
                                                 ui.Label(
                                                     "Current path",
@@ -516,6 +516,7 @@ class ModSetupPane:
                                                     tooltip="Path of the mod",
                                                     width=0,
                                                 )
+                                                ui.Spacer(width=ui.Pixel(8))
                                             with ui.HStack():
                                                 ui.Spacer(width=ui.Pixel(8))
                                                 self._mod_file_field = ui.StringField(

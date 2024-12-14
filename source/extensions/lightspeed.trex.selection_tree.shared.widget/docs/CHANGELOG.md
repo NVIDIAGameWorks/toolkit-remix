@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+## Changed
+- Changed `get_selection` to use USD selection instead of the tree selection for better reliability
+
 ## [1.4.4]
 ## Changed
 - update to use omni.kit.test public api

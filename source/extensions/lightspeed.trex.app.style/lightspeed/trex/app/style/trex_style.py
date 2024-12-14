@@ -956,6 +956,10 @@ current_dict.update(
             "font_size": 18,
             "font": ui.url.nvidia_md,
         },
+        "ScrollingFrame::CategoriesFrame": {
+            "background_color": _GREY_42,
+            "padding": 8,
+        },
     }
 )
 style.default = current_dict

@@ -1706,10 +1706,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         )
 
         # ensure that the proper prims are selected within the usd context
-        selected_prim_paths = usd_context.get_selection().get_selected_prim_paths()
+        selected_prim_paths = sorted(usd_context.get_selection().get_selected_prim_paths())
         instance_selection = _wid.get_instance_selection()
 
-        self.assertEqual(len(selected_prim_paths), 2)
+        self.assertEqual(len(selected_prim_paths), 3)
         self.assertEqual(len(instance_selection), 1)
         self.assertEqual(os.path.dirname(os.path.dirname(selected_prim_paths[0])), instance_selection[0].path)
         self.assertEqual(os.path.dirname(os.path.dirname(selected_prim_paths[1])), instance_selection[0].path)
