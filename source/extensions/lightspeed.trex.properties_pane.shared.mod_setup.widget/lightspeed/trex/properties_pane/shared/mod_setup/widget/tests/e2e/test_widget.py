@@ -199,7 +199,7 @@ class TestModSetupWidget(AsyncTestCase):
             _window, _wid = await self.__setup_widget("test_mod_file_import_valid")  # Keep in memory during test
             await ui_test.human_delay(human_delay_speed=80)
 
-            load_mod_button = ui_test.find(f"{_window.title}//Frame/**/Button[*].text=='Load existing mod file'")
+            load_mod_button = ui_test.find(f"{_window.title}//Frame/**/Button[*].text=='Load Existing File'")
             await load_mod_button.click()
             await ui_test.human_delay(10)
 
@@ -248,7 +248,7 @@ class TestModSetupWidget(AsyncTestCase):
             _window, _wid = await self.__setup_widget("test_mod_file_import_invalid")  # Keep in memory during test
             await ui_test.human_delay(human_delay_speed=80)
 
-            load_mod_button = ui_test.find(f"{_window.title}//Frame/**/Button[*].text=='Load existing mod file'")
+            load_mod_button = ui_test.find(f"{_window.title}//Frame/**/Button[*].text=='Load Existing File'")
             await load_mod_button.click()
             await ui_test.human_delay(10)
 

@@ -29,6 +29,7 @@ import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.asset_replacements.core.shared.usd_copier import copy_usd_asset as _copy_usd_asset
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemAsset as _ItemAsset
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstance as _ItemInstance
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstancesGroup as _ItemInstancesGroup
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemPrim as _ItemPrim
@@ -50,7 +51,6 @@ if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
         ItemAddNewReferenceFile as _ItemAddNewReferenceFileMesh,
     )
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemAsset as _ItemAsset
 
 
 class SetupUI:
@@ -228,21 +228,33 @@ class SetupUI:
             self._frame_mesh_prim = ui.Frame(visible=False, identifier="frame_mesh_prim")
             self._mesh_properties_frames[_ItemPrim] = self._frame_mesh_prim
             with self._frame_mesh_prim:
-                with ui.VStack(spacing=8):
+                with ui.VStack():
                     self._transformation_widget = _TransformPropertyWidget(self._context_name)
+
+                    self._object_property_spacer = ui.Spacer(height=ui.Pixel(8))
+
                     with ui.HStack():
                         ui.Spacer(height=0, width=self.COLUMN_0_WIDTH)
                         self._object_property_line = ui.Line(name="PropertiesPaneSectionTitle")
+
+                    ui.Spacer(height=ui.Pixel(8))
+
                     self._property_widget = _PropertyWidget(self._context_name)
+
+                    ui.Spacer(height=ui.Pixel(8))
+
                     with ui.HStack():
                         ui.Spacer(height=0, width=self.COLUMN_0_WIDTH)
                         self._object_category_line = ui.Line(name="PropertiesPaneSectionTitle")
-                    self._remix_categories_vstack = ui.VStack(spacing=8)
+
+                    ui.Spacer(height=ui.Pixel(8))
+
+                    self._remix_categories_vstack = ui.VStack(height=0, spacing=ui.Pixel(8))
                     with self._remix_categories_vstack:
-                        with ui.HStack(height=ui.Pixel(24)):
+                        with ui.HStack(height=0):
                             with ui.HStack(width=self.COLUMN_0_WIDTH):
                                 ui.Label(
-                                    "Set Remix Categories:",
+                                    "Set Remix Categories",
                                     name="PropertiesWidgetLabel",
                                     alignment=ui.Alignment.RIGHT,
                                 )
@@ -255,7 +267,7 @@ class SetupUI:
                                 tooltip="Please note that not all categories are available in the Toolkit Viewport.",
                                 mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(b),
                             )
-                        with ui.HStack():
+                        with ui.HStack(height=0):
                             ui.Spacer(height=0, width=self.COLUMN_0_WIDTH)
                             self._remix_categories_frame = ui.ScrollingFrame(
                                 visible=False,
@@ -264,9 +276,6 @@ class SetupUI:
                                 mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(b),
                                 name="CategoriesFrame",
                             )
-                    with ui.HStack():
-                        ui.Spacer(height=0, width=self.COLUMN_0_WIDTH)
-                        self._object_category_line = ui.Line(name="PropertiesPaneSectionTitle")
 
     def refresh(
         self,
@@ -315,10 +324,8 @@ class SetupUI:
             and (item.from_live_light_group or item.is_usd_light())
         ]
         regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
-        item_light_instance_groups = [
-            item
-            for item in items
-            if isinstance(item, _ItemInstancesGroup) and regex_light_pattern.match(item.parent.path)
+        item_light_assets = [
+            item for item in items if isinstance(item, _ItemAsset) and regex_light_pattern.match(item.path)
         ]
         if self._current_reference_file_items:
             self._transformation_widget.show(False)
@@ -386,9 +393,9 @@ class SetupUI:
                 self._property_widget.show(False)
                 self._remix_categories_vstack.visible = False
                 self._remix_categories_frame.visible = False
-        elif item_light_instance_groups or item_light_prims:  # light
+        elif item_light_assets or item_light_prims:  # light
             # if this is a light, we can transform the light by itself. So we should show the transform frame
-            prim_paths = [item.parent.path for item in item_light_instance_groups]
+            prim_paths = [item.path for item in item_light_assets]
 
             for item in item_light_prims:
                 for instance_item in self._current_instance_items:
@@ -454,7 +461,15 @@ class SetupUI:
             self._transformation_widget.refresh(xformable_prims)
             self._property_widget.refresh(xformable_prims)
 
-        self._object_property_line.visible = all([self._transformation_widget.visible, self._property_widget.visible])
+        self._object_property_line.visible = all(
+            [
+                self._transformation_widget.visible,
+                self._property_widget.visible,
+                bool(self._property_widget.property_model.get_all_items()),
+            ]
+        )
+        self._object_property_spacer.visible = self._object_property_line.visible
+
         self._object_category_line.visible = all([self._property_widget.visible, self._remix_categories_button.visible])
 
     def _on_ref_mesh_dir_pressed(self, button):
@@ -782,9 +797,9 @@ class SetupUI:
         any_true = [v for v in remix_attrs.values() if v]
         # If there are no values or they are all False, hide the scrolling frame
         if not any_true or not remix_attrs:
-            self._remix_categories_vstack.height = ui.Pixel(24)
             with self._remix_categories_frame:
                 ui.VStack()
+            self._remix_categories_frame.height = ui.Pixel(0)
             return
 
         with self._remix_categories_frame:
@@ -797,7 +812,7 @@ class SetupUI:
                         ui.Spacer(width=8)
                         ui.Label(key, name="RemixAttrLabel", alignment=ui.Alignment.LEFT)
                         ui.Spacer()
-        self._remix_categories_vstack.height = ui.Pixel(100)
+            self._remix_categories_frame.height = ui.Pixel(100)
 
     def _add_remix_category(self, b):
         """Provide dialog to set remix categories."""

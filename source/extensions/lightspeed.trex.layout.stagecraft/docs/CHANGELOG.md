@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.7]
+### Fixed
+- Fixed min width being too narrow and clipping UI elements
+
 ## [1.4.6]
 ### Fixed
 - Fixed tests flakiness

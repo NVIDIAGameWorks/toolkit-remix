@@ -162,16 +162,15 @@ class SetupUI:
             self._material_properties_frames[_ItemPrim] = self._frame_material_widget
 
             with self._frame_material_widget:
-                with ui.VStack():
-                    ui.Spacer(height=ui.Pixel(8))
-                    with ui.HStack(height=ui.Pixel(24)):
+                with ui.VStack(spacing=ui.Pixel(8)):
+                    ui.Spacer(height=0)
+                    with ui.HStack(height=ui.Pixel(24), spacing=ui.Pixel(8)):
                         ui.Label(
                             "Material:",
                             name="PropertiesWidgetLabel",
                             alignment=ui.Alignment.RIGHT_CENTER,
                             width=ui.Pixel(30),
                         )
-                        ui.Spacer(width=ui.Pixel(8), height=0)
                         with ui.ZStack():
                             ui.Rectangle(width=ui.Percent(100))
                             with ui.HStack(height=ui.Pixel(24)):
@@ -185,7 +184,6 @@ class SetupUI:
                                     elided_text=True,
                                     mouse_pressed_fn=lambda x, y, b, m: self._show_copy_menu(b),
                                 )
-                        ui.Spacer(width=ui.Pixel(8), height=0)
                         ui.Image(
                             "",
                             name="MenuBurger",
@@ -193,17 +191,14 @@ class SetupUI:
                             width=ui.Pixel(24),
                             mouse_pressed_fn=lambda x, y, b, m: self.__show_material_menu(),
                         )
-                    ui.Spacer(height=ui.Pixel(8))
-                    with ui.HStack(height=ui.Pixel(10)):
-                        ui.Spacer(width=ui.Pixel(50), height=0)
-                        ui.Button(
-                            text="Assign Texture Sets",
-                            identifier="AssignTextureSetButton",
-                            clicked_fn=self.__check_for_similar_textures,
-                            height=ui.Pixel(8),
-                            width=ui.Pixel(12),
-                        )
-                    ui.Spacer(height=ui.Pixel(8))
+
+                    ui.Button(
+                        text="Assign Texture Sets",
+                        identifier="AssignTextureSetButton",
+                        clicked_fn=self.__check_for_similar_textures,
+                        height=ui.Pixel(8),
+                    )
+
                     self._material_properties_widget = _MaterialPropertyWidget(
                         self._context_name,
                         create_color_space_attributes=False,

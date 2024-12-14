@@ -21,7 +21,7 @@ from lightspeed.trex.properties_pane.shared.asset_replacements.widget import (
     AssetReplacementsPane as _AssetReplacementsPane,
 )
 from lightspeed.trex.properties_pane.shared.mod_packaging.widget import ModPackagingPane as _ModPackagingPane
-from lightspeed.trex.properties_pane.shared.mod_setup.widget import ModSetupPane as _ModSetupPan
+from lightspeed.trex.properties_pane.shared.mod_setup.widget import ModSetupPane as _ModSetupPane
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 
@@ -46,7 +46,7 @@ class SetupUI:
     def __create_ui(self):
         with ui.ZStack():
             ui.Rectangle(name="WorkspaceBackground")
-            self._all_frames[ComponentsEnumItems.MOD_SETUP] = _ModSetupPan(self._context_name)
+            self._all_frames[ComponentsEnumItems.MOD_SETUP] = _ModSetupPane(self._context_name)
             self._all_frames[ComponentsEnumItems.ASSET_REPLACEMENTS] = _AssetReplacementsPane(self._context_name)
             self._all_frames[ComponentsEnumItems.MOD_PACKAGING] = _ModPackagingPane(self._context_name)
 

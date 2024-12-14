@@ -85,7 +85,6 @@ class AssetReplacementsPane:
         self._layers_core = _AssetReplacementLayersCore(context_name)
 
         self._material_converted_sub = None
-        self.__tree_selection_collapsed = False
 
         self._layer_validation_error_msg = ""
 
@@ -214,13 +213,10 @@ class AssetReplacementsPane:
                                 "- 'Instances' item shows where the asset is instanced in your stage.\n"
                                 "- Clicking on an instance (with a prim item selected in the hierarchy) will select "
                                 "it in the viewport.\n",
-                                collapsed=self.__tree_selection_collapsed,
+                                collapsed=False,
                             )
                             with self._selection_collapsable_frame:
                                 self._selection_tree_widget = _SelectionTreeWidget(self._context_name)
-                            self._selection_collapsable_frame.root.set_collapsed_changed_fn(
-                                self.__on_selection_collapsable_frame_changed
-                            )
 
                             ui.Spacer(height=ui.Pixel(16))
 
@@ -323,17 +319,6 @@ class AssetReplacementsPane:
             return formatted_name if len(formatted_name) < 50 else "..." + formatted_name[-50:]
         return "Multiple Selected"
 
-    def __on_selection_collapsable_frame_changed(self, collapsed):
-        self.__tree_selection_collapsed = collapsed
-        self._selection_tree_widget.show(not collapsed)
-        # if this is collapsed, we disable the property and material widget because those panels depend from the
-        # selection in the tree. Showing the last selection can lead user to mistake(s) (difference between the viewport
-        # selection and the last selection).
-        if collapsed:
-            self._on_tree_selection_changed([])
-        else:
-            self._selection_tree_widget.refresh()
-
     def __validate_existing_layer(self, path):
         try:
             sublayer = Sdf.Layer.FindOrOpen(str(path))
@@ -398,19 +383,13 @@ class AssetReplacementsPane:
     def _refresh_mesh_properties_widget(self):
         if self._mesh_properties_collapsable_frame.pinned:
             return
-        if self.__tree_selection_collapsed:
-            items = []
-        else:
-            items = self._selection_tree_widget.get_selection()
+        items = self._selection_tree_widget.get_selection()
         self._mesh_properties_widget.refresh(items)
 
     def _refresh_material_properties_widget(self):
         if self._material_properties_collapsable_frame.pinned:
             return
-        if self.__tree_selection_collapsed:
-            items = []
-        else:
-            items = self._selection_tree_widget.get_selection()
+        items = self._selection_tree_widget.get_selection()
         self._material_properties_widget.refresh(items)
 
     def refresh(self):

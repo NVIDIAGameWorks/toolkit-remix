@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+## Added
+- Added CategoriesFrame ScrollingFrame style
+
 ## [1.4.2]
 ## Fixed
 - conform disclosure icon meaning so down arrow means expanded

@@ -89,7 +89,7 @@ class SetupUI(TrexLayout):
     MIN_HEIGHT_STAGE_MANAGER_PANEL = 100
     WIDTH_COMPONENT_PANEL = 256
     WIDTH_PROPERTY_PANEL = 600
-    MIN_WIDTH_PROPERTY_PANEL = 300
+    MIN_WIDTH_PROPERTY_PANEL = 375
 
     def __init__(self, ext_id):
         super().__init__(ext_id)

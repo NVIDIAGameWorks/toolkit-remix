@@ -102,7 +102,7 @@ class SetupUI:
         self.__on_deferred_tree_model_changed_task = None
 
         self._ignore_tree_selection_changed = False
-        self._ignore_select_instance_prim_from_selected_items = False
+        self._ignore_select_prototype = False
         self._previous_tree_selection: list[_AnyItemType] = []
         self._instance_selection: list[_ItemInstance | _ItemInstancesGroup] = []
         self._previous_instance_selection: list[_ItemInstance | _ItemInstancesGroup] = []
@@ -483,7 +483,7 @@ class SetupUI:
                         selection.append(current_ref_mesh_file[ref_file_item.ref_index])
 
         # we select the corresponding prim instance
-        self._ignore_select_instance_prim_from_selected_items = True
+        self._ignore_select_prototype = True
         # we remove duplicated but keep the order
         selection = list(dict.fromkeys(selection))
 
@@ -499,7 +499,7 @@ class SetupUI:
             first_item_prim = sorted([item for item in selection if isinstance(item, _ItemPrim)], key=lambda x: x.path)
             if first_item_prim:
                 await self.scroll_to_item(first_item_prim[0], all_visible_items)
-        self._ignore_select_instance_prim_from_selected_items = False
+        self._ignore_select_prototype = False
         self.__refresh_delegate_gradients()
 
     @omni.usd.handle_exception
@@ -522,21 +522,28 @@ class SetupUI:
                 return
             self._tree_delegate.refresh_gradient_color(item)
 
-    def get_selection(self):
+    def get_selection(self, get_instances: bool = True):
         """Return the selection consisting of both the primary and secondary (instance) selections."""
         if self._tree_view is None:
             return []
 
-        # if there is a primary selection, add the secondary selection; otherwise just use the secondary
-        if self._tree_view.selection:
-            # combine primary + secondary selections and exclude the instance group
-            selection_without_instance_group = [
-                item
-                for item in self._tree_view.selection + self._instance_selection
-                if not isinstance(item, _ItemInstancesGroup)
-            ]
-            return selection_without_instance_group
-        return self._instance_selection
+        # Use USD selection instead of the tree selection to work when the widget is collapsed
+        selected_paths = self._context.get_selection().get_selected_prim_paths()
+        selected_prototypes = set(self._core.get_corresponding_prototype_prims_from_path(selected_paths))
+
+        item_types = self._tree_model.get_all_items_by_type()
+
+        assets = [i for i in item_types.get(_ItemAsset, []) if i.path in selected_prototypes]
+        prims = [i for i in item_types.get(_ItemPrim, []) if i.path in selected_prototypes]
+        references = [i for i in item_types.get(_ItemReferenceFile, []) if str(i.prim.GetPath()) in selected_prototypes]
+
+        selection = {*assets, *prims, *references}
+
+        if get_instances:
+            instance_selection = self.get_instance_selection(include_instance_group=False)
+            selection = selection.union(instance_selection)
+
+        return list(selection)
 
     def get_instance_selection(self, include_instance_group: bool = False):
         """Return the instances from within the secondary selection. Do not include instance groups by default."""
@@ -714,7 +721,7 @@ class SetupUI:
         # select items in the tree
         if self._tree_view is not None:
             self._tree_view.selection = items
-        if not self._ignore_select_instance_prim_from_selected_items:
+        if not self._ignore_select_prototype:
             # select prims when item prims are clicked
             prim_paths = [str(item.prim.GetPath()) for item in items if isinstance(item, _ItemPrim)]
             # we swap all the item prim path with the current selected item instances
@@ -726,6 +733,9 @@ class SetupUI:
                             constants.REGEX_MESH_TO_INSTANCE_SUB, str(instance_item.prim.GetPath()), path
                         )
                         to_select_paths.append(to_select_path)
+
+            # If we have a ref selected, add the path of the ref
+            to_select_paths.extend([str(selected_ref.prim.GetPath()) for selected_ref in selected_ref_file_items])
 
             # Select the instance prims in the stage
             self._tree_model.select_prim_paths(list(set(to_select_paths)))
