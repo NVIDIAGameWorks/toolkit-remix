@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.10]
+## Changed
+- Added check to make sure categories button doesn't show up for non-mesh prims
+
 ## [1.1.9]
 ### Changed
 - Restructured categories window and added more documentation for users

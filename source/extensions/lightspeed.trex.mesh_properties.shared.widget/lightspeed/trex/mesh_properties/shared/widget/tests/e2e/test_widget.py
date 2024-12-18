@@ -1212,6 +1212,24 @@ class TestSelectionTreeWidget(AsyncTestCase):
         usd_context.get_selection().set_selected_prim_paths(
             ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
         )
+        await ui_test.human_delay(human_delay_speed=3)
+
+        category_button = ui_test.find(f"{_window.title}//Frame/**/ScrollingFrame[*].name=='CategoriesFrame'")
+        self.assertTrue(category_button.widget.visible)
+
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/lights/light_9907D0B07D040077"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+
+        category_button = ui_test.find(f"{_window.title}//Frame/**/ScrollingFrame[*].name=='CategoriesFrame'")
+        self.assertFalse(category_button.widget.visible)
+
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+        )
+        await ui_test.human_delay(human_delay_speed=3)
+
+        category_button = ui_test.find(f"{_window.title}//Frame/**/ScrollingFrame[*].name=='CategoriesFrame'")
+        self.assertTrue(category_button.widget.visible)
 
         category_button = ui_test.find(f"{_window.title}//Frame/**/ScrollingFrame[*].name=='CategoriesFrame'")
         await ui_test.human_delay(50)
@@ -1224,6 +1242,8 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         category_button = ui_test.find(f"{_window.title}//Frame/**/ScrollingFrame[*].name=='CategoriesFrame'")
         self.assertFalse(category_button.widget.visible)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
     async def test_remix_categories_button_visibility_multi_select(self):
         # setup
@@ -1248,3 +1268,5 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         category_button = ui_test.find(f"{_window.title}//Frame/**/ScrollingFrame[*].name=='CategoriesFrame'")
         self.assertFalse(category_button.widget.visible)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
