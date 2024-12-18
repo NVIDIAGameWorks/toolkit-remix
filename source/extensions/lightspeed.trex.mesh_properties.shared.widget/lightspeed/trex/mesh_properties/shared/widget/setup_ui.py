@@ -462,6 +462,8 @@ class SetupUI:
                 self._mesh_properties_frames[None].visible = True
             self._transformation_widget.refresh(xformable_prims)
             self._property_widget.refresh(xformable_prims)
+            self._remix_categories_vstack.visible = False
+            self._remix_categories_frame.visible = False
 
         self._object_property_line.visible = all(
             [
