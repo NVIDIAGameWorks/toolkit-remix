@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.8]
+### Added
+- Updating dialog removal calls
+
 ## [1.4.7]
 ### Fixed
 - Fixed min width being too narrow and clipping UI elements

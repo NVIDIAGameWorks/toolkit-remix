@@ -8,11 +8,17 @@ Now that you've got everything set up, it's time to start remastering your game 
 
 # Understanding CONF Files
 
-Before we dive into replacing assets, let's take a moment to get familiar with the settings in the **Alt+X** menu, specifically in the "game setup" tab. Firstly, here you’ll find a list of materials from the original game displayed in a grid view.  RTX Remix will populate this list of materials based on what the original game is currently rendering, you may find this list changes over time or with respect to what you’re looking at in game (this is normal).  The purpose of this list is to provide a convenient way for users of RTX Remix to categorize the various materials in the original game.  It’s with this context that Remix understands how to treat objects in the original game with respect to a modern renderer.  For instance, materials marked as UI in the original game don’t need to be raytraced, by letting Remix know about them it can use the original games renderer for displaying UI, which is often desirable.
-
-Other important categories are: Sky (lets Remix create a physically based environment map), Particles (let’s Remix reorient particle billboards with respect to all incoming rays, and also create the “soft particles” effect common in games), and Decals (tells Remix to treat these materials as physically based decals when path tracing).  There are many more categories, please refer to the tooltips in the runtime, or the per setting documentation if ever unclear what a particular category means.
+Before we dive into replacing assets, let's take a moment to get familiar with the settings in the **Alt+X** menu, specifically in the "game setup" tab. Firstly, here you’ll find a list of materials from the original game displayed in a grid view. RTX Remix will populate this list of materials based on what the original game is currently rendering, you may find this list changes over time or with respect to what you’re looking at in game (this is normal). The purpose of this list is to provide a convenient way for users of RTX Remix to categorize the various materials in the original game. It’s with this context that Remix understands how to treat objects in the original game with respect to a modern renderer. For instance, materials marked as UI in the original game don’t need to be raytraced, and by letting Remix know about them, it can use the original games renderer for displaying UI, which is often desirable.
 
 Changes you make from the game setup tab will be recorded in an RTX.conf config file, which will help preserve all of your changes for the next time you boot the game.
+
+## Remix Categories
+Remix Categories indicate special instructions to render certain elements. Some important categories are: UI (tells Remix to use original game renderer), Sky (lets Remix create a physically based environment map), Particles (let’s Remix reorient particle billboards with respect to all incoming rays, and also create the “soft particles” effect common in games), and Decals (tells Remix to treat these materials as physically based decals when path tracing). The categories are first and foremost intended for the RTX Runtime to properly render, so some may not be completely accurately displayed in the Remix Toolkit. There are many more categories, please refer to the tooltips in the runtime, or the per setting documentation if ever unclear what a particular category means.
+
+Changes you make from the game setup tab will be recorded in an RTX.conf config file, which will help preserve all of your changes for the next time you boot the game.
+To see a full list of settings (including Remix Categories) and their descriptions, please refer to this [document](https://github.com/NVIDIAGameWorks/dxvk-remix/blob/main/RtxOptions.md).
+
+Once you have a capture, you can set a subset of categories in the Toolkit. These categories are set using USD attributes on the prim. There are also instructions on how to set these categories in the Toolkit, and you can find out more on this [page](../toolkitinterface/remix-toolkitinterface-categories.md). Others are set for textures, which you can find in the RTX.conf.
 
 ## ModDB Conf Files
 
@@ -84,6 +90,7 @@ Ensure that both your project drive and game install drive are formatted using N
 If you want to output assets to a central depot, use symlinks.
 Example command: mklink /J "YOUR_PROJECT_DIR/assets" "INGESTED_ASSET_DIR"
 During mod packaging, this ensures all assets are resolved correctly, creating a zippable folder.
+
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>
