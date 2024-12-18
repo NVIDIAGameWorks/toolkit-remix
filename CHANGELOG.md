@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated to import AsyncTestCase from public api
 - Updated remix-overview.md with correct specs and improved documentation
 - Publish apps for etm testing
+- REMIX-3579: Updating Remix Categories window with more documentation
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs

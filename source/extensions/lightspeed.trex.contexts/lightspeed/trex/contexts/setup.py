@@ -21,6 +21,7 @@ from typing import List
 import omni.usd
 from lightspeed.common import constants as _constants
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
+from lightspeed.trex.utils.common.dialog_utils import delete_dialogs as _delete_dialogs
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.file_pickers import destroy_file_picker as _destroy_file_picker
 
@@ -49,6 +50,9 @@ class _Setup:
         event_manager.register_global_custom_event(_constants.GlobalEventNames.CONTEXT_CHANGED.value)
         self._context_changed_sub = event_manager.subscribe_global_custom_event(
             _constants.GlobalEventNames.CONTEXT_CHANGED.value, _destroy_file_picker
+        )
+        self._context_changed_dialogs_sub = event_manager.subscribe_global_custom_event(
+            _constants.GlobalEventNames.CONTEXT_CHANGED.value, _delete_dialogs
         )
 
     def create_usd_context(self, usd_context_name: Contexts) -> omni.usd.UsdContext:

@@ -45,6 +45,7 @@ from lightspeed.trex.layout.shared.base import SetupUI as TrexLayout
 from lightspeed.trex.menu.workfile import get_instance as get_burger_menu_instance
 from lightspeed.trex.properties_pane.stagecraft.widget import SetupUI as PropertyPanelUI
 from lightspeed.trex.stage_manager.widget import StageManagerWidget as _StageManagerWidget
+from lightspeed.trex.utils.common.dialog_utils import delete_dialogs as _delete_dialogs
 from lightspeed.trex.utils.common.file_utils import (
     is_usd_file_path_valid_for_filepicker as _is_usd_file_path_valid_for_filepicker,
 )
@@ -141,6 +142,9 @@ class SetupUI(TrexLayout):
         event_manager.register_global_custom_event(GlobalEventNames.PAGE_CHANGED.value)
         self._page_changed_sub = event_manager.subscribe_global_custom_event(
             GlobalEventNames.PAGE_CHANGED.value, _destroy_file_picker
+        )
+        self._page_changed_dialog_sub = event_manager.subscribe_global_custom_event(
+            GlobalEventNames.PAGE_CHANGED.value, _delete_dialogs
         )
 
     def enable_welcome_resume_item(self) -> bool:

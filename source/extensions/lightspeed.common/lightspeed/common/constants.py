@@ -271,28 +271,207 @@ GITHUB_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/"
 REPORT_ISSUE_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/issues"
 
 REMIX_CATEGORIES = {
-    "World UI": "remix_category:world_ui",
-    "World Matte": "remix_category:world_matte",
-    "Sky": "remix_category:sky",
-    "Ignore": "remix_category:ignore",
-    "Ignore Lights": "remix_category:ignore_lights",
-    "Ignore Anti-culling": "remix_category:ignore_anti_culling",
-    "Ignore Motion Blur": "remix_category:ignore_motion_blur",
-    "Ignore Opacity Micromap": "remix_category:ignore_opacity_micromap",
-    "Hidden": "remix_category:hidden",
-    "Particle": "remix_category:particle",
-    "Beam": "remix_category:beam",
-    "Decal Static": "remix_category:decal_Static",
-    "Decal Dynamic": "remix_category:decal_dynamic",
-    "Decal Single Offset": "remix_category:decal_single_offset",
-    "Decal No Offset": "remix_category:decal_no_offset",
-    "Alpha Blend to Cutout": "remix_category:alpha_blend_to_cutout",
-    "Terrain": "remix_category:terrain",
-    "Animated Water": "remix_category:animated_water",
-    "Third Person Player Model": "remix_category:third_person_player_model",
-    "Third Person Player Body": "remix_category:third_person_player_body",
-    "Ignore Baked Lighting": "remix_category:ignore_baked_lighting",
+    "World UI": {
+        "attr": "remix_category:world_ui",
+        "tooltip": "Textures on draw calls that should be treated as screen space UI elements.",
+        "full_description": [
+            "Textures on draw calls that should be treated as",
+            "screen space UI elements. All exclusively UI-related",
+            "textures should be classified this way and doing so",
+            "allows the UI to be rasterized on top of the ray traced",
+            "scene like usual. Note that currently the first UI texture",
+            "encountered triggers RTX injection (though this may change",
+            "in the future as this does cause issues with games that",
+            "draw UI mid-frame).",
+        ],
+    },
+    "World Matte": {
+        "attr": "remix_category:world_matte",
+        "tooltip": "Textures on draw calls that should be treated as world space UI elements.",
+        "full_description": [
+            "Textures on draw calls that should be treated as",
+            "world space UI elements. Unlike typical UI textures",
+            "this option is useful for improved rendering of UI",
+            "elements which appear as part of the scene (moving",
+            "around in 3D space rather than as a screen space element).",
+        ],
+    },
+    "Sky": {
+        "attr": "remix_category:sky",
+        "tooltip": "Geometries from draw calls used for the sky or are otherwise intended to be very far away from the camera at all times (no parallax).",  # noqa E501
+        "full_description": [
+            "Geometries from draw calls used for the sky or",
+            "are otherwise intended to be very far away from",
+            "the camera at all times (no parallax). Any draw",
+            "calls using a geometry hash in this list will be",
+            "treated as sky and rendered as such in a manner",
+            "different from typical geometry. The geometry hash",
+            "being used for sky detection is based off of the asset",
+            "hash rule.",
+        ],
+    },
+    "Ignore": {
+        "attr": "remix_category:ignore",
+        "tooltip": "Textures on draw calls that should be ignored.",
+        "full_description": [
+            "Textures on draw calls that should be ignored. Any draw",
+            "call using an ignore texture will be skipped and not ray",
+            "traced, useful for removing undesirable rasterized effects",
+            "or geometry not suitable for ray tracing.",
+        ],
+    },
+    "Ignore Lights": {
+        "attr": "remix_category:ignore_lights",
+        "tooltip": "Lights that should be ignored.",
+        "full_description": [
+            "Lights that should be ignored. Any matching light will",
+            "be skipped and not added to be ray traced.",
+        ],
+    },
+    "Ignore Anti-culling": {
+        "attr": "remix_category:ignore_anti_culling",
+        "tooltip": "Textures that are forced to extend life length when anti-culling is enabled.",
+        "full_description": [
+            "Textures that are forced to extend life length when",
+            "anti-culling is enabled. Some games use different culling",
+            "methods we can't fully match, use this option to manually",
+            "add textures to force extend their life when anti-culling fails.",
+        ],
+    },
+    "Ignore Motion Blur": {
+        "attr": "remix_category:ignore_motion_blur",
+        "tooltip": "Disable motion blur for meshes with specific texture.",
+        "full_description": ["Disable motion blur for meshes with specific texture."],
+    },
+    "Ignore Opacity Micromap": {
+        "attr": "remix_category:ignore_opacity_micromap",
+        "tooltip": "Textures to ignore when generating Opacity Micromaps.",
+        "full_description": [
+            "Textures to ignore when generating Opacity Micromaps.",
+            "This generally does not have to be set and is only useful",
+            "for black listing problematic cases for Opacity Micromap",
+            "usage.",
+        ],
+    },
+    "Hidden": {
+        "attr": "remix_category:hidden",
+        "tooltip": "Textures on draw calls that should be hidden from rendering.",
+        "full_description": [
+            "Textures on draw calls that should be hidden from rendering,",
+            "but not totally ignored. This is similar to rtx.ignoreTextures",
+            "but instead of completely ignoring such draw calls they are",
+            "only hidden from rendering, allowing for the hidden objects to",
+            "still appear in captures. As such, this is mostly only a",
+            "development tool to hide objects during development until",
+            "they are properly replaced, otherwise the objects should be",
+            "ignored with rtx.ignoreTextures instead for better",
+            "performance.",
+        ],
+    },
+    "Particle": {
+        "attr": "remix_category:particle",
+        "tooltip": "Textures on draw calls that should be treated as particles.",
+        "full_description": [
+            "Textures on draw calls that should be treated",
+            "as particles. When objects are marked as particles",
+            "more approximate rendering methods are leveraged,",
+            "allowing for more efficient and typically better",
+            "looking particle rendering. Generally any",
+            "billboard-like blended particle objects in the original",
+            "application should be classified this way.",
+        ],
+    },
+    "Beam": {
+        "attr": "remix_category:beam",
+        "tooltip": "Textures on draw calls that are already particles or emissively blended and have beam-like geometry.",  # noqa E501
+        "full_description": [
+            "Textures on draw calls that are already particles or",
+            "emissively blended and have beam-like geometry.",
+            "To handle cases where a regular billboard may not apply, a",
+            "different beam mode is used to treat objects as more of",
+            "a cylindrical beam and re-orient around its main spanning axis,",
+            "allowing for better rendering of these beam-like effect objects.",
+        ],
+    },
+    "Decal": {
+        "attr": "remix_category:decal_Static",
+        "tooltip": "Textures on draw calls used for static geometric decals or decals with complex topology.",
+        "full_description": [
+            "Textures on draw calls used for static geometric",
+            "decals or decals with complex topology. These materials",
+            "will be blended over the materials underneath them when",
+            "decal material blending is enabled. A small configurable",
+            "offset is applied to each flat/co-planar part of these decals",
+            "to prevent coplanar geometric cases (which poses problems",
+            "for ray tracing).",
+        ],
+    },
+    "Alpha Blend to Cutout": {
+        "attr": "remix_category:alpha_blend_to_cutout",
+        "tooltip": "When an object is added to the cutout textures list it will have a cutout alpha mode forced on it.",
+        "full_description": [
+            "When an object is added to the cutout textures list it",
+            "will have a cutout alpha mode forced on it, using this",
+            "value for the alpha test. This is meant to improve the",
+            "look of some legacy mode materials using low-resolution",
+            "textures and alpha blending in Remix. Such objects are",
+            "generally better handled with actual replacement assets",
+            "using fully opaque geometry replacements or alpha cutout",
+            "with higher resolution textures, so this should only be",
+            "relied on until proper replacements can be authored.",
+        ],
+    },
+    "Terrain": {
+        "attr": "remix_category:terrain",
+        "tooltip": "Albedo textures that are baked blended together to form a unified terrain texture used during ray tracing.",  # noqa E501
+        "full_description": [
+            "Albedo textures that are baked blended together to form",
+            "a unified terrain texture used during ray tracing. Put",
+            "albedo textures into this category if the game renders",
+            "terrain as a blend of multiple textures.",
+        ],
+    },
+    "Animated Water": {
+        "attr": "remix_category:animated_water",
+        "tooltip": 'Textures on draw calls to be treated as "animated water".',
+        "full_description": [
+            'Textures on draw calls to be treated as "animated water".',
+            "Objects with this flag applied will animate their normals",
+            "to fake a basic water effect based on the layered water",
+            "material parameters, and only when",
+            "rtx.opaqueMaterial.layeredWaterNormalEnable is set to true.",
+            "Should typically be used on static water planes that the",
+            "original application may have relied on shaders to animate",
+            "water on.",
+        ],
+    },
+    "Third Person Player Model": {
+        "attr": "remix_category:third_person_player_model",
+        "tooltip": "Treated as a third person model to be used for shadows, but not rendered.",
+        "full_description": ["Treated as a third person model to be used for", "shadows, but not rendered."],
+    },
+    "Third Person Player Body": {
+        "attr": "remix_category:third_person_player_body",
+        "tooltip": "Treated as a third person model to be used for shadows, but not rendered.",
+        "full_description": ["Treated as a third person model to be used for", "shadows, but not rendered."],
+    },
+    "Ignore Baked Lighting": {
+        "attr": "remix_category:ignore_baked_lighting",
+        "tooltip": "Textures for which to ignore two types of baked lighting, Texture Factors and Vertex Color.",
+        "full_description": [
+            "Textures for which to ignore two types of baked",
+            "lighting. Texture Factors and Vertex Color. Texture",
+            "Factor disablement: Using this feature on selected",
+            "textures will eliminate the texture factors.",
+            "Vertex Color disablement: Using this feature on selected",
+            "textures will eliminate the vertex colors. Note, enabling",
+            "this setting will automatically disable multiple-stage",
+            "texture factor blendings for the selected textures.",
+        ],
+    },
 }
+
+REMIX_CATEGORIES_DISPLAY_NAMES = {v["attr"]: k for k, v in REMIX_CATEGORIES.items()}
 
 
 # This should match the `normalmap_encoding` in AperturePBR_normal.mdl
