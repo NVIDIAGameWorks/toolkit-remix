@@ -84,7 +84,7 @@ class StageManagerWidget:
         }
 
     def build_ui(self):
-        with ui.Frame(**self._kwargs):
+        with ui.Frame(raster_policy=ui.RasterPolicy.AUTO, **self._kwargs):
             # If no interactions are enabled, display a message
             enabled_interactions = [i for i in self._core.schema.interactions if i.enabled]
             if not enabled_interactions:

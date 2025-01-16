@@ -49,3 +49,24 @@ class TreeItemBase(ui.AbstractItem):
 
     def destroy(self):
         _reset_default_attrs(self)
+
+
+class AlternatingRowItem(ui.AbstractItem):
+    def __init__(self, index: int):
+        super().__init__()
+
+        for attr, value in self.default_attr.items():
+            setattr(self, attr, value)
+
+        self._alternate = index % 2 == 0
+
+    @property
+    def default_attr(self) -> dict[str, None]:
+        return {"_alternate": None}
+
+    @property
+    def alternate(self) -> bool:
+        return self._alternate
+
+    def destroy(self):
+        _reset_default_attrs(self)

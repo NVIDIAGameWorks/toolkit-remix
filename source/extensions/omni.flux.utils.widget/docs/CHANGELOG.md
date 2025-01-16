@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.19.0]
+### Added
+- Added `AlternateRowWidget` and related widgets to allow easy implementation of alternating row colors in `TreeWidget`
+
 ## [1.18.3]
 ### Fixed
 - Fixed tests flakiness

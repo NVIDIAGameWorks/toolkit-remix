@@ -16,7 +16,6 @@
 """
 
 import abc
-import math
 from asyncio import Future, Queue, ensure_future
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Iterable
@@ -26,6 +25,7 @@ import omni.usd
 from omni import ui
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.widget.tree_widget import AlternatingRowWidget as _AlternatingRowWidget
 from omni.flux.utils.widget.tree_widget import TreeWidget as _TreeWidget
 from pydantic import Field, PrivateAttr, root_validator, validator
 
@@ -93,7 +93,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     debounce_frames: int = Field(
         5, description="The number of frames that should be used to debounce the item update requests", exclude=True
     )
-    _row_background_frame: ui.Frame | None = PrivateAttr(None)
+    _alternating_row_widget: _AlternatingRowWidget | None = PrivateAttr(None)
     _tree_frame: ui.Frame | None = PrivateAttr(None)
     _tree_widget: _TreeWidget | None = PrivateAttr(None)
     _tree_scroll_frame: ui.Frame | None = PrivateAttr(None)
@@ -117,7 +117,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr([])
 
     _update_content_size_task: Future | None = PrivateAttr(None)
-    _draw_row_background_task: Future | None = PrivateAttr(None)
     _update_expansion_task: Future | None = PrivateAttr(None)
     _model_refresh_task: Future | None = PrivateAttr(None)
     _update_items_task: Future | None = PrivateAttr(None)
@@ -334,12 +333,15 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 with ui.ZStack():
                     with ui.VStack():
                         # Tree UI
-                        self._tree_scroll_frame = ui.ScrollingFrame(name="TreePanelBackground")
-                        with self._tree_scroll_frame:
-                            with ui.ZStack():
-                                self._row_background_frame = ui.Frame(vertical_clipping=True, separate_window=True)
+                        with ui.ZStack():
+                            self._alternating_row_widget = _AlternatingRowWidget(self.header_height, self.row_height)
+                            self._tree_scroll_frame = ui.ScrollingFrame(
+                                name="TreePanelBackground",
+                                scroll_y_changed_fn=self._alternating_row_widget.sync_scrolling_frame,
+                            )
+                            with self._tree_scroll_frame:
                                 self._tree_frame = ui.ZStack(
-                                    content_clipping=True,
+                                    content_clipping=True,  # Add on top of the background
                                     computed_content_size_changed_fn=self._on_content_size_changed,
                                 )
                                 with self._tree_frame:
@@ -509,14 +511,15 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         for frame in self._result_frames:
             frame.rebuild()
 
+        # Expand the right items
         if self._update_expansion_task:
             self._update_expansion_task.cancel()
         self._update_expansion_task = ensure_future(self._update_expansion_states_deferred())
 
-        if self._draw_row_background_task:
-            self._draw_row_background_task.cancel()
-        self._draw_row_background_task = ensure_future(self._draw_row_background_deferred())
+        # Update the number of alternating rows to draw
+        self._alternating_row_widget.refresh(item_count=len(list(self.tree.model.iter_items_children())))
 
+        # Hide the loading overlay
         self._show_loading_overlay(False)
 
     def _on_item_expanded(self, item: _StageManagerTreeItem, expanded: bool):
@@ -637,6 +640,9 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         """
         Update the scroll position when the content size changes to force the ScrollFrame to resize.
         """
+        # Sync the alternating row widget frame height with the tree frame
+        self._alternating_row_widget.sync_frame_height(self._tree_frame.computed_height)
+
         # Only update the scroll position when shrinking the frame
         if self._tree_widget.computed_height < self._previous_frame_height:
             # Cache the current scroll position
@@ -650,29 +656,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 self._tree_scroll_frame.scroll_y = min(previous_scroll_y, self._tree_scroll_frame.scroll_y_max)
         # Cache the current frame height for the next update
         self._previous_frame_height = self._tree_widget.computed_height
-
-    @omni.usd.handle_exception
-    async def _draw_row_background_deferred(self):
-        """
-        Draw the alternate row background for the tree
-        """
-        if not self._row_background_frame or not self.alternate_row_colors:
-            return
-
-        await omni.kit.app.get_app().next_update_async()
-
-        min_row_count = math.ceil(self._tree_frame.computed_height / self.row_height)
-        items_count = len(list(self.tree.model.iter_items_children()))
-
-        # Make sure to fill up the available space and cover every item in the tree
-        row_count = max(min_row_count, items_count)
-
-        self._row_background_frame.clear()
-        with self._row_background_frame:
-            with ui.VStack():
-                ui.Spacer(height=ui.Pixel(self.header_height))
-                for i in range(row_count):
-                    ui.Rectangle(name=("Alternate" if i % 2 else "") + "Row", height=ui.Pixel(self.row_height))
 
     @omni.usd.handle_exception
     async def _update_expansion_states_deferred(self, scroll_to_selection_override: bool = True):
@@ -730,8 +713,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     def destroy(self):
         if self._update_content_size_task:
             self._update_content_size_task.cancel()
-        if self._draw_row_background_task:
-            self._draw_row_background_task.cancel()
         if self._update_expansion_task:
             self._update_expansion_task.cancel()
         if self._model_refresh_task:

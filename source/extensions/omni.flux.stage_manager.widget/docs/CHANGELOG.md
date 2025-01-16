@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.3]
+### Changed
+- Changed the raster policy for the Stage Manager frame for improved performance at rest
+
 ## [1.4.2]
 ### Fixed
 - Fixed tests flakiness
