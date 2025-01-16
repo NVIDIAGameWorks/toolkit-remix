@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+## Added
+- Added an action to open skeleton remapping tool
+
 ## [1.3.1]
 ### Fixed
 - Fixed tests flakiness

@@ -15,6 +15,18 @@
 * limitations under the License.
 """
 
-__all__ = ["Setup"]
+__all__ = [
+    "CachedReplacementSkeletons",
+    "Setup",
+    "SkeletonAutoRemappingError",
+    "SkeletonReplacementBinding",
+    "SkeletonDefinitionError",
+]
 
 from .setup import Setup
+from .skeleton import (
+    CachedReplacementSkeletons,
+    SkeletonAutoRemappingError,
+    SkeletonDefinitionError,
+    SkeletonReplacementBinding,
+)

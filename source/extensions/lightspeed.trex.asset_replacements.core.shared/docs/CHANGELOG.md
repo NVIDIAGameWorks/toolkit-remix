@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.4.0]
+## Changed
+- Separated skeleton logic into its own module
+
+## Added
+- created a class to help with skel remapping operations
+
 ## [2.3.6]
 ## Changed
 - update to use omni.kit.test public api

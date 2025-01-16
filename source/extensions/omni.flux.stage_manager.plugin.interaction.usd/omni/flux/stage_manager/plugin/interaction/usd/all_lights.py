@@ -25,7 +25,7 @@ class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     display_name: str = "Lights"
     tooltip: str = "View the available lights, grouped by light type"
 
-    internal_filters: list[_StageManagerFilterPlugin] = [{"name": "LightPrimsFilterPlugin"}]
+    internal_context_filters: list[_StageManagerFilterPlugin] = [{"name": "LightPrimsFilterPlugin"}]
     tree: _StageManagerTreePlugin = {"name": "LightGroupsTreePlugin"}
 
     compatible_trees: list[str] = ["LightGroupsTreePlugin", "PrimGroupsTreePlugin", "VirtualGroupsTreePlugin"]

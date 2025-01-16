@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+## Added
+- Added a filter for skeleton interaction tab
+
 ## [1.4.1]
 ### Fixed
 - Fixed tests flakiness

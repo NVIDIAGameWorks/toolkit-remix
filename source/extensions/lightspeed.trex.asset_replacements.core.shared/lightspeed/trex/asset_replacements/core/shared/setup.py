@@ -67,6 +67,14 @@ from .data_models import (
     SetSelectionPathParamModel,
     TexturesResponseModel,
 )
+from .skeleton import (
+    SkeletonAutoRemappingError,
+    SkeletonDefinitionError,
+    SkeletonReplacementBinding,
+    author_binding_to_skel,
+    clear_skel_root_type,
+    path_names_only,
+)
 
 _DEFAULT_PRIM_TAG = "<Default Prim>"
 
@@ -362,7 +370,8 @@ class Setup:
     def filter_imageable_prims(self, prims: list[Usd.Prim]) -> list[Usd.Prim]:
         return [prim for prim in prims if UsdGeom.Imageable(prim) or prim.IsA(UsdGeom.Subset)]
 
-    def get_corresponding_prototype_prims(self, prims) -> list[str]:
+    @staticmethod
+    def get_corresponding_prototype_prims(prims) -> list[str]:
         """Give a list of instance prims (inst_123456789/*), and get the corresponding prims inside the prototypes
         (mesh_123456789/*)"""
         paths = []
@@ -599,22 +608,20 @@ class Setup:
         )
 
         child_prim = prim.GetStage().GetPrimAtPath(child_prim_path)
+
+        # Handle Skeleton Replacements
         skeleton_prim = prim.GetStage().GetPrimAtPath(prim_path.AppendPath("skel"))
         skeleton = UsdSkel.Skeleton(skeleton_prim)
-
         if UsdSkel.Root(prim) and bool(skeleton):
+            captured_joints = skeleton.GetJointsAttr().Get()
             # The Joints Attr contains full paths to each bone, we only care about the actual bone's name.
-            skel_joints = [joint.split("/")[-1] for joint in skeleton.GetJointsAttr().Get()]
+            skel_joint_names = path_names_only(captured_joints)
 
             for ref_prim in Usd.PrimRange(child_prim):
                 # Nested SkelRoot prims cause problems, so override their type to XForm
                 root_api = UsdSkel.Root(ref_prim)
                 if root_api:
-                    omni.kit.commands.execute(
-                        "SetPrimTypeName",
-                        prim=ref_prim,
-                        type_name="Xform",
-                    )
+                    clear_skel_root_type(ref_prim)
                     continue
 
                 binding_api = UsdSkel.BindingAPI(ref_prim)
@@ -634,8 +641,8 @@ class Setup:
                         f"   The joints will need to be manually remapped."
                     )
                     continue
-                original_joints = binding_api.GetJointsAttr().Get()
-                if not original_joints:
+                mesh_joints = binding_api.GetJointsAttr().Get()
+                if not mesh_joints:
                     carb.log_warn(
                         f"{ref_prim.GetPath()} contained a skeleton binding API, but is missing `skel:joints`."
                     )
@@ -647,71 +654,33 @@ class Setup:
                     continue
 
                 # Force the mesh to bind to the captured skeleton
-                omni.kit.commands.execute(
-                    "SetRelationshipTargetsCommand",
-                    relationship=binding_api.GetSkeletonRel(),
-                    targets=[skeleton_prim.GetPath()],
-                )
+                author_binding_to_skel(binding_api, skeleton_prim)
 
-                original_joints = binding_api.GetJointsAttr().Get()
-                mesh_joints = [joint.split("/")[-1] for joint in original_joints]
-                if not mesh_joints:
-                    carb.log_warn(f"{ref_prim.GetPath()} `skel:joints` was empty.")
-                    detail_message += (
-                        f"{ref_prim.GetPath()}\n"
-                        f" - Contains a binding API but `skel:joints` was empty`"
-                        f"   The joints will need to be manually remapped."
-                    )
+                # Check if the joint arrays match
+                mesh_joint_names = path_names_only(mesh_joints)
+                needs_remapping = not all(m == s for m, s in zip(mesh_joint_names, skel_joint_names))
+                if not needs_remapping:
                     continue
 
-                # First, check if the joint arrays match
-                needs_remapping = not all(m == s for m, s in zip(mesh_joints, skel_joints))
-                if needs_remapping:
-                    carb.log_info(
-                        f"Replacement mesh {ref_prim.GetPath()} joint names don't match skeleton.  Attempting to"
-                        " automatically remap the joint indices."
-                    )
-                    joint_map = [-1] * len(mesh_joints)
-                    try:
-                        for index, joint_name in enumerate(mesh_joints):
-                            joint_map[index] = skel_joints.index(joint_name)
-                    except ValueError:
-                        # mesh contains a joint name not in the skeleton, auto remapping by name isn't safe.
-                        # TODO (REMIX-1811) this should prompt the user to launch a remapping utility.
-                        joint_map = None
-                        carb.log_error(
-                            f"Replacement mesh at {ref_prim.GetPath()} contains joint names that are not in the"
-                            " captured skeleton and could not be remapped."
-                            f" - Skeleton: {skel_joints}\n"
-                            f" - Mesh: {mesh_joints}\n"
-                        )
-                        detail_message += (
-                            f"{ref_prim.GetPath()}\n"
-                            f" - Contains joint names that are not in the captured skeleton.  The joints will"
-                            f" need to be manually remapped.\n"
-                            f" - Skeleton: {skel_joints}\n"
-                            f" - Mesh: {mesh_joints}\n"
-                        )
-
-                    if joint_map and indices:
-                        remapped_indices = [joint_map[index] for index in indices]
-                        omni.kit.commands.execute(
-                            "ChangePropertyCommand",
-                            usd_context_name=stage,
-                            prop_path=binding_api.GetJointIndicesAttr().GetPath(),
-                            value=remapped_indices,
-                            prev=indices,
-                        )
-                        carb.log_info(f"joint indices successfully remapped for {ref_prim.GetPath()}")
-
-                # Set skel:joints property to None.
-                omni.kit.commands.execute(
-                    "ChangePropertyCommand",
-                    usd_context_name=stage,
-                    prop_path=binding_api.GetJointsAttr().GetPath(),
-                    value=Sdf.ValueBlock(),
-                    prev=original_joints,
+                # Now that the new reference is bound, we can try to remap the joints
+                carb.log_info(
+                    f"Replacement mesh {ref_prim.GetPath()} joint names don't match skeleton.  Attempting to"
+                    " automatically remap the joint indices."
                 )
+                try:
+                    skel_replacement = SkeletonReplacementBinding(prim, ref_prim)
+                except SkeletonDefinitionError as err:
+                    detail_message += f"Could not remap skeleton for bound mesh:{err}\n"
+                    continue
+
+                try:
+                    joint_map = skel_replacement.generate_joint_map(mesh_joints, captured_joints, fallback=True)
+                except SkeletonAutoRemappingError as err:
+                    detail_message += f"Could not generate a joint map and remap skeleton for bound mesh:{err}\n"
+                    continue
+
+                carb.log_info(f"Automatically remapping joints for {ref_prim.GetPath()} with {joint_map}.")
+                skel_replacement.apply(joint_map)
 
         if detail_message:
             popup = ErrorPopup(

@@ -30,6 +30,7 @@ from omni.flux.utils.widget.tree_widget import TreeWidget as _TreeWidget
 from pydantic import Field, PrivateAttr, root_validator, validator
 
 from ..enums import StageManagerDataTypes as _StageManagerDataTypes
+from ..items import StageManagerItem as _StageManagerItem
 from ..utils import StageManagerUtils as _StageManagerUtils
 from .base import StageManagerUIPluginBase as _StageManagerUIPluginBase
 from .column_plugin import LengthUnit as _LengthUnit
@@ -51,18 +52,30 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     columns: list[_StageManagerColumnPlugin] = Field([], description="Columns to display in the TreeWidget")
     filters: list[_StageManagerFilterPlugin] = Field(
-        [], description="Filters to apply to the context data on tree model refresh"
+        [],
+        description="User controllable filters to apply to the context data on tree model refresh. "
+        "Defined in schema. Will be displayed in UI and will be executed on data that has passed "
+        "context filter validation.",
     )
     context_filters: list[_StageManagerFilterPlugin] = Field(
         [],
-        description="Filters to execute when the context data is updated. Will never be displayed in UI.",
+        description="Filters to execute when the context data is updated. Defined in schema. Will never be displayed "
+        "in UI.",
     )
 
-    internal_filters: list[_StageManagerFilterPlugin] = Field(
+    internal_context_filters: list[_StageManagerFilterPlugin] = Field(
         [],
         description=(
-            "Context filters defined solely by the interaction plugin. The definition should not be part of the schema."
-            "Will never be displayed in UI and will be executed with the context filters."
+            "Context filters defined solely by the interaction plugin. The definition should not be part of the "
+            "schema. Will never be displayed in UI and will be executed with the context filters."
+        ),
+        exclude=True,
+    )
+
+    include_invalid_parents: bool = Field(
+        True,
+        description=(
+            "Whether the tree should include invalid context item parents or whether the tree should be sparse"
         ),
         exclude=True,
     )
@@ -121,7 +134,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     _RESULTS_HORIZONTAL_PADDING: int = 16
     _RESULTS_VERTICAL_PADDING: int = 4
 
-    @validator("filters", "context_filters", "internal_filters", allow_reuse=True)
+    @validator("filters", "context_filters", "internal_context_filters", allow_reuse=True)
     def check_unique_filters(cls, v):  # noqa N805
         # Use a list + validator to keep the list order
         return list(dict.fromkeys(v))
@@ -145,7 +158,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         # The tree & internal filter plugins are not resolved at this point because we only set the name in the plugins
         cls._check_plugin_compatibility(values.get("tree").get("name"), values.get("compatible_trees"))
-        for filter_plugin in values.get("internal_filters"):
+        for filter_plugin in values.get("internal_context_filters"):
             cls._check_plugin_compatibility(filter_plugin.get("name"), values.get("compatible_filters"))
 
         return values
@@ -452,12 +465,12 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         self.tree.model.add_context_predicates(
             [
                 filter_plugin.filter_predicate
-                for filter_plugin in (self.context_filters + self.internal_filters)
+                for filter_plugin in (self.context_filters + self.internal_context_filters)
                 if filter_plugin.enabled
             ]
         )
 
-        self.tree.model.clear_filter_predicates()
+        self.tree.model.clear_user_filter_predicates()
         for filter_plugin in self.filters:
             if not filter_plugin.enabled:
                 continue
@@ -465,7 +478,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 filter_plugin.subscribe_filter_items_changed(self._refresh_tree_model)
             )
             # Some models might need to filter children items so pass the filter functions down
-            self.tree.model.add_filter_predicates([filter_plugin.filter_predicate])
+            self.tree.model.add_user_filter_predicates([filter_plugin.filter_predicate])
 
     def _setup_columns(self):
         """
@@ -595,13 +608,25 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         predicates = [
             filter_plugin.filter_predicate
-            for filter_plugin in (self.context_filters + self.internal_filters)
+            for filter_plugin in (self.context_filters + self.internal_context_filters)
             if filter_plugin.enabled
         ]
 
-        filtered_items = await _StageManagerUtils.filter_items(self._context.get_items(), predicates)
+        filtered_items = await _StageManagerUtils.filter_items(
+            self._context.get_items(), predicates, include_invalid_parents=self.include_invalid_parents
+        )
         if filtered_items is None:
             return
+
+        if not self.include_invalid_parents:
+            # Since parent might be an intermediate item, find the next valid parent, and set it on the item
+            for item in filtered_items:
+                parent: _StageManagerItem = item.parent
+                while parent:
+                    if parent.is_valid:
+                        break
+                    parent = parent.parent
+                item.parent = parent
 
         self.tree.model.set_context_items(filtered_items)
 
