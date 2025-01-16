@@ -20,6 +20,10 @@ __all__ = [
     "StageManagerFactoryExtension",
     "StageManagerItem",
     "StageManagerPluginBase",
+    "StageManagerTreeDelegate",
+    "StageManagerTreeItem",
+    "StageManagerTreeModel",
+    "StageManagerTreePlugin",
     "StageManagerUIPluginBase",
     "StageManagerUtils",
     "get_instance",
@@ -29,4 +33,10 @@ from .enums import StageManagerDataTypes
 from .extension import StageManagerFactoryExtension, get_instance
 from .items import StageManagerItem
 from .plugins.base import StageManagerPluginBase, StageManagerUIPluginBase
+from .plugins.tree_plugin import (
+    StageManagerTreeDelegate,
+    StageManagerTreeItem,
+    StageManagerTreeModel,
+    StageManagerTreePlugin,
+)
 from .utils import StageManagerUtils

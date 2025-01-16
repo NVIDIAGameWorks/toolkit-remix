@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.0]
+## Added
+- Added a `is_child_valid` method that is distinct from `is_valid` to tree items
+- Added a `include_invalid_parents` option to the interaction plugin schema
+
+## Changed
+- Renamed `internal_filters` to `internal_context_filters` in the interaction plugin
+- Renamed `filter_predicates` to `user_filter_predicates ` in the interaction plugin
+
 ## [3.1.1]
 ### Fixed
 - Fixed tests flakiness

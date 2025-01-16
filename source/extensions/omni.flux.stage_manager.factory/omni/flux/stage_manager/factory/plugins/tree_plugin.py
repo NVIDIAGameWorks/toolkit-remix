@@ -42,7 +42,7 @@ class StageManagerTreeItem(_TreeItemBase):
         self,
         display_name: str,
         data: Any,
-        tooltip: str = None,
+        tooltip: str = "",
     ):
         super().__init__()
 
@@ -148,7 +148,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         super().__init__()
 
         self._context_items: list[_StageManagerItem] = []
-        self._filter_predicates: list[Callable[[_StageManagerItem], bool]] = []
+        self._user_filter_predicates: list[Callable[[_StageManagerItem], bool]] = []
         self._context_predicates: list[Callable[[_StageManagerItem], bool]] = []
         self._column_count = 0
 
@@ -160,7 +160,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
             {
                 "_items": None,
                 "_context_items": None,
-                "_filter_predicates": None,
+                "_user_filter_predicates": None,
                 "_context_predicates": None,
                 "_column_count": None,
             }
@@ -181,7 +181,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
 
         Items are filtered before they are returned
         """
-        return await _StageManagerUtils.filter_items(self._context_items, self._filter_predicates) or []
+        return await _StageManagerUtils.filter_items(self._context_items, self._user_filter_predicates) or []
 
     def set_context_items(self, items: Iterable[_StageManagerItem]):
         """
@@ -237,17 +237,17 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
     def get_item_value_model_count(self, item: StageManagerTreeItem):
         return self.column_count
 
-    def add_filter_predicates(self, value: list[Callable[[_StageManagerItem], bool]]):
+    def add_user_filter_predicates(self, value: list[Callable[[_StageManagerItem], bool]]):
         """
         Extend the filter predicates to apply to the items during filtering
         """
-        self._filter_predicates.extend(value)
+        self._user_filter_predicates.extend(value)
 
-    def clear_filter_predicates(self):
+    def clear_user_filter_predicates(self):
         """
         Clear the filter predicates to apply to the items during filtering
         """
-        self._filter_predicates.clear()
+        self._user_filter_predicates.clear()
 
     def add_context_predicates(self, value: list[Callable[[_StageManagerItem], bool]]):
         """

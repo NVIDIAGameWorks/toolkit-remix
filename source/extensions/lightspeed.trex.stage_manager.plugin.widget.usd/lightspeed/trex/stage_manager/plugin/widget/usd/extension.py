@@ -20,13 +20,20 @@ import carb.settings
 import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
+from .action_remap_skeleton import RemapSkeletonActionWidgetPlugin as _RemapSkeletonActionWidgetPlugin
 from .focus_in_viewport import FocusInViewportActionWidgetPlugin as _FocusInViewportActionWidgetPlugin
+from .info_remap_skeleton import RemapSkeletonInfoWidgetPlugin as _RemapSkeletonInfoWidgetPlugin
 from .state_is_capture import IsCaptureStateWidgetPlugin as _IsCaptureStateWidgetPlugin
 
 
 class LightspeedStageManagerUSDWidgetPluginsExtension(omni.ext.IExt):
 
-    _PLUGINS = [_IsCaptureStateWidgetPlugin, _FocusInViewportActionWidgetPlugin]
+    _PLUGINS = [
+        _IsCaptureStateWidgetPlugin,
+        _FocusInViewportActionWidgetPlugin,
+        _RemapSkeletonActionWidgetPlugin,
+        _RemapSkeletonInfoWidgetPlugin,
+    ]
 
     def on_startup(self, _):
         carb.log_info("[lightspeed.trex.stage_manager.plugin.widget.usd] Startup")

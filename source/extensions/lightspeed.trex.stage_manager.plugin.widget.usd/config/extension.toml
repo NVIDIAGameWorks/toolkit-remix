@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.3.1"
+version = "1.4.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -32,7 +32,10 @@ icon = "data/images/icon.png"
 [dependencies]
 "lightspeed.common" = {}
 "lightspeed.trex.viewports.shared.widget" = {}
+"lightspeed.trex.asset_replacements.core.shared" = {}
+"lightspeed.trex.skeleton_replacements.widget" = {}
 "omni.flux.stage_manager.plugin.widget.usd" = {}
+"omni.flux.stage_manager.plugin.tree.usd" = {}
 "omni.ui" = {}
 "omni.usd" = {}
 

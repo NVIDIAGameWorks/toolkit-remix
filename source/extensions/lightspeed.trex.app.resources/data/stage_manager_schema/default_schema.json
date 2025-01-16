@@ -96,6 +96,70 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "AllSkeletonsInteractionPlugin",
+            "include_invalid_parents": false,
+            "filters": [
+                { "name": "IsCaptureFilterPlugin" }
+            ],
+            "context_filters": [
+                { "name": "OmniPrimsFilterPlugin", "include_results": false },
+                {
+                    "name": "IgnorePrimsFilterPlugin",
+                    "ignore_prim_paths": [
+                        "/Bookmarks",
+                        "/Render",
+                        "/RootNode/cameras",
+                        "/RootNode/Camera",
+                        "/RootNode/meshes",
+                        "/Viewport_Waypoints",
+                        "/remix_settings"
+                    ]
+                }
+            ],
+            "columns": [
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Skeleton Prims and Joints",
+                    "widgets": [
+                        { "name": "PrimTreeWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Remap Information",
+                    "width": { "unit": "Pixel", "value": 185 },
+                    "widgets": [
+                        { "name": "RemapSkeletonInfoWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Remap Skeleton",
+                    "width": { "unit": "Pixel", "value": 140 },
+                    "widgets": [
+                        { "name": "RemapSkeletonActionWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "States",
+                    "width": { "unit": "Pixel", "value": 100 },
+                    "widgets": [
+                        { "name": "IsCaptureStateWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Actions",
+                    "width": { "unit": "Pixel", "value": 100 },
+                    "widgets": [
+                        { "name": "FocusInViewportActionWidgetPlugin" },
+                        { "name": "IsVisibleActionWidgetPlugin" }
+                    ]
+                }
+            ]
         }
     ]
 }

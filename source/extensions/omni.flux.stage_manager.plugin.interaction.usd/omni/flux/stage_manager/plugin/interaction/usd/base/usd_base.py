@@ -22,6 +22,7 @@ import omni.kit.app
 import omni.kit.usd.layers as _layers
 import omni.usd
 from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
+from omni.flux.stage_manager.factory import StageManagerTreeItem as _StageManagerTreeItem
 from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugin as _StageManagerInteractionPlugin
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
@@ -153,7 +154,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             self._update_expansion_states_deferred(scroll_to_selection_override=scroll_to_selection)
         )
 
-    def _on_selection_changed(self, items):
+    def _on_selection_changed(self, items: list[_StageManagerTreeItem]):
         if self._selection_update_lock or not self.synchronize_selection:
             return
 

@@ -24,11 +24,18 @@ from .ignore_prims import IgnorePrimsFilterPlugin as _IgnorePrimsFilterPlugin
 from .light_prims import LightPrimsFilterPlugin as _LightPrimsFilterPlugin
 from .omni_prims import OmniPrimsFilterPlugin as _OmniPrimsFilterPlugin
 from .search import SearchFilterPlugin as _SearchFilterPlugin
+from .skeleton_prims import SkeletonPrimsFilterPlugin as _SkeletonPrimsFilterPlugin
 
 
 class StageManagerUSDFilterPluginsExtension(omni.ext.IExt):
 
-    _PLUGINS = [_IgnorePrimsFilterPlugin, _LightPrimsFilterPlugin, _OmniPrimsFilterPlugin, _SearchFilterPlugin]
+    _PLUGINS = [
+        _IgnorePrimsFilterPlugin,
+        _LightPrimsFilterPlugin,
+        _OmniPrimsFilterPlugin,
+        _SearchFilterPlugin,
+        _SkeletonPrimsFilterPlugin,
+    ]
 
     def on_startup(self, _):
         carb.log_info("[omni.flux.stage_manager.plugin.filter.usd] Startup")

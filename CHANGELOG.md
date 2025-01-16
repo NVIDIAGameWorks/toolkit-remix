@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3656: Added nightly GitLab CI SOAK test pipelines
 - Added 7 videos to remix-releasenotes.md for 0.6 Release Notes Documentation
 - New repo tool to help when making similar changes across many extensions: `.\repo bump_changed_extensions`
+- REMIX-3785: Added a Skeletons Interaction Tab to Stage Manager
+- REMIX-1811: Added a skeleton remapper tool for animated character replacements
 
 ### Changed
 - Updated hdremix to dd92d0f

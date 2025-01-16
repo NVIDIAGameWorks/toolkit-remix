@@ -33,7 +33,7 @@ class VirtualGroupsItem(_StageManagerUSDTreeItem):
         self,
         display_name: str,
         data: Usd.Prim,
-        tooltip: str = None,
+        tooltip: str = "",
         is_virtual: bool | None = None,
     ):
         """

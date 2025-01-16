@@ -30,7 +30,10 @@ class StageManagerUtils:
     @classmethod
     @omni.usd.handle_exception
     async def filter_items(
-        cls, items: Iterable[StageManagerItem], predicates: Iterable[Callable[[StageManagerItem], bool]]
+        cls,
+        items: Iterable[StageManagerItem],
+        predicates: Iterable[Callable[[StageManagerItem], bool]],
+        include_invalid_parents: bool = True,
     ) -> list[StageManagerItem]:
         """
         Filter items using predicates with parallel processing.
@@ -38,6 +41,7 @@ class StageManagerUtils:
         Args:
             items: Items to filter
             predicates: Predicates to execute on each item
+            include_invalid_parents: Whether to include invalid parent items of valid items in the filtered list
 
         Returns:
             Filtered items list
@@ -49,6 +53,8 @@ class StageManagerUtils:
             await asyncio.gather(*tasks)
 
         # Filter out the invalid items
+        if include_invalid_parents:
+            return list(filter(lambda f: f.is_valid or f.is_child_valid, items))
         return list(filter(lambda f: f.is_valid, items))
 
     @classmethod

@@ -144,11 +144,17 @@ Translucency is handled in the Ingestion process.  If a material has the word â€
 
 ## Animated Assets
 
+### Types of Skeleton Animation
+
 **For Games Using GPU-Based Skeleton Animation**
 If your game employs GPU-based skeleton animation, you have the option to swap out an existing 3D Asset with a new one that has the same skeleton. The new Assets will seamlessly adopt the animations derived from the original Asset's bone transformations.
 
 **For Games Without GPU-Based Skeleton Animation**
-In cases where your game doesn't utilize GPU-based skeleton animation, the process of replacing animated Assets occurs on the engine side. After this replacement, you'll need to capture the animations anew. Following that step, you can proceed to assign PBR textures in Remix.
+In cases where your game doesn't utilize GPU-based skeleton animation, the process of replacing animated Assets occurs on the engine side. After this replacement, you'll need to capture the animations anew. Once that is done, you can proceed to assign PBR textures in Remix.
+
+### Skeletons in Remix
+
+Skinned replacements require expertise to handle. This process is best suited for experienced users who are comfortable with these intricacies.
 
 Here's how it works:
 
@@ -157,11 +163,28 @@ Here's how it works:
 However, there are some important things to keep in mind:
 
 1. **Bone Indices and Weights:** The runtime of the game only reads bone indices and weights for each vertex from replacement Assets.
-2. **Skeleton Changes:** Modeling tools sometimes alter the skeleton during import/export, which can break the mapping. The tool supports remapping back to the original vertices, but you may need to specify the mapping manually.
+2. **Skeleton Changes:** Modeling tools sometimes alter the skeleton during import/export, which can break the mapping if joint order or count changes. The Toolkit supports remapping back to the original vertices, but you will need to specify the mapping manually.
 3. **Limited Skeleton Information:** The game's skeleton sent to the GPU contains information only from the bind pose to the current pose. This means we can't reconstruct the bind pose or hierarchy, making skinning more challenging.
 4. **Differing Joint Counts:** The game's skeleton often has fewer joints than the higher-poly replacement. In such cases, you'll need to remap the joints.
 
-While these issues can be addressed with potential tool features, for now, skinned replacements may require expertise to handle. We're working on making this process more user-friendly, but until then, it's best suited for experienced users who are comfortable with these intricacies.
+### Remapping Skeletons
+
+When you first add a new reference to a replacement skinned mesh in the RTX Remix Toolkit, if a skeleton is detected in the USD, it will attempt to automatically remap to the captured skeleton. If the joints are named exactly the same and or they are in the same order, this can happen automatically.
+
+The other strategy is to add a special attribute to your bound mesh that explains how the mesh should be bound to the original skeleton. It will be something like this: `uniform token[] skel:remix_joints = ["root", "root/joint1", "root/joint2", "root/joint3" ...]`. If that attribute exists when the skeleton is brought in, it will be automatically remapped. (Both remix_joints and the canonical `joints` attribute will be checked.)
+
+### Remapping Skeleton Tool
+
+The RTX Remix Toolkit has a remapping tool which will allow you to manually remap the joints once a replacement skeleton is brought in.
+
+1. Select an appropriate edit target layer for mod skeleton data.
+1. Open the "Stage Manager" and navigate to the "Skeletons" tab.
+![Skeleton Remapping](../data/images/remix-skeleton-interaction-tab.png)
+1. Locate the bound replacement mesh you want to remap.
+1. Click the "Remap Joint Indices" button to open the remapping tool.
+![Skeleton Remapping](../data/images/remix-skeleton-remapper.png)
+1. Select a joint from the captured skeleton that will drive each replacement asset's joint.
+1. Hit "Apply" and the toolkit will re-author the joint influences on your replacement mesh to match the captured joint index.
 
 
 ## Anchor Assets

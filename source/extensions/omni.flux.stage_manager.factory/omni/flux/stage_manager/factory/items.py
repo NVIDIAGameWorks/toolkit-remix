@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 class StageManagerItem:
-    def __init__(self, identifier: Any, data: Any = None, parent: Optional["StageManagerItem"] = None):
+    def __init__(self, identifier: Any, data: Any = None, parent: Optional[StageManagerItem] = None):
         """
         An item that should be built by a context plugin and used by the interaction plugin and any of its children
         plugins.
@@ -47,6 +47,7 @@ class StageManagerItem:
         self._parent = parent
 
         self._is_valid = None
+        self._is_child_valid = None
         self._tree_item = None
 
         self._lock = threading.Lock()
@@ -76,12 +77,19 @@ class StageManagerItem:
         return self._data
 
     @property
-    def parent(self) -> Optional["StageManagerItem"]:
+    def parent(self) -> Optional[StageManagerItem]:
         """
         Returns:
             The parent item if one exists.
         """
         return self._parent
+
+    @parent.setter
+    def parent(self, value: Optional[StageManagerItem]):
+        """
+        Set the parent item for which this item is a child.
+        """
+        self._parent = value
 
     @property
     def is_valid(self) -> bool:
@@ -111,7 +119,29 @@ class StageManagerItem:
             update_parent = value is True and self.parent
 
         if update_parent:
-            self.parent.is_valid = value
+            self.parent.is_child_valid = value
+
+    @property
+    def is_child_valid(self):
+        """
+        Returns:
+            Whether the item has any valid children or not based on the active filters.
+        """
+        return self._is_child_valid
+
+    @is_child_valid.setter
+    def is_child_valid(self, value: bool):
+        with self._lock:
+            if self.is_child_valid is True:
+                return
+
+            self._is_child_valid = value
+
+            # Check if we need to update the parent while we hold the lock
+            update_parent = value is True and self.parent
+
+        if update_parent:
+            self.parent.is_child_valid = value
 
     @property
     def tree_item(self) -> StageManagerTreeItem:
@@ -138,6 +168,7 @@ class StageManagerItem:
         Should be used before filtering the item to make sure an updated state is set.
         """
         self._is_valid = None
+        self._is_child_valid = None
 
     def destroy(self):
         reset_default_attrs(self)
