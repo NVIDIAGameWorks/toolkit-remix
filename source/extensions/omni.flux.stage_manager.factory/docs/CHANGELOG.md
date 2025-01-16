@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.0]
+### Changed
+- Refactored row background to use a TreeView instead of a VStack
+
 ## [3.2.0]
 ## Added
 - Added a `is_child_valid` method that is distinct from `is_valid` to tree items

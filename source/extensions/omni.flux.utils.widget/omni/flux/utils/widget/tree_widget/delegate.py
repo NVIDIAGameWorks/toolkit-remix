@@ -171,3 +171,36 @@ class TreeDelegateBase(ui.AbstractItemDelegate):
 
     def destroy(self):
         _reset_default_attrs(self)
+
+
+class AlternatingRowDelegate(ui.AbstractItemDelegate):
+    def __init__(self, row_height: int, scrollbar_spacing: bool = True):
+        super().__init__()
+
+        for attr, value in self.default_attr.items():
+            setattr(self, attr, value)
+
+        self._row_height = row_height
+        self._scrollbar_spacing = scrollbar_spacing
+
+    @property
+    def default_attr(self) -> dict[str, None]:
+        return {
+            "_row_height": None,
+            "_scrollbar_spacing": None,
+        }
+
+    def build_branch(self, model, item, column_id, level, expanded):
+        pass
+
+    def build_widget(self, model, item, column_id, level, expanded):
+        if item is None:
+            return
+        with ui.HStack():
+            ui.Rectangle(name=("Alternate" if item.alternate else "") + "Row", height=ui.Pixel(self._row_height))
+            # Don't hide the stacked tree scrollbar
+            if self._scrollbar_spacing:
+                ui.Spacer(width=ui.Pixel(12))
+
+    def destroy(self):
+        _reset_default_attrs(self)

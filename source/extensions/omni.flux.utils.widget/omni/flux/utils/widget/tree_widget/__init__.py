@@ -15,9 +15,18 @@
 * limitations under the License.
 """
 
-__all__ = ["TreeDelegateBase", "TreeItemBase", "TreeModelBase", "TreeWidget"]
+__all__ = [
+    "AlternatingRowDelegate",
+    "AlternatingRowItem",
+    "AlternatingRowModel",
+    "AlternatingRowWidget",
+    "TreeDelegateBase",
+    "TreeItemBase",
+    "TreeModelBase",
+    "TreeWidget",
+]
 
-from .delegate import TreeDelegateBase
-from .item import TreeItemBase
-from .model import TreeModelBase
-from .widget import TreeWidget
+from .delegate import AlternatingRowDelegate, TreeDelegateBase
+from .item import AlternatingRowItem, TreeItemBase
+from .model import AlternatingRowModel, TreeModelBase
+from .widget import AlternatingRowWidget, TreeWidget

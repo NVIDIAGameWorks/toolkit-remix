@@ -21,6 +21,7 @@ from typing import Generic, Iterable, TypeVar
 from omni import ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
+from .item import AlternatingRowItem as _AlternatingRowItem
 from .item import TreeItemBase as _TreeItemBase
 
 T = TypeVar("T", bound=_TreeItemBase)
@@ -63,6 +64,36 @@ class TreeModelBase(ui.AbstractItemModel, Generic[T]):
                 yield child
                 if recursive:
                     yield from self.iter_items_children([child], recursive=recursive)
+
+    def destroy(self):
+        _reset_default_attrs(self)
+
+
+class AlternatingRowModel(ui.AbstractItemModel):
+    def __init__(self):
+        super().__init__()
+
+        for attr, value in self.default_attr.items():
+            setattr(self, attr, value)
+
+        self._items = []
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        return {"_items": None}
+
+    def refresh(self, item_count: int):
+        self._items = [_AlternatingRowItem(i) for i in range(item_count)]
+        self._item_changed(None)
+
+    def get_item_children(self, item):
+        if item is None:
+            return self._items
+        return []
+
+    def get_item_value_model_count(self, item):
+        return 1
 
     def destroy(self):
         _reset_default_attrs(self)
