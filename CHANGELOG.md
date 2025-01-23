@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed disclosure icon display so tree view and panels mean the same thing
 - REMIX-3447: Fixed Material and Mesh widgets relying on the selection panel tree
 - REMIX-3764: Only show categories icon when a mesh is selected
+- Enabled Extension Registry
 
 ### Removed
 

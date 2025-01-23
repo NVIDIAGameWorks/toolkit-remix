@@ -10,7 +10,7 @@ enabled = false  # OM-105157
 emptyStageOnStart = true
 
 [app.extensions]
-registryEnabled = false
+registryEnabled = true
 
 # Fonts
 [app.font]
