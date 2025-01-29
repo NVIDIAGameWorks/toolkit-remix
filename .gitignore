@@ -125,3 +125,6 @@ repo_internal.toml
 
 # Ignore generated documentation
 docs/toolkitinterface/remix-toolkitinterface-restapi-docs.html
+
+# Ignore temp files
+*.*~
