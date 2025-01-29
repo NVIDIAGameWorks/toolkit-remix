@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3579: Updating Remix Categories window with more documentation
 - Convert the Stage Manager row backgrounds to use a TreeView for improved performance
 - Changed the Stage Manager frame raster policy for improved performance at rest
+- Simplified the UAC logic
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs
