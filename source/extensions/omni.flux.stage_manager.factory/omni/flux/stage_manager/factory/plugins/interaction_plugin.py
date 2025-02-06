@@ -16,10 +16,13 @@
 """
 
 import abc
+import asyncio
+import os
 from asyncio import Future, Queue, ensure_future
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Iterable
 
+import omni.appwindow
 import omni.kit.app
 import omni.usd
 from omni import ui
@@ -41,6 +44,8 @@ from .tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
 from .tree_plugin import StageManagerTreePlugin as _StageManagerTreePlugin
 
 if TYPE_CHECKING:
+    from carb.events import IEvent
+
     from .column_plugin import ColumnWidth as _ColumnWidth
 
 
@@ -61,6 +66,14 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         [],
         description="Filters to execute when the context data is updated. Defined in schema. Will never be displayed "
         "in UI.",
+    )
+
+    percent_available_core_usage: float | None = Field(
+        None,
+        description=(
+            "The percentage of the available CPU cores to use to filter the context items. "
+            "If the value is unset, the default python maximum will be used."
+        ),
     )
 
     internal_context_filters: list[_StageManagerFilterPlugin] = Field(
@@ -107,6 +120,8 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     _context_items_changed: _Event = PrivateAttr(_Event())
 
+    _app_window_size_changed_sub = PrivateAttr(None)
+
     _context_items_changed_sub: _EventSubscription | None = PrivateAttr(None)
     _item_changed_sub: _EventSubscription | None = PrivateAttr(None)
     _item_expanded_sub: _EventSubscription | None = PrivateAttr(None)
@@ -130,13 +145,21 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     _FILTERS_HORIZONTAL_PADDING: int = 24
     _FILTERS_VERTICAL_PADDING: int = 8
-    _RESULTS_HORIZONTAL_PADDING: int = 16
+    _RESULTS_HORIZONTAL_PADDING: int = 8
     _RESULTS_VERTICAL_PADDING: int = 4
 
     @validator("filters", "context_filters", "internal_context_filters", allow_reuse=True)
     def check_unique_filters(cls, v):  # noqa N805
         # Use a list + validator to keep the list order
         return list(dict.fromkeys(v))
+
+    @validator("percent_available_core_usage", allow_reuse=True)
+    def check_valid_percent_available_core_usage(cls, v):  # noqa N805
+        if v is None:
+            return v
+        if v <= 0 or v > 1:
+            raise ValueError("Value must be larger than 0 and smaller or equal to 1 (percentage)")
+        return v
 
     @validator("debounce_frames", allow_reuse=True)
     def check_positive_frame_count(cls, v):  # noqa N805
@@ -166,6 +189,17 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         super().__init__(**kwargs)
 
         self._context_items_changed_sub = self.subscribe_context_items_changed(self._refresh_tree_model)
+
+    @property
+    def _max_workers(self) -> int | None:
+        """
+        Whether the tree selection should be validated & updated to include the item being right-clicked on or not
+        """
+        return (
+            max(1, int(os.cpu_count() * self.percent_available_core_usage))
+            if self.percent_available_core_usage
+            else None
+        )
 
     @classmethod
     @property
@@ -281,6 +315,12 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._context = value
 
+        self._app_window_size_changed_sub = (
+            omni.appwindow.get_default_app_window()
+            .get_window_resize_event_stream()
+            .create_subscription_to_pop(self._on_window_resized, name="AppWindowResized")
+        )
+
         self._validate_data_type()
 
         self._setup_tree()
@@ -381,11 +421,10 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                     with ui.Frame(separate_window=True):
                         with ui.HStack():
                             for index, _ in enumerate(enabled_columns):
-                                with ui.HStack(width=column_widths[index]):
-                                    ui.Spacer(height=0)
-                                    # Don't draw a line at the end of the tree
-                                    if index < len(enabled_columns) - 1:
-                                        ui.Rectangle(width=ui.Pixel(2), name="ColumnSeparator")
+                                ui.Spacer(width=column_widths[index], height=0)
+                                # Don't draw a line at the end of the tree
+                                if index < len(enabled_columns) - 1:
+                                    ui.Rectangle(width=ui.Pixel(2), name="ColumnSeparator")
                             # Spacing for the scrollbar
                             ui.Spacer(width=self._RESULTS_HORIZONTAL_PADDING, height=0)
 
@@ -445,10 +484,16 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         if self._loading_frame:
             self._loading_frame.visible = show
 
+    def _on_window_resized(self, _: "IEvent"):
+        if not self._tree_widget:
+            return
+        self._tree_widget.dirty_widgets()
+
     def _setup_tree(self):
         """
         Subscribe to the `_item_changed` event triggered by the tree model to rebuild the result UI frames
         """
+        self.tree.model.set_max_workers(self._max_workers)
         self._item_changed_sub = self.tree.model.subscribe_item_changed_fn(self._on_item_changed)
 
         # Make sure the widgets' `_item_clicked` event triggers the delegate's `_item_clicked` event
@@ -609,6 +654,8 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._show_loading_overlay(True)
 
+        await asyncio.sleep(0.25)
+
         predicates = [
             filter_plugin.filter_predicate
             for filter_plugin in (self.context_filters + self.internal_context_filters)
@@ -616,7 +663,10 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         ]
 
         filtered_items = await _StageManagerUtils.filter_items(
-            self._context.get_items(), predicates, include_invalid_parents=self.include_invalid_parents
+            self._context.get_items(),
+            predicates,
+            include_invalid_parents=self.include_invalid_parents,
+            max_workers=self._max_workers,
         )
         if filtered_items is None:
             return

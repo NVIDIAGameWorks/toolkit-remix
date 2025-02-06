@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New repo tool to help when making similar changes across many extensions: `.\repo bump_changed_extensions`
 - REMIX-3785: Added a Skeletons Interaction Tab to Stage Manager
 - REMIX-1811: Added a skeleton remapper tool for animated character replacements
+- REMIX-3769: Added Custom Tags widget for all existing Interactions
 
 ### Changed
 - Updated hdremix to dd92d0f

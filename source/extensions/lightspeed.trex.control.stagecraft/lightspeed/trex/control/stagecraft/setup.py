@@ -158,7 +158,11 @@ class Setup:
 
     def should_interrupt_shutdown(self):
         ignore_unsaved_stage = carb.settings.get_settings().get(_TREX_IGNORE_UNSAVED_STAGE_ON_EXIT) or False
-        return (not ignore_unsaved_stage) and (self._context.can_close_stage() and self._context.has_pending_edit())
+        return (
+            (not ignore_unsaved_stage)
+            and self._context
+            and (self._context.can_close_stage() and self._context.has_pending_edit())
+        )
 
     def interrupt_shutdown(self, shutdown_callback):
         def callback():

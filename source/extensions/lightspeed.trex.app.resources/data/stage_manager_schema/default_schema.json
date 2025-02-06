@@ -6,6 +6,7 @@
     "interactions": [
         {
             "name": "AllPrimsInteractionPlugin",
+            "percent_available_core_usage": 0.75,
             "filters": [
                 { "name": "IsCaptureFilterPlugin" }
             ],
@@ -15,6 +16,7 @@
                     "name": "IgnorePrimsFilterPlugin",
                     "ignore_prim_paths": [
                         "/Bookmarks",
+                        "/CustomTags",
                         "/Render",
                         "/RootNode/cameras",
                         "/RootNode/Camera",
@@ -29,6 +31,14 @@
                     "display_name": "Prims",
                     "widgets": [
                         { "name": "PrimTreeWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Custom Tags",
+                    "width": { "unit": "Fraction", "value": 0.5 },
+                    "widgets": [
+                        { "name": "CustomTagsWidgetPlugin" }
                     ]
                 },
                 {
@@ -61,6 +71,7 @@
                     "name": "IgnorePrimsFilterPlugin",
                     "ignore_prim_paths": [
                         "/Bookmarks",
+                        "/CustomTags",
                         "/Render",
                         "/RootNode/cameras",
                         "/RootNode/Camera",
@@ -73,9 +84,17 @@
             "columns": [
                 {
                     "name": "HorizontalColumnPlugin",
-                    "display_name": "Prims",
+                    "display_name": "Light Prims",
                     "widgets": [
                         { "name": "PrimTreeWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Custom Tags",
+                    "width": { "unit": "Fraction", "value": 0.5 },
+                    "widgets": [
+                        { "name": "CustomTagsWidgetPlugin" }
                     ]
                 },
                 {
@@ -140,6 +159,14 @@
                     "width": { "unit": "Pixel", "value": 140 },
                     "widgets": [
                         { "name": "RemapSkeletonActionWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Custom Tags",
+                    "width": { "unit": "Fraction", "value": 0.5 },
+                    "widgets": [
+                        { "name": "CustomTagsWidgetPlugin" }
                     ]
                 },
                 {

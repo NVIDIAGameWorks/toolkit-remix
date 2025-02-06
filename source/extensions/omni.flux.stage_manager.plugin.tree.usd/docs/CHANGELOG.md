@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0]
+## Changed
+- All USD Tree Models now get a `context_name` in their constructor
+
 ## [1.7.0]
 ## Added
 - Added a skeleton tree plugin

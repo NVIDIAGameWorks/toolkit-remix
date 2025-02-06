@@ -151,6 +151,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         self._user_filter_predicates: list[Callable[[_StageManagerItem], bool]] = []
         self._context_predicates: list[Callable[[_StageManagerItem], bool]] = []
         self._column_count = 0
+        self._max_workers = None
 
     @property
     @abc.abstractmethod
@@ -163,6 +164,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
                 "_user_filter_predicates": None,
                 "_context_predicates": None,
                 "_column_count": None,
+                "_max_workers": None,
             }
         )
         return default_attr
@@ -181,7 +183,18 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
 
         Items are filtered before they are returned
         """
-        return await _StageManagerUtils.filter_items(self._context_items, self._user_filter_predicates) or []
+        return (
+            await _StageManagerUtils.filter_items(
+                self._context_items, self._user_filter_predicates, max_workers=self._max_workers
+            )
+            or []
+        )
+
+    def set_max_workers(self, max_workers: int | None):
+        """
+        Set the maximum number of workers to use when filtering context items
+        """
+        self._max_workers = max_workers
 
     def set_context_items(self, items: Iterable[_StageManagerItem]):
         """

@@ -32,7 +32,7 @@ class VirtualGroupsItem(_StageManagerUSDTreeItem):
     def __init__(
         self,
         display_name: str,
-        data: Usd.Prim,
+        data: Usd.Prim | None,
         tooltip: str = "",
         is_virtual: bool | None = None,
     ):
@@ -88,5 +88,5 @@ class VirtualGroupsTreePlugin(_StageManagerUSDTreePlugin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.model = VirtualGroupsModel()
+        self.model = VirtualGroupsModel(context_name=self._context_name)
         self.delegate = VirtualGroupsDelegate()
