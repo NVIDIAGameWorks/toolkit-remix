@@ -150,6 +150,18 @@ class CustomTagsCore:
 
         return item_tags
 
+    def get_tag_prims(self, tag_path: Sdf.Path) -> list[Sdf.Path]:
+        """
+        Get all the prims assigned to a given tag
+
+        Args:
+            tag_path: The prim path to the tag (USD Collection)
+
+        Returns:
+            A list of prim paths for the prims assigned to the tag
+        """
+        return Usd.CollectionAPI.GetCollection(self._stage, tag_path).GetIncludesRel().GetTargets()
+
     def prim_has_tag(self, prim: Usd.Prim, tag_path: Sdf.Path) -> bool:
         """
         A utility function to check if a prim was assigned a given tag

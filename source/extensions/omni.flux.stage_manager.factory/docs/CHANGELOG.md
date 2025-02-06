@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.5.0]
+### Added
+- Added the ability for tree items to define their own `build_widget` method
+- Added `display_name_ancestor` to the tree items constructor
+- Added `get_unique_names` method to the Stage Manager Utils
+
 ## [3.4.0]
 ### Added
 - Added the ability to cap the number of workers used for filtering

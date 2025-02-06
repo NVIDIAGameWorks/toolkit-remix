@@ -30,7 +30,7 @@ class StageManagerWidget:
         self,
         core: _StageManagerCore | None = None,
         tab_height: int = 32,
-        tab_padding: int = 32,
+        tab_padding: int = 8,
         active_style: str = "WorkspaceBackground",
         inactive_style: str = "TransparentBackground",
         **kwargs,
@@ -208,6 +208,10 @@ class StageManagerWidget:
             enabled_interaction.set_active(enabled_interaction == interaction)
 
     def destroy(self):
+        if self.__select_tab_task:
+            self.__select_tab_task.cancel()
+            self.__select_tab_task = None
+
         if self.__resize_task:
             self.__resize_task.cancel()
             self.__resize_task = None

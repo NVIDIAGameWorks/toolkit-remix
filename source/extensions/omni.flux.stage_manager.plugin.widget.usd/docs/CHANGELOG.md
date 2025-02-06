@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0]
+### Added
+- Use the new items' `build_widget` method instead of a label
+
 ## [1.7.0]
 ### Added
 - Added `custom_tags_list` widget

@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3785: Added a Skeletons Interaction Tab to Stage Manager
 - REMIX-1811: Added a skeleton remapper tool for animated character replacements
 - REMIX-3769: Added Custom Tags widget for all existing Interactions
+- REMIX-3769: Added Custom Tags Tab for the Stage Manager
 
 ### Changed
 - Updated hdremix to dd92d0f

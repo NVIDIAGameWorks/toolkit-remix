@@ -480,6 +480,7 @@ current_dict.update(
         },
         "Image::PropertiesPaneSectionInfo": {"image_url": _get_icons("info"), "color": _WHITE_60},
         "Image::PropertiesPaneSectionInfo:hovered": {"image_url": _get_icons("info"), "color": _WHITE_100},
+        "Image::Tag": {"image_url": _get_icons("tag"), "color": _WHITE_60},
         "Image::EditTag": {"image_url": _get_icons("tag-edit"), "color": _WHITE_60},
         "Image::EditTagDisabled": {"image_url": _get_icons("tag-edit"), "color": _WHITE_30},
         "Image::EditTag:hovered": {"image_url": _get_icons("tag-edit"), "color": _WHITE_80},
@@ -985,6 +986,14 @@ current_dict.update(
             "border_width": 1,
             "border_radius": 5,
             "border_color": _GREY_70,
+        },
+        "Label::FadedLabel": {
+            "color": _WHITE_30,
+        },
+        "Label::VirtualItemLabel": {
+            "color": _WHITE_80,
+            "font_size": 16,
+            "font": ui.url.nvidia_md,
         },
     }
 )
