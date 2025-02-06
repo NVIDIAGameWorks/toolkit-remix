@@ -55,6 +55,7 @@ _GREY_32 = 0xFF202020
 _GREY_40 = 0xFF282828
 _GREY_42 = 0xFF2A2A2A
 _GREY_50 = 0xFF303030
+_GREY_55 = 0xFF373737
 _GREY_60 = 0xFF3C3C3C
 _GREY_70 = 0xFF464646
 
@@ -212,7 +213,7 @@ current_dict.update(
             "margin": 2,
         },
         "Button:disabled": {
-            "background_color": _GREY_50,
+            "background_color": _GREY_55,
             "border_color": _WHITE_30,
         },
         "Button:hovered": {
@@ -408,7 +409,6 @@ current_dict.update(
         "Image::More": {"image_url": _get_icons("ellipsis"), "color": _WHITE_60},
         "Image::More:hovered": {"image_url": _get_icons("ellipsis"), "color": _WHITE_100},
         "Image::Hourglass": {"image_url": _get_icons("hourglass"), "color": _WHITE_100},
-        "Image::ArrowRight": {"image_url": _get_icons("arrow-right-bold"), "color": _WHITE_100},
         "Image::TreePanelLinesBackground": {
             "image_url": _get_image("45deg-256x256-1px-2px-sp-black"),
             "color": _WHITE_30,
@@ -480,6 +480,13 @@ current_dict.update(
         },
         "Image::PropertiesPaneSectionInfo": {"image_url": _get_icons("info"), "color": _WHITE_60},
         "Image::PropertiesPaneSectionInfo:hovered": {"image_url": _get_icons("info"), "color": _WHITE_100},
+        "Image::EditTag": {"image_url": _get_icons("tag-edit"), "color": _WHITE_60},
+        "Image::EditTagDisabled": {"image_url": _get_icons("tag-edit"), "color": _WHITE_30},
+        "Image::EditTag:hovered": {"image_url": _get_icons("tag-edit"), "color": _WHITE_80},
+        "Image::ArrowLeft": {"image_url": _get_icons("arrow-left"), "color": _WHITE_60},
+        "Image::ArrowLeft:hovered": {"image_url": _get_icons("arrow-left"), "color": _WHITE_80},
+        "Image::ArrowRight": {"image_url": _get_icons("arrow-right"), "color": _WHITE_60},
+        "Image::ArrowRight:hovered": {"image_url": _get_icons("arrow-right"), "color": _WHITE_80},
         "Image::WelcomePadDefault": {"color": 0x40000000, "border_radius": 12},
         "Image::WelcomePadImage": {"border_radius": 12},
         "ImageWithProvider::HeaderNvidiaTitle": {
@@ -971,6 +978,13 @@ current_dict.update(
         "ScrollingFrame::CategoriesFrame": {
             "background_color": _GREY_42,
             "padding": 8,
+        },
+        "Rectangle::CustomTag": {
+            "background_color": _GREY_60,
+            "padding": 2,
+            "border_width": 1,
+            "border_radius": 5,
+            "border_color": _GREY_70,
         },
     }
 )

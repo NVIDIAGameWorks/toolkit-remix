@@ -1,6 +1,17 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.4.0]
+### Added
+- Added the ability to cap the number of workers used for filtering
+
+### Changed
+- Force delegates to redraw on window resize
+- Added a short delay between showing the loading screen and processing the context items to ensure the screen is displayed correctly
+
+### Fixed
+- Fixed Vertical Spacers in the interaction plugin tree UI
+
 ## [3.3.0]
 ### Changed
 - Refactored row background to use a TreeView instead of a VStack

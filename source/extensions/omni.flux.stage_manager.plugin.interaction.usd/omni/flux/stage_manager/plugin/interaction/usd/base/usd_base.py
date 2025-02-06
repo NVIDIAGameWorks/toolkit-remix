@@ -222,8 +222,11 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
                     continue
                 # Don't refresh the stage manager when Custom Layer Data is updated
                 # This should include camera updates on newer mods
-                if self.filtering_rules.ignore_custom_layer_data_events and all(
-                    field == "customLayerData" for field in notice.GetChangedFields(path)
+                changed_fields = notice.GetChangedFields(path)
+                if (
+                    self.filtering_rules.ignore_custom_layer_data_events
+                    and bool(changed_fields)
+                    and all(field == "customLayerData" for field in changed_fields)
                 ):
                     continue
                 return True

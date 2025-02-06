@@ -129,5 +129,5 @@ class LightGroupsTreePlugin(_VirtualGroupsTreePlugin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.model = LightGroupsModel()
+        self.model = LightGroupsModel(context_name=self._context_name)
         self.delegate = LightGroupsDelegate()

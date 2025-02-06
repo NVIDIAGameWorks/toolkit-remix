@@ -32,10 +32,21 @@ class StageManagerUSDTreeItem(_StageManagerTreeItem):
 
 
 class StageManagerUSDTreeModel(_StageManagerTreeModel):
+    def __init__(self, context_name: str = ""):
+        super().__init__()
+
+        self._context_name = context_name
+
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
-        return super().default_attr
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_context_name": None,
+            }
+        )
+        return default_attr
 
 
 class StageManagerUSDTreeDelegate(_StageManagerTreeDelegate):

@@ -34,16 +34,17 @@ class AllSkeletonsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     compatible_filters: list[str] = [
         "IgnorePrimsFilterPlugin",
         "IsCaptureFilterPlugin",
-        "SkeletonPrimsFilterPlugin",
         "OmniPrimsFilterPlugin",
         "SearchFilterPlugin",
+        "SkeletonPrimsFilterPlugin",
     ]
     # TODO StageManager: We have LSS plugin names in the flux ext because of this system
     compatible_widgets: list[str] = [
-        "PrimTreeWidgetPlugin",
-        "IsVisibleActionWidgetPlugin",
+        "CustomTagsWidgetPlugin",
+        "FocusInViewportActionWidgetPlugin",
         "IsCaptureStateWidgetPlugin",
+        "IsVisibleActionWidgetPlugin",
+        "PrimTreeWidgetPlugin",
         "RemapSkeletonActionWidgetPlugin",
         "RemapSkeletonInfoWidgetPlugin",
-        "FocusInViewportActionWidgetPlugin",
     ]

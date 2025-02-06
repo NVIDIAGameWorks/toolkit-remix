@@ -32,7 +32,7 @@ class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin):
     tooltip: str = ""
 
     icon_size: int = Field(24 - 8, description="The size of the icon in pixels", exclude=True)
-    item_spacing: int = Field(8, description="The horizontal space between them items in pixels", exclude=True)
+    item_spacing: int = Field(8, description="The horizontal space between the items in pixels", exclude=True)
 
     def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
         with ui.HStack(spacing=ui.Pixel(self.item_spacing), tooltip=item.tooltip or ""):

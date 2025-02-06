@@ -34,6 +34,7 @@ class StageManagerUtils:
         items: Iterable[StageManagerItem],
         predicates: Iterable[Callable[[StageManagerItem], bool]],
         include_invalid_parents: bool = True,
+        max_workers: int | None = None,
     ) -> list[StageManagerItem]:
         """
         Filter items using predicates with parallel processing.
@@ -42,12 +43,13 @@ class StageManagerUtils:
             items: Items to filter
             predicates: Predicates to execute on each item
             include_invalid_parents: Whether to include invalid parent items of valid items in the filtered list
+            max_workers: Maximum number of workers to use for parallel processing
 
         Returns:
             Filtered items list
         """
         loop = asyncio.get_event_loop()
-        with concurrent.futures.ThreadPoolExecutor() as pool:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
             # Submit the jobs in an async thread to avoid locking up the UI
             tasks = await loop.run_in_executor(pool, cls._submit_jobs, items, predicates, loop, pool)
             await asyncio.gather(*tasks)
