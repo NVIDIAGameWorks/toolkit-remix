@@ -2,8 +2,8 @@
 
 > **NOTE:** Please refer to our [Installation](../remix-installation.md) section for directions on how to install the Remix Runtime.
 
-When preparing your game, the best place to start is by copying the contents of the remix-runtime directory into the game’s directory, right next to the main executable of the game. You should end up with the d3d9.dll and .trex/ folder sitting right next to the main game executable. 
-> ⚠️ Some games will search for d3d9.dll in a different directory other than the directory of the main game executable. For example, Source Engine games will search in the bin directory next to the main game executable for d3d9.dll instead.
+To prepare your game, start by copying the `remix-runtime` directory contents into the main game’s directory. The `d3d9.dll` and `.trex/` folder should end up sitting right next to the main game executable.
+> ⚠️ Some games will search for `d3d9.dll` in a directory other than the directory of the main game executable. For example, Source Engine games will search in the bin directory next to the main game executable for d3d9.dll instead.
 
 Once RTX Remix files are in place, you can start the game normally. You can verify RTX Remix is working by checking for the splash message at the top of the screen when the game starts. It should say: “Welcome to NVIDIA Remix… ” and provide hotkey information to access the Remix menus.
 
@@ -11,13 +11,13 @@ Once RTX Remix files are in place, you can start the game normally. You can veri
 While support for D3D9 is included in Remix out of the box, games that use other graphics APIs can also be made to work by utilizing translation layers that target D3D9. You will have to acquire these separately. For example, D3D8 games can be supported through D3D8to9 ([link](https://github.com/crosire/d3d8to9)).
 
 1. Open the folder that contains the source files of the game you wish to mod.
-2. Locate where the executible (.exe) file is stored.  This file is usually found inside a folder named "bin".
-3. Copy and paste the Contents of the RTX Remix Runtime folder into the folder that contains the executible (.exe) file 
+2. Locate where the executable (.exe) file is stored.  This file is usually found inside a folder named "bin".
+3. Copy and paste the Contents of the RTX Remix Runtime folder into the folder that contains the executable (.exe) file
 
 ![FolderStructureDemo](../data/images/rtxremix_018.PNG)
 
 4. Ensure that the d3d9.dll file from the RTX Remix folder copies over the d3d9.dll file in the game folder.
-5. Now, run the game.  If you can use  **Alt + X** to open up the user-end **User Graphics Settings** Remix menu, then you've successfully installed the Runtime 
+5. Now, run the game.  If the Runtime has been installed successfully, you should be be able to open the user-end *User Graphics Settings** Remix menu by pressing  **Alt + X**.
 
 ![UserGraphicSettings](../data/images/rtxremix_012.PNG)
 

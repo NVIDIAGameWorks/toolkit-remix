@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated remix-releasenotes.md with 0.6 Release Notes
 - Updated to import AsyncTestCase from public api
 - Updated remix-overview.md with correct specs and improved documentation
+- Updated order of steps in remix-installation.md to reflect most likely execution order
 - Publish apps for etm testing
 - REMIX-3579: Updating Remix Categories window with more documentation
 - Convert the Stage Manager row backgrounds to use a TreeView for improved performance
