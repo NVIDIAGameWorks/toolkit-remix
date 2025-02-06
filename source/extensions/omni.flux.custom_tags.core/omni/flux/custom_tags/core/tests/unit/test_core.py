@@ -219,6 +219,48 @@ class TestCustomTagsCore(AsyncTestCase):
             ],
         )
 
+    async def test_get_tag_prims_should_return_collection_members(self):
+        # Arrange
+        base_path = "/CustomTags"
+        prims = ["/RootNode/meshes/mesh_01", "/RootNode/meshes/mesh_02", "/RootNode/meshes/mesh_03"]
+        tags = ["Test_Tag_01", "Test_Tag_02", "Test_Tag_03", "Test_Tag_04", "Test_Tag_05"]
+
+        with Usd.EditContext(self.stage, self.root_layer):
+            base_prim = self.stage.DefinePrim(base_path, "Scope")
+
+            for prim in prims:
+                self.stage.DefinePrim(prim, "Xform")
+
+            collections = []
+            for tag in tags:
+                collections.append(Usd.CollectionAPI.Apply(base_prim, tag))
+
+            includes_rel = collections[0].CreateIncludesRel()
+            includes_rel.AddTarget(prims[0])
+            includes_rel.AddTarget(prims[1])
+            includes_rel.AddTarget(prims[2])
+
+            includes_rel = collections[1].CreateIncludesRel()
+            includes_rel.AddTarget(prims[1])
+            includes_rel.AddTarget(prims[2])
+
+            includes_rel = collections[2].CreateIncludesRel()
+            includes_rel.AddTarget(prims[2])
+
+        core = CustomTagsCore(context_name="")
+
+        # Act
+        prims_0 = core.get_tag_prims(collections[0].GetCollectionPath())
+        prims_1 = core.get_tag_prims(collections[1].GetCollectionPath())
+        prims_2 = core.get_tag_prims(collections[2].GetCollectionPath())
+        prims_3 = core.get_tag_prims(collections[3].GetCollectionPath())
+
+        # Assert
+        self.assertListEqual(prims_0, [Sdf.Path(prims[0]), Sdf.Path(prims[1]), Sdf.Path(prims[2])])
+        self.assertListEqual(prims_1, [Sdf.Path(prims[1]), Sdf.Path(prims[2])])
+        self.assertListEqual(prims_2, [Sdf.Path(prims[2])])
+        self.assertListEqual(prims_3, [])
+
     async def test_prim_has_tag_should_return_proper_bool_value(self):
         # Arrange
         base_path = "/CustomTags"

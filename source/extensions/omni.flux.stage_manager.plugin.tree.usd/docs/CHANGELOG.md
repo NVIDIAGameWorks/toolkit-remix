@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.0]
+## Added
+- Added `CustomTagGroupsTreePlugin` and related classes
+
+## Changed
+- Changed the VirtualTree item class to display virtual groups using a specific style
+
 ## [1.8.0]
 ## Changed
 - All USD Tree Models now get a `context_name` in their constructor

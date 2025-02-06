@@ -43,7 +43,7 @@ class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin):
                     ui.Spacer(width=0)
             else:
                 ui.Spacer(height=0, width=0)
-            ui.Label(item.display_name)
+            item.build_widget()
 
     def build_overview_ui(self, model: "_StageManagerTreeModel"):
         # Make sure to only count prims, not virtual groups

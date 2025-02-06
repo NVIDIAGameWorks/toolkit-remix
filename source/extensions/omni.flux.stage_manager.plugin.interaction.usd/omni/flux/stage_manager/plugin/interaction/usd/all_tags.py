@@ -15,24 +15,21 @@
 * limitations under the License.
 """
 
-from omni.flux.stage_manager.factory.plugins import StageManagerFilterPlugin as _StageManagerFilterPlugin
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
 
 from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin
 
 
-class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
-    display_name: str = "Lights"
-    tooltip: str = "View the available lights, grouped by light type"
+class AllTagsInteractionPlugin(_StageManagerUSDInteractionPlugin):
+    display_name: str = "Custom Tags"
+    tooltip: str = "View all the available prims group by custom tags"
 
-    internal_context_filters: list[_StageManagerFilterPlugin] = [{"name": "LightPrimsFilterPlugin"}]
-    tree: _StageManagerTreePlugin = {"name": "LightGroupsTreePlugin"}
+    tree: _StageManagerTreePlugin = {"name": "CustomTagGroupsTreePlugin"}
 
-    compatible_trees: list[str] = ["LightGroupsTreePlugin", "PrimGroupsTreePlugin"]
+    compatible_trees: list[str] = ["CustomTagGroupsTreePlugin", "PrimGroupsTreePlugin"]
     compatible_filters: list[str] = [
         "IgnorePrimsFilterPlugin",
         "IsCaptureFilterPlugin",
-        "LightPrimsFilterPlugin",
         "OmniPrimsFilterPlugin",
         "SearchFilterPlugin",
     ]

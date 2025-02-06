@@ -30,7 +30,7 @@ class AllSkeletonsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     ]
     tree: _StageManagerTreePlugin = {"name": "SkeletonGroupsTreePlugin"}
 
-    compatible_trees: list[str] = ["SkeletonGroupsTreePlugin", "PrimGroupsTreePlugin", "VirtualGroupsTreePlugin"]
+    compatible_trees: list[str] = ["SkeletonGroupsTreePlugin", "PrimGroupsTreePlugin"]
     compatible_filters: list[str] = [
         "IgnorePrimsFilterPlugin",
         "IsCaptureFilterPlugin",

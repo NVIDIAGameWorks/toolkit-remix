@@ -19,6 +19,7 @@ __all__ = ["StageManagerUtils"]
 
 import asyncio
 import concurrent
+from collections import Counter
 from typing import Callable, Iterable
 
 import omni.usd
@@ -27,6 +28,34 @@ from .items import StageManagerItem
 
 
 class StageManagerUtils:
+    @classmethod
+    def get_unique_names(cls, items: Iterable[StageManagerItem]) -> dict[StageManagerItem, tuple[str, str | None]]:
+        """
+        Get unique names from a list of prim paths.
+        If the name is not unique, the name and parent name will be returned.
+
+        Args:
+            items: List of stage manager items
+
+        Returns:
+            A dict of { path: unique_name } where unique_name is a list of prim names that should identify the path
+        """
+        # Prepare initial mapping from path to its base name.
+        default_names = {item: item.data.GetPath().name for item in items}
+
+        # Count how many times each default name occurs.
+        name_counts = Counter(default_names.values())
+
+        # Build the result dictionary:
+        result = {}
+        for item in items:
+            # If the name is not unique, add the parent name to the list of names
+            if name_counts[default_names[item]] == 1:
+                result[item] = (default_names[item], None)
+            else:
+                result[item] = (default_names[item], item.data.GetPath().GetParentPath().name)
+        return result
+
     @classmethod
     @omni.usd.handle_exception
     async def filter_items(

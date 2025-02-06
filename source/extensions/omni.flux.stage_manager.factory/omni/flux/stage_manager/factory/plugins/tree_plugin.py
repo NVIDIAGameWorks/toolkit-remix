@@ -36,6 +36,12 @@ if TYPE_CHECKING:
 class StageManagerTreeItem(_TreeItemBase):
     """
     A TreeView item used in TreeView models
+
+    Args:
+        display_name: The string to display in the TreeView
+        data: The data associated with the item
+        tooltip: The tooltip to display when hovering over the item
+        display_name_ancestor: A string to prepend to the display name with
     """
 
     def __init__(
@@ -43,12 +49,14 @@ class StageManagerTreeItem(_TreeItemBase):
         display_name: str,
         data: Any,
         tooltip: str = "",
+        display_name_ancestor: str | None = None,
     ):
         super().__init__()
 
         self._display_name = display_name
         self._tooltip = tooltip
         self._data = data
+        self._display_name_ancestor = display_name_ancestor
 
         self._parent = None
 
@@ -62,6 +70,7 @@ class StageManagerTreeItem(_TreeItemBase):
                 "_tooltip": None,
                 "_parent": None,
                 "_data": None,
+                "_parent_name": None,
             }
         )
         return default_attr
@@ -117,6 +126,16 @@ class StageManagerTreeItem(_TreeItemBase):
             By default, items that have children will return True, and items without children will return False
         """
         return bool(self._children)
+
+    def build_widget(self):
+        """
+        Method that can be used to build the widgets to build a widget displaying the items
+        """
+        with ui.HStack(spacing=ui.Pixel(2)):
+            if self._display_name_ancestor:
+                ui.Label(self._display_name_ancestor, name="FadedLabel", width=0)
+                ui.Label("/", name="FadedLabel", width=0)
+            ui.Label(self.display_name)
 
     def add_child(self, item: "StageManagerTreeItem"):
         """
