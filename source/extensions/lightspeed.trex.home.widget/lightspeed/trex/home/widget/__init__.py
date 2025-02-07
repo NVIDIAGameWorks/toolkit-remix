@@ -15,4 +15,4 @@
 * limitations under the License.
 """
 
-from .model import *  # noqa F401
+from .home_widget import HomePageWidget

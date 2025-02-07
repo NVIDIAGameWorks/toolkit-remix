@@ -45,7 +45,7 @@ class TreeModelBase(ui.AbstractItemModel, Generic[T]):
         return {"_items": None}
 
     def can_item_have_children(self, item: T) -> bool:
-        return item.can_have_children
+        return item and item.can_have_children
 
     def iter_items_children(self, items: Iterable[T] | None = None, recursive=True) -> Iterable[T]:
         """

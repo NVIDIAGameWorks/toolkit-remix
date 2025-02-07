@@ -1,22 +1,22 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.2.0"
+version = "1.0.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
-authors = ["Alex Dunn <adunn@nvidia.com>"]
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 
 # The title and description fields are primarly for displaying extension info in UI
-description = "This is an 'i' icon which can be used to provide help to the user in UX"
-title = "Flux info icon"
+description = "The home page widget for RTX Remix"
+title = "RTX Remix Home Page Widget"
 
 # Path (relative to the root) or content of readme markdown file for UI.
 readme = "docs/README.md"
 
 # One of categories for UI.
-category = "Help"
+category = "internal"
 
 # Keywords for the extension
-keywords = ["kit", "flux", "info", "icon", "widget"]
+keywords = ["remix", "home", "welcome", "widget"]
 
 # Location of change log file in target (final) folder of extension, relative to the root.
 # More info on writing changelog: https://keepachangelog.com/en/1.0.0/
@@ -30,16 +30,19 @@ preview_image = "data/images/preview.png"
 icon = "data/images/icon.png"
 
 [dependencies]
+"lightspeed.common" = {}
+"omni.flux.info_icon.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.kit.clipboard" = {}
 "omni.ui" = {}
-"omni.flux.pip_archive" = {}
-"omni.flux.utils.common" = {}  # for pyperclip
 
 [[python.module]]
-name = "omni.flux.info_icon.widget"
+name = "lightspeed.trex.home.widget"
 
 [[test]]
 dependencies = [
-    "omni.flux.tests.dependencies",
+    "lightspeed.trex.tests.dependencies",
 ]
 
 stdoutFailPatterns.exclude = [

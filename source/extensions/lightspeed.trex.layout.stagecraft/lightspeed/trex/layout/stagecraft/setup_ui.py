@@ -21,6 +21,7 @@ import subprocess
 import typing
 from enum import Enum
 from functools import partial
+from pathlib import Path
 
 import carb.events
 import omni.appwindow
@@ -40,7 +41,7 @@ from lightspeed.trex.components_pane.stagecraft.controller import SetupUI as Com
 from lightspeed.trex.components_pane.stagecraft.models import EnumItems as ComponentsEnumItems
 from lightspeed.trex.contexts import get_instance as trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as TrexContexts
-from lightspeed.trex.footer.stagecraft.models import StageCraftFooterModel
+from lightspeed.trex.home.widget import HomePageWidget as _HomePageWidget
 from lightspeed.trex.layout.shared.base import SetupUI as TrexLayout
 from lightspeed.trex.menu.workfile import get_instance as get_burger_menu_instance
 from lightspeed.trex.properties_pane.stagecraft.widget import SetupUI as PropertyPanelUI
@@ -51,27 +52,14 @@ from lightspeed.trex.utils.common.file_utils import (
 )
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
-from lightspeed.trex.welcome_pads.stagecraft.models import (
-    LaunchRemixGameItem,
-    NewWorkFileItem,
-    RecentWorkFileItem,
-    ResumeWorkFileItem,
-)
 from omni.flux.feature_flags.core import FeatureFlagsCore as _FeatureFlagsCore
-from omni.flux.footer.widget import FooterWidget
-from omni.flux.header_nvidia.widget import HeaderWidget
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common.omni_url import OmniUrl
-from omni.flux.utils.widget.color import color_to_hex
 from omni.flux.utils.widget.file_pickers.file_picker import destroy_file_picker as _destroy_file_picker
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.flux.utils.widget.hover import hover_helper as _hover_helper
-from omni.flux.utils.widget.resources import get_background_images
-from omni.flux.utils.widget.resources import get_icons as _get_icons
-from omni.flux.welcome_pad.widget import WelcomePadWidget
-from omni.flux.welcome_pad.widget.model import Model as WelcomePadModel
 
 if typing.TYPE_CHECKING:
     from pxr import Usd
@@ -97,11 +85,9 @@ class SetupUI(TrexLayout):
 
         self._feature_flags_core = _FeatureFlagsCore()
 
-        self._welcome_pad_widgets = []
         self._all_frames = []
-        self._background_images = []
-        self.__background_switcher_task = None
         self.__enable_items_task = None
+        self.__update_recent_items_task = None
         appwindow_stream = omni.appwindow.get_default_app_window().get_window_resize_event_stream()
         self._subcription_app_window_size_changed = appwindow_stream.create_subscription_to_pop(
             self._on_app_window_size_changed, name="On app window resized", order=0
@@ -114,20 +100,7 @@ class SetupUI(TrexLayout):
             self.__on_stage_event, name="StageChanged"
         )
 
-        self._welcome_pads_new_model = WelcomePadModel()
-        self._welcome_resume_item = ResumeWorkFileItem(self._resume_work_file_clicked)
-        self._welcome_resume_item.enabled = self.enable_welcome_resume_item()
-        self._welcome_pads_new_model.add_items(
-            [
-                LaunchRemixGameItem(self._launch_game_with_remix),
-                NewWorkFileItem(self._new_work_file_clicked),
-                self._welcome_resume_item,
-            ]
-        )
-
         self._recent_saved_file = _RecentSavedFile()
-        self._welcome_pads_recent_model = WelcomePadModel()
-        self._welcome_pads_recent_model.set_list_limit(20)
 
         self.__current_page = None
 
@@ -178,7 +151,8 @@ class SetupUI(TrexLayout):
         ) or not stage:
             await asyncio.sleep(0.1)
         await omni.kit.app.get_app_interface().next_update_async()
-        self._welcome_pads_new_model.enable_items([self._welcome_resume_item], self.enable_welcome_resume_item())
+        if self._home_page:
+            self._home_page.set_resume_enabled(self.enable_welcome_resume_item())
 
     def _import_replacement_layer(self, path, use_existing_layer):
         """Call the event object that has the list of functions"""
@@ -193,6 +167,15 @@ class SetupUI(TrexLayout):
 
     def _open_work_file(self, path):
         """Call the event object that has the list of functions"""
+        if not Path(path).exists():
+            _TrexMessageDialog(
+                "The selected project does not exist at the given location.",
+                title="Invalid Selected Project",
+                disable_cancel_button=True,
+            )
+            self._refresh_recent_items()
+            return
+
         self._on_open_work_file(path)
         self.show_page(Pages.WORKSPACE_PAGE)
         # select the first component
@@ -276,31 +259,36 @@ class SetupUI(TrexLayout):
         """
         return _EventSubscription(self._on_resume_work_file_clicked, fn)
 
+    def _remove_project_from_recent(self, paths: list[str]):
+        for path in paths:
+            self._recent_saved_file.remove_path_from_recent_file(path)
+        self._refresh_recent_items()
+
     @property
     def default_attr(self):
         default_attr = super().default_attr
         default_attr.update(
             {
-                "_header_nvidia_widget": None,
                 "_feature_flags_core": None,
-                "_welcome_pad_widgets": None,
                 "_subcription_app_window_size_changed": None,
-                "_welcome_pads_new_model": None,
                 "_welcome_pads_recent_model": None,
                 "_frame_home_page": None,
+                "_home_page": None,
+                "_sub_new_project_clicked": None,
+                "_sub_resume_clicked": None,
+                "_sub_remove_from_recent_clicked": None,
+                "_sub_open_project_clicked": None,
                 "_frame_workspace": None,
                 "_feature_flags_changed_subs": None,
                 "_header_refreshed_task": None,
                 "_viewport": None,
                 "_stage_manager_frame": None,
                 "_stage_manager": None,
-                "_home_footer": None,
                 "_components_pane": None,
                 "_properties_pane": None,
                 "_components_pane_tree_selection_changed": None,
                 "_property_panel_frame": None,
                 "_all_frames": None,
-                "_background_images": None,
                 "_splitter_property_viewport": None,
                 "_splitter_stage_manager": None,
                 "_sub_import_replacement_layer": None,
@@ -329,10 +317,6 @@ class SetupUI(TrexLayout):
     def button_priority(self) -> int:
         return 10
 
-    def __refresh_welcome_pad_tree(self):
-        for pad in self._welcome_pad_widgets:
-            pad.resize_tree_content()
-
     @omni.usd.handle_exception
     async def __resize_stage_manager_deferred(self):
         if not self._splitter_stage_manager:
@@ -350,12 +334,7 @@ class SetupUI(TrexLayout):
         self._set_stage_manager_splitter_offset(ui.Pixel(self._frame_workspace.computed_height - stage_manager_height))
 
     def _on_app_window_size_changed(self, event: carb.events.IEvent):
-        self.__refresh_welcome_pad_tree()
         asyncio.ensure_future(self.__resize_stage_manager_deferred())
-
-    def _on_button_clicked(self, x, y, b, m):  # noqa PLC0103
-        super()._on_button_clicked(x, y, b, m)
-        self.__refresh_welcome_pad_tree()
 
     def show_page(self, page: Pages):
         # TODO Feature OM-45888 - File Picker will appear behind the wizard modal
@@ -373,7 +352,6 @@ class SetupUI(TrexLayout):
                 frame.visible = False
         self.__current_page = page
         self._on_header_refreshed()
-        self.__refresh_welcome_pad_tree()
 
     def current_page(self):
         return self.__current_page
@@ -381,106 +359,20 @@ class SetupUI(TrexLayout):
     def _on_header_refreshed(self):
         self._header_navigator.show_logo_and_title(self.__current_page == Pages.WORKSPACE_PAGE)
 
-    @omni.usd.handle_exception
-    async def __background_switcher(self):
-        """Switch background smoothly
-        The idea is to start from bottom of the list to top (for Z order)
-        """
-
-        @omni.usd.handle_exception
-        async def blend(current_one, next_one):
-            speed = 200
-            alpha = 255.0
-            for speed_i in range(speed):
-                await omni.kit.app.get_app_interface().next_update_async()
-                alpha_down = alpha - ((alpha / (speed - 1)) * speed_i)
-                alpha_up = (alpha / (speed - 1)) * speed_i
-                current_one.set_style({"Image": {"color": color_to_hex((1.0, 1.0, 1.0, alpha_down / 255))}})
-                next_one.set_style({"Image": {"color": color_to_hex((1.0, 1.0, 1.0, alpha_up / 255))}})
-
-        i = 0
-        while True:
-            next_widget = None
-            current_widget = None
-            background_images = list(reversed(self._background_images))
-            for image_i, image in enumerate(background_images):
-                image.visible = image_i == i
-                if image_i == i:
-                    current_widget = image
-                    current_widget.set_style({"Image": {"color": 0xFFFFFFFF}})
-                    if image == background_images[-1]:
-                        next_widget = background_images[0]
-                    else:
-                        next_widget = background_images[image_i + 1]
-                    next_widget.set_style({"Image": {"color": 0x00FFFFFF}})
-            if next_widget is None or current_widget is None:
-                return
-            await asyncio.sleep(5)
-            next_widget.visible = True
-            await blend(current_widget, next_widget)
-
-            if self._background_images is None:
-                return  # reload
-            i += 1
-            if i == len(self._background_images) - 1:
-                i = 0
-
     def _create_layout(self):
-        self._welcome_pad_widgets = []
         with ui.ZStack():
             self._frame_home_page = ui.Frame(name=Pages.HOME_PAGE.value)
             self._all_frames.append(self._frame_home_page)
             with self._frame_home_page:
-                with ui.ZStack():
-                    # create background image
-                    background_image_paths = get_background_images()
-                    if background_image_paths:
-                        # the first image is the same than the last one! To be able to switch smoothly
-                        self._background_images.append(
-                            ui.Image(background_image_paths[-1], fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP)
-                        )
-                        for background_image_path in background_image_paths:
-                            image = ui.Image(background_image_path, fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP)
-                            self._background_images.append(image)
-                    with ui.VStack():
-                        self._header_nvidia_widget = HeaderWidget()  # hold or it will crash
-                        with ui.HStack():
-                            ui.Spacer(width=ui.Percent(4))  # flexible
-                            with ui.VStack(width=ui.Percent(28)):
-                                ui.Spacer(height=ui.Pixel(48))
-                                self._welcome_pad_widgets.append(
-                                    WelcomePadWidget(
-                                        model=self._welcome_pads_new_model,
-                                        show_footer=False,
-                                        title="PROJECT SETUP",
-                                        auto_resize_list=False,
-                                    )
-                                )  # hold or crash
-                            ui.Spacer(width=ui.Percent(4))
-                            with ui.VStack(width=ui.Percent(28)):
-                                ui.Spacer(height=ui.Pixel(48))
-                                self._welcome_pad_widget_recent = WelcomePadWidget(
-                                    model=self._welcome_pads_recent_model,
-                                    title="RECENTLY OPENED",
-                                    show_footer=False,
-                                    auto_resize_list=False,
-                                    word_wrap_description=False,
-                                )  # hold or crash
-                                self._welcome_pad_widgets.append(self._welcome_pad_widget_recent)
-                            ui.Spacer(width=ui.Percent(4))
-                            with ui.VStack(width=ui.Percent(28)):
-                                ui.Spacer(height=ui.Pixel(48))
-                                self._welcome_pad_widgets.append(
-                                    WelcomePadWidget(title="WHAT'S NEW", create_demo_items=False, show_footer=False)
-                                )  # hold or crash
-
-                            ui.Spacer(width=ui.Percent(4))  # flexible
-                        self._home_footer = FooterWidget(
-                            model=StageCraftFooterModel,
-                            height=ui.Pixel(144),
-                            column_width=ui.Pixel(0),
-                            between_columns_width=ui.Percent(10),
-                        )
+                self._home_page = _HomePageWidget()
+                self._sub_resume_clicked = self._home_page.subscribe_resume_clicked(self._resume_work_file_clicked)
+                self._sub_new_project_clicked = self._home_page.subscribe_new_project_clicked(
+                    self._new_work_file_clicked
+                )
+                self._sub_remove_from_recent_clicked = self._home_page.subscribe_remove_from_recent_clicked(
+                    self._remove_project_from_recent
+                )
+                self._sub_open_project_clicked = self._home_page.subscribe_open_project_clicked(self._open_work_file)
 
             self._frame_workspace = ui.Frame(
                 name=Pages.WORKSPACE_PAGE.value,
@@ -577,11 +469,7 @@ class SetupUI(TrexLayout):
             ComponentsEnumItems.ASSET_REPLACEMENTS
         ).subscribe_go_to_ingest_tab(partial(self.show_layout_by_name, "Ingestion"))
 
-        if self.__background_switcher_task:
-            self.__background_switcher_task.cancel()
-        self.__background_switcher_task = asyncio.ensure_future(self.__background_switcher())
-
-        self._refresh_welcome_pads_recent_model()
+        self._refresh_recent_items()
 
     def show(self, value: bool):
         pass
@@ -634,35 +522,27 @@ class SetupUI(TrexLayout):
 
     def _on_back_arrow_pressed(self):
         self.show_page(Pages.HOME_PAGE)
-        self._refresh_welcome_pads_recent_model()
+        self._refresh_recent_items()
 
-    def _refresh_welcome_pads_recent_model(self):
-        @omni.usd.handle_exception
-        async def _update_images(_path):
-            _, thumbnail = await self._recent_saved_file.find_thumbnail_async(_path)
-            if thumbnail is None:
-                return
-            await omni.kit.app.get_app().next_update_async()
-            if not self._welcome_pad_widget_recent or not self._welcome_pad_widget_recent.delegate:
-                return
-            images_widgets = self._welcome_pad_widget_recent.delegate.get_image_widgets()
-            _title = os.path.basename(_path)
-            if _title in images_widgets:
-                images_widgets[_title].source_url = thumbnail
+    def _refresh_recent_items(self):
+        if self.__update_recent_items_task:
+            self.__update_recent_items_task.cancel()
+        self.__update_recent_items_task = asyncio.ensure_future(self._refresh_recent_items_deferred())
 
-        def _get_image(_path):
-            asyncio.ensure_future(_update_images(_path))
-            return _get_icons("new_workfile")  # default image or it will always show the default image from style
+    @omni.usd.handle_exception
+    async def _refresh_recent_items_deferred(self):
+        if not self._home_page:
+            return
 
         items = []
         for path, _ in self._recent_saved_file.get_recent_file_data().items():
             title = os.path.basename(path)
             details = {"Path": path}
             details.update(self._recent_saved_file.get_path_detail(path))
-            items.append(
-                RecentWorkFileItem(title, details, partial(_get_image, path), partial(self._open_work_file, path), path)
-            )
-        self._welcome_pads_recent_model.set_items(reversed(items))
+            _, thumbnail = await self._recent_saved_file.find_thumbnail_async(path)
+            items.append((title, thumbnail, details))
+
+        self._home_page.set_recent_items(items)
 
     def _on_menu_burger_mouse_pressed(self, button):
         if button != 0:
@@ -737,8 +617,8 @@ class SetupUI(TrexLayout):
             self.__enable_items_task.cancel()
         self.__enable_items_task = None
 
-        if self.__background_switcher_task:
-            self.__background_switcher_task.cancel()
-        self.__background_switcher_task = None
+        if self.__update_recent_items_task:
+            self.__update_recent_items_task.cancel()
+        self.__update_recent_items_task = None
 
         super().destroy()

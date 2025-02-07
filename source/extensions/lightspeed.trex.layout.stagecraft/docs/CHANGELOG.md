@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.0]
+### Changed
+- Updated home screen to new design
+
 ## [1.4.8]
 ### Added
 - Updating dialog removal calls

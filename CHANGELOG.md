@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Convert the Stage Manager row backgrounds to use a TreeView for improved performance
 - Changed the Stage Manager frame raster policy for improved performance at rest
 - Simplified the UAC logic
+- REMIX-2714: Updated the Home Page of the app
+
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs

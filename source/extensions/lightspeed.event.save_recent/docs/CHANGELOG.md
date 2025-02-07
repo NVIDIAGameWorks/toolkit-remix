@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0]
+### Added
+- Added the abilty to remove recent projects from the list
+
 ## [1.1.3]
 - Use updated `lightspeed.layer_manager.core` extension
 

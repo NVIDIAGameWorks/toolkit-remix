@@ -15,6 +15,9 @@
 * limitations under the License.
 """
 
+__all__ = ["RecentSavedFile"]
+
+
 import asyncio
 import json
 import math
@@ -26,6 +29,15 @@ from typing import Dict
 import carb
 import carb.tokens
 import omni.client
+from lightspeed.layer_manager.core import (
+    LSS_LAYER_GAME_NAME,
+    LSS_LAYER_MOD_NAME,
+    LSS_LAYER_MOD_VERSION,
+    LayerType,
+    LayerTypeKeys,
+)
+from omni.flux.utils.common.omni_url import OmniUrl
+from pxr import Sdf
 
 
 class RecentSavedFile:
@@ -66,6 +78,20 @@ class RecentSavedFile:
             self.save_recent_file(result)
         return result
 
+    def remove_path_from_recent_file(self, path: str, save: bool = True):
+        """Remove a work file path from file"""
+        current_data = self.get_recent_file_data()
+
+        if path not in current_data:
+            return current_data
+
+        del current_data[path]
+
+        if save:
+            self.save_recent_file(current_data)
+
+        return current_data
+
     def is_recent_file_exist(self):
         file_path = self.__get_recent_file()
         if not Path(file_path).exists():
@@ -90,21 +116,38 @@ class RecentSavedFile:
 
     def get_path_detail(self, path) -> Dict[str, str]:
         """Get details from the given path"""
-        result, entry = omni.client.stat(path)
-        if result == omni.client.Result.OK:
+        result = {}
+        recent_url = OmniUrl(path)
+        if recent_url.exists:
             data = self.get_recent_file_data()
-            result = {}
             if path in data:
+                # Default values from the recent file
                 result["Game"] = data[path]["game"]
                 result["Capture"] = data[path]["capture"]
-            result_list, entries = omni.client.list_checkpoints(path)
-            if result_list == omni.client.Result.OK:
-                result["Version"] = entries[-1].relative_path[1:]
-            result.update(
-                {"Published": entry.created_time.strftime("%m/%d/%Y, %H:%M:%S"), "Size": self.convert_size(entry.size)}
-            )
-            return result
-        return {}
+
+                # Get updated values from the project
+                project_layer = Sdf.Layer.FindOrOpen(path)
+                if not project_layer:
+                    return result
+                for sublayer_path in project_layer.subLayerPaths:
+                    sublayer = Sdf.Layer.FindOrOpenRelativeToLayer(project_layer, sublayer_path)
+                    if not sublayer:
+                        continue
+                    metadata = sublayer.customLayerData
+                    match metadata.get(LayerTypeKeys.layer_type.value):
+                        case LayerType.replacement.value:
+                            if "Name" not in result:
+                                result["Name"] = metadata.get(LSS_LAYER_MOD_NAME)
+                            if "Version" not in result:
+                                result["Version"] = metadata.get(LSS_LAYER_MOD_VERSION)
+                        case LayerType.capture.value:
+                            result["Capture"] = sublayer.realPath
+                            result["Game"] = metadata.get(LSS_LAYER_GAME_NAME)
+                        case _:
+                            pass
+            result["Published"] = recent_url.entry.modified_time.strftime("%m/%d/%Y, %H:%M:%S")
+            result["Size"] = self.convert_size(recent_url.entry.size)
+        return result
 
     @staticmethod
     @omni.usd.handle_exception

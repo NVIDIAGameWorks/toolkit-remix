@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .models import *  # noqa: F401
+from .delegate import RecentProjectDelegate
+from .items import RecentProjectItem
+from .model import RecentProjectModel

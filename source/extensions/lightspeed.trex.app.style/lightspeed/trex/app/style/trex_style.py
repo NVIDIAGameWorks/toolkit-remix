@@ -1,4 +1,5 @@
 # noqa PLC0302
+
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -463,6 +464,7 @@ current_dict.update(
         "Image::SphereLightStatic": {"image_url": _get_icons("light_point"), "color": _WHITE_60},
         # TODO: Should add a proper Dome Light Icon
         "Image::DomeLightStatic": {"image_url": _get_icons("light_rect"), "color": _WHITE_60},
+        "Image::RemixProject": {"image_url": _get_icons("ov_logo")},
         "Image::ShowInViewport": {
             "image_url": _get_icons("axis-arrow"),
             "color": _WHITE_20,
@@ -639,12 +641,23 @@ current_dict.update(
             "font_size": 18,
             "font": ui.url.nvidia_lt,
         },
+        "Label::VersionLabel": {
+            "color": _WHITE_40,
+            "font_size": 18,
+            "font": ui.url.nvidia_lt,
+        },
         "Label::ProgressLabel": {"color": _WHITE_100},
         "Label::PropertiesWidgetLabel": {"color": _WHITE_70, "font_size": 18, "font": ui.url.nvidia_md},
         "Label::ExperimentalFeatureLabel": {"color": _WHITE_50, "font_size": 18, "font": ui.url.nvidia_md},
         "Label::USDPropertiesWidgetValueOverlay": {"color": _WHITE_20},
-        "Label::Title0": {"color": _WHITE_80, "font_size": 22},
-        "Label::Title1": {"color": _WHITE_80, "font_size": 18},
+        "Button::HomeButton": {"background_color": _GREY_32},
+        "Button::HomeButton:disabled": {"background_color": _GREY_50, "border_color": _WHITE_20},
+        "Button::HomeButton:hovered": {"background_color": _GREY_70},
+        "Button.Label::HomeButton": {"color": _WHITE_80, "font_size": 20, "font": ui.url.nvidia_md},
+        "Label::HomeLabel": {"color": _WHITE_80, "font_size": 32, "font": ui.url.nvidia_md},
+        "Label::HomeDiscreteLabel": {"color": _WHITE_60, "font_size": 18, "font": ui.url.nvidia_rg},
+        "Label::HomeEmphasizedLabel": {"color": _WHITE_80, "font_size": 18, "font": ui.url.nvidia_md},
+        "Rectangle::HomeInvalidProject": {"background_color": _RED_05},
         "Label::WelcomePadItemDescription": {"color": _WHITE_100, "font_size": 16},
         "Label::WelcomePadItemDescription:checked": {"color": _WHITE_30, "font_size": 16},
         "Label::PropertiesPaneSectionTreeItem": {"color": _WHITE_80, "font_size": 14},

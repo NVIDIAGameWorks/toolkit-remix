@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.0]
+## Added
+- Added an icon for project with no thumbnails
+
 ## [1.13.0]
 ## Added
 - Stage Manager: Added a mesh/instance tab
