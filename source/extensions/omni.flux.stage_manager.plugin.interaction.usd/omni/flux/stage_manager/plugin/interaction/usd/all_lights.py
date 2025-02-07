@@ -35,6 +35,7 @@ class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
         "LightPrimsFilterPlugin",
         "OmniPrimsFilterPlugin",
         "SearchFilterPlugin",
+        "IsCategoryFilterPlugin",
     ]
     # TODO StageManager: We have LSS plugin names in the flux ext because of this system
     compatible_widgets: list[str] = [
@@ -43,4 +44,5 @@ class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
         "IsCaptureStateWidgetPlugin",
         "IsVisibleActionWidgetPlugin",
         "PrimTreeWidgetPlugin",
+        "IsCategoryHiddenStateWidgetPlugin",
     ]

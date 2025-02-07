@@ -46,7 +46,8 @@
                     "display_name": "States",
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
-                        { "name": "IsCaptureStateWidgetPlugin" }
+                        { "name": "IsCaptureStateWidgetPlugin" },
+                        { "name": "IsCategoryHiddenStateWidgetPlugin" }
                     ]
                 },
                 {
@@ -230,6 +231,40 @@
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
                         { "name": "IsCaptureStateWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Actions",
+                    "width": { "unit": "Pixel", "value": 100 },
+                    "widgets": [
+                        { "name": "FocusInViewportActionWidgetPlugin" },
+                        { "name": "IsVisibleActionWidgetPlugin" }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "AllCategoriesInteractionPlugin",
+            "filters": [
+                { "name": "IsCategoryFilterPlugin" },
+                { "name": "IsCaptureFilterPlugin" }
+                ],
+            "columns": [
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Prims",
+                    "widgets": [
+                        { "name": "PrimTreeWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "States",
+                    "width": { "unit": "Pixel", "value": 100 },
+                    "widgets": [
+                        { "name": "IsCaptureStateWidgetPlugin" },
+                        { "name": "IsCategoryHiddenStateWidgetPlugin" }
                     ]
                 },
                 {

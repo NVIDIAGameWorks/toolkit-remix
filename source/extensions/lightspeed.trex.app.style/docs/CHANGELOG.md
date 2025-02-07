@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.1]
+## Added
+- Added hidden and shown icons for remix categories
+
 ## [1.7.0]
 ## Added
 - Added Custom Tags styles for the Stage Manager virtual items

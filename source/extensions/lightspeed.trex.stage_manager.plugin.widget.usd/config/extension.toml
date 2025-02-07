@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.4.0"
+version = "1.4.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -46,6 +46,7 @@ name = "lightspeed.trex.stage_manager.plugin.widget.usd"
 dependencies = [
     "lightspeed.common",
     "lightspeed.trex.tests.dependencies",
+    "lightspeed.trex.stage_manager.plugin.tree.usd",
     "omni.flux.stage_manager.factory",
 ]
 

@@ -23,6 +23,7 @@ from omni.flux.stage_manager.factory import get_instance as _get_factory_instanc
 from .action_remap_skeleton import RemapSkeletonActionWidgetPlugin as _RemapSkeletonActionWidgetPlugin
 from .focus_in_viewport import FocusInViewportActionWidgetPlugin as _FocusInViewportActionWidgetPlugin
 from .info_remap_skeleton import RemapSkeletonInfoWidgetPlugin as _RemapSkeletonInfoWidgetPlugin
+from .state_hidden_category import IsCategoryHiddenStateWidgetPlugin as _IsCategoryHiddenStateWidgetPlugin
 from .state_is_capture import IsCaptureStateWidgetPlugin as _IsCaptureStateWidgetPlugin
 
 
@@ -33,6 +34,7 @@ class LightspeedStageManagerUSDWidgetPluginsExtension(omni.ext.IExt):
         _FocusInViewportActionWidgetPlugin,
         _RemapSkeletonActionWidgetPlugin,
         _RemapSkeletonInfoWidgetPlugin,
+        _IsCategoryHiddenStateWidgetPlugin,
     ]
 
     def on_startup(self, _):
