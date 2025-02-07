@@ -33,7 +33,7 @@ class InfoIconWidget:
 
     __DEFAULT_UI_ICON_SIZE_PIXEL = 16
 
-    def __init__(self, message: str):
+    def __init__(self, message: str, icon_size: int = __DEFAULT_UI_ICON_SIZE_PIXEL):
         """
         Create an info icon widget
 
@@ -44,18 +44,19 @@ class InfoIconWidget:
             The info icon object
         """
 
-        self._default_attr = {"_info_image": None, "_tooltip": None}
+        self._default_attr = {"_message": None, "_icon_size": None, "_info_image": None, "_tooltip": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
         self._message = message
+        self._icon_size = icon_size
         self.__create_ui()
 
     def __create_ui(self):
         self._info_image = ui.Image(
             name="PropertiesPaneSectionInfo",
-            width=ui.Pixel(self.__DEFAULT_UI_ICON_SIZE_PIXEL),
-            height=ui.Pixel(self.__DEFAULT_UI_ICON_SIZE_PIXEL),
+            width=ui.Pixel(self._icon_size),
+            height=ui.Pixel(self._icon_size),
             tooltip="",
             identifier="info_icon_image_id",
         )

@@ -1,8 +1,11 @@
 # Remix Categories
 
 If you would like to set a Remix Category from the Toolkit interface, you can find the Set Remix Category button in the Asset Replacements tab under the Oject Properties section.
+
 ![Remix Categories Button](../data/images/remix-categories-button.png)
+
 To set a Remix Category, use the window that the button opens. You can select multiple categories to assign at a time. Be aware that not all will behave correctly in the Toolkit viewport because they need the game engine to properly render. Also note that some categories hide geometry from the viewport, so it will no longer be selectable in the viewport.
+
 ![Remix Categories Window](../data/images/remix-categories-window.png)
 
 The currently available Remix Categories in the Toolkit and their descriptions:

@@ -19,6 +19,7 @@ __all__ = [
     "cleanup_file",
     "delete_metadata",
     "get_absolute_path_from_relative",
+    "get_invalid_extensions",
     "get_new_hash",
     "get_udim_sequence",
     "hash_file",
@@ -26,7 +27,7 @@ __all__ = [
     "is_absolute_path",
     "is_file_path_valid",
     "is_udim_texture",
-    "get_invalid_extensions",
+    "open_file_using_os_default",
     "read_file",
     "read_json_file",
     "read_metadata",
@@ -423,7 +424,7 @@ def open_file_using_os_default(path: str):
     if platform.system() == "Darwin":  # macOS
         subprocess.call(("open", path))
     elif platform.system() == "Windows":  # Windows
-        os.startfile(path)  # noqa: PLE1101
+        subprocess.call(("explorer", "/select,", os.path.normpath(path)))
     else:  # linux variants
         subprocess.call(("xdg-open", path))
 

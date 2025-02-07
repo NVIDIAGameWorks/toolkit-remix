@@ -2,6 +2,17 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.22.0]
+### Added
+- Added the ability for an OmniURL item to return the omni client entry
+
+## [2.21.0]
+### Changed
+- Replaced Windows command for `open_file_using_os_default`
+
+### Fixed
+- Fixed missing function in `__all__`
+
 ## [2.20.0]
 ### Changed
 - Simplified `sudo` function on Windows

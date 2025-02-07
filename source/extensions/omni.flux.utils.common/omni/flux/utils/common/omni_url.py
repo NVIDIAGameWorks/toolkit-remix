@@ -78,6 +78,12 @@ class OmniUrl:
         result, entry = omni.client.stat(self._url)
         return bool(result == omni.client.Result.OK and not entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN)
 
+    @property
+    def entry(self) -> omni.client.ListEntry | None:
+        """returns True if path points to a file."""
+        result, entry = omni.client.stat(self._url)
+        return entry if result == omni.client.Result.OK else None
+
     def iterdir(self):
         """When the path points to a directory, yield path objects of the directory contents."""
         res, file_entries = omni.client.list(self._url)

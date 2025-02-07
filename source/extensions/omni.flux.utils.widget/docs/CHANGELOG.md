@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.19.1]
+### Fixed
+- Fixed crash when item is none in `TreeModelBase`'s `can_item_have_children`
+
 ## [1.19.0]
 ### Added
 - Added `AlternateRowWidget` and related widgets to allow easy implementation of alternating row colors in `TreeWidget`
