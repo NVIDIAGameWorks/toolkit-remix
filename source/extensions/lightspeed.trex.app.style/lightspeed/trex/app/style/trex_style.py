@@ -1,3 +1,4 @@
+# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -452,6 +453,8 @@ current_dict.update(
         "Image::GeomSubset": {"image_url": _get_icons("hexagon-multiple-outline"), "color": _WHITE_80},
         "Image::Categories": {"image_url": _get_icons("categories"), "color": _WHITE_100},
         "Image::Categories:hovered": {"image_url": _get_icons("categories"), "color": _WHITE_60},
+        "Image::CategoriesShown": {"image_url": _get_icons("category-on"), "color": _WHITE_60},
+        "Image::CategoriesHidden": {"image_url": _get_icons("category-off"), "color": _WHITE_30},
         "Image::TimerStatic": {"image_url": _get_icons("timer"), "color": _WHITE_80},
         "Image::CylinderLightStatic": {"image_url": _get_icons("light_cylinder"), "color": _WHITE_60},
         "Image::DiskLightStatic": {"image_url": _get_icons("light_disc"), "color": _WHITE_60},

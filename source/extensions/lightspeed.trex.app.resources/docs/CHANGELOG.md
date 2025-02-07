@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.12.1]
+## Added
+- Stage Manager: Added a categories interaction tab
+- Add hidden category icons
+
 ## [1.12.0]
 ## Added
 - Stage Manager: Added custom tags interaction tab

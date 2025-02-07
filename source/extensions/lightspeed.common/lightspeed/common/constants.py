@@ -472,6 +472,7 @@ REMIX_CATEGORIES = {
 }
 
 REMIX_CATEGORIES_DISPLAY_NAMES = {v["attr"]: k for k, v in REMIX_CATEGORIES.items()}
+HIDDEN_REMIX_CATEGORIES = ["Third Person Player Body", "Third Person Player Model", "Hidden", "Ignore", "Ignore Lights"]
 
 
 # This should match the `normalmap_encoding` in AperturePBR_normal.mdl

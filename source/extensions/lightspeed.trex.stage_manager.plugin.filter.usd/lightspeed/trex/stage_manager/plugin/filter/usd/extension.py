@@ -21,11 +21,12 @@ import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
 from .is_capture import IsCaptureFilterPlugin as _IsCaptureFilterPlugin
+from .is_category import IsCategoryFilterPlugin as _IsCategoryFilterPlugin
 
 
 class LightspeedStageManagerUSDFilterPluginsExtension(omni.ext.IExt):
 
-    _PLUGINS = [_IsCaptureFilterPlugin]
+    _PLUGINS = [_IsCaptureFilterPlugin, _IsCategoryFilterPlugin]
 
     def on_startup(self, _):
         carb.log_info("[lightspeed.trex.stage_manager.plugin.filter.usd] Startup")

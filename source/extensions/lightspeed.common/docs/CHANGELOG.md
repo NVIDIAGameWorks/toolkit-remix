@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.7]
+### Added
+- Added hidden categories list
+
 ## [1.0.6]
 ### Changed
 - Updated Remix Categories list

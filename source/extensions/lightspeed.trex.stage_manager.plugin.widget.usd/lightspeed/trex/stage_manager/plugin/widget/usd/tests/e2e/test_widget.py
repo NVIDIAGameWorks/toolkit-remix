@@ -22,10 +22,16 @@ import tempfile
 from pathlib import Path
 from typing import Type
 
+import omni.kit.commands
 import omni.kit.test
 from lightspeed.common import constants
+from lightspeed.trex.stage_manager.plugin.tree.usd.category_groups import CategoryGroupsItem as _CategoryGroupsItem
+from lightspeed.trex.stage_manager.plugin.tree.usd.category_groups import CategoryGroupsModel as _CategoryGroupsModel
 from lightspeed.trex.stage_manager.plugin.widget.usd.focus_in_viewport import (
     FocusInViewportActionWidgetPlugin as _FocusInViewportActionWidgetPlugin,
+)
+from lightspeed.trex.stage_manager.plugin.widget.usd.state_hidden_category import (
+    IsCategoryHiddenStateWidgetPlugin as _IsCategoryHiddenStateWidgetPlugin,
 )
 from lightspeed.trex.stage_manager.plugin.widget.usd.state_is_capture import (
     IsCaptureStateWidgetPlugin as _IsCaptureStateWidgetPlugin,
@@ -386,6 +392,84 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         self.assertEqual(
             focus_in_viewport_widget_image.widget.tooltip,
             TestStageManagerPluginWidget.FOCUS_IN_VIEWPORT_TOOLTIP_DISABLED,
+        )
+
+        await self.__destroy(_window, _widget)
+
+    async def test_prim_category_visible(self):
+        # Set up the test
+        await self.__create_project(create_symlinks=False)
+        _window, _widget = await self.__setup_widget(widget_plugin_type=_IsCategoryHiddenStateWidgetPlugin)
+
+        # Find and open the capture layer and adding attr for for check
+        expected_capture_file = Path(self.temp_dir.name) / "rtx-remix" / "captures" / "capture.usda"
+        capture_layer = Sdf.Layer.FindOrOpen(str(expected_capture_file))
+        self.stage = Usd.Stage.Open(capture_layer)
+
+        # Create sample data
+        light_prim = self.stage.GetPrimAtPath("/RootNode/meshes/mesh_one/SphereLight")
+        omni.kit.commands.execute(
+            "CreateUsdAttribute",
+            prim=light_prim,
+            attr_name="remix_category:particle",
+            attr_value=True,
+            attr_type=Sdf.ValueTypeNames.Bool,
+        )
+        item = _CategoryGroupsItem(display_name="Particle", tooltip="foobar", data=light_prim)
+
+        # Build the widget icon with the capture layer sample data
+        with _window.frame:
+            _widget.build_icon_ui(_CategoryGroupsModel(), item, 1, True)
+        await ui_test.human_delay(5)
+
+        # Ensure the UI correlates with capture layer data
+        category_state_widget_image = ui_test.find(
+            f"{_window.title}//Frame/Image[*].identifier=='category_state_widget_image'"
+        )
+        self.assertIsNotNone(category_state_widget_image)
+        self.assertEqual(category_state_widget_image.widget.name, "CategoriesShown")
+        self.assertEqual(
+            category_state_widget_image.widget.tooltip,
+            "Prim will be visible in the viewport because the category is rendered in the viewport.",
+        )
+
+        await self.__destroy(_window, _widget)
+
+    async def test_prim_category_hidden(self):
+        # Set up the test
+        await self.__create_project(create_symlinks=False)
+        _window, _widget = await self.__setup_widget(widget_plugin_type=_IsCategoryHiddenStateWidgetPlugin)
+
+        # Find and open the capture layer
+        expected_capture_file = Path(self.temp_dir.name) / "rtx-remix" / "captures" / "capture.usda"
+        capture_layer = Sdf.Layer.FindOrOpen(str(expected_capture_file))
+        self.stage = Usd.Stage.Open(capture_layer)
+
+        # Create sample data and adding attr for check
+        light_prim = self.stage.GetPrimAtPath("/RootNode/meshes/mesh_one/SphereLight")
+        omni.kit.commands.execute(
+            "CreateUsdAttribute",
+            prim=light_prim,
+            attr_name="remix_category:hidden",
+            attr_value=True,
+            attr_type=Sdf.ValueTypeNames.Bool,
+        )
+        item = _CategoryGroupsItem(display_name="Hidden", tooltip="foobar", data=light_prim)
+
+        # Build the widget icon with the capture layer sample data
+        with _window.frame:
+            _widget.build_icon_ui(_CategoryGroupsModel(), item, 1, True)
+        await ui_test.human_delay(5)
+
+        # Ensure the icon indicates that the prim isn't visible
+        category_state_widget_image = ui_test.find(
+            f"{_window.title}//Frame/Image[*].identifier=='category_state_widget_image'"
+        )
+        self.assertIsNotNone(category_state_widget_image)
+        self.assertEqual(category_state_widget_image.widget.name, "CategoriesHidden")
+        self.assertEqual(
+            category_state_widget_image.widget.tooltip,
+            "Prim will not be visible because the Hidden category are not rendered in the viewport.",
         )
 
         await self.__destroy(_window, _widget)
