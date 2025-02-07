@@ -15,32 +15,35 @@
 * limitations under the License.
 """
 
+from omni.flux.stage_manager.factory.plugins import StageManagerFilterPlugin as _StageManagerFilterPlugin
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
+from omni.flux.stage_manager.plugin.interaction.usd.base import (
+    StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin,
+)
 
-from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin
 
+class AllMeshesInteractionPlugin(_StageManagerUSDInteractionPlugin):
+    display_name: str = "Meshes"
+    tooltip: str = "View the available meshes and their respective instances"
 
-class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
-    display_name: str = "Prims"
-    tooltip: str = "View the available prims"
+    internal_context_filters: list[_StageManagerFilterPlugin] = [{"name": "MeshPrimsFilterPlugin"}]
+    tree: _StageManagerTreePlugin = {"name": "MeshGroupsTreePlugin"}
 
-    tree: _StageManagerTreePlugin = {"name": "PrimGroupsTreePlugin"}
-
-    compatible_trees: list[str] = ["PrimGroupsTreePlugin", "VirtualGroupsTreePlugin"]
+    compatible_trees: list[str] = ["MeshGroupsTreePlugin", "PrimGroupsTreePlugin"]
     compatible_filters: list[str] = [
         "IgnorePrimsFilterPlugin",
         "IsCaptureFilterPlugin",
+        "LightPrimsFilterPlugin",
         "MeshPrimsFilterPlugin",
         "OmniPrimsFilterPlugin",
         "SearchFilterPlugin",
-        "IsCategoryFilterPlugin",
     ]
     # TODO StageManager: We have LSS plugin names in the flux ext because of this system
     compatible_widgets: list[str] = [
         "CustomTagsWidgetPlugin",
         "FocusInViewportActionWidgetPlugin",
         "IsCaptureStateWidgetPlugin",
+        "IsCategoryHiddenStateWidgetPlugin",
         "IsVisibleActionWidgetPlugin",
         "PrimTreeWidgetPlugin",
-        "IsCategoryHiddenStateWidgetPlugin",
     ]

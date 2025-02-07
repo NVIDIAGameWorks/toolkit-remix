@@ -21,11 +21,12 @@ import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
 from .category_groups import CategoryGroupsTreePlugin as _CategoryGroupsTreePlugin
+from .mesh_groups import MeshGroupsTreePlugin as _MeshGroupsTreePlugin
 
 
 class LightspeedStageManagerUSDTreePluginsExtension(omni.ext.IExt):
 
-    _PLUGINS = [_CategoryGroupsTreePlugin]
+    _PLUGINS = [_CategoryGroupsTreePlugin, _MeshGroupsTreePlugin]
 
     def on_startup(self, _):
         carb.log_info("[lightspeed.trex.stage_manager.plugin.tree.usd] Startup")

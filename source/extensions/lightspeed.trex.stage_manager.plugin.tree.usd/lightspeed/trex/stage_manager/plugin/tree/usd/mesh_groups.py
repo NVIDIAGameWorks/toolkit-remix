@@ -1,0 +1,118 @@
+"""
+* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-License-Identifier: Apache-2.0
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* https://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+"""
+
+from __future__ import annotations
+
+from typing import Iterable
+
+from lightspeed.common import constants
+from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
+from lightspeed.trex.utils.common.prim_utils import is_model as _is_model
+from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
+from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
+from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsDelegate as _VirtualGroupsDelegate
+from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsItem as _VirtualGroupsItem
+from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsModel as _VirtualGroupsModel
+from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsTreePlugin as _VirtualGroupsTreePlugin
+
+
+class MeshGroupsItem(_VirtualGroupsItem):
+    @property
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
+
+    @property
+    def icon(self):
+        if self.is_virtual:
+            return "Mesh"
+        return ""
+
+
+class MeshGroupsModel(_VirtualGroupsModel):
+    @property
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
+
+    def _build_items(self, items: Iterable[_StageManagerItem]) -> list[MeshGroupsItem] | None:
+        tree_items = {}
+
+        # Create mesh group items as parents
+        for item in items:
+            if _is_model(item.data):
+                item_path = item.data.GetPath()
+
+                # Display name should be the mesh_HASH prim instead of "mesh", otherwise keep the original name
+                tree_items[str(item.data.GetPath())] = MeshGroupsItem(
+                    display_name=item_path.GetParentPath().name if item_path.name == "mesh" else item_path.name,
+                    data=item.data,
+                    tooltip=str(item.data.GetPath()),
+                    is_virtual=True,
+                )
+
+        # Grab instance items
+        instance_items = [item for item in items if _is_instance(item.data)]
+        instance_item_names = _StageManagerUtils.get_unique_names(instance_items)
+
+        # Create instance group items as children of mesh group items
+        for item in instance_items:
+            item_name, parent_name = instance_item_names.get(item, (None, None))
+
+            # Just use path name if no valid display name
+            if item_name is None:
+                item_name = item.data.GetPath().name
+
+            # Grab parent path from item prim if no parent display name
+            if parent_name is None:
+                parent_name = item.data.GetParent().GetPath().name
+
+            # Use the parent mesh path found with regex
+            parent_mesh_path = str(
+                constants.COMPILED_REGEX_INSTANCE_TO_MESH_SUB.sub(rf"{constants.MESH_PATH}\2", str(item.data.GetPath()))
+            )
+            if parent_mesh_path in tree_items:
+                tree_items[parent_mesh_path].add_child(
+                    MeshGroupsItem(
+                        display_name=item_name,
+                        data=item.data,
+                        tooltip=str(item.data.GetPath()),
+                        display_name_ancestor=parent_name,
+                        is_virtual=False,
+                    )
+                )
+
+        return list(tree_items.values())
+
+
+class MeshGroupsDelegate(_VirtualGroupsDelegate):
+    @property
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
+
+
+class MeshGroupsTreePlugin(_VirtualGroupsTreePlugin):
+    """
+    A flat list of prims that can be grouped using virtual groups
+    """
+
+    model: MeshGroupsModel = None
+    delegate: MeshGroupsDelegate = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.model = MeshGroupsModel()
+        self.delegate = MeshGroupsDelegate()

@@ -1,9 +1,9 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.0.0"
+version = "1.1.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
-authors = ["Shona Gillard <sgillard@nvidia.com>"]
+authors = ["Shona Gillard <sgillard@nvidia.com>", "Scott Fitzpatrick <scfitzpatric@nvidia.com"]
 
 # The title and description fields are primarly for displaying extension info in UI
 description = "A repository of USD interaction plugins for the stage manager"
