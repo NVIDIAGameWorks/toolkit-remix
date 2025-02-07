@@ -62,6 +62,64 @@
             ]
         },
         {
+            "name": "AllMeshesInteractionPlugin",
+            "filters": [
+                { "name": "IsCaptureFilterPlugin" }
+            ],
+            "context_filters": [
+                { "name": "OmniPrimsFilterPlugin", "include_results": false },
+                {
+                    "name": "IgnorePrimsFilterPlugin",
+                    "ignore_prim_paths": [
+                        "/Bookmarks",
+                        "/CustomTags",
+                        "/Render",
+                        "/RootNode/Camera",
+                        "/RootNode/Looks",
+                        "/RootNode/cameras",
+                        "/RootNode/lights",
+                        "/Viewport_Waypoints",
+                        "/remix_settings"
+                    ]
+                }
+            ],
+            "columns": [
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Mesh Prims",
+                    "widgets": [
+                        { "name": "PrimTreeWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Custom Tags",
+                    "width": { "unit": "Fraction", "value": 0.5 },
+                    "widgets": [
+                        { "name": "CustomTagsWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "States",
+                    "width": { "unit": "Pixel", "value": 100 },
+                    "widgets": [
+                        { "name": "IsCaptureStateWidgetPlugin" },
+                        { "name": "IsCategoryHiddenStateWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Actions",
+                    "width": { "unit": "Pixel", "value": 100 },
+                    "widgets": [
+                        { "name": "FocusInViewportActionWidgetPlugin" },
+                        { "name": "IsVisibleActionWidgetPlugin" }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "AllLightsInteractionPlugin",
             "filters": [
                 { "name": "IsCaptureFilterPlugin" }

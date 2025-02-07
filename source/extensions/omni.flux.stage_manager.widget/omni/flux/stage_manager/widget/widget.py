@@ -30,7 +30,7 @@ class StageManagerWidget:
         self,
         core: _StageManagerCore | None = None,
         tab_height: int = 32,
-        tab_padding: int = 8,
+        tab_padding: int = 16,
         active_style: str = "WorkspaceBackground",
         inactive_style: str = "TransparentBackground",
         **kwargs,
@@ -160,7 +160,7 @@ class StageManagerWidget:
             return
 
         widest_label = max(w.computed_width for w in self._tab_labels.values())
-        tab_width = (ui.Workspace.get_dpi_scale() * widest_label) + self._tab_padding
+        tab_width = widest_label + (ui.Workspace.get_dpi_scale() * self._tab_padding)
 
         for tab in self._tab_backgrounds.values():
             tab.width = ui.Pixel(tab_width)

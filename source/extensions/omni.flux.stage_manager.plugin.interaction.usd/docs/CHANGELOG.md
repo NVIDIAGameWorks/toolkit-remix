@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.12.2]
+## Added
+- Added `MeshPrimsFilterPlugin` as a compatible filter
+
 ## [1.12.1]
 ## Added
 - Allow categories interaction tab to be used
