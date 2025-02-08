@@ -22,7 +22,7 @@ from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractio
 
 class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     display_name: str = "Prims"
-    tooltip: str = "View the available prims"
+    tooltip: str = "View all the available prims"
 
     tree: _StageManagerTreePlugin = {"name": "PrimGroupsTreePlugin"}
 
@@ -40,7 +40,7 @@ class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
         "CustomTagsWidgetPlugin",
         "FocusInViewportActionWidgetPlugin",
         "IsCaptureStateWidgetPlugin",
+        "IsCategoryHiddenStateWidgetPlugin",
         "IsVisibleActionWidgetPlugin",
         "PrimTreeWidgetPlugin",
-        "IsCategoryHiddenStateWidgetPlugin",
     ]

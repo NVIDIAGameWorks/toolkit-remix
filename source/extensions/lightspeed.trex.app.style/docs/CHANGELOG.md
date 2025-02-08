@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.1]
+## Fixed
+- Fixed remix categories icon color
+
 ## [1.8.0]
 ## Added
 - Added styles for the updated home page

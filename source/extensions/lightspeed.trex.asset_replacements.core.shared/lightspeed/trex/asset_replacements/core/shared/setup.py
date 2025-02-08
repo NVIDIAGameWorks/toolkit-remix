@@ -47,6 +47,8 @@ from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.usd.commands import remove_prim_spec as _remove_prim_spec
 from pxr import Sdf, Usd, UsdGeom, UsdShade, UsdSkel
 
+from .data_models import DefaultAssetDirectory as _DefaultAssetDirectory
+
 if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstance as _ItemInstance
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
@@ -200,13 +202,15 @@ class Setup:
             reference_paths=[(str(child_prim_path), (str(reference.assetPath), edit_target_layer.identifier))]
         )
 
-    def get_default_output_directory_with_data_model(self) -> AssetPathResponseModel:
+    def get_default_output_directory_with_data_model(
+        self, directory: _DefaultAssetDirectory = _DefaultAssetDirectory.INGESTED
+    ) -> AssetPathResponseModel:
         root_layer = self._context.get_stage().GetRootLayer()
         if root_layer.anonymous:
             raise ValueError("No project is currently loaded.")
 
         project_url = _OmniUrl(root_layer.realPath)
-        output_directory = _OmniUrl(project_url.parent_url) / constants.REMIX_INGESTED_ASSETS_FOLDER
+        output_directory = _OmniUrl(project_url.parent_url) / directory.value
 
         return AssetPathResponseModel(asset_path=str(output_directory))
 

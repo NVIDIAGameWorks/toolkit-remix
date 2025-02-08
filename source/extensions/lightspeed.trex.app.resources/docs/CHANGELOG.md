@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.1]
+## Added
+- Validation: Added default output directory endpoint for the contexts
+
 ## [1.14.0]
 ## Added
 - Added an icon for project with no thumbnails
@@ -9,10 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Added
 - Stage Manager: Added a mesh/instance tab
 
-## [1.12.1]
-## Added
-- Stage Manager: Added a categories interaction tab
-- Add hidden category icons
+## Changed
+- Stage Manager: Changed the prims columns display names for consistency
 
 ## [1.12.0]
 ## Added

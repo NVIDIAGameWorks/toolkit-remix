@@ -22,7 +22,7 @@ from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractio
 
 class AllTagsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     display_name: str = "Custom Tags"
-    tooltip: str = "View all the available prims group by custom tags"
+    tooltip: str = "View the available prims, grouped by custom tags"
 
     tree: _StageManagerTreePlugin = {"name": "CustomTagGroupsTreePlugin"}
 
@@ -38,6 +38,7 @@ class AllTagsInteractionPlugin(_StageManagerUSDInteractionPlugin):
         "CustomTagsWidgetPlugin",
         "FocusInViewportActionWidgetPlugin",
         "IsCaptureStateWidgetPlugin",
+        "IsCategoryHiddenStateWidgetPlugin",
         "IsVisibleActionWidgetPlugin",
         "PrimTreeWidgetPlugin",
     ]

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.11.0]
+## Changed
+- Added the ability to fetch the default output dir on build of the UI for Asset Importer and Texture Importer
+
 ## [2.10.3]
 ## Changed
 - update to use omni.kit.test public api

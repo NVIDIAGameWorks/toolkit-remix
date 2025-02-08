@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.0]
+### Changed
+- Disabled rebuilding the frame on click for this layout
+
 ## [2.0.0]
 ### Changed
 - Updated home screen to new design

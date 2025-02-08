@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3769: Added Custom Tags Tab for the Stage Manager
 - REMIX-3657: Added a Categories Interaction Tab to the Stage Manager
 - REMIX-3767: Added a Meshes Tab for the Stage Manager
+- REMIX-3659: Add the ability to get default output directory in Ingestion and AI Tools tabs
 
 ### Changed
 - Updated hdremix to dd92d0f
@@ -51,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3447: Fixed Material and Mesh widgets relying on the selection panel tree
 - REMIX-3764: Only show categories icon when a mesh is selected
 - Enabled Extension Registry
+- Fixed various Stage Manager issues
 
 ### Removed
 

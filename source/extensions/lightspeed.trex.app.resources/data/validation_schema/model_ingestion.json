@@ -7,6 +7,7 @@
                 "context_name": "ingestcraft",
                 "input_files": [],
                 "output_directory": "",
+                "default_output_endpoint": "/stagecraft/assets/default-directory",
                 "allow_empty_input_files_list": true,
                 "data_flows": [
                     {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "write_metadata"},

@@ -37,6 +37,7 @@ from omni.flux.asset_importer.widget.texture_import_list.utils import (
     create_prims_and_link_assets as _create_prims_and_link_assets,
 )
 from omni.flux.info_icon.widget import InfoIconWidget as _InfoIconWidget
+from omni.flux.utils.common.api import send_request as _send_request
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.flux.utils.common.path_utils import get_invalid_extensions as _get_invalid_extensions
@@ -61,6 +62,7 @@ class TextureImporter(_ContextBaseUSD):
         error_on_texture_types: Optional[List[_TextureTypes]] = None  # if we set texture with this type, it will crash
         create_output_directory_if_missing: bool = True
         output_directory: _OmniUrl
+        default_output_endpoint: Optional[str] = None  # An API endpoint to hit up to get the default output directory
 
         _compatible_data_flow_names = ["InOutData"]
         data_flows: Optional[List[_InOutDataFlow]] = None  # override base argument with the good typing
@@ -372,6 +374,15 @@ class TextureImporter(_ContextBaseUSD):
                     mouse_pressed_fn=partial(self.__open_dialog, schema_data, self._output_field.model),
                 )
                 _InfoIconWidget("The directory to import the converted input files to.")
+
+            if schema_data.default_output_endpoint:
+                try:
+                    response = await _send_request("GET", schema_data.default_output_endpoint)
+                    output_directory = response.get("asset_path")
+
+                    schema_data.output_directory = _OmniUrl(output_directory)
+                except RuntimeError:
+                    pass
 
             self._output_field.model.set_value(
                 carb.tokens.get_tokens_interface().resolve(str(schema_data.output_directory))

@@ -23,14 +23,14 @@ from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractio
 
 class AllSkeletonsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     display_name: str = "Skeletons"
-    tooltip: str = "View all the Skeletons and their bound Prims"
+    tooltip: str = "View the available skeletons and their bound prims"
 
     internal_context_filters: list[_StageManagerFilterPlugin] = [
         {"name": "SkeletonPrimsFilterPlugin"},
     ]
     tree: _StageManagerTreePlugin = {"name": "SkeletonGroupsTreePlugin"}
 
-    compatible_trees: list[str] = ["SkeletonGroupsTreePlugin", "PrimGroupsTreePlugin"]
+    compatible_trees: list[str] = ["PrimGroupsTreePlugin", "SkeletonGroupsTreePlugin"]
     compatible_filters: list[str] = [
         "IgnorePrimsFilterPlugin",
         "IsCaptureFilterPlugin",
@@ -43,6 +43,7 @@ class AllSkeletonsInteractionPlugin(_StageManagerUSDInteractionPlugin):
         "CustomTagsWidgetPlugin",
         "FocusInViewportActionWidgetPlugin",
         "IsCaptureStateWidgetPlugin",
+        "IsCategoryHiddenStateWidgetPlugin",
         "IsVisibleActionWidgetPlugin",
         "PrimTreeWidgetPlugin",
         "RemapSkeletonActionWidgetPlugin",

@@ -19,6 +19,7 @@ __all__ = [
     "AppendReferenceRequestModel",
     "AssetPathResponseModel",
     "AssetReplacementsValidators",
+    "DefaultAssetDirectory",
     "GetPrimsQueryModel",
     "GetTexturesQueryModel",
     "PrimInstancesPathParamModel",
@@ -32,6 +33,7 @@ __all__ = [
     "TexturesResponseModel",
 ]
 
+from .enums import DefaultAssetDirectory
 from .models import (
     AppendReferenceRequestModel,
     AssetPathResponseModel,

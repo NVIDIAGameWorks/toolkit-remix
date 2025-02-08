@@ -430,7 +430,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         self.assertEqual(category_state_widget_image.widget.name, "CategoriesShown")
         self.assertEqual(
             category_state_widget_image.widget.tooltip,
-            "Prim will be visible in the viewport because the category is rendered in the viewport.",
+            "The prim's visibility is not affected by the assigned categories",
         )
 
         await self.__destroy(_window, _widget)
@@ -469,7 +469,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         self.assertEqual(category_state_widget_image.widget.name, "CategoriesHidden")
         self.assertEqual(
             category_state_widget_image.widget.tooltip,
-            "Prim will not be visible because the Hidden category are not rendered in the viewport.",
+            "The prim is not visible because the following category is not rendered in the viewport: \n- Hidden",
         )
 
         await self.__destroy(_window, _widget)

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.23.0]
+### Added
+- Added the `api` module to send HTTP requests
+
 ## [2.22.0]
 ### Added
 - Added the ability for an OmniURL item to return the omni client entry
