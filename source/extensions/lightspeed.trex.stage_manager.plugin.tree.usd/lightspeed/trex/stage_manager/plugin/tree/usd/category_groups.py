@@ -38,8 +38,8 @@ class CategoryGroupsItem(_VirtualGroupsItem):
         display_name: str,
         data: Usd.Prim | None,
         tooltip: str = None,
-        category: str = None,
         display_name_ancestor: str = None,
+        category: str = None,
     ):
         """
         Create a Category Group Item
@@ -48,39 +48,29 @@ class CategoryGroupsItem(_VirtualGroupsItem):
             display_name: The name to display in the Tree
             data: The USD Prim this item represents
             tooltip: The tooltip to display when hovering an item in the TreeView
+            display_name_ancestor: A string to prepend to the display name with
+            category: The name of the category this item represents
         """
 
         super().__init__(display_name, data, tooltip=tooltip, display_name_ancestor=display_name_ancestor)
 
-        self._categories = []
-        if category is not None:
-            self._categories.append(category)
-        if data:
-            for attr in data.GetAttributes():
-                if "remix_category" in attr.GetName() and attr.Get():
-                    self._categories.append(attr.GetName())
+        self._category = category
 
     @property
     def default_attr(self) -> dict[str, None]:
         default_attr = super().default_attr
         default_attr.update(
             {
-                "_categories": [],
+                "_category": None,
             }
         )
         return default_attr
 
-    def is_category_hidden(self):
-        return any(
-            _REMIX_CATEGORIES_DISPLAY_NAMES.get(category, "") in _HIDDEN_REMIX_CATEGORIES
-            for category in self._categories
-        )
-
     @property
     def icon(self):
-        if self.data:
+        if not self.is_virtual:
             return None
-        if self.is_category_hidden():
+        if _REMIX_CATEGORIES_DISPLAY_NAMES.get(self._category) in _HIDDEN_REMIX_CATEGORIES:
             return "CategoriesHidden"
         return "CategoriesShown"
 
@@ -103,11 +93,7 @@ class CategoryGroupsModel(_VirtualGroupsModel):
         # Add category items to the groups
         for item in items:
             prim_path = item.data.GetPath()
-            found = False
-
             for attr in item.data.GetAttributes():
-                if found:
-                    break
                 if attr.GetName() in _REMIX_CATEGORIES_DISPLAY_NAMES and attr.Get():
                     name, parent = item_names.get(item, (None, None))
                     tree_items[attr.GetName()].add_child(
@@ -118,8 +104,8 @@ class CategoryGroupsModel(_VirtualGroupsModel):
                             display_name_ancestor=parent,
                         )
                     )
-                    found = True
 
+        # Filter out empty groups
         return [item for item in tree_items.values() if item.children]
 
 

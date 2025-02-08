@@ -141,7 +141,9 @@ class SetupUI(TrexLayout):
             if self.__enable_items_task:
                 self.__enable_items_task.cancel()
             self.__enable_items_task = asyncio.ensure_future(self.__deferred_enable_items())
-            self._components_pane.refresh()
+
+            if self._components_pane:
+                self._components_pane.refresh()
 
     @omni.usd.handle_exception
     async def __deferred_enable_items(self):
@@ -316,6 +318,10 @@ class SetupUI(TrexLayout):
     @property
     def button_priority(self) -> int:
         return 10
+
+    @property
+    def rebuild_frame(self) -> bool:
+        return False
 
     @omni.usd.handle_exception
     async def __resize_stage_manager_deferred(self):
@@ -558,6 +564,8 @@ class SetupUI(TrexLayout):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
+        if not self._properties_pane:
+            return None
         return self._properties_pane.get_frame(ComponentsEnumItems.MOD_SETUP).subscribe_import_capture_layer(function)
 
     def _set_stage_manager_splitter_offset(self, y):

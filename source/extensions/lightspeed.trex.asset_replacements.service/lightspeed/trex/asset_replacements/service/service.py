@@ -18,6 +18,7 @@
 from lightspeed.trex.asset_replacements.core.shared import Setup as AssetReplacementsCore
 from lightspeed.trex.asset_replacements.core.shared.data_models import (
     AssetReplacementsValidators,
+    DefaultAssetDirectory,
     GetPrimsQueryModel,
     PrimsResponseModel,
     PrimTypes,
@@ -60,6 +61,46 @@ class AssetReplacementsService(ServiceBase):
     def register_endpoints(self):
         context_name = self.__context_name
         asset_path_description = "The asset path to the asset that will be inspected for {0}"
+
+        @self.router.get(
+            path="/default-directory/models",
+            description="Get the default output directory for non-ingested model assets.",
+            response_model=AssetPathResponseModel,
+        )
+        async def get_default_model_asset_path_directory() -> AssetPathResponseModel:
+            try:
+                return self.__asset_core.get_default_output_directory_with_data_model(
+                    directory=DefaultAssetDirectory.MODELS
+                )
+            except ValueError as e:
+                ServiceBase.raise_error(404, e)
+
+        @self.router.get(
+            path="/default-directory/textures",
+            description="Get the default output directory for non-ingested texture assets.",
+            response_model=AssetPathResponseModel,
+        )
+        # Keep this definition before "/{asset_path:path}/textures" or the router will not work
+        async def get_default_texture_asset_path_directory() -> AssetPathResponseModel:
+            try:
+                return self.__asset_core.get_default_output_directory_with_data_model(
+                    directory=DefaultAssetDirectory.TEXTURES
+                )
+            except ValueError as e:
+                ServiceBase.raise_error(404, e)
+
+        @self.router.get(
+            path="/default-directory",
+            description="Get the default output directory for ingested assets.",
+            response_model=AssetPathResponseModel,
+        )
+        async def get_default_ingested_asset_path_directory() -> AssetPathResponseModel:
+            try:
+                return self.__asset_core.get_default_output_directory_with_data_model(
+                    directory=DefaultAssetDirectory.INGESTED
+                )
+            except ValueError as e:
+                ServiceBase.raise_error(404, e)
 
         @self.router.get(
             path="/",
@@ -211,14 +252,3 @@ class AssetReplacementsService(ServiceBase):
             )
         ) -> str:
             return self.__asset_core.select_prim_paths_with_data_model(asset_paths) or "OK"
-
-        @self.router.get(
-            path="/default-directory",
-            description="Get the default output directory for ingested assets.",
-            response_model=AssetPathResponseModel,
-        )
-        async def get_default_ingested_asset_path_directory() -> AssetPathResponseModel:
-            try:
-                return self.__asset_core.get_default_output_directory_with_data_model()
-            except ValueError as e:
-                ServiceBase.raise_error(404, e)

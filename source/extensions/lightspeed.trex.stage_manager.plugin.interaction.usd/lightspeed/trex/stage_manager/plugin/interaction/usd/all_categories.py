@@ -15,7 +15,6 @@
 * limitations under the License.
 """
 
-from omni.flux.stage_manager.factory.plugins import StageManagerFilterPlugin as _StageManagerFilterPlugin
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
 from omni.flux.stage_manager.plugin.interaction.usd.base import (
     StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin,
@@ -24,17 +23,11 @@ from omni.flux.stage_manager.plugin.interaction.usd.base import (
 
 class AllCategoriesInteractionPlugin(_StageManagerUSDInteractionPlugin):
     display_name: str = "Categories"
-    tooltip: str = "View the prims by Remix Category"
+    tooltip: str = "View the available prims, grouped by RTX Remix Runtime categories"
 
-    internal_filters: list[_StageManagerFilterPlugin] = [{"name": "IsCategoryFilterPlugin"}]
     tree: _StageManagerTreePlugin = {"name": "CategoryGroupsTreePlugin"}
 
-    compatible_trees: list[str] = [
-        "LightGroupsTreePlugin",
-        "PrimGroupsTreePlugin",
-        "VirtualGroupsTreePlugin",
-        "CategoryGroupsTreePlugin",
-    ]
+    compatible_trees: list[str] = ["CategoryGroupsTreePlugin", "PrimGroupsTreePlugin"]
     compatible_filters: list[str] = [
         "IgnorePrimsFilterPlugin",
         "IsCaptureFilterPlugin",
@@ -45,9 +38,10 @@ class AllCategoriesInteractionPlugin(_StageManagerUSDInteractionPlugin):
     ]
     # TODO StageManager: We have LSS plugin names in the flux ext because of this system
     compatible_widgets: list[str] = [
-        "PrimTreeWidgetPlugin",
+        "CustomTagsWidgetPlugin",
         "FocusInViewportActionWidgetPlugin",
-        "IsVisibleActionWidgetPlugin",
         "IsCaptureStateWidgetPlugin",
         "IsCategoryHiddenStateWidgetPlugin",
+        "IsVisibleActionWidgetPlugin",
+        "PrimTreeWidgetPlugin",
     ]

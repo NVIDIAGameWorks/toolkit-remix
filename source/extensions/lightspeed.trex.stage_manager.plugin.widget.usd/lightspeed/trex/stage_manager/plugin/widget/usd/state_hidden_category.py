@@ -40,7 +40,7 @@ class IsCategoryHiddenStateWidgetPlugin(_StageManagerStateWidgetPlugin):
             category_name = _REMIX_CATEGORIES_DISPLAY_NAMES.get(attr.GetName(), "")
             if category_name in _HIDDEN_REMIX_CATEGORIES and attr.Get():
                 hidden_category.append(category_name)
-        categories = ", ".join(hidden_category)
+        categories = "\n- ".join(hidden_category)
         is_hidden = len(hidden_category) > 0
         ui.Image(
             "",
@@ -48,9 +48,11 @@ class IsCategoryHiddenStateWidgetPlugin(_StageManagerStateWidgetPlugin):
             height=self._icon_size,
             name="CategoriesHidden" if is_hidden else "CategoriesShown",
             tooltip=(
-                f"Prim will not be visible because the {categories} {'categories' if len(hidden_category) > 1 else 'category'} are not rendered in the viewport."  # noqa E501
+                f"The prim is not visible because the following "
+                f"{'categories are' if len(hidden_category) > 1 else 'category is'} "
+                f"not rendered in the viewport: \n- {categories}"
                 if is_hidden
-                else "Prim will be visible in the viewport because the category is rendered in the viewport."
+                else "The prim's visibility is not affected by the assigned categories"
             ),
             identifier="category_state_widget_image",
         )

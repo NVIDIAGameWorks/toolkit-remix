@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.12.3]
+## Fixed
+- Fixed compatibility lists for all interactions
+
 ## [1.12.2]
 ## Added
 - Added `MeshPrimsFilterPlugin` as a compatible filter

@@ -28,7 +28,7 @@
             "columns": [
                 {
                     "name": "HorizontalColumnPlugin",
-                    "display_name": "Prims",
+                    "display_name": "Stage Prims",
                     "widgets": [
                         { "name": "PrimTreeWidgetPlugin" }
                     ]
@@ -161,7 +161,8 @@
                     "display_name": "States",
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
-                        { "name": "IsCaptureStateWidgetPlugin" }
+                        { "name": "IsCaptureStateWidgetPlugin" },
+                        { "name": "IsCategoryHiddenStateWidgetPlugin" }
                     ]
                 },
                 {
@@ -199,7 +200,7 @@
             "columns": [
                 {
                     "name": "HorizontalColumnPlugin",
-                    "display_name": "Skeleton Prims and Joints",
+                    "display_name": "Skeleton and Joint Prims",
                     "widgets": [
                         { "name": "PrimTreeWidgetPlugin" }
                     ]
@@ -233,7 +234,66 @@
                     "display_name": "States",
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
-                        { "name": "IsCaptureStateWidgetPlugin" }
+                        { "name": "IsCaptureStateWidgetPlugin" },
+                        { "name": "IsCategoryHiddenStateWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Actions",
+                    "width": { "unit": "Pixel", "value": 100 },
+                    "widgets": [
+                        { "name": "FocusInViewportActionWidgetPlugin" },
+                        { "name": "IsVisibleActionWidgetPlugin" }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "AllCategoriesInteractionPlugin",
+            "filters": [
+                { "name": "IsCategoryFilterPlugin" },
+                { "name": "IsCaptureFilterPlugin" }
+            ],
+            "context_filters": [
+                { "name": "OmniPrimsFilterPlugin", "include_results": false },
+                {
+                    "name": "IgnorePrimsFilterPlugin",
+                    "ignore_prim_paths": [
+                        "/Bookmarks",
+                        "/CustomTags",
+                        "/Render",
+                        "/RootNode/cameras",
+                        "/RootNode/Camera",
+                        "/RootNode/instances",
+                        "/Viewport_Waypoints",
+                        "/remix_settings"
+                    ]
+                }
+            ],
+            "columns": [
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Categorized Prims",
+                    "widgets": [
+                        { "name": "PrimTreeWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "Custom Tags",
+                    "width": { "unit": "Fraction", "value": 0.5 },
+                    "widgets": [
+                        { "name": "CustomTagsWidgetPlugin" }
+                    ]
+                },
+                {
+                    "name": "HorizontalColumnPlugin",
+                    "display_name": "States",
+                    "width": { "unit": "Pixel", "value": 100 },
+                    "widgets": [
+                        { "name": "IsCaptureStateWidgetPlugin" },
+                        { "name": "IsCategoryHiddenStateWidgetPlugin" }
                     ]
                 },
                 {
@@ -270,7 +330,7 @@
             "columns": [
                 {
                     "name": "HorizontalColumnPlugin",
-                    "display_name": "Prims",
+                    "display_name": "Tagged Prims",
                     "widgets": [
                         { "name": "PrimTreeWidgetPlugin" }
                     ]
@@ -281,39 +341,6 @@
                     "width": { "unit": "Fraction", "value": 0.5 },
                     "widgets": [
                         { "name": "CustomTagsWidgetPlugin" }
-                    ]
-                },
-                {
-                    "name": "HorizontalColumnPlugin",
-                    "display_name": "States",
-                    "width": { "unit": "Pixel", "value": 100 },
-                    "widgets": [
-                        { "name": "IsCaptureStateWidgetPlugin" }
-                    ]
-                },
-                {
-                    "name": "HorizontalColumnPlugin",
-                    "display_name": "Actions",
-                    "width": { "unit": "Pixel", "value": 100 },
-                    "widgets": [
-                        { "name": "FocusInViewportActionWidgetPlugin" },
-                        { "name": "IsVisibleActionWidgetPlugin" }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "AllCategoriesInteractionPlugin",
-            "filters": [
-                { "name": "IsCategoryFilterPlugin" },
-                { "name": "IsCaptureFilterPlugin" }
-                ],
-            "columns": [
-                {
-                    "name": "HorizontalColumnPlugin",
-                    "display_name": "Prims",
-                    "widgets": [
-                        { "name": "PrimTreeWidgetPlugin" }
                     ]
                 },
                 {

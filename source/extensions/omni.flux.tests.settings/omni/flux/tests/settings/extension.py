@@ -30,6 +30,8 @@ class FluxTestSettingsExtension(omni.ext.IExt):
         settings.set_default_bool("/app/hangDetector/enabled", False)
         settings.set_default_bool("/app/extensions/registryEnabled", True)
         settings.set_default_bool("/rtx/verifyDriverVersion/enabled", False)
+        settings.set_default_string("/exts/omni.services.transport.server.http/host", "127.0.0.1")
+        settings.set_default_int("/exts/omni.services.transport.server.http/port", 8011)
 
     def on_shutdown(self):
         carb.log_info("[omni.flux.tests.settings] Flux Test Settings Extension shutdown")

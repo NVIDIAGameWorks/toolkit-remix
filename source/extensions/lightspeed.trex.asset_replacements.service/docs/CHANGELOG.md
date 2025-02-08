@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+### Added
+- Added endpoints to get default model and texture directories
+
 ## [1.2.0]
 ### Changed
 - Use generic factory instead of service-specific factory

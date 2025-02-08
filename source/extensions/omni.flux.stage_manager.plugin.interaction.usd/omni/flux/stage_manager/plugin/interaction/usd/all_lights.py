@@ -42,7 +42,7 @@ class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
         "CustomTagsWidgetPlugin",
         "FocusInViewportActionWidgetPlugin",
         "IsCaptureStateWidgetPlugin",
+        "IsCategoryHiddenStateWidgetPlugin",
         "IsVisibleActionWidgetPlugin",
         "PrimTreeWidgetPlugin",
-        "IsCategoryHiddenStateWidgetPlugin",
     ]
