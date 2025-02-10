@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed the Stage Manager frame raster policy for improved performance at rest
 - Simplified the UAC logic
 - REMIX-2714: Updated the Home Page of the app
+- REMIX-3835: Removed whitespace restrictions from project creation
 
 
 ### Fixed

@@ -53,7 +53,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
         self.temp_dir.cleanup()
         self.temp_dir = None
 
-    async def copy_from_example_project(self, source: str, target: str):
+    async def _copy_from_example_project(self, source: str, target: str):
         example_dir = _get_test_data("usd/project_example")
         shutil.copyfile(f"{example_dir}/{source}", f"{self.temp_dir.name}/{target}")
         project_file = Path(self.temp_dir.name) / target
@@ -85,7 +85,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_are_project_symlinks_valid_no_deps_returns_false(self):
         # Arrange
-        project_file = Path(self.temp_dir.name) / "projects" / "MyProject" / "project.usda"
+        project_file = Path(self.temp_dir.name) / "projects" / "My Project" / "My Project.usda"
         project_dir = project_file.parent
 
         os.makedirs(project_dir, exist_ok=True)
@@ -100,10 +100,10 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_are_project_symlinks_valid_no_remix_mod_returns_false(self):
         # Arrange
-        project_dir = Path(self.temp_dir.name) / "projects" / "MyProject"
+        project_dir = Path(self.temp_dir.name) / "projects" / "My Project"
         remix_dir = Path(self.temp_dir.name) / constants.REMIX_FOLDER
 
-        project_file = project_dir / "project.usda"
+        project_file = project_dir / "My Project.usda"
         deps_dir = project_dir / constants.REMIX_DEPENDENCIES_FOLDER
 
         os.makedirs(project_dir, exist_ok=True)
@@ -119,13 +119,13 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_are_project_symlinks_valid_accepted_returns_true(self):
         # Arrange
-        project_dir = Path(self.temp_dir.name) / "projects" / "MyProject"
+        project_dir = Path(self.temp_dir.name) / "projects" / "My Project"
         remix_dir = Path(self.temp_dir.name) / constants.REMIX_FOLDER
 
         deps_dir = project_dir / constants.REMIX_DEPENDENCIES_FOLDER
         mods_dir = remix_dir / constants.REMIX_MODS_FOLDER
-        project_link_dir = mods_dir / "MyProject"
-        project_file = project_dir / "project.usda"
+        project_link_dir = mods_dir / "My Project"
+        project_file = project_dir / "My Project.usda"
 
         try:
             os.makedirs(mods_dir, exist_ok=True)
@@ -191,18 +191,6 @@ class TestItems(omni.kit.test.AsyncTestCase):
                     ProjectWizardSchema.is_project_file_valid(Path(self.temp_dir.name) / name, {})
                 self.assertEqual(str(cm.exception), f"'{name}' has a Windows reserved word in filename.")
 
-    async def test_schema_is_project_file_valid_invalid_whitespace(self):
-        file_names = [
-            Path(self.temp_dir.name) / "test whitespace.usd",
-            "path/to/invalid proj/test.usd",
-        ]
-
-        for path in file_names:
-            with self.subTest(path=path):
-                with self.assertRaises(ValueError) as cm:
-                    ProjectWizardSchema.is_project_file_valid(path, {})
-                self.assertEqual(str(cm.exception), f"'{path}' has a whitespace in file path.")
-
     async def test_schema_is_capture_file_valid_accepted_filename(self):
         file_names = [
             "test.usd",
@@ -241,7 +229,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_not_writable_file_throws(self):
         # Arrange
-        project_file = await self.copy_from_example_project("combined.usda", "project.usda")
+        project_file = await self._copy_from_example_project("combined.usda", "My Project.usda")
 
         # Act
         with patch.object(omni.client, "stat") as mock:
@@ -262,7 +250,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_is_mod_file_throws(self):
         # Arrange
-        project_file = await self.copy_from_example_project("combined.usda", "project.usda")
+        project_file = await self._copy_from_example_project("combined.usda", "My Project.usda")
 
         # Act
         with (
@@ -289,7 +277,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_is_capture_file_throws(self):
         # Arrange
-        project_file = await self.copy_from_example_project("combined.usda", "project.usda")
+        project_file = await self._copy_from_example_project("combined.usda", "My Project.usda")
 
         # Act
         with (
@@ -320,7 +308,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_not_writable_directory_throws(self):
         # Arrange
-        project_file = Path(self.temp_dir.name) / "project.usda"
+        project_file = Path(self.temp_dir.name) / "My Project.usda"
 
         # Act
         with patch.object(omni.client, "stat") as mock:
@@ -341,7 +329,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_is_in_rtx_remix_dir_throws(self):
         # Arrange
-        project_file = Path(self.temp_dir.name) / constants.REMIX_FOLDER / "project.usda"
+        project_file = Path(self.temp_dir.name) / constants.REMIX_FOLDER / "My Project.usda"
 
         project_file.parent.mkdir(parents=True)
 
@@ -356,7 +344,9 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_is_in_rtx_remix_mods_dir_throws(self):
         # Arrange
-        project_file = Path(self.temp_dir.name) / constants.REMIX_FOLDER / constants.REMIX_MODS_FOLDER / "project.usda"
+        project_file = (
+            Path(self.temp_dir.name) / constants.REMIX_FOLDER / constants.REMIX_MODS_FOLDER / "My Project.usda"
+        )
 
         project_file.parent.mkdir(parents=True)
 
@@ -377,8 +367,8 @@ class TestItems(omni.kit.test.AsyncTestCase):
             Path(self.temp_dir.name)
             / constants.REMIX_FOLDER
             / constants.REMIX_CAPTURE_FOLDER
-            / "TestProject"
-            / "project.usda"
+            / "Test Project"
+            / "My Project.usda"
         )
 
         project_file.parent.mkdir(parents=True)
@@ -394,7 +384,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_non_empty_directory_throws(self):
         # Arrange
-        project_file = Path(self.temp_dir.name) / "project.usda"
+        project_file = Path(self.temp_dir.name) / "My Project.usda"
 
         # Act
         with patch.object(omni.client, "list") as mock:
@@ -415,8 +405,8 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_project_exists_throws(self):
         # Arrange
-        project_dir = "MyProject"
-        project_file = Path(self.temp_dir.name) / "projects" / project_dir / "project.usda"
+        project_dir = "My Project"
+        project_file = Path(self.temp_dir.name) / "projects" / project_dir / "My Project.usda"
         remix_dir = Path(self.temp_dir.name) / constants.REMIX_FOLDER
         remix_project_dir = remix_dir / constants.REMIX_MODS_FOLDER / project_dir
 
@@ -454,7 +444,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_accepted_new_returns_val(self):
         # Arrange
-        project_file = Path(self.temp_dir.name) / "project.usda"
+        project_file = Path(self.temp_dir.name) / "My Project.usda"
 
         # Act
         with patch.object(omni.client, "stat") as mock:
@@ -474,7 +464,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_project_file_valid_accepted_existing_returns_val(self):
         # Arrange
-        project_file = await self.copy_from_example_project("combined.usda", "project.usda")
+        project_file = await self._copy_from_example_project("combined.usda", "My Project.usda")
 
         # Act
         with (
@@ -621,7 +611,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
     async def test_schema_are_all_mod_files_valid_parent_not_mod_folder_throws(self):
         # Arrange
         remix_dir = Path(self.temp_dir.name) / constants.REMIX_FOLDER
-        mod_dir = Path(self.temp_dir.name) / "ExistingMod" / "mod.usda"
+        mod_dir = Path(self.temp_dir.name) / "Existing Mod" / "mod.usda"
 
         # Act
         with self.assertRaises(ValueError) as cm:
@@ -636,7 +626,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
     async def test_schema_are_all_mod_files_valid_is_not_mod_file_throws(self):
         # Arrange
         remix_dir = Path(self.temp_dir.name) / constants.REMIX_FOLDER
-        mod_dir = remix_dir / constants.REMIX_MODS_FOLDER / "ExistingMod" / "mod.usda"
+        mod_dir = remix_dir / constants.REMIX_MODS_FOLDER / "Existing Mod" / "mod.usda"
 
         # Act
         with patch.object(ReplacementCore, "is_mod_file") as mock:
@@ -654,7 +644,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
     async def test_schema_are_all_mod_files_valid_accepted_returns_val(self):
         # Arrange
         remix_dir = Path(self.temp_dir.name) / constants.REMIX_FOLDER
-        mod_dir = remix_dir / constants.REMIX_MODS_FOLDER / "ExistingMod" / "mod.usda"
+        mod_dir = remix_dir / constants.REMIX_MODS_FOLDER / "Existing Mod" / "mod.usda"
 
         # Act
         with patch.object(ReplacementCore, "is_mod_file") as mock:
@@ -796,7 +786,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
     async def test_schema_is_existing_project_file_valid_layer_type_invalid(self):
         # Arrange
-        project_file = await self.copy_from_example_project("replacements.usda", "project.usda")
+        project_file = await self._copy_from_example_project("replacements.usda", "My Project.usda")
 
         # Act
         with patch.object(omni.client, "stat") as mock:
