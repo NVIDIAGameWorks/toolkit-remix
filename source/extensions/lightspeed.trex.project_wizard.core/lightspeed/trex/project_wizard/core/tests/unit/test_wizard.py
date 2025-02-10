@@ -49,7 +49,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
     async def test_setup_project_existing_project_should_quick_return_success(self):
         # Arrange
-        project_file = self.base_dir / "projects" / "MyProject" / "my_project.usda"
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
         remix_dir = self.base_dir / constants.REMIX_FOLDER
 
         schema = ProjectWizardSchemaMock(
@@ -77,7 +77,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
     async def test_setup_project_symlink_error_should_quick_return_error(self):
         # Arrange
-        project_file = self.base_dir / "projects" / "MyProject" / "my_project.usda"
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
         remix_dir = self.base_dir / constants.REMIX_FOLDER
 
         schema = ProjectWizardSchemaMock(
@@ -160,10 +160,10 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
     async def test_setup_project_dry_run_should_not_call_io_functions(self):
         # Arrange
-        project_file = self.base_dir / "projects" / "MyProject" / "my_project.usda"
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
         remix_dir = self.base_dir / constants.REMIX_FOLDER
         captures_dir = remix_dir / constants.REMIX_CAPTURE_FOLDER
-        existing_mod_dir = remix_dir / constants.REMIX_MODS_FOLDER / "ExistingMod"
+        existing_mod_dir = remix_dir / constants.REMIX_MODS_FOLDER / "Existing Mod"
 
         mod_file = existing_mod_dir / "mod.usda"
         capture_file = captures_dir / "capture.usda"
@@ -231,7 +231,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
     async def test_create_symlinks_remix_symlink_exists_same_project_should_return_none(self):
         # Arrange
         remix_dir = self.base_dir / constants.REMIX_FOLDER
-        project_file = remix_dir / constants.REMIX_MODS_FOLDER / Path("MyProject") / "project.usda"
+        project_file = remix_dir / constants.REMIX_MODS_FOLDER / "My Project" / "project.usda"
         deps_dir = project_file.parent / constants.REMIX_DEPENDENCIES_FOLDER
 
         schema = ProjectWizardSchemaMock(
@@ -257,7 +257,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
     async def test_create_project_layer_should_create_new_sublayer_open_stage_and_return_layer_and_stage(self):
         # Arrange
-        project_file = self.base_dir / "projects" / "MyProject" / "my_project.usda"
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
 
         core_mock = Mock()
         context_mock = Mock()
@@ -292,8 +292,8 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
     async def test_setup_existing_mod_project_should_copy_chmod_insert_and_return_file(self):
         # Arrange
-        project_file = self.base_dir / "MyProject" / "project.usda"
-        mod_file = self.base_dir / constants.REMIX_FOLDER / constants.REMIX_MODS_FOLDER / "ExistingMod" / "mod.usda"
+        project_file = self.base_dir / "My Project" / "project.usda"
+        mod_file = self.base_dir / constants.REMIX_FOLDER / constants.REMIX_MODS_FOLDER / "Existing Mod" / "mod.usda"
 
         project_dir = project_file.parent
         project_mod_file = project_dir / mod_file.name
@@ -331,7 +331,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
     async def test_setup_new_mod_project_should_create_new_sublayer_and_return_file(self):
         # Arrange
-        project_file = self.base_dir / "MyProject" / "project.usda"
+        project_file = self.base_dir / "My Project" / "project.usda"
         project_dir = project_file.parent
         mod_file = project_dir / constants.REMIX_MOD_FILE
 
@@ -367,14 +367,14 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
     async def test_insert_existing_mods_should_insert_all_existing_mod_except_mod_file(self):
         # Arrange
-        project_file = self.base_dir / "MyProject" / "project.usda"
+        project_file = self.base_dir / "My Project" / "project.usda"
         project_dir = project_file.parent
         project_mods_dir = project_dir / constants.REMIX_DEPENDENCIES_FOLDER / constants.REMIX_MODS_FOLDER
 
         existing_mods_dir = self.base_dir / constants.REMIX_FOLDER / constants.REMIX_MODS_FOLDER
-        mod_1 = existing_mods_dir / "Mod1" / "mod.usda"
-        mod_2 = existing_mods_dir / "Mod2" / "mod.usda"
-        mod_3 = existing_mods_dir / "Mod3" / "mod.usda"
+        mod_1 = existing_mods_dir / "Mod 1" / "mod.usda"
+        mod_2 = existing_mods_dir / "Mod 2" / "mod.usda"
+        mod_3 = existing_mods_dir / "Mod 3" / "mod.usda"
         existing_mods = [mod_1, mod_2, mod_3]
 
         mod_file = mod_1
@@ -412,7 +412,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
     async def test_insert_capture_layer_should_insert_sublayer(self):
         # Arrange
-        project_dir = self.base_dir / "MyProject"
+        project_dir = self.base_dir / "My Project"
         project_capture_dir = project_dir / constants.REMIX_DEPENDENCIES_FOLDER / constants.REMIX_CAPTURE_FOLDER
 
         capture_file = project_capture_dir / "capture.usd"
@@ -469,7 +469,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         # Arrange
         dry_run = False
 
-        project_file = self.base_dir / "projects" / "MyProject" / "my_project.usda"
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
         remix_dir = self.base_dir / constants.REMIX_FOLDER
         captures_dir = remix_dir / constants.REMIX_CAPTURE_FOLDER
         mods_dir = remix_dir / constants.REMIX_MODS_FOLDER
@@ -478,7 +478,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         deps_mods_dir = deps_dir / constants.REMIX_MODS_FOLDER
         deps_captures_dir = deps_dir / constants.REMIX_CAPTURE_FOLDER
 
-        mod_file = mods_dir / "ExistingMod" / "mod.usda"
+        mod_file = mods_dir / "Existing Mod" / "mod.usda"
         capture_file = captures_dir / "capture.usda"
         existing_mods = [mod_file]
 
@@ -602,7 +602,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
     async def __run_test_create_symlinks_should_quick_return(self, deps_or_remix: bool):
         # Arrange
-        project_file = self.base_dir / "MyProject" / "project.usda"
+        project_file = self.base_dir / "My Project" / "project.usda"
         remix_dir = self.base_dir / constants.REMIX_FOLDER
         deps_dir = project_file.parent / constants.REMIX_DEPENDENCIES_FOLDER
 
@@ -629,7 +629,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
     async def __run_test_create_symlinks_exists_should_not_symlink(self, deps_or_remix: bool):
         # Arrange
-        project_file_base = Path("MyProject") / "project.usda"
+        project_file_base = Path("My Project") / "project.usda"
         project_file = self.base_dir / project_file_base
         remix_dir = self.base_dir / constants.REMIX_FOLDER
         deps_dir = project_file.parent / constants.REMIX_DEPENDENCIES_FOLDER

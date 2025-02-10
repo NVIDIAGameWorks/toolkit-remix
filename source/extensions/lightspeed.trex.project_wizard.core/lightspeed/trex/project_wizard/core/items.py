@@ -70,9 +70,6 @@ class ProjectWizardSchema(BaseModel):
         # Make sure there are no invalid characters in the filename
         if re.search(r'[<>"\\():*?|]', Path(str(v)).name):
             raise ValueError(f"'{Path(str(v)).name}' has an invalid character in filename.")
-        # Make sure there are no whitespaces in the path
-        if " " in str(v).strip():
-            raise ValueError(f"'{str(v)}' has a whitespace in file path.")
         # Making sure there are no Windows reserved words
         if not re.search(_REGEX_VALID_PATH, Path(str(v)).name):
             raise ValueError(f"'{Path(str(v)).name}' has a Windows reserved word in filename.")
