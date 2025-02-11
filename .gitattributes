@@ -11,6 +11,9 @@
 # Make sure shell scripts have LF line endings, even when checked out on a Windows client with autocrlf=true
 *.sh text eol=lf
 
+# Make sure toml files have CR/LF line endings, for dependencies
+*.toml text eol=crlf
+
 # All files under data go into Git LFS
 data/** filter=lfs diff=lfs merge=lfs -text
 source/extensions/**/data/** filter=lfs diff=lfs merge=lfs -text
