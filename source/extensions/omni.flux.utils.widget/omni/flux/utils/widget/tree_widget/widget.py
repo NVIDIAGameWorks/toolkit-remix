@@ -243,7 +243,7 @@ class AlternatingRowWidget:
                     header_visible=False,
                 )
 
-    def sync_frame_height(self, frame_height: int):
+    def sync_frame_height(self, frame_height: float):
         """
         Sync the frame height to make sure the entire frame is filled with alternating row backgrounds.
 

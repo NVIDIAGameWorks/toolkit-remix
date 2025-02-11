@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.0.0"
+version = "1.0.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
@@ -33,7 +33,8 @@ icon = "data/images/icon.png"
 "lightspeed.common" = {}
 "lightspeed.trex.viewports.shared.widget" = {}
 "lightspeed.trex.asset_replacements.core.shared" = {}
-"omni.kit.widget.prompt" = {}
+"omni.flux.utils.widget" = {}
+"lightspeed.trex.utils.widget" = {}
 "omni.ui" = {}
 "omni.usd" = {}
 

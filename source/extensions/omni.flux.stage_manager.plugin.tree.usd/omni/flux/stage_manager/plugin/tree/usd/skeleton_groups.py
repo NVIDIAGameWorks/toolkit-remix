@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Iterable
 
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
+from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
 from pxr import UsdSkel
 
 from .virtual_groups import VirtualGroupsDelegate as _VirtualGroupsDelegate
@@ -39,6 +40,7 @@ class SkeletonTreeItem(_VirtualGroupsItem):
         display_name: str,
         data: Usd.Prim | None,
         tooltip: str = "",
+        display_name_ancestor: str | None = None,
         skel_root: Usd.Prim | None = None,
         skel_prim: Usd.Prim | None = None,
         bound_prim: Usd.Prim | None = None,
@@ -50,12 +52,13 @@ class SkeletonTreeItem(_VirtualGroupsItem):
             display_name: The name to display in the Tree
             data: The prim associated with the skeleton. This should NOT BE SET for virtual groups
             tooltip: The tooltip to display when hovering an item in the Tree
+            display_name_ancestor: A string to prepend to the display name with
             skel_root: The root prim of the skeleton
             skel_prim: The skeleton prim
             bound_prim: The mesh prim bound to the skeleton if applicable
         """
 
-        super().__init__(display_name, data, tooltip=tooltip)
+        super().__init__(display_name, data, tooltip=tooltip, display_name_ancestor=display_name_ancestor)
         self._skel_root = skel_root
         self._skel_prim = skel_prim
         self._bound_prim = bound_prim
@@ -98,12 +101,19 @@ class SkeletonJointItem(SkeletonTreeItem):
         data: Usd.Prim | None,
         index: int,
         tooltip: str = "",
+        display_name_ancestor: str | None = None,
         skel_root: Usd.Prim | None = None,
         skel_prim: Usd.Prim | None = None,
         bound_prim: Usd.Prim | None = None,
     ):
         super().__init__(
-            display_name, data, tooltip=tooltip, skel_root=skel_root, skel_prim=skel_prim, bound_prim=bound_prim
+            display_name,
+            data,
+            tooltip=tooltip,
+            display_name_ancestor=display_name_ancestor,
+            skel_root=skel_root,
+            skel_prim=skel_prim,
+            bound_prim=bound_prim,
         )
         self._index = index
 
@@ -137,6 +147,8 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
             A list of Stage Manager items or None if the input items are None
         """
         orphan_group: SkeletonTreeItem | None = None
+
+        self._unique_item_names = _StageManagerUtils.get_unique_names(items)
 
         tree_items: list[SkeletonTreeItem] = []
         for item in items:
@@ -183,16 +195,25 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
             return skel_root_
 
         prim: Usd.Prim = item.data
+        item_name, parent_name = self._unique_item_names.get(item, (None, None))
+        if item_name is None:
+            item_name = prim.GetName()
+
         if prim.GetTypeName() == "SkelRoot":
             return SkeletonRootItem(
-                str(prim.GetPath().name),
+                item_name,
                 prim,
                 tooltip=f"{prim.GetTypeName()}: {prim.GetPath()}",
+                display_name_ancestor=parent_name,
             )
         if prim.GetTypeName() == "Skeleton":
             skel_root = get_skel_root(prim)
             tree_item = SkeletonItem(
-                prim.GetName(), prim, tooltip=f"{prim.GetTypeName()}: {prim.GetPath()}", skel_root=skel_root
+                item_name,
+                prim,
+                tooltip=f"{prim.GetTypeName()}: {prim.GetPath()}",
+                display_name_ancestor=parent_name,
+                skel_root=skel_root,
             )
 
             # Build tree items for each joint
@@ -224,12 +245,17 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
             return tree_item
         if prim.HasAPI(UsdSkel.BindingAPI):
             skel_root = get_skel_root(prim)
+            skel_prim = None
+            skeleton = UsdSkel.BindingAPI(prim).GetSkeleton()
+            if skeleton:
+                skel_prim = skeleton.GetPrim()
             return SkeletonBoundMeshItem(
-                prim.GetName(),
+                item_name,
                 prim,
                 tooltip=f"{prim.GetTypeName()}: {prim.GetPath()}",
+                display_name_ancestor=parent_name,
                 skel_root=skel_root,
-                skel_prim=UsdSkel.BindingAPI(prim).GetSkeleton().GetPrim(),
+                skel_prim=skel_prim,
                 bound_prim=prim,
             )
 

@@ -37,7 +37,7 @@ from lightspeed.layer_manager.core import (
     LayerTypeKeys,
 )
 from omni.flux.utils.common.omni_url import OmniUrl
-from pxr import Sdf
+from pxr import Sdf, Tf
 
 
 class RecentSavedFile:
@@ -126,7 +126,10 @@ class RecentSavedFile:
                 result["Capture"] = data[path]["capture"]
 
                 # Get updated values from the project
-                project_layer = Sdf.Layer.FindOrOpen(path)
+                try:
+                    project_layer = Sdf.Layer.FindOrOpen(path)
+                except Tf.ErrorException:
+                    project_layer = None  # error reading the layer
                 if not project_layer:
                     return result
                 for sublayer_path in project_layer.subLayerPaths:

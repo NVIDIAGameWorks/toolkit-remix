@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.1]
+## Changed
+- Apply new display name style to skeleton tab
+
 ## [1.9.0]
 ## Added
 - Added `CustomTagGroupsTreePlugin` and related classes

@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3764: Only show categories icon when a mesh is selected
 - Enabled Extension Registry
 - Fixed various Stage Manager issues
+- REMIX-1811: Skeleton Remapping Tool: Fixes, convenience buttons and alternating row colors
 
 ### Removed
 

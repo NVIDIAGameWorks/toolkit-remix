@@ -183,7 +183,7 @@ The RTX Remix Toolkit has a remapping tool which will allow you to manually rema
 1. Locate the bound replacement mesh you want to remap.
 1. Click the "Remap Joint Indices" button to open the remapping tool.
 ![Skeleton Remapping](../data/images/remix-skeleton-remapper.png)
-1. Select a joint from the captured skeleton that will drive each replacement asset's joint.
+1. Select a joint from the captured skeleton that will drive each replacement asset's joint. You can use the "Auto Remap Joints" button to guess the mapping based on joint names and joint order. "Reset" will assign all to root so you can start from scratch. "Clear" will undo any changes and return to the mapping that was last applied.
 1. Hit "Apply" and the toolkit will re-author the joint influences on your replacement mesh to match the captured joint index.
 
 

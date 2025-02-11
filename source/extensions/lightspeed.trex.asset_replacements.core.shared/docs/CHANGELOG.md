@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.1]
+## Changed
+- Fix for skel logic if not fully defined.
+
 ## [2.5.0]
 ## Changed
 - Changed `get_default_output_directory_with_data_model` to add the ability to specify which default path to use

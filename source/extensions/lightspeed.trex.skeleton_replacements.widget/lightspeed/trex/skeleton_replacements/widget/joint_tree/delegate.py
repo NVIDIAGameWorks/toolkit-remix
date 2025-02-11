@@ -24,7 +24,13 @@ from .model import JointTreeModel
 
 class JointDelegate(_TreeDelegateBase):
     ROW_HEIGHT = 24
-    HEADER_DICT = {0: "Originally Bound Joint", 1: "", 2: "Driving Capture Joint"}
+    HEADER_DICT = {0: "Bound Replacement Joint", 1: "", 2: "Driving Capture Joint"}
+    HEADER_TOOLTIP_DICT = {
+        0: "The joint on the replacement skeleton that is bound to the replacement mesh",
+        1: "",
+        2: "The corresponding joint on the captured skeleton that was animated by the game and "
+        "will now drive the replacement mesh",
+    }
 
     def _build_widget(self, model: JointTreeModel, item: JointItem, column_id: int, level: int, expanded: bool):
         """Create a widget per column per item"""
@@ -61,4 +67,5 @@ class JointDelegate(_TreeDelegateBase):
                 alignment=ui.Alignment.CENTER,
                 style_type_name_override=style_type_name,
                 height=self.ROW_HEIGHT,
+                tooltip=self.HEADER_TOOLTIP_DICT[column_id],
             )

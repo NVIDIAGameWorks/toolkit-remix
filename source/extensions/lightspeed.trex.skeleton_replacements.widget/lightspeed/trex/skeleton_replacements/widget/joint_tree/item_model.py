@@ -98,7 +98,7 @@ class JointItem(_TreeItemBase):
         self._name = name
         self._index = index
         if remapped_index is None:
-            remapped_index = index
+            remapped_index = 0
         self._name_model = ui.SimpleStringModel(name)
         self._remap_options = RemappedJointModel(options, default_index=remapped_index)
 
@@ -117,7 +117,7 @@ class JointItem(_TreeItemBase):
 
     @property
     def can_have_children(self) -> bool:
-        return True
+        return bool(self.children)
 
     @property
     def index(self):
