@@ -39,6 +39,13 @@ class JointTreeModel(TreeModelBase[JointItem]):
         """
         return 3
 
+    @property
+    def item_count(self) -> int:
+        """
+        Returns the number of items in the model
+        """
+        return len(list(self.iter_items_children(recursive=True)))
+
     def get_item_children(self, parentItem: JointItem = None) -> list[JointItem]:  # noqa: N803
         """
         Returns the vector of items that are nested to the given parent item.
@@ -86,22 +93,24 @@ class JointTreeModel(TreeModelBase[JointItem]):
             for item in sorted(self.iter_items_children(), key=lambda item: item.index)
         ]
 
-    def refresh(self, skel_replacement: SkeletonReplacementBinding | None, read_from_usd: bool = True):
+    def apply_joint_map(self, joint_map: list[int]):
+        for item in sorted(self.iter_items_children(), key=lambda item: item.index):
+            item.remap_model().set_current_index(joint_map[item.index])
+
+    def refresh(self, skel_replacement: SkeletonReplacementBinding | None):
         self._items.clear()
         if skel_replacement is not None:
             mesh_joints = skel_replacement.get_mesh_joints()
             capture_joints = skel_replacement.get_captured_joints()
-            if read_from_usd:
-                remapped_joint_map = skel_replacement.get_joint_map()
-            else:
-                remapped_joint_map = skel_replacement.generate_joint_map(mesh_joints, capture_joints, fallback=True)
+            remapped_joint_map = skel_replacement.get_joint_map()
 
             joint_items = []
             topology = UsdSkel.Topology(mesh_joints)
             for i, joint_name in enumerate(mesh_joints):
-                remapped_index = None
-                if remapped_joint_map:
+                if remapped_joint_map and i < len(remapped_joint_map):
                     remapped_index = remapped_joint_map[i]
+                else:
+                    remapped_index = None
                 joint_item = JointItem(joint_name, i, capture_joints, remapped_index=remapped_index)
                 joint_items.append(joint_item)
                 if topology.IsRoot(i):

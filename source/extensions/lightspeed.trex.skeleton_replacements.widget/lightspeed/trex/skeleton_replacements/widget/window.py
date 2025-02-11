@@ -50,7 +50,10 @@ class SkeletonRemappingWindow:
         with self.window.frame:
             with ui.ZStack():
                 ui.Rectangle(name="WorkspaceBackground")
-                self._widget = SkeletonRemappingWidget()
+                with ui.HStack(spacing=ui.Pixel(8)):
+                    ui.Spacer(width=0)
+                    self._widget = SkeletonRemappingWidget()
+                    ui.Spacer(width=0)
 
     def show_window(self, value: bool = True, skel_replacement: SkeletonReplacementBinding = None):
         self.window.visible = value

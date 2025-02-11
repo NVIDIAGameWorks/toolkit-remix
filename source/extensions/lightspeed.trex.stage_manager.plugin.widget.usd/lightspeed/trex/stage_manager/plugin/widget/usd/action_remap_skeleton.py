@@ -61,24 +61,38 @@ class RemapSkeletonActionWidgetPlugin(StageManagerStateWidgetPlugin):
     def build_icon_ui(self, model: StageManagerTreeModel, item: StageManagerTreeItem, level: int, expanded: bool):
         if not isinstance(item, SkeletonBoundMeshItem):
             return
-        skel_replacement = self.get_skel_replacement(item)
-        if not skel_replacement:
-            return
 
-        enabled = skel_replacement.captured_skeleton != skel_replacement.original_skeleton
+        # if all conditions are met, enable the remap button
+        enabled = False
+        tooltip = (
+            "Remap Joint Indices disabled: In order to remap skeletons, a skinned replacement asset (with a "
+            "mesh and a skeleton) must be added to mod over the top of a captured skeleton asset."
+        )
+        if not item.skel_prim:
+            tooltip = "Cannot Remap Joint Indices because bound skeleton can not be found."
+        elif not item.skel_root:
+            tooltip = "Cannot Remap Joint Indices because mesh is not under a skel root."
+        else:
+            skel_replacement = self.get_skel_replacement(item)
+            if skel_replacement:
+                # if skels are the same, we didn't find a distinct capture skel and replacement skel in the prim stack
+                if skel_replacement.captured_skeleton == skel_replacement.original_skeleton:
+                    tooltip = (
+                        "Cannot Remap Joint Indices, no replacement skeleton found. \n"
+                        f'Mesh is bound to "{item.skel_prim.GetName()}"'
+                    )
+                else:
+                    enabled = True
+                    tooltip = (
+                        "Remap Joint Indices. \n"
+                        f'Mesh is bound to "{item.skel_prim.GetName()}", but was originally bound to '
+                        f'"{skel_replacement.original_skeleton.GetPrim().GetName()}"'
+                    )
+
         if enabled:
             name = "RemapSkeleton"
-            tooltip = (
-                "Remap Joint Indices. \n"
-                f'Mesh is bound to "{item.skel_prim.GetName()}", but was originally bound to '
-                f'"{skel_replacement.original_skeleton.GetPrim().GetName()}"'
-            )
         else:
             name = "RemapSkeletonDisabled"
-            tooltip = (
-                "Cannot Remap Joint Indices, no replacement skeleton found. \n"
-                f'Mesh is bound to "{item.skel_prim.GetName()}"'
-            )
         ui.Image(
             "",
             width=self._icon_size,
