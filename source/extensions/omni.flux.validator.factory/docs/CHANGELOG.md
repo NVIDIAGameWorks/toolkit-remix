@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.8.0]
+## Added
+- Added `show` function in the base class and interface that can be called by the parent widget
+
 ## [2.7.3]
 ## Changed
 - update to use omni.kit.test public api

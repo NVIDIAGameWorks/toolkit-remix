@@ -17,6 +17,7 @@
 
 import os
 import uuid
+from asyncio import ensure_future
 from functools import partial
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
@@ -484,18 +485,7 @@ class AssetImporter(_ContextBaseUSD):
                 )
                 _InfoIconWidget("The directory to import the converted input files to.")
 
-            if schema_data.default_output_endpoint:
-                try:
-                    response = await _send_request("GET", schema_data.default_output_endpoint)
-                    output_directory = response.get("asset_path")
-
-                    schema_data.output_directory = _OmniUrl(output_directory)
-                except RuntimeError:
-                    pass
-
-            self._output_field.model.set_value(
-                carb.tokens.get_tokens_interface().resolve(str(schema_data.output_directory))
-            )
+            await self._update_default_output_directory(schema_data)
 
             self._output_field_validate_sub = self._output_field.model.subscribe_value_changed_fn(
                 partial(self.__validate_output_directory, schema_data)
@@ -529,6 +519,20 @@ class AssetImporter(_ContextBaseUSD):
 
             self._extension_field_sub = extension_field.model.subscribe_item_changed_fn(
                 partial(self.__update_usd_extension, schema_data)
+            )
+
+    @omni.usd.handle_exception
+    async def _update_default_output_directory(self, schema_data):
+        if schema_data.default_output_endpoint:
+            try:
+                response = await _send_request("GET", schema_data.default_output_endpoint)
+                schema_data.output_directory = _OmniUrl(response.get("asset_path"))
+            except RuntimeError:
+                schema_data.output_directory = _OmniUrl("")
+
+        if self._output_field:
+            self._output_field.model.set_value(
+                carb.tokens.get_tokens_interface().resolve(str(schema_data.output_directory))
             )
 
     def __open_dialog(self, schema_data: Data, model: ui.AbstractValueModel, _x, _y, b, _m):
@@ -627,6 +631,11 @@ class AssetImporter(_ContextBaseUSD):
             carb.log_warn(msg)
             self._output_field.style_type_name_override = "FieldError"
             self._output_field.tooltip = msg
+
+    def show(self, value: bool, schema_data: Data):
+        if not value:
+            return
+        ensure_future(self._update_default_output_directory(schema_data))
 
     def destroy(self):
         self._output_field_validate_sub = None
