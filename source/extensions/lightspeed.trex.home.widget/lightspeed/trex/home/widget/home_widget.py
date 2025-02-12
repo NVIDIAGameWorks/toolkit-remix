@@ -69,8 +69,9 @@ class HomePageWidget:
         self._credits_window = None
 
         self.__on_new_project_clicked = Event()
-        self.__on_resume_clicked = Event()
         self.__on_open_project_clicked = Event()
+        self.__on_resume_clicked = Event()
+        self.__on_load_project_clicked = Event()
         self.__on_remove_from_recent_clicked = Event()
 
         self._item_remove_from_recent_sub = self._recent_delegate.subscribe_item_remove_from_recent(
@@ -80,7 +81,7 @@ class HomePageWidget:
         )
         self._item_project_opened_sub = self._recent_delegate.subscribe_item_open_project(
             # A lambda is required, or we get a crash because the event is not hashable
-            lambda path: self.__on_open_project_clicked(path)  # noqa PLW0108
+            lambda path: self.__on_load_project_clicked(path)  # noqa PLW0108
         )
         self._item_show_in_explorer_sub = self._recent_delegate.subscribe_item_show_in_explorer(self._show_in_explorer)
 
@@ -112,7 +113,7 @@ class HomePageWidget:
         if not self._resume_button:
             return
         self._resume_button.enabled = enabled
-        self._resume_button.tooltip = "" if enabled else "A project must first be opened for this option to be enabled"
+        self._resume_button.tooltip = "" if enabled else "A project must first be loaded for this option to be enabled"
 
     def set_recent_items(self, items: list[tuple[str, str, dict]]):
         """
@@ -132,19 +133,25 @@ class HomePageWidget:
         """
         return EventSubscription(self.__on_new_project_clicked, callback)
 
+    def subscribe_open_project_clicked(self, callback: Callable[[], Any]) -> EventSubscription:
+        """
+        Subscribe to the event triggered when the open project button is clicked
+        """
+        return EventSubscription(self.__on_open_project_clicked, callback)
+
     def subscribe_resume_clicked(self, callback: Callable[[], Any]) -> EventSubscription:
         """
         Subscribe to the event triggered when the resume button is clicked
         """
         return EventSubscription(self.__on_resume_clicked, callback)
 
-    def subscribe_open_project_clicked(self, callback: Callable[[str], Any]) -> EventSubscription:
+    def subscribe_load_project_clicked(self, callback: Callable[[str], Any]) -> EventSubscription:
         """
         Subscribe to the event triggered when a project should be opened.
 
         The callback will receive the project path.
         """
-        return EventSubscription(self.__on_open_project_clicked, callback)
+        return EventSubscription(self.__on_load_project_clicked, callback)
 
     def subscribe_remove_from_recent_clicked(self, callback: Callable[[list[str]], Any]) -> EventSubscription:
         """
@@ -173,24 +180,29 @@ class HomePageWidget:
 
                             # Primary Buttons
                             with ui.VStack(spacing=self._MEDIUM_SPACING):
-                                self._build_button(
-                                    "New",
-                                    "Launch the project wizard to:\n"
-                                    "- Open an existing project\n"
-                                    "- Create a new mod\n"
-                                    "- Edit existing mods\n"
-                                    "- Remaster existing mods",
-                                    self.__on_new_project_clicked,
-                                )
-                                # Initialize the UI with the right state
-                                stage = omni.usd.get_context(self._context_name).get_stage()
-                                project_opened = stage and not bool(stage.GetRootLayer().anonymous)
-                                self._resume_button = self._build_button(
-                                    "Resume",
-                                    "Resume editing the currently opened project",
-                                    self.__on_resume_clicked,
-                                    enabled=project_opened,
-                                )
+                                with ui.VStack(spacing=ui.Pixel(4), height=0):
+                                    self._build_button(
+                                        "New",
+                                        "Launch the project wizard to:\n"
+                                        "- Create a new mod\n"
+                                        "- Edit existing mods\n"
+                                        "- Remaster existing mods",
+                                        self.__on_new_project_clicked,
+                                    )
+                                    self._build_button(
+                                        "Open",
+                                        "Open an existing project",
+                                        self.__on_open_project_clicked,
+                                    )
+                                    # Initialize the UI with the right state
+                                    stage = omni.usd.get_context(self._context_name).get_stage()
+                                    project_opened = stage and not bool(stage.GetRootLayer().anonymous)
+                                    self._resume_button = self._build_button(
+                                        "Resume",
+                                        "Resume editing the currently opened project",
+                                        self.__on_resume_clicked,
+                                    )
+                                    self.set_resume_enabled(project_opened)
 
                                 ui.Rectangle(name="WizardSeparator", height=ui.Pixel(1))
 
@@ -264,7 +276,7 @@ class HomePageWidget:
                         ui.Spacer(height=0)
                     ui.Spacer(width=0)
 
-    def _build_button(self, text: str, tooltip: str, clicked_fn: Callable, enabled: bool = True) -> ui.Button:
+    def _build_button(self, text: str, tooltip: str, clicked_fn: Callable) -> ui.Button:
         """
         A utility function to build the large home screen buttons.
 
@@ -272,13 +284,12 @@ class HomePageWidget:
             text: The button label
             tooltip: The button tooltip
             clicked_fn: The function to call when the button is clicked
-            enabled: Whether the button should be enabled or disabled
 
         Returns:
             The button widget
         """
         with ui.HStack(height=self._BUTTON_HEIGHT, spacing=self._MEDIUM_SPACING):
-            button = ui.Button(text, clicked_fn=clicked_fn, enabled=enabled, name="HomeButton")
+            button = ui.Button(text, clicked_fn=clicked_fn, name="HomeButton")
             with ui.VStack(width=0):
                 ui.Spacer()
                 InfoIconWidget(tooltip, icon_size=self._INFO_ICON_SIZE)
@@ -302,7 +313,7 @@ class HomePageWidget:
         self._credits_window = ui.Window(
             "RTX Remix Credits",
             visible=True,
-            width=300,
+            width=400,
             height=500,
             dockPreference=ui.DockPreference.DISABLED,
             flags=(

@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Changed
+- Return setup values in async functions
+- Use `omni.kit.window.file.open_stage` instead of `context.open_stage` to open stage for better UI
+
+### Fixed
+- Fixed bug with partially initialized projects symlinks
+
 ## [1.3.0]
 ### Changed
 - Removed whitespace restrictions

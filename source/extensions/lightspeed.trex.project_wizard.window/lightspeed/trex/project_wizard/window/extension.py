@@ -17,39 +17,37 @@
 
 import carb
 import omni.ext
-from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
-from .setup_ui import ProjectWizardWindow
+from .setup_ui import WIZARD_MAP as _WIZARD_MAP
+from .setup_ui import ProjectWizardBase as _ProjectWizardBase
+from .setup_ui import WizardTypes as _WizardTypes
 
-_INSTANCE = None
+_INSTANCE: _ProjectWizardBase | None = None
 
 
-def get_instance(context_name: str = ""):
+def get_instance(
+    wizard_type: _WizardTypes, context_name: str = "", width: int = 650, height: int = 400
+) -> _ProjectWizardBase:
     """Expose the created instance of the project wizard"""
     global _INSTANCE
+
     if _INSTANCE is not None:
         _INSTANCE.destroy()
 
-    _INSTANCE = ProjectWizardWindow(context_name=context_name)
+    _INSTANCE = _WIZARD_MAP[wizard_type](context_name=context_name, width=width, height=height)
     return _INSTANCE
 
 
 class ProjectWizardWindowExtension(omni.ext.IExt):
     """Project Wizard Window global instance"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.default_attr = {}
-        for attr, value in self.default_attr.items():
-            setattr(self, attr, value)
-
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.trex.project_wizard.window] Startup")
 
     def on_shutdown(self):
-        global _INSTANCE
         carb.log_info("[lightspeed.trex.project_wizard.window] Shutdown")
-        _reset_default_attrs(self)
+
+        global _INSTANCE
         if _INSTANCE is not None:
             _INSTANCE.destroy()
         _INSTANCE = None

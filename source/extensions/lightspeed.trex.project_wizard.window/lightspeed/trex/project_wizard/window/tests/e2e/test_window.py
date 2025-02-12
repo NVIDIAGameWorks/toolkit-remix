@@ -17,9 +17,6 @@
 
 import os
 import shutil
-import subprocess
-
-# import subprocess
 import tempfile
 from enum import Enum
 from pathlib import Path
@@ -30,7 +27,7 @@ from carb.input import KeyboardInput
 from lightspeed.common import constants
 from lightspeed.layer_manager.core.data_models import LayerType, LayerTypeKeys
 from lightspeed.trex.project_wizard.core import SETTING_JUNCTION_NAME as _SETTING_JUNCTION_NAME
-from lightspeed.trex.project_wizard.window import ProjectWizardWindow as _ProjectWizardWindow
+from lightspeed.trex.project_wizard.window import CreateProjectWizardWindow as _ProjectWizardWindow
 from omni import ui, usd
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
@@ -140,45 +137,9 @@ class TestWizardWindow(AsyncTestCase):
 
         return project_path, remix_dir
 
-    async def __create_project(self, create_symlinks: bool):
-        test_project_path = Path(get_test_data_path(__name__, "usd/project.usda"))
-        shutil.copy(str(test_project_path), str(self.project_path))
-
-        if create_symlinks:
-            remix_project = self.remix_dir / constants.REMIX_MODS_FOLDER / self.project_path.parent.stem
-            subprocess.check_call(
-                f'mklink /J "{remix_project}" "{self.project_path.parent}"',
-                shell=True,
-            )
-            subprocess.check_call(
-                f'mklink /J "{self.project_path.parent / constants.REMIX_DEPENDENCIES_FOLDER}" "{self.remix_dir}"',
-                shell=True,
-            )
-
     async def __cleanup_directories(self):
         shutil.rmtree(self.remix_dir / constants.REMIX_MODS_FOLDER / self.project_path.parent.stem, ignore_errors=True)
         shutil.rmtree(self.project_path.parent / constants.REMIX_DEPENDENCIES_FOLDER, ignore_errors=True)
-
-    async def __find_file_picker_buttons(self, window_title):
-        components = {
-            TestComponents.FILE_PICKER_DIRECTORY: ui_test.find(
-                f"{window_title}//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
-            ),
-            TestComponents.FILE_PICKER_FILENAME: ui_test.find(
-                f"{window_title}//Frame/**/StringField[*].style_type_name_override=='Field'"
-            ),
-            TestComponents.FILE_PICKER_OPEN: ui_test.find(f"{window_title}//Frame/**/Button[*].text=='Open'"),
-            TestComponents.FILE_PICKER_CANCEL: (
-                ui_test.find_all(f"{window_title}//Frame/**/Button[*].text=='Cancel'")[0]
-                if ui_test.find_all(f"{window_title}//Frame/**/Button[*].text=='Cancel'")
-                else None
-            ),
-        }
-
-        for component, button in components.items():
-            self.assertIsNotNone(button, msg=f"Unexpectedly None: {component}")
-
-        return components
 
     async def __find_navigation_buttons(self, window, should_exist: bool = True):
         components = {
@@ -202,13 +163,12 @@ class TestWizardWindow(AsyncTestCase):
 
     async def __find_start_page_components(self, window):
         option_buttons = ui_test.find_all(f"{window.title}//Frame/**/VStack[*].identifier=='OptionButton'")
-        self.assertEqual(4, len(option_buttons))
+        self.assertEqual(2, len(option_buttons))
 
         return {
-            TestComponents.OPEN_OPTION: option_buttons[0],
-            TestComponents.CREATE_OPTION: option_buttons[1],
-            TestComponents.EDIT_OPTION: option_buttons[2],
-            TestComponents.REMASTER_OPTION: option_buttons[3],
+            TestComponents.CREATE_OPTION: option_buttons[0],
+            TestComponents.EDIT_OPTION: option_buttons[1],
+            # TestComponents.REMASTER_OPTION: option_buttons[2],
         }
 
     async def __find_setup_page_components(self, window, validate_capture_tree: bool = False):
@@ -257,65 +217,6 @@ class TestWizardWindow(AsyncTestCase):
 
         components = await self.__find_start_page_components(wizard_window)
         _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
-
-        ###############################################################################
-        # Open
-        ###############################################################################
-
-        # Create a project to open
-        await self.__create_project(False)
-
-        await components[TestComponents.OPEN_OPTION].click()
-        await ui_test.human_delay()
-
-        # Select a project in the File Picker
-        picker_buttons = await self.__find_file_picker_buttons("Open an RTX Remix project")
-
-        await ui_test.human_delay(50)
-        await picker_buttons[TestComponents.FILE_PICKER_DIRECTORY].input(
-            str(self.project_path.parent), end_key=KeyboardInput.ENTER
-        )
-        await ui_test.human_delay(50)
-        await picker_buttons[TestComponents.FILE_PICKER_FILENAME].input(
-            str(self.project_path.name), end_key=KeyboardInput.DOWN
-        )
-        await ui_test.human_delay()
-
-        # Make sure we are selecting the right file
-        self.assertEqual(
-            str(self.project_path.parent),
-            picker_buttons[  # noqa PLW0212
-                TestComponents.FILE_PICKER_DIRECTORY
-            ].model._field.model.get_value_as_string(),
-        )
-        self.assertEqual(
-            str(self.project_path.name), picker_buttons[TestComponents.FILE_PICKER_FILENAME].model.get_value_as_string()
-        )
-
-        # Open the project without symlinks, expect to open the setup page
-        await picker_buttons[TestComponents.FILE_PICKER_OPEN].click()
-        await ui_test.human_delay()
-
-        _ = await self.__find_setup_page_components(wizard_window)
-        nav_buttons = await self.__find_navigation_buttons(wizard_window)
-
-        self.assertEqual("Open", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
-
-        # "Open" button should be blocked
-        await nav_buttons[TestComponents.NEXT_BUTTON].click()
-        await ui_test.human_delay()
-
-        _ = await self.__find_setup_page_components(wizard_window)
-
-        # Go back to the main page
-        await nav_buttons[TestComponents.PREVIOUS_BUTTON].click()
-        await ui_test.human_delay()
-
-        components = await self.__find_start_page_components(wizard_window)
-        _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
-
-        # Cleanup created project
-        self.project_path.unlink()
 
         ###############################################################################
         # Create
@@ -410,163 +311,42 @@ class TestWizardWindow(AsyncTestCase):
         ###############################################################################
         # Remaster
         ###############################################################################
-        await components[TestComponents.REMASTER_OPTION].click()
-        await ui_test.human_delay()
-
-        # Payload should remain from edit page so capture tree should be rendered
-        _ = await self.__find_setup_page_components(wizard_window, validate_capture_tree=True)
-        nav_buttons = await self.__find_navigation_buttons(wizard_window)
-
-        self.assertEqual("Select Mods", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
-
-        # Go to the mod selection page
-        await nav_buttons[TestComponents.NEXT_BUTTON].click()
-        await ui_test.human_delay()
-
-        _ = await self.__find_existing_mods_components(wizard_window)
-        nav_buttons = await self.__find_navigation_buttons(wizard_window)
-
-        self.assertEqual("Create", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
-
-        # "Create" button should be blocked
-        await nav_buttons[TestComponents.NEXT_BUTTON].click()
-        await ui_test.human_delay()
-
-        _ = await self.__find_existing_mods_components(wizard_window)
-
-        # Go back to the setup page
-        await nav_buttons[TestComponents.PREVIOUS_BUTTON].click()
-        await ui_test.human_delay()
-
-        nav_buttons = await self.__find_navigation_buttons(wizard_window)
-
-        # Go back to the main page
-        await nav_buttons[TestComponents.PREVIOUS_BUTTON].click()
-        await ui_test.human_delay()
-
-        _ = await self.__find_start_page_components(wizard_window)
-        _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
-
-    async def test_open_project_valid_symlinks_should_open_project(self):
-        # Setup the test
-        wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
-
-        # Start the test
-        self.wizard.show_project_wizard(reset_page=True)
-
-        await ui_test.human_delay()
-
-        components = await self.__find_start_page_components(wizard_window)
-        _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
-
-        # Create a project to open with symlinks
-        await self.__create_project(True)
-
-        await components[TestComponents.OPEN_OPTION].click()
-        await ui_test.human_delay()
-
-        # Select a project in the File Picker
-        picker_buttons = await self.__find_file_picker_buttons("Open an RTX Remix project")
-
-        await ui_test.human_delay(50)
-        await picker_buttons[TestComponents.FILE_PICKER_DIRECTORY].input(
-            str(self.project_path.parent), end_key=KeyboardInput.ENTER
-        )
-        await ui_test.human_delay(50)
-        await picker_buttons[TestComponents.FILE_PICKER_FILENAME].input(
-            str(self.project_path.name), end_key=KeyboardInput.DOWN
-        )
-        await ui_test.human_delay()
-
-        # Make sure we are selecting the right file
-        self.assertEqual(
-            str(self.project_path.parent),
-            picker_buttons[  # noqa PLW0212
-                TestComponents.FILE_PICKER_DIRECTORY
-            ].model._field.model.get_value_as_string(),
-        )
-        self.assertEqual(
-            str(self.project_path.name), picker_buttons[TestComponents.FILE_PICKER_FILENAME].model.get_value_as_string()
-        )
-
-        # Open the project without symlinks, expect to open the setup page
-        await picker_buttons[TestComponents.FILE_PICKER_OPEN].click()
-        await ui_test.human_delay()
-
-        # Make sure the loaded stage is the project file
-        self.assertEqual(self.project_path.as_posix(), usd.get_context().get_stage().GetRootLayer().identifier)
-
-    async def test_open_project_invalid_symlinks_should_show_setup_and_open_project(self):
-        # Setup the test
-        wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
-
-        # Start the test
-        self.wizard.show_project_wizard(reset_page=True)
-
-        await ui_test.human_delay()
-
-        components = await self.__find_start_page_components(wizard_window)
-        _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
-
-        # Create a project to open without symlinks
-        await self.__create_project(False)
-
-        await components[TestComponents.OPEN_OPTION].click()
-        await ui_test.human_delay()
-
-        # Select a project in the File Picker
-        picker_buttons = await self.__find_file_picker_buttons("Open an RTX Remix project")
-
-        await ui_test.human_delay(50)
-        await picker_buttons[TestComponents.FILE_PICKER_DIRECTORY].input(
-            str(self.project_path.parent), end_key=KeyboardInput.ENTER
-        )
-        await ui_test.human_delay(50)
-        await picker_buttons[TestComponents.FILE_PICKER_FILENAME].input(
-            str(self.project_path.name), end_key=KeyboardInput.DOWN
-        )
-        await ui_test.human_delay()
-
-        # Make sure we are selecting the right file
-        self.assertEqual(
-            str(self.project_path.parent),
-            picker_buttons[  # noqa PLW0212
-                TestComponents.FILE_PICKER_DIRECTORY
-            ].model._field.model.get_value_as_string(),
-        )
-        self.assertEqual(
-            str(self.project_path.name), picker_buttons[TestComponents.FILE_PICKER_FILENAME].model.get_value_as_string()
-        )
-
-        # Open the project without symlinks, expect to open the setup page
-        await picker_buttons[TestComponents.FILE_PICKER_OPEN].click()
-        await ui_test.human_delay()
-
-        components = await self.__find_setup_page_components(wizard_window)
-        nav_buttons = await self.__find_navigation_buttons(wizard_window)
-
-        self.assertEqual("Open", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
-
-        # "Open" button should be blocked
-        await nav_buttons[TestComponents.NEXT_BUTTON].click()
-        await ui_test.human_delay()
-
-        _ = await self.__find_setup_page_components(wizard_window)
-
-        await components[TestComponents.PROJECT_STRING_FIELD].input(str(self.project_path), end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay()
-
-        await components[TestComponents.REMIX_STRING_FIELD].input(str(self.remix_dir), end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay()
-
-        # Open the project
-        await nav_buttons[TestComponents.NEXT_BUTTON].click()
-        await ui_test.human_delay()
-
-        await wait_stage_loading()
-
-        # Make sure the loaded stage is the project file
-        self.assertEqual(self.project_path.as_posix(), usd.get_context().get_stage().GetRootLayer().identifier)
+        # await components[TestComponents.REMASTER_OPTION].click()
+        # await ui_test.human_delay()
+        #
+        # # Payload should remain from edit page so capture tree should be rendered
+        # _ = await self.__find_setup_page_components(wizard_window, validate_capture_tree=True)
+        # nav_buttons = await self.__find_navigation_buttons(wizard_window)
+        #
+        # self.assertEqual("Select Mods", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
+        #
+        # # Go to the mod selection page
+        # await nav_buttons[TestComponents.NEXT_BUTTON].click()
+        # await ui_test.human_delay()
+        #
+        # _ = await self.__find_existing_mods_components(wizard_window)
+        # nav_buttons = await self.__find_navigation_buttons(wizard_window)
+        #
+        # self.assertEqual("Create", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
+        #
+        # # "Create" button should be blocked
+        # await nav_buttons[TestComponents.NEXT_BUTTON].click()
+        # await ui_test.human_delay()
+        #
+        # _ = await self.__find_existing_mods_components(wizard_window)
+        #
+        # # Go back to the setup page
+        # await nav_buttons[TestComponents.PREVIOUS_BUTTON].click()
+        # await ui_test.human_delay()
+        #
+        # nav_buttons = await self.__find_navigation_buttons(wizard_window)
+        #
+        # # Go back to the main page
+        # await nav_buttons[TestComponents.PREVIOUS_BUTTON].click()
+        # await ui_test.human_delay()
+        #
+        # _ = await self.__find_start_page_components(wizard_window)
+        # _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
 
     async def test_create_project_should_create_project(self):
         # Setup the test
@@ -651,7 +431,7 @@ class TestWizardWindow(AsyncTestCase):
 
         await ui_test.human_delay()
 
-        # Select the create option
+        # Select the edit option
         components = await self.__find_start_page_components(wizard_window)
 
         await components[TestComponents.EDIT_OPTION].click()
@@ -738,132 +518,104 @@ class TestWizardWindow(AsyncTestCase):
         self.assertEqual(expected_mod_file, omni_layers_data.get("authoring_layer", None))
         self.assertDictEqual({expected_capture_file: True}, omni_layers_data.get("locked", None))
 
-    async def test_remaster_project_should_create_project_with_dependencies(self):
-        # Setup the test
-        wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
-
-        # Start the test
-        self.wizard.show_project_wizard(reset_page=True)
-
-        await ui_test.human_delay()
-
-        # Select the create option
-        components = await self.__find_start_page_components(wizard_window)
-
-        await components[TestComponents.REMASTER_OPTION].click()
-        await ui_test.human_delay()
-
-        # Fill up the fields
-        components = await self.__find_setup_page_components(wizard_window)
-        nav_buttons = await self.__find_navigation_buttons(wizard_window)
-
-        await components[TestComponents.PROJECT_STRING_FIELD].input(str(self.project_path), end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay()
-
-        await components[TestComponents.REMIX_STRING_FIELD].input(str(self.remix_dir), end_key=KeyboardInput.ENTER)
-        # Let the captures widget load
-        await ui_test.human_delay(50)
-
-        capture_labels = ui_test.find_all(
-            f"{wizard_window.title}//Frame/**/Label[*].name=='PropertiesPaneSectionTreeItem'"
-        )
-
-        self.assertGreater(len(capture_labels), 0)
-
-        # Select a capture layer
-        await capture_labels[0].click()
-        await ui_test.human_delay()
-
-        # Go to the existing mods page
-        await nav_buttons[TestComponents.NEXT_BUTTON].click()
-        # Let the mod widgets load
-        await ui_test.human_delay(50)
-
-        components = await self.__find_existing_mods_components(wizard_window)
-        nav_buttons = await self.__find_navigation_buttons(wizard_window)
-
-        available_mod_labels = components[TestComponents.AVAILABLE_MODS_TREE].find_all(
-            "/Label[*].identifier=='ExistingModLabel'"
-        )
-
-        self.assertGreater(len(available_mod_labels), 0)
-
-        await available_mod_labels[0].drag_and_drop(components[TestComponents.SELECTED_MODS_TREE].center)
-
-        # Create the project
-        await nav_buttons[TestComponents.NEXT_BUTTON].click()
-        await ui_test.human_delay(50)
-
-        # Make sure the project and symlinks were created
-        remix_project = self.remix_dir / constants.REMIX_MODS_FOLDER / self.project_path.parent.stem
-
-        self.assertTrue(self.project_path.exists())
-        self.assertTrue((self.project_path.parent / constants.REMIX_DEPENDENCIES_FOLDER).exists())
-        self.assertTrue((remix_project / self.project_path.name).exists())
-        self.assertTrue((remix_project / constants.REMIX_MOD_FILE).exists())
-
-        # Make sure the wizard was hidden
-        self.assertFalse(wizard_window.visible)
-
-        # Evaluate the layer content
-        project_layer = Sdf.Layer.FindOrOpen(str(self.project_path))
-
-        expected_mod_file = f"./{constants.REMIX_MOD_FILE}"
-        expected_extra_mod_file = (
-            f"./{constants.REMIX_DEPENDENCIES_FOLDER}/{constants.REMIX_MODS_FOLDER}/"
-            + available_mod_labels[0].widget.text.replace("\\", "/")
-        )
-        expected_capture_file = f"./{constants.REMIX_DEPENDENCIES_FOLDER}/{constants.REMIX_CAPTURE_FOLDER}/capture.usda"
-
-        # Make sure the project has the right sub-layers
-        self.assertEqual(3, len(project_layer.subLayerPaths))
-        self.assertEqual(expected_mod_file, project_layer.subLayerPaths[0])
-        self.assertEqual(expected_extra_mod_file, project_layer.subLayerPaths[1])
-        self.assertEqual(expected_capture_file, project_layer.subLayerPaths[2])
-
-        # Make sure the project has the right file type metadata
-        self.assertEqual(
-            LayerType.workfile.value,
-            project_layer.customLayerData.get(LayerTypeKeys.layer_type.value, None),
-        )
-
-        omni_layers_data = project_layer.customLayerData["omni_layer"]
-
-        # Make sure the project has the right authoring layer and the capture layer is locked
-        self.assertEqual(expected_mod_file, omni_layers_data.get("authoring_layer", None))
-        self.assertDictEqual({expected_capture_file: True}, omni_layers_data.get("locked", None))
-
-    async def test_start_page_file_picker_and_wizard_window_handoff(self):
-        # Setup the test
-        wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
-
-        # Start the test
-        self.wizard.show_project_wizard(reset_page=True)
-        await ui_test.human_delay()
-        components = await self.__find_start_page_components(wizard_window)
-        _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
-
-        # Ensure the wizard window is open
-        wizard_window_ui = ui_test.find(f"{wizard_window}").window
-        self.assertTrue(wizard_window_ui.visible)
-
-        # Press the "Open" button from the start page
-        await components[TestComponents.OPEN_OPTION].click()
-        await ui_test.human_delay()
-
-        # Ensure the wizard window has closed and file picker has opened
-        self.assertFalse(wizard_window_ui.visible)
-        file_picker_window_ui = ui_test.find("Open an RTX Remix project").window
-        self.assertTrue(file_picker_window_ui.visible)
-
-        # Press cancel
-        picker_buttons = await self.__find_file_picker_buttons("Open an RTX Remix project")
-        await picker_buttons[TestComponents.FILE_PICKER_CANCEL].click()
-        await ui_test.human_delay()
-
-        # Ensure that the file picker has closed and wizard window has opened
-        self.assertTrue(wizard_window_ui.visible)
-        self.assertFalse(file_picker_window_ui.visible)
+    # async def test_remaster_project_should_create_project_with_dependencies(self):
+    #     # Setup the test
+    #     wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
+    #
+    #     # Start the test
+    #     self.wizard.show_project_wizard(reset_page=True)
+    #
+    #     await ui_test.human_delay()
+    #
+    #     # Select the create option
+    #     components = await self.__find_start_page_components(wizard_window)
+    #
+    #     await components[TestComponents.REMASTER_OPTION].click()
+    #     await ui_test.human_delay()
+    #
+    #     # Fill up the fields
+    #     components = await self.__find_setup_page_components(wizard_window)
+    #     nav_buttons = await self.__find_navigation_buttons(wizard_window)
+    #
+    #     await components[TestComponents.PROJECT_STRING_FIELD].input(
+    #         str(self.project_path), end_key=KeyboardInput.ENTER
+    #     )
+    #     await ui_test.human_delay()
+    #
+    #     await components[TestComponents.REMIX_STRING_FIELD].input(str(self.remix_dir), end_key=KeyboardInput.ENTER)
+    #     # Let the captures widget load
+    #     await ui_test.human_delay(50)
+    #
+    #     capture_labels = ui_test.find_all(
+    #         f"{wizard_window.title}//Frame/**/Label[*].name=='PropertiesPaneSectionTreeItem'"
+    #     )
+    #
+    #     self.assertGreater(len(capture_labels), 0)
+    #
+    #     # Select a capture layer
+    #     await capture_labels[0].click()
+    #     await ui_test.human_delay()
+    #
+    #     # Go to the existing mods page
+    #     await nav_buttons[TestComponents.NEXT_BUTTON].click()
+    #     # Let the mod widgets load
+    #     await ui_test.human_delay(50)
+    #
+    #     components = await self.__find_existing_mods_components(wizard_window)
+    #     nav_buttons = await self.__find_navigation_buttons(wizard_window)
+    #
+    #     available_mod_labels = components[TestComponents.AVAILABLE_MODS_TREE].find_all(
+    #         "/Label[*].identifier=='ExistingModLabel'"
+    #     )
+    #
+    #     self.assertGreater(len(available_mod_labels), 0)
+    #
+    #     await available_mod_labels[0].drag_and_drop(components[TestComponents.SELECTED_MODS_TREE].center)
+    #
+    #     # Create the project
+    #     await nav_buttons[TestComponents.NEXT_BUTTON].click()
+    #     await ui_test.human_delay(50)
+    #
+    #     # Make sure the project and symlinks were created
+    #     remix_project = self.remix_dir / constants.REMIX_MODS_FOLDER / self.project_path.parent.stem
+    #
+    #     self.assertTrue(self.project_path.exists())
+    #     self.assertTrue((self.project_path.parent / constants.REMIX_DEPENDENCIES_FOLDER).exists())
+    #     self.assertTrue((remix_project / self.project_path.name).exists())
+    #     self.assertTrue((remix_project / constants.REMIX_MOD_FILE).exists())
+    #
+    #     # Make sure the wizard was hidden
+    #     self.assertFalse(wizard_window.visible)
+    #
+    #     # Evaluate the layer content
+    #     project_layer = Sdf.Layer.FindOrOpen(str(self.project_path))
+    #
+    #     expected_mod_file = f"./{constants.REMIX_MOD_FILE}"
+    #     expected_extra_mod_file = (
+    #         f"./{constants.REMIX_DEPENDENCIES_FOLDER}/{constants.REMIX_MODS_FOLDER}/"
+    #         + available_mod_labels[0].widget.text.replace("\\", "/")
+    #     )
+    #     expected_capture_file = (
+    #         f"./{constants.REMIX_DEPENDENCIES_FOLDER}/{constants.REMIX_CAPTURE_FOLDER}/capture.usda"
+    #     )
+    #
+    #     # Make sure the project has the right sub-layers
+    #     self.assertEqual(3, len(project_layer.subLayerPaths))
+    #     self.assertEqual(expected_mod_file, project_layer.subLayerPaths[0])
+    #     self.assertEqual(expected_extra_mod_file, project_layer.subLayerPaths[1])
+    #     self.assertEqual(expected_capture_file, project_layer.subLayerPaths[2])
+    #
+    #     # Make sure the project has the right file type metadata
+    #     self.assertEqual(
+    #         LayerType.workfile.value,
+    #         project_layer.customLayerData.get(LayerTypeKeys.layer_type.value, None),
+    #     )
+    #
+    #     omni_layers_data = project_layer.customLayerData["omni_layer"]
+    #
+    #     # Make sure the project has the right authoring layer and the capture layer is locked
+    #     self.assertEqual(expected_mod_file, omni_layers_data.get("authoring_layer", None))
+    #     self.assertDictEqual({expected_capture_file: True}, omni_layers_data.get("locked", None))
 
     async def test_wizard_file_picker_and_wizard_window_handoff(self):
         # Setup the test

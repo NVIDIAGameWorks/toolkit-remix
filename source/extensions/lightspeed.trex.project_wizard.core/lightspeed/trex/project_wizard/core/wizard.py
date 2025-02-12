@@ -103,13 +103,13 @@ class ProjectWizardCore:
         return asyncio.ensure_future(self.setup_project_async(schema, dry_run))
 
     @omni.usd.handle_exception
-    async def setup_project_async(self, schema: Dict, dry_run: bool = False):
+    async def setup_project_async(self, schema: Dict, dry_run: bool = False) -> tuple[bool, str | None]:
         """
         Asynchronous implementation of setup_project
         """
-        await self.setup_project_async_with_exceptions(schema, dry_run)
+        return await self.setup_project_async_with_exceptions(schema, dry_run)
 
-    async def setup_project_async_with_exceptions(self, schema: Dict, dry_run: bool = False):
+    async def setup_project_async_with_exceptions(self, schema: Dict, dry_run: bool = False) -> tuple[bool, str | None]:
         """
         Asynchronous implementation of setup_project, but async without error handling.  This is meant for testing.
         """
@@ -139,7 +139,7 @@ class ProjectWizardCore:
                 if mods_error:
                     self._log_error(mods_error)
                     self._on_run_finished(False, error=mods_error)
-                    return
+                    return False, mods_error
 
             # Item validation should check that the symlinks are already valid if the remix_directory is None
             symlink_error = await self._create_symlinks(
@@ -148,14 +148,14 @@ class ProjectWizardCore:
             if symlink_error:
                 self._log_error(symlink_error)
                 self._on_run_finished(False, error=symlink_error)
-                return
+                return False, symlink_error
             self._on_run_progress(30)
 
             if model.existing_project:
                 self._log_info(f"Project is ready: {model.project_file}")
                 self._on_run_progress(100)
                 self._on_run_finished(True)
-                return
+                return True, None
 
             stage = await self._create_project_layer(model.project_file, layer_manager, context, stage, dry_run)
             self._on_run_progress(40)
@@ -164,7 +164,7 @@ class ProjectWizardCore:
                 error_message = f"Could not open stage for the project file ({model.project_file})."
                 self._log_error(error_message)
                 self._on_run_finished(False, error=error_message)
-                return
+                return False, error_message
 
             await self._insert_capture_layer(capture_core, captures_directory, model.capture_file, dry_run)
             self._on_run_progress(50)
@@ -193,10 +193,14 @@ class ProjectWizardCore:
             self._log_info(f"Project is ready: {model.project_file}")
             self._on_run_progress(100)
             self._on_run_finished(True)
+
+            return True, None
         except Exception as e:  # noqa
             error_message = f"An unknown error occurred: {e}"
             self._log_error(error_message)
             self._on_run_finished(False, error=error_message)
+
+            return False, error_message
 
     def _create_mods_dir(self, remix_directory, dry_run):
         # Mod dir validation should check if mods dir exists, if not create
@@ -276,8 +280,8 @@ class ProjectWizardCore:
         if not remix_directory:
             return None
 
-        isettings = carb.settings.get_settings()
-        if isettings.get(SETTING_JUNCTION_NAME):
+        settings = carb.settings.get_settings()
+        if settings.get(SETTING_JUNCTION_NAME):
             create_junction = True
 
         remix_mods_directory = remix_directory / _constants.REMIX_MODS_FOLDER
@@ -303,7 +307,7 @@ class ProjectWizardCore:
                 symlink_directories.append((remix_project_directory, project_directory))
             else:
                 self._log_info(f"Symlink from '{project_directory}' to '{remix_project_directory}'")
-        elif remix_project_directory != project_directory:
+        elif remix_project_directory.resolve() != project_directory.resolve():
             # Don't allow creating a new project with the same name as an existing project.
             # If OPENING a project from the rtx-remix dir it will have the same path.
             if symlink_directories:
@@ -325,9 +329,9 @@ class ProjectWizardCore:
             return stage
 
         layer_manager.create_new_sublayer(_LayerType.workfile, str(project_file), do_undo=False)
-        await context.open_stage_async(str(project_file))
+        result, _ = await context.open_stage_async(str(project_file))
 
-        return context.get_stage()
+        return context.get_stage() if result else None
 
     async def _insert_capture_layer(self, capture_core, deps_captures_directory, capture_file, dry_run):
         deps_capture_file = deps_captures_directory / capture_file.name

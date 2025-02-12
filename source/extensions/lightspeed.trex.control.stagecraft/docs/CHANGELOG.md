@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+## Changed
+- Added support for multiple wizards (open & create)
+
 ## [1.2.5]
 ## Fixed
 - Fixed `should_interrupt_shutdown` crash when no context is available

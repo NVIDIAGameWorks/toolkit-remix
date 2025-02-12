@@ -16,19 +16,13 @@
 """
 
 from functools import partial
-from pathlib import Path
 from typing import Callable
 
-from lightspeed.common import constants as _constants
-from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys
-from lightspeed.trex.project_wizard.core import ProjectWizardSchema as _ProjectWizardSchema
 from lightspeed.trex.project_wizard.existing_mods_page.widget import ExistingModsPage as _ExistingModsPage
 from lightspeed.trex.project_wizard.setup_page.widget import SetupPage as _SetupPage
-from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from omni.flux.utils.widget.file_pickers import open_file_picker as _open_file_picker
 from omni.flux.wizard.widget import WizardPage as _WizardPage
 
 from .items import StartOption
@@ -74,10 +68,9 @@ class WizardStartPage(_WizardPage):
 
         # Option: (StyleName, Callback)
         self._options = {
-            StartOption.OPEN: ("ModOpen", self._open_project),
             StartOption.CREATE: ("ModCreate", self._create_mod),
             StartOption.EDIT: ("ModEdit", self._edit_mod),
-            StartOption.REMASTER: ("ModRemaster", self._remaster_mod),
+            # StartOption.REMASTER: ("ModRemaster", self._remaster_mod),  # Disabled until the runtime implements
         }
 
     def _on_mouse_hover(self, option: StartOption, value: bool):
@@ -94,64 +87,6 @@ class WizardStartPage(_WizardPage):
         self._primary_description.text = option.value[1] if value else self.DEFAULT_PRIMARY_DESCRIPTION
         self._detailed_description.text = option.value[2] if value else self.DEFAULT_SECONDARY_DESCRIPTION
         self._example_description.text = f"Example: {option.value[3]}" if value else ""
-
-    def _open_project(self, _x, _y, button, _m):
-        if button != 0:
-            return
-        self._setup_page.open_or_create = True
-
-        validation_error = "The selected path is invalid: An unknown error occurred."
-
-        def on_file_selected(project_path):
-            self.payload = {_ProjectWizardKeys.PROJECT_FILE.value: Path(project_path)}
-            # Only update the payload if we're completing the wizard process
-            if self.next_page is None:
-                self.payload = {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
-            self._on_file_picker_closed()
-
-            self._setup_page.open_or_create = True
-            self._setup_page.project_path = project_path
-            self.request_next()
-
-        def validate_path(dirname, filename):
-            is_valid = True
-            project_path = Path(dirname) / filename
-
-            nonlocal validation_error
-
-            try:
-                _ProjectWizardSchema.is_project_file_valid(
-                    project_path, {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
-                )
-            except ValueError as e:
-                validation_error = str(e)
-                is_valid = False
-
-            if is_valid:
-                self._setup_page.next_page = None
-                self.next_page = (
-                    None if _ProjectWizardSchema.are_project_symlinks_valid(Path(project_path)) else self._setup_page
-                )
-
-            return is_valid
-
-        def show_validation_failed_dialog(*_):
-            _TrexMessageDialog(
-                validation_error,
-                disable_cancel_button=True,
-            )
-
-        self._on_file_picker_opened()
-        _open_file_picker(
-            "Open an RTX Remix project",
-            on_file_selected,
-            lambda *_: self._on_file_picker_closed(),
-            apply_button_label="Open",
-            file_extension_options=_constants.SAVE_USD_FILE_EXTENSIONS_OPTIONS,
-            select_directory=False,
-            validate_selection=validate_path,
-            validation_failed_callback=show_validation_failed_dialog,
-        )
 
     def _create_mod(self, _x, _y, button, _m):
         if button != 0:
@@ -180,18 +115,14 @@ class WizardStartPage(_WizardPage):
         with ui.VStack():
             ui.Spacer(width=0)
 
-            with ui.HStack():
-                ui.Spacer(width=ui.Pixel(24), height=0)
-                with ui.VStack():
-                    self._primary_description = ui.Label(
-                        self.DEFAULT_PRIMARY_DESCRIPTION, name="WizardDescription", alignment=ui.Alignment.CENTER
-                    )
-                    ui.Spacer(height=ui.Pixel(8), width=0)
-                    self._detailed_description = ui.Label(
-                        self.DEFAULT_SECONDARY_DESCRIPTION, alignment=ui.Alignment.CENTER
-                    )
-                    ui.Spacer(height=ui.Pixel(4), width=0)
-                    self._example_description = ui.Label("", alignment=ui.Alignment.CENTER)
+            with ui.VStack():
+                self._primary_description = ui.Label(
+                    self.DEFAULT_PRIMARY_DESCRIPTION, name="WizardDescription", alignment=ui.Alignment.CENTER
+                )
+                ui.Spacer(height=ui.Pixel(8), width=0)
+                self._detailed_description = ui.Label(self.DEFAULT_SECONDARY_DESCRIPTION, alignment=ui.Alignment.CENTER)
+                ui.Spacer(height=ui.Pixel(2), width=0)
+                self._example_description = ui.Label("", alignment=ui.Alignment.CENTER)
 
             ui.Spacer(height=ui.Pixel(24), width=0)
 

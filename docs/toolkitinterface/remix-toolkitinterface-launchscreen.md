@@ -7,7 +7,8 @@
 | Option	            | Description                                                                      |
 |:-------------------|:---------------------------------------------------------------------------------|
 | New	               | Launch the Project Wizard to Create or Open a project                            |
-| Resume	            | Open the project your are currently working on                                   |
+| Open	              | Open an existing project                                                         |
+| Resume	            | Resume editing the project your are currently working on                         |
 | Quick Start Guide	 | Open the quick start guide documentation page in your browser                    |
 | Recent Projects	   | List of Recently Opened Project(s)                                               |
 | Modding	           | Opens the Modding Tab when a project is opened, otherwise the home page is shown |

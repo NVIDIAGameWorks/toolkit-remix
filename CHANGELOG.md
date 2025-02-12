@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplified the UAC logic
 - REMIX-2714: Updated the Home Page of the app
 - REMIX-3835: Removed whitespace restrictions from project creation
-
+- REMIX-3858: Move Open option to the Home Screen
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs

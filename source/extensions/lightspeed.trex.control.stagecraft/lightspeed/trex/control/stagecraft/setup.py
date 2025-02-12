@@ -28,8 +28,10 @@ from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 from lightspeed.trex.hotkeys import TrexHotkeyEvent as _TrexHotkeyEvent
 from lightspeed.trex.hotkeys import get_global_hotkey_manager as _get_global_hotkey_manager
 from lightspeed.trex.layout.stagecraft import get_instance as _get_layout_instance
+from lightspeed.trex.layout.stagecraft.setup_ui import Pages
 from lightspeed.trex.menu.workfile import get_instance as _get_menu_workfile_instance
-from lightspeed.trex.project_wizard.window import get_instance as _get_project_wizard_window_instance
+from lightspeed.trex.project_wizard.window import WizardTypes as _WizardTypes
+from lightspeed.trex.project_wizard.window import get_instance as _get_wizard_instance
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCoreSetup
 from lightspeed.trex.stage.core.shared import Setup as _StageCoreSetup
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
@@ -42,6 +44,8 @@ class Setup:
     def __init__(self):
         self._default_attr = {
             "_sub_new_work_file_clicked": None,
+            "_sub_open_work_file_clicked": None,
+            "_sub_wizard_completed": None,
             "_stage_core_setup": None,
             "_capture_core_setup": None,
             "_replacement_core_setup": None,
@@ -76,15 +80,19 @@ class Setup:
         self._replacement_core_setup = _ReplacementCoreSetup(self._context_name)
 
         self._sub_new_work_file_clicked = self._layout_instance.subscribe_new_work_file_clicked(
-            lambda: _get_project_wizard_window_instance(self._context_name).show_project_wizard(reset_page=True)
+            partial(self._setup_wizard, _WizardTypes.CREATE)
         )
+        self._sub_open_work_file_clicked = self._layout_instance.subscribe_open_work_file_clicked(
+            partial(self._setup_wizard, _WizardTypes.OPEN)
+        )
+
         self._sub_import_capture_layer = self._layout_instance.subscribe_import_capture_layer(
             self._on_import_capture_layer
         )
         self._sub_import_replacement_layer = self._layout_instance.subscribe_import_replacement_layer(
             self._on_import_replacement_layer
         )
-        self._sub_open_workfile = self._layout_instance.subscribe_open_work_file(self._on_open_workfile)
+        self._sub_load_workfile = self._layout_instance.subscribe_load_work_file(self._on_open_workfile)
 
         hotkey_manager = _get_global_hotkey_manager()
         self._sub_key_undo = hotkey_manager.subscribe_hotkey_event(
@@ -109,6 +117,13 @@ class Setup:
         self._sub_menu_workfile_unload_stage = self._menu_workfile_instance.subscribe_reload_last_workfile(
             self._on_reload_last_workfile
         )
+
+    def _setup_wizard(self, wizard_type: _WizardTypes):
+        wizard = _get_wizard_instance(wizard_type, self._context_name)
+        self._sub_wizard_completed = wizard.subscribe_wizard_completed(
+            partial(self._layout_instance.show_page, Pages.WORKSPACE_PAGE)
+        )
+        wizard.show_project_wizard(reset_page=True)
 
     def _on_import_capture_layer(self, path: str):
         self._capture_core_setup.import_capture_layer(path)
