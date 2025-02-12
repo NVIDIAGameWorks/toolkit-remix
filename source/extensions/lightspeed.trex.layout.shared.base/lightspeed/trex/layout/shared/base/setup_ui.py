@@ -100,10 +100,6 @@ class SetupUI:
     def button_priority(self) -> int:
         return 0
 
-    @property
-    def rebuild_frame(self) -> bool:
-        return True
-
     def _on_button_clicked(self, x, y, b, m):  # noqa PLC0103
         if b != 0:
             return
@@ -119,8 +115,6 @@ class SetupUI:
         else:
             cls._header_navigator.select_button(cls.button_name)  # noqa PLW0212
             _trex_contexts_instance().set_current_context(cls.context)
-            if cls.rebuild_frame:
-                self._root_frame.rebuild()
         for layout in _LAYOUT_INSTANCES:
             layout.show(layout == cls)
 
@@ -137,7 +131,9 @@ class SetupUI:
     def create_layout(self):
         self.create_shared_layout()
         with SetupUI.SHARED_ZSTACK:  # noqa PLE1129
-            self._root_frame = ui.Frame(build_fn=self._create_layout)
+            self._root_frame = ui.Frame()
+            with self._root_frame:
+                self._create_layout()
         self._header_navigator.select_button(self.button_name)
         _trex_contexts_instance().set_current_context(self.context)
 

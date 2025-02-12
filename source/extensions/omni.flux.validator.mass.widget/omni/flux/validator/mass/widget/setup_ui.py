@@ -474,6 +474,8 @@ class ValidatorMassWidget:
                 self._executor_container.clear()
 
     def show(self, value: bool):
+        for plugin in self._core.schema_model.get_item_children(None):
+            plugin.show(value)
         if self._mass_queue_widget:
             self._mass_queue_widget.show(value)
 

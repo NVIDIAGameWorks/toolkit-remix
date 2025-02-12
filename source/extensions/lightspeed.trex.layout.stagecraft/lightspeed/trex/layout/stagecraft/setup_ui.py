@@ -319,10 +319,6 @@ class SetupUI(TrexLayout):
     def button_priority(self) -> int:
         return 10
 
-    @property
-    def rebuild_frame(self) -> bool:
-        return False
-
     @omni.usd.handle_exception
     async def __resize_stage_manager_deferred(self):
         if not self._splitter_stage_manager:
@@ -545,7 +541,10 @@ class SetupUI(TrexLayout):
             title = os.path.basename(path)
             details = {"Path": path}
             details.update(self._recent_saved_file.get_path_detail(path))
-            _, thumbnail = await self._recent_saved_file.find_thumbnail_async(path)
+            data = await self._recent_saved_file.find_thumbnail_async(path)
+            if data is None:
+                continue
+            _, thumbnail = data
             items.append((title, thumbnail, details))
 
         self._home_page.set_recent_items(items)
@@ -564,8 +563,6 @@ class SetupUI(TrexLayout):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
-        if not self._properties_pane:
-            return None
         return self._properties_pane.get_frame(ComponentsEnumItems.MOD_SETUP).subscribe_import_capture_layer(function)
 
     def _set_stage_manager_splitter_offset(self, y):

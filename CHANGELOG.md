@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enabled Extension Registry
 - Fixed various Stage Manager issues
 - REMIX-1811: Skeleton Remapping Tool: Fixes, convenience buttons and alternating row colors
+- Fixed capture list not loading captures properly
 
 ### Removed
 

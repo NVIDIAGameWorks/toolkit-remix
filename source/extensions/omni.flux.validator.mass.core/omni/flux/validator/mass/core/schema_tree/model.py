@@ -222,6 +222,23 @@ class Item(ui.AbstractItem):
                         ui.Spacer(height=ui.Pixel(8))
         return was_build
 
+    def show(self, value: bool):
+        """
+        Called whenever the item is show or hidden in the UI.
+        """
+        self._model.model.context_plugin.instance.show(value, self._model.model.context_plugin.data)
+
+        for check_plugin_model in self._model.model.check_plugins:
+            check_plugin_model.context_plugin.instance.show(value, check_plugin_model.data)
+
+            for select_plugin_model in check_plugin_model.selector_plugins:
+                select_plugin_model.instance.show(value, select_plugin_model.data)
+
+            check_plugin_model.instance.show(value, check_plugin_model.data)
+
+        for resultor_plugin in self._model.model.resultor_plugins:
+            resultor_plugin.instance.show(value, resultor_plugin.data)
+
     def on_mouse_released(self):
         self.__on_mouse_released(self)
 

@@ -251,6 +251,9 @@ class Base(_IBase, abc.ABC):
                 all_data_flows.extend(self._get_schema_data_flows(schema_data, plugin))
         return all_data_flows
 
+    def show(self, value: bool, schema_data: Any):
+        pass
+
     def destroy(self):
         self._schema = None
         self.__on_build_ui = None

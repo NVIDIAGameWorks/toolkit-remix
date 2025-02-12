@@ -346,6 +346,13 @@ class IBase(PluginBase, abc.ABC):
         """Get the various data flows defined in the schema"""
         pass
 
+    @abc.abstractmethod
+    def show(self, value: bool, schema_data: Any):
+        """
+        Called whenever the plugin is show or hidden in the UI.
+        """
+        pass
+
 
 class IBaseSchema(BaseModel, abc.ABC):
     @property
