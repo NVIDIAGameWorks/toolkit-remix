@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Iterable
 
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
+from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
 from omni.flux.utils.common.lights import LightTypes as _LightTypes
 from omni.flux.utils.common.lights import get_light_type as _get_light_type
 
@@ -39,6 +40,7 @@ class LightGroupsItem(_VirtualGroupsItem):
         data: Usd.Prim | None,
         tooltip: str = None,
         light_type: _LightTypes | None = None,
+        display_name_ancestor: str | None = None,
     ):
         """
         Create a Light Group Item
@@ -50,7 +52,7 @@ class LightGroupsItem(_VirtualGroupsItem):
             light_type: The type of light to be grouped. Will be used to determine the icon
         """
 
-        super().__init__(display_name, data, tooltip=tooltip)
+        super().__init__(display_name, data, tooltip=tooltip, display_name_ancestor=display_name_ancestor)
 
         self._light_type = light_type
 
@@ -98,14 +100,27 @@ class LightGroupsModel(_VirtualGroupsModel):
             display_name = f"{light_type.value}s"
             tree_items[light_type] = LightGroupsItem(display_name, None, tooltip=f"{display_name} Group")
 
+        item_names = _StageManagerUtils.get_unique_names(items)
+
         # Add light items to the groups
         for item in items:
             light_type = _get_light_type(item.data.GetTypeName())
             if light_type not in tree_items:
                 continue
+
             prim_path = item.data.GetPath()
+            item_name, parent_name = item_names.get(item, (None, None))
+            if item_name is None:
+                item_name = prim_path.name
+
             tree_items[light_type].add_child(
-                LightGroupsItem(str(prim_path.name), item.data, tooltip=str(prim_path), light_type=light_type)
+                LightGroupsItem(
+                    item_name,
+                    item.data,
+                    tooltip=str(prim_path),
+                    light_type=light_type,
+                    display_name_ancestor=parent_name,
+                )
             )
 
         # Filter out empty groups

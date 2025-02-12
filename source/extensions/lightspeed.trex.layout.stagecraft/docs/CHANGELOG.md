@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0]
+### Changed
+- Added support for opening projects
+- Open the wizards on the home page instead of the modding page
+
 ## [2.1.1]
 ### Changed
 - Reverted rebuild changes

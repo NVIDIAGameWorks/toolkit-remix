@@ -35,7 +35,6 @@ from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
 from lightspeed.trex.capture_tree.model import CaptureTreeDelegate, CaptureTreeModel
-from lightspeed.trex.project_wizard.window import get_instance as _get_project_wizard_window_instance
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCoreSetup
 from lightspeed.trex.utils.widget import TrexMessageDialog
 from omni.flux.property_widget_builder.model.file import FileAttributeItem as _FileAttributeItem
@@ -296,24 +295,6 @@ class ModSetupPane:
                     with ui.HStack():
                         ui.Spacer(width=ui.Pixel(8), height=ui.Pixel(0))
                         with ui.VStack():
-                            self._project_wizard_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
-                                "PROJECT WIZARD",
-                                info_text=(
-                                    "The project wizard allows you to:\n"
-                                    "- Create a new project\n"
-                                    "- Open an existing project\n"
-                                    "- Remaster an existing mod"
-                                ),
-                            )
-                            with self._project_wizard_collapsable_frame:
-                                ui.Button(
-                                    "Open Project Wizard",
-                                    clicked_fn=lambda: _get_project_wizard_window_instance(
-                                        self._context_name
-                                    ).show_project_wizard(reset_page=True),
-                                    height=ui.Pixel(32),
-                                )
-                            ui.Spacer(height=ui.Pixel(8))
                             self._capture_file_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "CAPTURE FILE",
                                 info_text=(

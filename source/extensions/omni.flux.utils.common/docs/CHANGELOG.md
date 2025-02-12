@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.23.1]
+### Changed
+- Changed `sudo` function to throw an exception when user declines UAC dialog
+
 ## [2.23.0]
 ### Added
 - Added the `api` module to send HTTP requests

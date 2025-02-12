@@ -251,6 +251,9 @@
         },
         {
             "name": "AllCategoriesInteractionPlugin",
+            "filtering_rules": {
+                "force_refresh_rules": [{"use_name":  true, "start": "remix_category:"}]
+            },
             "filters": [
                 { "name": "IsCategoryFilterPlugin" },
                 { "name": "IsCaptureFilterPlugin" }
@@ -309,6 +312,9 @@
         },
         {
             "name": "AllTagsInteractionPlugin",
+            "filtering_rules": {
+                "force_refresh_rules": [{"use_name":  true, "start": "collection:", "end": ":includes"}]
+            },
             "filters": [
                 { "name": "IsCaptureFilterPlugin" }
             ],

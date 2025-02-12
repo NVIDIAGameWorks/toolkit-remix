@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.2]
+## Added
+- Stage Manager: Added `force_refresh_rules` for the categories and custom tags tabs
+
 ## [1.14.1]
 ## Added
 - Validation: Added default output directory endpoint for the contexts

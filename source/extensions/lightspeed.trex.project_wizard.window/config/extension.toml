@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.2.5"
+version = "2.0.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -24,10 +24,12 @@ changelog = "docs/CHANGELOG.md"
 "lightspeed.error_popup.window" = {}
 "lightspeed.trex.project_wizard.core" = {}
 "lightspeed.trex.project_wizard.start_page.widget" = {}
+"lightspeed.trex.project_wizard.open_project_page.widget" = {}
 "lightspeed.trex.utils.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.wizard.widget" = {}
 "omni.flux.wizard.window" = {}
+"omni.kit.window.file" = {}
 "omni.ui" = {}
 "omni.usd" = {}
 

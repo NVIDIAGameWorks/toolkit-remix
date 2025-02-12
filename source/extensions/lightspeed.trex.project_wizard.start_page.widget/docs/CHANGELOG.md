@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.0]
+### Changed
+- Changed button descriptions and examples
+- Split the Open flow into a separate wizard
+- Disabled "Remaster" option until the runtime catches up
+
 ## [1.0.4]
 ### Changed
 - Changed repo link

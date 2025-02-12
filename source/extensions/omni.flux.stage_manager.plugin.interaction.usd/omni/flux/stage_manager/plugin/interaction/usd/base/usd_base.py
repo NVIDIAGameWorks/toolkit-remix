@@ -27,8 +27,14 @@ from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugi
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common.utils import get_omni_prims as _get_omni_prims
-from pxr import Usd
+from pxr import Sdf, Usd
 from pydantic import BaseModel, Field, PrivateAttr
+
+
+class RefreshRule(BaseModel):
+    use_name: bool = Field(True, description="Whether to use the prim name or full prim path to match")
+    start: str = Field("", description="String to match the start of the affected prims' names")
+    end: str = Field("", description="String to match the end of the affected prims' names")
 
 
 class USDEventFilteringRules(BaseModel):
@@ -45,6 +51,9 @@ class USDEventFilteringRules(BaseModel):
     )
     ignore_custom_layer_data_events: bool = Field(
         True, description="Whether the events emitted for Custom Layer Data should be ignored or not"
+    )
+    force_refresh_rules: list[RefreshRule] = Field(
+        [], description="List of rules to force a refresh of the tree items rather than a delegate refresh"
     )
 
 
@@ -243,7 +252,25 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         elif changed_info_only_paths and should_refresh(
             changed_info_only_paths, exclude_list={p.GetPrimPath() for p in resynced_paths}
         ):
-            self._queue_update(update_context_items=False)
+            update_context_items = False
+            if any(p for p in changed_info_only_paths if self._evaluate_filtering_rules(p)):
+                update_context_items = True
+            self._queue_update(update_context_items=update_context_items)
+
+    def _evaluate_filtering_rules(self, prim_path: Sdf.Path) -> bool:
+        for rule in self.filtering_rules.force_refresh_rules:
+            # Choose the string based on rule.use_name
+            value = prim_path.name if rule.use_name else str(prim_path)
+            if rule.start and rule.end:
+                if value.startswith(rule.start) and value.endswith(rule.end):
+                    return True
+            elif rule.start:
+                if value.startswith(rule.start):
+                    return True
+            elif rule.end:  # noqa SIM102
+                if value.endswith(rule.start):
+                    return True
+        return False
 
     def _on_item_changed(self, model, item):
         # Convert `_on_item_changed` to an async method since `_update_context_items` is also async

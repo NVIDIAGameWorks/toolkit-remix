@@ -38,7 +38,10 @@ def sudo(executable: str, params: list[str] = None):
 
     match sys.platform:
         case "win32":
-            ctypes.windll.shell32.ShellExecuteW(None, "runas", executable, " ".join(params), None, 1)
+            result = ctypes.windll.shell32.ShellExecuteW(None, "runas", executable, " ".join(params), None, 1)
+            if result <= 32:
+                # The value 1223 indicates that the operation was cancelled by the user.
+                raise RuntimeError("Elevation failed or was cancelled by the user")
         case "linux":
             # Search for sudo executable in order to avoid using shell=True with subprocess
             sudo_path = None

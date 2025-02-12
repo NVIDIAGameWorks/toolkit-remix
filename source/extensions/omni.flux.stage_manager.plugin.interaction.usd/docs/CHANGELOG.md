@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.13.0]
+## Added
+- Added rules to force refreshing the interaction tree
+
 ## [1.12.3]
 ## Fixed
 - Fixed compatibility lists for all interactions

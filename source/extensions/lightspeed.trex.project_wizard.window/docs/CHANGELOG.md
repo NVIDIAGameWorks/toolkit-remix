@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.0]
+## Added
+- Split the Project Wizard into multiple wizards (Open & Create)
+
 ## [1.2.5]
 ## Changed
 - update to use omni.kit.test public api

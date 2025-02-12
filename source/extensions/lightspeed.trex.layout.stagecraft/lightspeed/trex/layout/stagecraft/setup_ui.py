@@ -106,7 +106,8 @@ class SetupUI(TrexLayout):
 
         self._header_refreshed_task = self._header_navigator.subscribe_header_refreshed(self._on_header_refreshed)
         self._on_new_work_file_clicked = _Event()
-        self._on_open_work_file = _Event()
+        self._on_open_work_file_clicked = _Event()
+        self._on_load_work_file = _Event()
         self._on_resume_work_file_clicked = _Event()
         self.__on_import_capture_layer = _Event()
 
@@ -167,7 +168,7 @@ class SetupUI(TrexLayout):
         """
         return _EventSubscription(self.__on_import_capture_layer, function)
 
-    def _open_work_file(self, path):
+    def _load_work_file(self, path):
         """Call the event object that has the list of functions"""
         if not Path(path).exists():
             _TrexMessageDialog(
@@ -178,12 +179,8 @@ class SetupUI(TrexLayout):
             self._refresh_recent_items()
             return
 
-        self._on_open_work_file(path)
+        self._on_load_work_file(path)
         self.show_page(Pages.WORKSPACE_PAGE)
-        # select the first component
-        self._components_pane.get_ui_widget().set_selection(
-            self._components_pane.get_model().get_item_children(None)[0]
-        )
 
     def _on_open_from_storage_pad_clicked(self, _x, _y, b, _m):
         """Called when we click on the 'open from storage' from the welcome pad"""
@@ -191,7 +188,7 @@ class SetupUI(TrexLayout):
             return
         _open_file_picker(
             "Workfile picker",
-            self._open_work_file,
+            self._load_work_file,
             lambda *args: None,
             file_extension_options=READ_USD_FILE_EXTENSIONS_OPTIONS,
             validate_selection=_is_usd_file_path_valid_for_filepicker,
@@ -204,11 +201,11 @@ class SetupUI(TrexLayout):
             disable_cancel_button=True,
         )
 
-    def subscribe_open_work_file(self, function):
+    def subscribe_load_work_file(self, function):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
-        return _EventSubscription(self._on_open_work_file, function)
+        return _EventSubscription(self._on_load_work_file, function)
 
     def _launch_game_with_remix(self):
         def execute_launcher(filename: str):
@@ -231,11 +228,6 @@ class SetupUI(TrexLayout):
 
     def _new_work_file_clicked(self):
         """Call the event object that has the list of functions"""
-        self.show_page(Pages.WORKSPACE_PAGE)
-        # select the first component
-        self._components_pane.get_ui_widget().set_selection(
-            self._components_pane.get_model().get_item_children(None)[0]
-        )
         self._on_new_work_file_clicked()
 
     def subscribe_new_work_file_clicked(self, fn):
@@ -244,6 +236,17 @@ class SetupUI(TrexLayout):
         Called when we click on a tool (change of the selected tool)
         """
         return _EventSubscription(self._on_new_work_file_clicked, fn)
+
+    def _open_work_file_clicked(self):
+        """Call the event object that has the list of functions"""
+        self._on_open_work_file_clicked()
+
+    def subscribe_open_work_file_clicked(self, fn):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        Called when we click on a tool (change of the selected tool)
+        """
+        return _EventSubscription(self._on_open_work_file_clicked, fn)
 
     def _resume_work_file_clicked(self):
         self.show_page(Pages.WORKSPACE_PAGE)
@@ -277,9 +280,10 @@ class SetupUI(TrexLayout):
                 "_frame_home_page": None,
                 "_home_page": None,
                 "_sub_new_project_clicked": None,
+                "_sub_open_project_clicked": None,
                 "_sub_resume_clicked": None,
                 "_sub_remove_from_recent_clicked": None,
-                "_sub_open_project_clicked": None,
+                "_sub_load_project_clicked": None,
                 "_frame_workspace": None,
                 "_feature_flags_changed_subs": None,
                 "_header_refreshed_task": None,
@@ -350,6 +354,9 @@ class SetupUI(TrexLayout):
                     case Pages.WORKSPACE_PAGE.value:
                         if self._stage_manager is not None:
                             self._stage_manager.resize_tabs()
+                        self._components_pane.get_ui_widget().set_selection(
+                            self._components_pane.get_model().get_item_children(None)[0]
+                        )
             else:
                 frame.visible = False
         self.__current_page = page
@@ -371,10 +378,13 @@ class SetupUI(TrexLayout):
                 self._sub_new_project_clicked = self._home_page.subscribe_new_project_clicked(
                     self._new_work_file_clicked
                 )
+                self._sub_open_project_clicked = self._home_page.subscribe_open_project_clicked(
+                    self._open_work_file_clicked
+                )
                 self._sub_remove_from_recent_clicked = self._home_page.subscribe_remove_from_recent_clicked(
                     self._remove_project_from_recent
                 )
-                self._sub_open_project_clicked = self._home_page.subscribe_open_project_clicked(self._open_work_file)
+                self._sub_load_project_clicked = self._home_page.subscribe_load_project_clicked(self._load_work_file)
 
             self._frame_workspace = ui.Frame(
                 name=Pages.WORKSPACE_PAGE.value,

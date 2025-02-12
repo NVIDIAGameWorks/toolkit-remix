@@ -1,5 +1,5 @@
 [package]
-version = "1.5.7"
+version = "1.6.0"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -16,7 +16,6 @@ preview_image = "data/preview.png"
 "lightspeed.error_popup.window" = {}
 "lightspeed.trex.capture.core.shared" = {}
 "lightspeed.trex.capture_tree.model" = {}
-"lightspeed.trex.project_wizard.window" = {}
 "lightspeed.trex.replacement.core.shared" = {}
 "lightspeed.trex.utils.common" = {}
 "lightspeed.trex.utils.widget" = {}

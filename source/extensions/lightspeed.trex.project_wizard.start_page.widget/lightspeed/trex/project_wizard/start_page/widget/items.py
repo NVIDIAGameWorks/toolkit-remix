@@ -28,24 +28,24 @@ class StartOption(Enum):
     OPEN = (
         "OPEN",
         "Open an existing project.",
-        "Opening an existing projects can be used when a project was already created by another author.",
-        "A multi-member team wants to share a project hosted on a SVC tool between members.",
+        "This option will allow you to open a project that has already been created.",
+        "You join a multi-member team and want to open the shared project hosted on a SVC tool.",
     )
     CREATE = (
         "CREATE",
         "Create a project to author a new mod.",
-        "Creating a project will initialize a vanilla project with no existing dependencies.",
-        "Create a new mod for which you do not need existing RTX Remix mod dependencies.",
+        "This option will create a blank project with no dependencies.",
+        "You want to start building a new mod from scratch.",
     )
     EDIT = (
         "EDIT",
         "Create a project to edit an existing mod.",
-        "Editing will create a project with existing mod file(s) as the replacements layers in the project.",
-        "Update an existing mod for which you don't have the project files for.",
+        "This option will create a project around a copy of an existing mod.",
+        "You want to build on top of a packaged mod and you don't have access to their project files.",
     )
     REMASTER = (
         "REMASTER",
         "Create a project to author a new mod with dependencies.",
-        "Remaster will create a project with a new mod file and add existing mod files as weaker sublayers.",
-        "Create a self-contained mod that modifies one or more existing RTX Remix mod(s).",
+        "This option will create a project which references existing mod files as weaker sublayers.",
+        "You want to make specific changes and keep the live connection to one or more existing RTX Remix mod(s).",
     )

@@ -125,7 +125,7 @@ class TrexTestPromptIfUnsavedStage(AsyncTestCase):
             patch.object(LayerManagerCore, "open_stage"),
         ):
             # opening a new project should ask if we want to save our work
-            self._stagecraft._open_work_file(self._temp_path)  # noqa PLW0212 protected-access
+            self._stagecraft._load_work_file(self._temp_path)  # noqa PLW0212 protected-access
 
         prompt.assert_called_once()
 
@@ -153,7 +153,7 @@ class TrexTestPromptIfUnsavedStage(AsyncTestCase):
             patch("lightspeed.trex.control.stagecraft.setup._TrexMessageDialog", mock_prompt("middle_2")) as prompt,
             patch.object(LayerManagerCore, "open_stage"),
         ):
-            self._stagecraft._open_work_file(self._temp_path)  # noqa PLW0212 protected-access
+            self._stagecraft._load_work_file(self._temp_path)  # noqa PLW0212 protected-access
 
         prompt.assert_not_called()
 
@@ -167,7 +167,7 @@ class TrexTestPromptIfUnsavedStage(AsyncTestCase):
             patch.object(FileWindowExtension, "save") as mock_file_save,
             patch.object(LayerManagerCore, "open_stage"),
         ):
-            self._stagecraft._open_work_file(self._temp_path)  # noqa PLW0212 protected-access
+            self._stagecraft._load_work_file(self._temp_path)  # noqa PLW0212 protected-access
 
         prompt.assert_called_once()
         mock_file_save.assert_not_called()

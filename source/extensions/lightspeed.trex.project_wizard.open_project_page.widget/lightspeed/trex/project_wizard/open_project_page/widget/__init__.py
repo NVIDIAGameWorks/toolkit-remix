@@ -15,13 +15,6 @@
 * limitations under the License.
 """
 
-__all__ = [
-    "ProjectWizardWindowExtension",
-    "get_instance",
-    "CreateProjectWizardWindow",
-    "OpenProjectWizardWindow",
-    "WizardTypes",
-]
+__all__ = ["WizardOpenProjectPage"]
 
-from .extension import ProjectWizardWindowExtension, get_instance
-from .setup_ui import CreateProjectWizardWindow, OpenProjectWizardWindow, WizardTypes
+from .setup_ui import WizardOpenProjectPage

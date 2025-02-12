@@ -268,7 +268,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
         open_stage_mock = context_mock.open_stage_async
         future = asyncio.Future()
-        future.set_result(None)
+        future.set_result((True, None))
         open_stage_mock.return_value = future
 
         context_mock.get_stage.return_value = context_stage_mock
