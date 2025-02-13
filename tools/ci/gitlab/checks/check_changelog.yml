@@ -3,8 +3,10 @@ check-changelog:
     - .defaults
     - .windows_agent
     - .soak_check_rules
-  needs: []
-  stage: check_mr
+  needs:
+    - job: check-lint
+      optional: true
+  stage: check_changelog
   script:
     - .\repo.bat check_changelog -s "$CI_COMMIT_SHA" -t "$CI_MERGE_REQUEST_DIFF_BASE_SHA"
   rules:

@@ -5,7 +5,11 @@ build-docs:
     - .linux_vault
   stage: build_docs
   needs:
-    - check-lint
+    - flux-e2e-tests-windows-a2s
+    - flux-e2e-tests-windows-t2z
+    - lss-e2e-tests-windows-a2s
+    - lss-e2e-tests-windows-t2z
+    - check-changelog
   before_script:
     - !reference [ .linux_vault, before_script ]
     - ./build.sh --rebuild --release
