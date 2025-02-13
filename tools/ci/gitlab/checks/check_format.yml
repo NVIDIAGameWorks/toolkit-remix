@@ -5,7 +5,6 @@ check-format:
     - .soak_check_rules
   stage: check_format
   needs:
-    - check-changelog
     - check-forbidden-words
     - check-test-location
   script:

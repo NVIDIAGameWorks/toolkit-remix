@@ -11,6 +11,7 @@ stages:
   - flux_unit_tests
   - lss_e2e_tests
   - lss_unit_tests
+  - check_changelog
   - build_docs
   - publish_docs
   - build_package

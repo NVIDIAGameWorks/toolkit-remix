@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - Added automated CR/LF line endings for .toml files for dependencies
+- Changed CI/CD stages to remove check-changelog from the start
 
 ### Added
 - Created 2024.5.1 build
