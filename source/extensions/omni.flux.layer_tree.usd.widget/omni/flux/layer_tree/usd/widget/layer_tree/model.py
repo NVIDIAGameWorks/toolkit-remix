@@ -16,6 +16,8 @@
 """
 
 import abc
+import asyncio
+import concurrent
 import weakref
 from contextlib import contextmanager
 from functools import partial
@@ -26,6 +28,9 @@ import carb
 import omni.kit.usd.layers as _layers
 from omni import usd
 from omni.flux.layer_tree.usd.core import LayerCustomData as _LayerCustomData
+from omni.flux.utils.common import Event as _Event
+from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.layer_utils import FILE_DIALOG_EXTENSIONS as _FILE_DIALOG_EXTENSIONS
 from omni.flux.utils.common.layer_utils import save_layer_as as _save_layer_as
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
@@ -98,6 +103,11 @@ class LayerModel(_TreeModelBase[ItemBase]):
         self._exclude_add_child_fn = exclude_add_child_fn
         self._exclude_move_fn = exclude_move_fn
 
+        self.__on_refresh_started = _Event()
+        self.__on_refresh_completed = _Event()
+
+        self.__refresh_task = None
+
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
@@ -134,11 +144,9 @@ class LayerModel(_TreeModelBase[ItemBase]):
 
     def refresh(self) -> None:
         """Force a refresh of the model."""
-        if not self.stage or self._ignore_refresh:
-            return
-        root_layer = self.stage.GetRootLayer()
-        root_item = self._create_layer_items(root_layer, None)
-        self.set_items([root_item])
+        if self.__refresh_task:
+            self.__refresh_task.cancel()
+        self.__refresh_task = asyncio.ensure_future(self._deferred_refresh())
 
     def enable_listeners(self, value: bool) -> None:
         """
@@ -158,6 +166,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
             )
             self._context = usd.get_context(self._context_name)
             self.stage = self._context.get_stage()
+
             self.refresh()
         else:
             self._layer_events = None
@@ -648,6 +657,21 @@ class LayerModel(_TreeModelBase[ItemBase]):
         elif source is not None and item_target is not None:
             self.move_sublayer(source, item_target)
 
+    async def _deferred_refresh(self):
+        if not self.stage or self._ignore_refresh:
+            return
+
+        self.__on_refresh_started()
+
+        loop = asyncio.get_event_loop()
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            # Submit the jobs in an async thread to avoid locking up the UI
+            root_item = await loop.run_in_executor(pool, self._create_layer_items, self.stage.GetRootLayer(), None)
+
+        self.set_items([root_item])
+
+        self.__on_refresh_completed()
+
     def _create_layer_items(self, layer, parent):
         children = []
         for sub_layer in layer.subLayerPaths:
@@ -774,3 +798,21 @@ class LayerModel(_TreeModelBase[ItemBase]):
         self._context = usd.get_context(self._context_name)
         self.stage = self._context.get_stage()
         self.refresh()
+
+    def subscribe_refresh_started(self, function):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_refresh_started, function)
+
+    def subscribe_refresh_completed(self, function):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_refresh_completed, function)
+
+    def destroy(self):
+        if self.__refresh_task:
+            self.__refresh_task.cancel()
+            self.__refresh_task = None
+        _reset_default_attrs(self)

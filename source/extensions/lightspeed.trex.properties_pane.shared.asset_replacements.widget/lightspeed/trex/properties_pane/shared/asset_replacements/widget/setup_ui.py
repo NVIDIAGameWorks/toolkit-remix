@@ -16,6 +16,7 @@
 """
 
 import functools
+from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, List
 
@@ -49,6 +50,15 @@ from omni.flux.utils.widget.collapsable_frame import (
 from pxr import Sdf, Tf
 
 
+class CollapsiblePanels(Enum):
+    BOOKMARKS = 0
+    HISTORY = 1
+    LAYERS = 2
+    MATERIAL_PROPERTIES = 3
+    MESH_PROPERTIES = 4
+    SELECTION = 5
+
+
 class AssetReplacementsPane:
     def __init__(self, context_name: str):
         """Nvidia StageCraft Components Pane"""
@@ -76,6 +86,7 @@ class AssetReplacementsPane:
             "_sub_go_to_ingest_tab3": None,
             "_sub_stage_event": None,
             "_layer_validation_error_msg": None,
+            "_collapsible_frame_states": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -87,6 +98,8 @@ class AssetReplacementsPane:
         self._material_converted_sub = None
 
         self._layer_validation_error_msg = ""
+
+        self._collapsible_frame_states = {}
 
         self.__create_ui()
 
@@ -135,6 +148,7 @@ class AssetReplacementsPane:
                                 "bottom of the widget",
                                 collapsed=True,
                             )
+                            self._collapsible_frame_states[CollapsiblePanels.LAYERS] = False
                             with self._layer_collapsable_frame:
                                 model = _LayerModel(
                                     self._context_name,
@@ -155,7 +169,11 @@ class AssetReplacementsPane:
                                 )
                                 self._layer_tree_widget = _LayerTreeWidget(model=model)
                             self._layer_collapsable_frame.root.set_collapsed_changed_fn(
-                                functools.partial(self.__on_collapsable_frame_changed, self._layer_tree_widget)
+                                functools.partial(
+                                    self.__on_collapsable_frame_changed,
+                                    CollapsiblePanels.LAYERS,
+                                    self._layer_tree_widget,
+                                )
                             )
 
                             ui.Spacer(height=ui.Pixel(16))
@@ -176,11 +194,16 @@ class AssetReplacementsPane:
                                 "viewport.\n",
                                 collapsed=True,
                             )
+                            self._collapsible_frame_states[CollapsiblePanels.BOOKMARKS] = False
                             with self._bookmarks_collapsable_frame:
                                 model = _UsdBookmarkCollectionModel(self._context_name)
                                 self._bookmark_tree_widget = _BookmarkTreeWidget(model=model)
                             self._bookmarks_collapsable_frame.root.set_collapsed_changed_fn(
-                                functools.partial(self.__on_collapsable_frame_changed, self._bookmark_tree_widget)
+                                functools.partial(
+                                    self.__on_collapsable_frame_changed,
+                                    CollapsiblePanels.BOOKMARKS,
+                                    self._bookmark_tree_widget,
+                                )
                             )
 
                             ui.Spacer(height=ui.Pixel(16))
@@ -192,12 +215,16 @@ class AssetReplacementsPane:
                                 "- Clicking on an item will select it in the viewport.\n",
                                 collapsed=True,
                             )
-
+                            self._collapsible_frame_states[CollapsiblePanels.HISTORY] = False
                             with self._selection_history_collapsable_frame:
                                 model = _UsdSelectionHistoryModel(self._context_name)
                                 self._selection_history_widget = _SelectionHistoryWidget(model=model)
                             self._selection_history_collapsable_frame.root.set_collapsed_changed_fn(
-                                functools.partial(self.__on_collapsable_frame_changed, self._selection_history_widget)
+                                functools.partial(
+                                    self.__on_collapsable_frame_changed,
+                                    CollapsiblePanels.HISTORY,
+                                    self._selection_history_widget,
+                                )
                             )
 
                             ui.Spacer(height=ui.Pixel(16))
@@ -215,6 +242,7 @@ class AssetReplacementsPane:
                                 "it in the viewport.\n",
                                 collapsed=False,
                             )
+                            self._collapsible_frame_states[CollapsiblePanels.SELECTION] = True
                             with self._selection_collapsable_frame:
                                 self._selection_tree_widget = _SelectionTreeWidget(self._context_name)
 
@@ -236,11 +264,13 @@ class AssetReplacementsPane:
                                 ),
                                 unpinned_fn=self._refresh_mesh_properties_widget,
                             )
+                            self._collapsible_frame_states[CollapsiblePanels.MESH_PROPERTIES] = True
                             with self._mesh_properties_collapsable_frame:
                                 self._mesh_properties_widget = _MeshPropertiesWidget(self._context_name)
                             self._mesh_properties_collapsable_frame.root.set_collapsed_changed_fn(
                                 functools.partial(
                                     self.__on_collapsable_frame_changed,
+                                    CollapsiblePanels.MESH_PROPERTIES,
                                     self._mesh_properties_widget,
                                     refresh_fn=self._refresh_mesh_properties_widget,
                                 )
@@ -262,6 +292,7 @@ class AssetReplacementsPane:
                                 pinned_text_fn=lambda: self._get_selection_name_by_type([_ItemPrim]),
                                 unpinned_fn=self._refresh_material_properties_widget,
                             )
+                            self._collapsible_frame_states[CollapsiblePanels.MATERIAL_PROPERTIES] = True
                             with self._material_properties_collapsable_frame:
                                 self._material_properties_widget = _MaterialPropertiesWidget(self._context_name)
                                 self._material_converted_sub = (
@@ -272,6 +303,7 @@ class AssetReplacementsPane:
                             self._material_properties_collapsable_frame.root.set_collapsed_changed_fn(
                                 functools.partial(
                                     self.__on_collapsable_frame_changed,
+                                    CollapsiblePanels.MATERIAL_PROPERTIES,
                                     self._material_properties_widget,
                                     refresh_fn=self._refresh_material_properties_widget,
                                 )
@@ -292,8 +324,11 @@ class AssetReplacementsPane:
         self._refresh_mesh_properties_widget()
         self._refresh_material_properties_widget()
 
-    def __on_collapsable_frame_changed(self, widget, collapsed, refresh_fn: Callable[[], Any] = None):
+    def __on_collapsable_frame_changed(
+        self, collapsible_panel_type, widget, collapsed, refresh_fn: Callable[[], Any] = None
+    ):
         value = not collapsed
+        self._collapsible_frame_states[collapsible_panel_type] = value
         widget.show(value)
         if refresh_fn is not None and value:
             refresh_fn()
@@ -400,12 +435,14 @@ class AssetReplacementsPane:
     def show(self, value):
         # Update the widget visibility
         self._root_frame.visible = value
-        self._layer_tree_widget.show(value)
-        self._bookmark_tree_widget.show(value)
-        self._selection_history_widget.show(value)
-        self._selection_tree_widget.show(value)
-        self._mesh_properties_widget.show(value)
-        self._material_properties_widget.show(value)
+        self._layer_tree_widget.show(self._collapsible_frame_states[CollapsiblePanels.LAYERS] and value)
+        self._bookmark_tree_widget.show(self._collapsible_frame_states[CollapsiblePanels.BOOKMARKS] and value)
+        self._selection_history_widget.show(self._collapsible_frame_states[CollapsiblePanels.HISTORY] and value)
+        self._selection_tree_widget.show(self._collapsible_frame_states[CollapsiblePanels.SELECTION] and value)
+        self._mesh_properties_widget.show(self._collapsible_frame_states[CollapsiblePanels.MESH_PROPERTIES] and value)
+        self._material_properties_widget.show(
+            self._collapsible_frame_states[CollapsiblePanels.MATERIAL_PROPERTIES] and value
+        )
         if value:
             self.refresh()
 

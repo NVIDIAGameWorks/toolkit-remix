@@ -6,8 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Added automated CR/LF line endings for .toml files for dependencies
-- Changed CI/CD stages to remove check-changelog from the start
 
 ### Added
 - Created 2024.5.1 build
@@ -44,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2714: Updated the Home Page of the app
 - REMIX-3835: Removed whitespace restrictions from project creation
 - REMIX-3858: Move Open option to the Home Screen
+- Added automated CR/LF line endings for .toml files for dependencies
+- Changed CI/CD stages to remove check-changelog from the start
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs
@@ -58,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed various Stage Manager issues
 - REMIX-1811: Skeleton Remapping Tool: Fixes, convenience buttons and alternating row colors
 - Fixed capture list not loading captures properly
+- REMIX-3866: Fixed layers panel performance in large projects
 
 ### Removed
 

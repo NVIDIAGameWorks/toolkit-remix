@@ -59,6 +59,8 @@ class TestModPackagingLayersWidget(omni.kit.test.AsyncTestCase):
     async def test_toggling_layer_should_toggle_all_children(self):
         window, widget = await self.__setup_widget()
 
+        await ui_test.human_delay(20)
+
         layers_validity_changed_mock = Mock()
         _ = widget.subscribe_layers_validity_changed(layers_validity_changed_mock)
 
@@ -106,7 +108,7 @@ class TestModPackagingLayersWidget(omni.kit.test.AsyncTestCase):
     async def test_packaged_layers_returns_layer_paths(self):
         window, widget = await self.__setup_widget()
 
-        await ui_test.human_delay()  # Give the widget time to render
+        await ui_test.human_delay(20)  # Give the widget time to render
 
         packaged_layers = [
             get_test_data_path(__name__, "usd/mod.usda").lower(),

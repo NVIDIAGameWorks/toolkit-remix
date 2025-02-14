@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.0]
+## Changed
+- Improved UI for invalid edit targets
+- Fixed refresh blocking the UI
+
 ## [1.8.3]
 ## Changed
 - update to use omni.kit.test public api

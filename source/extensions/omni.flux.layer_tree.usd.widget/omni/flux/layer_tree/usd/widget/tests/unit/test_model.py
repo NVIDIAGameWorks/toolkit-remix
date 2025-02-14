@@ -65,7 +65,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         model = LayerModel()
 
         # Act
-        model.refresh()
+        await model._deferred_refresh()  # noqa PLW0212
 
         # Assert
         self.assertEqual(1, model.get_items_count())
@@ -90,7 +90,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         model = LayerModel()
 
         # Act
-        model.refresh()
+        await model._deferred_refresh()  # noqa PLW0212
         items = model.get_item_children(recursive=False)
 
         # Assert
@@ -177,7 +177,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         layer1.customLayerData = custom_data
 
         # Act
-        model.refresh()
+        await model._deferred_refresh()  # noqa PLW0212
         root_item = model.get_item_children(recursive=False)[0]
         items = model.get_item_children(parent=root_item, recursive=True)
 
@@ -233,7 +233,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
             model = LayerModel()
 
             # Act
-            model.refresh()
+            await model._deferred_refresh()  # noqa PLW0212
             root_item = model.get_item_children(recursive=False)[0]
             items = model.get_item_children(parent=root_item, recursive=True)
 
