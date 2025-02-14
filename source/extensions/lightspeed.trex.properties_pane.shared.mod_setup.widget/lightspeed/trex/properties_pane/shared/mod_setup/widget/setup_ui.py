@@ -420,11 +420,19 @@ class ModSetupPane:
                                                             with self._capture_loading_frame:
                                                                 with ui.ZStack():
                                                                     ui.Rectangle(
-                                                                        name="PropertiesPaneSectionWindowCaptureBackground"  # noqa
+                                                                        name="LoadingBackground",
+                                                                        tooltip="Updating capture list",
                                                                     )
-                                                                    ui.Label(
-                                                                        "Loading...", alignment=ui.Alignment.CENTER
-                                                                    )
+                                                                    with ui.VStack(spacing=ui.Pixel(4)):
+                                                                        ui.Spacer(width=0)
+                                                                        ui.Image("", name="TimerStatic", height=24)
+                                                                        ui.Label(
+                                                                            "Updating",
+                                                                            name="LoadingLabel",
+                                                                            height=0,
+                                                                            alignment=ui.Alignment.CENTER,
+                                                                        )
+                                                                        ui.Spacer(width=0)
 
                                                         ui.Spacer(height=ui.Pixel(8))
                                                         ui.Line(name="PropertiesPaneSectionTitle")

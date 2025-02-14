@@ -53,11 +53,14 @@ class LayerTreeWidget:
             "_expansion_default": None,
             "_hide_create_insert_buttons": None,
             "_manipulator_frame": None,
+            "_loading_frame": None,
             "_tree_scroll_frame": None,
             "_manip_frame": None,
             "_slide_placer": None,
             "_slider_manip": None,
             "_layer_tree_widget": None,
+            "_sub_on_refresh_started": None,
+            "_sub_on_refresh_completed": None,
             "_sub_on_item_changed": None,
             "_sub_on_item_expanded": None,
             "_sub_on_set_authoring_layer": None,
@@ -85,7 +88,14 @@ class LayerTreeWidget:
         self._hide_create_insert_buttons = hide_create_insert_buttons
 
         # Model events
+        self._sub_on_refresh_started = self._model.subscribe_refresh_started(
+            functools.partial(self._on_model_refresh, True)
+        )
+        self._sub_on_refresh_completed = self._model.subscribe_refresh_completed(
+            functools.partial(self._on_model_refresh, False)
+        )
         self._sub_on_item_changed = self._model.subscribe_item_changed_fn(self._on_item_changed)
+
         # Delegate events
         self._sub_on_item_expanded = self._delegate.subscribe_on_item_expanded(self._on_item_expanded)
         self._sub_on_set_authoring_layer = self._delegate.subscribe_on_set_authoring_layer(
@@ -119,37 +129,49 @@ class LayerTreeWidget:
                 size_manipulator_height = 4
                 with ui.ZStack():
                     with ui.VStack():
-                        self._tree_scroll_frame = ui.ScrollingFrame(
-                            name="PropertiesPaneSection",
-                            horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,  # noqa E501
-                            height=ui.Pixel(self._height),
-                        )
-                        with self._tree_scroll_frame:
-                            self._layer_tree_widget = _TreeWidget(
-                                self._model,
-                                self._delegate,
-                                select_all_children=False,
-                                header_visible=False,
-                                drop_between_items=True,
-                                columns_resizable=False,
-                                style_type_name_override="TreeView.Selection",
-                                key_pressed_fn=self._on_delete_pressed,
+                        with ui.ZStack(height=ui.Pixel(self._height)):
+                            self._tree_scroll_frame = ui.ScrollingFrame(
+                                name="PropertiesPaneSection",
+                                horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,  # noqa E501
                             )
-                            self._layer_tree_widget.set_selection_changed_fn(self.on_selection_changed)
-                        self._tree_scroll_frame.set_build_fn(
-                            functools.partial(
-                                self._resize_tree_columns,
-                                self._layer_tree_widget,
-                                self._tree_scroll_frame,
+                            with self._tree_scroll_frame:
+                                self._layer_tree_widget = _TreeWidget(
+                                    self._model,
+                                    self._delegate,
+                                    select_all_children=False,
+                                    header_visible=False,
+                                    drop_between_items=True,
+                                    columns_resizable=False,
+                                    style_type_name_override="TreeView.Selection",
+                                    key_pressed_fn=self._on_delete_pressed,
+                                )
+                                self._layer_tree_widget.set_selection_changed_fn(self.on_selection_changed)
+                            self._tree_scroll_frame.set_build_fn(
+                                functools.partial(
+                                    self._resize_tree_columns,
+                                    self._layer_tree_widget,
+                                    self._tree_scroll_frame,
+                                )
                             )
-                        )
-                        self._tree_scroll_frame.set_computed_content_size_changed_fn(
-                            functools.partial(
-                                self._resize_tree_columns,
-                                self._layer_tree_widget,
-                                self._tree_scroll_frame,
+                            self._tree_scroll_frame.set_computed_content_size_changed_fn(
+                                functools.partial(
+                                    self._resize_tree_columns,
+                                    self._layer_tree_widget,
+                                    self._tree_scroll_frame,
+                                )
                             )
-                        )
+
+                            self._loading_frame = ui.Frame(separate_window=True, visible=False)
+                            with self._loading_frame:
+                                with ui.ZStack():
+                                    ui.Rectangle(name="LoadingBackground", tooltip="Updating stage layer tree")
+                                    with ui.VStack(spacing=ui.Pixel(4)):
+                                        ui.Spacer(width=0)
+                                        ui.Image("", name="TimerStatic", height=24)
+                                        ui.Label(
+                                            "Updating", name="LoadingLabel", height=0, alignment=ui.Alignment.CENTER
+                                        )
+                                        ui.Spacer(width=0)
                         ui.Line(name="PropertiesPaneSectionTitle")
                         if not self._hide_create_insert_buttons:
                             with ui.HStack():
@@ -228,6 +250,11 @@ class LayerTreeWidget:
         self._update_button_state(items)
         # Update the delegate gradients
         self._delegate.on_item_selected(items, self._model.get_item_children(recursive=True), self._model)
+
+    def _on_model_refresh(self, started: bool):
+        if not self._loading_frame:
+            return
+        self._loading_frame.visible = started
 
     def _on_item_changed(self, _model, _item):
         if self._refresh_task:

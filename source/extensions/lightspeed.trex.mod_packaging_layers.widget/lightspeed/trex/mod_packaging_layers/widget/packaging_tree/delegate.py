@@ -48,6 +48,10 @@ class PackagingLayerDelegate(_LayerDelegate):
         )
         return default_attr
 
+    @property
+    def _dynamic_edit_target_icons(self):
+        return False
+
     def _build_widget_icons(self, model, item):
         pass
 

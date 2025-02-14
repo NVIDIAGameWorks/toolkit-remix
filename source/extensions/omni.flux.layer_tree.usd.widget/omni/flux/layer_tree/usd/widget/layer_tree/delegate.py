@@ -81,6 +81,10 @@ class LayerDelegate(_TreeDelegateBase):
         )
         return default_attr
 
+    @property
+    def _dynamic_edit_target_icons(self):
+        return True
+
     def get_scroll_frames(self):
         """
         Get the scroll frames used in the delegates. This can be used to control the scrolling of the items externally.
@@ -260,19 +264,27 @@ class LayerDelegate(_TreeDelegateBase):
         """Can be overriden to customize the branch icons"""
         with ui.VStack(width=ui.Pixel(16)):
             ui.Spacer(width=0)
-            if item.data["exclude_edit_target"]:
+            if item.data["exclude_edit_target"] or item.data["locked"] or not item.data["visible"]:
                 tooltip = "The layer cannot be set as edit target"
+                icon = "LayerDisabled"
+                if item.data["exclude_edit_target"]:
+                    tooltip += ": The layer is an invalid target"
+                elif item.data["locked"]:
+                    tooltip += ": The layer is locked"
+                elif not item.data["visible"]:
+                    tooltip += ": The layer is muted"
             else:
-                tooltip = "The layer is locked"
                 if item.data["authoring"]:
                     tooltip = "The layer is the active Edit Target"
-                elif not item.data["locked"]:
+                    icon = "LayerActive"
+                else:
                     tooltip = "Set the layer as the Edit Target"
+                    icon = "Layer"
             ui.Image(
                 "",
                 height=ui.Pixel(16),
-                name="LayerActive" if item.data["authoring"] else "Layer",
-                tooltip=tooltip,
+                name=icon if self._dynamic_edit_target_icons else "LayerStatic",
+                tooltip=tooltip if self._dynamic_edit_target_icons else "",
                 mouse_released_fn=lambda x, y, b, m: self._on_set_authoring_layer(b, model, item),
                 enabled=not item.data["locked"] and not item.data["exclude_edit_target"],
             )

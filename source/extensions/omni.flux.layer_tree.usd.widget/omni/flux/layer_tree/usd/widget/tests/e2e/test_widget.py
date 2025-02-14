@@ -159,6 +159,8 @@ class TestWidget(AsyncTestCase):
 
         window = await self.__setup_widget(model=model)  # Keep in memory during test
 
+        await ui_test.human_delay(20)
+
         # Both layers should be unlocked by default
         self.assertFalse(layers_state.is_layer_locked(layer0.identifier))
         self.assertFalse(layers_state.is_layer_locked(layer1.identifier))
