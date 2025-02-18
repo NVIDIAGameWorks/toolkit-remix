@@ -21,6 +21,7 @@ import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
 from .all_lights import AllLightsInteractionPlugin as _AllLightsInteractionPlugin
+from .all_materials import AllMaterialsInteractionPlugin as _AllMaterialsInteractionPlugin
 from .all_prims import AllPrimsInteractionPlugin as _AllPrimsInteractionPlugin
 from .all_skeletons import AllSkeletonsInteractionPlugin as _AllSkeletonsInteractionPlugin
 from .all_tags import AllTagsInteractionPlugin as _AllTagsInteractionPlugin
@@ -30,6 +31,7 @@ class StageManagerUSDInteractionPluginsExtension(omni.ext.IExt):
 
     _PLUGINS = [
         _AllLightsInteractionPlugin,
+        _AllMaterialsInteractionPlugin,
         _AllPrimsInteractionPlugin,
         _AllSkeletonsInteractionPlugin,
         _AllTagsInteractionPlugin,

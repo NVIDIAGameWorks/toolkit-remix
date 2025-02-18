@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0]
+## Added
+- Added `MaterialPrimsFilterPlugin` filter plugin
+
 ## [1.5.0]
 ## Added
 - Added a filter for skeleton interaction tab

@@ -23,7 +23,6 @@ from lightspeed.common import constants
 from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
 from lightspeed.trex.utils.common.prim_utils import is_model as _is_model
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
-from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsDelegate as _VirtualGroupsDelegate
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsItem as _VirtualGroupsItem
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsModel as _VirtualGroupsModel
@@ -50,12 +49,14 @@ class MeshGroupsModel(_VirtualGroupsModel):
     def _build_items(self, items: Iterable[_StageManagerItem]) -> list[MeshGroupsItem] | None:
         tree_items = {}
 
-        # Create mesh group items as parents
+        # Create mesh group items as parents and create instance list
+        instance_items = []
         for item in items:
+            if _is_instance(item.data):
+                instance_items.append(item)
             if _is_model(item.data):
-                item_path = item.data.GetPath()
-
                 # Display name should be the mesh_HASH prim instead of "mesh", otherwise keep the original name
+                item_path = item.data.GetPath()
                 tree_items[str(item.data.GetPath())] = MeshGroupsItem(
                     display_name=item_path.GetParentPath().name if item_path.name == "mesh" else item_path.name,
                     data=item.data,
@@ -63,21 +64,11 @@ class MeshGroupsModel(_VirtualGroupsModel):
                     is_virtual=True,
                 )
 
-        # Grab instance items
-        instance_items = [item for item in items if _is_instance(item.data)]
-        instance_item_names = _StageManagerUtils.get_unique_names(instance_items)
-
         # Create instance group items as children of mesh group items
         for item in instance_items:
-            item_name, parent_name = instance_item_names.get(item, (None, None))
-
-            # Just use path name if no valid display name
-            if item_name is None:
-                item_name = item.data.GetPath().name
-
-            # Grab parent path from item prim if no parent display name
-            if parent_name is None:
-                parent_name = item.data.GetParent().GetPath().name
+            # Get item name and parent name for hierarchy labeling
+            item_name = item.data.GetPath().name
+            parent_name = item.data.GetParent().GetPath().name
 
             # Use the parent mesh path found with regex
             parent_mesh_path = str(

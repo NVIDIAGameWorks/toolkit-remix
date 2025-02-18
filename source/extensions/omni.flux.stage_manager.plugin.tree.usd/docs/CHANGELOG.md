@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.10.0]
+- Added `MaterialGroupsTreePlugin` plugin
+- Added matching `MaterialGroupsItem`, `MaterialGroupsModel`, `MaterialGroupsDelegate` classes
+
 ## [1.9.2]
 ## Changed
 - Apply new display name style to lights tab

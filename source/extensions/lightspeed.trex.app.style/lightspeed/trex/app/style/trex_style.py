@@ -451,6 +451,7 @@ current_dict.update(
         "Image::Drag": {"image_url": _get_icons("drag_handle"), "color": _WHITE_30},
         "Image::Capture": {"image_url": _get_icons("database"), "color": _WHITE_80},
         "Image::Collection": {"image_url": _get_icons("link"), "color": _WHITE_80},
+        "Image::Material": {"image_url": _get_icons("circle-opacity"), "color": _WHITE_80},
         "Image::Mesh": {"image_url": _get_icons("hexagon-outline"), "color": _WHITE_80},
         "Image::GeomSubset": {"image_url": _get_icons("hexagon-multiple-outline"), "color": _WHITE_80},
         "Image::Categories": {"image_url": _get_icons("categories"), "color": _WHITE_100},
