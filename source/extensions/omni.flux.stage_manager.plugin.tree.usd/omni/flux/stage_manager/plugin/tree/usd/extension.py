@@ -22,6 +22,7 @@ from omni.flux.stage_manager.factory import get_instance as _get_factory_instanc
 
 from .custom_tag_groups import CustomTagGroupsTreePlugin as _CustomTagGroupsTreePlugin
 from .light_groups import LightGroupsTreePlugin as _LightGroupsTreePlugin
+from .material_groups import MaterialGroupsTreePlugin as _MaterialGroupsTreePlugin
 from .prim_groups import PrimGroupsTreePlugin as _PrimGroupsTreePlugin
 from .skeleton_groups import SkeletonGroupsTreePlugin as _SkeletonGroupsTreePlugin
 from .virtual_groups import VirtualGroupsTreePlugin as _VirtualGroupsTreePlugin
@@ -32,6 +33,7 @@ class StageManagerUSDTreePluginsExtension(omni.ext.IExt):
     _PLUGINS = [
         _CustomTagGroupsTreePlugin,
         _LightGroupsTreePlugin,
+        _MaterialGroupsTreePlugin,
         _PrimGroupsTreePlugin,
         _VirtualGroupsTreePlugin,
         _SkeletonGroupsTreePlugin,

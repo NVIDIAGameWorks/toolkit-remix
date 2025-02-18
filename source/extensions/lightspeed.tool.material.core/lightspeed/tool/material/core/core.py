@@ -27,7 +27,8 @@ import omni.kit.undo
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
-from pxr import Sdf, Usd, UsdGeom, UsdShade
+from omni.flux.utils.common.materials import get_materials_from_prim_paths as _get_materials_from_prim_paths
+from pxr import Sdf, Usd, UsdShade
 
 
 class ToolMaterialCore:
@@ -72,32 +73,7 @@ class ToolMaterialCore:
 
     @staticmethod
     def get_materials_from_prim_paths(prim_paths: List[str], context_name: str = ""):
-        def get_mat_from_geo(_prim):
-            if _prim.IsA(UsdGeom.Subset) or _prim.IsA(UsdGeom.Mesh):
-                _material, _ = UsdShade.MaterialBindingAPI(_prim).ComputeBoundMaterial()
-                if _material:
-                    return _material
-            return None
-
-        usd_context = omni.usd.get_context(context_name)
-        stage = usd_context.get_stage()
-
-        material_prims = []
-        for prim_path in prim_paths:  # noqa PLR1702
-            prim = stage.GetPrimAtPath(prim_path)
-            if prim.IsValid():
-                if prim.IsA(UsdShade.Material):
-                    material_prims.append(UsdShade.Material(prim))
-                elif prim.IsA(UsdShade.Shader):
-                    material_prims.append(UsdShade.Material(prim.GetParent()))
-                else:
-                    display_predicate = Usd.TraverseInstanceProxies(Usd.PrimAllPrimsPredicate)
-                    children_iterator = iter(Usd.PrimRange(prim, display_predicate))
-                    for child_prim in children_iterator:
-                        mat_mesh = get_mat_from_geo(child_prim)
-                        if mat_mesh:
-                            material_prims.append(mat_mesh)
-        return material_prims
+        return _get_materials_from_prim_paths(prim_paths, context_name)
 
     @staticmethod
     def get_corresponding_usd_mat_from_mdl_path(material_files, mdl_path) -> Optional[str]:

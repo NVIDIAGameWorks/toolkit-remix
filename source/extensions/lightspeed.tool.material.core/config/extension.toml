@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.0.5"
+version = "1.0.6"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alex Dunn <adunn@nvidia.com>", "Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -37,6 +37,7 @@ icon = "data/icon.png"
 "lightspeed.layer_manager.core" = {}
 "lightspeed.trex.commands" = {}
 "omni.client" = {}
+"omni.flux.utils.common" = {}
 "omni.kit.commands" = {}
 "omni.usd" = {}
 

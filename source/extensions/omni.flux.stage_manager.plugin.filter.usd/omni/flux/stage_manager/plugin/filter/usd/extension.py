@@ -22,6 +22,7 @@ from omni.flux.stage_manager.factory import get_instance as _get_factory_instanc
 
 from .ignore_prims import IgnorePrimsFilterPlugin as _IgnorePrimsFilterPlugin
 from .light_prims import LightPrimsFilterPlugin as _LightPrimsFilterPlugin
+from .material_prims import MaterialPrimsFilterPlugin as _MaterialPrimsFilterPlugin
 from .omni_prims import OmniPrimsFilterPlugin as _OmniPrimsFilterPlugin
 from .search import SearchFilterPlugin as _SearchFilterPlugin
 from .skeleton_prims import SkeletonPrimsFilterPlugin as _SkeletonPrimsFilterPlugin
@@ -32,6 +33,7 @@ class StageManagerUSDFilterPluginsExtension(omni.ext.IExt):
     _PLUGINS = [
         _IgnorePrimsFilterPlugin,
         _LightPrimsFilterPlugin,
+        _MaterialPrimsFilterPlugin,
         _OmniPrimsFilterPlugin,
         _SearchFilterPlugin,
         _SkeletonPrimsFilterPlugin,

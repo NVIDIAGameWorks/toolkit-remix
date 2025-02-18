@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.6]
+### Changed
+- Moved `get_materials_from_prim_paths()` to flux and changed this LSS version into a wrapper
+
 ## [1.0.5]
 ### Changed
 - Changed repo link

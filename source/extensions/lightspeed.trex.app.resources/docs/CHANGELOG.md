@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.0]
+## Added
+- Stage Manager: Added Materials Tab
+- Added `circle-opacity.svg` icon to represent materials
+
 ## [1.14.2]
 ## Added
 - Stage Manager: Added `force_refresh_rules` for the categories and custom tags tabs
