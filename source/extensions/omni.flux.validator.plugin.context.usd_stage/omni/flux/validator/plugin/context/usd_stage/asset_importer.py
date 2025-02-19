@@ -528,7 +528,7 @@ class AssetImporter(_ContextBaseUSD):
                 response = await _send_request("GET", schema_data.default_output_endpoint)
                 schema_data.output_directory = _OmniUrl(response.get("asset_path"))
             except RuntimeError:
-                schema_data.output_directory = _OmniUrl("")
+                pass
 
         if self._output_field:
             self._output_field.model.set_value(

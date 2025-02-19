@@ -29,15 +29,17 @@ from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
 
 
 class ApplyUnitScale(_CheckBaseUSD):
+    DEFAULT_UI_WIDTH_PIXEL = 120
+
     _METADATA_KEY = "metersPerUnit"
 
     class Data(_CheckBaseUSD.Data):
-        meters_per_unit_target: float = 1.0
+        scale_target: float = 1.0
 
-        @validator("meters_per_unit_target", allow_reuse=True)
+        @validator("scale_target", allow_reuse=True)
         def non_zero_positive_number(cls, v):  # noqa N805
             if v <= 0:
-                raise ValueError("The target scale unit scale should be a non-zero positive number")
+                raise ValueError("The target scale should be a non-zero positive number")
             return v
 
         class Config(_CheckBaseUSD.Data.Config):
@@ -82,7 +84,7 @@ class ApplyUnitScale(_CheckBaseUSD):
             message += "- SKIPPED: Unable to get the layer's unit scale"
             return True, message, None
 
-        is_valid = meters_per_unit == schema_data.meters_per_unit_target
+        is_valid = meters_per_unit == (1 / schema_data.scale_target)
         message += (
             "- OK: Layer is using the appropriate unit scale"
             if is_valid
@@ -128,23 +130,23 @@ class ApplyUnitScale(_CheckBaseUSD):
                 for xform_op in xform_ops:
                     if xform_op.GetOpType() != UsdGeom.XformOp.TypeScale:
                         continue
-                    xform_op.Set(xform_op.Get() * (meters_per_unit / schema_data.meters_per_unit_target))
+                    xform_op.Set(xform_op.Get() * (schema_data.scale_target / meters_per_unit))
 
                 progress_message = f"FIXED: {prim.GetPath()}"
                 message += f"- {progress_message}\n"
                 progress += progress_delta
                 self.on_progress(progress, progress_message, True)
 
-        stage.SetMetadata(self._METADATA_KEY, schema_data.meters_per_unit_target)
+        stage.SetMetadata(self._METADATA_KEY, 1 / schema_data.scale_target)
         message += "- FIXED: Updated layer unit scale\n"
 
         return True, message, None
 
     def _on_unit_scale_field_edit_end(self, schema_data: Data, model):
         try:
-            schema_data.meters_per_unit_target = model.get_value_as_float()
+            schema_data.scale_target = model.get_value_as_float()
         except ValueError:
-            model.set_value(schema_data.meters_per_unit_target)
+            model.set_value(schema_data.scale_target)
 
     @omni.usd.handle_exception
     async def _mass_build_ui(self, schema_data: Data) -> Any:
@@ -167,11 +169,13 @@ class ApplyUnitScale(_CheckBaseUSD):
         """
         with ui.VStack():
             with ui.HStack():
-                ui.Label(f'"{self._METADATA_KEY}" Target', width=0, name="PropertiesWidgetLabel")
+                with ui.HStack(width=ui.Pixel(self.DEFAULT_UI_WIDTH_PIXEL)):
+                    ui.Spacer()
+                    ui.Label("Asset Scale Factor", width=0, name="PropertiesWidgetLabel")
                 ui.Spacer(height=0, width=ui.Pixel(8))
                 unit_scale_field = ui.StringField()
 
-                unit_scale_field.model.set_value(schema_data.meters_per_unit_target)
+                unit_scale_field.model.set_value(schema_data.scale_target)
                 self._unit_scale_field_validate_sub = unit_scale_field.model.subscribe_end_edit_fn(
                     partial(self._on_unit_scale_field_edit_end, schema_data)
                 )
@@ -179,8 +183,12 @@ class ApplyUnitScale(_CheckBaseUSD):
                 with ui.VStack(width=0):
                     ui.Spacer(width=0)
                     _InfoIconWidget(
-                        "This plugin will apply the meshes' metersPerUnit scaling to their XForm scale.\n"
-                        "Lower value will scale up the asset"
+                        "This plugin will apply the given scale to a wrapping `XForm` prim on the ingested asset.\n\n"
+                        "Larger values will increase the size of the ingested asset.\n\n"
+                        "Example:\n"
+                        "If your project is using 1 unit equal to 1 meter, but your asset is using 1 unit equal to 1 "
+                        "centimeter,\n"
+                        "then a scale factor of 100 will bring the asset in at the appropriate size."
                     )
                     ui.Spacer(width=0)
 

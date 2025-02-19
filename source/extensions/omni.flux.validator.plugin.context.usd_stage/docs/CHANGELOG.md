@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.1]
+## Changed
+- Don't discard existing output directory if no project is loaded
+
 ## [2.12.0]
 ## Added
 - Implemented the show function to update the default output directory on show
