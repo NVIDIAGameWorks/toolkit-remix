@@ -23,13 +23,17 @@ The RTX Remix Toolkit is your go-to for refining game capture assets by removing
 3. **Upload Source Asset:** Click the **Add** button under the **Input File Path** panel then upload your source asset file.
 4. **Set Output Directory:** Paste a folder link into the output directory bar or browse to the directory using the folder icon.
 5. **Specify Asset Format:** Choose the desired asset format (USD, USDA, or USDC).
-6. **Add to Queue:** Press the "Add to Queue" button to initiate the cleanup process.
-7. **Post-Ingestion Validation:** After the ingestion process, navigate to the validation tab then access a detailed report on your asset ingestion.
+6. **_[OPTIONAL]_** Set optional parameters such as the _asset scale factor_*.
+7. **Add to Queue:** Press the "Add to Queue" button to initiate the cleanup process.
+8. **Post-Ingestion Validation:** After the ingestion process, navigate to the validation tab then access a detailed report on your asset ingestion.
 
 > ⚠️ Issues with Ingestion will be highlighted in red with corresponding error messages.
 
 > 📝 All Ingested files, even textures & Assets, will have MetaData files.
 
+### Notes:
+
+`*` Additional information about the asset scale factor can be found in the [Omniverse USD documentation](https://docs.omniverse.nvidia.com/usd/latest/learn-openusd/independent/units.html).
 
 ## CLI Asset Ingestion Tool (Advanced)
 

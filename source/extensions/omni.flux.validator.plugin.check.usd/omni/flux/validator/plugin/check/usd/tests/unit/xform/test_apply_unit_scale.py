@@ -32,7 +32,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
             ApplyUnitScale.Data.non_zero_positive_number(val)
 
         # Assert
-        self.assertEqual("The target scale unit scale should be a non-zero positive number", str(cm.exception))
+        self.assertEqual("The target scale should be a non-zero positive number", str(cm.exception))
 
     async def test_data_non_zero_positive_number_negative_should_raise_value_error(self):
         # Arrange
@@ -43,7 +43,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
             ApplyUnitScale.Data.non_zero_positive_number(val)
 
         # Assert
-        self.assertEqual("The target scale unit scale should be a non-zero positive number", str(cm.exception))
+        self.assertEqual("The target scale should be a non-zero positive number", str(cm.exception))
 
     async def test_data_non_zero_positive_number_positive_should_return_value(self):
         # Arrange
@@ -88,7 +88,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         material_shader = ApplyUnitScale()
 
         schema_data_mock = Mock()
-        schema_data_mock.meters_per_unit_target = 1
+        schema_data_mock.scale_target = 1
 
         context_plugin_data_mock = Mock()
         context_plugin_data_mock.GetMetadata.return_value = 2
@@ -119,7 +119,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         material_shader = ApplyUnitScale()
 
         schema_data_mock = Mock()
-        schema_data_mock.meters_per_unit_target = 1
+        schema_data_mock.scale_target = 1
 
         context_plugin_data_mock = Mock()
         context_plugin_data_mock.GetMetadata.return_value = 1
@@ -149,10 +149,10 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         # Arrange
         material_shader = ApplyUnitScale()
 
-        meters_per_unit_target = 1
+        scale_target = 1
 
         schema_data_mock = Mock()
-        schema_data_mock.meters_per_unit_target = meters_per_unit_target
+        schema_data_mock.scale_target = scale_target
 
         context_plugin_data_mock = Mock()
         context_plugin_data_mock.GetMetadata.return_value = 0.01
@@ -180,18 +180,16 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         self.assertEqual(call(0, "Start", True), progress_mock.call_args)
 
         self.assertEqual(1, set_metadata_mock.call_count)
-        self.assertEqual(
-            call(ApplyUnitScale._METADATA_KEY, meters_per_unit_target), set_metadata_mock.call_args  # noqa PLW0212
-        )
+        self.assertEqual(call(ApplyUnitScale._METADATA_KEY, scale_target), set_metadata_mock.call_args)  # noqa PLW0212
 
     async def test_fix_not_an_xform_prim_should_skip(self):
         # Arrange
         material_shader = ApplyUnitScale()
 
-        meters_per_unit_target = 1
+        scale_target = 1
 
         schema_data_mock = Mock()
-        schema_data_mock.meters_per_unit_target = meters_per_unit_target
+        schema_data_mock.scale_target = scale_target
 
         context_plugin_data_mock = Mock()
         context_plugin_data_mock.GetMetadata.return_value = 0.01
@@ -231,20 +229,18 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         self.assertEqual(call(1, expected_progress_message, True), progress_mock.call_args_list[1])
 
         self.assertEqual(1, set_metadata_mock.call_count)
-        self.assertEqual(
-            call(ApplyUnitScale._METADATA_KEY, meters_per_unit_target), set_metadata_mock.call_args  # noqa PLW0212
-        )
+        self.assertEqual(call(ApplyUnitScale._METADATA_KEY, scale_target), set_metadata_mock.call_args)  # noqa PLW0212
 
     async def test_fix_should_set_transform_value_and_metadata(self):
         # Arrange
         material_shader = ApplyUnitScale()
 
         scale_value = 10
-        meters_per_unit_target = 2
+        scale_target = 2
         meters_per_unit_actual = 4
 
         schema_data_mock = Mock()
-        schema_data_mock.meters_per_unit_target = meters_per_unit_target
+        schema_data_mock.scale_target = scale_target
 
         context_plugin_data_mock = Mock()
         context_plugin_data_mock.GetMetadata.return_value = meters_per_unit_actual
@@ -296,21 +292,21 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
 
         self.assertEqual(1, set_metadata_mock.call_count)
         self.assertEqual(
-            call(ApplyUnitScale._METADATA_KEY, meters_per_unit_target), set_metadata_mock.call_args  # noqa PLW0212
+            call(ApplyUnitScale._METADATA_KEY, 1 / scale_target), set_metadata_mock.call_args  # noqa PLW0212
         )
 
         self.assertEqual(1, xformable_mock.call_count)
         self.assertEqual(call(xform_prim_mock), xformable_mock.call_args)
 
         self.assertEqual(1, set_mock.call_count)
-        self.assertEqual(call(scale_value * (meters_per_unit_actual / meters_per_unit_target)), set_mock.call_args)
+        self.assertEqual(call(scale_value * (scale_target / meters_per_unit_actual)), set_mock.call_args)
 
     async def test_on_unit_scale_field_edit_end_value_error_should_update_model_value(self):
         # Arrange
-        meters_per_unit_target_mock = Mock()
+        scale_target_mock = Mock()
 
         schema_data_mock = Mock()
-        schema_data_mock.meters_per_unit_target = meters_per_unit_target_mock
+        schema_data_mock.scale_target = scale_target_mock
 
         model_mock = Mock()
         model_mock.get_value_as_float.side_effect = ValueError()
@@ -323,17 +319,17 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(1, set_value_mock.call_count)
-        self.assertEqual(call(meters_per_unit_target_mock), set_value_mock.call_args)
+        self.assertEqual(call(scale_target_mock), set_value_mock.call_args)
 
     async def test_on_unit_scale_field_edit_end_should_update_schema_data(self):
         # Arrange
-        meters_per_unit_target_mock = Mock()
+        scale_target_mock = Mock()
 
         schema_data_mock = Mock()
-        schema_data_mock.meters_per_unit_target = Mock()
+        schema_data_mock.scale_target = Mock()
 
         model_mock = Mock()
-        model_mock.get_value_as_float.return_value = meters_per_unit_target_mock
+        model_mock.get_value_as_float.return_value = scale_target_mock
 
         apply_unit_scale = ApplyUnitScale()
 
@@ -341,4 +337,4 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         apply_unit_scale._on_unit_scale_field_edit_end(schema_data_mock, model_mock)  # noqa PLW0212
 
         # Assert
-        self.assertEqual(meters_per_unit_target_mock, schema_data_mock.meters_per_unit_target)
+        self.assertEqual(scale_target_mock, schema_data_mock.scale_target)

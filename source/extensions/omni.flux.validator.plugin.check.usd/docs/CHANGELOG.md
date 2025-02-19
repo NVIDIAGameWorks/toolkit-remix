@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.14.0]
+## Changed
+- Changed `meters_per_unit_target` for `scale_target`
+
 ## [3.13.3]
 ## Changed
 - update to use omni.kit.test public api

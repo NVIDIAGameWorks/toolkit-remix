@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.1]
+## Changed
+- Use updated scale attribute
+
 ## [1.15.0]
 ## Added
 - Stage Manager: Added Materials Tab
