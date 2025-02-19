@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.11]
+## Fixed
+- Fix naming for item identifiers for test readability
+
 ## [1.1.10]
 ## Changed
 - Added check to make sure categories button doesn't show up for non-mesh prims
