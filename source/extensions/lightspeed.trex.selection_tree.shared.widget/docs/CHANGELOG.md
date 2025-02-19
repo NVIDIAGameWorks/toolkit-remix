@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.1]
+## Fixed
+- Fix a bug where light prototypes cannot be reselected in tree
+- Fix naming for item identifiers for test readability
+
 ## [1.5.0]
 ## Changed
 - Changed `get_selection` to use USD selection instead of the tree selection for better reliability

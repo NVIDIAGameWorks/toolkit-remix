@@ -371,7 +371,7 @@ class Delegate(ui.AbstractItemDelegate):
                                                         item.prim.GetName(),
                                                         name="PropertiesPaneSectionTreeItem",
                                                         tooltip=item.path,
-                                                        identifier="item_mesh",
+                                                        identifier="item_asset",
                                                     )
                                                 elif isinstance(item, (_ItemReferenceFile, _ItemPrim)):
                                                     ui.Label(
@@ -386,20 +386,20 @@ class Delegate(ui.AbstractItemDelegate):
                                                     ui.Label(
                                                         item.display,
                                                         name="PropertiesPaneSectionTreeItem60",
-                                                        identifier="item_file_mesh",
+                                                        identifier="item_add_button",
                                                     )
                                                 elif isinstance(item, (_ItemInstancesGroup, _ItemLiveLightGroup)):
                                                     ui.Label(
                                                         item.display,
                                                         name="PropertiesPaneSectionTreeItem",
-                                                        identifier="item_instance_group",
+                                                        identifier="item_group",
                                                     )
                                                 elif isinstance(item, _ItemInstance):
                                                     ui.Label(
                                                         os.path.basename(item.path),
                                                         name="PropertiesPaneSectionTreeItem",
                                                         tooltip=item.path,
-                                                        identifier="item_instance_mesh",
+                                                        identifier="item_instance",
                                                     )
                                                 ui.Spacer(
                                                     height=0, width=ui.Pixel(self.__gradient_width / 2)

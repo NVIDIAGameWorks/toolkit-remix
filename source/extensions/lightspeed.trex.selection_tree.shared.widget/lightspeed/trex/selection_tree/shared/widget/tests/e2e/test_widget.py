@@ -30,6 +30,8 @@ from lightspeed.common import constants as _constants
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SetupUI
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemAsset as _ItemAsset
+from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemPrim as _ItemPrim
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.flux.validator.factory import BASE_HASH_KEY
@@ -89,16 +91,16 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_mesh'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_asset'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
 
         self.assertEqual(len(item_prims), 2)  # the ref item + the prim item
-        self.assertEqual(len(item_meshes), 1)
-        self.assertEqual(len(item_file_meshes), 2)
-        self.assertEqual(len(item_instance_groups), 1)
-        self.assertEqual(len(item_instance_meshes), 0)  # we didn't expand the instance group
+        self.assertEqual(len(item_assets), 1)
+        self.assertEqual(len(item_add_buttons), 2)
+        self.assertEqual(len(item_groups), 1)
+        self.assertEqual(len(item_instances), 0)  # we didn't expand the instance group
 
         await self.__destroy(_window, _wid)
 
@@ -115,16 +117,16 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_mesh'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_asset'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
 
         self.assertEqual(len(item_prims), 0)  # the ref item
-        self.assertEqual(len(item_meshes), 1)
-        self.assertEqual(len(item_file_meshes), 1)  # add ref + add light
-        self.assertEqual(len(item_instance_groups), 1)
-        self.assertEqual(len(item_instance_meshes), 1)  # for light, instance are selected by default
+        self.assertEqual(len(item_assets), 1)
+        self.assertEqual(len(item_add_buttons), 1)  # add ref + add light
+        self.assertEqual(len(item_groups), 1)
+        self.assertEqual(len(item_instances), 1)  # for light, instance are selected by default
 
         await self.__destroy(_window, _wid)
 
@@ -141,16 +143,16 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_mesh'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_asset'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
 
         self.assertEqual(len(item_prims), 2)  # the ref item + the prim item
-        self.assertEqual(len(item_meshes), 1)
-        self.assertEqual(len(item_file_meshes), 2)
-        self.assertEqual(len(item_instance_groups), 1)
-        self.assertEqual(len(item_instance_meshes), 1)  # because we selected the instance, the instance is shown
+        self.assertEqual(len(item_assets), 1)
+        self.assertEqual(len(item_add_buttons), 2)
+        self.assertEqual(len(item_groups), 1)
+        self.assertEqual(len(item_instances), 1)  # because we selected the instance, the instance is shown
 
         await self.__destroy(_window, _wid)
 
@@ -174,16 +176,16 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_mesh'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_asset'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
 
         self.assertEqual(len(item_prims), 2)  # the ref item + the prim item
-        self.assertEqual(len(item_meshes), 2)
-        self.assertEqual(len(item_file_meshes), 3)
-        self.assertEqual(len(item_instance_groups), 2)
-        self.assertEqual(len(item_instance_meshes), 2)
+        self.assertEqual(len(item_assets), 2)
+        self.assertEqual(len(item_add_buttons), 3)
+        self.assertEqual(len(item_groups), 2)
+        self.assertEqual(len(item_instances), 2)
 
         await self.__destroy(_window, _wid)
 
@@ -202,16 +204,16 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_mesh'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_asset'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
 
         self.assertEqual(len(item_prims), 4)  # the ref item + the prim item
-        self.assertEqual(len(item_meshes), 2)
-        self.assertEqual(len(item_file_meshes), 4)
-        self.assertEqual(len(item_instance_groups), 2)
-        self.assertEqual(len(item_instance_meshes), 0)  # we didn't expand the instance group
+        self.assertEqual(len(item_assets), 2)
+        self.assertEqual(len(item_add_buttons), 4)
+        self.assertEqual(len(item_groups), 2)
+        self.assertEqual(len(item_instances), 0)  # we didn't expand the instance group
 
         await self.__destroy(_window, _wid)
 
@@ -224,17 +226,17 @@ class TestSelectionTreeWidget(AsyncTestCase):
         )
 
         await ui_test.human_delay(human_delay_speed=3)
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
         branch_instance_meshes = ui_test.find_all(
             f"{_window.title}//Frame/**/Image[*].identifier=='branch_instance_group'"
         )
 
-        self.assertEqual(len(item_instance_meshes), 0)  # we didn't expand the instance group
+        self.assertEqual(len(item_instances), 0)  # we didn't expand the instance group
 
         await branch_instance_meshes[0].click()
         await ui_test.human_delay(human_delay_speed=1)
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
-        self.assertEqual(len(item_instance_meshes), 1)
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
+        self.assertEqual(len(item_instances), 1)
 
         await self.__destroy(_window, _wid)
 
@@ -256,14 +258,14 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
         self.assertEqual(len(item_prims), 0)
 
-        self.assertEqual(len(item_file_meshes), 2)
-        self.assertEqual(len(item_instance_groups), 1)
-        self.assertEqual(len(item_instance_meshes), 1)
+        self.assertEqual(len(item_add_buttons), 2)
+        self.assertEqual(len(item_groups), 1)
+        self.assertEqual(len(item_instances), 1)
 
         await self.__destroy(_window, _wid)
 
@@ -285,14 +287,14 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
         self.assertEqual(len(item_prims), 3)  # 2 ref items + 1 prim
 
-        self.assertEqual(len(item_file_meshes), 2)
-        self.assertEqual(len(item_instance_groups), 1)
-        self.assertEqual(len(item_instance_meshes), 1)
+        self.assertEqual(len(item_add_buttons), 2)
+        self.assertEqual(len(item_groups), 1)
+        self.assertEqual(len(item_instances), 1)
 
         expand_icon = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='Expand'")
         self.assertEqual(len(expand_icon), 4)
@@ -335,14 +337,14 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
         self.assertEqual(len(item_prims), 0)
 
-        self.assertEqual(len(item_file_meshes), 2)
-        self.assertEqual(len(item_instance_groups), 1)
-        self.assertEqual(len(item_instance_meshes), 1)
+        self.assertEqual(len(item_add_buttons), 2)
+        self.assertEqual(len(item_groups), 1)
+        self.assertEqual(len(item_instances), 1)
 
         await self.__destroy(_window, _wid)
 
@@ -356,13 +358,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 2)
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 2)
 
-        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
         self.assertEqual(len(item_instances), 0)
 
-        await item_file_meshes[0].click()
+        await item_add_buttons[0].click()
 
         window_name = "Select a reference file"
 
@@ -402,12 +404,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
         self.assertEqual(len(item_prims), 2)
-        self.assertEqual(len(item_file_meshes), 2)
-        self.assertEqual(len(item_instance_groups), 1)
+        self.assertEqual(len(item_add_buttons), 2)
+        self.assertEqual(len(item_groups), 1)
 
         # undo
         omni.kit.undo.undo()
@@ -437,13 +439,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 2)
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 2)
 
-        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
         self.assertEqual(len(item_instances), 0)
 
-        await item_file_meshes[0].click()
+        await item_add_buttons[0].click()
 
         window_name = "Select a reference file"
 
@@ -483,12 +485,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
         self.assertEqual(len(item_prims), 5)
-        self.assertEqual(len(item_file_meshes), 2)
-        self.assertEqual(len(item_instance_groups), 1)
+        self.assertEqual(len(item_add_buttons), 2)
+        self.assertEqual(len(item_groups), 1)
 
         # test that the selections in the usd context are correct
         selection = usd_context.get_selection().get_selected_prim_paths()
@@ -539,10 +541,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 2)
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 2)
 
-        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
         self.assertEqual(len(item_instances), 1)
 
         tree_view = ui_test.find(f"{_window.title}//Frame/**/TreeView[*].identifier=='LiveSelectionTreeView'")
@@ -552,7 +554,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection  # noqa PLW0212
         self.assertEqual(primary_and_secondary_selection, [all_items[2], all_items[6], all_items[5]])
 
-        await item_file_meshes[0].click()
+        await item_add_buttons[0].click()
         await ui_test.human_delay(human_delay_speed=10)
 
         window_name = "Select a reference file"
@@ -588,12 +590,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
         self.assertEqual(len(item_prims), 6)
-        self.assertEqual(len(item_file_meshes), 2)
-        self.assertEqual(len(item_instance_groups), 1)
+        self.assertEqual(len(item_add_buttons), 2)
+        self.assertEqual(len(item_groups), 1)
 
         # undo
         omni.kit.undo.undo()
@@ -608,12 +610,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
         self.assertEqual(len(item_prims), 2)
-        self.assertEqual(len(item_file_meshes), 2)
-        self.assertEqual(len(item_instance_groups), 1)
+        self.assertEqual(len(item_add_buttons), 2)
+        self.assertEqual(len(item_groups), 1)
 
         # redo
         omni.kit.undo.redo()
@@ -621,12 +623,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
         self.assertEqual(len(item_prims), 6)
-        self.assertEqual(len(item_file_meshes), 2)
-        self.assertEqual(len(item_instance_groups), 1)
+        self.assertEqual(len(item_add_buttons), 2)
+        self.assertEqual(len(item_groups), 1)
 
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()
@@ -652,10 +654,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 2)
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 2)
 
-        await item_file_meshes[1].click()
+        await item_add_buttons[1].click()
 
         window_name = "Light creator"
 
@@ -674,13 +676,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
         self.assertEqual(len(item_prims), 2)
         self.assertEqual(item_prims[1].widget.text, "DiskLight")
-        self.assertEqual(len(item_file_meshes), 2)
-        self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
+        self.assertEqual(len(item_add_buttons), 2)
+        self.assertEqual(len(item_groups), 2)  # instance group + live light group
 
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()
@@ -693,7 +695,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(current_selection, ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/DiskLight"])
 
         # we add another light
-        await item_file_meshes[1].click()
+        await item_add_buttons[1].click()
         light_distant_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDistant'")
         # create the light
         await light_distant_button.click()
@@ -701,9 +703,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         self.assertEqual(len(item_prims), 3)
-        self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
+        self.assertEqual(len(item_groups), 2)  # instance group + live light group
 
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()
@@ -722,13 +724,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
         self.assertEqual(len(item_prims), 2)
         self.assertEqual(item_prims[1].widget.text, "DiskLight")
-        self.assertEqual(len(item_file_meshes), 2)
-        self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
+        self.assertEqual(len(item_add_buttons), 2)
+        self.assertEqual(len(item_groups), 2)  # instance group + live light group
 
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()
@@ -746,9 +748,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         self.assertEqual(len(item_prims), 3)
-        self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
+        self.assertEqual(len(item_groups), 2)  # instance group + live light group
 
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()
@@ -807,36 +809,36 @@ class TestSelectionTreeWidget(AsyncTestCase):
             ["/RootNode/instances/inst_BAC90CAA733B0859_1/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
         )
         await ui_test.human_delay(human_delay_speed=3)
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
 
-        await item_file_meshes[1].click()
+        await item_add_buttons[1].click()
 
         # add 2 lights
         window_name = "Light creator"
         light_disk_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDisk'")
         await light_disk_button.click()
         await ui_test.human_delay(human_delay_speed=3)
-        await item_file_meshes[1].click()
+        await item_add_buttons[1].click()
         light_distant_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDistant'")
         await light_distant_button.click()
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
-        self.assertEqual(len(item_instance_meshes), 3)
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
+        self.assertEqual(len(item_instances), 3)
 
-        await item_instance_meshes[0].click()
+        await item_instances[0].click()
         self.assertEqual(
             usd_context.get_selection().get_selected_prim_paths(),
             ["/RootNode/instances/inst_BAC90CAA733B0859_0/DistantLight"],
         )
 
-        await item_instance_meshes[1].click()
+        await item_instances[1].click()
         self.assertEqual(
             usd_context.get_selection().get_selected_prim_paths(),
             ["/RootNode/instances/inst_BAC90CAA733B0859_1/DistantLight"],
         )
 
-        await item_instance_meshes[2].click()
+        await item_instances[2].click()
         self.assertEqual(
             usd_context.get_selection().get_selected_prim_paths(),
             ["/RootNode/instances/inst_BAC90CAA733B0859_2/DistantLight"],
@@ -853,30 +855,30 @@ class TestSelectionTreeWidget(AsyncTestCase):
             ["/RootNode/instances/inst_BAC90CAA733B0859_1/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
         )
         await ui_test.human_delay(human_delay_speed=3)
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
 
-        await item_file_meshes[1].click()
+        await item_add_buttons[1].click()
 
         # add 2 lights
         window_name = "Light creator"
         light_disk_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDisk'")
         await light_disk_button.click()
         await ui_test.human_delay(human_delay_speed=3)
-        await item_file_meshes[1].click()
+        await item_add_buttons[1].click()
         light_distant_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDistant'")
         await light_distant_button.click()
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
-        self.assertEqual(len(item_instance_meshes), 3)
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
+        self.assertEqual(len(item_instances), 3)
 
-        await item_instance_meshes[0].click()
+        await item_instances[0].click()
         self.assertCountEqual(
             usd_context.get_selection().get_selected_prim_paths(),
             ["/RootNode/instances/inst_BAC90CAA733B0859_0/DistantLight"],
         )
 
-        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         await item_groups[0].click()
         self.assertCountEqual(
             (usd_context.get_selection().get_selected_prim_paths()),
@@ -885,6 +887,66 @@ class TestSelectionTreeWidget(AsyncTestCase):
                 "/RootNode/instances/inst_BAC90CAA733B0859_0/DistantLight",
             ],
         )
+
+        await self.__destroy(_window, _wid)
+
+    async def test_select_items_for_light_asset(self):
+        # Arrange
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/lights/light_9907D0B07D040077"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # For lights, if no replacement lights are selected, the selection should be the light asset itself
+        self.assertEqual(
+            usd_context.get_selection().get_selected_prim_paths(),
+            ["/RootNode/lights/light_9907D0B07D040077"],
+        )
+        tree_selection = _wid.get_selection()
+        self.assertEqual(len([i for i in tree_selection if isinstance(i, _ItemAsset)]), 1)
+
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+
+        # add 1 replacement light
+        await item_add_buttons[0].click()
+        window_name = "Light creator"
+        light_disk_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDisk'")
+        await light_disk_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # 1 replacement light should be visible now as an item_prim
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 1)
+
+        with self.subTest(msg="select-replacement-light-item"):
+            # Act - select replacement light
+            await item_prims[0].click()
+            await ui_test.human_delay(human_delay_speed=3)
+
+            # Assert
+            self.assertEqual(
+                usd_context.get_selection().get_selected_prim_paths(),
+                ["/RootNode/lights/light_9907D0B07D040077/DiskLight"],
+            )
+            tree_selection = _wid.get_selection()
+            self.assertEqual(len([i for i in tree_selection if isinstance(i, _ItemPrim)]), 1)
+
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
+        with self.subTest(msg="select-instance-group-item"):
+            # Act - select Instance group
+            await item_groups[1].click()
+            await ui_test.human_delay(human_delay_speed=3)
+
+            # Assert
+            self.assertEqual(
+                usd_context.get_selection().get_selected_prim_paths(),
+                ["/RootNode/lights/light_9907D0B07D040077"],
+            )
+            # For lights, if no replacement lights are selected, the selection should be the light asset itself
+            tree_selection = _wid.get_selection()
+            self.assertEqual(len([i for i in tree_selection if isinstance(i, _ItemPrim)]), 0)
+            self.assertEqual(len([i for i in tree_selection if isinstance(i, _ItemAsset)]), 1)
 
         await self.__destroy(_window, _wid)
 
@@ -899,10 +961,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         duplicate_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
         self.assertEqual(len(duplicate_images), 1)  # ref item
 
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 2)
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 2)
 
-        await item_file_meshes[1].click()
+        await item_add_buttons[1].click()
 
         window_name = "Light creator"
 
@@ -955,22 +1017,22 @@ class TestSelectionTreeWidget(AsyncTestCase):
         )
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
-        self.assertEqual(len(item_instance_meshes), 3)
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
+        self.assertEqual(len(item_instances), 3)
 
-        await item_instance_meshes[0].click()
+        await item_instances[0].click()
         self.assertEqual(
             usd_context.get_selection().get_selected_prim_paths(),
             ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"],
         )
 
-        await item_instance_meshes[1].click()
+        await item_instances[1].click()
         self.assertEqual(
             usd_context.get_selection().get_selected_prim_paths(),
             ["/RootNode/instances/inst_BAC90CAA733B0859_1/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"],
         )
 
-        await item_instance_meshes[2].click()
+        await item_instances[2].click()
         self.assertEqual(
             usd_context.get_selection().get_selected_prim_paths(),
             ["/RootNode/instances/inst_BAC90CAA733B0859_2/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"],
@@ -989,10 +1051,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         self.assertEqual(len(item_prims), 0)
 
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 1)
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 1)
 
-        await item_file_meshes[0].click()
+        await item_add_buttons[0].click()
 
         window_name = "Light creator"
 
@@ -1011,16 +1073,16 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
         self.assertEqual(len(item_prims), 1)
         self.assertEqual(item_prims[0].widget.text, "DiskLight")
-        self.assertEqual(len(item_file_meshes), 1)
-        self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
+        self.assertEqual(len(item_add_buttons), 1)
+        self.assertEqual(len(item_groups), 2)  # instance group + live light group
 
         # we add another light
-        await item_file_meshes[0].click()
+        await item_add_buttons[0].click()
         light_distant_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDistant'")
         # create the light
         await light_distant_button.click()
@@ -1028,9 +1090,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_instance_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         self.assertEqual(len(item_prims), 2)
-        self.assertEqual(len(item_instance_groups), 2)  # instance group + live light group
+        self.assertEqual(len(item_groups), 2)  # instance group + live light group
 
         # now remove 1 light
         delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
@@ -1084,10 +1146,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 2)
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 2)
 
-        await item_file_meshes[0].click()
+        await item_add_buttons[0].click()
 
         window_name = "Select a reference file"
 
@@ -1151,10 +1213,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 2)
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 2)
 
-        await item_file_meshes[0].click()
+        await item_add_buttons[0].click()
 
         window_name = "Select a reference file"
 
@@ -1203,10 +1265,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 2)
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 2)
 
-        await item_file_meshes[0].click()
+        await item_add_buttons[0].click()
 
         window_name = "Select a reference file"
 
@@ -1279,10 +1341,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 2)
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 2)
 
-        await item_file_meshes[0].click()
+        await item_add_buttons[0].click()
 
         window_name = "Select a reference file"
 
@@ -1345,10 +1407,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 2)
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 2)
 
-        await item_file_meshes[0].click()
+        await item_add_buttons[0].click()
 
         window_name = "Select a reference file"
 
@@ -1426,13 +1488,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
             # Test deletion
             item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-            item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-            item_instance_groups = ui_test.find_all(
-                f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'"
-            )
+            item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+            item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
             self.assertEqual(len(item_prims), 2)
-            self.assertEqual(len(item_file_meshes), 2)
-            self.assertEqual(len(item_instance_groups), 1)
+            self.assertEqual(len(item_add_buttons), 2)
+            self.assertEqual(len(item_groups), 1)
 
         # Delete the newly created project_example/assets/ingested subdirectory and its contents
         shutil.rmtree(_get_test_data(f"usd/project_example/{_constants.REMIX_INGESTED_ASSETS_FOLDER}"))
@@ -1449,10 +1509,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 2)
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 2)
 
-        await item_file_meshes[0].click()
+        await item_add_buttons[0].click()
 
         window_name = "Select a reference file"
 
@@ -1503,10 +1563,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         number_items = 10
         for _ in range(number_items):
-            item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+            item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
 
-            self.assertGreaterEqual(len(item_file_meshes), 0)
-            await item_file_meshes[0].click()
+            self.assertGreaterEqual(len(item_add_buttons), 0)
+            await item_add_buttons[0].click()
 
             window_name = "Select a reference file"
 
@@ -1629,9 +1689,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(copied_text, MESH_HASH)
 
         # grab other items in the selection tree that should not have copy menus
-        add_items = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
+        add_items = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         self.assertEqual(len(item_prims), 2)
-        instance_group_item = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_group'")
+        instance_group_item = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         self.assertEqual(len(item_prims), 2)
 
         # test no copy menu for "Add new reference..." button
@@ -1727,9 +1787,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=10)
 
         # add new stage light
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 1)
-        await item_file_meshes[0].click()
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 1)
+        await item_add_buttons[0].click()
         await ui_test.human_delay(human_delay_speed=1)
 
         light_disk_button = ui_test.find("Light creator//Frame/**/Button[*].name=='LightDisk'")
@@ -1794,26 +1854,26 @@ class TestSelectionTreeWidget(AsyncTestCase):
         original_selection = _wid._tree_view.selection  # noqa: PLW0212
 
         # grab the instance meshes
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
-        self.assertEqual(len(item_instance_meshes), 3)
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
+        self.assertEqual(len(item_instances), 3)
 
         # click the first instance mesh and the shift click the third
-        await item_instance_meshes[0].click()
+        await item_instances[0].click()
         await ui_test.human_delay(human_delay_speed=3)
 
         async with ModifierKeyDownScope(key=KeyboardInput.LEFT_SHIFT):
-            await item_instance_meshes[2].click()
+            await item_instances[2].click()
 
         # ensure all three instances and the group are selected and the original prim is still selected
         self.assertEqual(len(_wid.get_instance_selection(include_instance_group=True)), 4)
         self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: PLW0212
 
         # click the last instance mesh and shift click the second
-        await item_instance_meshes[2].click()
+        await item_instances[2].click()
         await ui_test.human_delay(human_delay_speed=3)
 
         async with ModifierKeyDownScope(key=KeyboardInput.LEFT_SHIFT):
-            await item_instance_meshes[1].click()
+            await item_instances[1].click()
 
         # ensure all three instances are selected and the original prim is still selected
         self.assertEqual(len(_wid.get_instance_selection()), 2)
@@ -1835,28 +1895,28 @@ class TestSelectionTreeWidget(AsyncTestCase):
         original_selection = _wid._tree_view.selection  # noqa: PLW0212
 
         # grab the instance meshes
-        item_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance_mesh'")
-        self.assertEqual(len(item_instance_meshes), 3)
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
+        self.assertEqual(len(item_instances), 3)
 
         # click the first instance mesh and the ctrl click the third
-        await item_instance_meshes[0].click()
+        await item_instances[0].click()
         await ui_test.human_delay(human_delay_speed=3)
 
         async with ModifierKeyDownScope(key=KeyboardInput.LEFT_CONTROL):
-            await item_instance_meshes[2].click()
+            await item_instances[2].click()
 
         # ensure all three instances are selected and the original prim is still selected
         self.assertEqual(len(_wid.get_instance_selection()), 2)
         self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: PLW0212
 
         # click the last instance mesh and ctrl click the second and first
-        await item_instance_meshes[2].click()
+        await item_instances[2].click()
         await ui_test.human_delay(human_delay_speed=3)
 
         async with ModifierKeyDownScope(key=KeyboardInput.LEFT_CONTROL):
-            await item_instance_meshes[1].click()
+            await item_instances[1].click()
             await ui_test.human_delay(human_delay_speed=3)
-            await item_instance_meshes[0].click()
+            await item_instances[0].click()
 
         # ensure all three instances and the group are selected and the original prim is still selected
         self.assertEqual(len(_wid.get_instance_selection(include_instance_group=True)), 4)

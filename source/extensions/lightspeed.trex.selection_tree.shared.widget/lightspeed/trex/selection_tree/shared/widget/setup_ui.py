@@ -535,7 +535,12 @@ class SetupUI:
 
         assets = [i for i in item_types.get(_ItemAsset, []) if i.path in selected_prototypes]
         prims = [i for i in item_types.get(_ItemPrim, []) if i.path in selected_prototypes]
-        references = [i for i in item_types.get(_ItemReferenceFile, []) if str(i.prim.GetPath()) in selected_prototypes]
+        # since reference items are not "prims" we need to use previous tree selection
+        references = [
+            i
+            for i in item_types.get(_ItemReferenceFile, [])
+            if str(i.prim.GetPath()) in selected_prototypes and i in self._previous_tree_selection
+        ]
 
         selection = {*assets, *prims, *references}
 
@@ -702,6 +707,10 @@ class SetupUI:
                         if item_ref.path == previous_item.path:
                             items.append(item_ref)
                             break
+        if selected_instance_lights and asset_item_clicked:
+            # if the asset item is clicked but this is a light, then we treat it differently because we don't always
+            # restore the previous selection and an item_prim may have just been de-selected.
+            asset_item_clicked = False
 
         # if all lights are selected within light group, select the light group item itself
         all_light_groups: list[_ItemLiveLightGroup] = all_items_by_types.get(_ItemLiveLightGroup, [])
@@ -724,6 +733,10 @@ class SetupUI:
         if not self._ignore_select_prototype:
             # select prims when item prims are clicked
             prim_paths = [str(item.prim.GetPath()) for item in items if isinstance(item, _ItemPrim)]
+            # if this is a light and there is no item prim selected, add the path of the light
+            if not prim_paths and selected_instance_lights:
+                prim_paths = [str(item.prim.GetPath()) for item in selected_instance_lights]
+
             # we swap all the item prim path with the current selected item instances
             to_select_paths = []
             for path in prim_paths:

@@ -216,9 +216,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # create the light
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 1)
-        await item_file_meshes[0].click()
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 1)
+        await item_add_buttons[0].click()
         window_name = "Light creator"
         # The file picker window should now be opened (0 < len(widgets))
         self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
@@ -251,9 +251,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # create the light
-        item_file_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_file_mesh'")
-        self.assertEqual(len(item_file_meshes), 2)
-        await item_file_meshes[1].click()
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 2)
+        await item_add_buttons[1].click()
         window_name = "Light creator"
         # The file picker window should now be opened (0 < len(widgets))
         self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
