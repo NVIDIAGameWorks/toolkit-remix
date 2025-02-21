@@ -264,7 +264,12 @@ class LayerDelegate(_TreeDelegateBase):
         """Can be overriden to customize the branch icons"""
         with ui.VStack(width=ui.Pixel(16)):
             ui.Spacer(width=0)
-            if item.data["exclude_edit_target"] or item.data["locked"] or not item.data["visible"]:
+            if (
+                item.data["exclude_edit_target"]
+                or item.data["locked"]
+                or not item.data["visible"]
+                or not item.data["parent_visible"]
+            ):
                 tooltip = "The layer cannot be set as edit target"
                 icon = "LayerDisabled"
                 if item.data["exclude_edit_target"]:
@@ -273,6 +278,8 @@ class LayerDelegate(_TreeDelegateBase):
                     tooltip += ": The layer is locked"
                 elif not item.data["visible"]:
                     tooltip += ": The layer is muted"
+                elif not item.data["parent_visible"]:
+                    tooltip += ": A parent layer is muted"
             else:
                 if item.data["authoring"]:
                     tooltip = "The layer is the active Edit Target"
@@ -286,7 +293,10 @@ class LayerDelegate(_TreeDelegateBase):
                 name=icon if self._dynamic_edit_target_icons else "LayerStatic",
                 tooltip=tooltip if self._dynamic_edit_target_icons else "",
                 mouse_released_fn=lambda x, y, b, m: self._on_set_authoring_layer(b, model, item),
-                enabled=not item.data["locked"] and not item.data["exclude_edit_target"],
+                enabled=not item.data["locked"]
+                and not item.data["exclude_edit_target"]
+                and item.data["visible"]
+                and item.data["parent_visible"],
             )
             ui.Spacer(width=0)
 
@@ -327,6 +337,9 @@ class LayerDelegate(_TreeDelegateBase):
                 if not item.data["can_toggle_mute"]:
                     name = "EyeDisabled"
                     tooltip = "Cannot mute the Edit Target or any of its parent layers"
+                elif not item.data["parent_visible"]:
+                    name = "EyeOffDisabled"
+                    tooltip = "The layer's muteness state is inherited from a muted parent layer"
                 ui.Image(
                     "",
                     height=ui.Pixel(16),
@@ -508,7 +521,13 @@ class LayerDelegate(_TreeDelegateBase):
     def _on_set_authoring_layer(self, button: int, model: LayerModel, item: ItemBase):
         # Update the selection to make sure the clicked item is included
         self._item_clicked(button, True, model, item)
-        if button != 0 or item.data["locked"] or item.data["exclude_edit_target"]:
+        if (
+            button != 0
+            or item.data["locked"]
+            or item.data["exclude_edit_target"]
+            or not item.data["visible"]
+            or not item.data["parent_visible"]
+        ):
             return
         self.__on_set_authoring_layer(item)
 
@@ -584,7 +603,12 @@ class LayerDelegate(_TreeDelegateBase):
     def _on_visible_clicked(self, button: int, model: LayerModel, item: ItemBase):
         # Update the selection to make sure the clicked item is included
         self._item_clicked(button, True, model, item)
-        if button != 0 or item.data["exclude_mute"] or not item.data["can_toggle_mute"]:
+        if (
+            button != 0
+            or item.data["exclude_mute"]
+            or not item.data["can_toggle_mute"]
+            or not item.data["parent_visible"]
+        ):
             return
         self.__on_visible_clicked(item.data["visible"])
 

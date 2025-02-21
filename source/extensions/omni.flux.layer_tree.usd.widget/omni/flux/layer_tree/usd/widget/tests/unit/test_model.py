@@ -1,3 +1,5 @@
+# noqa PLC0302
+
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -753,7 +755,9 @@ class TestModel(omni.kit.test.AsyncTestCase):
 
         model = LayerModel()
 
-        with patch.object(commands, "execute") as mock:
+        with patch.object(commands, "execute") as mock, patch.object(LayerModel, "is_layer_locked") as is_locked_mock:
+            is_locked_mock.return_value = is_locked
+
             # Act
             model.toggle_lock_layer(layer0_item)
 
@@ -776,15 +780,21 @@ class TestModel(omni.kit.test.AsyncTestCase):
 
         model = LayerModel()
 
-        with patch.object(commands, "execute") as mock:
+        with (
+            patch.object(commands, "execute") as execute_mock,
+            patch.object(LayerModel, "is_layer_muted") as is_muted_mock,
+        ):
+            is_muted_mock.return_value = is_muted
+
             # Act
             model.toggle_mute_layer(layer0_item)
 
             # Assert
-            args, kwargs = mock.call_args
-            self.assertEqual(1, mock.call_count)
-            self.assertEqual(("SetLayerMutenessCommand",), args)
-            self.assertEqual({"layer_identifier": layer0.identifier, "muted": not is_muted, "usd_context": ""}, kwargs)
+            self.assertEqual(1, execute_mock.call_count)
+            self.assertEqual(
+                call("SetLayerMutenessCommand", layer_identifier=layer0.identifier, muted=not is_muted, usd_context=""),
+                execute_mock.call_args,
+            )
 
     async def __run_test_transfer_layer_overrides(self, existing_file: bool):
         # Arrange

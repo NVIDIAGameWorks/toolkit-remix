@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.4]
+## Added
+- Added missing `EyeOffDisabled` style
+
 ## [1.8.3]
 ## Added
 - Added `Material` icon for the Stage Manager
