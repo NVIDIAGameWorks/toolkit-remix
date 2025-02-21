@@ -368,6 +368,7 @@ current_dict.update(
         "Image::EyeDisabled": {"image_url": _get_icons("eye"), "color": _WHITE_30},
         "Image::EyeOff": {"image_url": _get_icons("eye-off"), "color": _WHITE_60},
         "Image::EyeOff:hovered": {"image_url": _get_icons("eye-off"), "color": _WHITE_100},
+        "Image::EyeOffDisabled": {"image_url": _get_icons("eye-off"), "color": _WHITE_30},
         "Image::CreateLayerDisabled": {"image_url": _get_icons("create-layer"), "color": _WHITE_30},
         "Image::CreateLayer": {"image_url": _get_icons("create-layer"), "color": _WHITE_60},
         "Image::CreateLayer:hovered": {"image_url": _get_icons("create-layer"), "color": _WHITE_100},

@@ -36,6 +36,7 @@ from omni.flux.utils.common.layer_utils import save_layer_as as _save_layer_as
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
 from omni.kit import commands, undo
+from pxr import Sdf
 
 from .item_model import ItemBase, LayerItem
 
@@ -349,6 +350,10 @@ class LayerModel(_TreeModelBase[ItemBase]):
         if layer.data.get("exclude_lock", True):
             return
 
+        # Quick return if the state is already the same
+        if self.is_layer_locked(layer) == value:
+            return
+
         commands.execute(
             "LockLayer",
             layer_identifier=layer.data["layer"].identifier,
@@ -372,9 +377,13 @@ class LayerModel(_TreeModelBase[ItemBase]):
         if layer.data.get("exclude_mute", True) or not layer.data.get("can_toggle_mute", False):
             return
 
+        # Quick return if the state is already the same
+        if self.is_layer_muted(layer) == value:
+            return
+
         # Make sure muteness is global to persist state
-        layers_state = _layers.get_layers(self._context).get_layers_state()
-        layers_state.set_muteness_scope(True)
+        _layers.get_layers(self._context).get_layers_state().set_muteness_scope(True)
+
         # Set the muteness state
         commands.execute(
             "SetLayerMutenessCommand",
@@ -455,8 +464,25 @@ class LayerModel(_TreeModelBase[ItemBase]):
         )
 
     def is_layer_locked(self, layer: LayerItem) -> bool:
+        """
+        Get the lock state of a layer item
+
+        Returns:
+            True if the layer is locked, False otherwise
+        """
         layers_state = _layers.get_layers(self._context).get_layers_state()
         return layers_state.is_layer_locked(layer.data["layer"].identifier)
+
+    def is_layer_muted(self, layer: LayerItem) -> bool:
+        """
+        Get the muteness state of a layer item
+
+        Returns:
+            True if the layer is muted, False otherwise
+        """
+        layers_state = _layers.get_layers(self._context).get_layers_state()
+        layers_state.set_muteness_scope(True)
+        return layers_state.is_layer_globally_muted(layer.data["layer"].identifier)
 
     # Item methods
 
@@ -657,6 +683,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
         elif source is not None and item_target is not None:
             self.move_sublayer(source, item_target)
 
+    @usd.handle_exception
     async def _deferred_refresh(self):
         if not self.stage or self._ignore_refresh:
             return
@@ -666,7 +693,14 @@ class LayerModel(_TreeModelBase[ItemBase]):
         loop = asyncio.get_event_loop()
         with concurrent.futures.ThreadPoolExecutor() as pool:
             # Submit the jobs in an async thread to avoid locking up the UI
-            root_item = await loop.run_in_executor(pool, self._create_layer_items, self.stage.GetRootLayer(), None)
+            root_item = await loop.run_in_executor(
+                pool,
+                self._create_layer_items,
+                self.stage.GetRootLayer(),
+                None,
+            )
+
+        self._update_inherited_visibility(root_item, True)
 
         self.set_items([root_item])
 
@@ -678,7 +712,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
             sub_layer_path = layer.ComputeAbsolutePath(sub_layer)
             if layer.realPath == sub_layer_path:
                 continue
-            child_layer = _layers.LayerUtils.find_layer(sub_layer_path)
+            child_layer = Sdf.Layer.FindOrOpen(sub_layer_path)
             if child_layer is None:
                 continue
             children.append(self._create_layer_items(child_layer, layer))
@@ -722,12 +756,14 @@ class LayerModel(_TreeModelBase[ItemBase]):
             excludes[exclude_type] = value
 
         layers_state = _layers.get_layers(self._context).get_layers_state()
+
         layer_name = _layers.LayerUtils.get_custom_layer_name(layer) if parent is not None else "Root Layer"
         is_authoring = _layers.LayerUtils.get_edit_target(self.stage) == layer.identifier
+
         layer_data = {
             "locked": layers_state.is_layer_locked(layer.identifier),
-            "visible": not layers_state.is_layer_locally_muted(layer.identifier)
-            and not layers_state.is_layer_globally_muted(layer.identifier),
+            "visible": not layers_state.is_layer_globally_muted(layer.identifier),  # Only check global state
+            "parent_visible": True,  # Will be set after all the items are created -> _update_inherited_visibility
             "savable": layers_state.is_layer_savable(layer.identifier),
             "authoring": is_authoring,
             "dirty": is_dirty,
@@ -741,6 +777,14 @@ class LayerModel(_TreeModelBase[ItemBase]):
             "exclude_move": excludes[_LayerCustomData.EXCLUDE_MOVE],
         }
         return LayerItem(layer_name, layer_data, parent, children)
+
+    def _update_inherited_visibility(self, item: LayerItem, visible: bool):
+        """
+        Update the visibility of the children based on the parent's visibility
+        """
+        item.data["parent_visible"] = visible
+        for child in item.children:
+            self._update_inherited_visibility(child, visible and item.data["visible"])
 
     def _on_save_layer_as_internal(self, success, error_message, layers):
         """
@@ -789,7 +833,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
         self.refresh()
 
     def __on_stage_events(self, event):
-        if event.type not in [
+        if usd.StageEventType(event.type) not in [
             usd.StageEventType.OPENED,
             usd.StageEventType.OPEN_FAILED,
             usd.StageEventType.CLOSED,

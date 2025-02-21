@@ -72,6 +72,8 @@ class LayerTreeWidget:
             "_sub_on_item_save_layer_as": None,
             "_sub_on_item_merge": None,
             "_sub_on_item_transfer": None,
+            "_selection": None,
+            "_ignore_selection_updates": None,
             "_refresh_task": None,
             "_create_button": None,
             "_import_button": None,
@@ -110,6 +112,8 @@ class LayerTreeWidget:
         self._sub_on_item_merge = self._delegate.subscribe_on_merge_clicked(self._model.merge_layers)
         self._sub_on_item_transfer = self._delegate.subscribe_on_transfer_clicked(self._model.transfer_layer_overrides)
 
+        self._selection = set()
+        self._ignore_selection_updates = False
         self._refresh_task = None
 
         self.__create_ui()
@@ -161,17 +165,14 @@ class LayerTreeWidget:
                                 )
                             )
 
-                            self._loading_frame = ui.Frame(separate_window=True, visible=False)
+                            self._loading_frame = ui.ZStack(content_clipping=True, visible=False)
                             with self._loading_frame:
-                                with ui.ZStack():
-                                    ui.Rectangle(name="LoadingBackground", tooltip="Updating stage layer tree")
-                                    with ui.VStack(spacing=ui.Pixel(4)):
-                                        ui.Spacer(width=0)
-                                        ui.Image("", name="TimerStatic", height=24)
-                                        ui.Label(
-                                            "Updating", name="LoadingLabel", height=0, alignment=ui.Alignment.CENTER
-                                        )
-                                        ui.Spacer(width=0)
+                                ui.Rectangle(name="LoadingBackground", tooltip="Updating stage layer tree")
+                                with ui.VStack(spacing=ui.Pixel(4)):
+                                    ui.Spacer(width=0)
+                                    ui.Image("", name="TimerStatic", height=24)
+                                    ui.Label("Updating", name="LoadingLabel", height=0, alignment=ui.Alignment.CENTER)
+                                    ui.Spacer(width=0)
                         ui.Line(name="PropertiesPaneSectionTitle")
                         if not self._hide_create_insert_buttons:
                             with ui.HStack():
@@ -239,22 +240,38 @@ class LayerTreeWidget:
     async def __refresh_async(self):
         # Refresh the expansion states
         await kit.app.get_app().next_update_async()
+        selection = []
         for item in self._model.get_item_children(None, True):
             self._layer_tree_widget.set_expanded(
                 item, self._tree_expanded.get(item.data["layer"].identifier, self._expansion_default), False
             )
+            if "layer" in item.data and item.data.get("layer").identifier in self._selection:
+                selection.append(item)
+
+        # Refresh the selection
+        await kit.app.get_app().next_update_async()
+        self._ignore_selection_updates = True
+        self._layer_tree_widget.selection = selection
+        self._ignore_selection_updates = False
 
     def on_selection_changed(self, items: list[_ItemBase]):
+        if self._ignore_selection_updates:
+            return
+
         self._layer_tree_widget.on_selection_changed(items)
         # Update the import & create button states
         self._update_button_state(items)
         # Update the delegate gradients
         self._delegate.on_item_selected(items, self._model.get_item_children(recursive=True), self._model)
 
+        # Store the selection for the next refresh
+        self._selection = {item.data.get("layer").identifier for item in items if "layer" in item.data}
+
     def _on_model_refresh(self, started: bool):
         if not self._loading_frame:
             return
         self._loading_frame.visible = started
+        self._layer_tree_widget.visible = not started
 
     def _on_item_changed(self, _model, _item):
         if self._refresh_task:
@@ -273,9 +290,6 @@ class LayerTreeWidget:
             if not item.can_have_children:
                 continue
             self._tree_expanded[item.data["layer"].identifier] = expanded
-        if self._refresh_task:
-            self._refresh_task.cancel()
-        self._refresh_task = asyncio.ensure_future(self.__refresh_async())
 
     def _create_layer(self, button, create_or_import):
         if button != 0:
@@ -311,25 +325,28 @@ class LayerTreeWidget:
         )
 
     def _save_layers(self):
-        with undo.group():
-            for item in self._layer_tree_widget.selection:
-                if not item.data["savable"]:
-                    continue
-                self._model.save_layer(item)
+        with self._model.disable_refresh():
+            with undo.group():
+                for item in self._layer_tree_widget.selection:
+                    if not item.data["savable"]:
+                        continue
+                    self._model.save_layer(item)
 
     def _set_lock_layers(self, value):
-        with undo.group():
-            for item in self._layer_tree_widget.selection:
-                if item.data["exclude_lock"]:
-                    continue
-                self._model.set_lock_layer(item, not value)
+        with self._model.disable_refresh():
+            with undo.group():
+                for item in self._layer_tree_widget.selection:
+                    if item.data["exclude_lock"]:
+                        continue
+                    self._model.set_lock_layer(item, not value)
 
     def _set_mute_layers(self, value):
-        with undo.group():
-            for item in self._layer_tree_widget.selection:
-                if item.data["exclude_mute"] or not item.data["can_toggle_mute"]:
-                    continue
-                self._model.set_mute_layer(item, value)
+        with self._model.disable_refresh():
+            with undo.group():
+                for item in self._layer_tree_widget.selection:
+                    if item.data["exclude_mute"] or not item.data["can_toggle_mute"]:
+                        continue
+                    self._model.set_mute_layer(item, value)
 
     def _update_button_state(self, items: list[_LayerItem] | None = None):
         if self._hide_create_insert_buttons:

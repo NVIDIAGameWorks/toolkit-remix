@@ -17,6 +17,7 @@
                     "ignore_prim_paths": [
                         "/Bookmarks",
                         "/CustomTags",
+                        "/OmniKit_Viewport_LightRig",
                         "/Render",
                         "/RootNode/cameras",
                         "/RootNode/Camera",
@@ -73,10 +74,11 @@
                     "ignore_prim_paths": [
                         "/Bookmarks",
                         "/CustomTags",
+                        "/OmniKit_Viewport_LightRig",
                         "/Render",
+                        "/RootNode/cameras",
                         "/RootNode/Camera",
                         "/RootNode/Looks",
-                        "/RootNode/cameras",
                         "/RootNode/lights",
                         "/Viewport_Waypoints",
                         "/remix_settings"
@@ -131,9 +133,10 @@
                     "ignore_prim_paths": [
                         "/Bookmarks",
                         "/CustomTags",
+                        "/OmniKit_Viewport_LightRig",
                         "/Render",
-                        "/RootNode/Camera",
                         "/RootNode/cameras",
+                        "/RootNode/Camera",
                         "/RootNode/instances",
                         "/RootNode/lights",
                         "/Viewport_Waypoints",
@@ -189,6 +192,7 @@
                     "ignore_prim_paths": [
                         "/Bookmarks",
                         "/CustomTags",
+                        "/OmniKit_Viewport_LightRig",
                         "/Render",
                         "/RootNode/cameras",
                         "/RootNode/Camera",
@@ -246,6 +250,8 @@
                     "name": "IgnorePrimsFilterPlugin",
                     "ignore_prim_paths": [
                         "/Bookmarks",
+                        "/CustomTags",
+                        "/OmniKit_Viewport_LightRig",
                         "/Render",
                         "/RootNode/cameras",
                         "/RootNode/Camera",
@@ -323,6 +329,7 @@
                     "ignore_prim_paths": [
                         "/Bookmarks",
                         "/CustomTags",
+                        "/OmniKit_Viewport_LightRig",
                         "/Render",
                         "/RootNode/cameras",
                         "/RootNode/Camera",
@@ -383,6 +390,7 @@
                     "ignore_prim_paths": [
                         "/Bookmarks",
                         "/CustomTags",
+                        "/OmniKit_Viewport_LightRig",
                         "/Render",
                         "/RootNode/cameras",
                         "/RootNode/Camera",

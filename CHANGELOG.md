@@ -62,6 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed capture list not loading captures properly
 - REMIX-3866: Fixed layers panel performance in large projects
 - REMIX-3895: Fixed light selection behavior in selection panel
+- REMIX-3865: Fixed layer panel inconsistent muteness state
+- REMIX-3888: Fixed layer panel not refreshing after unloading stage + more fixes
 
 ### Removed
 
