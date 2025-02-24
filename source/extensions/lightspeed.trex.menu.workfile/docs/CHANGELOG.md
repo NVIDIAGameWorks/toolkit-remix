@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0]
+### Changed
+- Removed the "Reload Last Stage" entry
+- Renamed "Unload Stage" to "Close Project"
+
 ## [1.1.2]
 ### Fixed
 - Fixed tests flakiness

@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+## Changed
+- Unload Stage now closes the stage instead of creating a new project
+- Show the home page after unloading the stage
+
 ## [1.3.0]
 ## Changed
 - Added support for multiple wizards (open & create)
