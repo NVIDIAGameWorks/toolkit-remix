@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from asyncio import ensure_future
 from functools import partial
 from typing import Callable
 
@@ -114,9 +115,6 @@ class Setup:
         self._sub_menu_workfile_new_workfile = self._menu_workfile_instance.subscribe_create_new_workfile(
             self._on_new_workfile
         )
-        self._sub_menu_workfile_unload_stage = self._menu_workfile_instance.subscribe_reload_last_workfile(
-            self._on_reload_last_workfile
-        )
 
     def _setup_wizard(self, wizard_type: _WizardTypes):
         wizard = _get_wizard_instance(wizard_type, self._context_name)
@@ -195,12 +193,6 @@ class Setup:
     def _on_open_workfile(self, path):
         self.prompt_if_unsaved_project(lambda: self.__open_stage_and_save_previous_identifier(path), "changing project")
 
-    def _on_reload_last_workfile(self):
-        self.prompt_if_unsaved_project(
-            lambda: self.__open_stage_and_save_previous_identifier(self._previous_root_layer_identifier),
-            "reloading the previous stage",
-        )
-
     def __open_stage_and_save_previous_identifier(self, path):
         self._previous_root_layer_identifier = self._layer_manager.open_stage(path)
 
@@ -223,7 +215,8 @@ class Setup:
         self.prompt_if_unsaved_project(self.__create_stage_and_save_previous_identifier, "unloading the current stage")
 
     def __create_stage_and_save_previous_identifier(self):
-        self._previous_root_layer_identifier = self._layer_manager.create_new_stage()
+        ensure_future(self._context.close_stage_async())
+        self._layout_instance.show_page(Pages.HOME_PAGE)
 
     def destroy(self):
         _reset_default_attrs(self)

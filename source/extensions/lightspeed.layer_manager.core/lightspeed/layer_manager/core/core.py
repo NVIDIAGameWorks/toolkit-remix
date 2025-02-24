@@ -837,8 +837,11 @@ class LayerManagerCore:
 
     def open_stage(self, layer_identifier: str, callback: Callable[[], None] = None) -> str:
         # Obtain the previous stage root layer identifier if not anonymous
-        prev_stage_root_layer_identifier = self.__context.get_stage().GetRootLayer().identifier
-        if "anon" in prev_stage_root_layer_identifier:
+        if self.__context.get_stage():
+            prev_stage_root_layer_identifier = self.__context.get_stage().GetRootLayer().identifier
+            if "anon" in prev_stage_root_layer_identifier:
+                prev_stage_root_layer_identifier = None
+        else:
             prev_stage_root_layer_identifier = None
 
         omni.kit.window.file.open_stage(layer_identifier)
