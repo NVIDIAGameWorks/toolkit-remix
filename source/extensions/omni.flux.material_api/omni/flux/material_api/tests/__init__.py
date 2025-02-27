@@ -15,13 +15,4 @@
 * limitations under the License.
 """
 
-from omni.kit.window.property.property_scheme_delegate import PropertySchemeDelegate
-
-
-# noinspection PyMethodMayBeStatic
-class LayerDelegate(PropertySchemeDelegate):
-    def get_unwanted_widgets(self, payload):
-        return [
-            "audio_settings",
-            "metadata",
-        ]
+from .unit.test_placeholder import TestPlaceholderAttribute

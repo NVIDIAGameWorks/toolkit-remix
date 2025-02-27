@@ -14,6 +14,9 @@
   <dependency name="repo_test" linkPath="../_repo/deps/repo_test">
     <package name="repo_test" version="2.37.0" />
   </dependency>
+  <dependency name="repo_usd" linkPath="../_repo/deps/repo_usd">
+    <package name="repo_usd" version="5.0.3" />
+  </dependency>
   <dependency name="repo_kit_tools" linkPath="../_repo/deps/repo_kit_tools">
     <package name="repo_kit_tools" version="0.19.9" />
   </dependency>

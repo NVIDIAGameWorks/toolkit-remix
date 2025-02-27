@@ -25,7 +25,7 @@ import omni.usd
 from omni.flux.wizard.widget import WizardModel, WizardPage, WizardWidget
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import arrange_windows, wait_stage_loading
+from omni.kit.test_suite.helpers import arrange_windows
 
 DEFAULT_PREVIOUS_TEXT = "Previous"
 DEFAULT_NEXT_TEXT = "Previous"
@@ -93,7 +93,6 @@ class TestWizardWidget(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
         self.temp_dir.cleanup()

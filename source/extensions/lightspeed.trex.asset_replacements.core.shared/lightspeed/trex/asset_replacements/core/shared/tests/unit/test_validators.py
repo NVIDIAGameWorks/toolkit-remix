@@ -20,7 +20,6 @@ from contextlib import nullcontext
 import omni.usd
 from lightspeed.trex.asset_replacements.core.shared.data_models import AssetReplacementsValidators
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import wait_stage_loading
 
 
 class TestAssetReplacementsValidators(AsyncTestCase):
@@ -31,7 +30,6 @@ class TestAssetReplacementsValidators(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if self.context.can_close_stage():
             await self.context.close_stage_async()
         self.context = None

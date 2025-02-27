@@ -25,7 +25,6 @@ import omni.usd
 from omni.flux.asset_importer.widget.extension import get_file_listener_instance as _get_file_listener_instance
 from omni.flux.asset_importer.widget.file_import_list import FileImportItem, FileImportListModel
 from omni.flux.asset_importer.widget.listener import FileListener as _FileListener
-from omni.kit.test_suite.helpers import wait_stage_loading
 
 
 class TestFileImportListModel(omni.kit.test.AsyncTestCase):
@@ -37,7 +36,6 @@ class TestFileImportListModel(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
         self.stage = None

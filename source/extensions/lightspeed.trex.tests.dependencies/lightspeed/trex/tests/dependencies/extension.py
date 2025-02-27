@@ -40,7 +40,10 @@ class LightspeedTestDependenciesExtension(omni.ext.IExt):
         for ext in exts:
             if manager.is_extension_enabled(ext):
                 continue
-            manager.set_extension_enabled_immediate(ext, True)
+            try:
+                manager.set_extension_enabled(ext, True)
+            except Exception as e:  # noqa: PLW0718
+                carb.log_warn(f"Failed to enable deferred extension {ext}: {e}")
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.tests.dependencies] Lightspeed Test Dependencies Extension shutdown")

@@ -52,8 +52,6 @@ class TestSharedViewportWidget(OmniUiTest):
     # After running each test
     async def tearDown(self):
         await super().tearDown()
-        # Note: this func seems to be context independent (same val for both contexts)
-        await wait_stage_loading()
         await self.release_hydra_engines_workaround()
 
     async def release_hydra_engines_workaround(self, usd_context_name: str = ""):
@@ -74,9 +72,6 @@ class TestSharedViewportWidget(OmniUiTest):
         return window, [widget1, widget2]
 
     async def __destroy(self, window, widgets):
-        # if we destroy viewports before the stage is fully loaded than it will be stuck in loading state.
-        await wait_stage_loading()
-
         for widget in widgets:
             widget.destroy()
         window.destroy()

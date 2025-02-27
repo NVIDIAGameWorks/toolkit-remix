@@ -32,7 +32,7 @@ from lightspeed.trex.control.stagecraft import get_instance as _get_control_stag
 from lightspeed.trex.layout.stagecraft import get_instance as _get_stagecraft_layout
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import open_stage, wait_stage_loading
+from omni.kit.test_suite.helpers import open_stage
 from omni.kit.window.file import FileWindowExtension
 
 
@@ -104,7 +104,6 @@ class TrexTestPromptIfUnsavedStage(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         self._temp_dir = None
 
     def _mock_get_carb_setting(self, setting: str):

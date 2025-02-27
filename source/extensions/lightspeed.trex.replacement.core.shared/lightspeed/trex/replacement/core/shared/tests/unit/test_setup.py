@@ -26,7 +26,6 @@ import omni.kit.test
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
-from omni.kit.test_suite.helpers import wait_stage_loading
 from pxr import Sdf, Usd, UsdGeom
 
 
@@ -48,7 +47,6 @@ class TestSetup(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         self.temp_dir.cleanup()
 
     async def test_is_path_valid_existing_file_valid_usd(self):

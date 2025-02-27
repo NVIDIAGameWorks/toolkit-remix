@@ -40,7 +40,7 @@ from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.flux.validator.factory import BASE_HASH_KEY
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import arrange_windows, open_stage, wait_stage_loading
+from omni.kit.test_suite.helpers import arrange_windows, open_stage
 from pxr import Sdf, Usd
 
 MATERIAL_HASH = "BC868CE5A075ABB1"
@@ -48,6 +48,21 @@ MATERIAL_ROOT_PATH = "/RootNode/Looks/"
 RELATIVE_SOURCE_TEXTURE_PATH = "project_example/sources/textures/"
 RELATIVE_CAPTURE_TEXTURE_PATH = "project_example/.deps/captures/materials/textures/"
 METAL_WALL_ASSET_PARTIAL_BASENAME = "T_MetalPanelWall_HeavyRust_"
+# Map of property name to whether it has a texture attribute set in the test material
+PROPERTY_BRANCHES_MAP = {
+    "Base Material": True,
+    "Iridescence": False,
+    "Specular": True,
+    "Emission": False,
+    "Animation": False,
+    "Remix Flags": False,
+    "Alpha Blending": False,
+    "Filtering": False,
+    "Normal": True,
+}
+BRANCHES_TO_EXPAND: list[bool] = list(PROPERTY_BRANCHES_MAP.values())
+# texture types in order that they appear
+TEXTURE_TYPES = ("albedo", "roughness", "metallic", "normal")
 
 
 class TestComponents(Enum):
@@ -90,12 +105,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
+        pass
 
     async def __setup_widget(self):
-        window = ui.Window("TestSelectionTreeUI", height=800, width=400)
+        window = ui.Window("TestSelectionTreeUI", height=1200, width=800)
         with window.frame:
-            with ui.VStack():
+            with ui.HStack():
                 selection_wid = _SelectionTreeWidget("")
                 selection_wid.show(True)
                 mesh_property_wid = _MaterialPropertiesWidget("")
@@ -148,6 +163,36 @@ class TestSelectionTreeWidget(AsyncTestCase):
                 prompt_dialog_window = ui_test.find(other_window.title)
                 if prompt_dialog_window:
                     prompt_dialog_window.widget.destroy()
+
+    async def _get_texture_file_fields(self, _window):
+        # expand all the property branches in reverse order to make sure buttons don't go offscreen
+        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+        for index in range(len(property_branches) - 1, -1, -1):
+            if BRANCHES_TO_EXPAND[index]:
+                await property_branches[index].click()
+                await ui_test.human_delay(7)
+
+        # ensure the string fields exists: albedo,  metallic, roughness, normal
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        self.assertEqual(len(texture_file_fields), len(TEXTURE_TYPES))
+
+        return texture_file_fields
+
+    async def _get_group_texture_file_fields(self, _window, group):
+        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+
+        # We expand
+        await property_branches[list(PROPERTY_BRANCHES_MAP.keys()).index(group)].click()
+        await ui_test.human_delay(human_delay_speed=10)
+        texture_file_fields = ui_test.find_all(
+            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        )
+        await ui_test.human_delay(4)
+        self.assertTrue(texture_file_fields)
+
+        return texture_file_fields
 
     async def test_select_one_prim_mesh(self):
         # setup
@@ -217,21 +262,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
 
         await ui_test.human_delay(human_delay_speed=10)
-
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
-        self.assertFalse(texture_file_fields)  # because we didnt expend
-        self.assertTrue(property_branches)
-
-        # we expend
-        await property_branches[1].click()
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        await ui_test.human_delay(1)
-        self.assertTrue(texture_file_fields)
+        texture_file_fields = await self._get_group_texture_file_fields(_window, "Base Material")
 
         # we add a new texture
         asset_path = _get_test_data("usd/project_example/sources/textures/ingested/16px_Diffuse.dds")
@@ -252,8 +283,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNone(cancel_ingestion_button)
 
         # text should be the asset path
-        asset_path_posix = OmniUrl(asset_path).path
-        self.assertEquals(asset_path_posix, texture_file_fields[0].widget.model.get_value_as_string())
+        self.assertEquals(
+            OmniUrl(asset_path).path, OmniUrl(texture_file_fields[0].widget.model.get_value_as_string()).path
+        )
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -267,20 +299,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=10)
 
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
-        self.assertFalse(texture_file_fields)  # because we didnt expend
-        self.assertTrue(property_branches)
-
-        # we expend
-        await property_branches[1].click()
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        await ui_test.human_delay(1)
-        self.assertTrue(texture_file_fields)
+        texture_file_fields = await self._get_group_texture_file_fields(_window, "Base Material")
 
         # we add a new texture
         original_text = texture_file_fields[0].widget.model.get_value_as_string()
@@ -316,30 +335,17 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
-
         await ui_test.human_delay(human_delay_speed=10)
 
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
-        self.assertFalse(texture_file_fields)  # because we didnt expend
-        self.assertTrue(property_branches)
-
-        # we expend
-        await property_branches[1].click()
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        await ui_test.human_delay(1)
-        self.assertTrue(texture_file_fields)
+        texture_file_fields = await self._get_group_texture_file_fields(_window, "Base Material")
+        diffuse_texture_file_field = texture_file_fields[0]
 
         # we add a new texture
         asset_path = _get_test_data("usd/project_example/sources/textures/not_ingested/16px_Diffuse.dds")
-        await texture_file_fields[0].click()
+        await diffuse_texture_file_field.click()
         await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
         await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
-        await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+        await diffuse_texture_file_field.input(asset_path, end_key=KeyboardInput.ENTER)
         await ui_test.human_delay(3)
 
         # no ingestion window warning
@@ -356,8 +362,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(20)
 
         # text should be the asset path
-        asset_path_posix = OmniUrl(asset_path).path
-        self.assertEquals(asset_path_posix, texture_file_fields[0].widget.model.get_value_as_string())
+        self.assertEquals(
+            OmniUrl(asset_path).path, OmniUrl(diffuse_texture_file_field.widget.model.get_value_as_string()).path
+        )
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -371,21 +378,8 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=10)
 
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
-        self.assertFalse(texture_file_fields)
-        self.assertTrue(property_branches)
-
-        # We expand
-        await property_branches[1].click()
-        await ui_test.human_delay(human_delay_speed=10)
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        await ui_test.human_delay(1)
-        self.assertTrue(texture_file_fields)
+        texture_file_fields = await self._get_group_texture_file_fields(_window, "Base Material")
+        diffuse_texture_file_field = texture_file_fields[0]
 
         # Create a temp directory to mimic a location for an external asset
         with tempfile.TemporaryDirectory(dir=_get_test_data("usd/")) as temp_dir:
@@ -394,12 +388,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(50)
 
             # We add a new texture
-            original_text = texture_file_fields[0].widget.model.get_value_as_string()
+            original_text = diffuse_texture_file_field.widget.model.get_value_as_string()
             asset_path = _get_test_data(f"{temp_dir}/16px_Diffuse.dds")
-            await texture_file_fields[0].click()
+            await diffuse_texture_file_field.click()
             await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
             await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
-            await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+            await diffuse_texture_file_field.input(asset_path, end_key=KeyboardInput.ENTER)
             await ui_test.human_delay(3)
 
         # Ensure there is no ingestion window warning
@@ -427,7 +421,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(5)
 
         # Text field should revert to the original path
-        self.assertEquals(original_text, texture_file_fields[0].widget.model.get_value_as_string())
+        self.assertEquals(original_text, diffuse_texture_file_field.widget.model.get_value_as_string())
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -438,23 +432,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # Select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
-
         await ui_test.human_delay(human_delay_speed=10)
 
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
-        self.assertFalse(texture_file_fields)
-        self.assertTrue(property_branches)
-
-        # We expand
-        await property_branches[1].click()
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        await ui_test.human_delay(1)
-        self.assertTrue(texture_file_fields)
+        texture_file_fields = await self._get_group_texture_file_fields(_window, "Base Material")
+        diffuse_texture_file_field = texture_file_fields[0]
 
         # Create a temp directory to mimic a location for an external asset
         with tempfile.TemporaryDirectory(dir=_get_test_data("usd/")) as temp_dir:
@@ -464,10 +445,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
             # We add a new texture
             asset_path = _get_test_data(f"{temp_dir}/16px_Diffuse.dds")
-            await texture_file_fields[0].click()
+            await diffuse_texture_file_field.click()
             await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
             await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
-            await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+            await diffuse_texture_file_field.input(asset_path, end_key=KeyboardInput.ENTER)
             await ui_test.human_delay(3)
 
             # Ensure there is no ingestion window warning
@@ -495,7 +476,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(50)
 
             # The original (external) asset path should not equal the field text
-            self.assertNotEquals(asset_path, texture_file_fields[0].widget.model.get_value_as_string())
+            self.assertNotEquals(asset_path, diffuse_texture_file_field.widget.model.get_value_as_string())
 
             # Make sure the metadata matches
             self.assertTrue(_path_utils.hash_match_metadata(file_path=asset_path, key=BASE_HASH_KEY))
@@ -515,20 +496,8 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=10)
 
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
-        self.assertFalse(texture_file_fields)
-        self.assertTrue(property_branches)
-
-        # We expand
-        await property_branches[1].click()
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        await ui_test.human_delay(1)
-        self.assertTrue(texture_file_fields)
+        texture_file_fields = await self._get_group_texture_file_fields(_window, "Base Material")
+        diffuse_texture_file_field = texture_file_fields[0]
 
         # Create a temp directory to mimic a location for an external asset
         with tempfile.TemporaryDirectory(dir=_get_test_data("usd/")) as temp_dir:
@@ -536,12 +505,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(50)
 
             # We add a new texture
-            original_text = texture_file_fields[0].widget.model.get_value_as_string()
+            original_text = diffuse_texture_file_field.widget.model.get_value_as_string()
             asset_path = _get_test_data(f"{temp_dir}/16px_Diffuse.dds")
-            await texture_file_fields[0].click()
+            await diffuse_texture_file_field.click()
             await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
             await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
-            await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+            await diffuse_texture_file_field.input(asset_path, end_key=KeyboardInput.ENTER)
             await ui_test.human_delay(3)
 
         # Make sure the ingestion window appears
@@ -569,7 +538,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(5)
 
         # Text should go back like before
-        self.assertEquals(original_text, texture_file_fields[0].widget.model.get_value_as_string())
+        self.assertEquals(original_text, diffuse_texture_file_field.widget.model.get_value_as_string())
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -581,15 +550,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
-
         await ui_test.human_delay(human_delay_speed=10)
-        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
 
-        # we expand
-        await property_branches[2].click()
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
+        texture_file_fields = await self._get_group_texture_file_fields(_window, "Specular")
 
         context_inst = _trex_contexts_instance()
         context_inst.set_current_context(_Contexts.STAGE_CRAFT)
@@ -616,7 +579,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         rel_path = omni.client.normalize_url(omni.usd.make_path_relative_to_current_edit_target(asset_path)).replace(
             "\\", "/"
         )
-        self.assertEquals(rel_path, texture_file_fields[0].widget.model.get_value_as_string())
+        self.assertEquals(rel_path, texture_file_fields[1].widget.model.get_value_as_string())
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -628,12 +591,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
         asset_path = _get_test_data("usd/project_example/sources/textures/ingested/16px_metallic.m.rtex.dds")
-
         await ui_test.human_delay(human_delay_speed=10)
-        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
 
-        # we expand
-        await property_branches[2].click()
+        texture_file_fields = await self._get_group_texture_file_fields(_window, "Specular")
 
         assign_button = ui_test.find_all(f"{_window.title}//Frame/**/Button[*].identifier=='AssignTextureSetButton'")
 
@@ -651,14 +611,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await action_button[0].click()
         await ui_test.human_delay(3)
 
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+        rel_path = omni.usd.make_path_relative_to_current_edit_target(asset_path)
+        self.assertEquals(
+            OmniUrl(rel_path).path, OmniUrl(texture_file_fields[1].widget.model.get_value_as_string()).path
         )
-
-        rel_path = omni.client.normalize_url(omni.usd.make_path_relative_to_current_edit_target(asset_path)).replace(
-            "\\", "/"
-        )
-        self.assertEquals(rel_path, texture_file_fields[0].widget.model.get_value_as_string())
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -712,11 +668,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
             asset_path = temp_dir_obj / "testa_metallic.m.rtex.dds"
 
             await ui_test.human_delay(human_delay_speed=10)
-            property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
-
-            # we expand
-            await property_branches[2].click()
-            await property_branches[3].click()
+            texture_file_fields = await self._get_texture_file_fields(_window)
 
             assign_button = ui_test.find_all(
                 f"{_window.title}//Frame/**/Button[*].identifier=='AssignTextureSetButton'"
@@ -745,13 +697,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(3)
 
             texture_names = {
-                "testa_metallic.m.rtex.dds": 0,
-                "testa_normal_OTH_Normal.n.rtex.dds": 2,
+                "testa_metallic.m.rtex.dds": 2,
+                "testa_normal_OTH_Normal.n.rtex.dds": 3,
             }
-
-            texture_file_fields = ui_test.find_all(
-                f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-            )
 
             for texture_name, index in texture_names.items():
                 dirname = Path(asset_path).parent
@@ -806,17 +754,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
         await ui_test.human_delay(human_delay_speed=10)
 
-        # expand the property branches
-        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
-        for index in range(1, 4):
-            await property_branches[index].click()
-            await ui_test.human_delay(7)
-
-        # ensure the string fields exists
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        self.assertEqual(len(texture_file_fields), 4)
+        texture_file_fields = await self._get_texture_file_fields(_window)
 
         # test diffuse material full file path copy
         await texture_file_fields[0].click(right_click=True)
@@ -841,7 +779,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(copied_text, MATERIAL_HASH)
 
         # test maps
-        for index, texture_type in enumerate(("metallic", "roughness", "normal"), start=1):
+        for index, texture_type in enumerate(TEXTURE_TYPES[1:], start=1):
             # test full file path copy
             await texture_file_fields[index].click(right_click=True)
             await ui_test.human_delay(5)
@@ -875,17 +813,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
         await ui_test.human_delay(human_delay_speed=10)
 
-        # expand the property branches
-        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
-        for index in range(1, 4):
-            await property_branches[index].click()
-            await ui_test.human_delay(7)
-
-        # ensure the string fields exists
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        self.assertEqual(len(texture_file_fields), 4)
+        texture_file_fields = await self._get_texture_file_fields(_window)
 
         # test diffuse material tooltip in comparison to the asset path
         string_field_mouse_offset = ui_test.Vec2(10, 0)
@@ -895,7 +823,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(texture_file_fields[0].widget.tooltip.lower(), asset_path.lower())
 
         # check that each of the string fields have tooltips after mouse hovered - tooltip is set upon initial hover
-        for index, texture_type in enumerate(("metallic", "roughness", "normal"), start=1):
+        for index, texture_type in enumerate(TEXTURE_TYPES[1:], start=1):
             # move cursor directly over the string field
             await ui_test.emulate_mouse_move(texture_file_fields[index].position + string_field_mouse_offset)
             await ui_test.human_delay(5)
@@ -945,17 +873,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
         await ui_test.human_delay(human_delay_speed=10)
 
-        # expand the property branches
-        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
-        for index in range(1, 4):
-            await property_branches[index].click()
-            await ui_test.human_delay(7)
-
-        # ensure the string fields exists
-        texture_file_fields = ui_test.find_all(
-            f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-        )
-        self.assertEqual(len(texture_file_fields), 4)
+        texture_file_fields = await self._get_texture_file_fields(_window)
 
         # test diffuse material tooltip
         string_field_mouse_offset = ui_test.Vec2(10, 0)

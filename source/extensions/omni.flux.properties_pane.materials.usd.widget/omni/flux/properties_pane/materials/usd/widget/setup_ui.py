@@ -22,42 +22,33 @@ import omni.kit
 import omni.kit.material.library
 import omni.ui as ui
 import omni.usd
+from omni.flux.material_api import ShaderInfoAPI
 from omni.flux.property_widget_builder.model.usd import DisableAllListenersBlock as _USDDisableAllListenersBlock
-from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
-from omni.flux.property_widget_builder.model.usd import USDAttrListItem as _USDAttrListItem
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
 from omni.flux.property_widget_builder.model.usd import USDMetadataListItem as _USDMetadataListItem
 from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
 from omni.flux.property_widget_builder.model.usd import USDPropertyWidget as _PropertyWidget
+from omni.flux.property_widget_builder.model.usd import VirtualUSDAttributeItem as _VirtualUSDAttributeItem
+from omni.flux.property_widget_builder.model.usd import VirtualUSDAttrListItem as _VirtualUSDAttrListItem
 from omni.flux.property_widget_builder.model.usd import get_usd_listener_instance as _get_usd_listener_instance
 from omni.flux.property_widget_builder.widget import FieldBuilder as _FieldBuilder
 from omni.flux.property_widget_builder.widget import ItemGroup as _ItemGroup
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from pxr import Sdf, UsdShade, Vt
+from pxr import Sdf, Usd, UsdShade, Vt
 
 from .lookup_table import LOOKUP_TABLE
 
-
-@omni.usd.handle_exception
-async def _load_mdl_parameters_for_prim_async(context, prim, recreate=True):
-    """
-    Alternative to `Context.load_mdl_parameters_for_prim_async` which allows the `recreate` kwarg to be provided.
-    """
-    path = prim.GetPath().pathString
-    stage_future = asyncio.Future()
-
-    if context.add_to_pending_creating_mdl_paths(path, recreate=recreate):
-
-        def on_stage(stage_event):
-            if stage_event.payload["prim_path"] == path and not stage_future.done():
-                stage_future.set_result(True)
-
-        stage_sub = context.get_stage_event_stream().create_subscription_to_pop_by_type(  # noqa: PLW0612, F841
-            int(omni.usd.StageEventType.MDL_PARAM_LOADED), on_stage, name="load_mdl_parameters_for_prim"
-        )
-        await stage_future
+SHADER_ATTR_IGNORE_LIST = [
+    "outputs:out",
+    "info:id",
+    "info:implementationSource",
+    "info:mdl:sourceAsset",
+    "info:mdl:sourceAsset:subIdentifier",
+    "ui:displayName",
+    "inputs:v",
+]
 
 
 class MaterialPropertyWidget:
@@ -156,13 +147,6 @@ class MaterialPropertyWidget:
         if paths is not None:
             self._paths = paths
 
-        def loaded_mdl_subids(mtl_list, filename):
-            mdl_dict = {}
-            for mtl in mtl_list:
-                mdl_dict[mtl.name] = mtl.annotations
-
-            material_annotations[filename] = mdl_dict
-
         # Wait 1 frame to make sure the USD it up-to-date
         await omni.kit.app.get_app().next_update_async()
 
@@ -180,10 +164,8 @@ class MaterialPropertyWidget:
             prims = [stage.GetPrimAtPath(path) for path in self._paths]
 
             shader_paths = []
-            mtl_paths = []
-            material_annotations = {}
             # relative attr name to item
-            attr_added: dict[str, list[_USDAttributeItem]] = {}
+            attr_added: dict[str, list[tuple[Usd.Prim, Usd.Attribute]]] = {}
 
             with _USDDisableAllListenersBlock(self.__usd_listener_instance):
                 for prim in prims:
@@ -197,34 +179,12 @@ class MaterialPropertyWidget:
                     if shader_prim:
                         shader_paths.append(shader_prim.GetPath())
 
-                        # grab mdls paths
-                        shader = UsdShade.Shader(shader_prim if shader_prim else prim)
-                        asset = shader.GetSourceAsset("mdl") if shader else None
-                        mdl_file = asset.resolvedPath if asset else None
-                        if mdl_file:
-                            mtl_paths.append(mdl_file)
-                            await omni.kit.material.library.get_subidentifier_from_mdl(
-                                mdl_file=mdl_file,
-                                on_complete_fn=lambda l, f=mdl_file: loaded_mdl_subids(mtl_list=l, filename=f),
-                            )
-
-                        # load the mdl parameters
-                        ignore_list = [
-                            "outputs:out",
-                            "info:id",
-                            "info:implementationSource",
-                            "info:mdl:sourceAsset",
-                            "info:mdl:sourceAsset:subIdentifier",
-                            "ui:displayName",
-                            "inputs:v",
-                        ]
-
-                        # TODO Bug OM-76692 - Causes "reorder properties" attribute to be added on viewport selection
-                        await _load_mdl_parameters_for_prim_async(self._context, shader_prim, recreate=True)
-
-                        # get child attributes
-                        for shader_attr in shader_prim.GetAttributes():
-                            if shader_attr.IsHidden():
+                        # iterate over input parameters defined in mdls as well as attributes:
+                        for shader_attr in ShaderInfoAPI(shader_prim).get_input_properties():
+                            # Note: Currently "hidden" and "unused" attribute metadata are used in our mdl files,
+                            #  and either will result in UsdShadePropertyPlaceholder.IsHidden() being true. We only
+                            #  want to check for the "hidden" metadata here.
+                            if shader_attr.GetMetadata("hidden"):
                                 continue
                             attr_name = shader_attr.GetName()
                             # check if shader attribute already exists in material
@@ -233,18 +193,21 @@ class MaterialPropertyWidget:
                                 continue
                             if material_attr:
                                 # use material attribute NOT shader attribute
-                                attr_added.setdefault(attr_name, []).append(material_attr)
+                                attr_added.setdefault(attr_name, []).append((shader_prim, material_attr))
+                                continue
+
+                            if any(ignore_name in attr_name for ignore_name in SHADER_ATTR_IGNORE_LIST):
                                 continue
 
                             # add paths to usd_changed watch list
-                            prim_path = shader_attr.GetPrimPath()
+                            prim_path = shader_prim.GetPath()
                             if prim_path not in valid_paths:
                                 valid_paths.append(prim_path)
 
-                            if not any(name in shader_attr.GetName() for name in ignore_list):
-                                attr_added.setdefault(attr_name, []).append(shader_attr)
+                            attr_added.setdefault(attr_name, []).append((shader_prim, shader_attr))
 
                         # add source color space
+                        shader = UsdShade.Shader(shader_prim)
                         if shader.GetShaderId() == "UsdUVTexture":
                             attr_name = "inputs:sourceColorSpace"
                             attr_mat = prim.GetAttribute(attr_name)
@@ -259,7 +222,7 @@ class MaterialPropertyWidget:
                                 if not tokens:
                                     # fix missing tokens on attribute
                                     attr_mat.SetMetadata("allowedTokens", ["auto", "raw", "sRGB"])
-                            attr_added.setdefault(attr_name, []).append(attr_mat)
+                            attr_added.setdefault(attr_name, []).append((shader_prim, attr_mat))
 
                         valid_paths.append(shader_prim.GetPath())
 
@@ -267,67 +230,77 @@ class MaterialPropertyWidget:
 
                 group_items = {}
                 num_prims = len(prims)
-                for attr_name, attrs in attr_added.items():
+                for attr_name, prims_and_placeholders in attr_added.items():
                     # Only allow editing common attributes
-                    if 1 < num_prims != len(attrs):
+                    if 1 < num_prims != len(prims_and_placeholders):
                         # skipping attribute because not all prims have it
                         continue
-                    attr = attrs[0]
-                    attr_name = attr.GetName()
+                    attributes = [
+                        shader_prim_.GetAttribute(attr_.GetName()) for shader_prim_, attr_ in prims_and_placeholders
+                    ]
+                    attribute_paths = [attr_.GetPath() for attr_ in attributes]
+
+                    shader_prim, placeholder = prims_and_placeholders[0]
+                    attr_name = placeholder.GetName()
                     display_attr_names = [attr_name]
-                    attribute_paths = [attr_.GetPath() for attr_ in attrs]
-                    display_name = attr.GetMetadata(Sdf.PropertySpec.DisplayNameKey)
+
+                    display_name = placeholder.GetMetadata(Sdf.PropertySpec.DisplayNameKey)
                     if display_name:
                         display_attr_names = [display_name]
                     if attr_name in self._lookup_table:
                         display_attr_names = [self._lookup_table[attr_name]["name"]]
 
                     # description
-                    shade_input = UsdShade.Input(attr)
                     description = "No description"
-                    metadata = attr.GetAllMetadata()
-                    if shade_input and metadata.get("documentation"):
+                    metadata = placeholder.GetAllMetadata()
+                    if metadata and metadata.get("documentation"):
                         description = metadata.get("documentation", description)
                     descriptions = [description]
 
-                    if shade_input and shade_input.HasRenderType() and shade_input.HasSdrMetadataByKey("options"):
-                        options = shade_input.GetSdrMetadataByKey("options").split("|")
-
-                        # This is not the standard USD way to get default. The
-                        # standard way is Sdr. But out shader compiler produces
-                        # this metadata in the session layer, so it will be
-                        # working for MDL
-                        custom = attr.GetCustomData()
-                        default_value = custom.get("default", 0)
-
-                        str_options = [option.split(":")[0] for option in options]
-                        attr_item = _USDAttrListItem(
+                    sdr_metadata = placeholder.GetMetadata("sdrMetadata")
+                    if sdr_metadata and sdr_metadata.get("options"):
+                        options: list[tuple[str, int]] = sdr_metadata.get("options")
+                        if isinstance(options, list):
+                            # ex: [('wrap_clamp', 0), ('wrap_repeat', 1), ('wrap_mirrored_repeat', 2), ('wrap_clip', 3)]
+                            str_options = [name for name, _index in options]
+                        elif isinstance(options, str):
+                            # ex: 'mono_alpha:0|mono_average:1|mono_luminance:2|mono_maximum:3'
+                            str_options = [name_and_index.split(":")[0] for name_and_index in options.split("|")]
+                        else:
+                            raise ValueError(f"Invalid sdrMetadata options type: {type(options)}")
+                        default_value = placeholder.GetDefaultValue()
+                        str_default = str_options[default_value]
+                        attr_item = _VirtualUSDAttrListItem(
                             self._context_name,
                             attribute_paths,
-                            None,
-                            str_options[default_value],
+                            str_default,
                             str_options,
+                            value_type_name=placeholder.GetTypeName(),
+                            metadata=placeholder.GetAllMetadata(),
                             display_attr_names=display_attr_names,
                             display_attr_names_tooltip=descriptions,
                         )
                     else:
-                        attr_item = _USDAttributeItem(self._context_name, attribute_paths)
-                        # we don't need to repeat the attribute name multiple time here
-                        if attr_item.element_count != 1:
-                            display_attr_names.extend([""] * (attr_item.element_count - 1))
-                            descriptions.extend([""] * (attr_item.element_count - 1))
-                        attr_item.set_display_attr_names(display_attr_names)
-                        attr_item.set_display_attr_names_tooltip(descriptions)
+                        attr_item = _VirtualUSDAttributeItem(
+                            self._context_name,
+                            attribute_paths,
+                            value_type_name=placeholder.GetTypeName(),
+                            default_value=placeholder.GetDefaultValue(),
+                            metadata=placeholder.GetAllMetadata(),
+                            display_attr_names=display_attr_names,
+                            display_attr_names_tooltip=descriptions,
+                        )
 
-                    attr_display_group = attr.GetDisplayGroup()
+                    attr_display_group = placeholder.GetDisplayGroup()
+                    attr_name_lower = attr_name.lower()
                     if attr_display_group:
-                        group_name = attr_display_group
+                        group_name = attr_display_group.removeprefix(UsdShade.Tokens.inputs.capitalize())
                     # if this is in the lookup table, we override
                     elif attr_name in self._lookup_table:
                         group_name = self._lookup_table[attr_name]["group"]
-                    elif attr_name.startswith("inputs"):
+                    elif attr_name_lower.startswith("inputs"):
                         group_name = "Inputs"
-                    elif attr_name.startswith("output"):
+                    elif attr_name_lower.startswith("output"):
                         group_name = "Outputs"
                     else:
                         group_name = "Other"
@@ -335,17 +308,18 @@ class MaterialPropertyWidget:
                     # texture attribute will get color space attribute
                     color_space_item = None
                     if self._create_color_space_attributes:
-                        color_space_metadata = attr.GetMetadata("colorSpace")
+                        color_space_metadata = placeholder.GetMetadata("colorSpace")
                         if color_space_metadata:
                             # this is a texture
+                            # TODO: Add Support for metadata item when attr does not exist yet.
                             color_space_item = _USDMetadataListItem(
                                 self._context_name,
                                 attribute_paths,
-                                "colorSpace",
                                 "auto",
                                 ["auto", "raw", "sRGB"],
                                 display_attr_names=display_attr_names,
                                 display_attr_names_tooltip=descriptions,
+                                metadata_key="colorSpace",
                             )
 
                     if group_name is not None:

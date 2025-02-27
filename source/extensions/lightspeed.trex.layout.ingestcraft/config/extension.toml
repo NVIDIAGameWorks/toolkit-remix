@@ -1,5 +1,5 @@
 [package]
-version = "2.0.9"
+version = "2.0.10"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix layout for the IngestCraft"
 description = "Layout for NVIDIA RTX Remix IngestCraft App"
@@ -29,10 +29,25 @@ dependencies = [
 ]
 
 args = [
-    # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
-    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
-    # Need to use a .kit file
-    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
+    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+    "omni.flux.validator.plugin.check.usd",
+    "omni.flux.validator.plugin.context.usd_stage",
+    "omni.flux.validator.plugin.selector.usd",
+    "omni.flux.validator.plugin.resultor.file"
+]
+
+args = [
+    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 ]
 
 stdoutFailPatterns.exclude = [

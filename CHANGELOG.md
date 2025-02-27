@@ -25,8 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3767: Added a Meshes Tab for the Stage Manager
 - REMIX-3659: Add the ability to get default output directory in Ingestion and AI Tools tabs
 - REMIX-3770: Added a Materials Tab for the Stage Manager
+- REMIX-3832: Added a new material api extension to omni.flux
 
 ### Changed
+- REMIX-3831: Updated kit version to 106.5.0
 - Updated hdremix to dd92d0f
 - REMIX-3640: Use Async Threaded Processing for Filtering of the Stage Manager items
 - Stage Manager: Add set_context_name() as a way to refresh plugins before building tree.
@@ -47,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed CI/CD stages to remove check-changelog from the start
 - REMIX-3894: Use scale instead of meters per unit for ingestion
 - REMIX-3896: Improve the Unload Stage (Close Project) button behavior
+- REMIX-3832: Update material property widget to work with virtual attributes
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs

@@ -20,7 +20,7 @@ import functools
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from omni.kit.viewport.menubar.camera import SingleCameraMenuItem as _SingleCameraMenuItem
+from omni.kit.viewport.menubar.camera import SingleCameraMenuItemBase as _SingleCameraMenuItemBase
 from omni.kit.viewport.menubar.camera import get_instance as _get_menubar_extension
 
 from .item import lss_single_camera_menu_item as _lss_single_camera_menu_item
@@ -58,6 +58,6 @@ class SetupUI:
 
     def destroy(self):
         if self.__extension:
-            self.__extension.register_menu_item_type(_SingleCameraMenuItem)
+            self.__extension.register_menu_item_type(_SingleCameraMenuItemBase)
         if self._default_attr:
             _reset_default_attrs(self)

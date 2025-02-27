@@ -56,7 +56,8 @@ class AsyncTestMeterialPropertyHelper:
 
     async def set_paths(self, paths, expand_groups=True):
         self.property_widget.refresh(paths)
-        await omni.kit.app.get_app().next_update_async()
+        for _ in range(5):
+            await omni.kit.app.get_app().next_update_async()
         if expand_groups:
             # Expand all groups
             for widget_ref in omni.kit.ui_test.find_all(
@@ -84,7 +85,8 @@ class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
         await omni.kit.test_suite.helpers.open_stage(self.get_test_data("scene.usda"))
 
     async def tearDown(self):
-        await omni.kit.test_suite.helpers.wait_stage_loading()
+        if omni.usd.get_context().get_stage():
+            await omni.usd.get_context().close_stage_async()
 
     async def test_file_texture_edit_changes(self):
 
@@ -114,7 +116,7 @@ class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
 
             await widget_ref.input(asset_path, end_key=carb.input.KeyboardInput.ENTER)
             await omni.kit.ui_test.human_delay(human_delay_speed=3)
-            self.assertEquals(widget_ref.widget.model.get_value_as_string(), posix_asset_path)
+            self.assertEquals(OmniUrl(widget_ref.widget.model.get_value_as_string()).path, posix_asset_path)
 
     async def test_preview_window(self):
 

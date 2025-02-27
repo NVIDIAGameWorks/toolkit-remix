@@ -21,7 +21,7 @@ import collections
 import dataclasses
 import typing
 from functools import partial
-from typing import Any, Callable, List, Optional, Sequence, Tuple, Type
+from typing import Any, Callable, List, Optional, Sequence, Type
 
 import omni.kit
 import omni.kit.commands
@@ -34,14 +34,13 @@ from omni.kit.window.popup_dialog import MessageDialog as _MessageDialog
 from pxr import Sdf, UsdGeom
 
 from .item_model.attr_list_model_value import UsdListModelAttrValueModel as _UsdListModelAttrValueModel
+from .item_model.attr_list_model_value import VirtualUsdListModelAttrValueModel as _VirtualUsdListModelAttrValueModel
 from .item_model.attr_name import UsdAttributeNameModel as _UsdAttributeNameModel
-from .item_model.attr_name import UsdAttributeNameModelVirtual as _UsdAttributeNameModelVirtual
 from .item_model.attr_value import UsdAttributeValueModel as _UsdAttributeValueModel
-from .item_model.attr_value import UsdAttributeValueModelVirtual as _UsdAttributeValueModelVirtual
-from .item_model.metadata_list_model_value import UsdAttributeMetadataValueModel as _UsdAttributeMetadataValueModel
+from .item_model.attr_value import VirtualUsdAttributeValueModel as _VirtualUsdAttributeValueModel
+from .item_model.metadata_list_model_value import UsdListModelAttrMetadataValueModel as _UsdAttributeMetadataValueModel
 from .mapping import CHANNEL_ELEMENT_BUILDER_TABLE
 from .mapping import DEFAULT_PRECISION as _DEFAULT_PRECISION
-from .mapping import OPS_ATTR_ORDER_TABLE as _OPS_ATTR_ORDER_TABLE
 from .mapping import OPS_ATTR_PRECISION_TABLE as _OPS_ATTR_PRECISION_TABLE
 from .utils import delete_all_overrides as _delete_all_overrides
 from .utils import delete_layer_override as _delete_layer_override
@@ -52,7 +51,102 @@ if typing.TYPE_CHECKING:
     from pxr import Usd
 
 
-class USDAttributeItem(_Item):
+class _BaseUSDAttributeItem(_Item):
+    """
+    Base Item of the Model.
+    """
+
+    def __init__(
+        self,
+        context_name: str,
+        attribute_paths: List[Sdf.Path],
+    ):
+        """
+        Args:
+            context_name: the context name
+            attribute_paths: the list of USD attribute(s) the item will represent
+        """
+        super().__init__()
+        self._context_name = context_name
+        self._stage = omni.usd.get_context(self._context_name).get_stage()
+
+        self._attribute_paths = attribute_paths
+        self._name_models = []
+        self._value_models = []
+
+        self.__on_override_removed = _Event()
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_context_name": None,
+                "_attribute_paths": None,
+                "_stage": None,
+            }
+        )
+        return default_attr
+
+    def set_display_attr_names(self, display_attr_names: List[str]):
+        """
+        Set the display name of the attributes
+
+        Args:
+            display_attr_names: list of display name
+        """
+        for i, name_model in enumerate(self._name_models):
+            try:
+                display_attr_name = display_attr_names[i]
+            except IndexError:
+                # we don't need to repeat the attribute name multiple times here
+                display_attr_name = ""
+            name_model.set_display_attr_name(display_attr_name)
+
+    def set_display_attr_names_tooltip(self, display_attr_names_tooltip: List[str]):
+        """
+        Set the display name of the attributes
+
+        Args:
+            display_attr_names_tooltip: list of display name tooltip
+        """
+        for i, name_model in enumerate(self._name_models):
+            try:
+                tooltip = display_attr_names_tooltip[i]
+            except IndexError:
+                # we don't need to repeat the attribute tooltip multiple times here
+                tooltip = ""
+            name_model.set_display_attr_name_tooltip(tooltip)
+
+    def _get_all_attributes(self) -> List["Usd.Attribute"]:
+        attributes = set()
+        for value_model in self.value_models:
+            attributes = attributes.union(value_model.attributes)
+        return list(attributes)
+
+    def delete_all_overrides(self):
+        attributes = self._get_all_attributes()
+        with Sdf.ChangeBlock():
+            for attribute in attributes:
+                _delete_all_overrides(attribute, context_name=self._context_name)
+        self.__on_override_removed()
+
+    def delete_layer_override(self, layer):
+        attributes = self._get_all_attributes()
+        with Sdf.ChangeBlock():
+            for attribute in attributes:
+                _delete_layer_override(layer, attribute, context_name=self._context_name)
+        self.__on_override_removed()
+
+    def subscribe_override_removed(self, function):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_override_removed, function)
+
+
+class USDAttributeItem(_BaseUSDAttributeItem):
     """Item of the model"""
 
     def __init__(
@@ -75,22 +169,21 @@ class USDAttributeItem(_Item):
             read_only: show the attribute(s) as read only
             value_type_name: if None, the type name will be inferred
         """
-        super().__init__()
+        super().__init__(context_name, attribute_paths)
         # take only the first attribute name because the attribute name is the same for all values
         # (even in multi selection)
         type_name = value_type_name or _get_type_name(_get_metadata(context_name, attribute_paths))
         self._element_count = CHANNEL_ELEMENT_BUILDER_TABLE.get(type_name, 1)
 
+        # we don't need to repeat the attribute name and tooltip multiple times here
+        if self._element_count > 1:
+            if display_attr_names:
+                display_attr_names.extend([""] * (self._element_count - len(display_attr_names)))
+            if display_attr_names_tooltip:
+                display_attr_names_tooltip.extend([""] * (self._element_count - len(display_attr_names_tooltip)))
+
         self._init_name_models(context_name, attribute_paths, display_attr_names, display_attr_names_tooltip)
-        self._init_value_models(context_name, attribute_paths, read_only)
-
-        self._context_name = context_name
-        self._attribute_paths = attribute_paths
-
-        self._stage = omni.usd.get_context(self._context_name).get_stage()
-
-        self.__on_attribute_changed = _Event()
-        self.__on_override_removed = _Event()
+        self._init_value_models(context_name, attribute_paths, read_only=read_only, value_type_name=value_type_name)
 
     @property
     @abc.abstractmethod
@@ -98,131 +191,35 @@ class USDAttributeItem(_Item):
         default_attr = super().default_attr
         default_attr.update(
             {
-                "_element_count": None,
+                "_element_count": 1,
                 "_name_models": None,
                 "_value_models": None,
-                "_context_name": None,
-                "_attribute_paths": None,
-                "_stage": None,
             }
         )
         return default_attr
 
-    def refresh(self):
-        self._validate_attribute_exists()
-        super().refresh()
-
     def _init_name_models(self, context_name, attribute_paths, display_attr_names, display_attr_names_tooltip):
-        if self._element_count is None:  # not implemented?
-            self._name_models = [_UsdAttributeNameModel(context_name, attribute_paths[0], 0)]
-        else:
-            self._name_models = [
-                _UsdAttributeNameModel(
-                    context_name,
-                    attribute_paths[0],
-                    i,
-                    display_attr_name=display_attr_names[i] if display_attr_names else None,
-                    display_attr_name_tooltip=display_attr_names_tooltip[i] if display_attr_names_tooltip else None,
-                )
-                for i in range(self._element_count)
-            ]
+        self._name_models = [
+            _UsdAttributeNameModel(
+                context_name,
+                attribute_paths[0],
+                i,
+                display_attr_name=display_attr_names[i] if display_attr_names else None,
+                display_attr_name_tooltip=display_attr_names_tooltip[i] if display_attr_names_tooltip else None,
+            )
+            for i in range(self._element_count)
+        ]
 
-    def _init_value_models(self, context_name, attribute_paths, read_only):
-        if self._element_count is None:  # not implemented?
-            self._value_models = [
-                _UsdAttributeValueModel(context_name, attribute_paths, 0, read_only=True, not_implemented=True)
-            ]
-        else:
-            self._value_models = [
-                _UsdAttributeValueModel(context_name, attribute_paths, i, read_only=read_only)
-                for i in range(self._element_count)
-            ]
-
-    def _get_all_attributes(self) -> List["Usd.Attribute"]:
-        attributes = set()
-        for value_model in self.value_models:
-            attributes = attributes.union(value_model.attributes)
-        return list(attributes)
-
-    def _validate_attribute_exists(self) -> None:
-        asyncio.ensure_future(self._validate_attribute_exists_async())
-
-    @omni.usd.handle_exception
-    async def _validate_attribute_exists_async(self) -> None:
-        """
-        If attribute does not exist on the stage after the override is deleted, send event to refresh and create
-        a virtual attribute since it does not exist on any other layer.
-        """
-        await omni.kit.app.get_app().next_update_async()
-        if not self._attribute_paths:
-            return
-        attribute_exists_in_stage = False
-        for attribute_path in self._attribute_paths:
-            prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
-            if prim.HasAttribute(attribute_path.name):
-                attribute_exists_in_stage = True
-                break
-        if not attribute_exists_in_stage:
-            self.__on_attribute_changed(self._attribute_paths)
-
-    def _get_prims(self, attributes: List["Usd.Attribute"]) -> List["Usd.Prim"]:
-        stage = omni.usd.get_context(self._context_name).get_stage()
-        if not stage:
-            return []
-        return list({stage.GetPrimAtPath(attribute.GetPrimPath()) for attribute in attributes})
-
-    def set_display_attr_names(self, display_attr_names: List[str]):
-        """
-        Set the display name of the attributes
-
-        Args:
-            display_attr_names: list of display name
-        """
-        for i, name_model in enumerate(self._name_models):
-            name_model.set_display_attr_name(display_attr_names[i])
-
-    def set_display_attr_names_tooltip(self, display_attr_names_tooltip: List[str]):
-        """
-        Set the display name of the attributes
-
-        Args:
-            display_attr_names_tooltip: list of display name tooltip
-        """
-        for i, name_model in enumerate(self._name_models):
-            name_model.set_display_attr_name_tooltip(display_attr_names_tooltip[i])
+    def _init_value_models(self, context_name, attribute_paths, read_only, value_type_name=None):
+        self._value_models = [
+            _UsdAttributeValueModel(context_name, attribute_paths, i, read_only=read_only, type_name=value_type_name)
+            for i in range(self._element_count)
+        ]
 
     @property
     def element_count(self):
         """Number of channel the attribute has (for example, float3 is 3 channels)"""
         return self._element_count
-
-    def delete_all_overrides(self):
-        attributes = self._get_all_attributes()
-        with Sdf.ChangeBlock():
-            for attribute in attributes:
-                _delete_all_overrides(attribute, context_name=self._context_name)
-        self._validate_attribute_exists()
-        self.__on_override_removed()
-
-    def delete_layer_override(self, layer):
-        attributes = self._get_all_attributes()
-        with Sdf.ChangeBlock():
-            for attribute in attributes:
-                _delete_layer_override(layer, attribute, context_name=self._context_name)
-        self._validate_attribute_exists()
-        self.__on_override_removed()
-
-    def subscribe_override_removed(self, function):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        """
-        return _EventSubscription(self.__on_override_removed, function)
-
-    def subscribe_attribute_changed(self, function):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        """
-        return _EventSubscription(self.__on_attribute_changed, function)
 
 
 class USDAttributeXformItem(USDAttributeItem):
@@ -271,7 +268,7 @@ class USDAttributeXformItem(USDAttributeItem):
                 )
 
     def __show_confirmation_dialog(self, handler: Callable) -> None:
-        def handle_ok(_dialog):
+        def handle_ok(_dialog: _MessageDialog) -> None:
             handler()
             _dialog.hide()
 
@@ -283,6 +280,15 @@ class USDAttributeXformItem(USDAttributeItem):
             cancel_label="Cancel",
         )
         dialog.show()
+
+    def _get_prims(self, attributes: List["Usd.Attribute"]) -> List["Usd.Prim"]:
+        """
+        Get the associated prim for each attribute.
+        """
+        stage = omni.usd.get_context(self._context_name).get_stage()
+        if not stage:
+            return []
+        return list({stage.GetPrimAtPath(attribute.GetPrimPath()) for attribute in attributes})
 
     def _get_all_attributes(self) -> List["Usd.Attribute"]:
         """
@@ -303,7 +309,90 @@ class USDAttributeXformItem(USDAttributeItem):
         self.__show_confirmation_dialog(partial(super().delete_layer_override, layer))
 
 
-class _BaseListModelItem(_Item):
+class VirtualUSDAttributeItem(USDAttributeItem):
+    """Item of the model"""
+
+    def __init__(
+        self,
+        context_name: str,
+        attribute_paths: List[Sdf.Path],
+        value_type_name: Sdf.ValueTypeNames,
+        default_value: List[Any],
+        display_attr_names: Optional[List[str]] = None,
+        display_attr_names_tooltip: Optional[List[str]] = None,
+        read_only: bool = False,
+        metadata: dict = None,
+        create_callback: Optional[Callable[[Any], None]] = None,
+    ):
+        """
+        Args:
+            context_name: The context name
+            attribute_paths: The attribute paths
+            value_type_name: Value type name for the default values
+            default_value: The default value for the attributes
+            create_callback: A function called after the attribute is edited (End Edit).
+                             By default, this simply adds the attribute to the prim
+            display_attr_names: Display name for the attribute
+            display_attr_names_tooltip: tooltip to show on the attribute name
+            read_only: If the attribute is read-only
+        """
+        self._default_value = default_value
+        self._metadata = metadata
+        self._create_callback = create_callback
+        self._value_type_name = value_type_name
+
+        super().__init__(
+            context_name,
+            attribute_paths,
+            display_attr_names=display_attr_names,
+            display_attr_names_tooltip=display_attr_names_tooltip,
+            read_only=read_only,
+            value_type_name=value_type_name,
+        )
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_default_value": None,
+                "_metadata": None,
+                "_create_callback": None,
+                "_value_type_name": None,
+            }
+        )
+        return default_attr
+
+    def _init_name_models(self, context_name, attribute_paths, display_attr_names, display_attr_names_tooltip):
+        self._name_models = [
+            _UsdAttributeNameModel(
+                context_name,
+                attribute_paths[0],
+                i,
+                display_attr_name=display_attr_names[i] if display_attr_names else None,
+                display_attr_name_tooltip=display_attr_names_tooltip[i] if display_attr_names_tooltip else None,
+            )
+            for i in range(self._element_count)
+        ]
+
+    def _init_value_models(self, context_name, attribute_paths, read_only, value_type_name=None):
+        self._value_models = [
+            _VirtualUsdAttributeValueModel(
+                context_name,
+                attribute_paths,
+                i,
+                read_only=read_only,
+                type_name=value_type_name,
+                default_value=self._default_value,
+                metadata=self._metadata,
+                create_callback=self._create_callback,
+            )
+            for i in range(self._element_count)
+        ]
+
+
+class _BaseListModelItem(_BaseUSDAttributeItem):
     """Item of the model"""
 
     value_model_class: Type[_UsdListModelAttrValueModel] | Type[_UsdAttributeMetadataValueModel] = (
@@ -314,38 +403,58 @@ class _BaseListModelItem(_Item):
         self,
         context_name: str,
         attribute_paths: List[Sdf.Path],
-        key: Optional[str],
-        default: str,
+        default_value: str,
         options: List[str],
         read_only: bool = False,
+        value_type_name: str = None,
+        metadata: dict = None,
         display_attr_names: Optional[List[str]] = None,
         display_attr_names_tooltip: Optional[List[str]] = None,
-        not_implemented: bool = False,
+        metadata_key: Optional[str] = None,
     ):
         """
-        Item that represent the key of a metadata of a USD attribute on the tree
-
         Args:
             context_name: the context name
             attribute_paths: the list of USD attribute(s) the item will represent
-            key: the metadata key to show
-            default: the metadata key default value
+            default_value: the metadata key default value
             options: the metadata available options
-            value_model: value model class to use
             read_only: read only or not
+            value_type_name: the type name of the attribute
+            metadata: provide the attribute metadata if virtual
             display_attr_names: override the name(s) of the attribute(s) to show by those one
             display_attr_names_tooltip: tooltip to show on the attribute name
-            not_implemented: if not implement
+            metadata_key: the metadata key to show
         """
-        super().__init__()
+        super().__init__(context_name, attribute_paths)
+        self._metadata_key = metadata_key
+        self._metadata = metadata
+        self._init_name_models(context_name, attribute_paths, display_attr_names, display_attr_names_tooltip)
+        self._init_value_models(
+            context_name, attribute_paths, default_value, options, read_only, value_type_name=value_type_name
+        )
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_name_models": None,
+                "_value_models": None,
+            }
+        )
+        return default_attr
+
+    def _init_name_models(self, context_name, attribute_paths, display_attr_names, display_attr_names_tooltip):
         display_attr_name = None
         if display_attr_names:
             display_attr_name = display_attr_names[0]
-        if display_attr_name and key:
-            display_attr_name = f"{display_attr_name} {key}"
+        if display_attr_name and self._metadata_key:
+            display_attr_name = f"{display_attr_name} {self._metadata_key}"
         display_attr_name_tooltip = None
         if display_attr_names_tooltip:
             display_attr_name_tooltip = display_attr_names_tooltip[0]
+
         self._name_models = [
             _UsdAttributeNameModel(
                 context_name,
@@ -355,102 +464,28 @@ class _BaseListModelItem(_Item):
                 display_attr_name_tooltip=display_attr_name_tooltip,
             )
         ]
+
+    def _init_value_models(
+        self, context_name, attribute_paths, default_value, options, read_only, value_type_name=None
+    ):
         self._value_models = [
             self.value_model_class(
                 context_name,
                 attribute_paths,
-                key,
-                default,
+                default_value,
                 options,
                 read_only=read_only,
-                not_implemented=not_implemented,
+                type_name=value_type_name,
+                metadata=self._metadata,
+                metadata_key=self._metadata_key,
             )
         ]
-
-        self._context_name = context_name
-        self._attribute_paths = attribute_paths
-
-        self._stage = omni.usd.get_context(self._context_name).get_stage()
-
-        self.__on_attribute_removed = _Event()
-
-    @property
-    @abc.abstractmethod
-    def default_attr(self) -> dict[str, None]:
-        default_attr = super().default_attr
-        default_attr.update(
-            {
-                "_context_name": None,
-                "_attribute_paths": None,
-                "_stage": None,
-            }
-        )
-        return default_attr
-
-    def __get_all_attributes(self):
-        attributes = set()
-        for value_model in self.value_models:
-            attributes = attributes.union(value_model.attributes)
-        return list(attributes)
-
-    def __validate_attribute_exists(self):
-        asyncio.ensure_future(self.__validate_attribute_exists_async())
-
-    @omni.usd.handle_exception
-    async def __validate_attribute_exists_async(self):
-        """
-        If attribute does not exist on the stage after the override is deleted, send event to refresh and create
-        a virtual attribute since it does not exist on any other layer.
-        """
-        await omni.kit.app.get_app().next_update_async()
-        attribute_exists_in_stage = False
-        for attribute_path in self._attribute_paths:
-            prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
-            if prim.HasAttribute(attribute_path.name):
-                attribute_exists_in_stage = True
-                break
-        if not attribute_exists_in_stage:
-            self.__on_attribute_removed()
-
-    def set_display_attr_names(self, display_attr_names):
-        for i, name_model in enumerate(self._name_models):
-            name_model.set_display_attr_name(display_attr_names[i])
-
-    def set_display_attr_names_tooltip(self, display_attr_names_tooltip: List[str]):
-        """
-        Set the display name of the attributes
-
-        Args:
-            display_attr_names_tooltip: list of display name tooltip
-        """
-        for i, name_model in enumerate(self._name_models):
-            name_model.set_display_attr_name_tooltip(display_attr_names_tooltip[i])
-
-    def delete_all_overrides(self):
-        attributes = self.__get_all_attributes()
-        with Sdf.ChangeBlock():
-            for attribute in attributes:
-                _delete_all_overrides(attribute, context_name=self._context_name)
-        self.__validate_attribute_exists()
-
-    def delete_layer_override(self, layer):
-        attributes = self.__get_all_attributes()
-        with Sdf.ChangeBlock():
-            for attribute in attributes:
-                _delete_layer_override(layer, attribute, context_name=self._context_name)
-        self.__validate_attribute_exists()
-
-    def subscribe_attribute_removed(self, function):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        """
-        return _EventSubscription(self.__on_attribute_removed, function)
 
 
 class USDMetadataListItem(_BaseListModelItem):
     """Item of the model"""
 
-    value_model_class = _UsdAttributeMetadataValueModel
+    value_model_class: type[_UsdAttributeMetadataValueModel] = _UsdAttributeMetadataValueModel
 
     @property
     @abc.abstractmethod
@@ -462,6 +497,17 @@ class USDAttrListItem(_BaseListModelItem):
     """Item of the model"""
 
     value_model_class = _UsdListModelAttrValueModel
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
+
+
+class VirtualUSDAttrListItem(_BaseListModelItem):
+    """Item of the model"""
+
+    value_model_class = _VirtualUsdListModelAttrValueModel
 
     @property
     @abc.abstractmethod
@@ -532,7 +578,7 @@ class USDAttributeItemStub(USDAttributeItem):
     def _init_name_models(self, context_name, attribute_paths, display_attr_names, display_attr_names_tooltip):
         self._name_models = []
 
-    def _init_value_models(self, context_name, attribute_paths, read_only):
+    def _init_value_models(self, context_name, attribute_paths, read_only, value_type_name=None):
         self._value_models = []
 
     @omni.usd.handle_exception
@@ -641,159 +687,3 @@ class USDAttributeXformItemStub(USDAttributeItemStub):
                     context_name=self._context_name,
                     stage=self._stage,
                 )
-
-
-class USDAttributeItemVirtual(USDAttributeItem):
-    """Item of the model"""
-
-    def __init__(
-        self,
-        context_name: str,
-        attribute_paths: List[Sdf.Path],
-        default_values: List[Any],
-        value_type_name: Sdf.ValueTypeNames,
-        create_callback: Optional[Callable[[Any], None]] = None,
-        display_attr_names: Optional[List[str]] = None,
-        display_attr_names_tooltip: Optional[List[str]] = None,
-        read_only: bool = False,
-    ):
-        """
-        Args:
-            context_name: The context name
-            attribute_paths: The attribute paths
-            default_values: The default values for the attributes
-            value_type_name: Value type name for the default values
-            create_callback: A function called after the attribute is edited (End Edit).
-                             By default, this simply adds the attribute to the prim
-            display_attr_names: Display name for the attribute
-            display_attr_names_tooltip: tooltip to show on the attribute name
-            read_only: If the attribute is read-only
-        """
-        self._default_value = default_values
-        self._create_callback = create_callback
-        self._value_type_name = value_type_name
-
-        super().__init__(
-            context_name,
-            attribute_paths,
-            display_attr_names=display_attr_names,
-            display_attr_names_tooltip=display_attr_names_tooltip,
-            read_only=read_only,
-            value_type_name=value_type_name,
-        )
-
-    @property
-    @abc.abstractmethod
-    def default_attr(self) -> dict[str, None]:
-        default_attr = super().default_attr
-        default_attr.update(
-            {
-                "_default_value": None,
-                "_create_callback": None,
-                "_value_type_name": None,
-            }
-        )
-        return default_attr
-
-    def _init_name_models(self, context_name, attribute_paths, display_attr_names, display_attr_names_tooltip):
-        if self._element_count is None:  # not implemented?
-            self._name_models = [_UsdAttributeNameModelVirtual(context_name, attribute_paths[0], 0)]
-        else:
-            self._name_models = [
-                _UsdAttributeNameModelVirtual(
-                    context_name,
-                    attribute_paths[0],
-                    i,
-                    display_attr_name=display_attr_names[i] if display_attr_names else None,
-                    display_attr_name_tooltip=display_attr_names_tooltip[i] if display_attr_names_tooltip else None,
-                )
-                for i in range(self._element_count)
-            ]
-
-    def _init_value_models(self, context_name, attribute_paths, read_only):
-        if self._element_count is None:  # not implemented?
-            self._value_models = [
-                _UsdAttributeValueModelVirtual(context_name, [], 0, [], None, read_only=True, not_implemented=True)
-            ]
-        else:
-            self._value_models = [
-                _UsdAttributeValueModelVirtual(
-                    context_name,
-                    attribute_paths,
-                    i,
-                    self._default_value,
-                    self._value_type_name,
-                    create_callback=self._create_callback,
-                    read_only=read_only,
-                )
-                for i in range(self._element_count)
-            ]
-
-
-class USDAttributeXformItemVirtual(USDAttributeItemVirtual):
-    """Item of the model"""
-
-    def __init__(
-        self,
-        context_name: str,
-        attribute_paths: List[Sdf.Path],
-        default_values: List[Any],
-        value_type_name: Sdf.ValueTypeNames,
-        op_type: UsdGeom.XformOp = None,
-        ops_to_create: Tuple[UsdGeom.XformOp, Any] = None,
-        display_attr_names: Optional[List[str]] = None,
-        display_attr_names_tooltip: Optional[List[str]] = None,
-        read_only: bool = False,
-    ):
-        """
-        Args:
-            context_name: The context name
-            attribute_paths: The attribute paths
-            default_values: The default values for the attributes
-            value_type_name: Value type name for the default values
-            op_type: The current item's xform op type
-            ops_to_create: Tuple of xform op types to create when the value model is edited and their default values
-            display_attr_names: Display name for the attribute
-            display_attr_names_tooltip: tooltip to show on the attribute name
-            read_only: If the attribute is read-only
-        """
-
-        super().__init__(
-            context_name,
-            attribute_paths,
-            default_values,
-            value_type_name,
-            create_callback=partial(self.__create_xform_ops, op_type, ops_to_create),
-            display_attr_names=display_attr_names,
-            display_attr_names_tooltip=display_attr_names_tooltip,
-            read_only=read_only,
-        )
-
-    @property
-    @abc.abstractmethod
-    def default_attr(self) -> dict[str, None]:
-        return super().default_attr
-
-    def __create_xform_ops(
-        self, current_op: UsdGeom.XformOp.Type, ops_to_create: List[Tuple[UsdGeom.XformOp.Type, Any]], value: Any = None
-    ) -> None:
-        # TODO Replace with a command
-        for prim in self._get_prims(self._get_all_attributes()):
-            if not prim.IsValid():
-                return
-            xformable_prim = UsdGeom.Xformable(prim)
-            # Ensure there are no duplicated xform ops
-            ops_dict = {current_op: value}
-            for op, val in ops_to_create:
-                if op not in ops_dict:
-                    ops_dict[op] = val
-            # Ensure the xform op order is valid - Ops are applied in reverse
-            ordered_ops = list(ops_dict.items())
-            ordered_ops.sort(key=lambda _op: _OPS_ATTR_ORDER_TABLE.get(_op[0], float("inf")), reverse=True)
-            # Add all virtual attributes with desired or default values
-            for op, val in ordered_ops:
-                if op in [op.GetOpType() for op in xformable_prim.GetOrderedXformOps()]:
-                    continue
-                xform_op = xformable_prim.AddXformOp(op, _OPS_ATTR_PRECISION_TABLE.get(op, _DEFAULT_PRECISION))
-                if val is not None:
-                    xform_op.Set(val)

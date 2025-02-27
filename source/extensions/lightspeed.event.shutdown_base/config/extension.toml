@@ -1,5 +1,5 @@
 [package]
-version = "2.0.2"
+version = "2.0.3"
 authors = ["Nicos Kendall-Bar <nkendallbar@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -21,16 +21,24 @@ name = "lightspeed.event.shutdown_base"
 
 [[test]]
 args = [
-    "--no-window",
-    # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
-    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
-    # Need to use a .kit file
-    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
+    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 ]
 
 dependencies = [
     "omni.flux.utils.widget",
     "lightspeed.trex.tests.dependencies"
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.scene_view.opengl] No UsdRender.Product was found at '{render_product_path}'*",
+    "*[omni.usd] Stage opening or closing already in progress!*",
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
 ]
 
 stdoutFailPatterns.exclude = [

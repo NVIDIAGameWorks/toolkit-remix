@@ -233,7 +233,6 @@ class MaterialShaders(_CheckBaseUSD):
                         shader = usd.get_shader_from_material(prim, get_prim=True)
                         if shader and shader.IsValid():
                             try:
-                                await asyncio.wait_for(context.load_mdl_parameters_for_prim_async(shader), timeout=10)
                                 (
                                     converter,
                                     tmp_subidenfifier,

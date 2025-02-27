@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.16.0]
+## Changed
+- Update to Kit 106.5
+- property widget tree: support virtual attribute items
+- simplified and refactored property tree items and value models
+
 ## [2.15.0]
 ### Added
 - Added slider widget for material attribute displace_out

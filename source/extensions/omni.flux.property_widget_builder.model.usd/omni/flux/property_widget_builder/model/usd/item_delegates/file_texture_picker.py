@@ -99,7 +99,10 @@ class FileTexturePicker(_FilePicker):
                                 #  need to store assetPath object in `value_model._values` to make that happen.
                                 tooltip = item.value_models[value_index].get_tool_tip()
                             else:
-                                tooltip = item.value_models[value_index].get_value().resolvedPath
+                                tooltip = None
+                                value = item.value_models[value_index].get_value()
+                                if value:
+                                    tooltip = value.resolvedPath
                                 # If there was no resolved path, use fallback paths
                                 if tooltip is None or tooltip == "":
                                     tooltip = self.__get_value_model_fallback_path(

@@ -47,9 +47,9 @@ class SetupUI:
 
         self.__settings = carb.settings.get_settings()
 
-        if self.__settings.get(_HIDE_MENU):
-            # hide the menu
-            self._hide_menu()
+        if not self.__settings.get(_HIDE_MENU):
+            # show the menu
+            self._show_menu()
 
         self._create_ui()
         appwindow_stream = omni.appwindow.get_default_app_window().get_window_resize_event_stream()
@@ -57,12 +57,12 @@ class SetupUI:
             self._on_app_window_size_changed, name="On app window resized", order=0
         )
 
-    def _hide_menu(self):
+    def _show_menu(self):
         # old menu
-        asyncio.ensure_future(self._deferred_hide_menu())
+        asyncio.ensure_future(self._deferred_show_menu())
 
     @omni.usd.handle_exception
-    async def _deferred_hide_menu(self):
+    async def _deferred_show_menu(self):
         timeout = 60
         i = 0
         imported = False
@@ -76,14 +76,14 @@ class SetupUI:
                 await omni.kit.app.get_app().next_update_async()  # noqa PLE0601
                 i += 1
         if not imported:
-            carb.log_error("Can't import omni.kit.ui to hide menus")
+            carb.log_error("Can't import omni.kit.ui to show main menubar")
             return
         editor_menu = omni.kit.ui.get_editor_menu()
         active_menus = editor_menu.active_menus.copy().keys()
         for menu in active_menus:
             editor_menu.remove_item(menu)
         main_menu_bar = get_main_window().get_main_menu_bar()
-        main_menu_bar.visible = False
+        main_menu_bar.visible = True
 
     def _on_app_window_size_changed(self, event: carb.events.IEvent):
         asyncio.ensure_future(self._deferred_on_app_window_size_changed())

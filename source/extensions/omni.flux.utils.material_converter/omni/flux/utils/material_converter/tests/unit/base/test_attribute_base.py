@@ -34,8 +34,6 @@ class TestAttributeBase(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(val_mock, val)
 
-    # TODO Bug OM-90672: `load_mdl_parameters_for_prim_async` will not work with non-default contexts
-    # Remove this test when the bug is fixed
     async def test_translate_alt_fn_should_have_default_behavior_should_return_same_values(self):
         # Arrange
         attr = AttributeBase.construct()

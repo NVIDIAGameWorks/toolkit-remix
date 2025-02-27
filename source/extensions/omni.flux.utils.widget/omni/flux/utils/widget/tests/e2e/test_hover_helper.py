@@ -22,7 +22,7 @@ import omni.usd
 from omni import ui
 from omni.flux.utils.widget.hover import CursorShapesEnum, hover_helper
 from omni.kit import ui_test
-from omni.kit.test_suite.helpers import arrange_windows, wait_stage_loading
+from omni.kit.test_suite.helpers import arrange_windows
 
 
 class TestHoverHelper(omni.kit.test.AsyncTestCase):
@@ -33,7 +33,6 @@ class TestHoverHelper(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
         self.stage = None

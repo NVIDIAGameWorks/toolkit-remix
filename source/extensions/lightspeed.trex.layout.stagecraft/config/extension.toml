@@ -1,5 +1,5 @@
 [package]
-version = "2.2.0"
+version = "2.2.1"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix layout for the StageCraft"
 description = "Layout for NVIDIA RTX Remix StageCraft App"
@@ -44,6 +44,16 @@ value = false
 name = "lightspeed.trex.layout.stagecraft"
 
 [[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
 dependencies = [
     "lightspeed.trex.tests.dependencies",
 ]

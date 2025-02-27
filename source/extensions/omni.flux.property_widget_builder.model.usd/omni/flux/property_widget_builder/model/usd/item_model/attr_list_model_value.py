@@ -15,10 +15,12 @@
 * limitations under the License.
 """
 
+from typing import Any, Callable
+
 import omni.kit.commands
 import omni.kit.undo
 import omni.usd
-from pxr import Sdf
+from pxr import Sdf, Usd
 
 from .base_list_model_value import UsdListModelBaseValueModel as _UsdListModelBaseValueModel
 
@@ -55,3 +57,80 @@ class UsdListModelAttrValueModel(_UsdListModelBaseValueModel):
     def _get_attribute_value(self, attr) -> str:
         value: int = attr.Get()
         return self._list_options[int(value)]
+
+
+class VirtualUsdListModelAttrValueModel(UsdListModelAttrValueModel):
+    _is_virtual = True
+
+    def __init__(
+        self,
+        context_name: str,
+        attribute_paths: list[Sdf.Path],
+        default_value: str,
+        options: list[str],
+        read_only: bool = False,
+        type_name: str = None,
+        metadata: dict = None,
+        metadata_key: str | None = None,
+        create_callback: Callable[[Usd.Attribute, Any], None] | None = None,
+    ):
+        self._metadata = metadata
+        super().__init__(
+            context_name=context_name,
+            attribute_paths=attribute_paths,
+            default_value=default_value,
+            options=options,
+            read_only=read_only,
+            type_name=type_name,
+            metadata_key=metadata_key,
+        )
+        if not self._metadata:
+            self._metadata = {Sdf.ValueTypeNames: self._type_name}
+        self._create_callback = create_callback
+
+    def get_attributes_raw_value(self, element_current_idx: int) -> Any | None:
+        attr = self._attributes[element_current_idx]
+        if isinstance(attr, Usd.Attribute) and attr.IsValid() and not attr.IsHidden():
+            raw_value = attr.Get()
+            if raw_value is not None:
+                return raw_value
+        return self._default_value
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    def _create_and_set_attribute_value(self, attr, new_value):
+        # If it's the default value, no need to create anything
+        if new_value == self._default_value:
+            return
+
+        index = self._list_options.index(new_value)
+        # If a create_callback is set, use that
+        if self._create_callback:
+            self._create_callback(attr, index)
+        # Otherwise use the default creation
+        else:
+            path = attr.GetPath()
+            if not path.IsPropertyPath():
+                return
+            prim = self._stage.GetPrimAtPath(path.GetPrimPath())
+            omni.kit.commands.execute(
+                "CreateUsdAttributeCommand",
+                prim=prim,
+                attr_name=path.name,
+                attr_type=self._type_name,
+                attr_value=index,
+            )
+
+    def _set_attribute_value(self, attr, new_value):
+        if attr:
+            super()._set_attribute_value(attr, new_value)
+        else:
+            self._create_and_set_attribute_value(attr, new_value)
+
+    def _get_attribute_value(self, attr) -> str | None:
+        value: int = attr.Get()
+        if value is not None:
+            return self._list_options[int(value)]
+        return value

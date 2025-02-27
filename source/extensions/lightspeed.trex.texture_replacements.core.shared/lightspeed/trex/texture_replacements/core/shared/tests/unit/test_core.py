@@ -15,20 +15,39 @@
 * limitations under the License.
 """
 
+import omni.usd
+from lightspeed.trex.texture_replacements.core.shared import TextureReplacementsCore
+from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit.test import AsyncTestCase
+from omni.kit.test_suite.helpers import open_stage
 
 
 class TestTextureReplacementsCore(AsyncTestCase):
     # Before running each test
     async def setUp(self):
-        pass
+        await open_stage(_get_test_data("usd/project_example/combined.usda"))
+        self.context = omni.usd.get_context()
 
     # After running each test
     async def tearDown(self):
-        pass
+        if self.context.get_stage():
+            await self.context.close_stage_async()
 
-    async def test_something(self):
+    async def test_get_expected_texture_material_inputs(self):
         # Arrange
+        core = TextureReplacementsCore(self.context.get_name())
+
         # Act
+        shader_inputs = await core.get_expected_texture_material_inputs("/RootNode/Looks/mat_BC868CE5A075ABB1/Shader")
+
         # Assert
-        pass
+        expected_attributes = [
+            "diffuse_texture",
+            "metallic_texture",
+            "normalmap_texture",
+            "reflectionroughness_texture",
+        ]
+        # ex: "
+        input_names = [shader_input.split(":")[1] for shader_input in shader_inputs]
+        self.assertTrue(shader_inputs)
+        self.assertEqual(input_names, expected_attributes)

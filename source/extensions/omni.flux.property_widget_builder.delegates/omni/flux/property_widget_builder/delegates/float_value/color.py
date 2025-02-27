@@ -20,6 +20,7 @@ __all__ = ("ColorField",)
 from functools import partial
 
 import omni.ui as ui
+from pxr import Gf
 
 from ..base import AbstractField
 
@@ -68,6 +69,8 @@ class ColorField(AbstractField):
 
         value_model = item.value_models[0]
         vec = value_model.get_attributes_raw_value(0)
+        if vec is None:
+            vec = Gf.Vec3f(0, 0, 0)
 
         widgets = []
 
@@ -115,6 +118,8 @@ class ColorField(AbstractField):
         if self._ignore_value_change_events:
             return
         vec = value_model.get_attributes_raw_value(0)
+        if vec is None:
+            vec = Gf.Vec3f(0, 0, 0)
         children = color_widget.model.get_item_children()
         assert len(children) == len(vec), f"{vec} does not match expected length for ColorWidget"
         for child, value in zip(children, vec):

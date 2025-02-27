@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.0]
+## Changed
+- Adapt to Kit 106.5 and loss of mdl context func
+- Use virtual attribute items for material properties
+
 ## [1.6.7]
 ### Fixed
 - Fixed tests flakiness

@@ -194,6 +194,7 @@ exclude = []
 "platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
+    "-n", "default",  # skip startup tests for e2e, they will run in unit
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.e2e.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
@@ -218,6 +219,7 @@ exclude = []
 "platform:linux-x86_64".include = ["tests-omni.flux.pip_archive${shell_ext}"]  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
+    "-n", "default",  # skip startup tests for e2e, they will run in unit
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.e2e.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
@@ -245,6 +247,7 @@ exclude = []
 "platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
+    "-n", "default",  # skip startup tests for e2e, they will run in unit
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.e2e.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
@@ -269,6 +272,7 @@ exclude = []
 "platform:linux-x86_64".include = ["tests-omni.flux.pip_archive${shell_ext}"]  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
+    "-n", "default",  # skip startup tests for e2e, they will run in unit
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.e2e.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
@@ -428,6 +432,11 @@ enabled = true
 
 name = "NVIDIA RTX Remix"
 project = "${conf:repo.name}"
+
+extra_sys_paths = [
+  # libomniAudioSchema.so: cannot open shared object file: No such file or directory
+  "$root/_build/$platform/$config/extscache/omni.usd.schema*/lib",  
+]
 
 sphinx_conf_py_extra = """
 import pathlib

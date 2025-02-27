@@ -23,7 +23,7 @@ from ..utils import get_default_attribute_value as _get_default_attribute_value
 from .base_list_model_value import UsdListModelBaseValueModel as _UsdListModelBaseValueModel
 
 
-class UsdAttributeMetadataValueModel(_UsdListModelBaseValueModel):
+class UsdListModelAttrMetadataValueModel(_UsdListModelBaseValueModel):
     """Represent metadata of an attribute"""
 
     @property
@@ -62,11 +62,11 @@ class UsdAttributeMetadataValueModel(_UsdListModelBaseValueModel):
             omni.kit.commands.execute(
                 "ChangeMetadata",
                 object_paths=[attr.GetPath()],
-                key=self._key,
+                key=self._metadata_key,
                 value=new_value,
                 usd_context_name=self._context_name,
             )
 
     def _get_attribute_value(self, attr) -> str:
-        value = self.metadata.get(self._key, self._default_value)
+        value = self.metadata.get(self._metadata_key, self._default_value)
         return value

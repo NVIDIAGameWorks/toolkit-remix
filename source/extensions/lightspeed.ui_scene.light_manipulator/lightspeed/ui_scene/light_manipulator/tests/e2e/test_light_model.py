@@ -18,7 +18,6 @@
 import omni.kit.test
 import omni.usd
 from lightspeed.ui_scene.light_manipulator import DiskLightModel
-from omni.kit.test_suite.helpers import wait_stage_loading
 from omni.ui.tests.test_base import OmniUiTest
 from pxr import Usd, UsdLux
 
@@ -53,7 +52,6 @@ class TestLightModel(OmniUiTest):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
 

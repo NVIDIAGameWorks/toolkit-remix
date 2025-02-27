@@ -18,7 +18,6 @@
 import abc
 from typing import Any, Optional
 
-import carb.settings
 import omni.client
 import omni.kit.app
 import omni.usd
@@ -26,8 +25,6 @@ from omni.flux.validator.factory import ContextBase as _ContextBase
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from pxr import Sdf
 from pydantic import Field
-
-_WAS_FLUX_CLI_CHECKED = False
 
 
 class ContextBaseUSD(_ContextBase, abc.ABC):
@@ -51,15 +48,6 @@ class ContextBaseUSD(_ContextBase, abc.ABC):
             context = omni.usd.create_context(schema_data.computed_context)
         if not context:
             return None
-
-        global _WAS_FLUX_CLI_CHECKED
-        is_flux_cli = carb.settings.get_settings().get("is_flux_cli")
-        if is_flux_cli and not _WAS_FLUX_CLI_CHECKED:
-            # in batch mode, we need an hydra engine to be loaded or load_mdl_parameters_for_prim_async will not work
-            ext_manager = omni.kit.app.get_app().get_extension_manager()
-            ext_manager.set_extension_enabled_immediate("omni.hydra.pxr", True)
-            omni.usd.add_hydra_engine("pxr", context)
-            _WAS_FLUX_CLI_CHECKED = True
 
         return context
 

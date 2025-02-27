@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.8.4"
+version = "1.8.5"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -48,8 +48,5 @@ stdoutFailPatterns.exclude = [
 ]
 
 args = [
-    # "--/renderer/mdl/searchPaths/templates=${kit}/../exts/omni.flux.utils.material_converter/data/tests/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
-    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
-    # Need to use a .kit file
-    "--merge-config=${app}/../../exts/omni.flux.utils.material_converter/data/tests/omni.app.test_material.kit"
+    "--/renderer/mdl/searchPaths/templates=${kit}/../exts/omni.flux.utils.material_converter/data/tests/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 ]

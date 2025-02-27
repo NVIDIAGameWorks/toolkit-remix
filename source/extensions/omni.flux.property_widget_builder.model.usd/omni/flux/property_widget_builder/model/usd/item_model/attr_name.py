@@ -99,8 +99,3 @@ class UsdAttributeNameModel(_ItemValueModel):
         self._value[self._channel_index] = (
             self._attribute_path.name if self._display_attr_name is None else self._display_attr_name
         )
-
-
-class UsdAttributeNameModelVirtual(UsdAttributeNameModel):
-    def get_tool_tip(self):
-        return f"[VIRTUAL] {self._attribute_path.name}"

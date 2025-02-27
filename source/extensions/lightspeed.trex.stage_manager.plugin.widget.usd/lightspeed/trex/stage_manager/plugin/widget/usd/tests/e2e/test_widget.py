@@ -43,7 +43,7 @@ from omni.flux.stage_manager.plugin.widget.usd.base import (
     StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,
 )
 from omni.kit import ui_test
-from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, wait_stage_loading
+from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path
 from pxr import Sdf, Usd
 
 
@@ -60,7 +60,6 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if usd.get_context().get_stage():
             await usd.get_context().close_stage_async()
 

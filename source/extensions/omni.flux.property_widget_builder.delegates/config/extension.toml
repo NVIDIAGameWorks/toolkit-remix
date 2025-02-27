@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.4.2"
+version = "1.4.4"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -50,5 +50,4 @@ stdoutFailPatterns.exclude = [
 args = [
     "--/app/hangDetector/enabled=0",
     "--/app/fastShutdown=1",
-    "--no-window"
 ]

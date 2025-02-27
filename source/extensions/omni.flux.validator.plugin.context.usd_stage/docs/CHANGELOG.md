@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.2]
+## Changed
+- Update to Kit 106.5
+
 ## [2.12.1]
 ## Changed
 - Don't discard existing output directory if no project is loaded

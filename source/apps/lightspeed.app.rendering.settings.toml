@@ -39,6 +39,9 @@ dlss.enableDenoiser = 1
 [rtx-transient]
 resourcemanager.enableTextureStreaming = true
 
+[usd]
+enableOmniUsdMdlDiscoverOnStartup = true
+
 ###############################################################################
 # Fix for Pre-ADA GPUs: Disable present thread by default
 ###############################################################################

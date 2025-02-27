@@ -1,1 +1,0 @@
-# lightspeed.property_template

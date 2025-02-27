@@ -25,7 +25,7 @@ import omni.usd
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, open_stage, wait_stage_loading
+from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, open_stage
 
 
 class TestConvertToOctahedral(AsyncTestCase):
@@ -36,7 +36,6 @@ class TestConvertToOctahedral(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         await omni.usd.get_context().close_stage_async()
         self.temp_dir.cleanup()
         self.temp_dir = None

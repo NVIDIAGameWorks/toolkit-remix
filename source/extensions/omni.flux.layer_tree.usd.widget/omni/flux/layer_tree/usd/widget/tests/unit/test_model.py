@@ -31,7 +31,6 @@ import omni.usd
 from omni.flux.layer_tree.usd.core import LayerCustomData as _LayerCustomData
 from omni.flux.layer_tree.usd.widget import LayerItem, LayerModel
 from omni.kit import commands
-from omni.kit.test_suite.helpers import wait_stage_loading
 from omni.kit.usd.layers import LayerUtils
 from omni.kit.window.popup_dialog import MessageDialog
 from pxr import Sdf
@@ -54,7 +53,6 @@ class TestModel(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
         self.temp_dir.cleanup()

@@ -55,7 +55,6 @@ class USDPropertyWidget(_PropertyWidget):
         self._default_attr = {
             "_context_name": None,
             "_layer_events": None,
-            "_on_attribute_changed_sub": None,
             "_on_override_removed_sub": None,
         }
         for attr, value in self._default_attr.items():
@@ -69,7 +68,6 @@ class USDPropertyWidget(_PropertyWidget):
         self.__refresh_task = None
 
         self._on_attribute_created_sub = self._model.subscribe_attribute_created(self._on_refresh_widget)
-        self._on_attribute_changed_sub = self._model.subscribe_attribute_changed(self._on_refresh_widget)
         self._on_override_removed_sub = self._model.subscribe_override_removed(self._on_refresh_widget)
 
         self.enable_listeners(True)

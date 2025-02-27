@@ -29,7 +29,7 @@ from lightspeed.trex.properties_pane.shared.mod_setup.widget import ModSetupPane
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import arrange_windows, open_stage, wait_stage_loading
+from omni.kit.test_suite.helpers import arrange_windows, open_stage
 
 
 @contextlib.asynccontextmanager
@@ -50,7 +50,7 @@ class TestModSetupWidget(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
+        pass
 
     async def __setup_widget(self, title: str):
         window = ui.Window(title, height=800, width=400)

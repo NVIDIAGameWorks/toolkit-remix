@@ -1,5 +1,5 @@
 [package]
-version = "1.2.6"
+version = "1.2.7"
 authors =["Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Capture Tree Model and Delegate"
 description = "Model, Delegate and Item classes for a TreeView to display Captures"
@@ -31,4 +31,10 @@ dependencies = [
 
 stdoutFailPatterns.exclude = [
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
 ]

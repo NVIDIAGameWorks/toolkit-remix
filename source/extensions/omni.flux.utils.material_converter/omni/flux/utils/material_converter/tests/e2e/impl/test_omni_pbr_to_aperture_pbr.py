@@ -23,7 +23,7 @@ import omni.kit.test
 from omni.flux.utils.material_converter import MaterialConverterCore
 from omni.flux.utils.material_converter.impl.omni_pbr_to_aperture_pbr import OmniPBRToAperturePBRConverterBuilder
 from omni.flux.utils.material_converter.utils import SupportedShaderOutputs
-from omni.kit.test_suite.helpers import get_test_data_path, wait_stage_loading
+from omni.kit.test_suite.helpers import get_test_data_path
 
 _PRIM_PATHS = [
     "/World/Looks/M_Fixture_Elevator_Interior_02",
@@ -40,7 +40,6 @@ class TestOmniPBRToAperturePBRConverterBuilderE2E(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
 

@@ -288,7 +288,7 @@ class TestEditCustomTagsWindow(AsyncTestCase):
             # Test multiple item drag/drop
             await available_items[2].click()
             await ui_test.human_delay()
-            async with ui_test.KeyDownScope(KeyboardInput.UNKNOWN, modifier=KeyboardInput.LEFT_SHIFT):
+            async with ui_test.KeyDownScope(KeyboardInput.LEFT_SHIFT):
                 await available_items[-1].click()
                 await ui_test.human_delay()
             await available_items[-1].drag_and_drop(assigned_tree.position + (assigned_tree.size / 3))

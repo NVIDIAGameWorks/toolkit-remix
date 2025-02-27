@@ -29,7 +29,7 @@ class TestCurrentStage(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
+        pass
 
     async def test_run(self):
         core = _ManagerCore(
@@ -76,7 +76,7 @@ class TestCurrentStage(AsyncTestCase):
         # create an empty stage
         usd_context = omni.usd.get_context()
         await usd_context.new_stage_async()
-        await wait_stage_loading(usd_context)
+        await wait_stage_loading(usd_context=usd_context)
 
         sub_check_count = 0
         sub_set_count = 0

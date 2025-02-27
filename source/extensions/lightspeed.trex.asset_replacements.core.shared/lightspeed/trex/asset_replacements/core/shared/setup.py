@@ -205,7 +205,10 @@ class Setup:
     def get_default_output_directory_with_data_model(
         self, directory: _DefaultAssetDirectory = _DefaultAssetDirectory.INGESTED
     ) -> AssetPathResponseModel:
-        root_layer = self._context.get_stage().GetRootLayer()
+        stage = self._context.get_stage()
+        if not stage:
+            raise ValueError("No stage is currently loaded.")
+        root_layer = stage.GetRootLayer()
         if root_layer.anonymous:
             raise ValueError("No project is currently loaded.")
 

@@ -49,8 +49,6 @@ class TestConverterBuilder(ConverterBuilderBase):
     def _convert_test(self, value: bool, input_attr: "Usd.Attribute") -> int:
         return value * 2
 
-    #  TODO Bug OM-90672: `load_mdl_parameters_for_prim_async` will not work with non-default contexts
-    #  Remove this from the test when cleaning up
     def _convert_test_alt(
         self, _: Sdf.ValueTypeNames, value: bool, input_attr: Optional["Usd.Attribute"]
     ) -> Tuple["Sdf.ValueTypeNames", int]:
@@ -503,17 +501,12 @@ class TestCore(omni.kit.test.AsyncTestCase):
         input_shader_prim_mock.HasAttribute.side_effect = [True, exists_on_input]
         input_shader_prim_mock.GetAttribute.return_value = input_attr_mock
 
-        load_mdl_future = asyncio.Future()
-        load_mdl_future.set_result(None)
-
         root_layer_mock = Mock()
         get_attribute_at_path_mock = root_layer_mock.GetAttributeAtPath
         get_attribute_at_path_mock.side_effect = [None, input_attr_spec_mock]
 
         context_mock = Mock()
         context_mock.get_stage.return_value.GetRootLayer.return_value = root_layer_mock
-        load_mdl_mock = context_mock.load_mdl_parameters_for_prim_async
-        load_mdl_mock.return_value = load_mdl_future
 
         with (
             patch.object(omni.usd, "get_context") as get_context_mock,
@@ -529,9 +522,6 @@ class TestCore(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(1, get_context_mock.call_count)
         self.assertEqual(call(context_name_mock), get_context_mock.call_args)
-
-        self.assertEqual(1, load_mdl_mock.call_count)
-        self.assertEqual(call(output_shader_prim_mock), load_mdl_mock.call_args)
 
         self.assertEqual(2 if exists_on_input else 1, get_attribute_at_path_mock.call_count)
         self.assertEqual(call(input_attr_path_mock), get_attribute_at_path_mock.call_args_list[0])
@@ -562,8 +552,6 @@ class TestCore(omni.kit.test.AsyncTestCase):
             command_mock.call_args,
         )
 
-    # TODO Bug OM-90672: `load_mdl_parameters_for_prim_async` will not work with non-default contexts
-    # This test should be cleaned up when removing the temporary logic
     async def __run_create_material_attributes(self, exists_on_input: bool):
         # Arrange
         def test_translate_alt_fn(_, v, __):
