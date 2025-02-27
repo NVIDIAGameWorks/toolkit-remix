@@ -21,7 +21,7 @@ icon = "data/icon.png"
 preview_image = "data/preview.png"
 
 category = "internal"
-version = "1.1.4"
+version = "1.1.5"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.viewports.stagecraft.bundle"
 
 [dependencies]
@@ -46,6 +46,8 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 [settings]
 # Collapse the additional camera control area
 persistent.exts."omni.kit.viewport.menubar.camera".expand = false
+# Override default value of ["Skeletons"] to make sure skeleton option is shown. Cannot be [] or it will be ignored.
+exts."omni.kit.viewport.menubar.display".showByType.exclude_list = [""]
 # Set the default perspective camera focalLength
 persistent.app.primCreation.typedDefaults.camera.focalLength = 18.147562
 exts."omni.kit.waypoint.core".editing_waypoint = ""
@@ -58,4 +60,10 @@ dependencies = [
 
 stdoutFailPatterns.exclude = [
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
 ]

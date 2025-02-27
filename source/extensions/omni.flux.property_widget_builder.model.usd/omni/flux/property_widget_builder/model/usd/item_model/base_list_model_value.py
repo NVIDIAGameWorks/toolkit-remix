@@ -37,45 +37,38 @@ class OptionItem(ui.AbstractItem):
 class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
     """
     Represent a value that has multiple value choices like enums.
-    Paths can be either Attribute or Prim paths
     """
 
     def __init__(
         self,
         context_name: str,
         attribute_paths: List[Sdf.Path],
-        key: Optional[str],
-        default: str,
+        default_value: str,
         options: List[str],
         read_only: bool = False,
-        not_implemented: bool = False,
+        type_name: str = None,
+        metadata: dict = None,
+        metadata_key: Optional[str] = None,
     ):
-        super().__init__(
-            context_name,
-            attribute_paths,
-            read_only=read_only,
-            not_implemented=not_implemented,
-        )
+        super().__init__(context_name, attribute_paths, read_only=read_only, type_name=type_name)
         # Clear out guessed value type, we leave it as str and handle it ourselves for better serialization.
         self._override_value_type = None
         # Guard to avoid inf loop and skip _current_index_changed when updating value in code
         self.__block_set_value = False
 
-        self._key = key
-        self._default_value = default
+        self._default_value = default_value
         self._item_options = []
         self._list_options = options
         self._update_options()
         self._current_index = ui.SimpleIntModel()
         self._current_index.add_value_changed_fn(self._current_index_changed)
+        self._metadata = metadata
+        self._metadata_key = metadata_key
 
         self.init_attributes()
 
     def get_value(self):
         return self._value
-
-    def set_value(self, value):
-        self._set_value(value)
 
     def deserialize(self, value):
         self.set_value(self._list_options.index(value))
@@ -90,25 +83,32 @@ class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
             return self._current_index
         return item.model
 
+    def _get_default_value(self, attr) -> str | None:
+        if self._default_value is None:
+            default_value_index = _get_default_attribute_value(attr)
+            if default_value_index:
+                return self._list_options[default_value_index]
+            return None
+        return self._default_value
+
     @property
     def is_default(self):
         """If the value model has the default USD value"""
         for attribute in self.attributes:
-            default_value = _get_default_attribute_value(attribute)
+            default_value = self._get_default_value(attribute)
             if default_value is None:
                 continue
-            # Attempt to find the value in the list
-            if [c.model.as_string for c in self.get_item_children()].index(self.get_value()) != default_value:
+            if self.get_value() != default_value:
                 return False
         return True
 
     def reset_default_value(self):
         """Reset the model's value back to the USD default"""
         for attribute in self.attributes:
-            default_value = _get_default_attribute_value(attribute)
+            default_value = self._get_default_value(attribute)
             if default_value is None:
                 continue
-            self.set_value(self._list_options[default_value])
+            self.set_value(default_value)
 
     def begin_edit(self, item: OptionItem):
         carb.log_warn(f"begin_edit not supported in {self.__class__.__name__}")

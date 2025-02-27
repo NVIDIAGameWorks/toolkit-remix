@@ -16,7 +16,6 @@
 """
 
 import abc
-from copy import deepcopy
 from typing import Any, Callable, List, Optional
 
 import carb
@@ -26,10 +25,8 @@ import omni.kit.undo
 import omni.usd
 from omni.flux.property_widget_builder.widget import ItemValueModel as _ItemValueModel
 from omni.flux.property_widget_builder.widget import Serializable as _Serializable
-from omni.flux.utils.common import Event as _Event
-from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import path_utils as _path_utils
-from pxr import Gf, Sdf
+from pxr import Gf, Sdf, Usd
 
 from ..mapping import MULTICHANNEL_BUILDER_TABLE, TYPE_BUILDER_TABLE, VEC_TYPES, VecType
 from ..utils import get_default_attribute_value as _get_default_attribute_value
@@ -44,12 +41,10 @@ class UsdAttributeBase(_Serializable, abc.ABC):
     The model mixin to watch USD attribute paths.
     """
 
+    _is_virtual = False
+
     def __init__(
-        self,
-        context_name: str,
-        attribute_paths: List[Sdf.Path],
-        read_only: bool = False,
-        not_implemented: bool = False,
+        self, context_name: str, attribute_paths: List[Sdf.Path], read_only: bool = False, type_name: str = None
     ):
         """
         Base model of a USD attribute value.
@@ -60,7 +55,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
             context_name: the context name
             attribute_paths:  the path(s) of the attribute
             read_only: if the attribute is read only or not
-            not_implemented: if the attribute is not yet implemented for proper view (in code)
+            type_name: the type name of the attribute
         """
         super().__init__()
         self._context_name = context_name
@@ -69,15 +64,18 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         self._read_only = read_only
         self._is_mixed = False
 
-        self._type_name = self.get_type_name(self.metadata)
+        if type_name:
+            type_name = Sdf.ValueTypeNames.Find(type_name)
+        else:
+            type_name = self._get_type_name(self.metadata)
+        self._type_name: Sdf.ValueTypeName = type_name
         self._override_value_type = TYPE_BUILDER_TABLE.get(self._type_name)
 
         self._value = None  # The value that will be represented by the widget
         self._values = []  # The values of all the attribute paths
         self._summary_limit = 25  # max amount of values to display in a tooltip
-        self._not_implemented = not_implemented
         self._ignore_refresh = False
-        self._attributes = None
+        self._attributes: list[Usd.Attribute] = None
 
     def init_attributes(self):
         # cache the attributes
@@ -133,6 +131,10 @@ class UsdAttributeBase(_Serializable, abc.ABC):
     def attributes(self):
         return self._attributes
 
+    @abc.abstractmethod
+    def _get_default_value(self, attr):
+        pass
+
     @property
     @abc.abstractmethod
     def is_default(self):
@@ -171,7 +173,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         return summary + value_text + more
 
     @staticmethod
-    def get_type_name(metadata):
+    def _get_type_name(metadata):
         return _get_type_name(metadata)
 
     @abc.abstractmethod
@@ -238,19 +240,27 @@ class UsdAttributeBase(_Serializable, abc.ABC):
             prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
             if prim.IsValid():
                 attr = prim.GetAttribute(attribute_path.name)
-                if attr.IsValid() and not attr.IsHidden():
+                if attr.IsHidden():
+                    continue
+
+                if attr.IsValid():
                     value = self._get_attribute_value(attr)
-                    if values_read == 0:
-                        # If this is the first prim with this attribute, use it for the cached value.
-                        last_value = value
-                        if self._value is None or value != self._value:
-                            self._value = value  # we can set directly from the _get_attribute_value value
-                            value_was_set = True
-                    else:
-                        if last_value is not None and last_value != value:
-                            is_mixed = True
-                    values_read += 1
-                    self._values.append(value)
+                elif self._is_virtual:
+                    value = self._get_default_value(attr)
+                else:
+                    continue
+
+                if values_read == 0:
+                    # If this is the first prim with this attribute, use it for the cached value.
+                    last_value = value
+                    if self._value is None or value != self._value:
+                        self._value = value  # we can set directly from the _get_attribute_value value
+                        value_was_set = True
+                else:
+                    if last_value is not None and last_value != value:
+                        is_mixed = True
+                values_read += 1
+                self._values.append(value)
 
         if is_mixed != self._is_mixed:
             value_was_set = True
@@ -272,7 +282,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         self._on_dirty()
 
     def _skip_set_value(self, value):
-        if self.read_only or self._not_implemented:
+        if self.read_only:
             return True
         if (
             value is None
@@ -308,7 +318,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
             prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
             if prim.IsValid():
                 attr = prim.GetAttribute(attribute_path.name)
-                if not attr.IsValid():
+                if not attr.IsValid() and not self._is_virtual:
                     continue
                 current_value = self._get_attribute_value(attr)
                 if current_value != self._value:
@@ -335,7 +345,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         attribute_paths: List[Sdf.Path],
         channel_index: int,
         read_only: bool = False,
-        not_implemented: bool = False,
+        type_name: str = None,
     ):
         """
         Value model of an attribute value
@@ -345,14 +355,9 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             attribute_paths:  the path(s) of the attribute
             channel_index: the channel index of the attribute
             read_only: if the attribute is read only or not
-            not_implemented: if the attribute is not yet implemented for proper view (in code)
+            type_name: the type name of the attribute
         """
-        super().__init__(
-            context_name,
-            attribute_paths,
-            read_only=read_only,
-            not_implemented=not_implemented,
-        )
+        super().__init__(context_name, attribute_paths, read_only=read_only, type_name=type_name)
         self._channel_index = channel_index
         # should we treat value as a "multi" value or by channel.
         self._is_multichannel = MULTICHANNEL_BUILDER_TABLE.get(self._type_name, False)
@@ -379,15 +384,17 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         else:
             self._value = new_value
 
+    def _get_default_value(self, attr):
+        """Get the USD default value"""
+        return _get_default_attribute_value(attr)
+
     @property
     def is_default(self):
         """If the value model has the default USD value"""
         for index, attribute in enumerate(self.attributes):
             if not attribute:
                 continue
-            default_value = _get_default_attribute_value(attribute)
-            if default_value is None:
-                continue
+            default_value = self._get_default_value(attribute)
             if default_value != self.get_attributes_raw_value(index):
                 return False
         return True
@@ -489,83 +496,83 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         self._value_changed()
 
 
-class UsdAttributeValueModelVirtual(UsdAttributeValueModel):
+class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
+    """
+    The value model to watch USD attribute paths that may or may not exist yet.
+    """
+
+    _is_virtual = True
+
     def __init__(
         self,
         context_name: str,
-        attribute_paths: List[Sdf.Path],
+        attribute_paths: list[Sdf.Path],
         channel_index: int,
-        default_value: List[Any],
-        value_type_name: Sdf.ValueTypeNames,
-        create_callback: Optional[Callable[[Any], None]] = None,
         read_only: bool = False,
-        not_implemented: bool = False,
+        type_name: str = None,
+        default_value: Any = None,
+        metadata: dict = None,
+        create_callback: Callable[[Usd.Attribute, Any], None] | None = None,
     ):
-        self._default_value = default_value
         self._create_callback = create_callback
-        self._type_name = value_type_name
 
-        self.__on_attribute_created = _Event()
+        if not type_name:
+            raise ValueError("type_name is required for virtual attribute value models")
+        type_name_obj = Sdf.ValueTypeNames.Find(type_name)
+        self._metadata = metadata or {Sdf.PrimSpec.TypeNameKey: str(type_name_obj)}
+        is_multichannel = MULTICHANNEL_BUILDER_TABLE.get(type_name_obj, False)
+        if is_multichannel and default_value is not None:
+            default_value = default_value[channel_index]
+        self._default_value = default_value
 
-        super().__init__(context_name, attribute_paths, channel_index, read_only, not_implemented)
+        super().__init__(context_name, attribute_paths, channel_index, read_only=read_only, type_name=type_name)
 
-    @property
-    def is_overriden(self):
-        """Virtual attributes are never overriden. When they are they become real attributes"""
-        return False
-
-    @property
-    def is_default(self):
-        """Virtual attributes are always default. When they are overriden they become real attributes"""
-        return True
-
-    @property
-    def is_mixed(self):
-        """Virtual attributes are always default. When they are overriden they become real attributes"""
-        return False
+    def _get_default_value(self, attr):
+        # Since the attribute does not exist, we need to retrieve the stored value.
+        return self._default_value
 
     @property
     def metadata(self):
-        return {Sdf.PrimSpec.TypeNameKey: str(self._type_name)}
+        # Since the attribute does not exist, we need to retrieve the stored value.
+        return self._metadata
 
-    def get_attributes_raw_value(self, element_current_idx):
-        return None
+    def get_attributes_raw_value(self, element_current_idx: int) -> Optional[Any]:
+        attr = self._attributes[element_current_idx]
+        if isinstance(attr, Usd.Attribute) and attr.IsValid() and not attr.IsHidden():
+            raw_value = attr.Get()
+            if raw_value is not None:
+                return raw_value
+        # If virtual attributes don't exist, they take on the default value.
+        return self._default_value
 
-    def end_edit(self):
+    def _create_and_set_attribute_value(self, attr, new_value):
         # If it's the default value, no need to create anything
-        if self._value == self._default_value:
+        if new_value == self._default_value:
             return
-        super().end_edit()
         # If a create_callback is set, use that
         if self._create_callback:
-            self._create_callback(self._value)
+            self._create_callback(attr, new_value)
         # Otherwise use the default creation
         else:
-            for path in self.attribute_paths:
-                if not path.IsPropertyPath():
-                    continue
-                prim = self._stage.GetPrimAtPath(path.GetPrimPath())
-                omni.kit.commands.execute(
-                    "CreateUsdAttributeCommand",
-                    prim=prim,
-                    attr_name=path.name,
-                    attr_type=self._type_name,
-                    attr_value=self._value if self._is_multichannel else self._value[self._channel_index],
-                )
-        # Notify the parent to refresh the tree
-        self.__on_attribute_created(self.attribute_paths)
+            path = attr.GetPath()
+            if not path.IsPropertyPath():
+                return
+            prim = self._stage.GetPrimAtPath(path.GetPrimPath())
+            omni.kit.commands.execute(
+                "CreateUsdAttributeCommand",
+                prim=prim,
+                attr_name=path.name,
+                attr_type=self._type_name,
+                attr_value=new_value,
+            )
 
-    def reset_default_value(self):
-        pass
-
-    def _read_value_from_usd(self):
-        if self._value != self._default_value:
-            self._value = deepcopy(self._default_value)
-            return True
-        return False
-
-    def subscribe_attribute_created(self, function):
+    def _set_attribute_value(self, attr, new_value):
         """
-        Return the object that will automatically unsubscribe when destroyed.
+        Override to set the attribute value.
+
+        If a virtual attribute is changed we need to first create it.
         """
-        return _EventSubscription(self.__on_attribute_created, function)
+        if attr:
+            super()._set_attribute_value(attr, new_value)
+        else:
+            self._create_and_set_attribute_value(attr, new_value)

@@ -26,7 +26,7 @@ from carb.input import KeyboardInput
 from omni.flux.layer_tree.usd.widget import LayerDelegate, LayerModel, LayerTreeWidget
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import arrange_windows, wait_stage_loading
+from omni.kit.test_suite.helpers import arrange_windows
 from pxr import Sdf
 
 
@@ -40,7 +40,6 @@ class TestWidget(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
         self.temp_dir.cleanup()
@@ -77,14 +76,14 @@ class TestWidget(AsyncTestCase):
         self.assertIsNone(create_button)
 
         # Clicking the disabled button shouldn't do anything
-        await disabled_button.click()
+        await disabled_button.click(human_delay_speed=10)
 
         # There should only be 1 layer item
         self.assertEqual(1, len(ui_test.find_all(f"{window.title}//Frame/**/ZStack[*].identifier=='layer_item_root'")))
 
         # Select the root item
         layer_item = ui_test.find(f"{window.title}//Frame/**/ZStack[*].identifier=='layer_item_root'")
-        await layer_item.click()
+        await layer_item.click(human_delay_speed=10)
 
         disabled_button = ui_test.find(f"{window.title}//Frame/**/Image[*].name=='CreateLayerDisabled'")
         create_button = ui_test.find(f"{window.title}//Frame/**/Image[*].name=='CreateLayer'")
@@ -93,7 +92,7 @@ class TestWidget(AsyncTestCase):
         self.assertIsNone(disabled_button)
         self.assertIsNotNone(create_button)
 
-        await create_button.click()
+        await create_button.click(human_delay_speed=10)
 
         await ui_test.human_delay()
 
@@ -126,7 +125,7 @@ class TestWidget(AsyncTestCase):
         self.assertEqual(dir_name + "/", dir_path_field.model._path)  # noqa PLW0212
         self.assertEqual(file_name, file_name_field.model.get_value_as_string())
 
-        await create_button.click()
+        await create_button.click(human_delay_speed=10)
 
         await ui_test.human_delay()
 
@@ -171,7 +170,7 @@ class TestWidget(AsyncTestCase):
 
         # Find the expansion button for the root and show the layer items
         expand_button = ui_test.find(f"{window.title}//Frame/**/HStack[*].identifier=='expansion_stack'")
-        await expand_button.click()
+        await expand_button.click(human_delay_speed=10)
 
         # There should only be 1 unlock button, because layer1 is excluded
         self.assertEqual(1, len(ui_test.find_all(f"{window.title}//Frame/**/Image[*].name=='Unlock'")))
@@ -183,7 +182,7 @@ class TestWidget(AsyncTestCase):
         self.assertIsNotNone(lock_button)
         self.assertIsNone(unlock_button)
 
-        await lock_button.click()
+        await lock_button.click(human_delay_speed=10)
 
         # layer0 should now be locked
         self.assertTrue(layers_state.is_layer_locked(layer0.identifier))
@@ -198,7 +197,7 @@ class TestWidget(AsyncTestCase):
         self.assertIsNone(lock_button)
         self.assertIsNotNone(unlock_button)
 
-        await unlock_button.click()
+        await unlock_button.click(human_delay_speed=10)
 
         # Layer 0 should now be unlocked
         self.assertFalse(layers_state.is_layer_locked(layer0.identifier))

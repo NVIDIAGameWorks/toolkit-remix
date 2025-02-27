@@ -19,7 +19,6 @@ import omni.kit.commands
 import omni.kit.test
 import omni.kit.undo
 import omni.usd
-from omni.kit.test_suite.helpers import wait_stage_loading
 from pxr import Sdf, Usd, UsdGeom
 
 
@@ -31,7 +30,6 @@ class TestCustomCommands(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
 

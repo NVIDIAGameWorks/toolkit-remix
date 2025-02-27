@@ -56,9 +56,7 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
             self.assert_items_equal(helper.get_selected_items(), [group_a.children[0]])
 
             # Control click another child
-            async with omni.kit.ui_test.KeyDownScope(
-                carb.input.KeyboardInput.UNKNOWN, modifier=carb.input.KeyboardInput.LEFT_CONTROL
-            ):
+            async with omni.kit.ui_test.KeyDownScope(carb.input.KeyboardInput.LEFT_CONTROL):
                 await helper.click_item(group_b.children[1])
             self.assert_items_equal(helper.get_selected_items(), [group_a.children[0], group_b.children[1]])
 

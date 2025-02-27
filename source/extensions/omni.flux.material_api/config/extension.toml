@@ -1,0 +1,48 @@
+[package]
+# Semantic Versioning is used: https://semver.org/
+version = "0.1.0"
+category = "Internal"
+
+# Lists people or organizations that are considered the "authors" of the package.
+authors = ["Dave De Pauw", "Jihui Shentu", "Derek Haase", "Nicolas Kendall-Bar"]
+
+# The title and description fields are primarly for displaying extension info in UI
+title = "Material Shader API"
+description="API to Interact with Material Property Values"
+
+# Preview image. Folder named "data" automatically goes in git lfs (see .gitattributes file).
+preview_image = "data/preview.png"
+
+# Keywords for the extension
+keywords = ["kit", "usd", "property", "material"]
+
+# Location of change log file in target (final) folder of extension, relative to the root.
+# More info on writing changelog: https://keepachangelog.com/en/1.0.0/
+changelog="docs/CHANGELOG.md"
+
+# Path (relative to the root) or content of readme markdown file for UI.
+readme  = "docs/README.md"
+
+[dependencies]
+"omni.usd" = {}
+"omni.ui" = {}
+"omni.kit.commands" = {}
+"omni.kit.material.library" = {}
+"omni.kit.usd.mdl" = {}
+"omni.kit.window.preferences" = {}
+
+[[python.module]]
+name = "omni.flux.material_api"
+
+[documentation]
+pages = ["docs/Overview.md", "docs/CHANGELOG.md"]
+
+[[test]]
+dependencies = [
+    "omni.flux.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+

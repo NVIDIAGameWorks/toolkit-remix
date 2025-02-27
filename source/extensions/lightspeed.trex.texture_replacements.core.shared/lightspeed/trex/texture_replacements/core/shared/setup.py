@@ -242,8 +242,6 @@ class TextureReplacementsCore:
         shader_prim = stage.GetPrimAtPath(shader_path)
         shader = UsdShade.Shader(shader_prim)
 
-        await self._context.load_mdl_parameters_for_prim_async(shader_prim)
-
         # If no file path is provided, get all the valid inputs
         if texture_type is None:
             filter_input_names = _TEXTURE_TYPE_INPUT_MAP.values()

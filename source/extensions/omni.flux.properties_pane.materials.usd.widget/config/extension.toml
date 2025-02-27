@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.6.7"
+version = "1.7.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -32,8 +32,10 @@ icon = "data/images/icon.png"
 [dependencies]
 "omni.flux.property_widget_builder.model.usd" = {}
 "omni.flux.property_widget_builder.widget" = {}
+"omni.flux.material_api" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
+"omni.kit.usd.mdl" = {}
 "omni.kit.material.library" = {}
 "omni.kit.usd.layers" = {}
 "omni.ui" = {}
@@ -50,7 +52,6 @@ dependencies = [
 args = [
     "--/app/hangDetector/enabled=0",
     "--/app/fastShutdown=1",
-    "--no-window",
 ]
 
 stdoutFailPatterns.exclude = [

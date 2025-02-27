@@ -32,7 +32,7 @@ from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.asset_importer.widget.texture_import_list import TextureImportListDelegate
 from omni.flux.validator.plugin.context.usd_stage.texture_importer import TextureImporter
 from omni.kit import ui_test
-from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, wait_stage_loading
+from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path
 
 
 class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
@@ -44,7 +44,6 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
         self.temp_dir.cleanup()

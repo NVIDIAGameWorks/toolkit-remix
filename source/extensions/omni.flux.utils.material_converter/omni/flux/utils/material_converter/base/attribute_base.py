@@ -41,10 +41,8 @@ def _translate_alt(
     input_attr_type: "Sdf.ValueTypeNames", input_attr_value: Any, input_attr: "Usd.Attribute"
 ) -> Tuple["Sdf.ValueTypeNames", Any]:
     """
-    TODO Bug OM-90672: `load_mdl_parameters_for_prim_async` will not work with non-default contexts
-    We will therefore use this alternate translate method to create attributes in the output material
-
-    Allows translating the input type and value to produce the output type and value
+    Allows translating the input type and value to produce the output type and value when we need to create
+    attributes in the output material.
 
     Args:
         input_attr_type: The input attribute type
@@ -70,9 +68,8 @@ class AttributeBase(BaseModel):
     translate_fn: Callable[[Any, Any, Any], Any] = _translate
     # tell if the attribute is a real attribute that exists by default, or if this is a fake one that was created
     fake_attribute: bool = False
-
-    # TODO Bug OM-90672: `load_mdl_parameters_for_prim_async` will not work with non-default contexts
-    # We will therefore use this alternate translate method to create attributes in the output material
+    # Function used to translate the value of the input shader to the value of the output shader when we need to
+    # create the attribute in the output material first.
     translate_alt_fn: Callable[
         [Optional["Sdf.ValueTypeNames"], Any, Optional["Usd.Attribute"]], Tuple[Optional["Sdf.ValueTypeNames"], Any]
     ] = _translate_alt

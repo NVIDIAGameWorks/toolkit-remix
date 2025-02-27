@@ -27,7 +27,9 @@ from pxr import Sdf, Usd
 
 from .items import USDAttributeItem as _USDAttributeItem
 from .items import USDAttributeItemStub as _USDAttributeItemStub
-from .items import USDAttributeItemVirtual as _USDAttributeItemVirtual
+from .items import USDAttrListItem as _USDAttrListItem
+from .items import USDMetadataListItem as _USDMetadataListItem
+from .items import VirtualUSDAttrListItem as _VirtualUSDAttrListItem
 
 if typing.TYPE_CHECKING:
     from omni.flux.property_widget_builder.widget import ItemGroup as _ItemGroup
@@ -55,7 +57,6 @@ class USDModel(_Model):
 
         self.__on_item_model_end_edit = _Event()
         self.__on_attribute_created = _Event()
-        self.__on_attribute_changed = _Event()
         self.__on_override_removed = _Event()
 
     @property
@@ -105,20 +106,17 @@ class USDModel(_Model):
         """
 
         def add_listeners(_item):
-            if isinstance(item, _USDAttributeItem):
-                self._subscriptions.append(_item.subscribe_attribute_changed(self._attribute_changed))
+            if isinstance(_item, (_USDAttributeItem, _USDAttrListItem, _USDMetadataListItem, _VirtualUSDAttrListItem)):
                 self._subscriptions.append(_item.subscribe_override_removed(self._overrides_removed))
-            if isinstance(item, _USDAttributeItemStub):
+            if isinstance(_item, _USDAttributeItemStub):
                 self._subscriptions.append(
-                    item.subscribe_create_attributes_begin(self._item_attribute_create_begin_edit)
+                    _item.subscribe_create_attributes_begin(self._item_attribute_create_begin_edit)
                 )
-                self._subscriptions.append(item.subscribe_create_attributes_end(self._item_attribute_create_end_edit))
-                self._value_changed_callbacks.append(item.refresh)
+                self._subscriptions.append(_item.subscribe_create_attributes_end(self._item_attribute_create_end_edit))
+                self._value_changed_callbacks.append(_item.refresh)
             for _value_model in _item.value_models:
                 self._subscriptions.append(_value_model.subscribe_begin_edit_fn(self._on_item_model_begin_edit))
                 self._subscriptions.append(_value_model.subscribe_end_edit_fn(self._item_model_end_edit))
-                if isinstance(item, _USDAttributeItemVirtual):
-                    self._subscriptions.append(_value_model.subscribe_attribute_created(self._attribute_changed))
             for child in _item.children:
                 add_listeners(child)
 
@@ -156,16 +154,6 @@ class USDModel(_Model):
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__on_attribute_created, function)
-
-    def _attribute_changed(self, attribute_paths):
-        """Call the event object that has the list of functions"""
-        self.__on_attribute_changed(attribute_paths)
-
-    def subscribe_attribute_changed(self, function):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        """
-        return _EventSubscription(self.__on_attribute_changed, function)
 
     def _overrides_removed(self):
         self.__on_override_removed()

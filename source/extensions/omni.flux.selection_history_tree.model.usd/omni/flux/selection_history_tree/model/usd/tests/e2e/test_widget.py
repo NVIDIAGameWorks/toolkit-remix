@@ -24,7 +24,7 @@ from omni.flux.selection_history_tree.model.usd import UsdSelectionHistoryItem a
 from omni.flux.selection_history_tree.model.usd import UsdSelectionHistoryModel as _UsdSelectionHistoryModel
 from omni.flux.selection_history_tree.widget import SelectionHistoryWidget as _SelectionHistoryWidget
 from omni.kit import ui_test
-from omni.kit.test_suite.helpers import get_test_data_path, wait_stage_loading
+from omni.kit.test_suite.helpers import get_test_data_path
 
 
 class TestSelectionHistoryWidget(omni.kit.test.AsyncTestCase):
@@ -33,7 +33,6 @@ class TestSelectionHistoryWidget(omni.kit.test.AsyncTestCase):
         self.stage = omni.usd.get_context().get_stage()
 
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
 

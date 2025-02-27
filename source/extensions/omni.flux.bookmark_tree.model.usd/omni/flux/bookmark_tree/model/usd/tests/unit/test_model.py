@@ -24,7 +24,6 @@ from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as Book
 from omni.flux.bookmark_tree.model.usd import USDListener
 from omni.flux.bookmark_tree.widget import BookmarkCollectionItem, BookmarkItem, ComponentTypes, CreateBookmarkItem
 from omni.kit import commands
-from omni.kit.test_suite.helpers import wait_stage_loading
 from pxr import Usd
 
 
@@ -37,7 +36,6 @@ class TestModel(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
         self.stage = None

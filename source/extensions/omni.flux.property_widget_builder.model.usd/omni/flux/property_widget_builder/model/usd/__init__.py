@@ -27,10 +27,10 @@ __all__ = [
     "USDAttributeItem",
     "USDAttributeItemStub",
     "USDAttributeXformItemStub",
-    "USDAttributeItemVirtual",
+    "VirtualUSDAttributeItem",
     "USDAttributeXformItem",
-    "USDAttributeXformItemVirtual",
     "USDAttrListItem",
+    "VirtualUSDAttrListItem",
     "USDDelegate",
     "USDBuilderList",
     "USDMetadataListItem",
@@ -50,12 +50,12 @@ from .items import (
     USDAttributeDef,
     USDAttributeItem,
     USDAttributeItemStub,
-    USDAttributeItemVirtual,
     USDAttributeXformItem,
     USDAttributeXformItemStub,
-    USDAttributeXformItemVirtual,
     USDAttrListItem,
     USDMetadataListItem,
+    VirtualUSDAttributeItem,
+    VirtualUSDAttrListItem,
 )
 from .listener import DisableAllListenersBlock
 from .model import USDModel

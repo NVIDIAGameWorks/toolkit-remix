@@ -1,5 +1,5 @@
 [package]
-version = "1.0.5"
+version = "1.0.6"
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Omni.UI Scene Sample For Manipulating Select Light"
 description = "This example show an 3D manipulator for a selected light"
@@ -38,4 +38,10 @@ dependencies = [
 
 stdoutFailPatterns.exclude = [
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
 ]

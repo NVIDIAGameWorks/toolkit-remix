@@ -20,7 +20,7 @@ from pathlib import Path
 import omni.kit.test
 import omni.usd
 from lightspeed.trex.replacement.core.shared import AssetReplacementLayersCore
-from omni.kit.test_suite.helpers import get_test_data_path, open_stage, wait_stage_loading
+from omni.kit.test_suite.helpers import get_test_data_path, open_stage
 
 
 class TestLayers(omni.kit.test.AsyncTestCase):
@@ -31,7 +31,6 @@ class TestLayers(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
 

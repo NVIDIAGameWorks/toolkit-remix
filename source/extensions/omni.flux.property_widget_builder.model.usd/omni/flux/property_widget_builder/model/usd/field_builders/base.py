@@ -35,6 +35,7 @@ from ..item_delegates.file_texture_picker import FileTexturePicker
 from ..items import USDAttributeItem as _USDAttributeItem
 from ..items import USDAttrListItem as _USDAttrListItem
 from ..items import USDMetadataListItem as _USDMetadataListItem
+from ..items import VirtualUSDAttrListItem as _VirtualUSDAttrListItem
 from ..utils import get_type_name as _get_type_name
 
 if TYPE_CHECKING:
@@ -76,7 +77,7 @@ class USDBuilderList(FieldBuilderList):
         Decorator to simplify registering a build function for USDAttributeItem of specific type(s).
         """
 
-        def _claim(item: "_Item") -> bool:
+        def _claim(item: "_USDAttributeItem") -> bool:
             try:
                 metadata = item.value_models[0].metadata
             except (IndexError, AttributeError):
@@ -210,7 +211,9 @@ def _time_code_builder(item):
     return builder(item)
 
 
-@DEFAULT_FIELD_BUILDERS.register_build(lambda item: isinstance(item, (_USDMetadataListItem, _USDAttrListItem)))
+@DEFAULT_FIELD_BUILDERS.register_build(
+    lambda item: isinstance(item, (_USDMetadataListItem, _USDAttrListItem, _VirtualUSDAttrListItem))
+)
 def _build_combo(item):
     builder = ComboboxField()
     return builder(item)

@@ -29,7 +29,7 @@ from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
 from omni.flux.validator.plugin.check.usd.example.print_prims import PrintPrims as _PrintPrims
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, open_stage, wait_stage_loading
+from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, open_stage
 from pydantic import Extra
 
 
@@ -41,7 +41,6 @@ class TestFileMetadataWritter(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         self.temp_dir.cleanup()
 
     async def test_run_ok(self):

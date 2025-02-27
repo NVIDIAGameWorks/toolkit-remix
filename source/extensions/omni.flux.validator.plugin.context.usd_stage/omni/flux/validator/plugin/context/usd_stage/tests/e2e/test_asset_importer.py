@@ -30,7 +30,7 @@ from carb.input import KeyboardInput
 from omni import ui
 from omni.flux.validator.plugin.context.usd_stage.asset_importer import AssetImporter
 from omni.kit import ui_test
-from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, wait_stage_loading
+from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path
 
 
 class TestAssetImporterE2E(omni.kit.test.AsyncTestCase):
@@ -42,7 +42,6 @@ class TestAssetImporterE2E(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
         self.temp_dir.cleanup()

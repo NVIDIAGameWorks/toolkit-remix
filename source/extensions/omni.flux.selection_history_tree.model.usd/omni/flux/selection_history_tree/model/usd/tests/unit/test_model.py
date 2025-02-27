@@ -23,7 +23,7 @@ import omni.kit
 import omni.kit.test
 import omni.usd
 from omni.flux.selection_history_tree.model.usd import UsdSelectionHistoryModel as _UsdSelectionHistoryModel
-from omni.kit.test_suite.helpers import get_test_data_path, wait_stage_loading
+from omni.kit.test_suite.helpers import get_test_data_path
 
 
 class TestUSDSelectionHistoryModel(omni.kit.test.AsyncTestCase):
@@ -36,7 +36,6 @@ class TestUSDSelectionHistoryModel(omni.kit.test.AsyncTestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
 
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
         self.temp_dir.cleanup()

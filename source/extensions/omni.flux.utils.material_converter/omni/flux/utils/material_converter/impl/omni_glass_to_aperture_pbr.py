@@ -68,8 +68,6 @@ class OmniGlassToAperturePBRConverterBuilder(ConverterBuilderBase):
     def _convert_normal_encoding(self, value: bool, input_attr: "Usd.Attribute") -> int:
         return _NormalMapEncodings.TANGENT_SPACE_DX.value if value else _NormalMapEncodings.TANGENT_SPACE_OGL.value
 
-    #  TODO Bug OM-90672: `load_mdl_parameters_for_prim_async` will not work with non-default contexts
-    #  We will therefore use this alternate translate method to create attributes in the output material
     def _convert_normal_encoding_alt(
         self, _: Sdf.ValueTypeNames, value: bool, input_attr: Optional["Usd.Attribute"]
     ) -> Tuple["Sdf.ValueTypeNames", int]:

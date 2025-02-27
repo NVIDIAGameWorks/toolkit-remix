@@ -30,7 +30,7 @@ from omni.flux.validator.plugin.check.usd.example.print_prims import PrintPrims 
 from omni.flux.validator.plugin.context.usd_stage.current_stage import CurrentStage as _CurrentStage
 from omni.flux.validator.plugin.selector.usd.all_prims import AllPrims as _AllPrims
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, open_stage, wait_stage_loading
+from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, open_stage
 from pydantic import ValidationError
 
 
@@ -112,7 +112,7 @@ class TestCore(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
+        pass
 
     async def test_schemas(self):
         # test wrong schemas

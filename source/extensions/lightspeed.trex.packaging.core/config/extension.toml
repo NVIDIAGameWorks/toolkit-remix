@@ -1,5 +1,5 @@
 [package]
-version = "1.0.19"
+version = "1.0.20"
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "Mod Packaging Core"
 description = "Mod Packaging Core implementation"
@@ -29,10 +29,7 @@ name = "lightspeed.trex.packaging.core"
 
 [[test]]
 args = [
-#    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl",
-    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
-    # Need to use a .kit file
-    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
+    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl",
 ]
 
 dependencies = [
@@ -42,4 +39,14 @@ dependencies = [
 
 stdoutFailPatterns.exclude = [
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl",
 ]

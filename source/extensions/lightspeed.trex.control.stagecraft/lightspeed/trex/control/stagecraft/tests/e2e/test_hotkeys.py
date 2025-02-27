@@ -20,7 +20,7 @@ from carb.input import KeyboardInput
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import open_stage, wait_stage_loading
+from omni.kit.test_suite.helpers import open_stage
 
 
 class TestHotkeys(AsyncTestCase):
@@ -31,7 +31,7 @@ class TestHotkeys(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
+        pass
 
     async def test_unselect_all_with_esc(self):
         # Setup

@@ -1,5 +1,5 @@
 [package]
-version = "1.1.2"
+version = "1.1.3"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
@@ -27,4 +27,10 @@ dependencies = [
 
 stdoutFailPatterns.exclude = [
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
 ]

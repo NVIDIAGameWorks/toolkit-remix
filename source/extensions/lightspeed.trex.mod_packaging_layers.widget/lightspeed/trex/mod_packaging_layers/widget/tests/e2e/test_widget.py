@@ -22,7 +22,7 @@ import omni.kit.test
 from lightspeed.trex.mod_packaging_layers.widget import ModPackagingLayersWidget
 from omni import ui
 from omni.kit import ui_test
-from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, wait_stage_loading
+from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path
 
 
 class TestModPackagingLayersWidget(omni.kit.test.AsyncTestCase):
@@ -34,7 +34,6 @@ class TestModPackagingLayersWidget(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
         self.context = None

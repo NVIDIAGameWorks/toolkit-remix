@@ -169,13 +169,11 @@ class PropertyWidget:
                     display_read_only = self._lookup_table[attr_name].get("read_only", False)
 
                 attr_item = _USDAttributeItem(
-                    self._context_name, [attr_.GetPath() for attr_ in attrs], read_only=display_read_only
+                    self._context_name,
+                    [attr_.GetPath() for attr_ in attrs],
+                    read_only=display_read_only,
+                    display_attr_names=display_attr_names,
                 )
-
-                # we don't need to repeat the attribute name multiple time here
-                if attr_item.element_count != 1:
-                    display_attr_names.extend([""] * (attr_item.element_count - 1))
-                attr_item.set_display_attr_names(display_attr_names)
 
                 attr_display_group = attr.GetDisplayGroup()
                 group_name = None

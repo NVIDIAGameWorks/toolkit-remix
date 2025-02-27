@@ -27,7 +27,6 @@ import omni.usd
 from omni.flux.asset_importer.core import AssetImporterModel, ImporterCore
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.validator.plugin.context.usd_stage.asset_importer import AssetImporter
-from omni.kit.test_suite.helpers import wait_stage_loading
 from pxr import Sdf
 
 
@@ -47,7 +46,6 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
         self.stage = None
@@ -401,6 +399,8 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
                             "embed_textures": True,
                             "convert_fbx_to_y_up": False,
                             "convert_fbx_to_z_up": False,
+                            "convert_stage_up_y": False,
+                            "convert_stage_up_z": False,
                             "keep_all_materials": False,
                             "merge_all_meshes": False,
                             "use_double_precision_to_usd_transform_op": False,

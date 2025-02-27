@@ -1,5 +1,5 @@
 [package]
-version = "1.2.4"
+version = "1.2.5"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix layout for the Mass Ingestion"
 description = "Layout for NVIDIA RTX Remix Mass Ingestion"
@@ -33,4 +33,10 @@ dependencies = [
 
 stdoutFailPatterns.exclude = [
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
 ]

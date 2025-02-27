@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.14.1]
+## Changed
+- Update to Kit 106.5
+
 ## [3.14.0]
 ## Changed
 - Changed `meters_per_unit_target` for `scale_target`

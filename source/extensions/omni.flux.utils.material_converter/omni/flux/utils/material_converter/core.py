@@ -96,15 +96,10 @@ class MaterialConverterCore:
             return False, "Unable to fetch output material shader prim", False
 
         if input_shader:
-            # TODO Bug OM-90672: `load_mdl_parameters_for_prim_async` will not work with non-default contexts
-            # In the meantime, we create attributes on the temporary material and then set them
-            # When the bug is resolved, cleanup all the material creation & alt translation functions
+            # We create attributes on the temporary material and then set them.
             await MaterialConverterCore._create_material_attributes(
                 context_name, converter, input_shader_prim, output_shader_prim
             )
-            # await MaterialConverterCore._convert_material_attributes(
-            #     context_name, converter, input_shader_prim, output_shader_prim
-            # )
 
         input_material_path = converter.input_material_prim.GetPath()
 
@@ -219,9 +214,6 @@ class MaterialConverterCore:
                 f"as it doesn't appear to have a valid material prim."
             )
             return
-
-        # Populate the material with all the shader attributes
-        await context.load_mdl_parameters_for_prim_async(output_shader_prim)
 
         # Set the attribute values for the temporary output material
         for attr in converter.attributes:

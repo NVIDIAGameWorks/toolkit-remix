@@ -1,0 +1,539 @@
+"""
+* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-License-Identifier: Apache-2.0
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* https://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+"""
+
+__doc__ = """This module provides utilities for manipulating USDShade and SDR shader properties, including finding
+shader nodes, getting shader information, updating dictionary values, and handling shader properties and connections
+in USD."""
+
+__all__ = [
+    "get_sdr_shader_node_for_prim",
+    "get_shader_info",
+    "property_name_to_display_name",
+    "create_nonpersistant_attribute",
+    "get_mdl_subidentifiers_for_prim",
+    "get_info_ids_for_prim",
+    "deep_dict_update",
+    "get_display_group_for_render_context",
+    "get_sdr_shader_property_default_value",
+    "remove_properties_and_connections",
+]
+
+import collections.abc
+import re
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import omni.mdl.neuraylib
+import omni.usd
+import omni.usd.commands
+from pxr import Ar, Sdf, Sdr, Usd, UsdShade
+
+from .placeholder import UsdShadePropertyPlaceholder, get_placeholder_properties_for_prim
+
+
+def get_sdr_shader_node_for_prim(
+    prim: Usd.Prim, source_type_priority: List[str] = None, warn_on_substitution: bool = False
+) -> Union[Sdr.ShaderNode | None]:
+    """Finds and returns the Sdr.ShaderNode used to define the corresponding UsdShade.Shader prim.
+
+    Args:
+        prim (:obj:`Usd.Prim`): The USD primitive to find the shader node for.
+        source_type_priority (Optional[List[str]]): A list of source type priorities to consider
+            when finding the shader node.
+        warn_on_substitution (bool): UsdMdl.RegistryUtils.FindShaderNodeForPrim will first try and
+            find the Sdr.ShaderNode using the subidentifier on the prim.
+                If it is not able to do so it attempts to find one by decuction.  If a suitable
+            match was found this flag is used to indicate whether or not a warning should be issued.
+
+    Returns:
+        Union[Sdr.ShaderNode, None]: The found Sdr.ShaderNode, or None if not found."""
+    import omni.UsdMdl as UsdMdl
+
+    usdshade_shader = UsdShade.Shader(prim)
+    if not usdshade_shader:
+        return None  # pragma: no cover
+
+    implementation_source = usdshade_shader.GetImplementationSource()
+    if not implementation_source:
+        return None  # pragma: no cover
+
+    if implementation_source == UsdShade.Tokens.id:
+        shader_id = usdshade_shader.GetShaderId()
+        if not shader_id:
+            return None  # pragma: no cover
+
+        # If implementation source is 'id' try to get from the SDR registry first, this fails we fallback to the UsdMdl
+        # registry.
+        priority = source_type_priority or [UsdMdl.Tokens.Mdl, "mtlx", UsdShade.Tokens.universalRenderContext]
+        sdr_shader_node = Sdr.Registry().GetNodeByIdentifier(shader_id, priority)
+        if sdr_shader_node:
+            if sdr_shader_node.GetSourceType() == "mtlx":
+                return sdr_shader_node
+
+            # Special case for UsdPreviewSurfaceNodes, it's a bit convoluted...
+            # UsdPreviewSurface SDR nodes will be first loaded via the Sdr registry above, however they will point to
+            # the usda based definitions that are included in UsdShaders.
+            # We want the MDL version as it contains information needed to draw the widgets in a pretty manner.
+            # We can use the implementation URI to look up the version we want (MDL) from the UsdMdl registry.
+            # Note, once we have the ability to directly modify the Sdr Registry this can go away.
+            if sdr_shader_node.GetFamily() == "UsdPreviewSurface":
+                implementation_uri = sdr_shader_node.GetResolvedImplementationURI()
+                source_asset = Sdf.AssetPath(implementation_uri, implementation_uri)
+                usd_ps_sdr_shader_node = UsdMdl.RegistryUtils.GetShaderNode(source_asset, shader_id)
+                if usd_ps_sdr_shader_node:
+                    sdr_shader_node = usd_ps_sdr_shader_node
+
+            return sdr_shader_node
+
+    # This call will attempt to find the corresponding Sdr.ShaderNode by:
+    #   1. Using the subidentifier on the prim.
+    #   2. Through deduction by examining the original subidentifer and any property values and/or connections.
+    # This is necessary to support older scene files where the subidentifiers may not map to the ones generated by the
+    # code in omni.kit.usd.mdl.
+    # e.g.
+    #   uniform asset info:mdl:sourceAsset = @nvidia/aux_definitions.mdl@
+    #   uniform token info:mdl:sourceAsset:subIdentifier = "construct_float(::base::texture_return)"
+    # The subIdentifier generated by omni.kit.usd.mdl will be 'construct_float' due to this function not being
+    # overloaded.
+    return UsdMdl.RegistryUtils.FindShaderNodeForPrim(prim, warn_on_substitution)
+
+
+def get_shader_info(usdshade_shader: UsdShade.Shader) -> Tuple[str, Optional[str], Optional[str]]:
+    """Gets the shader information for a given UsdShade.Shader.
+
+    Args:
+        usdshade_shader (:obj:`UsdShade.Shader`): The shader to retrieve information from.
+
+    Returns:
+        Tuple[str, Optional[str], Optional[str]]: A tuple containing the shader's implementation source as the first
+        element, the shader ID as the second element (if implementation source is 'id'), and the source asset
+        sub-identifier as the third element (if implementation source is 'sourceAsset'). If the shader ID or source
+        asset sub-identifier is not available, their respective positions in the tuple will be None.
+    """
+    import omni.UsdMdl as UsdMdl
+
+    implementation_source = usdshade_shader.GetImplementationSource()
+    if implementation_source == UsdShade.Tokens.id:
+        return (implementation_source, usdshade_shader.GetShaderId())
+
+    if implementation_source == UsdShade.Tokens.sourceAsset:
+        return (
+            implementation_source,
+            usdshade_shader.GetSourceAsset(UsdMdl.Tokens.Mdl),
+            usdshade_shader.GetSourceAssetSubIdentifier(UsdMdl.Tokens.Mdl),
+        )
+
+    return implementation_source
+
+
+def property_name_to_display_name(property_name: str) -> str:
+    """Converts a property name to a display name by splitting camel casing.
+
+    Args:
+        property_name (str): The property name to be converted into display name format.
+
+    Returns:
+        str: The converted display name with spaces."""
+
+    parts = property_name.split(Sdf.Path.namespaceDelimiter)
+
+    # spilt camel case
+    words = re.findall(r"[A-Z][a-z]*|[a-z]+", parts[-1])
+    return " ".join([word.capitalize() for word in words])
+
+
+async def create_nonpersistant_attribute(material_paths, name, sdf_value_type_name, value):
+    """Creates a non-persistent attribute for the given material paths with the specified name, type, and value.
+
+    Args:
+        material_paths (List[str]): A list of material paths where the attribute should be created.
+        name (str): The name of the attribute to create.
+        sdf_value_type_name (str): The SDF value type name for the attribute.
+        value: The value to set for the attribute."""
+
+    async def create_attribute_specs(material_paths, name, sdf_value_type_name, value):
+        stage = omni.usd.get_context().get_stage()
+        session_layer = stage.GetSessionLayer()
+        with Sdf.ChangeBlock():
+            for prim_path in material_paths:
+                attr_path = prim_path.AppendProperty(name)
+                attr_spec = stage.GetAttributeAtPath(attr_path)
+
+                if not attr_spec:
+                    Sdf.JustCreatePrimAttributeInLayer(
+                        session_layer, attr_path, sdf_value_type_name, Sdf.VariabilityUniform, True
+                    )
+                    attr_spec = session_layer.GetAttributeAtPath(attr_path)
+
+                if attr_spec:
+                    attr_spec.customData["nonpersistant"] = True
+                    attr_spec.hidden = True
+
+                    if attr_spec.default != value:
+                        attr_spec.default = value
+
+    with Sdf.ChangeBlock():
+        await create_attribute_specs(material_paths, name, sdf_value_type_name, value)
+
+
+def get_mdl_subidentifiers_for_prim(prim: Usd.Prim) -> Union[List[str] | None]:
+    """
+    Retrieves the list of MDL subidentifiers associated with a given USD primitive (prim) if any exist. MDL
+    subidentifiers are unique identifiers used to reference sub-components or variants within an MDL asset.
+
+    Args:
+        prim (:obj:`Usd.Prim`): The USD primitive for which to retrieve MDL subidentifiers.
+
+    Returns:
+        Union[List[str], None]: A sorted list of MDL subidentifiers associated with the provided USD primitive
+         if any exist; otherwise, None.
+    """
+    import omni.UsdMdl as UsdMdl
+
+    if not prim:
+        return None  # pragma: no cover
+
+    usdshade_shader = UsdShade.Shader(prim)
+    if not usdshade_shader:
+        return None  # pragma: no cover
+
+    source_asset = usdshade_shader.GetSourceAsset(UsdMdl.Tokens.Mdl)
+    if not source_asset:
+        return None  # pragma: no cover
+
+    subidentifiers = UsdMdl.RegistryUtils.GetSubIdentifiersForAsset(source_asset)
+
+    if subidentifiers:
+        subidentifiers.sort()
+
+    subidentifier = usdshade_shader.GetSourceAssetSubIdentifier(UsdMdl.Tokens.Mdl)
+
+    # if the subidentifier is not in the list, meaning it's not valid, prepend it so that it's clear to the user
+    # what has been chosen.
+    # There will be plenty of warnings/errors in the log to indicate something is wrong.
+    if subidentifier not in subidentifiers:
+        subidentifiers.insert(0, subidentifier)
+
+    return subidentifiers
+
+
+def get_info_ids_for_prim(prim: Usd.Prim) -> Union[List[str] | None]:
+    """Returns a list of allowed tokens for the info:id property of a shader.
+
+    Args:
+        prim (:obj:`Usd.Prim`): The USD primitive representing the shader.
+
+    Returns:
+        Union[List[str], None]: A list of info:id tokens if found, otherwise None."""
+    import omni.UsdMdl as UsdMdl
+
+    usdshade_shader = UsdShade.Shader(prim)
+    shader_id = usdshade_shader.GetShaderId()
+    if not shader_id:
+        return None  # pragma: no cover
+
+    if shader_id.startswith("Usd"):
+        usd_preview_surface_module = "UsdPreviewSurface.mdl"
+        source_asset = Sdf.AssetPath(usd_preview_surface_module, Ar.GetResolver().Resolve(usd_preview_surface_module))
+        subidentifiers = UsdMdl.RegistryUtils.GetSubIdentifiersForAsset(source_asset)
+        usd_preview_surface_ids = [name for name in subidentifiers if name.startswith("Usd")]
+        usd_preview_surface_ids.sort()
+        return usd_preview_surface_ids
+
+    sdr_registry = Sdr.Registry()
+
+    sdr_node = sdr_registry.GetNodeByName(shader_id)
+    if not sdr_node:
+        return None  # pragma: no cover
+
+    source_type = sdr_node.GetSourceType()
+    if not source_type:
+        return None  # pragma: no cover
+
+    allowed_tokens = []
+    for name in sdr_registry.GetNodeNames():
+        sdr_node = sdr_registry.GetNodeByNameAndType(name, source_type)
+        if sdr_node:
+            allowed_tokens.append(name)
+
+    allowed_tokens.sort()
+    return allowed_tokens
+
+
+def deep_dict_update(d: dict, u: dict) -> dict:
+    """Recursively updates a dictionary by merging a second dictionary into it.
+
+    Args:
+        d (dict): The dictionary to be updated.
+        u (dict): The dictionary with values to be merged into the first dictionary.
+
+    Returns:
+        dict: The updated dictionary after merging."""
+    for k, v in u.items():
+        if isinstance(v, collections.abc.Mapping):
+            d[k] = deep_dict_update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
+
+
+def get_display_group_for_render_context(render_context: str) -> str:
+    """
+    Create a pretty display group name for the named render context
+    """
+    context_mapper = {"": "Default", "mtlx": "MaterialX", "mdl": "MDL", "ri": "Prman", "ai": "Arnold"}
+
+    return context_mapper.get(render_context, render_context)
+
+
+def get_sdr_shader_property_default_value(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> Union[Any | None]:
+    """Returns the default value for a given SDR shader property considering the metadata.
+
+    Args:
+        sdr_shader_property (:obj:`Sdr.ShaderProperty`): The shader property for which the default
+            value is being queried.
+        metadata (dict): The metadata dictionary that may contain additional information to determine
+            the default value.
+
+    Returns:
+        Union[Any, None]: The default value of the shader property, or None if no default can be determined."""
+
+    def get_default_from_type(sdr_shader_property: Sdr.ShaderProperty) -> Union[Any | None]:
+        """
+        See doc's for SdrShaderProperty.GetTypeAsSdfType()
+        If ndr_type_indicator[1] contains a value this means we have an unclean mapping from the from SdrProperties
+        type to an Sdf.Type.
+        If this is the case we lookup the Tf.Type and if it exists and it has a Python class associated with it,
+        we construct the Python class to extract a default value
+        """
+        ndr_type_indicator = sdr_shader_property.GetTypeAsSdfType()
+
+        if ndr_type_indicator[1]:
+            tf_type = Sdf.GetTypeForValueTypeName(ndr_type_indicator[1])
+            if not tf_type.isUnknown and tf_type.pythonClass:
+                return tf_type.pythonClass()
+
+        return ndr_type_indicator[0].defaultValue
+
+    default_value = sdr_shader_property.GetDefaultValue()
+
+    if not default_value:
+        default_value = get_default_from_type(sdr_shader_property)
+
+    # ToDo - investigate why default value of False is stored as empty string.
+    type_name = metadata.get(Sdf.PrimSpec.TypeNameKey, None)
+    if (type_name == Sdf.ValueTypeNames.Bool) and default_value == "":
+        default_value = False
+
+    return default_value
+
+
+def remove_properties_and_connections(prim: Usd.Prim) -> Tuple[bool, List, Dict]:
+    """Remove properties and connections from a given USD Prim that are no longer valid.
+
+    This function will remove properties that are no longer valid due to changing the shader node type, as well as
+    disconnect any connections that are no longer valid.
+
+    Args:
+        prim (:obj:`Usd.Prim`): The Prim from which to remove properties and connections.
+
+    Returns:
+        Tuple[bool, List, Dict]: A tuple containing a boolean indicating success or failure, a list of removed
+        properties, and a dictionary of removed connections.
+    """
+
+    def create_property_info(usd_attribute: Usd.Attribute) -> dict:
+        return {
+            "base_name": usd_attribute.GetBaseName(),
+            "connections": usd_attribute.GetConnections(),
+            "custom": usd_attribute.IsCustom(),
+            "metadata": usd_attribute.GetAllMetadata(),
+            "path": usd_attribute.GetPath(),
+            "type_name": usd_attribute.GetTypeName(),
+            "value": usd_attribute.Get(),
+            "variability": usd_attribute.GetVariability(),
+        }
+
+    def remove_properties(usdshade_ports: List[Union[UsdShade.Input | UsdShade.Output]], placeholders: Dict) -> List:
+        """
+        Remove and optionally backup properties that are no longer valid due to the change in shader node
+        """
+
+        def get_type_name(placeholder: UsdShadePropertyPlaceholder) -> str:
+            type_name = placeholder.GetTypeName()
+
+            if type_name == Sdr.PropertyTypes.Terminal:
+                type_name = Sdf.ValueTypeNames.Token
+
+            return type_name
+
+        properties_removed = []
+
+        for port in usdshade_ports:
+            placeholder = placeholders.get(port.GetFullName(), None)
+            if not placeholder or (get_type_name(placeholder) != port.GetTypeName()):
+                properties_removed.append(create_property_info(port.GetAttr()))
+
+        return properties_removed
+
+    def remove_connections(
+        prim: Usd.Prim, property_paths_removed: List[Sdf.Path], placeholders: List[UsdShadePropertyPlaceholder]
+    ) -> Dict:
+        """
+        Remove and optionally backup connections that are no longer valid due to the change in shader node
+        """
+        import omni.UsdMdl as UsdMdl
+
+        def get_root_container(prim: Usd.Prim) -> Usd.Prim:
+            parent = prim.GetParent()
+            if (not parent) or parent.IsPseudoRoot() or (not UsdShade.ConnectableAPI(parent)):
+                return prim
+
+            return get_root_container(parent)
+
+        def get_render_type(placeholder: UsdShadePropertyPlaceholder) -> Union[str | None]:
+            metadata = placeholder.GetAllMetadata()
+            rendertype = metadata.get(Sdr.PropertyMetadata.RenderType, None)
+
+            if rendertype == UsdMdl.Types.Struct:
+                sdr_metadata = metadata.get(UsdShade.Tokens.sdrMetadata, {})
+                rendertype = sdr_metadata.get(UsdMdl.Metadata.Symbol, None)
+
+            if rendertype:
+                rendertype = rendertype.replace(Sdr.PropertyTypes.Terminal, "::material")
+
+            return rendertype
+
+        connections_removed = {}
+
+        prim_path = prim.GetPath()
+
+        # root container is the most distant ancestor UsdShade container prim (Material or Nodegraph)
+        root_container = get_root_container(prim)
+        prims_to_check = [root_container] + root_container.GetAllChildren()
+        prims_to_check = [p for p in prims_to_check if p.GetPath() != prim_path]
+
+        # loop over the root container and all child prims of root container
+        for child in prims_to_check:
+            api = UsdShade.ConnectableAPI(child)
+            if not api:
+                continue
+
+            is_material = child.IsA(UsdShade.Material)
+
+            usdshade_ports = api.GetOutputs() + api.GetInputs()
+
+            # For each prim loop over the input and output ports looking for those ports that are connected to prim
+            # if any connections are found then remove them if one of the following conditions is met:
+            #  1. The target attribute no longer exists, which would be the case if its not part of the current
+            #      Sdr.Shadernode
+            #  2. The target attribute has a different type
+            #  3. The target attribute has differing renderType metadata.
+            for usdshade_port in usdshade_ports:
+                connected_sources = usdshade_port.GetConnectedSources()
+                if not connected_sources:
+                    continue
+
+                source_info_vector = connected_sources[0]
+                if len(source_info_vector) == 0:
+                    continue
+
+                connection_source_info = source_info_vector[0]
+
+                source_prim = connection_source_info.source.GetPrim()
+                source_prim_path = source_prim.GetPath()
+
+                if source_prim_path != prim_path:
+                    continue
+
+                is_input = connection_source_info.sourceType == UsdShade.AttributeType.Input
+                source_name_prefix = UsdShade.Tokens.inputs if is_input else UsdShade.Tokens.outputs
+
+                attr_name = f"{source_name_prefix}{connection_source_info.sourceName}"
+                attr_path = source_prim_path.AppendProperty(attr_name)
+
+                # 1. the attribute this port was connected to no longer exists.
+                if attr_path in property_paths_removed:
+                    connections_removed[usdshade_port] = source_info_vector
+                    continue
+
+                from_placeholder = None
+                to_placeholder = None
+                for p in get_placeholder_properties_for_prim(child):
+                    if p.GetName() == usdshade_port.GetFullName():
+                        from_placeholder = p
+                        break
+
+                for p in placeholders:
+                    if p.GetName() == attr_name:
+                        to_placeholder = p
+                        break
+
+                # 2. the types do not match
+                if not (from_placeholder and to_placeholder) or (
+                    from_placeholder.GetTypeName() != to_placeholder.GetTypeName()
+                ):
+                    connections_removed[usdshade_port] = source_info_vector
+                    continue
+
+                to_rendertype = get_render_type(to_placeholder)
+                from_rendertype = get_render_type(from_placeholder)
+
+                # handle missing/empty render type metadata on material output ports,
+                # e.g. outputs:mdl:surface, outputs:surface
+                if not from_rendertype and is_material and not is_input:
+                    from_rendertype = "::material"
+
+                # 3. the render types do not match
+                if to_rendertype != from_rendertype:
+                    connections_removed[usdshade_port] = source_info_vector
+
+        return connections_removed
+
+    properties_removed = []
+    connections_removed = {}
+
+    res = True
+
+    usdshade_shader = UsdShade.Shader(prim)
+    if usdshade_shader:
+        placeholders = get_placeholder_properties_for_prim(prim, {"overlay_property_metadata": False})
+
+        input_placeholders = {
+            p.GetName(): p for p in placeholders if (p.FromSdr() and p.GetName().startswith(UsdShade.Tokens.inputs))
+        }
+
+        properties_removed = remove_properties(usdshade_shader.GetInputs(), input_placeholders)
+
+        output_placeholders = {
+            p.GetName(): p for p in placeholders if (p.FromSdr() and p.GetName().startswith(UsdShade.Tokens.outputs))
+        }
+        properties_removed.extend(remove_properties(usdshade_shader.GetOutputs(), output_placeholders))
+
+        if properties_removed:
+            property_paths_removed = [property_info["path"] for property_info in properties_removed]
+            connections_removed = remove_connections(prim, property_paths_removed, placeholders)
+
+            for usdshade_port, _value in connections_removed.items():
+                omni.kit.commands.execute("UsdShadeDisconnectCommand", target=usdshade_port)
+
+            for property_path in property_paths_removed:
+                omni.kit.commands.execute("RemovePropertyCommand", prop_path=property_path)
+
+    else:
+        res = False
+
+    return (res, properties_removed, connections_removed)

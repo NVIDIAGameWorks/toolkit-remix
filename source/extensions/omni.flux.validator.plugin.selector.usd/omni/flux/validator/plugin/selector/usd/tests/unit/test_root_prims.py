@@ -28,7 +28,6 @@ class TestRootPrims(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
 
@@ -70,7 +69,7 @@ class TestRootPrims(AsyncTestCase):
         # create an empty stage
         usd_context = omni.usd.get_context()
         await usd_context.new_stage_async()
-        await wait_stage_loading(usd_context)
+        await wait_stage_loading(usd_context=usd_context)
 
         sub_select_count = 0
 

@@ -1,5 +1,5 @@
 [package]
-version = "1.1.1"
+version = "1.1.2"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Micro-Service Core"
 description = "Micro-Service for NVIDIA RTX Remix Core"
@@ -25,20 +25,28 @@ preview_image = "data/preview.png"
 name = "lightspeed.trex.service.core"
 
 [[test]]
-args = [
-    # "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
-    # For what ever reason, using the command line directly will not resolve ${kit} for mdl path.
-    # Need to use a .kit file
-    "--merge-config=${app}/../../exts/lightspeed.trex.app.resources/data/tests/lightspeed.trex.app.resources.core_material.kit"
-]
-
 dependencies = [
     "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 ]
 
 stdoutFailPatterns.exclude = [
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+]
+
 
 # Settings to configure the microservices
 

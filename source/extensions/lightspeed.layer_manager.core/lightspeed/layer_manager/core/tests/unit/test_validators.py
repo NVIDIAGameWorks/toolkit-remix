@@ -23,7 +23,7 @@ from lightspeed.layer_manager.core.data_models import LayerManagerValidators
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.tests.context_managers import open_test_project
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import get_test_data_path, wait_stage_loading
+from omni.kit.test_suite.helpers import get_test_data_path
 from pxr import Sdf
 
 
@@ -35,7 +35,6 @@ class TestLayerManagerValidators(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        await wait_stage_loading()
         if self.context.can_close_stage():
             await self.context.close_stage_async()
         self.context = None

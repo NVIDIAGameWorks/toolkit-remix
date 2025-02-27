@@ -3,7 +3,7 @@ order = 100  # to start always after the plugins
 
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.11.22"
+version = "1.11.23"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -55,4 +55,13 @@ dependencies = [
 
 stdoutFailPatterns.exclude = [
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "omni.flux.tests.dependencies",
+    "omni.flux.validator.plugin.check.usd",
+    "omni.flux.validator.plugin.context.usd_stage",
+    "omni.flux.validator.plugin.selector.usd"
 ]

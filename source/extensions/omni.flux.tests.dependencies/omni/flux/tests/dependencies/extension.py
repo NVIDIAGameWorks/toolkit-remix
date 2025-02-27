@@ -34,7 +34,11 @@ class FluxTestDependenciesExtension(omni.ext.IExt):
         for ext in exts:
             if manager.is_extension_enabled(ext):
                 continue
-            manager.set_extension_enabled_immediate(ext, True)
+            try:
+                # "set_extension_enabled_immediate" mode was trying to load other extensions.
+                manager.set_extension_enabled(ext, True)
+            except Exception as e:  # noqa: PLW0718
+                carb.log_warn(f"Failed to enable deferred extension {ext}: {e}")
 
     def on_shutdown(self):
         carb.log_info("[omni.flux.tests.dependencies] Flux Test Dependencies Extension shutdown")

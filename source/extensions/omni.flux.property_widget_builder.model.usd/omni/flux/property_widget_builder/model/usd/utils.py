@@ -26,7 +26,7 @@ from pxr import Sdf, Usd
 from .mapping import DEFAULT_VALUE_TABLE
 
 
-def get_type_name(metadata: Dict[Any, Any]):
+def get_type_name(metadata: Dict[Any, Any]) -> Sdf.ValueTypeName:
     """
     Get the type name of an attribute
 
