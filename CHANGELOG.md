@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3895: Fixed light selection behavior in selection panel
 - REMIX-3865: Fixed layer panel inconsistent muteness state
 - REMIX-3888: Fixed layer panel not refreshing after unloading stage + more fixes
+- REMIX-3832: Fix display of "display out" and other material attributes that shouldn't be hidden
 
 ### Removed
 

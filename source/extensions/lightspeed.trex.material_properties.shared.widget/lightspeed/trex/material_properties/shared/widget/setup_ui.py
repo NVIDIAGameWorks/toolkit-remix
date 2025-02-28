@@ -15,13 +15,14 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import functools
 import re
 import typing
 from functools import partial
 from pathlib import Path
-from typing import List, Union
 
 import carb
 import omni.client
@@ -52,7 +53,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.path_utils import get_invalid_extensions as _get_invalid_extensions
 from omni.flux.utils.widget.file_pickers import open_file_picker as _open_file_picker
 from omni.kit.window.drop_support import ExternalDragDrop as _ExternalDragDrop
-from pxr import Sdf, Usd
+from pxr import Sdf, Usd, UsdShade
 
 from .texture_assignment_model import Delegate, Model
 
@@ -91,6 +92,8 @@ class SetupUI:
             "_material_properties_frames": None,
             "_context_menu": None,
             "_current_material": None,
+            "_current_material_label": None,
+            "_current_material_mdl_file_label": None,
             "_frame_material_widget": None,
             "_material_properties_widget": None,
             "_frame_combobox_materials": None,
@@ -110,7 +113,9 @@ class SetupUI:
 
         self._stage = usd.get_context(self._context_name).get_stage()
 
-        self._selected_prims = []
+        self._current_single_material: Sdf.Path | None = None
+        self._current_material_mdl_file: Path | None = None
+        self._selected_prims: list[Usd.Prim] = []
         self._material_properties_frames = {}
 
         # Populated during a right click event within `_show_copy_menu` to avoid garbage collection
@@ -191,6 +196,25 @@ class SetupUI:
                             width=ui.Pixel(24),
                             mouse_pressed_fn=lambda x, y, b, m: self.__show_material_menu(),
                         )
+                    with ui.HStack(height=ui.Pixel(24), spacing=ui.Pixel(8)):
+                        ui.Label(
+                            "MDL file:",
+                            name="PropertiesWidgetLabel",
+                            alignment=ui.Alignment.RIGHT_CENTER,
+                            width=ui.Pixel(30),
+                        )
+                        with ui.ZStack():
+                            ui.Rectangle(width=ui.Percent(100))
+                            with ui.HStack(height=ui.Pixel(24)):
+                                ui.Spacer(width=ui.Pixel(8), height=0)
+                                self._current_material_mdl_file_label = ui.Label(
+                                    "",
+                                    name="PropertiesWidgetLabel",
+                                    alignment=ui.Alignment.LEFT_CENTER,
+                                    tooltip="",
+                                    elided_text=True,
+                                    mouse_pressed_fn=lambda x, y, b, m: self._show_copy_menu(b),
+                                )
 
                     ui.Button(
                         text="Assign Texture Sets",
@@ -209,7 +233,7 @@ class SetupUI:
             self._on_material_refresh_done
         )
 
-    def _drop_texture(self, event: _ExternalDragDrop, payload: List[str]):
+    def _drop_texture(self, event: _ExternalDragDrop, payload: list[str]):
         """Function to do the work when dragging and dropping textures"""
 
         # Make sure we aren't in either of the ingest contexts
@@ -228,7 +252,7 @@ class SetupUI:
             return
 
         # Make sure that it's an appropriate texture extension and use a dds if one is available
-        dropped_paths = []
+        dropped_paths: list[Path] = []
         basename = None
         for source in event.expand_payload(payload):
             path = Path(source)
@@ -257,7 +281,9 @@ class SetupUI:
                 if usd_properties_utils.get_type_name(value_model.metadata) in [Sdf.ValueTypeNames.Asset]:
                     value_model.set_callback_pre_set_value(self.__check_asset_was_ingested_and_in_proj_dir)
 
-    def _texture_assignment(self, selected_paths, items, allow_dialog_skip=True, basename=None, found_paths=None):
+    def _texture_assignment(
+        self, selected_paths: list[Path], items, allow_dialog_skip=True, basename=None, found_paths=None
+    ):
         """
         Sort textures before updating the texture fields. Show a dialog to give options before
         updating to confirm the user's intention.
@@ -412,7 +438,7 @@ class SetupUI:
         Check if there are any textures of a similar basename and set those found.
         """
 
-        def find_texture_set(paths):
+        def find_texture_set(paths: list[str]):
             items = self._material_properties_widget.property_model.get_all_items()
             paths = [Path(path) for path in paths]
             first_path = paths[0]
@@ -488,7 +514,7 @@ class SetupUI:
             return
         callback(value)
 
-    def __remove_material_override(self, prims: List[Usd.Prim]):
+    def __remove_material_override(self, prims: list[Usd.Prim]):
         with omni.kit.undo.group():
             for prim in prims:
                 if self._has_material_override([prim]):
@@ -496,7 +522,7 @@ class SetupUI:
 
             self.__on_material_changed()
 
-    def __new_material_override(self, mdl_file_name: str, prims: List[Usd.Prim]):
+    def __new_material_override(self, mdl_file_name: str, prims: list[Usd.Prim]):
         with omni.kit.undo.group():
             for prim in prims:
                 if self._has_material_override([prim]):
@@ -511,13 +537,13 @@ class SetupUI:
 
             self.__on_material_changed()
 
-    def __convert_material(self, mdl_file_name: str, prims: List[Usd.Prim]):
+    def __convert_material(self, mdl_file_name: str, prims: list[Usd.Prim]):
         with omni.kit.undo.group():
             _ToolMaterialCore.convert_materials(prims, mdl_file_name, context_name=self._context_name)
             self.__on_material_changed()
 
     @staticmethod
-    def _shorten_material_id_string(input_string, size, delimiter):
+    def _shorten_material_id_string(input_string: str, size: int, delimiter: str):
         """Give the most interesting part of a prim path"""
         if len(input_string) > size:
             input_string = input_string[-size:]
@@ -532,17 +558,18 @@ class SetupUI:
 
     def refresh(
         self,
-        items: List[
-            Union[
-                "_ItemAsset",
-                "_ItemReferenceFile",
-                "_ItemAddNewReferenceFileMesh",
-                "_ItemInstancesGroup",
-                "_ItemInstance",
-                _ItemPrim,
-            ]
+        items: list[
+            _ItemAsset
+            | _ItemReferenceFile
+            | _ItemAddNewReferenceFileMesh
+            | _ItemInstancesGroup
+            | _ItemInstance
+            | _ItemPrim
         ],
     ):
+        self._current_material_mdl_file = None
+        self._current_single_material = None
+
         found = False
         for item_type, frame in self._material_properties_frames.items():
             if item_type is None:
@@ -558,10 +585,22 @@ class SetupUI:
             self._selected_prims = [item.prim for item in items if isinstance(item, _ItemPrim)]
             if self._selected_prims:
                 materials = []
-                for prim in self._selected_prims or []:
+                for prim in self._selected_prims:
                     for mat in self._core.get_materials_from_prim(prim):
                         if mat not in materials:
                             materials.append(mat)
+
+                mdl_files: set[Path] = set()
+                for material in materials:
+                    material_prim = self._stage.GetPrimAtPath(material)
+                    shader_prim = omni.usd.get_shader_from_material(material_prim, True)
+                    if shader_prim:
+                        shader = UsdShade.Shader(shader_prim)
+                        source_asset = shader.GetSourceAsset("mdl") if shader else None
+                        if source_asset:
+                            mdl_file = source_asset.resolvedPath
+                            mdl_files.add(Path(mdl_file))
+
                 if materials:
                     asyncio.ensure_future(self._refresh_material_menu())
                     self._material_properties_widget.show(True)
@@ -578,19 +617,33 @@ class SetupUI:
                         multiple_info_text = f"Multiple Selected (editing all, displaying {material_label_text})"
                         multiple_info_details = multiple_info_text + "\n\n" + SetupUI._concat_list_to_string(materials)
                         self._set_material_label(multiple_info_text, tooltip=multiple_info_details)
-                        self._current_single_material = None
+
+                    mdl_file_label = "None"
+                    mdl_file_label_tooltip = ""
+                    if len(mdl_files) == 1:
+                        self._current_material_mdl_file = mdl_files.pop()
+                        mdl_file_label = self._current_material_mdl_file.name
+                        mdl_file_label_tooltip = str(self._current_material_mdl_file.absolute())
+                    elif len(mdl_files) > 1:
+                        mdl_file_label = "Multiple"
+                    self._set_material_mdl_label(mdl_file_label, tooltip=mdl_file_label_tooltip)
 
                     return
         self._material_properties_widget.show(False)  # to disable the listener
         self._material_properties_frames[None].visible = True
         self._material_properties_frames[_ItemPrim].visible = False
         self._set_material_label("None")
+        self._set_material_mdl_label("")
 
-    def _set_material_label(self, label, tooltip=None):
+    def _set_material_label(self, label: str, tooltip=None):
         self._current_material_label.text = label
         self._current_material_label.tooltip = label if tooltip is None else tooltip
 
-    def _has_material_override(self, prims: List[Usd.Prim]) -> bool:
+    def _set_material_mdl_label(self, label: str, tooltip=None):
+        self._current_material_mdl_file_label.text = label
+        self._current_material_mdl_file_label.tooltip = label if tooltip is None else tooltip
+
+    def _has_material_override(self, prims: list[Usd.Prim]) -> bool:
         for prim in prims:
             rel = prim.GetRelationship(_constants.MATERIAL_RELATIONSHIP)
             if not rel.IsValid():
@@ -636,7 +689,7 @@ class SetupUI:
                 item.set_triggered_fn(partial(self.__new_material_override, _constants.SHADER_NAME_TRANSLUCENT, prims))
 
         # for shared (i.e. capture) materials, we only show the ability to convert the material type
-        async def refresh_shared_items(prims, num_prims):
+        async def refresh_shared_items(prims: list[Usd.Prim], num_prims: int):
             if num_prims > 0:
                 omni.ui.Separator(
                     text=" Shared Material ("
@@ -690,10 +743,10 @@ class SetupUI:
         # menu_compatibility required to get tooltip and hide_on_click working
         self.__menu = omni.ui.Menu(menu_compatibility=False)
         with self.__menu:
-            shared_material_items = []
-            instance_material_items = []
+            shared_material_items: list[Usd.Prim] = []
+            instance_material_items: list[Usd.Prim] = []
             # sort prims into buckets with independent controls
-            for prim in self._selected_prims or []:
+            for prim in self._selected_prims:
                 if _AssetReplacementsCore.prim_is_from_a_capture_reference(prim):
                     shared_material_items.append(prim)
                 else:
@@ -711,19 +764,19 @@ class SetupUI:
         if button != 1:
             return
 
-        # If right click was not pressed or the material is None or empty
-        if self._current_single_material is None or str(self._current_single_material) == "":
-            return
-
         # NOTE: This menu is stored on the object to avoid garbage collection and being prematurely destroyed
         if self._context_menu is not None:
             self._context_menu.destroy()
         self._context_menu = ui.Menu("Context Menu")
 
-        hash_match = re.match(_constants.COMPILED_REGEX_HASH, self._current_single_material.pathString)
+        has_material_path = self._current_single_material is not None and str(self._current_single_material) != ""
+        hash_match = None
+        if has_material_path:
+            hash_match = re.match(_constants.COMPILED_REGEX_HASH, self._current_single_material.pathString)
         with self._context_menu:
             ui.MenuItem(
                 "Copy Material Path",
+                enabled=has_material_path,
                 identifier="copy_material_path",
                 triggered_fn=lambda: omni.kit.clipboard.copy(self._current_single_material.pathString),
             )
@@ -733,10 +786,16 @@ class SetupUI:
                 identifier="copy_material_hash",
                 triggered_fn=lambda: omni.kit.clipboard.copy(hash_match.group(3)),
             )
+            ui.MenuItem(
+                "Copy Material MDL Path",
+                enabled=self._current_material_mdl_file is not None,
+                identifier="copy_material_mdl_path",
+                triggered_fn=lambda: omni.kit.clipboard.copy(str(self._current_material_mdl_file.absolute())),
+            )
 
         self._context_menu.show()
 
-    def show(self, value):
+    def show(self, value: bool):
         if value:
             self._stage = usd.get_context(self._context_name).get_stage()
 
@@ -750,7 +809,7 @@ class SetupUI:
         return _EventSubscription(self.__on_material_changed, function)
 
     def destroy(self):
-        self._selected_prims = None
+        self._selected_prims = []
         if self._external_drag_and_drop:
             self._external_drag_and_drop.destroy()
             self._external_drag_and_drop = None

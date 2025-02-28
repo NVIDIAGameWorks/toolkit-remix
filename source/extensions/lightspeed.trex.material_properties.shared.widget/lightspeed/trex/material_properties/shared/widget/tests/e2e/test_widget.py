@@ -59,6 +59,8 @@ PROPERTY_BRANCHES_MAP = {
     "Alpha Blending": False,
     "Filtering": False,
     "Normal": True,
+    "Displacement": False,
+    "Subsurface": False,
 }
 BRANCHES_TO_EXPAND: list[bool] = list(PROPERTY_BRANCHES_MAP.values())
 # texture types in order that they appear
@@ -729,19 +731,25 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await material_name_label.click(right_click=True)
         await ui_test.human_delay(5)
         await omni.kit.ui_test.menu.select_context_menu("Copy Material Path")
-        await ui_test.human_delay(5)
+        await ui_test.human_delay(15)
         copied_text = omni.kit.clipboard.paste()
-        await ui_test.human_delay(10)
         self.assertEqual(copied_text, f"{MATERIAL_ROOT_PATH}mat_{MATERIAL_HASH}")
 
         # test hash copy
         await material_name_label.click(right_click=True)
         await ui_test.human_delay(5)
         await omni.kit.ui_test.menu.select_context_menu("Copy Material Hash")
-        await ui_test.human_delay(5)
+        await ui_test.human_delay(15)
         copied_text = omni.kit.clipboard.paste()
-        await ui_test.human_delay(10)
         self.assertEqual(copied_text, MATERIAL_HASH)
+
+        # test hash copy
+        await material_name_label.click(right_click=True)
+        await ui_test.human_delay(5)
+        await omni.kit.ui_test.menu.select_context_menu("Copy Material MDL Path")
+        await ui_test.human_delay(15)
+        copied_text = omni.kit.clipboard.paste()
+        self.assertTrue(copied_text.endswith("AperturePBR_Opacity.mdl"))
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -760,9 +768,8 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await texture_file_fields[0].click(right_click=True)
         await ui_test.human_delay(5)
         await omni.kit.ui_test.menu.select_context_menu("Copy Full File Path")
-        await ui_test.human_delay(5)
+        await ui_test.human_delay(15)
         copied_text = omni.kit.clipboard.paste()
-        await ui_test.human_delay(10)
 
         full_path = os.path.abspath(copied_text)
         start_index = full_path.find("project_example")
@@ -773,9 +780,8 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await texture_file_fields[0].click(right_click=True)
         await ui_test.human_delay(5)
         await omni.kit.ui_test.menu.select_context_menu("Copy File Path Hash")
-        await ui_test.human_delay(5)
+        await ui_test.human_delay(15)
         copied_text = omni.kit.clipboard.paste()
-        await ui_test.human_delay(10)
         self.assertEqual(copied_text, MATERIAL_HASH)
 
         # test maps

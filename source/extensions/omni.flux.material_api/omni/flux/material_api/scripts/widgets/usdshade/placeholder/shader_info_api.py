@@ -429,9 +429,11 @@ class ShaderInfoAPI:
         def set_hidden(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> None:
             metadata[Sdf.AttributeSpec.HiddenKey] = (
                 ("hidden" in metadata)
-                or ("unused" in metadata)
                 or ("hidden" in metadata[Sdf.AttributeSpec.CustomDataKey])
-                or ("unused" in metadata[Sdf.AttributeSpec.CustomDataKey])
+                # REMIX: "unused" is used to avoid spam errors in AperturePBR_Opacity.mdl so it does not necessarily
+                #  mean the attribute should be hidden in the ui.
+                # or ("unused" in metadata)
+                # or ("unused" in metadata[Sdf.AttributeSpec.CustomDataKey])
             )
 
         def set_documentation(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> None:

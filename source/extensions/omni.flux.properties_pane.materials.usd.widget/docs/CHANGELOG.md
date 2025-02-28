@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.1]
+## Fixed
+- Fix display of "display out" and other material attributes
+
 ## [1.7.0]
 ## Changed
 - Adapt to Kit 106.5 and loss of mdl context func
