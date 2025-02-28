@@ -181,10 +181,7 @@ class MaterialPropertyWidget:
 
                         # iterate over input parameters defined in mdls as well as attributes:
                         for shader_attr in ShaderInfoAPI(shader_prim).get_input_properties():
-                            # Note: Currently "hidden" and "unused" attribute metadata are used in our mdl files,
-                            #  and either will result in UsdShadePropertyPlaceholder.IsHidden() being true. We only
-                            #  want to check for the "hidden" metadata here.
-                            if shader_attr.GetMetadata("hidden"):
+                            if shader_attr.IsHidden():
                                 continue
                             attr_name = shader_attr.GetName()
                             # check if shader attribute already exists in material
