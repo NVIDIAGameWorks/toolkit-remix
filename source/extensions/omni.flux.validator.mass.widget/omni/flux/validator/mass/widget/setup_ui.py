@@ -478,6 +478,10 @@ class ValidatorMassWidget:
             plugin.show(value)
         if self._mass_queue_widget:
             self._mass_queue_widget.show(value)
+        # To ensure that only the previously selected tab is the only enabled one,
+        # adding a call to the self._on_schema_selection_changed func.
+        if self._schema_tree_view.selection[0]:
+            self._on_schema_selection_changed(self._schema_tree_view.selection[0].title)
 
     def destroy(self):
         self.__root_frame.clear()
