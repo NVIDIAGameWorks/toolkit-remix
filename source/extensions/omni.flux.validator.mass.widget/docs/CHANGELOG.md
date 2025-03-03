@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.1]
+### Fixed
+- Fixed tab enable status on context change
+
 ## [1.9.0]
 ## Added
 - Implemented the show function to update widgets when they are displayed in the UI
