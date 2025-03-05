@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3894: Use scale instead of meters per unit for ingestion
 - REMIX-3896: Improve the Unload Stage (Close Project) button behavior
 - REMIX-3832: Update material property widget to work with virtual attributes
+- Upgraded the AI Tools PyTorch Version
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs

@@ -358,6 +358,11 @@ files_to_pull = [
     "${root}/deps/pip_internal.toml",
 ]
 
+[repo_build.docker]
+# Linbuild against Ubuntu 22 CI Builder images
+"platform:linux-x86_64".image_url = "urm.nvidia.com/ct-omniverse-docker/ci-jammy-x86_64-builder:1.0.6-97c67f00"
+"platform:linux-aarch64".image_url = "urm.nvidia.com/ct-omniverse-docker/ci-jammy-aarch64-builder:1.0.6-97c67f00"
+
 [repo_stubgen]
 exts_exclude = [
     "lightspeed.pip_archive"
@@ -435,7 +440,7 @@ project = "${conf:repo.name}"
 
 extra_sys_paths = [
   # libomniAudioSchema.so: cannot open shared object file: No such file or directory
-  "$root/_build/$platform/$config/extscache/omni.usd.schema*/lib",  
+  "$root/_build/$platform/$config/extscache/omni.usd.schema*/lib",
 ]
 
 sphinx_conf_py_extra = """
