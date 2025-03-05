@@ -35,13 +35,17 @@
 [[dependency]]
 python = "../_build/target-deps/python"
 packages = [
-    "remix-client==1.5.0",          # In-House library. No SWIPAT required
-    "remix-models-i2m==1.5.0",      # In-House library. No SWIPAT required
+    "remix-client==1.6.8",      # In-House library. No SWIPAT required
+    "remix-models-i2m==1.6.7",  # In-House library. No SWIPAT required
+
+    # TODO Remove these once we switch to release wheels
+    "torch>=2.7.0.dev0",        # Pre-release version requires an entry here. SWIPAT filed under: http://nvbugs/4549134
+    "torchvision>=0.22.0.dev0", # Pre-release version requires an entry here. SWIPAT filed under: http://nvbugs/4549134
 ]
 # Make sure we can get internal packages + the CUDA version of PyTorch
 extra_args = [
-    "--index-url", "https://urm.nvidia.com/artifactory/api/pypi/nv-shared-pypi/simple",
-    "--extra-index-url", "https://download.pytorch.org/whl/cu121"
+    "--index-url", "https://download.pytorch.org/whl/nightly/cu128",
+    "--extra-index-url", "https://urm.nvidia.com/artifactory/api/pypi/nv-shared-pypi/simple",
 ]
 
 target = "../_build/target-deps/internal_pip_prebundle"
