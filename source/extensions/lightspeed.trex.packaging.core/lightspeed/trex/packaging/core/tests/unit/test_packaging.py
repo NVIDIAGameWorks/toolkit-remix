@@ -60,7 +60,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(0, init_usd_mock.call_count)
         self.assertEqual(1, completed_mock.call_count)
-        self.assertEqual(call([str(exception)]), completed_mock.call_args)
+        self.assertEqual(call([str(exception)], []), completed_mock.call_args)
 
     async def test_package_no_root_layer_should_warn_and_quick_return(self):
         # Arrange
@@ -113,7 +113,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(call(context_name_mock, str(root_mod_mock)), init_usd_mock.call_args)
 
         self.assertEqual(1, completed_mock.call_count)
-        self.assertEqual(call(["No stage is available in the current context."]), completed_mock.call_args)
+        self.assertEqual(call(["No stage is available in the current context."], []), completed_mock.call_args)
 
     async def test_package_no_root_mod_layer_should_raise_runtime_error(self):
         # Arrange
@@ -148,7 +148,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
 
         self.assertEqual(1, completed_mock.call_count)
         self.assertEqual(
-            call([f"Unable to open the root mod layer at path: {root_mod_mock}"]), completed_mock.call_args
+            call([f"Unable to open the root mod layer at path: {root_mod_mock}"], []), completed_mock.call_args
         )
 
     async def test_package_no_exported_mod_layer_should_add_error(self):
@@ -179,7 +179,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                 init_usd_mock.return_value = Mock()
                 make_temp_mock.return_value = temp_root_mod_mock
                 filter_mock.return_value = []
-                collect_mock.return_value = []
+                collect_mock.return_value = ([], [])
             else:
                 stage_future = asyncio.Future()
                 stage_future.set_result(Mock())
@@ -207,7 +207,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(1, completed_mock.call_count)
-        self.assertEqual(call(["Unable to find the exported mod file."]), completed_mock.call_args)
+        self.assertEqual(call(["Unable to find the exported mod file."], []), completed_mock.call_args)
 
     async def test_package_should_filter_redirect_and_collect_then_trigger_packaging_complete_event(self):
         # Arrange
@@ -245,11 +245,12 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             model_mock.return_value.selected_layer_paths = [root_mod_mock]
             model_mock.return_value.context_name = context_name_mock
             model_mock.return_value.output_directory = output_directory_mock
+            model_mock.return_value.ignored_errors = []
 
             if sys.version_info.minor > 7:
                 init_usd_mock.return_value = Mock()
                 filter_mock.return_value = temp_layers_mock
-                collect_mock.return_value = []
+                collect_mock.return_value = ([], [])
             else:
                 stage_future = asyncio.Future()
                 stage_future.set_result(Mock())
@@ -272,7 +273,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(1, completed_mock.call_count)
-        self.assertEqual(call([]), completed_mock.call_args)
+        self.assertEqual(call([], []), completed_mock.call_args)
 
         self.assertEqual(1, init_usd_mock.call_count)
         self.assertEqual(1, filter_mock.call_count)
@@ -287,7 +288,15 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         )
         self.assertEqual(call(temp_mod_layer_mock, []), redirect_mock.call_args)
         self.assertEqual(
-            call(temp_mod_layer_mock, temp_layers_mock, output_directory_mock, redirected_mock), collect_mock.call_args
+            call(
+                init_usd_mock.return_value,
+                temp_mod_layer_mock,
+                temp_layers_mock,
+                output_directory_mock,
+                redirected_mock,
+                [],
+            ),
+            collect_mock.call_args,
         )
         self.assertEqual(
             call(model_mock(), exported_mod_layer_mock, dependencies_mock, True), update_metadata_mock.call_args_list[0]
@@ -879,6 +888,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         with (
             patch.object(PackagingCore, "_get_original_path") as get_original_mock,
             patch.object(PackagingCore, "_make_temp_layer") as make_temp_mock,
+            patch.object(PackagingCore, "_get_unresolved_assets_prim_paths") as get_unresolved_mock,
             patch.object(Sdf.Layer, "FindOrOpen") as find_open_mock,
             patch.object(UsdUtils, "ComputeAllDependencies") as compute_dependencies_mock,
             patch.object(UsdUtils, "ModifyAssetPaths") as modify_assets_mock,
@@ -912,8 +922,14 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             find_open_mock.side_effect = [layer_0_temp_mock, layer_1_temp_mock]
             exists_mock.side_effect = [True, False, True, True, False]
 
+            stage_mock = Mock()
+            stage_mock.TraverseAll.return_value = []
+
+            unresolved_deps = {("layer", "prim", "asset")} if has_unresolved_assets else set()
+
             if sys.version_info.minor > 7:
                 make_temp_mock.side_effect = layer_1_temp_path_mock
+                get_unresolved_mock.return_value = unresolved_deps
                 delete_folder_mock.return_value = None
                 create_folder_mock.return_value = None
                 copy_mock.return_value = None
@@ -922,6 +938,10 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                 make_temp_future.set_result(layer_1_temp_path_mock)
                 make_temp_mock.side_effect = [make_temp_future]
 
+                set_future = asyncio.Future()
+                set_future.set_result(unresolved_deps)
+                get_unresolved_mock.return_value = set_future
+
                 none_future = asyncio.Future()
                 none_future.set_result(None)
                 delete_folder_mock.return_value = none_future
@@ -929,19 +949,17 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                 copy_mock.return_value = none_future
 
             # Act
-            errors = await packaging_core._collect(  # noqa PLW0212
-                root_layer_mock, existing_temps_mock, output_directory_mock, redirected_dependencies_mock
+            errors, unresolved_assets = await packaging_core._collect(  # noqa PLW0212
+                stage_mock,
+                root_layer_mock,
+                existing_temps_mock,
+                output_directory_mock,
+                redirected_dependencies_mock,
+                [],
             )
 
         # Assert
-        self.assertListEqual(
-            (
-                [f"Unresolved asset found when collecting dependencies: {unresolved_dependency_mock}"]
-                if has_unresolved_assets and not should_cancel
-                else []
-            ),
-            errors,
-        )
+        self.assertListEqual(list(unresolved_deps) if not should_cancel else [], unresolved_assets)
 
         self.assertEqual(0 if should_cancel else 1, compute_dependencies_mock.call_count)
         if not should_cancel:

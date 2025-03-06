@@ -46,14 +46,20 @@ async def run(parsed_args):
     try:
         core = PackagingCore()
 
+        def print_completed(errors, failed_assets, cancelled):
+            message = "Project Packaging Finished:\n"
+            if errors or failed_assets:
+                if errors:
+                    message += f"Errors occurred: {errors}\n"
+                if failed_assets:
+                    message += f"Failed to collect assets: {failed_assets}\n"
+            else:
+                message += "Packaging was cancelled." if cancelled else "The project was successfully packaged."
+
         _progress_sub = core.subscribe_packaging_progress(  # noqa F841
             lambda c, t, s: print(f"Progress: {s} ({c} / {t})")
         )
-        _completed_sub = core.subscribe_packaging_completed(  # noqa F841
-            lambda e, c: print(
-                f"Project Packaging Finished: {f'Errors occurred: {e}' if e else 'Cancelled' if c else 'Success'}"
-            )
-        )
+        _completed_sub = core.subscribe_packaging_completed(print_completed)  # noqa F841
 
         success = await core.package(read_json_file(parsed_args.schema))
         if success:

@@ -150,6 +150,9 @@ class LightManipulatorLayer:
             return 1.0
 
     def _create_manipulators(self, stage):
+        if not stage:
+            return
+
         # Release stale manipulators
         self._destroy_manipulators()
 

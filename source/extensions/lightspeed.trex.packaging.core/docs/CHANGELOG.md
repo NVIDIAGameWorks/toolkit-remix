@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.0]
+## Added
+- Added the ability to get unresolved assets ignore errors
+
 ## [1.0.20]
 ## Changed
 - Update to Kit 106.5
