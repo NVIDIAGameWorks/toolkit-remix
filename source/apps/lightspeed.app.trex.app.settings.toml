@@ -33,8 +33,8 @@ folders.'++' = ["${app}/../exts", "${app}/../extscache", "${app}/../apps"]
 grid.trackCamera = true
 
 [app.window]
-width = 1700
-height = 800
+width = 1800
+height = 900
 x = -1
 y = -1
 

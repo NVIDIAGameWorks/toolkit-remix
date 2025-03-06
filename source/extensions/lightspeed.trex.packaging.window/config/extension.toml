@@ -1,0 +1,33 @@
+[package]
+version = "1.0.0"
+authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "Mod Packaging Window"
+description = "Mod Packaging Window to fix unresolved references"
+readme = "docs/README.md"
+category = "internal"
+keywords = ["kit", "lightspeed", "packaging", "window"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.packaging.window"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.trex.asset_replacements.core.shared" = {}
+"lightspeed.trex.texture_replacements.core.shared" = {}
+"lightspeed.trex.utils.widget" = {}
+"omni.flux.info_icon.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.packaging.window"
+
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]

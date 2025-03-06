@@ -17,6 +17,9 @@
 
 __all__ = ["TextureReplacementsCore"]
 
+from contextlib import nullcontext
+from pathlib import Path
+
 import omni.usd
 from lightspeed.trex.utils.common.asset_utils import TEXTURE_TYPE_INPUT_MAP as _TEXTURE_TYPE_INPUT_MAP
 from lightspeed.trex.utils.common.asset_utils import get_ingested_texture_type as _get_ingested_texture_type
@@ -170,7 +173,9 @@ class TextureReplacementsCore:
 
         return textures
 
-    def replace_textures(self, textures: list[tuple[str, str]], force: bool = False):
+    def replace_textures(
+        self, textures: list[tuple[str, str | Path | None]], force: bool = False, use_undo_group: bool = True
+    ):
         """
         Replace a list of textures
 
@@ -178,8 +183,9 @@ class TextureReplacementsCore:
             textures: A list of tuples in the format (texture property, asset path) where the texture property should be
                       a shader input and the asset path should be the absolute path to the texture asset
             force: Whether to force replace the texture or validate it was ingested correctly
+            use_undo_group: Whether to use an undo group for the texture replacements
         """
-        with undo.group():
+        with undo.group() if use_undo_group else nullcontext():
             for texture_attr_path, texture_asset_path in textures:
                 try:
                     TextureReplacementsValidators.is_valid_texture_prim(
@@ -189,18 +195,25 @@ class TextureReplacementsCore:
                 except ValueError:
                     continue
 
-                commands.execute(
-                    "ChangeProperty",
-                    prop_path=texture_attr_path,
-                    value=Sdf.AssetPath(
-                        omni.usd.make_path_relative_to_current_edit_target(
-                            str(texture_asset_path), stage=self._context.get_stage()
-                        )
-                    ),
-                    prev=None,
-                    usd_context_name=self._context_name,
-                    target_layer=self._context.get_stage().GetEditTarget().GetLayer(),
-                )
+                if texture_asset_path:
+                    commands.execute(
+                        "ChangeProperty",
+                        prop_path=texture_attr_path,
+                        value=Sdf.AssetPath(
+                            omni.usd.make_path_relative_to_current_edit_target(
+                                str(texture_asset_path), stage=self._context.get_stage()
+                            )
+                        ),
+                        prev=None,
+                        usd_context_name=self._context_name,
+                        target_layer=self._context.get_stage().GetEditTarget().GetLayer(),
+                    )
+                else:
+                    commands.execute(
+                        "RemoveProperty",
+                        prop_path=texture_attr_path,
+                        usd_context_name=self._context_name,
+                    )
 
     def get_texture_material(self, texture_prim_path: str) -> str | None:
         """

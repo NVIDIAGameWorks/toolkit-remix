@@ -20,7 +20,7 @@ import uuid
 from asyncio import ensure_future
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import carb
 import omni.client
@@ -35,7 +35,6 @@ from lightspeed.layer_manager.core import LSS_LAYER_MOD_DEPENDENCIES as _LSS_LAY
 from lightspeed.layer_manager.core import LSS_LAYER_MOD_NAME as _LSS_LAYER_MOD_NAME
 from lightspeed.layer_manager.core import LSS_LAYER_MOD_NOTES as _LSS_LAYER_MOD_NOTES
 from lightspeed.layer_manager.core import LSS_LAYER_MOD_VERSION as _LSS_LAYER_MOD_VERSION
-from lightspeed.trex.packaging.core.items import ModPackagingSchema as _ModPackagingSchema
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -43,10 +42,9 @@ from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.flux.utils.material_converter.utils import MaterialConverterUtils as _MaterialConverterUtils
 from omni.kit.usd.collect.omni_client_wrapper import OmniClientWrapper as _OmniClientWrapper
 from omni.kit.usd.layers import LayerUtils as _LayerUtils
-from pxr import Sdf, UsdUtils
+from pxr import Sdf, Usd, UsdUtils
 
-if TYPE_CHECKING:
-    from pxr import Usd
+from .items import ModPackagingSchema as _ModPackagingSchema
 
 
 class PackagingCore:
@@ -63,11 +61,48 @@ class PackagingCore:
         self._cancel_token = False
         self._current_count = 0
         self._total_count = 0
-        self._status = "(0/7) Initializing"
+        self._status = "Initializing..."
         self._temp_files = {}
 
         self.__packaging_progress = _Event()
         self.__packaging_completed = _Event()
+
+    def cancel(self):
+        """
+        Cancel the packaging process.
+        """
+        self._cancel_token = True
+
+    @property
+    def current_count(self) -> int:
+        """
+        Get the current packaged items count
+        """
+        return self._current_count
+
+    @current_count.setter
+    def current_count(self, val):
+        self._current_count = min(val, self.total_count)
+        self._packaging_progress()
+
+    @property
+    def total_count(self) -> int:
+        """
+        Get the current total items count
+        """
+        return self._total_count
+
+    @total_count.setter
+    def total_count(self, val):
+        self._total_count = val
+        self._packaging_progress()
+
+    @property
+    def status(self) -> str:
+        """
+        Get the current packaging status
+        """
+        return self._status
 
     def package(self, schema: Dict):
         r"""
@@ -107,6 +142,7 @@ class PackagingCore:
         Asynchronous implementation of package, but async without error handling.  This is meant for testing.
         """
         errors = []
+        failed_assets = []
         try:
             model = _ModPackagingSchema(**schema)
 
@@ -124,7 +160,7 @@ class PackagingCore:
             temp_root_mod_layer = Sdf.Layer.FindOrOpen(await self._make_temp_layer(root_mod_layer.identifier))
 
             # Remove all deselected sublayers
-            self._packaging_new_stage("(1/7) Filtering the selected layers...", 1)
+            self._packaging_new_stage("Filtering the selected layers...", 1)
             temp_layers = await self._filter_sublayers(
                 model.context_name,
                 None,
@@ -144,67 +180,36 @@ class PackagingCore:
                 redirected_dependencies = set()
 
             # Don't use the omni collector because it's not flexible enough
-            errors.extend(
-                await self._collect(temp_root_mod_layer, temp_layers, model.output_directory, redirected_dependencies)
+            collect_errors, collected_failed_assets = await self._collect(
+                stage,
+                temp_root_mod_layer,
+                temp_layers,
+                model.output_directory,
+                redirected_dependencies,
+                model.ignored_errors,
             )
+            errors.extend(collect_errors)
+            failed_assets = collected_failed_assets
 
-            exported_mod_layer = Sdf.Layer.FindOrOpen(
-                str(
-                    _OmniUrl(model.output_directory)
-                    / _OmniUrl(self._temp_files.get(_OmniUrl(temp_root_mod_layer.identifier).path)).name
+            if not failed_assets:
+                exported_mod_layer = Sdf.Layer.FindOrOpen(
+                    str(
+                        _OmniUrl(model.output_directory)
+                        / _OmniUrl(self._temp_files.get(_OmniUrl(temp_root_mod_layer.identifier).path)).name
+                    )
                 )
-            )
-            if exported_mod_layer:
-                errors.extend(self._update_layer_metadata(model, exported_mod_layer, mod_dependencies, True))
-                errors.extend(self._update_layer_metadata(model, root_mod_layer, mod_dependencies, False))
-            else:
-                errors.append("Unable to find the exported mod file.")
+                if exported_mod_layer:
+                    errors.extend(self._update_layer_metadata(model, exported_mod_layer, mod_dependencies, True))
+                    errors.extend(self._update_layer_metadata(model, root_mod_layer, mod_dependencies, False))
+                else:
+                    errors.append("Unable to find the exported mod file.")
         except Exception as e:  # noqa PLW0718
-            if not errors:
-                errors = []
             errors.append(str(e))
         finally:
             # Cleanup the temp files
             await self._clean_temp_files()
             # Reset the cancel state
-            self._packaging_completed(errors)
-
-    def cancel(self):
-        """
-        Cancel the packaging process.
-        """
-        self._cancel_token = True
-
-    @property
-    def current_count(self) -> int:
-        """
-        Get the current packaged items count
-        """
-        return self._current_count
-
-    @current_count.setter
-    def current_count(self, val):
-        self._current_count = min(val, self.total_count)
-        self._packaging_progress()
-
-    @property
-    def total_count(self) -> int:
-        """
-        Get the current total items count
-        """
-        return self._total_count
-
-    @total_count.setter
-    def total_count(self, val):
-        self._total_count = val
-        self._packaging_progress()
-
-    @property
-    def status(self) -> str:
-        """
-        Get the current total items count
-        """
-        return self._status
+            self._packaging_completed(errors, failed_assets)
 
     @omni.usd.handle_exception
     async def _make_temp_layer(self, layer_path: str) -> str:
@@ -218,13 +223,9 @@ class PackagingCore:
         self._temp_files[temp_path] = layer_url.name
         return temp_path
 
-    def _get_original_path(self, temp_layer_path: str) -> Optional[str]:
-        original_name = self._temp_files.get(_OmniUrl(temp_layer_path).path)
-        return _OmniUrl(temp_layer_path).with_name(original_name).path if original_name else None
-
     @omni.usd.handle_exception
     async def _clean_temp_files(self):
-        self._packaging_new_stage("(7/7) Cleaning up temporary layers...", len(self._temp_files))
+        self._packaging_new_stage("Cleaning up temporary layers...", len(self._temp_files))
 
         for temp_file in self._temp_files:
             try:
@@ -298,66 +299,38 @@ class PackagingCore:
 
         return temp_layers
 
-    def _get_redirected_dependencies(
-        self, temp_root_layer: Sdf.Layer, external_mod_paths: List[Path]
-    ) -> Tuple[Set[str], Set[str]]:
-        mod_dependencies = set()
-        redirected_dependencies = set()
-
-        all_layers, all_assets, _ = UsdUtils.ComputeAllDependencies(temp_root_layer.identifier)
-        all_dependencies = [*[layer.identifier for layer in all_layers], *all_assets]
-
-        self._packaging_new_stage("(2/7) Redirecting dependencies...", len(all_dependencies))
-
-        # Update all the layer dependencies in this layer
-        for dependency in all_dependencies:
-            if self._cancel_token:
-                return mod_dependencies, redirected_dependencies
-
-            self.current_count += 1
-
-            dependency_path = _OmniUrl(dependency).path
-
-            # If dependency is in the capture directory, we should not redirect the dependency
-            if (_OmniUrl(_REMIX_DEPENDENCIES_FOLDER) / _REMIX_CAPTURE_FOLDER).path in dependency_path:
-                continue
-
-            # Check if the dependency comes from a known mod
-            external_mod = None
-            for mod_path in external_mod_paths:
-                if (_OmniUrl(_REMIX_MODS_FOLDER) / mod_path.parent.name).path in dependency_path:
-                    external_mod = mod_path.as_posix()
-                    break
-
-            # If the dependency points to a known mod, redirect it to the installed mod and store the mod path
-            if external_mod:
-                mod_dependencies.add(external_mod)
-                redirected_dependencies.add(dependency_path)
-
-        return mod_dependencies, redirected_dependencies
-
     @omni.usd.handle_exception
     async def _collect(
         self,
+        stage: "Usd.Stage",
         temp_root_layer: Sdf.Layer,
         existing_temp_layers: List[str],
         output_directory: Union[Path, str],
         redirected_dependencies: Set[str],
-    ) -> List[str]:
+        ignored_errors: Optional[List[Tuple[str, str, str]]],
+    ) -> Tuple[List[str], List[Tuple[str, str, str]]]:
         errors = []
-
+        failed_assets = []
         if self._cancel_token:
-            return errors
+            return errors, failed_assets
 
         all_layers, all_assets, unresolved_paths = UsdUtils.ComputeAllDependencies(temp_root_layer.identifier)
 
-        self._packaging_new_stage("(3/7) Creating temporary layers...", len(all_layers))
+        if unresolved_paths:
+            self._packaging_new_stage("Resolving invalid references...", len(list(stage.TraverseAll())))
+            invalid_assets = set(await self._get_unresolved_assets_prim_paths(stage, unresolved_paths)).difference(
+                ignored_errors or []
+            )
+            if invalid_assets:
+                return errors, list(invalid_assets)
+
+        self._packaging_new_stage("Creating temporary layers...", len(all_layers))
 
         temp_layers_map = {self._get_original_path(temp_layer): temp_layer for temp_layer in existing_temp_layers}
         temp_layers = []
         for layer in all_layers:
             if self._cancel_token:
-                return errors
+                return errors, failed_assets
 
             self.current_count += 1
 
@@ -375,23 +348,20 @@ class PackagingCore:
             else:
                 temp_layers.append(temp_layer)
 
-        for unresolved_path in unresolved_paths:
-            errors.append(f"Unresolved asset found when collecting dependencies: {unresolved_path}")
-
         if errors or self._cancel_token:
-            return errors
+            return errors, failed_assets
 
         temp_layer_paths = {_OmniUrl(temp_layer.identifier).path: temp_layer for temp_layer in temp_layers}
         all_dependencies = [*temp_layer_paths.keys(), *all_assets]
 
-        self._packaging_new_stage("(4/7) Listing assets to collect...", len(all_dependencies))
+        self._packaging_new_stage("Listing assets to collect...", len(all_dependencies))
 
         updated_dependencies = {}
         shader_subidentifiers = [url.name for url in _MaterialConverterUtils.get_material_library_shader_urls()]
 
         for dependency in all_dependencies:
             if self._cancel_token:
-                return errors
+                return errors, failed_assets
 
             dependency_path = _OmniUrl(dependency).path
             original_dependency_path = self._get_original_path(dependency) or dependency_path
@@ -421,30 +391,29 @@ class PackagingCore:
             if self._get_original_path(temp_layer.identifier) not in redirected_dependencies
         }
 
-        self._packaging_new_stage("(5/7) Updating asset paths...", len(temp_layers))
+        self._packaging_new_stage("Updating asset paths...", len(temp_layers))
 
         for temp_layer in temp_layers:
             if self._cancel_token:
-                return errors
+                return errors, failed_assets
             self.current_count += 1
             UsdUtils.ModifyAssetPaths(temp_layer, partial(self._modify_asset_paths, temp_layer, updated_dependencies))
 
         # Wrap in a try for when Export fails to write the file
         try:
             if self._cancel_token:
-                return errors
+                return errors, failed_assets
 
             # Make sure to create a clean packaging directory
             if _OmniUrl(output_directory).exists:
                 await _OmniClientWrapper.delete(str(output_directory))
 
-            self._packaging_new_stage("(6/7) Collecting assets...", len(self._collected_dependencies))
+            self._packaging_new_stage("Collecting assets...", len(self._collected_dependencies))
 
             # Copy all collected assets to the output directory
             for temp_input_path, relative_output_path in self._collected_dependencies.items():
                 if self._cancel_token:
-                    return errors
-
+                    return errors, failed_assets
                 output_path = _OmniUrl(output_directory) / relative_output_path
                 input_path = self._get_original_path(temp_input_path)
                 if input_path:
@@ -477,7 +446,75 @@ class PackagingCore:
         # Clear assets marked for collection now that they were copied
         self._collected_dependencies.clear()
 
-        return errors
+        return errors, failed_assets
+
+    @omni.usd.handle_exception
+    async def _get_unresolved_assets_prim_paths(
+        self, stage: Usd.Stage, unresolved_paths: list[str]
+    ) -> List[Tuple[str, str, str]]:
+        result = []
+
+        for prim in stage.TraverseAll():
+            prim_stack = prim.GetPrimStack()
+            for prim_spec in prim_stack:
+                for ref in prim_spec.referenceList.GetAddedOrExplicitItems():
+                    resolved_path = prim_spec.layer.ComputeAbsolutePath(ref.assetPath)
+                    if resolved_path in unresolved_paths:
+                        result.append((prim_spec.layer.identifier, str(prim_spec.path), resolved_path))
+            for prop in prim.GetAttributes():
+                if not isinstance(prop.Get(), Sdf.AssetPath):
+                    continue
+                property_stack = prop.GetPropertyStack(Usd.TimeCode.Default())
+                for prop_spec in property_stack:
+                    prop_layer = prop_spec.layer
+                    resolved_path = prop_layer.ComputeAbsolutePath(prop.Get().path)
+                    if resolved_path in unresolved_paths:
+                        result.append((prop_layer.identifier, str(prop.GetPath()), resolved_path))
+            self.current_count += 1
+
+        return result
+
+    def _get_original_path(self, temp_layer_path: str) -> Optional[str]:
+        original_name = self._temp_files.get(_OmniUrl(temp_layer_path).path)
+        return _OmniUrl(temp_layer_path).with_name(original_name).path if original_name else None
+
+    def _get_redirected_dependencies(
+        self, temp_root_layer: Sdf.Layer, external_mod_paths: List[Path]
+    ) -> Tuple[Set[str], Set[str]]:
+        mod_dependencies = set()
+        redirected_dependencies = set()
+
+        all_layers, all_assets, _ = UsdUtils.ComputeAllDependencies(temp_root_layer.identifier)
+        all_dependencies = [*[layer.identifier for layer in all_layers], *all_assets]
+
+        self._packaging_new_stage("Redirecting dependencies...", len(all_dependencies))
+
+        # Update all the layer dependencies in this layer
+        for dependency in all_dependencies:
+            if self._cancel_token:
+                return mod_dependencies, redirected_dependencies
+
+            self.current_count += 1
+
+            dependency_path = _OmniUrl(dependency).path
+
+            # If dependency is in the capture directory, we should not redirect the dependency
+            if (_OmniUrl(_REMIX_DEPENDENCIES_FOLDER) / _REMIX_CAPTURE_FOLDER).path in dependency_path:
+                continue
+
+            # Check if the dependency comes from a known mod
+            external_mod = None
+            for mod_path in external_mod_paths:
+                if (_OmniUrl(_REMIX_MODS_FOLDER) / mod_path.parent.name).path in dependency_path:
+                    external_mod = mod_path.as_posix()
+                    break
+
+            # If the dependency points to a known mod, redirect it to the installed mod and store the mod path
+            if external_mod:
+                mod_dependencies.add(external_mod)
+                redirected_dependencies.add(dependency_path)
+
+        return mod_dependencies, redirected_dependencies
 
     def _update_layer_metadata(
         self, model: _ModPackagingSchema, layer: Sdf.Layer, mod_dependencies: Set[str], update_dependencies: bool
@@ -638,14 +675,14 @@ class PackagingCore:
         """
         return _EventSubscription(self.__packaging_progress, function)
 
-    def _packaging_completed(self, errors: List[str]):
+    def _packaging_completed(self, errors: List[str], failed_assets: List[Tuple[str, str, str]]):
         """Call the event object that has the list of functions"""
         for error in errors:
             carb.log_error(error)
-        self.__packaging_completed(errors, self._cancel_token)
+        self.__packaging_completed(errors, failed_assets, self._cancel_token)
         self._cancel_token = False
 
-    def subscribe_packaging_completed(self, function):
+    def subscribe_packaging_completed(self, function: Callable[[List[str], List[Tuple[str, str, str]], bool], Any]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """

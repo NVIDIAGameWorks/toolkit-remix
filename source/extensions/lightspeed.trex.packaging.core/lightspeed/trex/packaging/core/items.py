@@ -17,7 +17,7 @@
 
 import re
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
@@ -55,6 +55,9 @@ class ModPackagingSchema(BaseModel):
     mod_name: str = Field(..., description="The display name used for the mod in the RTX Remix Runtime.")
     mod_version: str = Field(..., description="The mod version. Used when building dependency lists.")
     mod_details: Optional[str] = Field(None, description="Optional text used to describe the mod in more details.")
+    ignored_errors: Optional[List[Tuple[str, str, str]]] = Field(
+        None, description="A list of errors to ignore when packaging the mod."
+    )
 
     @validator("mod_layer_paths", allow_reuse=True)
     def at_least_one(cls, v):  # noqa

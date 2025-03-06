@@ -17,7 +17,7 @@
 
 from asyncio import ensure_future
 from functools import partial
-from typing import List
+from typing import List, Tuple
 
 import omni.appwindow
 import omni.kit.window.file
@@ -31,6 +31,7 @@ from lightspeed.trex.mod_packaging_details.widget import ModPackagingDetailsWidg
 from lightspeed.trex.mod_packaging_layers.widget import ModPackagingLayersWidget as _ModPackagingLayersWidget
 from lightspeed.trex.mod_packaging_output.widget import ModPackagingOutputWidget as _ModPackagingOutputWidget
 from lightspeed.trex.packaging.core import PackagingCore as _PackagingCore
+from lightspeed.trex.packaging.window import PackagingErrorWindow as _PackagingErrorWindow
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
@@ -51,9 +52,11 @@ class ModPackagingPane:
             "_packaging_core": None,
             "_packaging_progress_sub": None,
             "_packaging_completed_sub": None,
+            "_packaging_errors_resolved_sub": None,
             "_output_valid": None,
             "_layers_valid": None,
             "_progress_popup": None,
+            "_packaging_window": None,
             "_root_frame": None,
             "_package_details_collapsable_frame": None,
             "_package_details_widget": None,
@@ -75,12 +78,17 @@ class ModPackagingPane:
         self._layer_manager = _LayerManagerCore(self._context_name)
 
         self._packaging_progress_sub = self._packaging_core.subscribe_packaging_progress(self._on_packaging_progress)
-        self._packaging_completed_sub = self._packaging_core.subscribe_packaging_completed(self._on_packaging_completed)
+        self._packaging_completed_sub = self._packaging_core.subscribe_packaging_completed(
+            lambda e, f, c: ensure_future(self._on_packaging_completed(e, f, c))
+        )
+
+        self._packaging_errors_resolved_sub = None
 
         self._output_valid = False
         self._layers_valid = False
 
         self._progress_popup = None
+        self._packaging_window = None
 
         self.__info_hovered_task = None
         self.__exit_task = False
@@ -204,7 +212,8 @@ class ModPackagingPane:
         if not self._layers_valid:
             self._export_button.tooltip += "The current layer selection is invalid.\n"
 
-    def _on_package_pressed(self):
+    def _on_package_pressed(self, silent: bool = False, ignored_errors: List[Tuple[str, str, str]] = None):
+        @omni.usd.handle_exception
         async def package(success, error):
             await omni.kit.app.get_app().next_update_async()
             if success:
@@ -220,10 +229,11 @@ class ModPackagingPane:
                         "mod_name": self._package_details_widget.mod_name,
                         "mod_version": self._package_details_widget.mod_version,
                         "mod_details": self._package_details_widget.mod_details,
+                        "ignored_errors": ignored_errors,
                     }
                 )
             else:
-                self._on_packaging_completed([error], False)
+                ensure_future(self._on_packaging_completed([error], [], False))
 
         def start_packaging(should_save: bool):
             if should_save:
@@ -231,8 +241,12 @@ class ModPackagingPane:
             else:
                 ensure_future(package(True, ""))
 
-        def validate_pending_edits():
-            if self._context and self._context.has_pending_edit():
+        @omni.usd.handle_exception
+        async def validate_pending_edits():
+            # Wait for the previous popup to be hidden to center the following message dialog
+            await omni.kit.app.get_app().next_update_async()
+
+            if not silent and self._context and self._context.has_pending_edit():
                 _TrexMessageDialog(
                     message="There are some pending edits in your current stage. "
                     "All unsaved changes will be lost after packaging is started.\n\n"
@@ -248,15 +262,15 @@ class ModPackagingPane:
                 start_packaging(False)
 
         output_url = _OmniUrl(self._package_output_widget.output_path)
-        if output_url.exists and list(output_url.iterdir()):
+        if not silent and output_url.exists and list(output_url.iterdir()):
             _TrexMessageDialog(
                 message="The output directory is not empty.\n\n"
                 "Would you like to delete the directory content or cancel the packaging process?",
-                ok_handler=validate_pending_edits,
+                ok_handler=partial(ensure_future, validate_pending_edits()),
                 ok_label="Delete",
             )
         else:
-            validate_pending_edits()
+            ensure_future(validate_pending_edits())
 
     def _on_packaging_progress(self, current: int, total: int, status: str):
         if not self._progress_popup:
@@ -271,10 +285,18 @@ class ModPackagingPane:
 
         self._progress_popup.set_progress(current / total if total > 0 else 0)
 
-    def _on_packaging_completed(self, errors: List[str], was_cancelled: bool):
+    @omni.usd.handle_exception
+    async def _on_packaging_completed(
+        self, errors: List[str], failed_assets: List[Tuple[str, str, str]], was_cancelled: bool
+    ):
         if self._progress_popup:
             self._progress_popup.hide()
             self._progress_popup = None
+
+        # Wait for the progress popup to be hidden to center the following message dialog
+        await omni.kit.app.get_app().next_update_async()
+
+        self._packaging_errors_resolved_sub = None
 
         if errors:
             error_popup = _ErrorPopup(
@@ -284,12 +306,24 @@ class ModPackagingPane:
                 window_size=(800, 400),
             )
             error_popup.show()
+        elif failed_assets:
+            self._packaging_window = _PackagingErrorWindow(failed_assets, context_name=self._context_name)
+            self._packaging_errors_resolved_sub = self._packaging_window.subscribe_actions_applied(
+                lambda ignored_errors: ensure_future(self._retry_packaging(ignored_errors))
+            )
         else:
             message = (
                 "The mod packaging process was cancelled." if was_cancelled else "The mod was successfully packaged."
             )
             title = "Mod Packaging Cancelled" if was_cancelled else "Mod Packaging Successful"
             _TrexMessageDialog(message, title, disable_cancel_button=True)
+
+    @omni.usd.handle_exception
+    async def _retry_packaging(self, ignored_errors: List[Tuple[str, str, str]]):
+        # Wait 1 frame to make sure the dialogs are centered
+        await omni.kit.app.get_app().next_update_async()
+
+        self._on_package_pressed(silent=True, ignored_errors=ignored_errors)
 
     def __on_info_hovered(self, icon_widget, tooltip, hovered):
         self._tooltip_window = None

@@ -131,7 +131,10 @@ class ModPackagingLayersWidget:
             item.data["exclude_package"] = not should_package
             if "package" in item.data and should_package:
                 continue
-            item.data["package"] = should_package or is_capture_baker
+            # Set the default package status. Disable muted layers by default
+            item.data["package"] = (
+                (should_package or is_capture_baker) and item.data.get("visible") and item.data.get("parent_visible")
+            )
 
         self._layers_validity_changed()
 

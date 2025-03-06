@@ -55,6 +55,10 @@ class TextureReplacementsValidators:
     @classmethod
     def is_valid_texture_asset(cls, texture_tuple: tuple[str, Path], force: bool):
         _, asset_path = texture_tuple
+
+        if asset_path is None:
+            return texture_tuple
+
         asset_url = OmniUrl(asset_path)
 
         if asset_url.suffix.lower() not in SUPPORTED_TEXTURE_EXTENSIONS:

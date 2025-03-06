@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3896: Improve the Unload Stage (Close Project) button behavior
 - REMIX-3832: Update material property widget to work with virtual attributes
 - Upgraded the AI Tools PyTorch Version
+- REMIX-3904: Improved mod packaging flow by adding a window to fix unresolved assets
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs
