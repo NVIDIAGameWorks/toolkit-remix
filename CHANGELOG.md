@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3659: Add the ability to get default output directory in Ingestion and AI Tools tabs
 - REMIX-3770: Added a Materials Tab for the Stage Manager
 - REMIX-3832: Added a new material api extension to omni.flux
+- REMIX-3904: Added packaging documentation
 
 ### Changed
 - REMIX-3831: Updated kit version to 106.5.0
