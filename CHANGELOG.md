@@ -84,6 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3832: Fix display of "display out" and other material attributes that shouldn't be hidden
 - REMIX-3870: Fixed ingestion bug for drag and drop
 - Tooltips on properties from USD schema now include the documentation string from the schema.
+- Fixed packman remote configuration for building from lspackages
 
 ### Removed
 
