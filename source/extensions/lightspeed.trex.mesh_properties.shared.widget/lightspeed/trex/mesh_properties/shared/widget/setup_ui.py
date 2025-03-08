@@ -241,7 +241,15 @@ class SetupUI:
 
                     ui.Spacer(height=ui.Pixel(8))
 
-                    self._property_widget = _PropertyWidget(self._context_name)
+                    def should_show_light_attr(prim):
+                        return prim.HasAPI(UsdLux.LightAPI) if hasattr(UsdLux, "LightAPI") else prim.IsA(UsdLux.Light)
+
+                    self._property_widget = _PropertyWidget(
+                        self._context_name,
+                        optional_attributes=[
+                            (should_show_light_attr, attr) for attr in constants.REMIX_OPTIONAL_LIGHT_ATTRIBUTES
+                        ],
+                    )
 
                     ui.Spacer(height=ui.Pixel(8))
 
@@ -427,7 +435,7 @@ class SetupUI:
                 UsdLux.Tokens.inputsShapingConeAngle,
                 UsdLux.Tokens.inputsShapingConeSoftness,
                 UsdLux.Tokens.inputsShapingFocus,
-            ]
+            ] + [attr["token"] for attr in constants.REMIX_OPTIONAL_LIGHT_ATTRIBUTES]
             self._property_widget.set_specific_attributes(specific_attrs)
 
             # set lookup table for lights
@@ -449,6 +457,12 @@ class SetupUI:
                     UsdLux.Tokens.inputsShapingConeAngle: {"name": "Shaping: Cone Angle", "group": None},
                     UsdLux.Tokens.inputsShapingConeSoftness: {"name": "Shaping: Cone Softness", "group": None},
                     UsdLux.Tokens.inputsShapingFocus: {"name": "Shaping: Focus", "group": None},
+                }
+            )
+            lookup_table.update(
+                {
+                    attr["token"]: {"name": attr["name"], "group": None, "read_only": False}
+                    for attr in constants.REMIX_OPTIONAL_LIGHT_ATTRIBUTES
                 }
             )
             self._property_widget.set_lookup_table(lookup_table)

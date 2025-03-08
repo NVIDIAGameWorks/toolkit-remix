@@ -23,7 +23,7 @@ from pathlib import Path
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.utils.common.asset_utils import is_asset_ingested
-from lightspeed.trex.utils.common.prim_utils import is_material
+from lightspeed.trex.utils.common.prim_utils import is_material_prototype
 from omni.flux.utils.common import path_utils
 from omni.flux.utils.common.omni_url import OmniUrl
 from pxr import Sdf
@@ -57,7 +57,7 @@ class AssetReplacementsValidators:
         if not prim:
             raise ValueError(f"The prim path does not exist in the current stage: {prim_path}")
 
-        if not is_material(prim):
+        if not is_material_prototype(prim):
             raise ValueError(f"The prim path does not point to a material: {prim_path}")
 
         return prim_path

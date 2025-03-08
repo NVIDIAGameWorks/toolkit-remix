@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.17.0]
+### Added
+- Add support for non-xform stub attributes
+- Added slider widget for material attribute subsurface_radius_scale
+
 ## [2.16.0]
 ## Changed
 - Update to Kit 106.5

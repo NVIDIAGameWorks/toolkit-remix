@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.3]
+## Changed
+- rename trex prim utility names for clarity
+
 ## [2.5.2]
 ## Changed
 - Update to Kit 106.5

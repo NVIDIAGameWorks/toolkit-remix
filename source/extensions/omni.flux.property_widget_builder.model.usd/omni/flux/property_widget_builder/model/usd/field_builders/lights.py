@@ -31,3 +31,4 @@ LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:radius", FloatSliderFie
 LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:shaping:cone:angle", FloatSliderField(0.0, 360.0))
 LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:shaping:cone:softness", FloatSliderField(0.0, 10.0))
 LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:shaping:focus", FloatSliderField(0.0, 10.0))
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:volumetric_radiance_scale", FloatSliderField(0.0, 10.0))

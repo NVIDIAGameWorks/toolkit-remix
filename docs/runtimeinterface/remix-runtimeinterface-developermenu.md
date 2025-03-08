@@ -1,4 +1,4 @@
-# Developer Menu 
+# Developer Menu
 
 ![DeveloperMenu](../data/images/rtxremix_035.png)
 
@@ -113,7 +113,7 @@
    </td>
    <td>Lighting
    </td>
-   <td>Lighting allows you to adjust global lighting intensity and other parameters, as well as go deep under the hood of two of the core lighting algorithms used by the Remix Path Tracing renderer: RTXDI and ReSTIR GI. You can read more about each technology. 
+   <td>Lighting allows you to adjust global lighting intensity and other parameters, as well as go deep under the hood of two of the core lighting algorithms used by the Remix Path Tracing renderer: RTXDI and ReSTIR GI. You can read more about each technology.
    </td>
   </tr>
   <tr>
@@ -121,7 +121,7 @@
    </td>
    <td>Volumetrics
    </td>
-   <td>Volumetrics allows you to adjust everything related to the volumetric fog in Remix. You can also turn the volumetric fog off or on via the Enable Volumetric Lighting Checkbox. Turning on “Enable Legacy Fog Remapping” will allow the volumetric fog to take in information from the legacy fog in the game and attempt to match its look. 
+   <td>Volumetrics allows you to adjust everything related to the volumetric fog in Remix. You can also turn the volumetric fog off or on via the Enable Volumetric Lighting Checkbox. Turning on “Enable Legacy Fog Remapping” will allow the volumetric fog to take in information from the legacy fog in the game and attempt to match its look.
    </td>
   </tr>
   <tr>
@@ -129,7 +129,7 @@
    </td>
    <td>Alpha Test / Blending
    </td>
-   <td>Alpha Test / Blending allows you to toggle alpha testing and blending in the Remix Toolkit. 
+   <td>Alpha Test / Blending allows you to toggle alpha testing and blending in the Remix Toolkit.
    </td>
   </tr>
   <tr>
@@ -153,7 +153,7 @@
    </td>
    <td>Debug
    </td>
-   <td>Debug allows you to access a large variety of debug views in order to troubleshoot compatibility, content or rendering issues in a game or mod. Please refer to this document for an in depth guide to the Debug Display modes. 
+   <td>Debug allows you to access a large variety of debug views in order to troubleshoot compatibility, content or rendering issues in a game or mod. Please refer to this document for an in depth guide to the Debug Display modes.
    </td>
   </tr>
   <tr>
@@ -185,7 +185,7 @@
    </td>
    <td>Material Filtering
    </td>
-   <td>Material Filtering allows you to adjust material filtering options or render all white materials for an easier time when tuning lighting. 
+   <td>Material Filtering allows you to adjust material filtering options or render all white materials for an easier time when tuning lighting.
    </td>
   </tr>
   <tr>
@@ -223,4 +223,4 @@
 </table>
 
 ***
-<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

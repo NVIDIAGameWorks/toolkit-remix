@@ -145,6 +145,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         await translate_x_widget.double_click()
         await omni.kit.ui_test.emulate_char_press("2.2")
         await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
+        await omni.kit.ui_test.wait_n_updates(5)
 
         # we check that the value of the UI element changed
         self.assertEqual(property_branches[0].widget.model.get_value_as_float(), 2.2)

@@ -211,8 +211,9 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         ]
 
     def _init_value_models(self, context_name, attribute_paths, read_only, value_type_name=None):
+        type_name = str(value_type_name) if value_type_name is not None else value_type_name
         self._value_models = [
-            _UsdAttributeValueModel(context_name, attribute_paths, i, read_only=read_only, type_name=value_type_name)
+            _UsdAttributeValueModel(context_name, attribute_paths, i, read_only=read_only, type_name=type_name)
             for i in range(self._element_count)
         ]
 
@@ -377,13 +378,14 @@ class VirtualUSDAttributeItem(USDAttributeItem):
         ]
 
     def _init_value_models(self, context_name, attribute_paths, read_only, value_type_name=None):
+        type_name = str(value_type_name) if value_type_name is not None else value_type_name
         self._value_models = [
             _VirtualUsdAttributeValueModel(
                 context_name,
                 attribute_paths,
                 i,
                 read_only=read_only,
-                type_name=value_type_name,
+                type_name=type_name,
                 default_value=self._default_value,
                 metadata=self._metadata,
                 create_callback=self._create_callback,
@@ -468,6 +470,7 @@ class _BaseListModelItem(_BaseUSDAttributeItem):
     def _init_value_models(
         self, context_name, attribute_paths, default_value, options, read_only, value_type_name=None
     ):
+        type_name = str(value_type_name) if value_type_name is not None else value_type_name
         self._value_models = [
             self.value_model_class(
                 context_name,
@@ -475,7 +478,7 @@ class _BaseListModelItem(_BaseUSDAttributeItem):
                 default_value,
                 options,
                 read_only=read_only,
-                type_name=value_type_name,
+                type_name=type_name,
                 metadata=self._metadata,
                 metadata_key=self._metadata_key,
             )
@@ -523,9 +526,11 @@ class USDAttributeDef:
 
     path: Sdf.Path
     attr_type: Sdf.ValueTypeNames
-    op: UsdGeom.XformOp
+    op: UsdGeom.XformOp = None
     value: Optional[Any] = None
     exists: bool = False
+    documentation: str = None
+    display_group: str = None
 
 
 class USDAttributeItemStub(USDAttributeItem):
@@ -587,6 +592,8 @@ class USDAttributeItemStub(USDAttributeItem):
         Determine if any of the attribute paths this item represents exist in USD.
         """
         await omni.kit.app.get_app().next_update_async()
+        if self._attribute_defs is None:
+            return False
         for attr_def in self._attribute_defs:
             prim = self._stage.GetPrimAtPath(attr_def.path.GetPrimPath())
             if prim.IsValid():
@@ -615,10 +622,32 @@ class USDAttributeItemStub(USDAttributeItem):
         if self._refresh_task is None and self._create_task is None:
             self._refresh_task = asyncio.ensure_future(self._refresh_async())
 
-    @abc.abstractmethod
     def _create_attributes(self):
-        # TODO: Create generic implementation?
-        raise NotImplementedError
+        with omni.kit.undo.group():
+            for attr_def in self._attribute_defs:
+
+                # Grab the current value for existing attributes, otherwise use the default.
+                if attr_def.exists:
+                    attr_value = self._stage.GetAttributeAtPath(attr_def.path).Get()
+                else:
+                    attr_value = attr_def.value
+
+                omni.kit.commands.execute(
+                    "ChangePropertyCommand",
+                    prop_path=str(attr_def.path),
+                    value=attr_value,
+                    prev=None,
+                    type_to_create_if_not_exist=attr_def.attr_type,
+                    usd_context_name=self._context_name,
+                )
+                if attr_def.documentation:
+                    omni.kit.commands.execute(
+                        "ChangeMetadataCommand",
+                        object_paths=[str(attr_def.path)],
+                        key=Sdf.PropertySpec.DocumentationKey,
+                        value=attr_def.documentation,
+                        usd_context_name=self._context_name,
+                    )
 
     @omni.usd.handle_exception
     async def _create_attributes_async(self):
@@ -659,6 +688,7 @@ class USDAttributeXformItemStub(USDAttributeItemStub):
         return super().default_attr
 
     def _create_attributes(self):
+        # NOTE: we intentionally do not invoke the super class's implementation of this function
         attr_defs_by_prim = collections.defaultdict(list)
         for attr_def in self._attribute_defs:
             prim = self._stage.GetPrimAtPath(attr_def.path.GetPrimPath())

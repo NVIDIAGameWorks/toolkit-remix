@@ -23,7 +23,7 @@ from lightspeed.trex.viewports.shared.widget import create_instance as _create_v
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import open_stage, wait_stage_loading
+from omni.kit.test_suite.helpers import open_stage
 from omni.kit.ui_test import Vec2
 from pxr import Gf
 
@@ -41,9 +41,8 @@ class TestViewportManipulators(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        # Note: this func seems to be context independent (same val for both contexts)
-        await wait_stage_loading()
         await self.release_hydra_engines_workaround()
+        omni.usd.get_context(_CONTEXT_NAME).close_stage()
 
     async def release_hydra_engines_workaround(self, usd_context_name: str = ""):
         # copied from omni/kit/widget/viewport/tests/test_ray_query.py
@@ -58,13 +57,12 @@ class TestViewportManipulators(AsyncTestCase):
                 widget1 = _create_viewport_instance(_CONTEXT_NAME)
 
         await ui_test.human_delay(human_delay_speed=1)
+        widget1.set_active(True)
+        await ui_test.human_delay(human_delay_speed=10)
 
         return window, widget1
 
     async def __destroy(self, window, widget):
-        # if we destroy viewports before the stage is fully loaded than it will be stuck in loading state.
-        await wait_stage_loading()
-
         widget.destroy()
         window.destroy()
 
@@ -72,18 +70,15 @@ class TestViewportManipulators(AsyncTestCase):
         """Test that when we use the manipulator, this is update the good prim"""
         # setup
         _window, _widget = await self.__setup_widget()  # Keep in memory during test
-
-        # select
         usd_context = omni.usd.get_context()
-        await ui_test.human_delay(human_delay_speed=10)
 
         # select the object
         dpi_scale = ui.Workspace.get_dpi_scale()
         click_object = Vec2(WINDOW_WIDTH - 170, WINDOW_HEIGHT - 200) / 2 / dpi_scale
         await ui_test.input.emulate_mouse_move(click_object)
-        await ui_test.human_delay(5)
+        await ui_test.human_delay(human_delay_speed=15)
         await ui_test.emulate_mouse_click()
-        await ui_test.human_delay(5)
+        await ui_test.human_delay(human_delay_speed=100)  # flakey on ci, needs 3 frames locally
 
         # check that the selection is ok
         current_selection = usd_context.get_selection().get_selected_prim_paths()
@@ -104,9 +99,9 @@ class TestViewportManipulators(AsyncTestCase):
         # move the mouse over the manipulator and move the object
         manipulator_z = Vec2(WINDOW_WIDTH - 300, WINDOW_HEIGHT - 210) / 2 / dpi_scale
         await ui_test.input.emulate_mouse_move(manipulator_z)
-        await ui_test.human_delay(5)
+        await ui_test.human_delay(human_delay_speed=5)
         await ui_test.emulate_mouse_drag_and_drop(manipulator_z, manipulator_z - Vec2(100, 0))
-        await ui_test.human_delay(5)
+        await ui_test.human_delay(human_delay_speed=5)
 
         # check the value changed
         translate = xf_tr.Get()
