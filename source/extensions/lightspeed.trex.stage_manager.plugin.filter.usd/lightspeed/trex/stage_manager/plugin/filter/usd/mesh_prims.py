@@ -18,7 +18,7 @@
 from typing import TYPE_CHECKING
 
 from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
-from lightspeed.trex.utils.common.prim_utils import is_model as _is_model
+from lightspeed.trex.utils.common.prim_utils import is_mesh_prototype as _is_mesh_prototype
 from omni.flux.stage_manager.plugin.filter.usd.base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
 from pydantic import Field
 
@@ -35,4 +35,4 @@ class MeshPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
     )
 
     def _filter_predicate(self, prim: "Usd.Prim") -> bool:
-        return _is_model(prim) or (self.include_instances and _is_instance(prim))
+        return _is_mesh_prototype(prim) or (self.include_instances and _is_instance(prim))

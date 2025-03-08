@@ -123,6 +123,18 @@ A key point to remember is that the spritesheet should be organized from left to
 <!--- ![SpriteSheetExample](data/images/sprite_sheet_example.png) --->
 <img src="../data/images/sprite_sheet_example.png" alt="drawing" width="400"/>
 
+## Subsurface Scattering
+
+Subsurface Scattering (SSS) allows light to penetrate through a solid object. The SSS is described with a BSSRDF model, an extension of BRDF model which assumes the light enters and exits at the same point of the surface.
+This model is often used to render realistic models for translucent objects, such as skin, wax, marble, etc. When light enters these objects, it should be scattered longer than the standard opaque models. Using a BSDF model would hide the feature and cause unrealistic results.
+
+To setup SSS, the user needs to set the following parameters in Subsurface:
+
+* <code>Transmittance Color</code> Determines the base color of the SSS surface, it's similar to the diffuse albedo color for diffuse materials. This parameter can also be set with a texture map.
+* <code>Subsurface Scattering Radius</code> Determines the distance (mean free path) that light will be transported inside the SSS object for each color channel. Larger value will allow the corresponding color scattered further on the surface, it will look like a tail extends from the diffuse model. This parameter can also be set with a texture map.
+* <code>Subsurface Scattering Scale</code> A scale that controls the SSS intensity of the whole object.
+* <code>Subsurface Scattering Max Scale</code> The maximum distance that that light can scatter. Samples larger than this scale will be clamped.
+
 
 ***
-<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

@@ -29,7 +29,7 @@ from lightspeed.trex.utils.common.prim_utils import filter_prims_paths as _filte
 from lightspeed.trex.utils.common.prim_utils import get_extended_selection as _get_extended_selection
 from lightspeed.trex.utils.common.prim_utils import get_prim_paths as _get_prim_paths
 from lightspeed.trex.utils.common.prim_utils import includes_hash as _includes_hash
-from lightspeed.trex.utils.common.prim_utils import is_shader as _is_shader
+from lightspeed.trex.utils.common.prim_utils import is_shader_prototype as _is_shader_prototype
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import TextureTypeNames as _TextureTypeNames
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
@@ -142,7 +142,7 @@ class TextureReplacementsCore:
 
         # Get every asset-type input for every shader and validate that the asset path has a supported texture extension
         for shader_path in _filter_prims_paths(
-            lambda prim: bool(_is_shader(prim) and _includes_hash(prim, asset_hashes)),
+            lambda prim: bool(_is_shader_prototype(prim) and _includes_hash(prim, asset_hashes)),
             prim_paths=selection,
             filter_session_prims=filter_session_prims,
             layer_id=layer_id,

@@ -189,6 +189,7 @@ path = "${test_root}"
 [[repo_test.suites.lss_e2e_a2s.group]]
 include = [
     "tests-lightspeed.[a-s]*${shell_ext}",
+    "tests-lightspeed.trex.[a-p]*${shell_ext}",  # trex is so common, we have to split it
 ]
 exclude = []
 "platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
@@ -243,7 +244,10 @@ include = [
 serial = [
     "tests-lightspeed.trex.viewports.shared.widget${shell_ext}",
 ]
-exclude = []
+exclude = [
+    "tests-lightspeed.trex.[a-p]*${shell_ext}",  # trex is so common, we have to split it (these are run in a2s above)
+    "tests-lightspeed.trex.viewports.manipulators${shell_ext}", # TODO: need to fix test
+]
 "platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
@@ -348,6 +352,11 @@ post_build.commands = [
     # Generate a shortcut to run the Mass Ingestion CLI in LSS
     ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/lightspeed.app.trex.validation_cli_generator.kit", "--no-window", "--/app/extensions/excluded/0='omni.kit.splash' --/app/extensions/excluded/1='omni.kit.window.splash' --/app/settings/persistent=0 --/app/settings/loadUserConfig=0 --/structuredLog/enable=0 --/app/hangDetector/enabled=0 --/crashreporter/skipOldDumpUpload=1 --/app/content/emptyStageOnStart=1", "--/app/file/ignoreUnsavedOnExit=1", "--/app/fastShutdown=1", "--/app/quitAfter=10", "--exec", "${root}/tools/custom/generate_mass_cli.py"],
     ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/omni.flux.app.service.documentation_cli_generator.kit", "--no-window", "--exec", "${root}/tools/custom/generate_app.py -id omni.flux.service.documentation -n omni.flux.app.service.documentation.cli"],
+]
+
+copy = [
+    # WAR NRC DLL loading issue, we can remove this when get NRC that allows us to specify absolute path
+    ["${root}/_build/${platform}/${config}/deps/hdremix/cudart64_12.dll", "${root}/_build/${platform}/${config}/kit/"],
 ]
 
 [repo_build.fetch.pip]

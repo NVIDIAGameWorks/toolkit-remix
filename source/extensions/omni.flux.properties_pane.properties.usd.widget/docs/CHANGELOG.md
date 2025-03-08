@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.9.0]
+### Added
+- Add support for optional properties on light prims
+
+### Changed
+- object properties will now show the attribute documentation instead of the attribute token (if it exists)
+
 ## [2.8.4]
 ## Changed
 - Update to Kit 106.5

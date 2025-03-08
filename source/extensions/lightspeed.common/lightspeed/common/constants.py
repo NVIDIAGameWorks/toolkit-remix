@@ -19,6 +19,8 @@ import re
 from enum import Enum, IntEnum
 from pathlib import Path
 
+from pxr import Sdf
+
 from .texture_info import CompressionFormat, TextureInfo
 
 WINDOW_NAME = "Trex Main Window"
@@ -480,6 +482,18 @@ REMIX_CATEGORIES = {
 
 REMIX_CATEGORIES_DISPLAY_NAMES = {v["attr"]: k for k, v in REMIX_CATEGORIES.items()}
 HIDDEN_REMIX_CATEGORIES = ["Third Person Player Body", "Third Person Player Model", "Hidden", "Ignore", "Ignore Lights"]
+
+REMIX_OPTIONAL_LIGHT_ATTRIBUTES = [
+    {
+        "token": "inputs:volumetric_radiance_scale",
+        "name": "Volumetric Radiance Scale",
+        "type": Sdf.ValueTypeNames.Float,
+        "default_value": 1.0,
+        "documentation": "Multiplies how bright this light seems to volumetric mediums like fog or suspended dust.\n"
+        + "This can be used to enhance the god-rays coming from this light.\n"
+        + "Not physically accurate.",
+    },
+]
 
 
 # This should match the `normalmap_encoding` in AperturePBR_normal.mdl

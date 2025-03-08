@@ -19,10 +19,10 @@ __all__ = [
     "PrimTypes",
     "get_prim_paths",
     "filter_prims_paths",
-    "is_light",
-    "is_material",
-    "is_shader",
-    "is_model",
+    "is_light_prototype",
+    "is_material_prototype",
+    "is_shader_prototype",
+    "is_mesh_prototype",
     "is_instance",
     "get_extended_selection",
     "get_children_prims",
@@ -73,7 +73,7 @@ def get_prim_paths(
         match prim_type:
             case PrimTypes.LIGHTS:
                 return filter_prims_paths(
-                    lambda prim: is_light(prim) and includes_hash(prim, asset_hashes),
+                    lambda prim: is_light_prototype(prim) and includes_hash(prim, asset_hashes),
                     prim_paths=selection,
                     filter_session_prims=filter_session_prims,
                     layer_id=layer_id,
@@ -82,7 +82,7 @@ def get_prim_paths(
                 )
             case PrimTypes.MATERIALS:
                 return filter_prims_paths(
-                    lambda prim: is_material(prim) and includes_hash(prim, asset_hashes),
+                    lambda prim: is_material_prototype(prim) and includes_hash(prim, asset_hashes),
                     prim_paths=selection,
                     filter_session_prims=filter_session_prims,
                     layer_id=layer_id,
@@ -91,7 +91,7 @@ def get_prim_paths(
                 )
             case PrimTypes.MODELS:
                 return filter_prims_paths(
-                    lambda prim: is_model(prim) and includes_hash(prim, asset_hashes),
+                    lambda prim: is_mesh_prototype(prim) and includes_hash(prim, asset_hashes),
                     prim_paths=selection,
                     filter_session_prims=filter_session_prims,
                     layer_id=layer_id,
@@ -101,7 +101,10 @@ def get_prim_paths(
 
     # All types
     return filter_prims_paths(
-        lambda prim: (is_light(prim) or is_material(prim) or is_model(prim)) and includes_hash(prim, asset_hashes),
+        lambda prim: (
+            (is_light_prototype(prim) or is_material_prototype(prim) or is_mesh_prototype(prim))
+            and includes_hash(prim, asset_hashes)
+        ),
         prim_paths=selection,
         filter_session_prims=filter_session_prims,
         layer_id=layer_id,
@@ -179,10 +182,10 @@ def includes_hash(prim: "Usd.Prim", asset_hashes: set[str]) -> bool:
     return bool(any(True for asset_hash in asset_hashes if asset_hash in str(prim.GetPath())))
 
 
-def is_light(prim: "Usd.Prim") -> bool:
+def is_light_prototype(prim: "Usd.Prim") -> bool:
     """
     Returns:
-        Whether the prims is a light prim or not
+        Whether the prims is a light prototype prim or not
     """
     if not prim:
         return False
@@ -192,7 +195,7 @@ def is_light(prim: "Usd.Prim") -> bool:
     )
 
 
-def is_material(prim: "Usd.Prim") -> bool:
+def is_material_prototype(prim: "Usd.Prim") -> bool:
     """
     Returns:
         Whether the prim is a material or not
@@ -202,20 +205,20 @@ def is_material(prim: "Usd.Prim") -> bool:
     return bool(prim.IsA(UsdShade.Material) and not is_instance(prim))
 
 
-def is_shader(prim: "Usd.Prim") -> bool:
+def is_shader_prototype(prim: "Usd.Prim") -> bool:
     """
     Returns:
-        Whether the prim is a material or not
+        Whether the prim is a material prototype prim or not
     """
     if not prim:
         return False
     return bool(prim.IsA(UsdShade.Shader) and not is_instance(prim))
 
 
-def is_model(prim: "Usd.Prim") -> bool:
+def is_mesh_prototype(prim: "Usd.Prim") -> bool:
     """
     Returns:
-        Whether the prim is a mesh prim or not
+        Whether the prim is a mesh prototype prim or not
     """
     if not prim:
         return False
@@ -263,12 +266,12 @@ def get_extended_selection(context_name: str = "") -> list[str]:
             if is_instance(prim):
                 # Get mesh from instance
                 selection.add(str(constants.COMPILED_REGEX_INSTANCE_TO_MESH_SUB.sub(rf"{constants.MESH_PATH}\2", path)))
-            elif is_model(prim):
+            elif is_mesh_prototype(prim):
                 # Get material from mesh
                 material, _ = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
                 selection.add(str(material.GetPrim().GetPath()))
                 # Get children prims
-            elif is_material(prim):
+            elif is_material_prototype(prim):
                 # Get shader from material
                 selection.add(str(omni.usd.get_shader_from_material(prim, True).GetPath()))
 

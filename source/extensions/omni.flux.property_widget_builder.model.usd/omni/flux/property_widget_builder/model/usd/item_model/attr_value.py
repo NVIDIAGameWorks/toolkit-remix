@@ -257,7 +257,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
                         self._value = value  # we can set directly from the _get_attribute_value value
                         value_was_set = True
                 else:
-                    if last_value is not None and last_value != value:
+                    if last_value != value:
                         is_mixed = True
                 values_read += 1
                 self._values.append(value)

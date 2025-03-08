@@ -1,6 +1,6 @@
 # Lighting
 
-Lighting allows you to adjust global lighting intensity and other parameters, as well as go deep under the hood of two of the core lighting algorithms used by the Remix Path Tracing renderer: RTXDI and Restir GI. You can read more about each technology.  
+Lighting allows you to adjust global lighting intensity and other parameters, as well as go deep under the hood of two of the core lighting algorithms used by the Remix Path Tracing renderer: RTXDI and Restir GI. You can read more about each technology.
 
 
 ![Lighting](../../data/images/rtxremix_029.png)
@@ -471,4 +471,4 @@ Note that fog remapping and fog max distance remapping must be enabled for this 
 </table>
 
 ***
-<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

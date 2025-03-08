@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0]
+## Changed
+- rename trex prim utility names for clarity
+- Added support for optional properties on light prims
+
 ## [1.1.12]
 ## Changed
 - Update to Kit 106.5

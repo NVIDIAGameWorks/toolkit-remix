@@ -21,7 +21,7 @@ from typing import Iterable
 
 from lightspeed.common import constants
 from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
-from lightspeed.trex.utils.common.prim_utils import is_model as _is_model
+from lightspeed.trex.utils.common.prim_utils import is_mesh_prototype as _is_mesh_prototype
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsDelegate as _VirtualGroupsDelegate
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsItem as _VirtualGroupsItem
@@ -54,7 +54,7 @@ class MeshGroupsModel(_VirtualGroupsModel):
         for item in items:
             if _is_instance(item.data):
                 instance_items.append(item)
-            if _is_model(item.data):
+            if _is_mesh_prototype(item.data):
                 # Display name should be the mesh_HASH prim instead of "mesh", otherwise keep the original name
                 item_path = item.data.GetPath()
                 tree_items[str(item.data.GetPath())] = MeshGroupsItem(

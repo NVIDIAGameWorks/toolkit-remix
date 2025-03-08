@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3770: Added a Materials Tab for the Stage Manager
 - REMIX-3832: Added a new material api extension to omni.flux
 - REMIX-3904: Added packaging documentation
+- Added SSS material support
+- Added slider widget for material attribute subsurface_diffusion_profile
+- REMIX-3725: Added support for optional properties on light prims
+- Added SSS radius texture: updated hdremix and MDL material definition
 
 ### Changed
 - REMIX-3831: Updated kit version to 106.5.0
@@ -53,6 +57,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3832: Update material property widget to work with virtual attributes
 - Upgraded the AI Tools PyTorch Version
 - REMIX-3904: Improved mod packaging flow by adding a window to fix unresolved assets
+- Updated hdremix to 873426e, added params for supporting diffusion profile and transmission of subsurface scattering
+- Updated hdremix to 9e5efd6, fixed NaN issue in SSS
+- Update MDL Material to change the range of SSS Scale from 0-65504 to 0-1000
+- Updated hdremix binaries to use the latest remix-2025 branch of dxvk-remix
+- Updated hdremix to 13b89c8, volumetric influence fix
+- Updated hdremix to 3c38541 and omni_core_materials to 16
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs
@@ -73,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3888: Fixed layer panel not refreshing after unloading stage + more fixes
 - REMIX-3832: Fix display of "display out" and other material attributes that shouldn't be hidden
 - REMIX-3870: Fixed ingestion bug for drag and drop
+- Tooltips on properties from USD schema now include the documentation string from the schema.
 
 ### Removed
 
@@ -116,7 +127,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3600: Selection panel behavior improvements and fixes
 - REMIX-3576: Implement auto scroll to selection behavior for Stage Manager
 - REMIX-3537: Added a "Focus in Viewport" widget plugin for Stage Manager
-
 
 ### Changed
 - Updated runtime to 0.6.0

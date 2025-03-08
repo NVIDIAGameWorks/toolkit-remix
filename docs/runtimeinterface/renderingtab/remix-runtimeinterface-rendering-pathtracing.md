@@ -65,7 +65,7 @@ This affects how many Decals, Ray Portals and potentially particles (if unordere
    </td>
    <td>32
    </td>
-   <td>The maximum number of resolver interactions to use for PSR (primary surface replacement G-Buffer) rays.  This affects how many Decals, Ray Portals and potentially particles (if unordered approximations are not enabled) may be interacted with along a ray at the cost of performance for higher amounts of interactions. 
+   <td>The maximum number of resolver interactions to use for PSR (primary surface replacement G-Buffer) rays.  This affects how many Decals, Ray Portals and potentially particles (if unordered approximations are not enabled) may be interacted with along a ray at the cost of performance for higher amounts of interactions.
    </td>
   </tr>
   <tr>
@@ -1105,4 +1105,4 @@ Any micro triangles requiring more texel taps will be tagged as Opaque Unknown.
 </table>
 
 ***
-<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

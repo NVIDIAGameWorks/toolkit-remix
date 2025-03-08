@@ -15,22 +15,24 @@
 * limitations under the License.
 """
 
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import omni.kit
 import omni.ui as ui
 import omni.usd
+from omni.flux.property_widget_builder.model.usd import USDAttributeDef as _USDAttributeDef
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
 from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
 from omni.flux.property_widget_builder.model.usd import USDPropertyWidget as _PropertyWidget
+from omni.flux.property_widget_builder.model.usd import VirtualUSDAttributeItem as _VirtualUSDAttributeItem
 from omni.flux.property_widget_builder.model.usd import get_usd_listener_instance as _get_usd_listener_instance
 from omni.flux.property_widget_builder.widget import FieldBuilder as _FieldBuilder
 from omni.flux.property_widget_builder.widget import ItemGroup as _ItemGroup
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from pxr import Sdf
+from pxr import Sdf, Usd
 
 
 class PropertyWidget:
@@ -40,6 +42,7 @@ class PropertyWidget:
         lookup_table: Dict[str, Dict[str, str]] = None,
         specific_attributes: List[str] = None,
         field_builders: list[_FieldBuilder] | None = None,
+        optional_attributes: list[tuple[Callable[[Usd.Prim], bool], Dict[str, any]]] = None,
     ):
         """
         Property tree that show USD attributes
@@ -50,6 +53,10 @@ class PropertyWidget:
                 {"inputs:diffuse_color_constant": {"name": "Base Color", "group": "Albedo"}}
             specific_attributes: list of exclusive attributes that we want to show
             field_builders (List[_FieldBuilder])
+            optional_attributes: extra attributes that can be created on light prims.
+                List of (test_func, dictionary) Tuples.
+                Test_func takes a prim and returns a bool,
+                Dictionaries should contain name, token, type, and default value.
         """
 
         self._default_attr = {
@@ -58,6 +65,7 @@ class PropertyWidget:
             "_lookup_table": None,
             "_specific_attributes": None,
             "_root_frame": None,
+            "_optional_attributes": None,
             "_property_widget": None,
             "_property_model": None,
             "_property_delegate": None,
@@ -72,6 +80,7 @@ class PropertyWidget:
         self._context = omni.usd.get_context(context_name)
         self._lookup_table = lookup_table or {}
         self._specific_attributes = specific_attributes
+        self._optional_attributes = optional_attributes
 
         self.__usd_listener_instance = _get_usd_listener_instance()
 
@@ -129,14 +138,17 @@ class PropertyWidget:
             self.__usd_listener_instance.remove_model(self._property_model)  # noqa PLE0203
 
         stage = self._context.get_stage()
-        items = []
+        items: list[_USDAttributeItem | _VirtualUSDAttributeItem | _ItemGroup] = []
         valid_paths = []
 
         if stage is not None:
             prims = [stage.GetPrimAtPath(path) for path in self._paths]
 
             group_items = {}
-            attrs_added = {}
+            attrs_added: dict[str, list[Usd.Attribute | _USDAttributeDef]] = {}
+            optional_attribute_names = {
+                attr_dict["token"] for test_func, attr_dict in (self._optional_attributes or [])
+            }
             # pre-pass to check valid prims with the attribute
             for prim in prims:
                 if not prim.IsValid():
@@ -147,7 +159,22 @@ class PropertyWidget:
                     attr_name = attr.GetName()
                     if self._specific_attributes is not None and attr_name not in self._specific_attributes:
                         continue
+                    if self._optional_attributes is not None and attr_name in optional_attribute_names:
+                        continue  # skip, we will handle optional attributes in the next loop
                     attrs_added.setdefault(attr_name, []).append(attr)
+
+                if self._optional_attributes is not None:
+                    for test_func, attr_dict in self._optional_attributes:
+                        attr_name = attr_dict["token"]
+                        if test_func(prim):
+                            attr_def = _USDAttributeDef(
+                                path=prim.GetPath().AppendProperty(attr_dict["token"]),
+                                attr_type=attr_dict["type"],
+                                value=attr_dict["default_value"],
+                                documentation=attr_dict.get("documentation"),
+                                display_group=attr_dict.get("display_group"),
+                            )
+                            attrs_added.setdefault(attr_name, []).append(attr_def)
 
             num_prims = len(valid_paths)
             if num_prims > 1:
@@ -157,33 +184,57 @@ class PropertyWidget:
             for attr_name, attrs in attrs_added.items():
                 if 1 < len(attrs) != num_prims:
                     continue
+
                 attr = attrs[0]
 
+                display_name = None
+                if isinstance(attr, Usd.Attribute):
+                    attribute_metadata_docs = attr.GetMetadata(Sdf.PropertySpec.DocumentationKey)
+                    display_name = attr.GetMetadata(Sdf.PropertySpec.DisplayNameKey)
+                    group_name = attr.GetDisplayGroup()
+                elif isinstance(attr, _USDAttributeDef):
+                    attribute_metadata_docs = attr.documentation
+                    group_name = attr.display_group
+                else:
+                    raise ValueError("Invalid type.")
+
                 display_attr_names = [attr_name]
-                display_read_only = False
-                display_name = attr.GetMetadata(Sdf.PropertySpec.DisplayNameKey)
                 if display_name:
                     display_attr_names = [display_name]
+                display_read_only = False
                 if attr_name in self._lookup_table:
                     display_attr_names = [self._lookup_table[attr_name]["name"]]
                     display_read_only = self._lookup_table[attr_name].get("read_only", False)
+                    group_name = self._lookup_table[attr_name].get("group")
 
-                attr_item = _USDAttributeItem(
-                    self._context_name,
-                    [attr_.GetPath() for attr_ in attrs],
-                    read_only=display_read_only,
-                    display_attr_names=display_attr_names,
-                )
+                display_attr_names_tooltips = [attr_name]
+                if attribute_metadata_docs is not None:
+                    documentation = attr_name + ":\n" + attribute_metadata_docs
+                    if documentation:
+                        display_attr_names_tooltips = [documentation]
 
-                attr_display_group = attr.GetDisplayGroup()
-                group_name = None
-                if attr_display_group and attr_name not in self._lookup_table:
-                    group_name = attr_display_group
-                # if this is in the lookup table, we override
-                elif attr_name in self._lookup_table:
-                    group_name = self._lookup_table[attr_name]["group"]
+                if isinstance(attr, Usd.Attribute):
+                    attr_item = _USDAttributeItem(
+                        self._context_name,
+                        [attr_.GetPath() for attr_ in attrs],
+                        read_only=display_read_only,
+                        display_attr_names=display_attr_names,
+                        display_attr_names_tooltip=display_attr_names_tooltips,
+                    )
+                elif isinstance(attr, _USDAttributeDef):
+                    attr_item = _VirtualUSDAttributeItem(
+                        self._context_name,
+                        [attr_def_.path for attr_def_ in attrs],
+                        value_type_name=attr.attr_type,
+                        default_value=attr.value,
+                        read_only=display_read_only,
+                        display_attr_names=display_attr_names,
+                        display_attr_names_tooltip=display_attr_names_tooltips,
+                    )
+                else:
+                    raise ValueError("Invalid type.")
 
-                if group_name is not None:
+                if group_name:
                     if group_name not in group_items:
                         group = _ItemGroup(group_name)
                         group_items[group_name] = group

@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.5]
+## Changed
+- Increase delay time to fix flaky test
+
 ## [1.3.4]
 ## Changed
 - Update to Kit 106.5

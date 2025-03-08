@@ -44,3 +44,4 @@ MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name(
 MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name(
     "inputs:subsurface_volumetric_anisotropy", USDFloatSliderField(-0.9900000095367432, 0.9900000095367432)
 )
+MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:subsurface_radius_scale", USDFloatSliderField(0.0, 16.0))

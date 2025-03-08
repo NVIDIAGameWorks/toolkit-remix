@@ -291,7 +291,7 @@ You can use the Debug Search Menu to type in the Debug setting that you would li
   <tr>
    <td>Cone Radius
    </td>
-   <td>The path of a ray of light as it extends from the camera into the scene and helps determine which objects or surfaces in the 3D environment the ray intersects with. 
+   <td>The path of a ray of light as it extends from the camera into the scene and helps determine which objects or surfaces in the 3D environment the ray intersects with.
    </td>
   </tr>
   <tr>
@@ -321,7 +321,7 @@ You can use the Debug Search Menu to type in the Debug setting that you would li
   <tr>
    <td>Triangle Normal
    </td>
-   <td>These normals help determine how light rays are reflected or refracted off the triangle's surface, affecting the appearance of the triangle in the rendered image. 
+   <td>These normals help determine how light rays are reflected or refracted off the triangle's surface, affecting the appearance of the triangle in the rendered image.
    </td>
   </tr>
   <tr>
@@ -933,4 +933,4 @@ You can use the Debug Search Menu to type in the Debug setting that you would li
 </table>
 
 ***
-<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) <sub>
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>
