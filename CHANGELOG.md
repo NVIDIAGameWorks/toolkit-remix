@@ -64,6 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated hdremix to 13b89c8, volumetric influence fix
 - Updated hdremix to 3c38541 and omni_core_materials to 16
 - Centered UAC dialog + Added Show Logs on home screen
+- REMIX-3989: Enable the Stage Manager by default
+- REMIX-3989: Rename Experimental Features to Optional Features
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs

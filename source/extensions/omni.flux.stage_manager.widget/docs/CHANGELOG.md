@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+## Changed
+- Removed Experimental Feature label
+
 ## [1.4.7]
 ## Changed
 - Update to Kit 106.5

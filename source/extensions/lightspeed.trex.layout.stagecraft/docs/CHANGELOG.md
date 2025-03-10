@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.0]
+## Changed
+- Enable the Stage Manager by default
+
 ## [2.2.1]
 ## Changed
 - Update to Kit 106.5

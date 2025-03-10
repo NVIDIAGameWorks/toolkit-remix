@@ -225,7 +225,7 @@ class SetupUI:
                 triggered_fn=self._show_preferences_window,
             )
             ui.MenuItem(
-                "Experimental Features",
+                "Optional Features",
                 identifier="feature_flags",
                 triggered_fn=self._show_feature_flags,
             )
