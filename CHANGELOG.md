@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated hdremix binaries to use the latest remix-2025 branch of dxvk-remix
 - Updated hdremix to 13b89c8, volumetric influence fix
 - Updated hdremix to 3c38541 and omni_core_materials to 16
+- Centered UAC dialog + Added Show Logs on home screen
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs
