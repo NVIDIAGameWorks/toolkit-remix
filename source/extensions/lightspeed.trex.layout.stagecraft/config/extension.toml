@@ -1,5 +1,5 @@
 [package]
-version = "2.2.1"
+version = "2.3.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix layout for the StageCraft"
 description = "Layout for NVIDIA RTX Remix StageCraft App"
@@ -38,7 +38,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 [settings.exts."omni.flux.feature_flags.core".flags.stage_manager]
 display_name = "Stage Manager"
 tooltip = "Enable or Disable the Stage Manager panel from the 'Modding' tab"
-value = false
+value = true
 
 [[python.module]]
 name = "lightspeed.trex.layout.stagecraft"
