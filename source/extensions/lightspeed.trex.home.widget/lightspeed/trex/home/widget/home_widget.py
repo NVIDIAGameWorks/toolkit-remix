@@ -101,6 +101,7 @@ class HomePageWidget:
             ("Community", partial(self._open_url, constants.COMMUNITY_SUPPORT_URL)),
             ("GitHub", partial(self._open_url, constants.GITHUB_URL)),
             ("Report an Issue", partial(self._open_url, constants.REPORT_ISSUE_URL)),
+            ("Show Logs", self._show_logs),
         ]
 
     def set_resume_enabled(self, enabled: bool):
@@ -296,6 +297,21 @@ class HomePageWidget:
                 ui.Spacer()
 
         return button
+
+    def _show_logs(self, x: float, y: float, b: int, m: int):
+        """
+        A callback to show the credits window when the left mouse button is clicked.
+
+        Args:
+            x: The mouse x position
+            y: The mouse y position
+            b: The mouse button
+            m: The mouse modifier
+        """
+        if b != 0:
+            return
+
+        open_file_using_os_default(carb.tokens.get_tokens_interface().resolve("${logs}"))
 
     def _show_credits(self, x: float, y: float, b: int, m: int):
         """

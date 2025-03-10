@@ -31,7 +31,7 @@ from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWiz
 from lightspeed.trex.project_wizard.open_project_page.widget import WizardOpenProjectPage as _WizardOpenProjectPage
 from lightspeed.trex.project_wizard.start_page.widget import WizardStartPage as _WizardStartPage
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
-from omni import ui
+from omni import ui, usd
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -67,7 +67,9 @@ class ProjectWizardBase(abc.ABC):
             | ui.WINDOW_FLAGS_NO_RESIZE,
         )
 
-        self._wizard_completed_sub = self._wizard_window.widget.subscribe_wizard_completed(self._on_wizard_completed)
+        self._wizard_completed_sub = self._wizard_window.widget.subscribe_wizard_completed(
+            lambda payload: asyncio.ensure_future(self._on_wizard_completed(payload))
+        )
 
         self.__on_wizard_completed = _Event()
 
@@ -90,7 +92,9 @@ class ProjectWizardBase(abc.ABC):
     def context_name(self) -> str:
         return self._context_name
 
-    def _on_wizard_completed(self, payload: Dict):
+    @usd.handle_exception
+    async def _on_wizard_completed(self, payload: Dict):
+        @usd.handle_exception
         async def _setup_project():
             success, error = await self._wizard_core.setup_project_async(payload)
             self._on_setup_completed(payload, success, error)
@@ -107,6 +111,8 @@ class ProjectWizardBase(abc.ABC):
             )
             and not force_junction
         ):
+            await omni.kit.app.get_app().next_update_async()
+
             _TrexMessageDialog(
                 title="Elevated Privileges Required",
                 message=(
@@ -118,7 +124,7 @@ class ProjectWizardBase(abc.ABC):
                 ok_handler=partial(asyncio.ensure_future, _setup_project()),
             )
         else:
-            asyncio.ensure_future(_setup_project())
+            await _setup_project()
 
     def _on_setup_completed(self, payload: Dict, success: bool, error: Optional[str]):
         if not success:
