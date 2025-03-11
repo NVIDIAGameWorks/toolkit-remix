@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.6.0]
+### Added
+- Added `sort_items()` to `StageManagerTreeModel`
+- Exposed `display_name_ancestor` as a property for `StageManagerTreeItem`
+
 ## [3.5.1]
 ## Changed
 - Update to Kit 106.5

@@ -83,6 +83,13 @@ class StageManagerTreeItem(_TreeItemBase):
         return self._display_name
 
     @property
+    def display_name_ancestor(self) -> str:
+        """
+        The display name of the item's ancestor. Can be used for sorting
+        """
+        return self._display_name_ancestor
+
+    @property
     def tooltip(self) -> str:
         """
         The tooltip displayed when hovering the item. Can be used by the widgets
@@ -292,6 +299,15 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         Clear the context filter predicates that can be used by the model if required
         """
         self._context_predicates.clear()
+
+    def sort_items(self, items, sort_children: bool = True):
+        """
+        Sort the tree items in alphabetical order
+        """
+        items.sort(key=lambda x: (x.display_name, x.display_name_ancestor or ""))
+        if sort_children:
+            for item in items:
+                self.sort_items(item.children)
 
     def _build_items(self, items: Iterable[_StageManagerItem]) -> list[StageManagerTreeItem] | None:
         """

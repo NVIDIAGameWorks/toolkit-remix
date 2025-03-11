@@ -86,7 +86,11 @@ class MaterialGroupsModel(_VirtualGroupsModel):
                         )
                     )
 
-        return list(tree_items.values())
+        # Sort the items alphabetically (both parents and children)
+        sorted_tree_items = list(tree_items.values())
+        self.sort_items(sorted_tree_items)
+
+        return sorted_tree_items
 
 
 class MaterialGroupsDelegate(_VirtualGroupsDelegate):

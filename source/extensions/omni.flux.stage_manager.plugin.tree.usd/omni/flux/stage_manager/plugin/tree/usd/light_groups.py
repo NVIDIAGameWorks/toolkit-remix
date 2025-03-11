@@ -123,8 +123,11 @@ class LightGroupsModel(_VirtualGroupsModel):
                 )
             )
 
-        # Filter out empty groups
-        return [item for item in tree_items.values() if item.children]
+        # Filter out empty groups and sort the items alphabetically (both parents and children)
+        filtered_items = [item for item in tree_items.values() if item.children]
+        self.sort_items(filtered_items)
+
+        return filtered_items
 
 
 class LightGroupsDelegate(_VirtualGroupsDelegate):

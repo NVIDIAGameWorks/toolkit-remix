@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added slider widget for material attribute subsurface_diffusion_profile
 - REMIX-3725: Added support for optional properties on light prims
 - Added SSS radius texture: updated hdremix and MDL material definition
+- REMIX-3992: Added alphabetical sorting for the Stage Manager parent items
 
 ### Changed
 - REMIX-3831: Updated kit version to 106.5.0

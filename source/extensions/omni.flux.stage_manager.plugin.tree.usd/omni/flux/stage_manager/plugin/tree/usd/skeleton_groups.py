@@ -175,6 +175,9 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
         if orphan_group:
             tree_items.append(orphan_group)
 
+        # Sort the parent items alphabetically
+        self.sort_items(tree_items, sort_children=False)
+
         return tree_items
 
     def _build_item(self, item: _StageManagerItem) -> SkeletonTreeItem:

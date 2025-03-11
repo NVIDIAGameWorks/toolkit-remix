@@ -1,6 +1,9 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.11.0]
+- Added alphabetical sorting for the tree items
+
 ## [1.10.0]
 - Added `MaterialGroupsTreePlugin` plugin
 - Added matching `MaterialGroupsItem`, `MaterialGroupsModel`, `MaterialGroupsDelegate` classes
