@@ -68,9 +68,6 @@ class CustomTagGroupsModel(_VirtualGroupsModel):
         if not tree_items:
             return tree_items
 
-        # Sort the tags alphabetically
-        tree_items = sorted(tree_items, key=lambda x: x.display_name)
-
         # Get unique item names
         item_names = _StageManagerUtils.get_unique_names(items)
 
@@ -88,6 +85,9 @@ class CustomTagGroupsModel(_VirtualGroupsModel):
                 group_item.add_child(
                     CustomTagGroupsItem(item_name, item.data, tooltip=str(prim_path), display_name_ancestor=parent_name)
                 )
+
+        # Sort the items alphabetically (both parents and children)
+        self.sort_items(tree_items)
 
         return tree_items
 
