@@ -62,7 +62,7 @@ class ColorField(AbstractField):
         # Used to supress redundant change events.
         self._ignore_value_change_events = False
 
-    def build_ui(self, item) -> list[ui.Widget]:
+    def build_ui(self, item) -> list[ui.Widget]:  # noqa PLW0221
 
         if len(item.value_models) != 1:
             raise ValueError("Expected 1 value_model that holds the vector values")

@@ -19,6 +19,7 @@ import re
 from enum import Enum, IntEnum
 from pathlib import Path
 
+from omni import ui
 from pxr import Sdf
 
 from .texture_info import CompressionFormat, TextureInfo
@@ -494,6 +495,8 @@ REMIX_OPTIONAL_LIGHT_ATTRIBUTES = [
         + "Not physically accurate.",
     },
 ]
+
+PROPERTIES_NAMES_COLUMN_WIDTH = ui.Pixel(270)
 
 
 # This should match the `normalmap_encoding` in AperturePBR_normal.mdl

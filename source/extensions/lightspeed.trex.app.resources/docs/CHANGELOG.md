@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.3]
+## Fixed
+- Fixed the Mixed icon to be colorable in the styles
+
 ## [1.15.2]
 ## Fixed
 - Added prim path that should be ignored in the Stage Manager schema

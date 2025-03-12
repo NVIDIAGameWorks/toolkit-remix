@@ -56,6 +56,8 @@ class MaterialPropertyWidget:
         self,
         context_name: str,
         tree_column_widths: Optional[List[ui.Length]] = None,
+        columns_resizable: bool = False,
+        right_aligned_labels: bool = True,
         lookup_table: Optional[Dict[str, Dict[str, str]]] = None,
         create_color_space_attributes: bool = True,
         field_builders: list[_FieldBuilder] | None = None,
@@ -64,6 +66,8 @@ class MaterialPropertyWidget:
         Args:
             context_name (str)
             tree_column_widths (Optional[List[ui.Length]])
+            columns_resizable (bool): Whether the columns are resizable
+            right_aligned_labels (bool): Whether the labels are right aligned or left aligned
             lookup_table (Optional[Dict[str, Dict[str, str]]]): Table used to override display name or group for
                 attributes.
             create_color_space_attributes (bool)
@@ -77,6 +81,8 @@ class MaterialPropertyWidget:
             "_property_model": None,
             "_property_delegate": None,
             "_tree_column_widths": None,
+            "_columns_resizable": None,
+            "_right_aligned_labels": None,
             "_lookup_table": None,
             "_paths": None,
         }
@@ -88,6 +94,8 @@ class MaterialPropertyWidget:
         self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
         self._tree_column_widths = tree_column_widths
+        self._columns_resizable = columns_resizable
+        self._right_aligned_labels = right_aligned_labels
 
         self.__usd_listener_instance = _get_usd_listener_instance()
 
@@ -116,7 +124,9 @@ class MaterialPropertyWidget:
 
     def __create_ui(self, field_builders: list[_FieldBuilder] | None = None):
         self._property_model = _USDPropertyModel(self._context_name)
-        self._property_delegate = _USDPropertyDelegate(field_builders=field_builders)
+        self._property_delegate = _USDPropertyDelegate(
+            field_builders=field_builders, right_aligned_labels=self._right_aligned_labels
+        )
         self._root_frame = ui.Frame()
         with self._root_frame:
             self._property_widget = _PropertyWidget(
@@ -124,6 +134,7 @@ class MaterialPropertyWidget:
                 model=self._property_model,
                 delegate=self._property_delegate,
                 tree_column_widths=self._tree_column_widths,
+                columns_resizable=self._columns_resizable,
                 refresh_callback=self.refresh,
             )
 

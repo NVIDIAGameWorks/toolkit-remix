@@ -36,6 +36,7 @@ class PropertyWidget:
         model: Optional[Model] = None,
         delegate: Optional[Delegate] = None,
         tree_column_widths: List[ui.Length] = None,
+        columns_resizable: bool = False,
     ):
         """
         Property widget displaying attribute names and values in a tree structure
@@ -48,6 +49,7 @@ class PropertyWidget:
             "_model": None,
             "_delegate": None,
             "_tree_column_widths": None,
+            "_columns_resizable": None,
             "_update_task": None,
             "_expansion_state": None,
             "_on_item_expanded_sub": None,
@@ -60,6 +62,7 @@ class PropertyWidget:
         self._model = Model() if model is None else model
         self._delegate = Delegate() if delegate is None else delegate
         self._tree_column_widths = tree_column_widths
+        self._columns_resizable = columns_resizable
 
         self._update_task = None
         self._expansion_state = {}
@@ -80,12 +83,11 @@ class PropertyWidget:
             self._delegate,
             root_visible=False,
             header_visible=False,
-            column_widths=([ui.Percent(30)] if self._tree_column_widths is None else self._tree_column_widths),
-            # It would be great to use min_column_widths here to start the label columns out at a reasonable size
-            # and then have them expand slowly but min doesn't work properly: it will lock the width to this pixel
-            # length and not expand.
-            # min_column_widths=[ui.Pixel(210)],
-            # columns_resizable=True,  # causes crash when resizing! Bug: OMPE-22477
+            column_widths=(
+                [ui.Percent(30), ui.Fraction(1)] if self._tree_column_widths is None else self._tree_column_widths
+            ),
+            min_column_widths=[ui.Pixel(100), ui.Pixel(100)],
+            columns_resizable=self._columns_resizable,
             name="PropertyWidget",
         )
 

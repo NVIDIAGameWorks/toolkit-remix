@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.21]
+## Changed
+- Set the column widths and allow resizing
+
 ## [1.3.20]
 ## Changed
 - added mdl file display label

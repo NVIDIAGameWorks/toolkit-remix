@@ -34,7 +34,7 @@ class DefaultLabelField(AbstractField):
         super().__init__(style_name=style_name, identifier=identifier)
         self.widget_type_name = widget_type_name
 
-    def build_ui(self, item) -> list[ui.Widget]:
+    def build_ui(self, item) -> list[ui.Widget]:  # noqa PLW0221
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer(height=ui.Pixel(4))
             with ui.HStack(width=ui.Percent(60), height=ui.Pixel(16)):
@@ -53,7 +53,7 @@ class DefaultLabelField(AbstractField):
 
 
 class NameField(AbstractField):
-    def _create_attribute_name_build_fn(self, item):
+    def _create_attribute_name_build_fn(self, item, right_aligned):
         from omni.flux.property_widget_builder.widget import ItemGroup
 
         widgets = []
@@ -61,7 +61,7 @@ class NameField(AbstractField):
             with ui.VStack(height=ui.Pixel(24)):
                 ui.Spacer(height=ui.Pixel(4))
                 with ui.HStack(height=ui.Pixel(16)):
-                    if not isinstance(item, ItemGroup):
+                    if not isinstance(item, ItemGroup) and right_aligned:
                         ui.Spacer()
                     for name_model in item.name_models:
                         value = name_model.get_value_as_string()
@@ -77,10 +77,10 @@ class NameField(AbstractField):
             if isinstance(item, ItemGroup):
                 ui.Spacer(height=0)
 
-    def build_ui(self, item):
+    def build_ui(self, item, right_aligned: bool = True):  # noqa PLW0221
         stack = ui.VStack()
         with stack:
             frame = ui.Frame()
-            frame.set_build_fn(functools.partial(self._create_attribute_name_build_fn, item))
+            frame.set_build_fn(functools.partial(self._create_attribute_name_build_fn, item, right_aligned))
             ui.Spacer(width=0)
         return [stack]

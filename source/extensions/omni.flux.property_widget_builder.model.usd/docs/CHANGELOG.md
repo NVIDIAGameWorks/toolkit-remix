@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.18.0]
+## Added
+- Added the ability to left-align property names
+
 ## [2.17.1]
 ## Fixed
 - Virtual attr should display default until they are set

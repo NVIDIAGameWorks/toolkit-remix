@@ -28,6 +28,7 @@ import carb
 import omni.client
 import omni.kit.app
 from lightspeed.common import constants as _constants
+from lightspeed.common.constants import PROPERTIES_NAMES_COLUMN_WIDTH
 from lightspeed.tool.material.core import ToolMaterialCore as _ToolMaterialCore
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.asset_replacements.core.shared.usd_copier import copy_non_usd_asset as _copy_non_usd_asset
@@ -225,6 +226,9 @@ class SetupUI:
 
                     self._material_properties_widget = _MaterialPropertyWidget(
                         self._context_name,
+                        tree_column_widths=[PROPERTIES_NAMES_COLUMN_WIDTH, ui.Fraction(1)],
+                        columns_resizable=True,
+                        right_aligned_labels=False,
                         create_color_space_attributes=False,
                         field_builders=self.get_custom_field_builders(),
                     )

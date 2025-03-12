@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.0]
+### Added
+- Added the ability to resize columns
+- Added the ability to set column widths
+- Added the ability to left-align property names
+
 ## [2.6.2]
 ### Added
 - Add support for editing multiple prims at once

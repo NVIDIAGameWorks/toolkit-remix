@@ -67,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Centered UAC dialog + Added Show Logs on home screen
 - REMIX-3989: Enable the Stage Manager by default
 - REMIX-3989: Rename Experimental Features to Optional Features
+- Modified the property trees throughout the app to make more efficient use of space
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs

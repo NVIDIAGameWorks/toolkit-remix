@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+## Added
+- Added the ability to left-align property names
+
 ## [1.4.4]
 ## Changed
 - Update to Kit 106.5

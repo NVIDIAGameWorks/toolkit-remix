@@ -44,8 +44,7 @@ class FileDelegate(_Delegate):
         if item is None:
             return None
         if column_id == 0:
-            builder = NameField()
-            return builder.build_ui(item)
+            return NameField()(item, right_aligned=self._right_aligned_labels)
 
         if column_id == 1:
             if item.attribute == "size":

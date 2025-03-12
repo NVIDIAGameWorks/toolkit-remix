@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0]
+### Added
+- Added the ability to left-align property names
+
 ## [1.7.1]
 ### Changed
 - Updated names after refactor of property_widget_builder

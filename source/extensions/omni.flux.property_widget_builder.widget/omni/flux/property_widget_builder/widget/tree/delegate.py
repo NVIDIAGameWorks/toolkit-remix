@@ -73,12 +73,14 @@ class FieldBuilderList(list[FieldBuilder]):
 class Delegate(_TreeDelegateBase):
     """Delegate of the tree"""
 
-    def __init__(self, field_builders: list[FieldBuilder] | None = None):
+    def __init__(self, field_builders: list[FieldBuilder] | None = None, right_aligned_labels: bool = True):
         super().__init__()
 
         self.field_builders = field_builders or []
         for field_builder in reversed(self._get_default_field_builders()):
             self.field_builders.insert(0, field_builder)
+
+        self._right_aligned_labels = right_aligned_labels
 
         self._name_widgets = {}
         self._subscriptions: list[carb.Subscription] = []
@@ -94,6 +96,7 @@ class Delegate(_TreeDelegateBase):
         default_attr.update(
             {
                 "field_builders": None,
+                "_right_aligned_labels": None,
                 "_name_widgets": None,
                 "_subscriptions": None,
                 "_context_menu": None,
@@ -149,12 +152,11 @@ class Delegate(_TreeDelegateBase):
         self, model: Model, item: Item, column_id: int, level: int, expanded: bool
     ) -> list[ui.Widget] | None:
         if column_id == 0:
-            builder = NameField()
+            widgets = NameField()(item, right_aligned=self._right_aligned_labels)
         elif column_id == 1:
-            builder = self.get_widget_builder(item, default=DefaultField(ui.StringField))
+            widgets = self.get_widget_builder(item, default=DefaultField(ui.StringField))(item)
         else:
             return None
-        widgets = builder(item)
         return widgets
 
     def _build_widget(self, model: Model, item: Item, column_id, level, expanded):

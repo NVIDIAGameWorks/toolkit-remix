@@ -41,11 +41,11 @@ class AbstractField(Generic[ItemT]):
         self.style_name = style_name
         self.identifier = identifier
 
-    def __call__(self, item: ItemT) -> ui.Widget | list[ui.Widget] | None:
-        return self.build_ui(item)
+    def __call__(self, item: ItemT, **kwargs) -> ui.Widget | list[ui.Widget] | None:
+        return self.build_ui(item, **kwargs)
 
     @abc.abstractmethod
-    def build_ui(self, item: ItemT) -> ui.Widget | list[ui.Widget] | None:
+    def build_ui(self, item: ItemT, **kwargs) -> ui.Widget | list[ui.Widget] | None:
         raise NotImplementedError
 
     @staticmethod
