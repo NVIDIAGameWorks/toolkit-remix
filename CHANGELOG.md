@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.0.0-rc1 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.0.0-rc1]
+
+### Added
 - Created 2024.5.1 build
 - REMIX-3399: Added Sentry metrics for unique users and app elapsed time
 - fixed permissions after moving gitlab CI files
@@ -34,7 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3992: Added alphabetical sorting for the Stage Manager parent items
 
 ### Changed
-- REMIX-3831: Updated kit version to 106.5.0
 - Updated hdremix to dd92d0f
 - REMIX-3640: Use Async Threaded Processing for Filtering of the Stage Manager items
 - Stage Manager: Add set_context_name() as a way to refresh plugins before building tree.
@@ -55,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed CI/CD stages to remove check-changelog from the start
 - REMIX-3894: Use scale instead of meters per unit for ingestion
 - REMIX-3896: Improve the Unload Stage (Close Project) button behavior
+- REMIX-3831: Updated kit version to 106.5.0
 - REMIX-3832: Update material property widget to work with virtual attributes
 - Upgraded the AI Tools PyTorch Version
 - REMIX-3904: Improved mod packaging flow by adding a window to fix unresolved assets
@@ -68,6 +79,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3989: Enable the Stage Manager by default
 - REMIX-3989: Rename Experimental Features to Optional Features
 - Modified the property trees throughout the app to make more efficient use of space
+- Updated hdremix to 30ccb8e
+- Updated runtime to 1.0.0
 
 ### Fixed
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs
@@ -91,8 +104,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tooltips on properties from USD schema now include the documentation string from the schema.
 - Fixed packman remote configuration for building from lspackages
 - Fixed initial display for virtual attributes like volumetric radiance scale before they are set.
-
-### Removed
 
 ## [2024.5.1]
 
