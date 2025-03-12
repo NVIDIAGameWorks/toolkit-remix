@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Created 1.0.0-rc1 build
+- Created 1.0.0 build
 
 ### Changed
 
@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-## [1.0.0-rc1]
+## [1.0.0]
 
 ### Added
 - Created 2024.5.1 build
@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3725: Added support for optional properties on light prims
 - Added SSS radius texture: updated hdremix and MDL material definition
 - REMIX-3992: Added alphabetical sorting for the Stage Manager parent items
+- Created 1.0.0-rc1 build
+- Added "Show Install Directory" entry to the home screen
 
 ### Changed
 - Updated hdremix to dd92d0f

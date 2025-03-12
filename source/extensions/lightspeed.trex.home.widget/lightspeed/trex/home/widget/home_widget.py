@@ -17,6 +17,7 @@
 
 __all__ = ["HomePageWidget"]
 
+import platform
 import webbrowser
 from functools import partial
 from typing import Any, Callable
@@ -27,6 +28,7 @@ from lightspeed.common import constants
 from omni import ui
 from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.utils.common import Event, EventSubscription, reset_default_attrs
+from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.common.path_utils import open_file_using_os_default
 from omni.flux.utils.widget.tree_widget import TreeWidget
 
@@ -34,6 +36,7 @@ from .recent_tree import RecentProjectDelegate, RecentProjectModel
 
 
 class HomePageWidget:
+    _TINY_SPACING = ui.Pixel(8)
     _SMALL_SPACING = ui.Pixel(12)
     _MEDIUM_SPACING = ui.Pixel(16)
     _LARGE_SPACING = ui.Pixel(48)
@@ -102,6 +105,7 @@ class HomePageWidget:
             ("GitHub", partial(self._open_url, constants.GITHUB_URL)),
             ("Report an Issue", partial(self._open_url, constants.REPORT_ISSUE_URL)),
             ("Show Logs", self._show_logs),
+            ("Show Install Directory", self._show_install_dir),
         ]
 
     def set_resume_enabled(self, enabled: bool):
@@ -216,7 +220,7 @@ class HomePageWidget:
                             ui.Spacer()
 
                             # URL Labels
-                            with ui.VStack(height=0, spacing=self._SMALL_SPACING):
+                            with ui.VStack(height=0, spacing=self._TINY_SPACING):
                                 for url_label in self._url_labels:
                                     text, callback = url_label
                                     ui.Label(text, mouse_pressed_fn=callback, name="FooterLabel")
@@ -300,7 +304,7 @@ class HomePageWidget:
 
     def _show_logs(self, x: float, y: float, b: int, m: int):
         """
-        A callback to show the credits window when the left mouse button is clicked.
+        A callback to open the logs directory when the left mouse button is clicked.
 
         Args:
             x: The mouse x position
@@ -312,6 +316,31 @@ class HomePageWidget:
             return
 
         open_file_using_os_default(carb.tokens.get_tokens_interface().resolve("${logs}"))
+
+    def _show_install_dir(self, x: float, y: float, b: int, m: int):
+        """
+        A callback to open the installation directory when the left mouse button is clicked.
+
+        Args:
+            x: The mouse x position
+            y: The mouse y position
+            b: The mouse button
+            m: The mouse modifier
+        """
+        if b != 0:
+            return
+
+        # <INSTALL_DIR>/apps
+        app_directory = carb.tokens.get_tokens_interface().resolve("${app}")
+        # lightspeed.trex.app
+        app_name = carb.tokens.get_tokens_interface().resolve("${app_filename}")
+        # .bat
+        extension = ".bat" if platform.system().lower() == "windows" else ".sh"
+
+        # <INSTALL_DIR>/lightspeed.trex.app.bat
+        complete_directory = str(OmniUrl(OmniUrl(app_directory).parent_url) / app_name) + extension
+
+        open_file_using_os_default(complete_directory)
 
     def _show_credits(self, x: float, y: float, b: int, m: int):
         """
