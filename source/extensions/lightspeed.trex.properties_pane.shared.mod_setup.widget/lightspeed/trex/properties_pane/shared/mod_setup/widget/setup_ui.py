@@ -65,6 +65,8 @@ class ModSetupPane:
     CAPTURE_MIN_GAME_ICON_SIZE = 48
     CAPTURE_MAX_GAME_ICON_SIZE = 96
 
+    PROPERTY_NAME_COLUMN_WIDTH = ui.Pixel(150)
+
     def __init__(self, context_name: str):
         """Nvidia StageCraft Components Pane"""
 
@@ -306,14 +308,12 @@ class ModSetupPane:
                                 with ui.VStack():
                                     ui.Spacer(height=ui.Pixel(8))
                                     with ui.HStack(height=ui.Pixel(24), spacing=ui.Pixel(8)):
-                                        with ui.HStack(width=ui.Percent(40)):
-                                            ui.Spacer()
-                                            ui.Label(
-                                                "Capture",
-                                                name="PropertiesWidgetLabel",
-                                                tooltip="Path of the capture",
-                                                width=0,
-                                            )
+                                        ui.Label(
+                                            "Capture Directory",
+                                            name="PropertiesWidgetLabel",
+                                            tooltip="Path of the capture",
+                                            width=0,
+                                        )
                                         with ui.HStack():
                                             ui.Spacer(width=ui.Pixel(4))
                                             with ui.ZStack():
@@ -497,15 +497,13 @@ class ModSetupPane:
                                     self._mod_file_frame = ui.Frame()
                                     with self._mod_file_frame:
                                         with ui.HStack():
-                                            with ui.HStack(width=ui.Percent(30)):
-                                                ui.Spacer()
-                                                ui.Label(
-                                                    "Current path",
-                                                    name="PropertiesWidgetLabel",
-                                                    tooltip="Path of the mod",
-                                                    width=0,
-                                                )
-                                                ui.Spacer(width=ui.Pixel(8))
+                                            ui.Label(
+                                                "Mod File Path",
+                                                name="PropertiesWidgetLabel",
+                                                tooltip="Path of the mod",
+                                                width=0,
+                                            )
+                                            ui.Spacer(width=ui.Pixel(8))
                                             with ui.HStack():
                                                 ui.Spacer(width=ui.Pixel(8))
                                                 self._mod_file_field = ui.StringField(
@@ -637,13 +635,18 @@ class ModSetupPane:
 
         self._mod_details_model = _FileModel(current_file)
         self._mod_details_model.set_items(items)
-        self._mod_details_delegate = _FileDelegate()
+        self._mod_details_delegate = _FileDelegate(right_aligned_labels=False)
         self.__file_listener_instance.add_model(self._mod_details_model)
 
         with self._mod_file_details_frame:
             with ui.VStack():
                 ui.Spacer(height=ui.Pixel(8))
-                self._mod_detail_property_widget = _PropertyWidget(self._mod_details_model, self._mod_details_delegate)
+                self._mod_detail_property_widget = _PropertyWidget(
+                    self._mod_details_model,
+                    self._mod_details_delegate,
+                    tree_column_widths=[self.PROPERTY_NAME_COLUMN_WIDTH, ui.Fraction(1)],
+                    columns_resizable=True,
+                )
 
     def _refresh_trees(self, *_):
         if self._capture_tree_view_window:
@@ -763,20 +766,21 @@ class ModSetupPane:
 
         self._capture_details_model = _FileModel(capture_path)
         self._capture_details_model.set_items(items)
-        self._capture_details_delegate = _FileDelegate()
+        self._capture_details_delegate = _FileDelegate(right_aligned_labels=False)
         self.__file_listener_instance.add_model(self._capture_details_model)
 
         with self._capture_details_frame:
             with ui.VStack():
                 ui.Spacer(height=ui.Pixel(8))
                 with ui.HStack(height=ui.Pixel(self.CAPTURE_MIN_GAME_ICON_SIZE)):
-                    with ui.HStack(width=ui.Percent(40)):
-                        ui.Spacer()
+                    with ui.HStack(width=self.PROPERTY_NAME_COLUMN_WIDTH):
+                        ui.Spacer(width=ui.Pixel(32))
                         game_icon_widget = ui.Image("", width=ui.Pixel(self.CAPTURE_MIN_GAME_ICON_SIZE))
                         await self._core_capture.deferred_get_upscaled_game_icon_from_folder(
                             os.path.dirname(capture_path), functools.partial(set_game_icon, game_icon_widget)
                         )
                         game_icon_widget.set_mouse_hovered_fn(functools.partial(on_game_icon_hovered, game_icon_widget))
+                        ui.Spacer()
                     with ui.VStack():
                         ui.Spacer()
                         with ui.HStack():
@@ -786,7 +790,10 @@ class ModSetupPane:
                         ui.Spacer()
                 ui.Spacer(height=ui.Pixel(8))
                 self._capture_detail_property_widget = _PropertyWidget(
-                    self._capture_details_model, self._capture_details_delegate
+                    self._capture_details_model,
+                    self._capture_details_delegate,
+                    tree_column_widths=[self.PROPERTY_NAME_COLUMN_WIDTH, ui.Fraction(1)],
+                    columns_resizable=True,
                 )
 
     @omni.usd.handle_exception

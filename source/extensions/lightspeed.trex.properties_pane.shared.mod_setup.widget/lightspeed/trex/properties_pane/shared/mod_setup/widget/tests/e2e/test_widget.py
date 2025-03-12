@@ -323,7 +323,10 @@ class TestModSetupWidget(AsyncTestCase):
 
             self.assertTrue(capture_window.widget.visible)
 
-            capture_dir_label = ui_test.find(f"{_window.title}//Frame/**/Label[*].text=='Capture'")
+            capture_dir_label = ui_test.find(f"{_window.title}//Frame/**/Label[*].text=='Capture Directory'")
+
+            self.assertIsNotNone(capture_dir_label)
+
             await ui_test.emulate_mouse_move_and_click(capture_dir_label.position)
             await ui_test.human_delay(5)
 

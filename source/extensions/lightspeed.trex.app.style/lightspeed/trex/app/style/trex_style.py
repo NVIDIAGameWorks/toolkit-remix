@@ -79,6 +79,8 @@ _WHITE_100 = 0xFFFFFFFF
 
 _YELLOW = 0xFF00FFFF
 
+_MIXED = 0xFF07B6FF
+
 _PALE_ORANGE_40 = 0x4D4682B4
 _PALE_ORANGE_60 = 0x994682B4
 _ORANGE = 0xFF00AEFF
@@ -382,7 +384,8 @@ current_dict.update(
         "Image::Frame": {"image_url": _get_icons("frame"), "color": _WHITE_60},
         "Image::Frame:hovered": {"image_url": _get_icons("frame"), "color": _WHITE_100},
         "Image::Bookmark": {"image_url": _get_icons("bookmark"), "color": _WHITE_80},
-        "Image::Mixed": {"image_url": _get_icons("mixed_checkbox"), "color": _WHITE_100},
+        "Image::MixedForceDisabled": {"image_url": _get_icons("mixed_checkbox"), "color": _GREY_70},
+        "Image::Mixed": {"image_url": _get_icons("mixed_checkbox"), "color": _MIXED},
         "Image::Nickname": {"image_url": _get_icons("nickname"), "color": _WHITE_60},
         "Image::Nickname:hovered": {"image_url": _get_icons("nickname"), "color": _WHITE_100},
         "Image::RemapSkeleton": {"image_url": _get_icons("remap"), "color": _WHITE_80},
@@ -410,6 +413,7 @@ current_dict.update(
         "Image::Layer:hovered": {"image_url": _get_icons("layers"), "color": _WHITE_100},
         "Image::LayerStatic": {"image_url": _get_icons("layers"), "color": _WHITE_60},
         "Image::LayerDisabled": {"image_url": _get_icons("layers"), "color": _WHITE_30},
+        "Image::MoreForceDisabled": {"image_url": _get_icons("ellipsis"), "color": _GREY_70},
         "Image::More": {"image_url": _get_icons("ellipsis"), "color": _WHITE_60},
         "Image::More:hovered": {"image_url": _get_icons("ellipsis"), "color": _WHITE_100},
         "Image::Hourglass": {"image_url": _get_icons("hourglass"), "color": _WHITE_100},
@@ -873,6 +877,7 @@ current_dict.update(
         },
         "Image::ActiveLayerBackground": {"image_url": _get_image("45deg-256x256-1px-2px-sp-black"), "color": _WHITE_60},
         "ScrollingFrame::ActiveLayerBackground": {"background_color": 0x6F9AAD09},
+        "OverrideIndicatorForceDisabled": {"background_color": _GREY_70, "border_width": 0},
         "OverrideIndicator": {"background_color": _BLUE_ACTION, "border_width": 0},
         "OverrideIndicator:hovered": {"background_color": 0xFFFFDE88},
         "OverrideBackground": {"background_color": _DARK_40},

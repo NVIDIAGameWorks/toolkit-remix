@@ -31,14 +31,13 @@ if TYPE_CHECKING:
 class USDPropertyWidget(_PropertyWidget):
     """Widget that let you build property widget(s) from any data"""
 
-    REFRESH_DELAY_SECONDS = 0.25
-
     def __init__(
         self,
         context_name: str = "",
         model: Optional["_Model"] = None,
         delegate: Optional["_Delegate"] = None,
         tree_column_widths: List[ui.Length] = None,
+        columns_resizable: bool = False,
         refresh_callback: Optional[Union[Callable[[], None], Callable[[], Awaitable[None]]]] = None,
     ):
         """
@@ -50,7 +49,9 @@ class USDPropertyWidget(_PropertyWidget):
             refresh_callback: callback to refresh the parent widget. IE: used to refresh the widgets on sublayer change.
         """
 
-        super().__init__(model=model, delegate=delegate, tree_column_widths=tree_column_widths)
+        super().__init__(
+            model=model, delegate=delegate, tree_column_widths=tree_column_widths, columns_resizable=columns_resizable
+        )
 
         self._default_attr = {
             "_context_name": None,

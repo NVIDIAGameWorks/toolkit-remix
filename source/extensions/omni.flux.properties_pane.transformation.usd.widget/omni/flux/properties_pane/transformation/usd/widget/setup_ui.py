@@ -51,6 +51,9 @@ class TransformPropertyWidget:
     def __init__(
         self,
         context_name: str,
+        tree_column_widths: List[ui.Length] = None,
+        columns_resizable: bool = False,
+        right_aligned_labels: bool = True,
         attr_display_names_table: Dict[UsdGeom.XformOp, List[str]] = None,
         virtual_xform_ops: List[List[Tuple[List[UsdGeom.XformOp], List[Any]]]] = None,
         field_builders: list[_FieldBuilder] | None = None,
@@ -60,6 +63,9 @@ class TransformPropertyWidget:
 
         Args:
             context_name: the usd context
+            tree_column_widths: the width of the columns in the tree
+            columns_resizable: if the columns are resizable
+            right_aligned_labels: if the labels are right aligned
             attr_display_names_table: dictionary that set custom display for transform attributes
             virtual_xform_ops: the virtual ops to create if missing.
                                - The top-level array is a list of XForm Groups (Translate, Rotation, Scale, etc.)
@@ -69,7 +75,11 @@ class TransformPropertyWidget:
         """
 
         self._default_attr = {
+            "_context_name": None,
             "_context": None,
+            "_tree_column_widths": None,
+            "_columns_resizable": None,
+            "_right_aligned_labels": None,
             "_root_frame": None,
             "_attr_display_names_table": None,
             "_property_widget": None,
@@ -92,6 +102,10 @@ class TransformPropertyWidget:
 
         self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
+
+        self._tree_column_widths = tree_column_widths
+        self._columns_resizable = columns_resizable
+        self._right_aligned_labels = right_aligned_labels
 
         self._paths = []
         self._virtual_ops = virtual_xform_ops or _DEFAULT_VIRTUAL_XFORM_OPS
@@ -117,7 +131,9 @@ class TransformPropertyWidget:
 
     def __create_ui(self, field_builders: list[_FieldBuilder] | None = None):
         self._property_model = _USDPropertyModel(self._context_name)
-        self._property_delegate = _USDPropertyDelegate(field_builders=field_builders)
+        self._property_delegate = _USDPropertyDelegate(
+            field_builders=field_builders, right_aligned_labels=self._right_aligned_labels
+        )
         self._root_frame = ui.Frame(height=0)
         with self._root_frame:
             self._property_widget = _PropertyWidget(
@@ -125,6 +141,8 @@ class TransformPropertyWidget:
                 model=self._property_model,
                 delegate=self._property_delegate,
                 refresh_callback=self.refresh,
+                tree_column_widths=self._tree_column_widths,
+                columns_resizable=self._columns_resizable,
             )
 
     def refresh(self, paths: Optional[List[Union[str, "Sdf.Path"]]] = None):

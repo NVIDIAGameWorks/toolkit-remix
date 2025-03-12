@@ -27,7 +27,7 @@ class MultilineField(AbstractField):
         super().__init__(style_name=style_name)
         self._line_count = line_count
 
-    def build_ui(self, item) -> list[ui.Widget]:
+    def build_ui(self, item) -> list[ui.Widget]:  # noqa PLW0221
         widgets = []
         with ui.HStack(height=ui.Pixel(20 * self._line_count)):
             for i in range(item.element_count):

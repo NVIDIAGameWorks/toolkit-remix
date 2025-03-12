@@ -38,7 +38,7 @@ class DefaultField(AbstractField):
         super().__init__(style_name=style_name, identifier=identifier)
         self.widget_type = widget_type
 
-    def build_ui(self, item) -> list[ui.Widget]:
+    def build_ui(self, item) -> list[ui.Widget]:  # noqa PLW0221
         widgets = []
         with ui.HStack(height=ui.Pixel(24)):
             for i in range(item.element_count):
@@ -73,7 +73,7 @@ class CreatorField(AbstractField):
         self._text = text
         self._clicked_callback = clicked_callback
 
-    def build_ui(self, item) -> list[ui.Widget]:
+    def build_ui(self, item) -> list[ui.Widget]:  # noqa PLW0221
         with ui.HStack(height=ui.Pixel(24)):
             ui.Spacer(width=ui.Pixel(8))
             with ui.VStack():

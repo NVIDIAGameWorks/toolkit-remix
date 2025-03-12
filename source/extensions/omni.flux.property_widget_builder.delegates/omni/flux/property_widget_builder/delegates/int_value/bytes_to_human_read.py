@@ -39,7 +39,7 @@ class BytesToHuman(AbstractField):
         s = round(size_bytes / p, 2)
         return f"{s} {size_name[i]}"
 
-    def build_ui(self, item) -> list[ui.Widget]:
+    def build_ui(self, item) -> list[ui.Widget]:  # noqa PLW0221
         widgets = []
 
         with ui.HStack(height=ui.Pixel(24)):

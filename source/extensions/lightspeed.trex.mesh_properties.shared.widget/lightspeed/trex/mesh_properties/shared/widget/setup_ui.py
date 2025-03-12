@@ -27,6 +27,7 @@ import omni.kit.app
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
+from lightspeed.common.constants import PROPERTIES_NAMES_COLUMN_WIDTH
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.asset_replacements.core.shared.usd_copier import copy_usd_asset as _copy_usd_asset
 from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemAsset as _ItemAsset
@@ -56,9 +57,6 @@ if typing.TYPE_CHECKING:
 
 
 class SetupUI:
-
-    COLUMN_0_WIDTH: ui.Length = ui.Percent(30)
-
     def __init__(self, context_name: str):
         """Mesh Properties Widget"""
 
@@ -231,13 +229,16 @@ class SetupUI:
             self._mesh_properties_frames[_ItemPrim] = self._frame_mesh_prim
             with self._frame_mesh_prim:
                 with ui.VStack():
-                    self._transformation_widget = _TransformPropertyWidget(self._context_name)
+                    self._transformation_widget = _TransformPropertyWidget(
+                        self._context_name,
+                        tree_column_widths=[PROPERTIES_NAMES_COLUMN_WIDTH, ui.Fraction(1)],
+                        columns_resizable=True,
+                        right_aligned_labels=False,
+                    )
 
                     self._object_property_spacer = ui.Spacer(height=ui.Pixel(8))
 
-                    with ui.HStack():
-                        ui.Spacer(height=0, width=self.COLUMN_0_WIDTH)
-                        self._object_property_line = ui.Line(name="PropertiesPaneSectionTitle")
+                    self._object_property_line = ui.Line(name="PropertiesPaneSectionTitle")
 
                     ui.Spacer(height=ui.Pixel(8))
 
@@ -249,25 +250,24 @@ class SetupUI:
                         optional_attributes=[
                             (should_show_light_attr, attr) for attr in constants.REMIX_OPTIONAL_LIGHT_ATTRIBUTES
                         ],
+                        tree_column_widths=[PROPERTIES_NAMES_COLUMN_WIDTH, ui.Fraction(1)],
+                        columns_resizable=True,
+                        right_aligned_labels=False,
                     )
 
                     ui.Spacer(height=ui.Pixel(8))
 
-                    with ui.HStack():
-                        ui.Spacer(height=0, width=self.COLUMN_0_WIDTH)
-                        self._object_category_line = ui.Line(name="PropertiesPaneSectionTitle")
+                    self._object_category_line = ui.Line(name="PropertiesPaneSectionTitle")
 
                     ui.Spacer(height=ui.Pixel(8))
 
                     self._remix_categories_vstack = ui.VStack(height=0, spacing=ui.Pixel(8))
                     with self._remix_categories_vstack:
                         with ui.HStack(height=0):
-                            with ui.HStack(width=self.COLUMN_0_WIDTH):
-                                ui.Label(
-                                    "Set Remix Categories",
-                                    name="PropertiesWidgetLabel",
-                                    alignment=ui.Alignment.RIGHT,
-                                )
+                            with ui.HStack(width=PROPERTIES_NAMES_COLUMN_WIDTH):
+                                # Spacer to replace the mixed value, default value, and override indicators
+                                ui.Spacer(width=ui.Pixel((16 + 8) * 3))
+                                ui.Label("Set Remix Categories", name="PropertiesWidgetLabel")
                                 ui.Spacer(width=ui.Pixel(8))
                             self._remix_categories_button = ui.Image(
                                 "",
@@ -278,7 +278,7 @@ class SetupUI:
                                 mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(b),
                             )
                         with ui.HStack(height=0):
-                            ui.Spacer(height=0, width=self.COLUMN_0_WIDTH)
+                            ui.Spacer(height=0, width=PROPERTIES_NAMES_COLUMN_WIDTH)
                             self._remix_categories_frame = ui.ScrollingFrame(
                                 visible=False,
                                 vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_AS_NEEDED,
@@ -488,7 +488,13 @@ class SetupUI:
         )
         self._object_property_spacer.visible = self._object_property_line.visible
 
-        self._object_category_line.visible = all([self._property_widget.visible, self._remix_categories_button.visible])
+        self._object_category_line.visible = all(
+            [
+                self._property_widget.visible,
+                self._remix_categories_vstack.visible,
+                self._remix_categories_button.visible,
+            ]
+        )
 
     def _on_ref_mesh_dir_pressed(self, button):
         if button != 0:

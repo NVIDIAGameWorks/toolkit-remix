@@ -50,7 +50,7 @@ class FilePicker(AbstractField):
         self._sub_field_end_edit = []
         self._sub_field_changed = []
 
-    def build_ui(self, item) -> list[ui.Widget]:
+    def build_ui(self, item) -> list[ui.Widget]:  # noqa PLW0221
         widgets = []
         self._sub_field_begin_edit = []
         self._sub_field_end_edit = []
