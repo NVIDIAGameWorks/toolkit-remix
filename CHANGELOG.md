@@ -89,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3870: Fixed ingestion bug for drag and drop
 - Tooltips on properties from USD schema now include the documentation string from the schema.
 - Fixed packman remote configuration for building from lspackages
+- Fixed initial display for virtual attributes like volumetric radiance scale before they are set.
 
 ### Removed
 

@@ -192,8 +192,6 @@ class UsdAttributeBase(_Serializable, abc.ABC):
     def _get_value_as_string(self) -> str:
         if self._is_mixed:
             return "<Mixed>"  # string field is able to give useful information for this case
-        if self._value is None:
-            return ""
         value = self.get_value()
         if value is None:
             return ""
@@ -204,19 +202,22 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         return str(value)
 
     def _get_value_as_float(self) -> float:
-        if self._value is None:
+        value = self.get_value()
+        if value is None:
             return 0.0
-        return float(self.get_value())
+        return float(value)
 
     def _get_value_as_bool(self) -> bool:
-        if self._value is None:
+        value = self.get_value()
+        if value is None:
             return False
-        return bool(self.get_value())
+        return bool(value)
 
     def _get_value_as_int(self) -> int:
-        if self._value is None:
+        value = self.get_value()
+        if value is None:
             return 0
-        return int(self.get_value())
+        return int(value)
 
     def _set_internal_value(self, new_value):
         """Set internal value from a widget value"""
@@ -535,6 +536,12 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
     def metadata(self):
         # Since the attribute does not exist, we need to retrieve the stored value.
         return self._metadata
+
+    def get_value(self):
+        """Get the value for serialization and external consumption."""
+        if self._value is None and self._is_virtual:
+            return self._default_value  # not set yet...
+        return super().get_value()
 
     def get_attributes_raw_value(self, element_current_idx: int) -> Optional[Any]:
         attr = self._attributes[element_current_idx]
