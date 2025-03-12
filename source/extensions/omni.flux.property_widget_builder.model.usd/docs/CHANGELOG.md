@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.17.1]
+## Fixed
+- Virtual attr should display default until they are set
+
 ## [2.17.0]
 ### Added
 - Add support for non-xform stub attributes

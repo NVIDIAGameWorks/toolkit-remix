@@ -337,6 +337,7 @@ class VirtualUSDAttributeItem(USDAttributeItem):
             display_attr_names_tooltip: tooltip to show on the attribute name
             read_only: If the attribute is read-only
         """
+        # Note: These are excluded from the default_attr because we do not want them cleared in super().__init__()
         self._default_value = default_value
         self._metadata = metadata
         self._create_callback = create_callback
@@ -354,16 +355,7 @@ class VirtualUSDAttributeItem(USDAttributeItem):
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
-        default_attr = super().default_attr
-        default_attr.update(
-            {
-                "_default_value": None,
-                "_metadata": None,
-                "_create_callback": None,
-                "_value_type_name": None,
-            }
-        )
-        return default_attr
+        return super().default_attr
 
     def _init_name_models(self, context_name, attribute_paths, display_attr_names, display_attr_names_tooltip):
         self._name_models = [
