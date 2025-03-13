@@ -59,12 +59,20 @@ Added asynchronous shader compilation functionality and a progress UI when the g
 
 **Enhanced Character Creation:** In games that support GPU skinning, you will now be able to replace characters in the same fidelity you have been replacing assets and world materials. Import a rigged character replacement into RTX Remix, and from the Toolkit, remap its bones and joints to help it conform more closely to the skeleton RTX Remix captured (and therefore expects to render). Once this is done, the character will animate as expected.
 
-A new tool has been added to help with replacing animated assets using GPU Skinning. More [here](howto/learning-assets.md#remapping-skeleton-tool).
+A new tool has been added to help with replacing animated assets using GPU Skinning.
+
+```{seealso}
+More information about the skeleton remapping tool is available [here](howto/learning-assets.md#remapping-skeleton-tool).
+```
 
 **Controls for RTX Skin:**
 RTX Skin represents one of the first implementations of sub-surface scattering in ray-traced gaming. Light can now propagate and transmit through skin, grounding characters in a new realism. RTX Skin can also be used to make dazzling world materials, like jade, which can sparkle and take on complex colors when illuminated.
 
-Use the RTX Remix Toolkit to add SSS maps to any asset to tune the per pixel transmission level. And in the RTX Runtime, you can adjust the SSS scale to influence the global multiplier for all assets marked with SSS to increase the intensity of the effect.More [here](howto/learning-materials.md#subsurface-scattering).
+Use the RTX Remix Toolkit to add SSS maps to any asset to tune the per pixel transmission level. And in the RTX Runtime, you can adjust the SSS scale to influence the global multiplier for all assets marked with SSS to increase the intensity of the effect.
+
+```{seealso}
+More information about subsurface scattering is available [here](howto/learning-materials.md#subsurface-scattering).
+```
 
 **RTX Volumetrics:**
 We’ve overhauled our volumetric system by leveraging a volume-based ReSTIR algorithm (Reservoir-based Spatiotemporal Importance Resampling). Light beams now look more defined, with higher contrast volumetric lighting and shadows. Shafts of light will look sharper, helping to create those epic moments in gameplay we love.
@@ -109,15 +117,27 @@ Improved performance and responsiveness of Stage Manager and other widgets.
 A redesigned home screen with a simplified project creation flow brings a cleaner interface to making new projects. Added ability to cleanup deleted projects.
 
 **Improved Packaging:**
-Added a new tool to help automate resolving resource paths when packaging your mod. More [here](howto/learning-packaging.md).
+Added a new tool to help automate resolving resource paths when packaging your mod.
+
+```{seealso}
+More information about mod packaging is available [here](howto/learning-packaging.md).
+```
 
 **Property Widget Improvements:**
 Continued to fix, improve the look and feel, and simplify code controlling selection panel and property editor widgets.
 
 **Remix Categories:**
-This key feature of Remix has been updated in Toolkit and aligned with the Runtime. We've foregrounded tooltips to help guide Modders in tagging replacement meshes with the appropriate category for the runtime. More [here](howto/learning-overview.md#remix-categories).
+This key feature of Remix has been updated in Toolkit and aligned with the Runtime. We've foregrounded tooltips to help guide Modders in tagging replacement meshes with the appropriate category for the runtime.
 
-**Ingestion Scale Factor**: Flipped asset ingestion parameter from "Meters per Unit" to "Asset Scale Factor" to make ingesting assets at the right size more intuitive. More [here](howto/learning-ingestion.md#how-to-ingest-an-asset)
+```{seealso}
+More information about Remix Categories is available [here](howto/learning-overview.md#remix-categories).
+```
+
+**Ingestion Scale Factor**: Flipped asset ingestion parameter from "Meters per Unit" to "Asset Scale Factor" to make ingesting assets at the right size more intuitive.
+
+```{seealso}
+More information about asset ingestion is available [here](howto/learning-ingestion.md#how-to-ingest-an-asset)
+```
 
 **Improved Documentation:** We have added more details and will continue to make updates to this documentation. Contributions are also welcome as github PRs to the [remix-toolkit repo](https://github.com/NVIDIAGameWorks/toolkit-remix).
 
@@ -149,11 +169,15 @@ This key feature of Remix has been updated in Toolkit and aligned with the Runti
 - Fixed ingestion bug for drag and drop
 - Fixed Tooltips on properties from USD schema which include a documentation string from the schema.
 
-## Changelogs
-For runtime release notes, please click [here](https://github.com/NVIDIAGameWorks/rtx-remix/releases/tag/remix-1.0.0)
 
-For a full toolkit changelog, please click [here](remix-full-changelog.md)
+```{seealso}
+Changelogs
 
+- For runtime release notes, please click [here](https://github.com/NVIDIAGameWorks/rtx-remix/releases/tag/remix-1.0.0)
+- For a full toolkit changelog, please click [here](remix-full-changelog.md)
+```
+
+***
 
 # RTX Remix Release 0.6 Notes (12/3/2024)
 
@@ -180,7 +204,9 @@ The RTX Remix Runtime 0.6 delivers a major leap forward in performance, offering
 **Enhanced Compatibility with Render Targets**
 Introducing support for Render Targets, a technique used in classic games like Half-Life 2 to project scenes within scenes. This addition expands the range of games that can leverage RTX Remix, allowing modders to recreate and enhance iconic visual effects with greater fidelity.
 
+```{seealso}
 Look below for our detailed release notes, and for a full changelog, please click [here](remix-full-changelog.md)
+```
 
 <video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/render_target.mp4" title="RenderTarget"></video>
 
@@ -253,7 +279,9 @@ Make broad changes with ease. Select multiple objects—like lights—and adjust
 ### Compatibility Improvements
 - Added Data Migration documentation.
 
-# RTX Remix Release Notes (5/13/2024)
+***
+
+# RTX Remix Release 0.5.1 Notes (5/13/2024)
 
 ## RTX Remix Toolkit Release 2024.4.1
 
@@ -302,7 +330,9 @@ Take control of your scene's lighting with the ability to visualize and adjust a
 ### Bug Fixes
 - Fixed an issue preventing the Remix runtime from starting on AMD hardware with the latest Windows drivers
 
-# RTX Remix Release Notes (4/30/2024)
+***
+
+# RTX Remix Release 0.5 Notes (4/30/2024)
 
 With the latest update of RTX Remix, we've enabled modders to add DLSS 3.5 Ray Reconstruction for Remix mods. Look below for our detailed release notes, and for a full changelog, please click [here](remix-full-changelog.md)
 
@@ -441,3 +471,7 @@ Note to modders–with RTX Remix Runtime 0.5 we have removed an option that was 
 
 - Improved reliability of the RTX Remix Bridge build system.
 - Sped up how quickly the RTX Remix Bridge informs the host game about invalid calls to `SetTransform()`. The RTX Remix Bridge client now verifies the `D3DTRANSFORMSTATETYPE` argument for calls to `SetTransform()`, and in the event the argument is invalid, it returns `D3DERR_INVALIDCALL` to the caller instead of making a round trip call to the RTX Remix Bridge server and the dxvk-remix component of the RTX Remix Runtime.
+
+
+***
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>
