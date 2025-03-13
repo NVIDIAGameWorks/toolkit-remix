@@ -2,174 +2,28 @@
 
 ![UserGraphicSettings](../data/images/rtxremix_024.png)
 
-<table>
-  <tr>
-   <td><strong>Ref #</strong>
-   </td>
-   <td><strong>Option</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>1
-   </td>
-   <td>User Graphic Settings
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>2
-   </td>
-   <td>Memory Stats
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>3
-   </td>
-   <td>DLSS 3.0 Settings
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>4
-   </td>
-   <td>DLSS 3.0 Switch
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>5
-   </td>
-   <td>Super Resolution
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>6
-   </td>
-   <td>Super Resolution Mode
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>7
-   </td>
-   <td>Reflex
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>8
-   </td>
-   <td>Image Quality Settings
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>9
-   </td>
-   <td>Graphics Preset
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>10
-   </td>
-   <td>Min Light Bounces
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>11
-   </td>
-   <td>Max Light Bounces
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>12
-   </td>
-   <td>Volumetric Lighting
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>13
-   </td>
-   <td>Denoising Quality
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>14
-   </td>
-   <td>Texture Quality
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>15
-   </td>
-   <td>Particle Light
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>16
-   </td>
-   <td>Enhancement Assets
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>17
-   </td>
-   <td>Motion Blur
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>18
-   </td>
-   <td>Developer Settings Menu
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>19
-   </td>
-   <td>Save Settings…
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-  <tr>
-   <td>20
-   </td>
-   <td>Close
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-</table>
+| **Ref #** | **Option**              |
+|-----------|-------------------------|
+| 1         | User Graphic Settings   |
+| 2         | Memory Stats            |
+| 3         | DLSS 3.0 Settings       |
+| 4         | DLSS 3.0 Switch         |
+| 5         | Super Resolution        |
+| 6         | Super Resolution Mode   |
+| 7         | Reflex                  |
+| 8         | Image Quality Settings  |
+| 9         | Graphics Preset         |
+| 10        | Min Light Bounces       |
+| 11        | Max Light Bounces       |
+| 12        | Volumetric Lighting     |
+| 13        | Denoising Quality       |
+| 14        | Texture Quality         |
+| 15        | Particle Light          |
+| 16        | Enhancement Assets      |
+| 17        | Motion Blur             |
+| 18        | Developer Settings Menu |
+| 19        | Save Settings…          |
+| 20        | Close                   |
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

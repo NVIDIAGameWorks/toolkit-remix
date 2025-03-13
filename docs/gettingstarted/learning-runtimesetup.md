@@ -1,9 +1,14 @@
-# Setup RTX Remix Runtime with your Game
+# Setup the RTX Remix Runtime with your Game
 
-> **NOTE:** Please refer to our [Installation](../remix-installation.md) section for directions on how to install the Remix Runtime.
+```{note}
+Please refer to our [Installation](../remix-installation.md) section for directions on how to install the Remix Runtime.
+```
 
 To prepare your game, start by copying the `remix-runtime` directory contents into the main game’s directory. The `d3d9.dll` and `.trex/` folder should end up sitting right next to the main game executable.
-> ⚠️ Some games will search for `d3d9.dll` in a directory other than the directory of the main game executable. For example, Source Engine games will search in the bin directory next to the main game executable for d3d9.dll instead.
+
+```{warning}
+Some games will search for `d3d9.dll` in a directory other than the directory of the main game executable. For example, Source Engine games will search in the bin directory next to the main game executable for d3d9.dll instead.
+```
 
 Once RTX Remix files are in place, you can start the game normally. You can verify RTX Remix is working by checking for the splash message at the top of the screen when the game starts. It should say: “Welcome to NVIDIA Remix… ” and provide hotkey information to access the Remix menus.
 
@@ -35,9 +40,13 @@ With UI setup out of the way, you can perform an additional test to ensure RTX R
 1. Go to the Enhancements tab in the RTX Remix Developer Menu, and press Capture Frame in USD.
 2. This will create your first capture of the game, which you can use to remaster assets, materials and lights. Capture files will be placed in a special folder called rtx-remix/captures – this will be placed next to the game executable, when first created. The rtx_remix folder is also where pre-made RTX Remix mods will go, under folder mods.
 
-> 📝 If you are having trouble, try launching your game in Direct X v.7 or lower
+```{note}
+If you are having trouble, try launching your game in Direct X v.7 or lower
+```
 
-> ⚠️ Per game setup may be different depending on the game you are trying to remaster.  Join the [RTX Discord Community](http://discord.gg/rtxremix) where you can check out the **Remix-Projects** channel for help for the game you wish to remaster!
+```{warning}
+Per game setup may be different depending on the game you are trying to remaster.  Join the [RTX Discord Community](http://discord.gg/rtxremix) where you can check out the **Remix-Projects** channel for help for the game you wish to remaster!
+```
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

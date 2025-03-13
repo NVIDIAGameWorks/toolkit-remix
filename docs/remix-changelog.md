@@ -1,5 +1,3 @@
-# Changelog
-
 ```{toctree}
 ---
 maxdepth: 2

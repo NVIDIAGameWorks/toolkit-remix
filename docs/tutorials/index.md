@@ -1,12 +1,8 @@
-# RTX Remix Tutorials
-
 ```{toctree}
 ---
-hidden: true
-maxdepth: 2
+maxdepth: 1
 ---
+tutorial-remixtool.md
+tutorial-portalhl2.md
 tutorial-restapi.md
 ```
-
-***
-<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

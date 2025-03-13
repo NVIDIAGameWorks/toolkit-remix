@@ -1,4 +1,4 @@
-# Tutorial: Creating a Blender Add-On using the REST API
+# Create a Blender Add-On using the REST API
 
 This tutorial will guide you through building a Blender add-on that communicates with an external application using REST
 APIs.

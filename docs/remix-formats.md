@@ -1,5 +1,5 @@
 
-# [Formats](#formats)
+# [Compatible Formats](#compatible-formats)
 
 Remix utilizes Omniverse's standard USD (for scenes) and MDL (for materials) file formats.  Most content used in Omniverse needs to be converted into one of those standard formats so that your file can be used universally among the applications being used within the platform.  You can view the [Omniverse Format documentation](https://docs.omniverse.nvidia.com/composer/latest/common/formats.html) to read further details about file formats and format conversions.
 
