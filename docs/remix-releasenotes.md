@@ -1,3 +1,160 @@
+# RTX Remix Release 1.0 Notes (3/13/2025)
+
+We are excited to announce the official 1.0 release of RTX Remix.
+
+Note: From now on the Toolkit version will follow the runtime version (1.0.0) and they will continue to be released together.
+
+RTX Remix comes out packed with new state of the art graphical features to empower you to build more beautiful worlds and characters in your mods. And the runtime has been upgraded with new neural rendering with DLSS 4 and Neural Radiance Cache to improve the experience playing Remix mods. DLSS 4 Transformer model ensures everything you create will retain more detail, allowing your artistic vision to translate more perfectly to the screen. With Multi-Frame Generation, path traced mods soar up to 8X performance over native. And, RTX Remix debuts the world’s first neural shader, Neural Radiance Cache–an AI approach to estimating indirect light more accurately and performantly, that trains on your live game session as you play.
+
+Let’s get into the details:
+
+
+## Improved RTX Remix Rendering
+
+**DLSS 4 Multi-Frame Generation:**
+ DLSS 4 allows you to generate up to 3 frames per rendered frame, supercharging performance. In Half-Life 2 RTX, DLSS 4 MFG helps increase framerates by 10X over native at 4K, ensuring the game looks smooth no matter what bells and whistles you turn on.
+
+**DLSS 4 Ray Reconstruction Transformer Model:**
+Ray Reconstruction has a new Transformer model that is much more accurate at accurately denoising ray-traced images, ensuring the highest degree of detail is retained. With the new Transformer model, even lower DLSS presets can look as good as higher presets with the old “CNN model” (Convolutional Neural Network). The image will be more temporally stable and overall much more enjoyable.
+
+Please note, the Transformer model is a slightly heavier network than the CNN model. As a result, we’ve opted to automatically default to the CNN model at the “Low” and “Medium” presets to ensure people who are looking to claw back any performance on the table can secure it.
+
+**Neural Radiance Cache:**
+ NRC is a neural shader that estimates more accurate indirect light more performantly. While you play, a grid of tiny neural networks in screen and world space train live on your game session, tailoring their approach to the content you are seeing in real time. Paths from lights are traced for 1-2 bounces before being stored in the radiance cache of the network, at which point a multitude of additional bounces are inferred by AI. Because fewer bounces are calculated and are instead inferred, NRC improves performance in Half-Life 2 RTX by 15%.
+
+It offers three graphical settings with tradeoffs between performance and indirect lighting accuracy: Medium, High, and Ultra.
+
+**Performance & Memory Optimizations:**
+The RTX Remix runtime has seen a number of optimizations to performance in both CPU bounded and GPU bounded scenarios. The extent of this uplift may vary depending on the specific RTX Remix mod. Take a look at how performance is improved in Portal With RTX on a 5070TI:
+1. Portal With RTX (Beta Runtime): 111 FPS
+2. Portal With RTX (Release Runtime): 132 FPS
+3. Portal With RTX (Release Runtime with NRC On): 155 FPS
+4. Portal With RTX (Release Runtime with NRC + DLSS): 260 FPS
+
+Performance and memory optimizations come on the back of a multitude of changes:
+Optimized memory and performance of BVH builds by utilizing instancing
+Limited max bones per vertex for skinned meshes
+Improved OMM budgeting to work better in scenarios using most of VRAM
+Added runtime normal compression for replacement assets to reduce memory usage
+Removed unnecessary resource allocations based on active graphics features
+Disabled rendering passes that are not needed for active graphics features
+Improved reuse of compatible resources' memory across different rendering passes
+Reduced memory usage of ray tracing acceleration structures on lower memory GPUs
+Tweaked RTXDI quality settings for more performance when Ray Reconstruction is enabled
+Switched from host visible to device local allocations for mesh replacement buffers
+Optimized CPU cost of CreateSurfaceMaterial by caching and reusing RtSurfaceMaterial within the same frame
+Reused instance matching and projection decomposition to lower per instance CPU cost
+
+**New Texture Streaming:**
+Optimizes VRAM usage to maximize texture quality within the available video memory budget. Players will notice assets streaming in faster, in higher quality more often, and will see “spilling” less frequently. Note: this will not necessarily decrease total VRAM usage, as RTX Remix always tries to use available VRAM efficiently to ensure highest quality textures are being seen.
+
+**Changes to Shader Compilation**
+Remix will now only prewarm shaders that are actually being used, improving shader compilation time at first launch. Note that this may lead to shader compile stalls when changing Remix options that require different shader permutations.
+Added asynchronous shader compilation functionality and a progress UI when the game is compiling shaders during play
+
+
+## Upgraded Mod Authorship Tools
+
+### New Features
+
+**Enhanced Character Creation:** In games that support GPU skinning, you will now be able to replace characters in the same fidelity you have been replacing assets and world materials. Import a rigged character replacement into RTX Remix, and from the Toolkit, remap its bones and joints to help it conform more closely to the skeleton RTX Remix captured (and therefore expects to render). Once this is done, the character will animate as expected.
+
+A new tool has been added to help with replacing animated assets using GPU Skinning. More [here](howto/learning-assets.md#remapping-skeleton-tool).
+
+**Controls for RTX Skin:**
+RTX Skin represents one of the first implementations of sub-surface scattering in ray-traced gaming. Light can now propagate and transmit through skin, grounding characters in a new realism. RTX Skin can also be used to make dazzling world materials, like jade, which can sparkle and take on complex colors when illuminated.
+
+Use the RTX Remix Toolkit to add SSS maps to any asset to tune the per pixel transmission level. And in the RTX Runtime, you can adjust the SSS scale to influence the global multiplier for all assets marked with SSS to increase the intensity of the effect.More [here](howto/learning-materials.md#subsurface-scattering).
+
+**RTX Volumetrics:**
+We’ve overhauled our volumetric system by leveraging a volume-based ReSTIR algorithm (Reservoir-based Spatiotemporal Importance Resampling). Light beams now look more defined, with higher contrast volumetric lighting and shadows. Shafts of light will look sharper, helping to create those epic moments in gameplay we love.
+
+Within the RTX Remix menu you can adjust parameters to customize the volumetric atmosphere of your mod. We provide presets so you can visualize your game scene with fog, smoke, haze, and other conditions, and each parameter is tunable. You can even inject dust particles in the scene, and define their physics and properties.
+
+In the RTX Remix Toolkit, the volumetric radiance scale attribute can make lighting larger than life (literally), influencing how much light contributes to the volumetric look of your scene. This multiplier enables modifying volumetric contribution on a per light basis to create more pronounced lighting effects. A 1 value keeps lighting completely physically based obeying the laws of physics, but you can turn it up or down for a more stylized look.
+
+
+### Stage Manager
+
+The most requested feature is here and it’s sure to speed up your modding. From this new control panel, modders can view a complete list of all tweakable game elements, jumping directly to them with a click. Sort and find prims, lights, meshes, materials, skeletons, and more, isolate remastered and original assets, and create custom searchable tags for any prim, making finding and editing assets easier. You can also view prims by Remix category, like particles, decals, UI, sky.
+
+You can also temporarily hide assets in the Viewport, in the event you are modifying a game scene that is obstructed by walls or large objects. And multiselection and editing is even easier when all of your assets are groupable in a list.
+
+**Stage Manager Official Release:** The Stage Manager is now integrated as a key component of the RTX Remix Toolkit that allows selecting and editing of any prim in your mod.
+
+**ON by default:** The Stage Manager is now on by default, but can still be toggled under "Optional Features".
+
+**New Stage Manager Tabs:**
+Added Categories, Skeleton, Meshes, Materials, and Custom Tags tabs alongside the existing All Prims and Lights tabs to Stage Manager.
+
+**Custom Tags:**
+Tag any capture or replacement prim with a custom name and make it easy to find again or manage similar objects.
+
+**Contributions Welcome:** Stage Manager functionality can easily be expanded by contributing to our open source project.
+
+#### Refined Toolkit Experience
+
+The Toolkit has had a thorough polish pass making it much easier to use.
+
+**Updated to kit sdk 106.5:**
+The app is now built on a new version of the omniverse [kit sdk](https://docs.omniverse.nvidia.com/dev-guide/latest/release-notes/106_5_highlights.html) which contains many fixes and stability improvements.
+
+**Removed Path Restrictions:**
+Removed whitespace project path limitation for flexible project names and locations.
+
+**Performance:**
+Improved performance and responsiveness of Stage Manager and other widgets.
+
+**New Homescreen:**
+A redesigned home screen with a simplified project creation flow brings a cleaner interface to making new projects. Added ability to cleanup deleted projects.
+
+**Improved Packaging:**
+Added a new tool to help automate resolving resource paths when packaging your mod. More [here](howto/learning-packaging.md).
+
+**Property Widget Improvements:**
+Continued to fix, improve the look and feel, and simplify code controlling selection panel and property editor widgets.
+
+**Remix Categories:**
+This key feature of Remix has been updated in Toolkit and aligned with the Runtime. We've foregrounded tooltips to help guide Modders in tagging replacement meshes with the appropriate category for the runtime. More [here](howto/learning-overview.md#remix-categories).
+
+**Ingestion Scale Factor**: Flipped asset ingestion parameter from "Meters per Unit" to "Asset Scale Factor" to make ingesting assets at the right size more intuitive. More [here](howto/learning-ingestion.md#how-to-ingest-an-asset)
+
+**Improved Documentation:** We have added more details and will continue to make updates to this documentation. Contributions are also welcome as github PRs to the [remix-toolkit repo](https://github.com/NVIDIAGameWorks/toolkit-remix).
+
+## Bugfixes and Minor Changes
+### RTX Remix Runtime:
+- Improved Ray Reconstruction responsiveness with animated textures.
+- Updated NRD to 4.13 for better performance, sharper and more stable denoising
+- AnimatedWaterTexture now works for translucent materials
+- Fixed flickering in reflection & refraction rays that hit the sky
+- Fixed incorrectly hidden meshes after hide / show is used in RTX Remix
+- Added support for rays starting underwater or inside other translucent materials based on the game's fog state
+- Fixed bugs with terrain and displace_out interactions
+- Improved free camera keyboard turning controls
+- Added max light intensity for light conversion
+- Corrected an issue with the Bridge where inputs would sometimes not be forwarded.
+- Added support for AddDirtyBox(), AddDirtyRect() and SetSoftwareVertexProcessing() API call forwarding.
+- Corrected an issue where certain bridge messaging systems ignored that timeouts were disabled, which could cause timeout related crashes if the default value was too low for the host application.
+- Corrected an issue where the bridge server or client could hang indefinitely when timeouts are disabled.
+
+### RTX Remix Toolkit:
+- Fixed capture window behavior to avoid it hanging on other tabs
+- Fixed disclosure icon display so tree view and panels mean the same thing
+- Fixed display of Remix Categories icon for only when applicable mesh objects are selected
+- Fixed various Stage Manager issues
+- Fixed layers panel performance in large projects
+- Fixed light selection behavior in selection panel
+- Fixed layer panel inconsistent muteness state
+- Fixed layer panel not refreshing after unloading stage + more fixes
+- Fixed ingestion bug for drag and drop
+- Fixed Tooltips on properties from USD schema which include a documentation string from the schema.
+
+## Changelogs
+For runtime release notes, please click [here](https://github.com/NVIDIAGameWorks/rtx-remix/releases/tag/remix-1.0.0)
+
+For a full toolkit changelog, please click [here](remix-full-changelog.md)
+
+
 # RTX Remix Release 0.6 Notes (12/3/2024)
 
 The latest release of the RTX Remix Toolkit and Runtime brings powerful new features and enhancements designed to take your modding experience to the next level. Here’s some of what the release has in store:
