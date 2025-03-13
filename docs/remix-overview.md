@@ -1,14 +1,14 @@
 ![Lightspeed Studio](data/images/lightspeed.png "Lightspeed Studios")
 
 
-# [Introduction](#introduction)
+# [What Is It](#what-is-it)
 
 RTX Remix is a modding platform for remastering a catalog of fixed-function DirectX 8 and 9 games with cutting edge graphics. With NVIDIA RTX Remix, experienced modders can upgrade textures with AI, easily replace game assets with high fidelity assets built with physically accurate (PBR) materials, and inject RTX ray tracing, DLSS and Reflex technologies into the game. It's like giving your old games a makeover with gorgeous modern-looking graphical mods.
 
 Remix consists of two main parts. The first part is the [RTX Remix Runtime](../docs/runtimeinterface/index.md), which allows you to capture classic game scenes for your mod. The runtime is also responsible for making your mod “work” when a gamer is playing your mod–in real time, it replaces any old asset with the remastered assets you’ve added to the game scene, and re-lights the game with path tracing at playback. The second part is the [RTX Remix Application](../docs/toolkitinterface/index.md) (also known as the Toolkit), which is used for creating lights, revamping textures with AI, and adding remastered assets into a game scene that you’ve made with your favorite DCC tool. With the release of the RTX Remix Application in Open Beta, the full power of RTX Remix is now in the hands of modders to make next level RTX mods.
 
 
-## [How Does It Work](#how-does-it-work)
+# [How Does It Work](#how-does-it-work)
 
 You don't need to be a computer expert to use RTX Remix. It does most of the hard work for you, but it helps to know a bit about how it works. As we said above, RTX Remix has two main parts; the RTX Remix Runtime which attaches to the game while being played, and the RTX Remix Toolkit which is used to edit assets for the game offline (without needing to have the game running).
 
@@ -145,7 +145,9 @@ We have ideas to also enable CPU skinned meshes... but that's going to be a big 
 
 ### Why are Shaders Hard to Path Trace?
 
-> NOTE: This is simplified and meant for someone with no knowledge of computer graphics
+```{note}
+This is simplified and meant for someone with no knowledge of computer graphics
+```
 
 What is a fixed function pipeline? Imagine you're making a little shoebox diorama, and you want the background to look like a brick wall. So you print out a picture of a brick wall and glue it on the back of the shoebox. Simple, easy, works great. This is basically what fixed function does - surface + texture, slap it on screen, done.
 

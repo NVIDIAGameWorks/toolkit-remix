@@ -1,6 +1,4 @@
-# Remix Toolkit Interface
-
-## Launch Screen
+# Launch Screen
 
 ![Launch Screen](../data/images/remix-launcher-001.png)
 

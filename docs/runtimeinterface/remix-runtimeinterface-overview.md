@@ -1,6 +1,10 @@
-# RTX Remix Runtime Interface
+# Interface Overview
 
-> 📝 You can extend or shrink the Menu panel by holding your mouse cursor over the edge of the panels until the icon changes to the double arrow icon, then drag the edge of the panel to the size you prefer.
+RTX Remix comes with a runtime overlay menu that makes it easy to adjust how your game looks and runs. It contains detailed settings for all the major functions: Rendering, Asset Replacement, and Capture. You can access this menu by pressing **Alt + X** once in game (this hotkey can also be customized using the rtx.conf config file).
+
+```{note}
+You can extend or shrink the Menu panel by holding your mouse cursor over the edge of the panels until the icon changes to the double arrow icon, then drag the edge of the panel to the size you prefer.
+```
 
 ## User Graphics Settings
 
@@ -32,9 +36,13 @@ At the bottom of the User Graphics Settings menu, you should see a button for De
 4. The [About Tab](remix-runtimeinterface-about.md) Contains contributor information.
 5. The [Developer Settings Tab](remix-runtimeinterface-developermenu.md)Contains camera and other miscellaneous options.
 
-> 📝 There is a checkbox at the top of the Developer Settings Menu that says "Always Developer Menu." Turning this checkbox on (and saving settings) will take you directly to the Developer menu when pressing **Alt + X**, saving you a click! <p>![Always Dev Menu](../data/images/rtxremix_088.png)</p>
+```{note}
+There is a checkbox at the top of the Developer Settings Menu that says "Always Developer Menu." Turning this checkbox on (and saving settings) will take you directly to the Developer menu when pressing **Alt + X**, saving you a click! <p>![Always Dev Menu](../data/images/rtxremix_088.png)</p>
+```
 
-> ⚠️ **Coders** Check out our RTX Options Documentation on GitHub [here](https://github.com/NVIDIAGameWorks/dxvk-remix/blob/main/RtxOptions.md).
+```{warning}
+**Coders** Check out our RTX Options Documentation on GitHub [here](https://github.com/NVIDIAGameWorks/dxvk-remix/blob/main/RtxOptions.md).
+```
 
 ## Saving Settings
 
@@ -42,39 +50,12 @@ Any settings you change in the menus can be saved as new defaults. They will be 
 
 ## Keyboard Shortcuts
 
-
-<table>
-  <tr>
-   <td><strong>Input</strong>
-   </td>
-   <td><strong>Description</strong>
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Alt + X</strong>
-   </td>
-   <td>Open the RTX Runtime Developer Settings Menu
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Alt + Delete</strong>
-   </td>
-   <td>Toggle Cursor
-   </td>
-  </tr>
-  <tr>
-   <td><strong>Alt + Backspace</strong>
-   </td>
-   <td>Toggle Game Input
-   </td>
-  </tr>
-  <tr>
-   <td><strong>CTRL + SHIFT + Q</strong>
-   </td>
-   <td>Open the <strong>Enhancements </strong>Developer Menu
-   </td>
-  </tr>
-</table>
+| **Input**            | **Description**                              |
+|----------------------|----------------------------------------------|
+| **Alt + X**          | Open the RTX Runtime Developer Settings Menu |
+| **Alt + Delete**     | Toggle Cursor                                |
+| **Alt + Backspace**  | Toggle Game Input                            |
+| **CTRL + SHIFT + Q** | Open the **Enhancements** Developer Menu     |
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

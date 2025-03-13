@@ -1,6 +1,10 @@
-# Tutorial: Remix Sample
+# Set up a Project using the Remix Sample
+
 ## RTX Remix Runtime Workflow
-> ⚠️ Remix Runtime and Sample Application can be found in: <remix-toolkit-install-dir>\deps\remix_runtime ⚠️
+
+```{note}
+Remix Runtime and Sample Application can be found in: [INSTALL_DIRECTORY](../remix-installation.md#locating-the-rtx-remix-toolkit-installation-directory)\deps\remix_runtime
+```
 
 1. Launch the Remix toolkit.  From here, select the “Launch Game with Remix” button found on the main menu, highlighted in <span style="color:red">**Red**</span> below:
 
@@ -16,7 +20,9 @@
 
 4. From here, treat this application as any other classic game. Menus (ALT+X) and capture should work as expected. So let’s take a capture and enhance this scene.
 
-> Press **ALT+X** to bring up the Remix menu and select the "Developer Settings Menu" button as shown below:
+    ```{note}
+    Press **ALT+X** to bring up the Remix menu and select the "Developer Settings Menu" button as shown below:
+    ```
 
 ![RemixTool Tutorial 4](../data/images/remix_910.png)
 
@@ -51,7 +57,7 @@
 
 6. With the project file location and remix directory configured, select the capture we made earlier and hit the "Create" button.
 
-```{warning} An User Account Control panel will be prompted to be able to symlink your project into your game. Please click "Yes". On Windows, the user needs specific right to be able to create symlink(s): [article](https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links)
+```{warning} A User Account Control panel will be prompted to be able to symlink your project into your game. Please click "Yes". On Windows, the user needs specific right to be able to create symlink(s): [article](https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links)
 ```
 
 ![RemixTool Tutorial 6](../data/images/remix-remixtutorial-003.png)
@@ -59,9 +65,11 @@
 7. Once you’ve made some changes save your project.  You can try replacing the ‘R’ mesh with this disco-ball asset:
 (SM_Prop_Discoball)[https://d4i3qtqj3r0z5.cloudfront.net/SM_Prop_DiscoBall%402.zip]
 
-> See the [Introduction to Asset Replacement](learning-assets.md) documentation for more details.
+```{seealso}
+See the [Setup Asset Replacements](../howto/learning-assets.md) documentation for more details.
+```
 
-8. Finally, to see what you’ve done, just launch the original RemisSample.exe and it will pick up your new mod!
+8. Finally, to see what you’ve done, just launch the original `RemixSample.exe` and it will pick up your new mod!
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

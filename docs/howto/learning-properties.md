@@ -1,4 +1,4 @@
-# Properties
+# Understand Toolkit Properties
 
 The object and material properties expose related editable USD attributes for the selected objects.
 

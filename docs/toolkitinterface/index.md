@@ -1,9 +1,6 @@
-# RTX Remix Toolkit User Guide
-
 ```{toctree}
 ---
-hidden: true
-maxdepth: 2
+maxdepth: 1
 ---
 remix-toolkitinterface-launchscreen.md
 remix-toolkitinterface-projectwizard.md

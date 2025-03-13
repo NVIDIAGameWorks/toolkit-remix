@@ -1,25 +1,11 @@
-# Introduction to Material Replacement
+# Setup Material Replacements
 
 In Remix, materials on meshes get a PBR (Physically-Based Rendering) makeover, allowing you to use high-quality and more physically accurate Materials in your game. In this tutorial, we'll focus on replacing materials for world geometry. If you want to replace materials on models, check out the Model Replacement section of this guide.
 
-
-## Ingesting Material Textures
-
-1. **Navigate to the Ingest Tab:** Head to the Ingest tab and select "Texture Ingestion."
-2. **Add Your Texture:** Click "Add" and effortlessly upload the texture of your choice (supports PNG or DDS formats).
-3. **Assign Texture Channel (Optional):**
-    * Explore the "convention" dropdown below the input file paths box.
-    * Set it to DirectX, OpenGL, or Octahedral based on the encoding type of your input normal map.
-    * Assign the texture to one of seven channels: Diffuse, Emissive Mask, Metallic, Normal - OpenGL, Normal - DirectX, Roughness, or Other.
-    * Opt for "Other" for a standardized ingestion without altering the name. This step is often automated, but choose "Other" for textures like heightmaps#
-4. **Set Output Directory:** Establish an output directory within your project file structure.
-4. **Initiate Ingestion:**
-    * Click "Run" to kickstart the texture export process.
-    * The output directory will contain additional files, but all you need for in-game use is the converted DDS file.
-
-> ⚠️ Issues with Ingestion will be highlighted in red with corresponding error messages.
-
-> 📝 All Ingested files, even Materials & Assets, will have MetaData files.
+```{note}
+Every texture used in Remix materials should be ingested into the project directory.
+The learn about asset ingestion, see the [Ingest Assets](learning-ingestion.md) tutorial.
+```
 
 ## Replacing, Adding, or Appending a Material
 
@@ -66,34 +52,34 @@ Displacement is a family of techniques used to make simple geometry appear more 
 
 In Remix, five factors determine the apparent depth of the displacement, which is calculated like this:
 
-<code>(height_map_pixel * (displace_in + displace_out) - displace_in) * displacementFactor * UV_to_world</code>
+`(height_map_pixel * (displace_in + displace_out) - displace_in) * displacementFactor * UV_to_world`
 
-* <code>Height_map_pixel</code> A black pixel will be displaced back to max_depth, a white pixel will be displaced forward to max_height.
-* <code>displace_in</code> A material property that determines how far below the original surface a pixel can appear
-* <code>displace_out</code> A material property that determines how far above the original surface a pixel can appear
-* <code>rtx.displacement.displacementFactor</code> A global RtxOption primarily used for debugging.  We recommend leaving this at 1.0.
-* <code>UV_to_world</code> The UV density of a given surface (i.e. how many world units to go from u=0 to u=1, or how often the texture tiles)
-* For example, if you have a wall panel that repeats every 1.5 meters, a black pixel will appear to be 1.5 * <code>displace_in</code> meters behind the wall. A white pixel will be 1.5 * <code>displace_out</code> meters in front of the wall.
+* `Height_map_pixel` A black pixel will be displaced back to max_depth, a white pixel will be displaced forward to max_height.
+* `displace_in` A material property that determines how far below the original surface a pixel can appear
+* `displace_out` A material property that determines how far above the original surface a pixel can appear
+* `rtx.displacement.displacementFactor` A global RtxOption primarily used for debugging.  We recommend leaving this at 1.0.
+* `UV_to_world` The UV density of a given surface (i.e. how many world units to go from u=0 to u=1, or how often the texture tiles)
+* For example, if you have a wall panel that repeats every 1.5 meters, a black pixel will appear to be 1.5 * `displace_in</code> meters behind the wall. A white pixel will be 1.5 * <code>displace_out` meters in front of the wall.
 
 A few useful calculations:
 
-<code>total_height = displace_out + displace_in</code> The total possible range of the displacement (before factoring in displacementFactor or uv scale)
+`total_height = displace_out + displace_in` The total possible range of the displacement (before factoring in displacementFactor or uv scale)
 
-<code>neutral_height = displace_in / total_height</code> The height_map value to have no displacement
+`neutral_height = displace_in / total_height` The height_map value to have no displacement
 
 **Comparison with Substance Designer**
 
-In Substance Designer, a black pixel on the height map is 1 unit * <code>height_scale</code> deep, with the default preview mesh being 100x100 units.
+In Substance Designer, a black pixel on the height map is 1 unit * `height_scale` deep, with the default preview mesh being 100x100 units.
 
 **Adjusting displace_in for Consistency**
 
-* To match the depth of the surface in Remix with Substance Designer's preview, adjust <code>displace_in</code> as follows: <code>displace_in = height_scale / 100</code>.
+* To match the depth of the surface in Remix with Substance Designer's preview, adjust `displace_in</code> as follows: <code>displace_in = height_scale / 100`.
 * This adjustment ensures that the displacement scale in Remix is consistent with Substance Designer's default preview mesh.
-* If outwards displacement is desired, <code>displace_in + displace_out</code> should equal <code>height_scale / 100</code>
+* If outwards displacement is desired, `displace_in + displace_out</code> should equal <code>height_scale / 100`
 
 **Considerations for Custom Meshes**
 
-If the artist uses a custom mesh in Substance Designer, the adjustment factor for <code>displace_in</code> and <code>displace_out</code> may need to be fine-tuned based on the specific characteristics of the custom mesh.  Substance Designer does not factor in the UV density when calculating depth, so rather than simply dividing by 100, they will need to divide by the UV density of their custom mesh.
+If the artist uses a custom mesh in Substance Designer, the adjustment factor for `displace_in</code> and <code>displace_out` may need to be fine-tuned based on the specific characteristics of the custom mesh.  Substance Designer does not factor in the UV density when calculating depth, so rather than simply dividing by 100, they will need to divide by the UV density of their custom mesh.
 
 ## Animated Materials
 
@@ -120,7 +106,6 @@ Once you've set these values, ensure that all your Materials are configured to u
 
 A key point to remember is that the spritesheet should be organized from left to right, and from top to bottom, just like the example image presented below:
 
-<!--- ![SpriteSheetExample](data/images/sprite_sheet_example.png) --->
 <img src="../data/images/sprite_sheet_example.png" alt="drawing" width="400"/>
 
 ## Subsurface Scattering
@@ -130,11 +115,10 @@ This model is often used to render realistic models for translucent objects, suc
 
 To setup SSS, the user needs to set the following parameters in Subsurface:
 
-* <code>Transmittance Color</code> Determines the base color of the SSS surface, it's similar to the diffuse albedo color for diffuse materials. This parameter can also be set with a texture map.
-* <code>Subsurface Scattering Radius</code> Determines the distance (mean free path) that light will be transported inside the SSS object for each color channel. Larger value will allow the corresponding color scattered further on the surface, it will look like a tail extends from the diffuse model. This parameter can also be set with a texture map.
-* <code>Subsurface Scattering Scale</code> A scale that controls the SSS intensity of the whole object.
-* <code>Subsurface Scattering Max Scale</code> The maximum distance that that light can scatter. Samples larger than this scale will be clamped.
-
+* `Transmittance Color` Determines the base color of the SSS surface, it's similar to the diffuse albedo color for diffuse materials. This parameter can also be set with a texture map.
+* `Subsurface Scattering Radius` Determines the distance (mean free path) that light will be transported inside the SSS object for each color channel. Larger value will allow the corresponding color scattered further on the surface, it will look like a tail extends from the diffuse model. This parameter can also be set with a texture map.
+* `Subsurface Scattering Scale` A scale that controls the SSS intensity of the whole object.
+* `Subsurface Scattering Max Scale` The maximum distance that that light can scatter. Samples larger than this scale will be clamped.
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

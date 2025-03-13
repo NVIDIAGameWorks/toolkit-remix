@@ -1,8 +1,14 @@
-# Introduction to Asset Replacement
+# Setup Asset Replacements
 
 **Enhancing Your Game with Remix Assets**
 
-Remix relies heavily on Assets to elevate your gaming experience, forming the core of your creative work. This tutorial focuses on the Asset workflow, sharing some similarities with replacing world textures.
+Remix relies heavily on assets to elevate your gaming experience, forming the core of your creative work.
+This tutorial focuses on the Asset workflow, sharing some similarities with replacing world textures.
+
+```{note}
+All assets should be ingested into the project directory.
+The learn about asset ingestion, see the [Ingest Assets](learning-ingestion.md) tutorial.
+```
 
 **Best Practices**
 
@@ -11,72 +17,16 @@ Ingested assets (those you bring into the project) should reside inside the proj
 References to captures or external mods (dependencies) can be streamlined through the "deps" symlink.
 
 **Example**
-Instead of referencing a capture at <code>C:\Program Files (x86)\Steam\common\Portal\rtx-remix\captures\capture_01.usd</code>, opt for a cleaner reference: <code>./deps/captures/capture_01.usd</code>. This ensures a more organized and efficient workflow.
 
+Instead of referencing a capture using an absolute path such as:
 
-## Ingesting an Asset
+`C:\Program Files (x86)\Steam\common\Portal\rtx-remix\captures\capture_01.usd`,
 
-The RTX Remix Toolkit is your go-to for refining game capture assets by removing specific elements like shaders and texture formats. Follow this step-by-step guide to streamline the process:
+opt for a cleaner, portable reference:
 
-1. **Check File Format:** Ensure your asset is in an acceptable format (refer to the [Format Section](../remix-formats.md) for details) and load the asset into Remix.
-2. **Access the Ingest Tab:** Open the Remix window and locate the **Ingest** tab on the top right.  Choose the Asset(s) from the vertical left tabs.
-3. **Upload Source Asset:** Click the **Add** button under the **Input File Path** panel then upload your source asset file.
-4. **Set Output Directory:** Paste a folder link into the output directory bar or browse to the directory using the folder icon.
-5. **Specify Asset Format:** Choose the desired asset format (USD, USDA, or USDC).
-6. **_[OPTIONAL]_** Set optional parameters such as the _asset scale factor_*.
-7. **Add to Queue:** Press the "Add to Queue" button to initiate the cleanup process.
-8. **Post-Ingestion Validation:** After the ingestion process, navigate to the validation tab then access a detailed report on your asset ingestion.
+`./deps/captures/capture_01.usd`.
 
-> ⚠️ Issues with Ingestion will be highlighted in red with corresponding error messages.
-
-> 📝 All Ingested files, even textures & Assets, will have MetaData files.
-
-### Notes:
-
-`*` Additional information about the asset scale factor can be found in the [Omniverse USD documentation](https://docs.omniverse.nvidia.com/usd/latest/learn-openusd/independent/units.html).
-
-## CLI Asset Ingestion Tool (Advanced)
-
-For advanced users there is a CLI tool that can be used to ingest large batches of assets.
-
-### Finding Install Directory
-
-In order to run the CLI Tool, you will need to know where RTX Remix is installed. Open up the launcher and navigate to the Library > RTX Remix.
-
-![CLI Asset Ingestion Tool 1](../data/images/remix-clitool-001.png)
-
-Click on the hamburger menu and then Settings to bring up the install path:
-
-![CLI Asset Ingestion Tool 2](../data/images/remix-clitool-002.png)
-
-### Running CLI Asset Ingestion Tool
-
-Follow these steps to run the CLI Asset Ingestion Tool for customizing your assets:
-
-1. Copy Schema File:
-    * Locate the schema file for Model Ingestion:
-        <code>YOUR_APP_INSTALL\exts\lightspeed.trex.app.resources\data\validation_schema\model_ingestion.json</code>
-    * For Texture Ingestion:
-        <code>YOUR_APP_INSTALL\exts\lightspeed.trex.app.resources\data\validation_schema\material_ingestion.json</code>
-    * Save the path to this file as SCHEMA_PATH for later reference.
-2. Open Schema File in Text Editor:
-    * Open the file in a text editor.
-    * Update the list of files to ingest in the <code>context_plugin -> data -> input_files</code> (Tip: Use a script to save time).
-    * Update the output directory in <code>context_plugin -> data -> output_directory</code>.
-    * Save the schema file.
-3. Execute Commands in CMD:
-    * Open a cmd window.
-    * Navigate to the installation location of the app.
-    * Execute the following commands:
-        ```bat
-        lightspeed.app.trex.ingestcraft.cli.bat -s SCHEMA_PATH -ex 1
-        ```
-4. Note on Arguments:
-    * <code>-s</code>: Points to the path of the modified schema file.
-    * <code>-e</code>: It specifies extensions to enable.
-    * <code>-x--/renderer/mdl/searchPaths/templates</code>: Can be ignored; it indicates where to look for MDLs.
-    * <code>-ex</code>: Choose 0 for sequential ingestion (async) or 1 for more stable ingestion on separate threads.
-    * <code>-t</code>: Sets a timeout for ingestion (default is 600 seconds).
+This ensures a more organized and efficient workflow.
 
 ## Replacing, Adding, or Appending an Asset
 
@@ -99,22 +49,6 @@ Adding an Asset typically refers to incorporating a new Asset alongside existing
 6. **Add New Reference**: Click “Add New Reference” and navigate to the ingested Asset to append the new reference.
 7. **Adjust Position and Properties**: Modify the positioning, orientation, and scale using "Object Properties", or the viewport gizmo, until it matches the original.
 8. You can then safely delete the original captured asset and same that layer.
-
-
-# Ingesting Asset Textures
-
-1. **Navigate to the Ingest Tab:** Head to the Ingest tab and select "Texture Ingestion."
-2. **Add Your Texture:** Click "Add" and effortlessly upload the texture of your choice (supports PNG or DDS formats).
-3. **Assign Texture Channel (Optional):**
-    * Explore the "convention" dropdown below the input file paths box.
-    * Set it to DirectX, OpenGL, or Octahedral based on the encoding type of your input normal map.
-    * Assign the texture to one of seven channels: Diffuse, Emissive Mask, Metallic, Normal - OpenGL, Normal - DirectX, Roughness, or Other.
-    * Opt for "Other" for a standardized ingestion without altering the name. This step is often automated, but choose "Other" for textures like heightmaps.
-4. **Set Output Directory:** Establish an output directory within your project file structure.
-5. **Initiate Ingestion:**
-    * Click "Run" to kickstart the texture export process.
-    * The output directory will contain additional files, but all you need for in-game use is the converted DDS file.
-
 
 ## Replacing an Asset's Texture
 
@@ -182,13 +116,17 @@ The other strategy is to add a special attribute to your bound mesh that explain
 The RTX Remix Toolkit has a remapping tool which will allow you to manually remap the joints once a replacement skeleton is brought in.
 
 1. Select an appropriate edit target layer for mod skeleton data.
-1. Open the "Stage Manager" and navigate to the "Skeletons" tab.
-![Skeleton Remapping](../data/images/remix-skeleton-interaction-tab.png)
-1. Locate the bound replacement mesh you want to remap.
-1. Click the "Remap Joint Indices" button to open the remapping tool.
-![Skeleton Remapping](../data/images/remix-skeleton-remapper.png)
-1. Select a joint from the captured skeleton that will drive each replacement asset's joint. You can use the "Auto Remap Joints" button to guess the mapping based on joint names and joint order. "Reset" will assign all to root so you can start from scratch. "Clear" will undo any changes and return to the mapping that was last applied.
-1. Hit "Apply" and the toolkit will re-author the joint influences on your replacement mesh to match the captured joint index.
+2. Open the [Stage Manager](../toolkitinterface/remix-toolkitinterface-layouttab.md#stage-manager) and navigate to the "Skeletons" tab.
+
+    ![Skeleton Remapping](../data/images/remix-skeleton-interaction-tab.png)
+
+3. Locate the bound replacement mesh you want to remap.
+4. Click the "Remap Joint Indices" button to open the remapping tool.
+
+    ![Skeleton Remapping](../data/images/remix-skeleton-remapper.png)
+
+5. Select a joint from the captured skeleton that will drive each replacement asset's joint. You can use the "Auto Remap Joints" button to guess the mapping based on joint names and joint order. "Reset" will assign all to root so you can start from scratch. "Clear" will undo any changes and return to the mapping that was last applied.
+6. Hit "Apply" and the toolkit will re-author the joint influences on your replacement mesh to match the captured joint index.
 
 
 ## Anchor Assets

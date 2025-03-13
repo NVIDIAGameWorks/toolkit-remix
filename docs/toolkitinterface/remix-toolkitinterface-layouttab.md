@@ -4,26 +4,26 @@
 
 ![Mod Setup 1](../data/images/remix-layout-modsetup-001.png)
 
-| Ref | Option                 | Description                                                                                                                                                    |
-|:---:|:-----------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|  1  | Hamburger Menu         | Unload Stage, Reload Stage, Save (Ctrl + S), Save As (Ctrl + Shift + S), Undo (Ctrl + Z), Redo (Ctrl + Y), Preferences, Feature Flags`*`, Show Logs`**`, About |
+| Ref | Option                 | Description                                                                                                                                                |
+|:---:|:-----------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+|  1  | Hamburger Menu         | Close Project`*`, Save (Ctrl + S), Save As (Ctrl + Shift + S), Undo (Ctrl + Z), Redo (Ctrl + Y), Preferences, Optional Features`**`, Show Logs`***`, About |
 |  2  | Project Title          |
-|  3  | Mod Setup Tab          | Set the details of your mod project                                                                                                                            |
+|  3  | Mod Setup Tab          | Set the details of your mod project                                                                                                                        |
 |  4  | Asset Replacements Tab |
 |  5  | Mod Packaging Tab      |
-|  7  | Open Project Wizard    | Wizard	Launches the [Project Wizard](remix-toolkitinterface-projectwizard.md) Panel                                                                            |
-|  8  | Capture File           | Load the captured game file scene                                                                                                                              |
-|  9  | Capture File Location  | Directory location of the captured file                                                                                                                        |
+|  7  | Open Project Wizard    | Wizard	Launches the [Project Wizard](remix-toolkitinterface-projectwizard.md) Panel                                                                        |
+|  8  | Capture File           | Load the captured game file scene                                                                                                                          |
+|  9  | Capture File Location  | Directory location of the captured file                                                                                                                    |
 | 10  | Loaded Capture         |
-| 11  | Replaces Prims         | Background color indicates the percent of the replacements (Red = 0%, Green = 100%)                                                                            |
-| 12  | Total Prims in Capture | Background color indicates the percent of the replacements (Red = 0%, Green = 100%)                                                                            |
-| 13  | Capture Details        | Displays details from the captured layer file loaded into the stage                                                                                            |
+| 11  | Replaces Prims         | Background color indicates the percent of the replacements (Red = 0%, Green = 100%)                                                                        |
+| 12  | Total Prims in Capture | Background color indicates the percent of the replacements (Red = 0%, Green = 100%)                                                                        |
+| 13  | Capture Details        | Displays details from the captured layer file loaded into the stage                                                                                        |
 
-`*` Feature Flags: Some experimental features can be enabled early by opening the Feature Flags menu and enabling the various features.
+**NOTES:**
 
-    **NOTE:** Experimental features may not be fully stable and may not be completed yet.
-
-`**` Show Logs: If you experience an issue with the Toolkit, the logs most likely contain the information required to diagnose the problem. If you create a GitHub ticket, please attach the related logs to your ticket.
+- `*` **Close Project:** Closing the project will unload the stage and free resources for other tasks such as ingestion or AI Tools.
+- `**` **Optional Features:** Some features may affect the performance of the RTX Remix Toolkit, so they can be selectively disabled using the Optional Features window. Any modifications to the enable-state of feature will persist through restarts of the application.
+- `***` **Show Logs:** If you experience an issue with the Toolkit, the logs most likely contain the information required to diagnose the problem. If you create a GitHub ticket, please attach the related logs to your ticket.
 
 ![Mod Setup 2](../data/images/remix-layout-modsetup-002.png)
 
@@ -59,7 +59,9 @@
 |  2  | Delete, Lock, Mute, Save |
 |  3  | Create or Insert Layer   |
 
-> Note: USD parent layers combine children layers, giving them more influence.
+```{note}
+USD parent layers combine children layers, giving them more influence.
+```
 
 * You can rearrange layers by dragging and dropping them to change their hierarchy.
 * Clicking the layer icon next to a layer allows you to set it as the active edit target.
@@ -134,6 +136,44 @@
 * A blue circle indicates that the property has a different value than the default.
 * A darker background means the property has override(s) from layer(s).
 * You can remove overrides. The list shows overrides from the strongest layer (top) to the weaker layer (bottom).
+
+## Stage Manager
+
+![Stage Manager](../data/images/remix-toolkitinterface-stagemanager.png)
+
+| Ref | Option                   | Description                                                                                                                                                                                                                                    |
+|:---:|:-------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|  1  | **Tabs**                 | These allow you to switch between different views of your stage data. Each tab presents information in a unique way, helping you focus on specific aspects of your stage. Click any tab to update the Stage Manager's content.                 |
+|  2  | **Filters**              | Use these to refine the data displayed in each tab. Filters can vary depending on the tab you're using, giving you more control over what you see. This helps you narrow down the information to what's most relevant.                         |
+|  3  | **Columns**              | Each tab may have multiple columns, each serving a different purpose. This helps organize the data in a way that's easy to understand and work with, making it simpler to manage your stage.                                                   |
+|  4  | **Widget**               | These are interactive elements that populate the columns. They can display information or trigger actions, making it easier to manage your stage. Widgets are customizable to fit your specific needs.                                         |
+|  5  | **State Widget**         | An example of a widget that shows detailed information about a selected prim when you hover over it. This helps you quickly access important details without having to navigate away from your current view.                                   |
+|  6  | **Action Widget**        | A clickable widget that performs actions on selected items. Hovering over it provides more information about what it does, ensuring you're always informed before taking action. This streamlines your workflow by reducing unnecessary steps. |
+|  7  | **Overview Information** | This provides a summary of the overall state of all visible prims in the tab. It gives you a quick snapshot of your stage's status at a glance, helping you stay on top of everything.                                                         |
+
+**How It Works**
+
+The Stage Manager is designed to be intuitive and flexible.
+By using the tabs at the top, you can easily switch between different views of your stage data.
+Each tab has its own set of filters and columns, which can be customized to suit your needs.
+This flexibility allows you to group data in ways that make sense for your specific workflow,
+making it easier to understand and manage your stage.
+
+**Automatic Updates and Performance**
+
+The Stage Manager updates automatically whenever you make changes to your stage data.
+These updates happen asynchronously, meaning they won't block the rest of your UI,
+but they might slow down the Stage Manager's performance if you have a very large number of prims.
+
+**Managing Performance**
+
+If the Stage Manager starts to hinder your workflow,
+you can easily disable it using the [Optional Features](#mod-setup) option in the hamburger menu.
+This gives you control over when and how you use the Stage Manager, ensuring it always supports your productivity.
+
+```{note}
+Optional features settings persist across restarts, so you won't have to re-enable or re-disable the Stage Manager every time you open the Toolkit.
+```
 
 ## Mod Packaging
 

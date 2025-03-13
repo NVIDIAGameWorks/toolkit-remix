@@ -1,11 +1,12 @@
-# Lighting Games for RTX Remix
+# Relight a Game
 
 Remix uses a fully physically-based renderer, which means that lighting is simulated more realistically than what games tend to do. This means that the ideal lighting setup can be somewhat different compared to typical game engines.
 
 Remix supports both primitive lights as well as emissive meshes. Primitive lights are light entities defined based on one of a set of simple geometric primitives; they emit light but aren’t themselves visible in the scene. Emissive meshes are regular, textured meshes with an emissive mask applied to them that causes all or part of their surface to become emissive and can emit light that is colored based on a texture map.
 
-> You can review more lighting details by looking at the [Lighting Toolkit Interface](../toolkitinterface/remix-toolkitinterface-lighting.md) and/or the [Lighting Runtime Interface](../runtimeinterface/renderingtab/remix-runtimeinterface-rendering-lighting.md) interface option for the RTX Remix Toolkit application.
-
+```{seealso}
+You can review more lighting details by looking at the [Lighting Toolkit Interface](../toolkitinterface/remix-toolkitinterface-lighting.md) and/or the [Lighting Runtime Interface](../runtimeinterface/renderingtab/remix-runtimeinterface-rendering-lighting.md) interface option for the RTX Remix Toolkit application.
+```
 
 ## How to pick the right light
 
@@ -73,7 +74,9 @@ Both emissive meshes and primitive lights cast light around the scene in a simil
 
 However, light sampling in the renderer for emissive meshes is done differently than for primitive lights — they are essentially sampled randomly over the surface of the mesh. This means that a mesh that is fully emissive will be sampled more efficiently than a mesh where only a small part is emissive (since random samples may hit non-emissive parts of the mesh and be discarded). In such cases, it is preferable to split the emissive part into a separate mesh.
 
-> NOTE: Emissive meshes will generally require more GPU time and can generate more noise in the scene compared to primitive lights.
+```{note}
+Emissive meshes will generally require more GPU time and can generate more noise in the scene compared to primitive lights.
+```
 
 Emissive meshes should be used for “bright” objects that mostly cast light locally, such as monitors that create glow on a desk but don’t significantly contribute to lighting up the room they’re in. If an emissive object is intended to light up a larger area, consider coupling it with a primitive light.
 
