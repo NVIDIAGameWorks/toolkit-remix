@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed changelog formatting
 
 ### Fixed
+- Fixed tests for the `omni.flux.validator.mass.widget` extension
 
 ### Removed
 
