@@ -33,6 +33,7 @@ from lightspeed.trex.utils.common.prim_utils import is_shader_prototype as _is_s
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import TextureTypeNames as _TextureTypeNames
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
+from omni.flux.material_api import ShaderInfoAPI as _ShaderInfoAPI
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.kit import commands, undo
@@ -253,7 +254,6 @@ class TextureReplacementsCore:
 
         shader_path = Sdf.Path(texture_prim_path).GetPrimPath()
         shader_prim = stage.GetPrimAtPath(shader_path)
-        shader = UsdShade.Shader(shader_prim)
 
         # If no file path is provided, get all the valid inputs
         if texture_type is None:
@@ -266,11 +266,12 @@ class TextureReplacementsCore:
             texture_type = _get_ingested_texture_type(texture_type)
             filter_input_names = [_get_texture_type_input_name(texture_type)]
 
-        return [
-            str(i.GetPrim().GetPath().AppendProperty(i.GetFullName()))
-            for i in shader.GetInputs()
-            if i.GetFullName() in filter_input_names
-        ]
+        inputs = set()
+        for input_property in _ShaderInfoAPI(shader_prim).get_input_properties():
+            if input_property.GetName() in filter_input_names:
+                inputs.add(str(shader_path.AppendProperty(input_property.GetName())))
+
+        return list(inputs)
 
     def destroy(self):
         _reset_default_attrs(self)
