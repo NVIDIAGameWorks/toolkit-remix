@@ -1,5 +1,5 @@
 [package]
-version = "1.2.1"
+version = "1.2.2"
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Texture Replacements extension for the StageCraft"
 description = "Extension that works on texture replacement data for NVIDIA RTX Remix StageCraft App"
@@ -14,6 +14,7 @@ preview_image = "data/preview.png"
 "lightspeed.pip_archive" = {}  # Required for Pydantic
 "lightspeed.trex.utils.common" = {}
 "omni.flux.asset_importer.core" = {}
+"omni.flux.material_api" = {}
 "omni.flux.service.shared" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.commands" = {}
