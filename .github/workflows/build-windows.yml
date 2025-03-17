@@ -15,4 +15,4 @@ jobs:
       shell: powershell
       run: |
         Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
-        . .\build.bat --rebuild --release
+        .\build.bat --rebuild --release
