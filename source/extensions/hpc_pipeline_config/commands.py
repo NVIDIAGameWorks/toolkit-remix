@@ -18,49 +18,15 @@
 import carb
 import omni.ext
 
-from .my_name import MyName
+class HPCPipelineConfigCommands:
+    """Class to handle HPC pipeline configuration commands with undo support"""
 
-_INSTANCE = None
+    def __init__(self):
+        self._hpc_config = {}
+        self._undo_stack = []
+        self._redo_stack = []
 
-
-def get_instance():
-    """Expose the created instance of the tool"""
-    return _INSTANCE
-
-
-class MyNameExtension(omni.ext.IExt):
-    """Standard extension support class, necessary for extension management"""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.default_attr = {}
-        for attr, value in self.default_attr.items():
-            setattr(self, attr, value)
-
-    def on_startup(self, ext_id):
-        global _INSTANCE
-        carb.log_info("[lightspeed_example.my_name] startup")
-        _INSTANCE = MyName()
-
-    def on_shutdown(self):
-        global _INSTANCE
-        carb.log_info("[lightspeed_example.my_name] shutdown")
-        for attr, value in self.default_attr.items():
-            m_attr = getattr(self, attr)
-            if isinstance(m_attr, list):
-                m_attrs = m_attr
-            else:
-                m_attrs = [m_attr]
-            for m_attr in m_attrs:
-                destroy = getattr(m_attr, "destroy", None)
-                if callable(destroy):
-                    destroy()
-                del m_attr
-                setattr(self, attr, value)
-        _INSTANCE.destroy()
-        _INSTANCE = None
-
-    def _configure_hpc_pipeline(self, config_options):
+    def configure_hpc_pipeline(self, config_options):
         """
         Configure the HPC pipeline with the provided options.
 
@@ -68,10 +34,6 @@ class MyNameExtension(omni.ext.IExt):
             config_options (dict): A dictionary containing configuration options for the HPC pipeline.
         """
         self._hpc_config = config_options
-
-        # Implement configuration commands with undo support
-        self._undo_stack = []
-        self._redo_stack = []
 
         for command, value in config_options.items():
             self._execute_command(command, value)
@@ -109,17 +71,3 @@ class MyNameExtension(omni.ext.IExt):
             # Implement redo logic (this is a placeholder, replace with actual implementation)
             print(f"Redoing command: {command} with value: {value}")
             self._execute_command(command, value)
-
-    def destroy(self):
-        for attr, value in self.__default_attr.items():
-            m_attr = getattr(self, attr)
-            if isinstance(m_attr, list):
-                m_attrs = m_attr
-            else:
-                m_attrs = [m_attr]
-            for m_attr in m_attrs:
-                destroy = getattr(m_attr, "destroy", None)
-                if callable(destroy):
-                    destroy()
-                del m_attr
-                setattr(self, attr, value)
