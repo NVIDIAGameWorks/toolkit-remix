@@ -36,10 +36,10 @@ Finally, using the RTX Remix Toolkit, you are able to easily make and add new ga
 RTX Remix and its mods are built to run on RTX-powered machines. For ideal performance, we recommend using GeForce RTX™ 4070 or higher. For latest drivers, visit  [NVIDIA Driver Downloads](https://www.nvidia.com/Download/index.aspx)s. For Quadro, select 'Quadro New Feature Driver (QNF).
 
 
-| Level                | Operating System  | CPU                   | CPU Cores | RAM     | GPU                | VRAM  |     Disk      |
-| :------------------: | :---------------: | :-------------------: | :-------: | :-----: | :----------------: | :---: |:-------------:|
-| Min              |   Windows 10/11   | Intel I7 or AMD Ryzen 7 | 4         | 16 GB   | GeForce RTX 3060Ti | 8 GB  |   10 GB SSD   |
-| Rec          |   Windows 10/11   | Intel I7 or AMD Ryzen 7 | 8         | 32 GB   | GeForce RTX 4070   | 12 GB | 10 GB M.2 SSD |
+| Level | Operating System |           CPU           | CPU Cores |  RAM  |       GPU        | VRAM  |     Disk      |
+|:-----:|:----------------:|:-----------------------:|:---------:|:-----:|:----------------:|:-----:|:-------------:|
+|  Min  |  Windows 10/11   | Intel I7 or AMD Ryzen 7 |     4     | 16 GB |   Any RTX GPU    |  N/A  |   10 GB SSD   |
+|  Rec  |  Windows 10/11   | Intel I7 or AMD Ryzen 7 |     8     | 32 GB | GeForce RTX 4070 | 12 GB | 10 GB M.2 SSD |
 
 Since the RTX Remix Application is built using the Omniverse Kit SDK, We recommend that you review the [Omniverse Technical Requirement Documentation](https://docs.omniverse.nvidia.com/materials-and-rendering/latest/common/technical-requirements.html) for further details on what is required to use Applications within the Omniverse Platform.
 

@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed tests for the `omni.flux.validator.mass.widget` extension
 - Fixed `get_texture_material_inputs` API endpoint for Kit 106.5
 - Fixed `is_valid_texture_prim` API validator for Kit 106.5
+- Redirect documentation pages that were moved to avoid 404 errors
 
 ### Removed
 
