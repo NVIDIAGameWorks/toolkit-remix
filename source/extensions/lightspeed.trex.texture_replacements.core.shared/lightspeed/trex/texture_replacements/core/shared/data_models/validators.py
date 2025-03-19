@@ -22,6 +22,7 @@ from pathlib import Path
 import omni.usd
 from lightspeed.trex.utils.common.asset_utils import is_asset_ingested
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS
+from omni.flux.material_api import ShaderInfoAPI
 from omni.flux.utils.common.omni_url import OmniUrl
 from pxr import Sdf, UsdShade
 
@@ -38,19 +39,19 @@ class TextureReplacementsValidators:
         except Exception as e:
             raise ValueError(f"The string is not a valid path: {property_path}") from e
 
-        usd_property = omni.usd.get_context(context_name).get_stage().GetPropertyAtPath(path)
-        if not usd_property:
-            raise ValueError(f"The property path does not exist in the current stage: {property_path}")
+        prim_path = path.GetPrimPath()
+        prim = omni.usd.get_context(context_name).get_stage().GetPrimAtPath(prim_path)
+        if not prim:
+            raise ValueError(f"The prim path does not exist in the current stage: {prim_path}")
 
-        prim = usd_property.GetPrim()
         if not prim.IsA(UsdShade.Shader):
             raise ValueError(f"The property path does not point to a valid USD shader property: {property_path}")
 
-        shader = UsdShade.Shader(prim)
-        if not shader.GetInput(usd_property.GetBaseName()):
-            raise ValueError(f"The property path does not point to a valid USD shader input: {property_path}")
+        for input_property in ShaderInfoAPI(prim).get_input_properties():
+            if input_property.GetName() == path.name:
+                return texture_tuple
 
-        return texture_tuple
+        raise ValueError(f"The property path does not point to a valid USD shader input: {property_path}")
 
     @classmethod
     def is_valid_texture_asset(cls, texture_tuple: tuple[str, Path], force: bool):

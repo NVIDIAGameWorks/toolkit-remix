@@ -47,8 +47,6 @@ from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.usd.commands import remove_prim_spec as _remove_prim_spec
 from pxr import Sdf, Usd, UsdGeom, UsdShade, UsdSkel
 
-from .data_models import DefaultAssetDirectory as _DefaultAssetDirectory
-
 if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstance as _ItemInstance
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
@@ -58,6 +56,8 @@ if typing.TYPE_CHECKING:
 from .data_models import (
     AppendReferenceRequestModel,
     AssetPathResponseModel,
+    AssetReplacementsValidators,
+    DefaultAssetDirectory,
     GetPrimsQueryModel,
     GetTexturesQueryModel,
     PrimInstancesPathParamModel,
@@ -129,17 +129,24 @@ class Setup:
         self, params: PrimTexturesPathParamModel, query: GetTexturesQueryModel
     ) -> TexturesResponseModel:
         return TexturesResponseModel(
-            textures=self.get_textures_from_material_path(params.asset_path, texture_types=query.texture_types)
+            textures=self.get_textures_from_material_path(
+                params.asset_path,
+                texture_types=(
+                    {_TextureTypes[texture_type.value] for texture_type in query.texture_types}
+                    if query.texture_types
+                    else None
+                ),
+            )
         )
 
     def get_reference_with_data_model(self, params: PrimReferencePathParamModel) -> ReferenceResponseModel:
-        stage = self._context.get_stage()
-        prim = stage.GetPrimAtPath(str(params.asset_path))
-
-        references = omni.usd.get_composed_references_from_prim(prim)
-
+        introducing_prim, references = AssetReplacementsValidators.get_prim_references(
+            params.asset_path, self._context_name
+        )
         return ReferenceResponseModel(
-            reference_paths=[(str(prim.GetPath()), (str(ref.assetPath), layer.identifier)) for ref, layer in references]
+            reference_paths=[
+                (str(introducing_prim.GetPath()), (str(ref.assetPath), layer.identifier)) for ref, layer in references
+            ]
         )
 
     def replace_reference_with_data_model(
@@ -147,8 +154,12 @@ class Setup:
     ) -> ReferenceResponseModel:
         with omni.kit.undo.group():
             stage = self._context.get_stage()
-
             edit_target_layer = stage.GetEditTarget().GetLayer()
+
+            introducing_prim, references = AssetReplacementsValidators.get_prim_references(
+                params.asset_path, self._context_name
+            )
+            prim_path = introducing_prim.GetPath()
 
             if body.existing_asset_layer_id and body.existing_asset_file_path:
                 current_layer = Sdf.Layer.FindOrOpen(str(body.existing_asset_layer_id))
@@ -156,14 +167,10 @@ class Setup:
                     assetPath=_OmniUrl(body.existing_asset_file_path).path, primPath=str(params.asset_path)
                 )
             else:
-                prim = stage.GetPrimAtPath(str(params.asset_path))
-                references = omni.usd.get_composed_references_from_prim(prim)
                 current_ref, current_layer = references[0]
 
             # Remove the existing reference
-            self.remove_reference(
-                stage, Sdf.Path(str(params.asset_path)), current_ref, current_layer, remove_if_remix_ref=False
-            )
+            self.remove_reference(stage, prim_path, current_ref, current_layer, remove_if_remix_ref=False)
 
             # Get the new reference prim path
             ref_prim_path = self.get_reference_prim_path_from_asset_path(
@@ -173,7 +180,7 @@ class Setup:
             # Add the new reference prim path
             reference, child_prim_path = self.add_new_reference(
                 stage,
-                Sdf.Path(str(params.asset_path)),
+                prim_path,
                 self.switch_ref_abs_to_rel_path(stage, str(body.asset_file_path)),
                 ref_prim_path,
                 edit_target_layer,
@@ -190,9 +197,11 @@ class Setup:
         with omni.kit.undo.group():
             stage = self._context.get_stage()
             edit_target_layer = stage.GetEditTarget().GetLayer()
+            introducing_prim, _ = AssetReplacementsValidators.get_prim_references(params.asset_path, self._context_name)
+
             reference, child_prim_path = self.add_new_reference(
                 stage,
-                Sdf.Path(str(params.asset_path)),
+                introducing_prim.GetPath(),
                 self.switch_ref_abs_to_rel_path(stage, str(body.asset_file_path)),
                 self.get_ref_default_prim_tag(),
                 edit_target_layer,
@@ -203,7 +212,7 @@ class Setup:
         )
 
     def get_default_output_directory_with_data_model(
-        self, directory: _DefaultAssetDirectory = _DefaultAssetDirectory.INGESTED
+        self, directory: DefaultAssetDirectory = DefaultAssetDirectory.INGESTED
     ) -> AssetPathResponseModel:
         stage = self._context.get_stage()
         if not stage:
@@ -261,12 +270,14 @@ class Setup:
         if not shader:
             return textures
 
+        texture_type_names = None
+        if texture_types is not None:
+            texture_type_names = [_get_texture_type_attribute(texture_type) for texture_type in texture_types]
+
         for shader_input in shader.GetInputs():
             # Make sure the input matches the filter if set
-            if texture_types is not None:
-                texture_type_names = [_get_texture_type_attribute(texture_type) for texture_type in texture_types]
-                if shader_input.GetBaseName() not in texture_type_names:
-                    continue
+            if texture_type_names is not None and shader_input.GetFullName() not in texture_type_names:
+                continue
             # Make sure the input expects an asset
             if shader_input.GetTypeName() != Sdf.ValueTypeNames.Asset:
                 continue
@@ -274,10 +285,8 @@ class Setup:
             texture_asset_path = shader_input.Get().resolvedPath
             if _OmniUrl(texture_asset_path).suffix.lower() not in _SUPPORTED_TEXTURE_EXTENSIONS:
                 continue
-            # Build the full property path
-            texture_input_path = shader_prim.GetPath().AppendProperty(shader_input.GetFullName())
             # Store the texture property and the asset path
-            textures.append((str(texture_input_path), str(texture_asset_path)))
+            textures.append((str(shader_input.GetAttr().GetPath()), str(texture_asset_path)))
 
         return textures
 
