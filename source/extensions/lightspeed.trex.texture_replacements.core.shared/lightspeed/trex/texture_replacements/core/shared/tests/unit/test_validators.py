@@ -55,10 +55,10 @@ class TestTextureReplacementsValidators(AsyncTestCase):
                 False,
                 "The property path does not point to a valid USD shader input",
             ),
-            valid_prim_path: (False, "The property path does not exist in the current stage"),
-            invalid_prim_path: (False, "The property path does not exist in the current stage"),
+            valid_prim_path: (False, "The property path does not point to a valid USD shader input"),
+            invalid_prim_path: (False, "The property path does not point to a valid USD shader property"),
             "This.Is/Not A Prim": (False, "The string is not a valid path"),
-            "/test/non/existent/prim": (False, "The property path does not exist in the current stage"),
+            "/test/non/existent/prim": (False, "The prim path does not exist in the current stage"),
         }
 
         for prim_path, expected_value in test_cases.items():

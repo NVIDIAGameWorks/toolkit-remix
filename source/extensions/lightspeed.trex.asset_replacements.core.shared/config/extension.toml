@@ -1,5 +1,5 @@
 [package]
-version = "2.5.3"
+version = "2.5.4"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Asset Replacements extension for the StageCraft"
 description = "Extension that works on asset replacement data for NVIDIA RTX Remix StageCraft App"

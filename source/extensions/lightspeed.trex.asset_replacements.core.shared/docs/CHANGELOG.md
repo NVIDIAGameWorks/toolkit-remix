@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.4]
+## Fixed
+- Fixed some validators and core functions with bugs discovered during testing
+
 ## [2.5.3]
 ## Changed
 - rename trex prim utility names for clarity
