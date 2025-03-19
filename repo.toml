@@ -576,7 +576,11 @@ sphinx_exclude_patterns = [
 ]
 
 redirects = [
-    { path = "docs/remix-releasenote.html", target = "docs/remix-releasenotes.html" }
+    { path = "docs/remix-releasenote.html", target = "docs/remix-releasenotes.html" },
+    { path = "docs/howto/learning-runtimesetup.html", target = "docs/gettingstarted/learning-runtimesetup.html" },
+    { path = "docs/howto/tutorial-remixtool.html", target = "docs/tutorials/tutorial-remixtool.html" },
+    { path = "docs/howto/learning-viewport.html", target = "docs/toolkitinterface/remix-toolkitinterface-viewport.html" },
+    { path = "docs/howto/tutorial-portalhl2.html", target = "docs/tutorials/tutorial-portalhl2.html" },
 ]
 
 repo_url = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/blob/master"
