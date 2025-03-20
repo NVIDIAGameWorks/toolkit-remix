@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.13]
+## Changed
+- Changed texture validation to use lowercase on extension check
+
 ## [2.5.12]
 ## Changed
 - Update to Kit 106.5

@@ -144,7 +144,7 @@ class IngestionValidationFailureDialog:
 
 def _validate_selection(filenames, supported_extensions=None, return_values=False):
     file_paths = [_OmniUrl(filename) for filename in filenames]
-    bad_exts = [pth for pth in file_paths if pth.suffix and pth.suffix not in supported_extensions]
+    bad_exts = [pth for pth in file_paths if pth.suffix and pth.suffix.lower() not in supported_extensions]
     bad_dirs = [pth for pth in file_paths if pth.is_directory]
     if return_values:
         return (bad_exts, bad_dirs)

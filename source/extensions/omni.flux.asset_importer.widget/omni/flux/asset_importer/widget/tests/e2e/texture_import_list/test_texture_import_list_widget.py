@@ -467,7 +467,7 @@ class TestTextureImportListWidget(omni.kit.test.AsyncTestCase):
         delegate = TextureImportListDelegate()
 
         base_path = Path(self.temp_dir.name)
-        good_items = [base_path / "0.jpg", base_path / "1.jpg"]
+        good_items = [base_path / "0.jpg", base_path / "1.jpg", base_path / "2.JPG"]
         for item in good_items:
             item.touch()
 
@@ -494,7 +494,7 @@ class TestTextureImportListWidget(omni.kit.test.AsyncTestCase):
         delegate = TextureImportListDelegate()
 
         base_path = Path(self.temp_dir.name)
-        good_items = [base_path / "1.jpg", base_path / "2.usd"]
+        good_items = [base_path / "1.jpg", base_path / "2.usd", base_path / "3.USD"]
         bad_items = [base_path / "3.nogood", base_path / "4.INVALID"]
         for item in good_items:
             item.touch()
