@@ -269,7 +269,7 @@ LICENSE_AGREEMENT_URL = (
     "https://docs.omniverse.nvidia.com/platform/latest/common/NVIDIA_Omniverse_License_Agreement.html"
 )
 DOCUMENTATION_URL = "https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/"
-DOCUMENTATION_ROOT_URL = f"{DOCUMENTATION_URL}/docs/"
+DOCUMENTATION_ROOT_URL = f"{DOCUMENTATION_URL}docs/"
 QUICK_START_GUIDE_URL = f"{DOCUMENTATION_ROOT_URL}gettingstarted/learning-runtimesetup.html"
 RELEASE_NOTES_URL = f"{DOCUMENTATION_ROOT_URL}remix-releasenotes.html"
 
