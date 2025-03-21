@@ -1,5 +1,5 @@
 [package]
-version = "1.2.0"
+version = "1.2.1"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
@@ -16,3 +16,21 @@ preview_image = "data/preview.png"
 
 [[python.module]]
 name = "lightspeed.layer_manager.service"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+    "omni.flux.utils.widget",
+    "omni.kit.usd.layers",
+    "omni.services.core",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

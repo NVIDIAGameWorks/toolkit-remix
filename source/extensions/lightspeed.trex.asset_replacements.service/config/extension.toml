@@ -1,5 +1,5 @@
 [package]
-version = "1.3.1"
+version = "1.3.2"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Asset Replacements Service extension"
 description = "Extension that exposes microservices for asset replacement data for NVIDIA RTX Remix"
@@ -22,7 +22,6 @@ name = "lightspeed.trex.asset_replacements.service"
 dependencies = [
     "lightspeed.trex.tests.dependencies",
     "omni.flux.utils.widget",
-    "omni.kit.pip_archive", # For fastapi
     "omni.services.core",
 ]
 

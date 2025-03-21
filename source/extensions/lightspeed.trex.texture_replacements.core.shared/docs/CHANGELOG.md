@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.4]
+## Fixed
+- Fixed Kit 106.5 issue where non-existing attributes aren't created
+
 ## [1.2.3]
 ## Fixed
 - Fixed validator shader input logic for 106.5

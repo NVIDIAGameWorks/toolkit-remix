@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.1.1"
+version = "1.1.2"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -42,7 +42,9 @@ name = "omni.flux.validator.mass.service"
 
 [[test]]
 dependencies = [
-    "omni.flux.tests.dependencies"
+    "omni.flux.tests.dependencies",
+    "omni.flux.utils.widget",
+    "omni.services.core",
 ]
 
 stdoutFailPatterns.exclude = [
