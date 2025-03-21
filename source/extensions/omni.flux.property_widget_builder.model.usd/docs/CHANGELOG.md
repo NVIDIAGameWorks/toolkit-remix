@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.18.1]
+### Fixed
+- Changed to using a ImageWithProvider to better display single channel textures
+
 ## [2.18.0]
 ## Added
 - Added the ability to left-align property names
