@@ -1,5 +1,5 @@
 [package]
-version = "1.2.0"
+version = "1.2.1"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Texture Replacements Service extension"
 description = "Extension that exposes microservices for texture replacement data for NVIDIA RTX Remix"
@@ -17,3 +17,24 @@ preview_image = "data/preview.png"
 
 [[python.module]]
 name = "lightspeed.trex.texture_replacements.service"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+    "omni.flux.utils.widget",
+    "omni.services.core",
+]
+
+args = [
+    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

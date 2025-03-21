@@ -1,5 +1,5 @@
 [package]
-version = "1.2.3"
+version = "1.2.4"
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Texture Replacements extension for the StageCraft"
 description = "Extension that works on texture replacement data for NVIDIA RTX Remix StageCraft App"

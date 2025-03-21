@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.2]
+### Added
+- Enabled selection test
+- Use async send_request function in tests
+- Validate USD state in tests
+
 ## [1.3.1]
 ### Added
 - Added test dependencies

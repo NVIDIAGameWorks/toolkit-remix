@@ -196,6 +196,14 @@ class TextureReplacementsCore:
                 except ValueError:
                     continue
 
+                attr_type = None
+                attr_path = Sdf.Path(texture_attr_path)
+                prim = self._context.get_stage().GetPrimAtPath(attr_path.GetPrimPath())
+                for input_property in _ShaderInfoAPI(prim).get_input_properties():
+                    if attr_path.name == input_property.GetName():
+                        attr_type = Sdf.ValueTypeNames.Find(input_property.GetTypeName())
+                        break
+
                 if texture_asset_path:
                     commands.execute(
                         "ChangeProperty",
@@ -206,6 +214,7 @@ class TextureReplacementsCore:
                             )
                         ),
                         prev=None,
+                        type_to_create_if_not_exist=attr_type,
                         usd_context_name=self._context_name,
                         target_layer=self._context.get_stage().GetEditTarget().GetLayer(),
                     )
