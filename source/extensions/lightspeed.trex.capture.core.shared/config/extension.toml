@@ -1,5 +1,5 @@
 [package]
-version = "1.1.9"
+version = "1.2.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -16,7 +16,6 @@ preview_image = "data/preview.png"
 "lightspeed.event.capture_persp_to_persp" = {optional=true}  # because this extension subscribe to the global event
 "lightspeed.events_manager" = {}
 "lightspeed.layer_manager.core" = {}
-"lightspeed.upscale.core" = {}
 "omni.client" = {}
 "omni.kit.pip_archive" = {}  # For PIL
 "omni.flux.utils.common" = {}

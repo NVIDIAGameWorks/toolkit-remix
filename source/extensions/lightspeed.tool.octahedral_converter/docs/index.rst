@@ -18,3 +18,4 @@ This is a simple utility to convert 3 channel tangent space normal map textures 
     :show-inheritance:
     :imported-members:
     :exclude-members: contextmanager
+    :noindex: pathlib

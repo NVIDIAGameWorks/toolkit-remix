@@ -1,1 +1,0 @@
-# lightspeed.upscale.core

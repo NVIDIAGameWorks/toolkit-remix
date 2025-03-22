@@ -26,7 +26,6 @@ from lightspeed.common import constants
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core.data_models import LayerType, LayerTypeKeys
-from lightspeed.upscale.core import UpscaleModels, UpscalerCore
 from omni.flux.utils.common import async_wrap as _async_wrap
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from PIL import Image
@@ -92,24 +91,12 @@ class Setup:
         default_icon = Setup.get_game_icon_from_folder(folder_path)
         if not default_icon:
             return None
-        # look for the upscaled icon
-        upscaled = default_icon.replace("_icon.bmp", "_upscaled_icon.png")
-        upscaled_path = Path(upscaled)
         # first we convert the bmp to png without alpha
         png_file = default_icon.replace("_icon.bmp", "_icon.png")
         with Image.open(default_icon) as im1:
             im1 = im1.convert("RGB")
             im1.save(png_file)
-        if (
-            not upscaled_path.exists()
-            and Path(constants.REAL_ESRGAN_ROOT_PATH).joinpath("realesrgan-ncnn-vulkan.exe").exists()
-        ):
-            # we upscale
-            UpscalerCore.perform_upscale(UpscaleModels.ESRGAN.value, png_file, str(upscaled_path))
-        else:
-            # we can't upscale. Back to the low resolution icon
-            upscaled_path = png_file
-        return str(upscaled_path)
+        return str(png_file)
 
     @omni.usd.handle_exception
     async def deferred_get_upscaled_game_icon_from_folder(self, folder_path: str, callback):  # noqa PLW0238

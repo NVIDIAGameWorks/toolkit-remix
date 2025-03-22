@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.8]
+## Fixed
+- Fixed documentation build
+
 ## [0.1.7]
 ## Changed
 - Update to Kit 106.5
