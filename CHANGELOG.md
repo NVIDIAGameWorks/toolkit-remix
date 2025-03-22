@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3900: Added ImageWithProvider to better display single channel textures
 
 ### Removed
+- Cleaned up legacy code and unused files
 
 ## [1.0.0]
 

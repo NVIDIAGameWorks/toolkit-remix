@@ -22,7 +22,6 @@ Before submitting your code for review, please ensure you have thoroughly evalua
 
 5. **Version Bumping and Dependency Updates**:
     - Always bump the version of any extensions you modify.
-    - After updating the extensions, run `./auto_update_extension_deps.bat` to update the kit files accordingly.
     - Add an entry to the `changelog.md` files for all modified extensions, as well as the central `CHANGELOG.md` file
       in the root of the repository, to describe the changes that were made.
 
@@ -43,8 +42,7 @@ Before submitting your code for review, please ensure you have thoroughly evalua
   purpose and usage. The documentation for the code will be generated from these docstrings.
 
 - **Version Bumping and Dependency Updates**: Incrementing the version of modified extensions ensures that changes are
-  tracked and managed properly. Running `./auto_update_extension_deps.bat` updates the kit files to reflect these
-  changes, maintaining consistency across the project. Additionally, updating the `changelog.md` files for all modified
+  tracked and managed properly. Additionally, updating the `changelog.md` files for all modified
   extensions and the central `CHANGELOG.md` file in the repository provides a clear record of the changes made.
 
 ## Examples
@@ -112,10 +110,7 @@ Maintain version control and update dependencies to ensure consistency:
 1. **Bump Extension Versions**: Always increment the version of any extensions you modify. This practice helps in
    tracking changes and managing updates effectively.
 
-2. **Update Kit Files**: After making changes to the extensions, run `./auto_update_extension_deps.bat` to update the
-   kit files accordingly. This step ensures that all dependencies are accurately reflected in the project.
-
-3. **Update Changelog**: Add an entry to the `changelog.md` files for all modified extensions, as well as the
+2. **Update Changelog**: Add an entry to the `changelog.md` files for all modified extensions, as well as the
    central `CHANGELOG.md` file in the root of the repository, to describe the changes that were made.
 
 ## Conclusion

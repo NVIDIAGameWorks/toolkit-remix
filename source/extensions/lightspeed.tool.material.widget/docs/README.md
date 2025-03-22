@@ -1,1 +1,0 @@
-# lightspeed.tool.material.widget

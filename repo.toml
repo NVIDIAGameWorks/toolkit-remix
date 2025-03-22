@@ -523,35 +523,12 @@ autodoc_mock_imports = [
 sphinx_exclude_patterns = [
     ####################################################################################################################
     # Documentation generation failures
-    # Undocumented errors are: WARNING: document isn't included in any toctree
     ####################################################################################################################
-    "source/extensions/lightspeed.asset_capture_localizer.*",
-    "source/extensions/lightspeed.color_to_normal.*",
-    "source/extensions/lightspeed.color_to_roughness.*",
-    "source/extensions/lightspeed.common*",
-    "source/extensions/lightspeed.error_popup.*",
-    "source/extensions/lightspeed.event.*",
-    "source/extensions/lightspeed.events_manager*",
-    "source/extensions/lightspeed.export*",
-    "source/extensions/lightspeed.layer_helpers*",
-    "source/extensions/lightspeed.layer_manager*",
-    "source/extensions/lightspeed.light.gizmos*",
-    "source/extensions/lightspeed.lock_xform*",
-    "source/extensions/lightspeed.paths_to_relative.*",
-    "source/extensions/lightspeed.pip_archive*",
-    "source/extensions/lightspeed.property_template*",
-    "source/extensions/lightspeed.stage_column_nickname*",
-    "source/extensions/lightspeed.tool.material.*",
-    "source/extensions/lightspeed.tool.octahedral_converter*",
-    "source/extensions/lightspeed.trex.layout.*",
-    "source/extensions/lightspeed.trex.stage_manager.plugin.widget.usd*",  # Excluded to avoid viewports import doc build failure
-    "source/extensions/lightspeed.trex.viewports.shared.*",  # Kit is Executing extension-logic at the module-level which crashes docs generation
-    "source/extensions/lightspeed.upscale.*",
-    "source/extensions/lightspeed.widget.content_viewer*",
-    "source/extensions/lightspeed.widget.game_captures*",
-    "source/extensions/lightspeed.widget.new_game*",
-    "source/extensions/lightspeed.widget.new_workspace*",
-    "source/extensions/lightspeed.workspace*",
+    "source/extensions/lightspeed.event.waypoint_game_camera*",  # Carb interface is not available
+    "source/extensions/lightspeed.event.generate_thumbnail*",  # Carb interface is not available
+    "source/extensions/lightspeed.trex.layout.*",  # Carb interface is not available
+    "source/extensions/lightspeed.trex.stage_manager.plugin.widget.usd*",  # Carb interface is not available
+    "source/extensions/lightspeed.trex.viewports.shared.*",  # Carb interface is not available
     ####################################################################################################################
     # Ignore directories
     ####################################################################################################################
@@ -563,9 +540,6 @@ sphinx_exclude_patterns = [
     "tools",
     "SECURITY.md",
     "VERSION.md",
-    "source/extensions/lightspeed_example*",
-    "source/extensions/lightspeed.common/**/tools/*",  # 3rd part tools documentation
-    "source/extensions/lightspeed.widget.content_viewer/**/jxnblk-LICENSE.md",  # 3rd part tools documentation
     "**/omni-core-materials-LICENSE.md",
     ####################################################################################################################
     # Development READMEs
