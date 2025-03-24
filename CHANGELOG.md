@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3869: Made extension lowercase for texture validation
 - Fixed Quick Start Guide link on the home page
 - REMIX-3900: Added ImageWithProvider to better display single channel textures
+- REMIX-3581: Fix multi-selection visibility toggle to have consistent behavior
 
 ### Removed
 - Cleaned up legacy code and unused files
