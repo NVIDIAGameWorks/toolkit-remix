@@ -137,7 +137,8 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         if not self.synchronize_selection or not self._is_active:
             return
 
-        selection = omni.usd.get_context(self._context_name).get_selection().get_selected_prim_paths()
+        # Get USD selection
+        selection = self._get_selection()
 
         if selection:
             self._item_expansion_states.clear()
@@ -163,6 +164,9 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             self._update_expansion_states_deferred(scroll_to_selection_override=scroll_to_selection)
         )
 
+    def _get_selection(self):
+        return omni.usd.get_context(self._context_name).get_selection().get_selected_prim_paths()
+
     def _on_selection_changed(self, items: list[_StageManagerTreeItem]):
         if self._selection_update_lock or not self.synchronize_selection:
             return
@@ -171,9 +175,9 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         self._ignore_selection_update = True
 
         selection_prim_paths = [str(item.data.GetPath()) for item in items if item.data]
-        selection = omni.usd.get_context(self._context_name).get_selection()
-        if selection.get_selected_prim_paths() != selection_prim_paths:
-            selection.set_selected_prim_paths(selection_prim_paths)
+        selection = self._get_selection()
+        if selection != selection_prim_paths:
+            omni.usd.get_context(self._context_name).get_selection().set_selected_prim_paths(selection_prim_paths)
 
     def _on_layer_event_occurred(self, event_type: _layers.LayerEventType):
         """

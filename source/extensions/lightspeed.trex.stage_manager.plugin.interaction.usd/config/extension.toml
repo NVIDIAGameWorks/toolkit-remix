@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.1.1"
+version = "1.2.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Shona Gillard <sgillard@nvidia.com>", "Scott Fitzpatrick <scfitzpatric@nvidia.com"]
@@ -30,6 +30,7 @@ preview_image = "data/images/preview.png"
 icon = "data/images/icon.png"
 
 [dependencies]
+"lightspeed.trex.utils.common" = {}
 "omni.flux.stage_manager.factory" = {}
 "omni.flux.stage_manager.plugin.interaction.usd" = {}
 

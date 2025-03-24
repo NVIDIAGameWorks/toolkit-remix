@@ -47,7 +47,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
             wid = _AssetReplacementsPane("")
             wid.show(True)
 
-        await ui_test.human_delay(human_delay_speed=1)
+        await ui_test.human_delay(human_delay_speed=2)  # test re-runs will fail if speed < 2
 
         return window, wid
 
@@ -236,6 +236,119 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         await self.__destroy(_window, _wid)
 
+    async def test_select_material_prim_populates_material_properties(self):
+        # setup
+        _window, _wid = await self.__setup_widget("test_select_material_prim")
+
+        # ensure the proper frames exist
+        frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
+        self.assertIsNotNone(frame_material)
+
+        # ensure the none frames exist and all are visible
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        self.assertEqual(len(none_frames), 3)
+        self.assertTrue(none_frames[0].widget.visible)  # selection tree
+        self.assertTrue(none_frames[1].widget.visible)  # object properties
+        self.assertTrue(none_frames[2].widget.visible)  # material properties
+
+        # ensure selection tree is empty still
+        selection_tree = ui_test.find(f"{_window.title}//Frame/**/TreeView[*].identifier=='LiveSelectionTreeView'")
+        self.assertEqual(len(selection_tree.widget.selection), 0)
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/Looks/mat_BC868CE5A075ABB1"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # ensure the respective none frames are visible/invisible and material widget is visible
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
+        self.assertTrue(none_frames[0].widget.visible)  # selection tree
+        self.assertTrue(none_frames[1].widget.visible)  # object properties
+        self.assertFalse(none_frames[2].widget.visible)  # material properties
+        self.assertTrue(frame_material.widget.visible)  # material widget
+
+        # ensure the selection tree is still not occupied since direct mat selection
+        self.assertEqual(len(selection_tree.widget.selection), 0)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_select_mesh_prim_populates_widgets(self):
+        # setup
+        _window, _wid = await self.__setup_widget("test_select_mesh_prim_populates_widgets")
+
+        # ensure the proper frames exist
+        frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
+        self.assertIsNotNone(frame_material)
+
+        # ensure the none frames exist and all are visible
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        self.assertEqual(len(none_frames), 3)
+        self.assertTrue(none_frames[0].widget.visible)  # selection tree
+        self.assertTrue(none_frames[1].widget.visible)  # object properties
+        self.assertTrue(none_frames[2].widget.visible)  # material properties
+
+        # ensure selection tree is empty still
+        selection_tree = ui_test.find(f"{_window.title}//Frame/**/TreeView[*].identifier=='LiveSelectionTreeView'")
+        self.assertEqual(len(selection_tree.widget.selection), 0)
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # ensure the respective none frames are not visible and material widget is visible
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
+        self.assertFalse(none_frames[0].widget.visible)  # selection tree
+        self.assertFalse(none_frames[1].widget.visible)  # object properties
+        self.assertFalse(none_frames[2].widget.visible)  # material properties
+        self.assertTrue(frame_material.widget.visible)  # material widget
+
+        # ensure the selection tree is occupied with the selection since mesh selection
+        self.assertEqual(len(selection_tree.widget.selection), 1)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_select_material_and_mesh_prims_populates_widgets(self):
+        # setup
+        _window, _wid = await self.__setup_widget("test_select_material_and_mesh_prims")
+
+        # ensure the proper frames exist
+        frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
+        self.assertIsNotNone(frame_material)
+
+        # ensure the none frames exist and all are visible
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        self.assertEqual(len(none_frames), 3)
+        self.assertTrue(none_frames[0].widget.visible)  # selection tree
+        self.assertTrue(none_frames[1].widget.visible)  # object properties
+        self.assertTrue(none_frames[2].widget.visible)  # material properties
+
+        # ensure selection tree is empty still
+        selection_tree = ui_test.find(f"{_window.title}//Frame/**/TreeView[*].identifier=='LiveSelectionTreeView'")
+        self.assertEqual(len(selection_tree.widget.selection), 0)
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/Looks/mat_BC868CE5A075ABB1", "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False
+        )
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # ensure the respective none frames are not visible and material widget is visible
+        none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
+        frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
+        self.assertFalse(none_frames[0].widget.visible)  # selection tree
+        self.assertFalse(none_frames[1].widget.visible)  # object properties
+        self.assertFalse(none_frames[2].widget.visible)  # material properties
+        self.assertTrue(frame_material.widget.visible)  # material widget
+
+        # ensure the selection tree is occupied with the selection since mesh selection
+        self.assertEqual(len(selection_tree.widget.selection), 1)
+
+        await self.__destroy(_window, _wid)
+
     async def test_object_pinning(self):
         # setup
         _window, _wid = await self.__setup_widget("test_collapse_refresh_object_property_when_collapsed")
@@ -279,7 +392,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         self.assertTrue(frame_mesh_prim.widget.visible)
         await self.__destroy(_window, _wid)
 
-    async def test_material_pinning(self):
+    async def test_material_pinning_from_mesh_selection(self):
         # setup
         _window, _wid = await self.__setup_widget("test_collapse_refresh_object_property_when_collapsed")
 
@@ -300,6 +413,45 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         await ui_test.human_delay()
 
         # change selection to the mesh reference
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        await item_prims[0].click()
+        await ui_test.human_delay()
+
+        # material properties should still be visible since pinned
+        self.assertTrue(frame_material.widget.visible)
+
+        # click the pin icons to un-pin
+        pin_icon_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_frame_pin_icon'")
+        await pin_icon_images[1].click()
+        await ui_test.human_delay()
+
+        # material properties should no longer be visible since un-pinned
+        self.assertFalse(frame_material.widget.visible)
+        await self.__destroy(_window, _wid)
+
+    async def test_material_pinning_from_material_selection(self):
+        # setup
+        _window, _wid = await self.__setup_widget("test_collapse_refresh_object_property_when_collapsed")
+
+        # ensure the material frame exists
+        frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
+        self.assertIsNotNone(frame_material)
+
+        # select a mesh and ensure the material properties are visible
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/Looks/mat_BC868CE5A075ABB1"], False)
+        await ui_test.human_delay(human_delay_speed=10)
+        self.assertTrue(frame_material.widget.visible)
+
+        # click the pin icons to pin
+        pin_icon_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_frame_pin_icon'")
+        self.assertEqual(len(pin_icon_images), 2)
+        await pin_icon_images[1].click()
+        await ui_test.human_delay()
+
+        # change selection to the mesh reference in USD context and selection tree
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=10)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         await item_prims[0].click()
         await ui_test.human_delay()

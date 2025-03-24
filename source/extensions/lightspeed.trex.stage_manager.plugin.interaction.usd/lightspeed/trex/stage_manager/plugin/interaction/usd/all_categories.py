@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from lightspeed.trex.utils.common.prim_utils import get_extended_selection as _get_extended_selection
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
 from omni.flux.stage_manager.plugin.interaction.usd.base import (
     StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin,
@@ -45,3 +46,6 @@ class AllCategoriesInteractionPlugin(_StageManagerUSDInteractionPlugin):
         "IsVisibleActionWidgetPlugin",
         "PrimTreeWidgetPlugin",
     ]
+
+    def _get_selection(self):
+        return _get_extended_selection(self._context_name)

@@ -1,5 +1,5 @@
 [package]
-version = "1.5.2"
+version = "1.5.3"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Selection Tree implementation for the StageCraft"
 description = "Selection Tree implementation for NVIDIA RTX Remix StageCraft App"

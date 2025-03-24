@@ -33,7 +33,6 @@ from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _Contexts
 from lightspeed.trex.material_properties.shared.widget import SetupUI as _MaterialPropertiesWidget
-from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
@@ -92,11 +91,7 @@ class TestComponents(Enum):
     FILE_PICKER_CANCEL = 18
 
 
-class TestSelectionTreeWidget(AsyncTestCase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__sub_tree_selection_changed = []
-
+class TestMaterialPropertyWidget(AsyncTestCase):
     # Before running each test
     async def setUp(self):
         await arrange_windows()
@@ -110,25 +105,34 @@ class TestSelectionTreeWidget(AsyncTestCase):
         pass
 
     async def __setup_widget(self):
-        window = ui.Window("TestSelectionTreeUI", height=1200, width=800)
+        window = ui.Window("TestMaterialPropertyWidgetUI", height=800, width=500)
         with window.frame:
             with ui.HStack():
-                selection_wid = _SelectionTreeWidget("")
-                selection_wid.show(True)
-                mesh_property_wid = _MaterialPropertiesWidget("")
-                mesh_property_wid.show(True)
+                mat_property_wid = _MaterialPropertiesWidget("")
+                mat_property_wid.show(True)
 
-        def _on_tree_selection_changed(items):
-            items = selection_wid.get_selection()
-            mesh_property_wid.refresh(items)
+        usd_context = omni.usd.get_context()
 
-        self.__sub_tree_selection_changed.append(
-            selection_wid.subscribe_tree_selection_changed(_on_tree_selection_changed)
+        # Create Material Property refresher for USD selection changed events
+        def on_stage_event(event):
+            if event.type == int(omni.usd.StageEventType.SELECTION_CHANGED):
+                # Grab the USD selected prims
+                prim_paths = list(set(usd_context.get_selection().get_selected_prim_paths()))
+                items = [usd_context.get_stage().GetPrimAtPath(prim_path) for prim_path in prim_paths]
+
+                # Grab prims and refresh the material properties
+                mat_property_wid.refresh(items)  # NOTE: This occurs from AssetReplacementsPane in app
+
+        # Subscribe to USD selection changes
+        self._events = usd_context.get_stage_event_stream()
+        self._stage_event_delegate = self._events.create_subscription_to_pop(
+            on_stage_event,
+            name="Selection Change Subscription",
         )
 
         await ui_test.human_delay(human_delay_speed=1)
 
-        return window, selection_wid, mesh_property_wid
+        return window, mat_property_wid
 
     async def __find_file_picker_buttons(self, window_title):
         components = {
@@ -151,9 +155,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         return components
 
-    async def __destroy(self, window, selection_wid, mesh_property_wid):
-        mesh_property_wid.destroy()
-        selection_wid.destroy()
+    async def __destroy(self, window, material_property_wid):
+        self._events = None
+        self._stage_event_delegate.unsubscribe()
+        self._stage_event_delegate = None
+
+        material_property_wid.destroy()
         window.destroy()
 
         # destroy prompt dialogs to avoid unwanted references
@@ -198,7 +205,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
     async def test_select_one_prim_mesh(self):
         # setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # select
         usd_context = omni.usd.get_context()
@@ -213,11 +220,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
             self.assertFalse(frame_none.widget.visible)
         self.assertTrue(frame_material.widget.visible)
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_select_instance_mesh_prim(self):
         # setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # select
         usd_context = omni.usd.get_context()
@@ -234,11 +241,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
             self.assertFalse(frame_none.widget.visible)
         self.assertTrue(frame_material.widget.visible)
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_select_nothing(self):
         # setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # select
         usd_context = omni.usd.get_context()
@@ -253,11 +260,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
             self.assertTrue(frame_none.widget.visible)
         self.assertFalse(frame_material.widget.visible)
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_override_texture_ingested_texture(self):
         # setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # select
         usd_context = omni.usd.get_context()
@@ -289,11 +296,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
             OmniUrl(asset_path).path, OmniUrl(texture_file_fields[0].widget.model.get_value_as_string()).path
         )
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_override_texture_not_ingested_texture_cancel(self):
         # setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # select
         usd_context = omni.usd.get_context()
@@ -328,11 +335,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # text should go back like before
         self.assertEquals(original_text, texture_file_fields[0].widget.model.get_value_as_string())
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_override_texture_not_ingested_texture_ignore(self):
         # setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # select
         usd_context = omni.usd.get_context()
@@ -368,11 +375,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
             OmniUrl(asset_path).path, OmniUrl(diffuse_texture_file_field.widget.model.get_value_as_string()).path
         )
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_override_texture_ingested_texture_outside_project_dir_cancel(self):
         # Setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # Select
         usd_context = omni.usd.get_context()
@@ -425,11 +432,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # Text field should revert to the original path
         self.assertEquals(original_text, diffuse_texture_file_field.widget.model.get_value_as_string())
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_override_texture_ingested_texture_outside_project_dir_copy_and_re_ref(self):
         # Setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # Select
         usd_context = omni.usd.get_context()
@@ -486,11 +493,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # Delete the newly created project_example/assets/ingested subdirectory and its contents
         shutil.rmtree(_get_test_data(f"usd/project_example/{str(_constants.REMIX_INGESTED_ASSETS_FOLDER)}"))
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_override_texture_not_ingested_texture_outside_project_dir_no_metadata_cancel(self):
         # Setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # Select
         usd_context = omni.usd.get_context()
@@ -542,12 +549,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # Text should go back like before
         self.assertEquals(original_text, diffuse_texture_file_field.widget.model.get_value_as_string())
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_drop_texture(self):
         # setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
-        _mesh_property_wid.set_external_drag_and_drop(window_name=_window.title)
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _material_property_wid.set_external_drag_and_drop(window_name=_window.title)
 
         # select
         usd_context = omni.usd.get_context()
@@ -583,11 +590,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         )
         self.assertEquals(rel_path, texture_file_fields[1].widget.model.get_value_as_string())
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_texture_set_assignment(self):
         # setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # select
         usd_context = omni.usd.get_context()
@@ -618,11 +625,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
             OmniUrl(rel_path).path, OmniUrl(texture_file_fields[1].widget.model.get_value_as_string()).path
         )
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_texture_set_multiple_assignment(self):
         # setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # Create a temp directory to create a variety of files
         with tempfile.TemporaryDirectory(
@@ -712,11 +719,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
                 with self.subTest(name=rel_path):
                     self.assertEquals(rel_path, texture_file_fields[index].widget.model.get_value_as_string())
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_copy_from_material_label_copy_menu(self):
         # setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # select
         usd_context = omni.usd.get_context()
@@ -751,11 +758,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         copied_text = omni.kit.clipboard.paste()
         self.assertTrue(copied_text.endswith("AperturePBR_Opacity.mdl"))
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_copy_from_texture_string_field_copy_menu(self):
         # setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # select
         usd_context = omni.usd.get_context()
@@ -808,11 +815,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(5)
             self.assertFalse("Copy File Path Hash" in context_menu.get("_"))
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_texture_string_field_tooltips_set_and_update(self):
         # setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # select
         usd_context = omni.usd.get_context()
@@ -868,11 +875,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(5)
         self.assertEqual(texture_file_fields[1].widget.tooltip.lower(), roughness_texture_asset_path.lower())
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)
 
     async def test_texture_string_field_tooltips_with_different_layer_and_edit_target(self):
         # setup
-        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         # select
         usd_context = omni.usd.get_context()
@@ -919,4 +926,4 @@ class TestSelectionTreeWidget(AsyncTestCase):
         asset_path = _get_test_data(f"usd/{RELATIVE_CAPTURE_TEXTURE_PATH}{MATERIAL_HASH}.dds")
         self.assertEqual(texture_file_fields[0].widget.tooltip.lower(), asset_path.lower())
 
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+        await self.__destroy(_window, _material_property_wid)

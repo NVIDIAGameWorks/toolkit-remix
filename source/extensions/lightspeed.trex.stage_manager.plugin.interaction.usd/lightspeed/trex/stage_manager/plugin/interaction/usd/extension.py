@@ -21,12 +21,13 @@ import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
 from .all_categories import AllCategoriesInteractionPlugin as _AllCategoriesInteractionPlugin
+from .all_materials import AllMaterialsRemixInteractionPlugin as _AllMaterialsRemixInteractionPlugin
 from .all_meshes import AllMeshesInteractionPlugin as _AllMeshesInteractionPlugin
 
 
 class LightspeedStageManagerUSDInteractionPluginsExtension(omni.ext.IExt):
 
-    _PLUGINS = [_AllCategoriesInteractionPlugin, _AllMeshesInteractionPlugin]
+    _PLUGINS = [_AllCategoriesInteractionPlugin, _AllMaterialsRemixInteractionPlugin, _AllMeshesInteractionPlugin]
 
     def on_startup(self, _):
         carb.log_info("[lightspeed.trex.stage_manager.plugin.interaction.usd] Startup")

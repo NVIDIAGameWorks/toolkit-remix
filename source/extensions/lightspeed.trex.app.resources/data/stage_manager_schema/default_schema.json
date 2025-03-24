@@ -122,7 +122,7 @@
             ]
         },
         {
-            "name": "AllMaterialsInteractionPlugin",
+            "name": "AllMaterialsRemixInteractionPlugin",
             "filters": [
                 { "name": "IsCaptureFilterPlugin" }
             ],

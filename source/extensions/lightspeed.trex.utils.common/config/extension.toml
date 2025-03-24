@@ -2,7 +2,7 @@
 authors =["Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix common utils"
 description = "Common utils helper for Lightspeed widgets"
-version = "1.4.0"
+version = "1.5.0"
 readme = "docs/README.md"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.utils.common"
 category = "internal"
