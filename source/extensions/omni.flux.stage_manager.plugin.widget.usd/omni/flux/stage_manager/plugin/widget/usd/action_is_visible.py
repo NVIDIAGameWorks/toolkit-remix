@@ -72,6 +72,13 @@ class IsVisibleActionWidgetPlugin(_StageManagerStateWidgetPlugin):
         self._item_clicked(button, True, model, item)
 
         context = omni.usd.get_context(self._context_name)
+        target_value = (
+            UsdGeom.Imageable(item.data).ComputeVisibility(Usd.TimeCode.Default()) == UsdGeom.Tokens.invisible
+        )
+
         omni.kit.commands.execute(
-            "ToggleVisibilitySelectedPrims", selected_paths=context.get_selection().get_selected_prim_paths()
+            "SetVisibilitySelectedPrims",
+            selected_paths=context.get_selection().get_selected_prim_paths(),
+            value=target_value,
+            context_name=self._context_name,
         )

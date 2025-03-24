@@ -297,4 +297,94 @@ class RemoveOverrideCommand(omni.kit.commands.Command):
                 self._edit_target_undo.undo()
 
 
+class SetVisibilitySelectedPrimsCommand(omni.kit.commands.Command):
+    """
+    Sets the visibility of the selected primitives.
+    """
+
+    def __init__(self, selected_paths: list[str], value: bool, context_name: str = ""):
+        """
+        Args:
+            selected_paths (list[str]): A list of prim paths to set the visibility.
+            value (bool): The visibility value to set.
+            context_name (str): The context name to get the stage from.
+        """
+
+        self._timeline = omni.timeline.get_timeline_interface()
+        self._stage = omni.usd.get_context(context_name).get_stage()
+        self._selected_paths = [Sdf.Path(path) for path in selected_paths]
+        self._selected_paths = Sdf.Path.RemoveDescendentPaths(self._selected_paths)
+        self._value = value
+        self._previous_visibility = {}
+        self._action_taken = {}
+        self._current_time = None
+
+    def _get_prim_visibility(self, prim: Usd.Prim, time: float):
+        imageable = UsdGeom.Imageable(prim)
+        visibility_attr = imageable.GetVisibilityAttr()
+
+        time_sampled = visibility_attr.GetNumTimeSamples() > 1
+        if time_sampled:
+            curr_time_code = time * self._stage.GetTimeCodesPerSecond()
+        else:
+            curr_time_code = Usd.TimeCode.Default()
+
+        return imageable.ComputeVisibility(curr_time_code)
+
+    def _toggle_visibility(self, undo: bool):
+        if not undo:
+            self._current_time = self._timeline.get_current_time()
+
+        for selected_path in self._selected_paths:
+            if undo and not self._action_taken.get(selected_path):
+                continue
+
+            selected_prim = self._stage.GetPrimAtPath(selected_path)
+            if not selected_prim:
+                continue
+
+            if not undo:
+                # It needs to save parent visibility as toggling visibility may influence parents.
+                prefixes = selected_path.GetPrefixes()[:-1]
+                for path in prefixes:
+                    parent = self._stage.GetPrimAtPath(path)
+                    if not parent:
+                        break
+
+                    visibility = self._get_prim_visibility(parent, self._current_time)
+                    if visibility != UsdGeom.Tokens.inherited:
+                        self._previous_visibility[parent.GetPath()] = visibility
+                        break
+
+            previous_visibility = self._get_prim_visibility(selected_prim, self._current_time)
+            target_visibility = self._value if not undo else not self._value
+            imageable = UsdGeom.Imageable(selected_prim)
+            if target_visibility:
+                imageable.MakeVisible()
+            else:
+                imageable.MakeInvisible()
+
+            self._action_taken[selected_path] = previous_visibility != self._get_prim_visibility(
+                selected_prim, self._current_time
+            )
+
+        if undo:
+            for path, visibility in self._previous_visibility.items():
+                prim = self._stage.GetPrimAtPath(path)
+                if not prim:
+                    continue
+                imageable = UsdGeom.Imageable(prim)
+
+                if visibility == UsdGeom.Tokens.visible:
+                    imageable.MakeVisible()
+                if visibility == UsdGeom.Tokens.invisible:
+                    imageable.MakeInvisible()
+
+    def do(self):
+        self._toggle_visibility(False)
+
+    def undo(self):
+        self._toggle_visibility(True)
+
+
 omni.kit.commands.register_all_commands_in_module(__name__)

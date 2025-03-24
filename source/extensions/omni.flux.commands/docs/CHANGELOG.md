@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.0]
+## Changed
+- Added `SetVisibilitySelectedPrimsCommand` custom command for setting visibility on selected prims.
+
 ## [1.0.6]
 ## Changed
 - Update to Kit 106.5

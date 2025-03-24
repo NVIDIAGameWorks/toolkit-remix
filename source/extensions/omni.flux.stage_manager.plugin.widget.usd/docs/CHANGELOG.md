@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.0]
+### Changed
+- Use newly created `SetVisibilitySelectedPrimsCommand` command to set all items to the same value instead of toggling
+
 ## [1.8.0]
 ### Added
 - Use the new items' `build_widget` method instead of a label
