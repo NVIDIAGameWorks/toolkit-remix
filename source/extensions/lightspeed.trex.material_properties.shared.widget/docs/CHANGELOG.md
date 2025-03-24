@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Changed
+- Changed `refresh()` to function based off of USD stage selection instead of Selection Tree
+- Removed Selection Tree logic and connections from e2e tests
+
 ## [1.3.21]
 ## Changed
 - Set the column widths and allow resizing

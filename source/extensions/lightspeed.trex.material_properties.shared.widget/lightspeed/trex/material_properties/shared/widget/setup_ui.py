@@ -20,7 +20,6 @@ from __future__ import annotations
 import asyncio
 import functools
 import re
-import typing
 from functools import partial
 from pathlib import Path
 
@@ -35,7 +34,8 @@ from lightspeed.trex.asset_replacements.core.shared.usd_copier import copy_non_u
 from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _Contexts
 from lightspeed.trex.material.core.shared import Setup as _MaterialCore
-from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemPrim as _ItemPrim
+from lightspeed.trex.utils.common.prim_utils import get_reference_file_paths as _get_reference_file_paths
+from lightspeed.trex.utils.common.prim_utils import is_material_prototype as _is_material_prototype
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui, usd
 from omni.flux.asset_importer.core import determine_ideal_types as _determine_ideal_types
@@ -58,19 +58,6 @@ from pxr import Sdf, Usd, UsdShade
 
 from .texture_assignment_model import Delegate, Model
 
-if typing.TYPE_CHECKING:
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
-        ItemAddNewReferenceFile as _ItemAddNewReferenceFileMesh,
-    )
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemAsset as _ItemAsset
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstance as _ItemInstance
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
-        ItemInstancesGroup as _ItemInstancesGroup,
-    )
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
-        ItemReferenceFile as _ItemReferenceFile,
-    )
-
 
 class TextureDialog(ui.Window):
     def hide(self):
@@ -81,6 +68,7 @@ class SetupUI:
 
     MATERIAL_LABEL_NAME_SIZE = 32
     _WIDGET_PADDING = 16
+    MAT_PROP_FRAME = "material_property_frame"
 
     def __init__(self, context_name: str):
         """Nvidia StageCraft Viewport UI"""
@@ -165,7 +153,7 @@ class SetupUI:
                 with ui.VStack(height=ui.Pixel(32)):
                     ui.Label("None", name="PropertiesWidgetLabel", alignment=ui.Alignment.CENTER)
             self._frame_material_widget = ui.Frame(visible=False, identifier="frame_material_widget")
-            self._material_properties_frames[_ItemPrim] = self._frame_material_widget
+            self._material_properties_frames[self.MAT_PROP_FRAME] = self._frame_material_widget
 
             with self._frame_material_widget:
                 with ui.VStack(spacing=ui.Pixel(8)):
@@ -560,84 +548,86 @@ class SetupUI:
     def _concat_list_to_string(items):
         return "\n".join([str(item) for item in items])
 
-    def refresh(
-        self,
-        items: list[
-            _ItemAsset
-            | _ItemReferenceFile
-            | _ItemAddNewReferenceFileMesh
-            | _ItemInstancesGroup
-            | _ItemInstance
-            | _ItemPrim
-        ],
-    ):
+    def refresh(self, items: list[Usd.Prim]):
+        """Items should be a list Usd.Prim from which materials can be derived."""
+
+        def hide_properties():
+            self._material_properties_widget.show(False)  # to disable the listener
+            self._material_properties_frames[None].visible = True
+            self._material_properties_frames[self.MAT_PROP_FRAME].visible = False
+            self._set_material_label("None")
+            self._set_material_mdl_label("")
+
         self._current_material_mdl_file = None
         self._current_single_material = None
+        mdl_files: set[Path] = set()
 
-        found = False
-        for item_type, frame in self._material_properties_frames.items():
-            if item_type is None:
-                self._material_properties_frames[None].visible = False
+        # Filter prims and handle prims with refs
+        filtered_items = []
+        for item in items:
+            if not isinstance(item, Usd.Prim):
                 continue
-            value = any(isinstance(item, item_type) for item in items) if items else False
-            frame.visible = value
-            if value:
-                found = True
 
-        if found:
-            # we select the material
-            self._selected_prims = [item.prim for item in items if isinstance(item, _ItemPrim)]
-            if self._selected_prims:
-                materials = []
-                for prim in self._selected_prims:
-                    for mat in self._core.get_materials_from_prim(prim):
-                        if mat not in materials:
-                            materials.append(mat)
+            is_material_prim = _is_material_prototype(item)
+            if is_material_prim or (not is_material_prim and _get_reference_file_paths(item)):
+                # If not a mat prim and has reference, refresh widget to clear
+                if not is_material_prim:
+                    self.refresh([])
+                filtered_items.append(item)
 
-                mdl_files: set[Path] = set()
-                for material in materials:
-                    material_prim = self._stage.GetPrimAtPath(material)
-                    shader_prim = omni.usd.get_shader_from_material(material_prim, True)
-                    if shader_prim:
-                        shader = UsdShade.Shader(shader_prim)
-                        source_asset = shader.GetSourceAsset("mdl") if shader else None
-                        if source_asset:
-                            mdl_file = source_asset.resolvedPath
-                            mdl_files.add(Path(mdl_file))
+        if not filtered_items:
+            hide_properties()
+            return
 
-                if materials:
-                    asyncio.ensure_future(self._refresh_material_menu())
-                    self._material_properties_widget.show(True)
-                    # TODO: Selection is not ordered by user but by tree view position, so displaying only one value
-                    #  value where user cannot control which one is shown is not the best UX.
-                    self._material_properties_widget.refresh(materials)
-                    material_label_text = self._shorten_material_id_string(
-                        str(materials[0]), self.MATERIAL_LABEL_NAME_SIZE, "/"
-                    )
-                    if len(materials) == 1:
-                        self._set_material_label(material_label_text)
-                        self._current_single_material = materials[0]
-                    else:
-                        multiple_info_text = f"Multiple Selected (editing all, displaying {material_label_text})"
-                        multiple_info_details = multiple_info_text + "\n\n" + SetupUI._concat_list_to_string(materials)
-                        self._set_material_label(multiple_info_text, tooltip=multiple_info_details)
+        # Gather materials
+        materials = set()
+        for prim in filtered_items:
+            for mat in self._core.get_materials_from_prim(prim):
+                materials.add(mat)
+        materials = list(materials)
 
-                    mdl_file_label = "None"
-                    mdl_file_label_tooltip = ""
-                    if len(mdl_files) == 1:
-                        self._current_material_mdl_file = mdl_files.pop()
-                        mdl_file_label = self._current_material_mdl_file.name
-                        mdl_file_label_tooltip = str(self._current_material_mdl_file.absolute())
-                    elif len(mdl_files) > 1:
-                        mdl_file_label = "Multiple"
-                    self._set_material_mdl_label(mdl_file_label, tooltip=mdl_file_label_tooltip)
+        if not materials:
+            hide_properties()
+            return
 
-                    return
-        self._material_properties_widget.show(False)  # to disable the listener
-        self._material_properties_frames[None].visible = True
-        self._material_properties_frames[_ItemPrim].visible = False
-        self._set_material_label("None")
-        self._set_material_mdl_label("")
+        # Build material property widget accordingly
+        self._material_properties_frames[self.MAT_PROP_FRAME].visible = True
+        self._material_properties_frames[None].visible = False
+
+        for material in materials:
+            material_prim = self._stage.GetPrimAtPath(material)
+            shader_prim = omni.usd.get_shader_from_material(material_prim, True)
+            if shader_prim:
+                shader = UsdShade.Shader(shader_prim)
+                source_asset = shader.GetSourceAsset("mdl") if shader else None
+                if source_asset:
+                    mdl_file = source_asset.resolvedPath
+                    mdl_files.add(Path(mdl_file))
+
+        asyncio.ensure_future(self._refresh_material_menu())
+        self._material_properties_widget.show(True)
+        # TODO: For multi-selection, properties are ordered by USD, not click-order in Stage Manager or Selection Tree.
+        #  Displaying only one set of shared property values is not the best UX.
+        self._material_properties_widget.refresh(materials)
+        material_label_text = self._shorten_material_id_string(str(materials[0]), self.MATERIAL_LABEL_NAME_SIZE, "/")
+        if len(materials) == 1:
+            self._set_material_label(material_label_text)
+            self._current_single_material = materials[0]
+        else:
+            multiple_info_text = f"Multiple Selected (editing all, displaying {material_label_text})"
+            multiple_info_details = multiple_info_text + "\n\n" + SetupUI._concat_list_to_string(materials)
+            self._set_material_label(multiple_info_text, tooltip=multiple_info_details)
+            self._current_single_material = None
+
+        mdl_file_label = "None"
+        mdl_file_label_tooltip = ""
+        if len(mdl_files) == 1:
+            self._current_material_mdl_file = mdl_files.pop()
+            mdl_file_label = self._current_material_mdl_file.name
+            mdl_file_label_tooltip = str(self._current_material_mdl_file.absolute())
+        elif len(mdl_files) > 1:
+            mdl_file_label = "Multiple"
+        self._set_material_mdl_label(mdl_file_label, tooltip=mdl_file_label_tooltip)
 
     def _set_material_label(self, label: str, tooltip=None):
         self._current_material_label.text = label

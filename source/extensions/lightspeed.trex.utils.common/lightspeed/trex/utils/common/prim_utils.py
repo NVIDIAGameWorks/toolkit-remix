@@ -30,7 +30,7 @@ __all__ = [
 
 import re
 from enum import Enum
-from typing import Callable
+from typing import Callable, List, Tuple
 
 import omni.usd
 from lightspeed.common import constants
@@ -341,3 +341,40 @@ def get_children_prims(
             yield from traverse_instanced_children(child, _current_level, _skip_remix_ref)
 
     return list(traverse_instanced_children(prim, current_level, skip_remix_ref))
+
+
+def get_reference_file_paths(prim) -> Tuple[List[Tuple["Usd.Prim", "Sdf.Reference", "Sdf.Layer", int]], int]:
+    """
+    Collects file references from a USD prim and its reference children.
+    Handles special child prims for multiple identical references.
+
+    Args:
+        prim (Usd.Prim): The USD prim to get references from.
+
+    Returns:
+        Tuple[List[Tuple[Usd.Prim, Sdf.Reference, Sdf.Layer, int]], int]:
+            List of (prim, reference, layer, index) tuples and total reference count.
+    """
+    prim_paths = []
+    ref_and_layers = omni.usd.get_composed_references_from_prim(prim, False)
+    i = 0
+    for ref, layer in ref_and_layers:
+        if not ref.assetPath:
+            continue
+        prim_paths.append((prim, ref, layer, i))
+        i += 1
+
+    # It can happen that we added the same reference multiple time. But USD can't do that.
+    # As a workaround, we had to create a xform child and add the reference to it.
+    # Check the children and find the attribute that define that
+    for child in prim.GetChildren():
+        is_remix_ref = child.GetAttribute(constants.IS_REMIX_REF_ATTR)
+        if is_remix_ref.IsValid():
+            ref_and_layers = omni.usd.get_composed_references_from_prim(child, False)
+            for ref, layer in ref_and_layers:
+                if not ref.assetPath:
+                    continue
+                prim_paths.append((child, ref, layer, i))
+                i += 1
+
+    return prim_paths, i

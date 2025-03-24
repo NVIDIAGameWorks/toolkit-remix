@@ -55,8 +55,13 @@ class Setup:
                 return _material.GetPath()
             return None
 
+        if not isinstance(prim, Usd.Prim) or not prim.IsValid():
+            return None
+
         result = []
-        if prim.IsValid() and (prim.IsA(UsdGeom.Subset) or prim.IsA(UsdGeom.Mesh)):
+        if prim.IsA(UsdShade.Material):
+            return [prim.GetPath()]
+        if prim.IsA(UsdGeom.Subset) or prim.IsA(UsdGeom.Mesh):
             mat_prim = get_mat_from_geo(prim)
             if mat_prim:
                 result.append(mat_prim)

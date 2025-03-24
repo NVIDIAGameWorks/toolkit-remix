@@ -21,7 +21,7 @@ import multiprocessing
 import re
 import typing
 from contextlib import contextmanager
-from typing import Dict, List, Optional, Tuple, Type, TypeAlias, Union
+from typing import Dict, List, Optional, Type, TypeAlias, Union
 
 import carb.events
 import omni.kit.commands
@@ -29,10 +29,11 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
+from lightspeed.trex.utils.common.prim_utils import get_reference_file_paths as _get_reference_file_paths
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.kit.usd.layers import LayerEventType, get_layer_event_payload, get_layers
-from pxr import Usd, UsdGeom, UsdLux
+from pxr import Usd, UsdGeom, UsdLux, UsdShade
 
 from .listener import USDListener as _USDListener
 
@@ -373,7 +374,7 @@ class ItemAsset(ui.AbstractItem):
         self._live_light_group = ItemLiveLightGroup(self, context_name)
         # instance also for light, to have a selected item to show properties
         self._instance_group_item = ItemInstancesGroup(instance_prims, self)
-        prim_paths, total_ref = self.__reference_file_paths(self._prim)
+        prim_paths, total_ref = _get_reference_file_paths(self._prim)
         self._reference_items = [
             ItemReferenceFile(_prim, ref, layer, i, total_ref, self, context_name)
             for _prim, ref, layer, i in prim_paths
@@ -418,32 +419,6 @@ class ItemAsset(ui.AbstractItem):
     @property
     def reference_items(self):
         return self._reference_items
-
-    @staticmethod
-    def __reference_file_paths(prim) -> Tuple[List[Tuple["Usd.Prim", "Sdf.Reference", "Sdf.Layer", int]], int]:
-        prim_paths = []
-        ref_and_layers = omni.usd.get_composed_references_from_prim(prim, False)
-        i = 0
-        for ref, layer in ref_and_layers:
-            if not ref.assetPath:
-                continue
-            prim_paths.append((prim, ref, layer, i))
-            i += 1
-
-        # it can happen that we added the same reference multiple time. But USD can't do that.
-        # As a workaround, we had to create a xform child and add the reference to it.
-        # Check the children and find the attribute that define that
-        for child in prim.GetChildren():
-            is_remix_ref = child.GetAttribute(constants.IS_REMIX_REF_ATTR)
-            if is_remix_ref.IsValid():
-                ref_and_layers = omni.usd.get_composed_references_from_prim(child, False)
-                for ref, layer in ref_and_layers:
-                    if not ref.assetPath:
-                        continue
-                    prim_paths.append((child, ref, layer, i))
-                    i += 1
-
-        return prim_paths, i
 
     def __repr__(self):
         return f"{self.__class__.__name__}('{self.path}')"
@@ -588,16 +563,23 @@ class ListModel(ui.AbstractItemModel):
     def __get_model_from_prototype_path(self, path):
         if not path.startswith(constants.MESH_PATH) and not path.startswith(constants.LIGHT_PATH):
             return None
+
+        # ensure prim is valid and not simultaneously a material
         prim = self.stage.GetPrimAtPath(path)
         if not prim.IsValid():
             return None
+        if prim.IsA(UsdShade.Material):
+            return None
+
+        # return input path if is regex mesh or light match
         regex_pattern = re.compile(constants.REGEX_MESH_PATH)
         if regex_pattern.match(prim.GetName()):
             return path
         regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
         if regex_pattern.match(prim.GetName()):
             return path
-        # get parent
+
+        # get and return parent
         parent = prim.GetParent()
         if not parent or not parent.IsValid():
             return None
