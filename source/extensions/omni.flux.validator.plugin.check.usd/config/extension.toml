@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "3.14.1"
+version = "3.14.2"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -32,7 +32,7 @@ icon = "data/images/icon.png"
 [dependencies]
 "omni.client" = {}
 "omni.flux.asset_importer.core" = {}
-"omni.flux.commands" = {} # For SetDefaultPrim command
+"omni.flux.commands" = {} # For SetDefaultPrim & CreateOrInsertSublayer commands
 "omni.flux.info_icon.widget" = {}
 "omni.flux.lookdev.core" = {}
 "omni.flux.pip_archive" = {} # Required for pydantic

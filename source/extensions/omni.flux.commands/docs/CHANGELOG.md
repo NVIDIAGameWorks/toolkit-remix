@@ -2,12 +2,16 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0]
+### Changed
+- Added `CreateOrInsertSublayerCommand` custom command for to revert Kit 106.5 changes.
+
 ## [1.1.0]
-## Changed
+### Changed
 - Added `SetVisibilitySelectedPrimsCommand` custom command for setting visibility on selected prims.
 
 ## [1.0.6]
-## Changed
+### Changed
 - Update to Kit 106.5
 
 ## [1.0.5]

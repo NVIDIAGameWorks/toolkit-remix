@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.9.2"
+version = "1.9.3"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -30,12 +30,13 @@ preview_image = "data/images/preview.png"
 icon = "data/images/icon.png"
 
 [dependencies]
+"omni.flux.commands" = {}  # Using custom commands
 "omni.flux.layer_tree.usd.core" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
 "omni.kit.usd.layers" = {}
-"omni.kit.window.file_exporter" = {}
 "omni.kit.widget.prompt" = {}
+"omni.kit.window.file_exporter" = {}
 "omni.ui" = {}
 "omni.usd" = {}
 

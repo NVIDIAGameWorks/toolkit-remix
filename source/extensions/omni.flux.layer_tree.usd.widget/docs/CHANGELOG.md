@@ -2,27 +2,32 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.3]
+### Fixed
+- Fixed create/import layer buttons state after a refresh
+- Changed usages of the `CreateSublayer` command for `CreateOrInsertSublayer`
+
 ## [1.9.2]
-## Changed
+### Changed
 - Update to Kit 106.5
 
 ## [1.9.1]
-## Changed
+### Changed
 - Persist the selection through refreshes
 
-## Fixed
+### Fixed
 - Fixed inconsistent muteness states
 - Fixed stage events not triggering refresh
 - Fixed widget being interactable while loading in progress
 - Catch async exceptions in the refresh function
 
 ## [1.9.0]
-## Changed
+### Changed
 - Improved UI for invalid edit targets
 - Fixed refresh blocking the UI
 
 ## [1.8.3]
-## Changed
+### Changed
 - update to use omni.kit.test public api
 
 ## [1.8.2]

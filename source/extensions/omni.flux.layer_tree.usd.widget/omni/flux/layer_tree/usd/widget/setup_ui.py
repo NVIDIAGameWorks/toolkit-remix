@@ -254,6 +254,9 @@ class LayerTreeWidget:
         self._layer_tree_widget.selection = selection
         self._ignore_selection_updates = False
 
+        # Update the import & create button states
+        self._update_button_state(selection)
+
     def on_selection_changed(self, items: list[_ItemBase]):
         if self._ignore_selection_updates:
             return

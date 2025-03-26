@@ -1,5 +1,5 @@
 [package]
-version = "2.2.7"
+version = "2.2.8"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -18,13 +18,14 @@ name = "Lightspeed Layer Manager"
 "lightspeed.common" = {}
 "lightspeed.pip_archive" = {}
 "omni.client" = {}
+"omni.flux.commands" = {}  # Using custom commands
 "omni.flux.layer_tree.usd.core" = {}
 "omni.flux.service.shared" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.commands" = {}
 "omni.kit.usd.layers" = {}
-"omni.usd" = {}
 "omni.kit.window.file" = {}
+"omni.usd" = {}
 
 [[python.module]]
 name = "lightspeed.layer_manager.core"

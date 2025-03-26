@@ -1,5 +1,5 @@
 [package]
-version = "1.2.1"
+version = "2.0.0"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -14,6 +14,7 @@ preview_image = "data/preview.png"
 [dependencies]
 "lightspeed.events_manager" = {}
 "lightspeed.layer_manager.core" = {}
+"lightspeed.trex.recent_projects.core" = {}
 "omni.flux.utils.common" = {}
 "omni.client" = {}
 "omni.usd" = {}

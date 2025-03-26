@@ -17,6 +17,7 @@
 
 import contextlib
 import pathlib
+import re
 from types import NoneType
 from typing import Union
 from unittest.mock import Mock, call, patch
@@ -880,10 +881,13 @@ class TestLayerManagerCore(AsyncTestCase):
                         f'Can\'t find the layer with identifier "{layer_path}".',
                     )
 
+            # Replace any "parent/../dir" with "dir" and any "dir/./" with "dir/"
+            resolved_path = re.sub(r"(/[^/]+/\.\./)|(\./)|(//+)", "/", layer_path)
+
             self.assertEqual(1 if set_edit_target and not create_will_fail else 0, set_edit_target_mock.call_count)
             if set_edit_target and not create_will_fail:
-                self.assertEqual(call(layer_path), set_edit_target_mock.call_args)
+                self.assertEqual(call(resolved_path), set_edit_target_mock.call_args)
 
             self.assertEqual(1 if set_layer_type and not create_will_fail else 0, set_custom_data_mock.call_count)
             if set_layer_type and not create_will_fail:
-                self.assertEqual(call(layer_path, layer_type), set_custom_data_mock.call_args)
+                self.assertEqual(call(resolved_path, layer_type), set_custom_data_mock.call_args)

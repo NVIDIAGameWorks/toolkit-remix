@@ -1,5 +1,5 @@
 [package]
-version = "2.3.0"
+version = "2.4.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix layout for the StageCraft"
 description = "Layout for NVIDIA RTX Remix StageCraft App"
@@ -13,7 +13,6 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 
 [dependencies]
 "lightspeed.common" = {}
-"lightspeed.event.save_recent" = {}
 "lightspeed.events_manager" = {}
 "lightspeed.layer_manager.core" = {}
 "lightspeed.trex.components_pane.stagecraft.controller" = {}
@@ -23,6 +22,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 "lightspeed.trex.layout.shared.base" = {}
 "lightspeed.trex.menu.workfile" = {}
 "lightspeed.trex.properties_pane.stagecraft.widget" = {}
+"lightspeed.trex.recent_projects.core" = {}
 "lightspeed.trex.stage_manager.widget" = {}
 "lightspeed.trex.utils.common" = {}
 "lightspeed.trex.utils.widget" = {}
