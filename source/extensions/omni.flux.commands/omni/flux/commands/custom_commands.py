@@ -15,15 +15,32 @@
 * limitations under the License.
 """
 
+__all__ = [
+    "AttributeDef",
+    "SetDefaultPrimCommand",
+    "SetFluxXFormPrimCommand",
+    "RemoveOverrideCommand",
+    "SetVisibilitySelectedPrimsCommand",
+    "CreateOrInsertSublayerCommand",
+]
+
 from typing import Any, Iterable, TypedDict
 
 import carb
 import omni.kit.commands
 import omni.kit.undo
 import omni.usd
+from omni.kit.usd.layers import LayerUtils
 from omni.kit.usd_undo import UsdEditTargetUndo
-from omni.usd.commands import remove_prim_spec as _remove_prim_spec
+from omni.usd.commands import remove_prim_spec
 from pxr import Sdf, Usd, UsdGeom
+
+
+class AttributeDef(TypedDict):
+    name: str
+    op: UsdGeom.XformOp
+    precision: UsdGeom.XformOp.Precision
+    value: Any | None
 
 
 class SetDefaultPrimCommand(omni.kit.commands.Command):
@@ -55,13 +72,6 @@ class SetDefaultPrimCommand(omni.kit.commands.Command):
             self._stage.SetDefaultPrim(old_default_prim)
         else:
             self._stage.SetDefaultPrim(None)
-
-
-class AttributeDef(TypedDict):
-    name: str
-    op: UsdGeom.XformOp
-    precision: UsdGeom.XformOp.Precision
-    value: Any | None
 
 
 class SetFluxXFormPrimCommand(omni.kit.commands.Command):
@@ -97,7 +107,7 @@ class SetFluxXFormPrimCommand(omni.kit.commands.Command):
         if not spec or spec.properties or spec.nameChildren:
             return
         parent = spec.nameParent
-        _remove_prim_spec(self._layer, spec.path)
+        remove_prim_spec(self._layer, spec.path)
         self._clean_prims(parent)
 
     def _delete_from_layer(self, attribute: Usd.Property):
@@ -385,6 +395,134 @@ class SetVisibilitySelectedPrimsCommand(omni.kit.commands.Command):
 
     def undo(self):
         self._toggle_visibility(True)
+
+
+class CreateOrInsertSublayerCommand(omni.kit.commands.Command):
+    """Creates or inserts a sublayer."""
+
+    def __init__(
+        self,
+        layer_identifier: str,
+        sublayer_position: int,
+        new_layer_path: str,
+        transfer_root_content: bool,
+        create_or_insert: bool,
+        layer_name: str = "",
+        usd_context: str | omni.usd.UsdContext = "",
+    ):
+        """
+        Args:
+            layer_identifier (str): The identifier of layer to create sublayer. It should be found by Sdf.Find.
+            sublayer_position (int): Sublayer position that the new sublayer is created before.
+                                     If position_before == -1, it will create layer at the end of sublayer list.
+                                     If position_before >= total_number_of_sublayers, it will create layer at the end of
+                                     sublayer list.
+            new_layer_path (str): Absolute path of new layer. If it's empty, it will create anonymous layer if
+                                  create_or_insert == True.
+                                  If create_or_insert == False and it's empty, it will fail to insert layer.
+            transfer_root_content (bool): True if we should move the root contents to the new layer.
+            create_or_insert (bool): If it's true, it will create layer from this path. It's insert, otherwise.
+            layer_name (str, optional): If it's to create anonymous layer (new_layer_path is empty), this name is used.
+            usd_context (Union[str, omni.usd.UsdContext]): Usd context name or instance. It uses default context if it's
+                                                           empty.
+        """
+        self._usd_context = self._get_usd_context(usd_context)
+        self._selection = self._usd_context.get_selection()
+
+        self._layer_identifier = layer_identifier
+        self._sublayer_position = sublayer_position
+        self._new_layer_path = new_layer_path
+        self._create_or_insert = create_or_insert
+        if create_or_insert:
+            self._transfer_root_content = transfer_root_content
+        else:
+            self._transfer_root_content = False
+        self._new_layer_identifier = None
+        self._layer_name = layer_name
+        self._temp_layer = None
+        self._edit_target_identifier = None
+        self._prev_selected_paths = None
+
+    def _get_usd_context(self, context_name_or_instance: str | omni.usd.UsdContext = ""):
+        if not context_name_or_instance:
+            context_name_or_instance = ""
+
+        if isinstance(context_name_or_instance, str):
+            usd_context = omni.usd.get_context(context_name_or_instance)
+        elif isinstance(context_name_or_instance, omni.usd.UsdContext):
+            usd_context = context_name_or_instance
+        else:
+            usd_context = None
+
+        return usd_context
+
+    def do(self):
+        stage = self._usd_context.get_stage()
+        root = stage.GetRootLayer()
+
+        if stage.GetEditTarget().GetLayer():
+            self._edit_target_identifier = stage.GetEditTarget().GetLayer().identifier
+        else:
+            self._edit_target_identifier = root.identifier
+        self._prev_selected_paths = list(self._selection.get_selected_prim_paths())
+
+        parent_layer = Sdf.Find(self._layer_identifier)
+        if self._create_or_insert:
+            if self._transfer_root_content:
+                self._temp_layer = Sdf.Layer.CreateAnonymous()
+                self._temp_layer.TransferContent(root)
+
+            if parent_layer:
+                new_layer = LayerUtils.create_sublayer(parent_layer, self._sublayer_position, self._new_layer_path)
+                if new_layer:
+                    # Copy Stage Axis
+                    UsdGeom.SetStageUpAxis(Usd.Stage.Open(new_layer), UsdGeom.GetStageUpAxis(stage))
+                    LayerUtils.set_custom_layer_name(new_layer, self._layer_name)
+
+                    if self._transfer_root_content:
+                        LayerUtils.transfer_layer_content(root, new_layer)
+                        root.rootPrims.clear()
+
+                    self._new_layer_identifier = new_layer.identifier
+                else:
+                    self._new_layer_identifier = None
+        else:
+            layer = LayerUtils.insert_sublayer(parent_layer, self._sublayer_position, self._new_layer_path)
+            if layer:
+                self._new_layer_identifier = layer.identifier
+
+        return self._new_layer_identifier
+
+    def undo(self):
+        if self._new_layer_identifier:
+            stage = self._usd_context.get_stage()
+            with Sdf.ChangeBlock():
+                if self._transfer_root_content and self._temp_layer:
+                    root = stage.GetRootLayer()
+                    root.TransferContent(self._temp_layer)
+
+                layer_position_in_parent = LayerUtils.get_sublayer_position_in_parent(
+                    self._layer_identifier, self._new_layer_identifier
+                )
+                if layer_position_in_parent != -1:
+                    layer = Sdf.Find(self._layer_identifier)
+                    if not layer:
+                        return
+                    layer_identifier = LayerUtils.remove_sublayer(layer, layer_position_in_parent)
+                    LayerUtils.remove_layer_global_muteness(layer, layer_identifier)
+
+        # restore selected prims and layer
+        self._selection.set_selected_prim_paths(self._prev_selected_paths, False)
+        stage = self._usd_context.get_stage()
+
+        layer = Sdf.Find(self._edit_target_identifier)
+        if layer and not stage.IsLayerMuted(layer.identifier):
+            edit_target_layer = layer
+        else:
+            edit_target_layer = stage.GetRootLayer()
+        if stage.HasLocalLayer(edit_target_layer):
+            edit_target = stage.GetEditTargetForLocalLayer(edit_target_layer)
+            stage.SetEditTarget(edit_target)
 
 
 omni.kit.commands.register_all_commands_in_module(__name__)

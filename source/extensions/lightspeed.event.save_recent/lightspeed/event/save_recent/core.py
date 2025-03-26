@@ -20,20 +20,24 @@ import omni.client
 import omni.usd
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LSS_LAYER_GAME_NAME, LayerManagerCore, LayerType
+from lightspeed.trex.recent_projects.core import RecentProjectsCore
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
-from .recent_saved_file_utils import RecentSavedFile
+_CONTEXT = "/exts/lightspeed.event.save_recent/context"
 
 
 class EventSaveRecentCore(_ILSSEvent):
     def __init__(self):
         super().__init__()
-        self.default_attr = {"_subscription": None}
+        self.default_attr = {"_context_name": None, "_context": None, "_subscription": None}
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
-        self.__rencent_saved_file = RecentSavedFile()
-        self._context = omni.usd.get_context()
-        self.__layer_manager = LayerManagerCore()
+
+        self._context_name = carb.settings.get_settings().get(_CONTEXT) or ""
+        self._context = omni.usd.get_context(self._context_name)
+
+        self.__project_core = RecentProjectsCore()
+        self.__layer_manager = LayerManagerCore(context_name=self._context_name)
 
     @property
     def name(self) -> str:
@@ -67,7 +71,7 @@ class EventSaveRecentCore(_ILSSEvent):
                 carb.log_verbose("Anonymous layer(s) can't be in the recent list")
                 return
             path = self._context.get_stage_url()
-            self.__rencent_saved_file.append_path_to_recent_file(
+            self.__project_core.append_path_to_recent_file(
                 omni.client.normalize_url(path),
                 layer_replacement.customLayerData.get(LSS_LAYER_GAME_NAME),
                 omni.client.normalize_url(layer_capture.realPath),

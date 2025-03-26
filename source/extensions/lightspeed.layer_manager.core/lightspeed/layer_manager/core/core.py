@@ -386,8 +386,8 @@ class LayerManagerCore:
                 self.remove_layer(layer_type, do_undo=False)
 
             # Create the sublayer
-            omni.kit.commands.execute(
-                "CreateSublayer",
+            success, new_layer_path = omni.kit.commands.execute(
+                "CreateOrInsertSublayer",
                 new_layer_path=str(path),
                 layer_identifier=str(parent_layer_identifier),
                 sublayer_position=sublayer_position,
@@ -396,14 +396,17 @@ class LayerManagerCore:
                 usd_context=self.context_name,
             )
 
+            if not success:
+                raise ValueError(f'An error occurred when creating the layer with identifier "{path}".')
+
             # Set the newly created sublayer as edit target
             if set_edit_target:
-                self.set_edit_target_with_identifier(path)
+                self.set_edit_target_with_identifier(new_layer_path)
 
             # Update the newly created sublayer custom data to match the given layer type
             if layer_type:
                 try:
-                    self.set_custom_layer_type_data_with_identifier(path, layer_type)
+                    self.set_custom_layer_type_data_with_identifier(new_layer_path, layer_type)
                 except ValueError as e:
                     raise ValueError(
                         f"Unable to update the created layer's metadata. "
@@ -572,8 +575,8 @@ class LayerManagerCore:
         stage = self.__context.get_stage()
         if parent_layer is None:
             parent_layer = stage.GetRootLayer()
-        omni.kit.commands.execute(
-            "CreateSublayer",
+        success, new_layer_path = omni.kit.commands.execute(
+            "CreateOrInsertSublayer",
             layer_identifier=parent_layer.identifier,
             sublayer_position=sublayer_insert_position,
             new_layer_path=path,
@@ -582,23 +585,24 @@ class LayerManagerCore:
             layer_name="",
             usd_context=self.__context,
         )
-        for layer in stage.GetLayerStack():
-            if omni.client.normalize_url(layer.realPath) == omni.client.normalize_url(path):
-                # add customData
-                if add_custom_layer_data:
-                    custom_layer_data = layer.customLayerData
-                    custom_layer_data.update({LayerTypeKeys.layer_type.value: layer_type.value})
-                    layer_inst = self.get_layer_instance(layer_type)
-                    custom_data_layer_inst = layer_inst.get_custom_layer_data()
-                    if custom_data_layer_inst:
-                        custom_layer_data.update(custom_data_layer_inst)
-                    layer.customLayerData = custom_layer_data
-                    layer.Save()  # because of new customLayerData
-                if set_as_edit_target:
-                    self.set_edit_target_layer(layer_type, force_layer_identifier=layer.identifier, do_undo=False)
-                if do_undo:
-                    omni.kit.undo.end_group()
-                return layer
+        if success:
+            for layer in stage.GetLayerStack():
+                if omni.client.normalize_url(layer.realPath) == omni.client.normalize_url(new_layer_path):
+                    # add customData
+                    if add_custom_layer_data:
+                        custom_layer_data = layer.customLayerData
+                        custom_layer_data.update({LayerTypeKeys.layer_type.value: layer_type.value})
+                        layer_inst = self.get_layer_instance(layer_type)
+                        custom_data_layer_inst = layer_inst.get_custom_layer_data()
+                        if custom_data_layer_inst:
+                            custom_layer_data.update(custom_data_layer_inst)
+                        layer.customLayerData = custom_layer_data
+                        layer.Save()  # because of new customLayerData
+                    if set_as_edit_target:
+                        self.set_edit_target_layer(layer_type, force_layer_identifier=layer.identifier, do_undo=False)
+                    if do_undo:
+                        omni.kit.undo.end_group()
+                    return layer
         if do_undo:
             omni.kit.undo.end_group()
         return None

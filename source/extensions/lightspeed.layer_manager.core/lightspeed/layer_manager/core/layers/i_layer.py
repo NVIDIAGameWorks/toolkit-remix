@@ -16,18 +16,16 @@
 """
 
 import abc
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import Dict, Optional
 
 import omni.kit.commands
 import omni.kit.undo
 import omni.usd
 import six
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from pxr import Sdf
 
 from ..data_models import LayerType, LayerTypeKeys
-
-if TYPE_CHECKING:
-    from pxr import Sdf
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -87,8 +85,8 @@ class ILayer:
         if not parent_layer:
             parent_layer = stage.GetRootLayer()
         current_layers = stage.GetLayerStack()
-        omni.kit.commands.execute(
-            "CreateSublayer",
+        success, _ = omni.kit.commands.execute(
+            "CreateOrInsertSublayer",
             layer_identifier=parent_layer.identifier,
             sublayer_position=sublayer_create_position,
             new_layer_path=path if path else "",
@@ -96,6 +94,10 @@ class ILayer:
             create_or_insert=True,
             usd_context=self._core.context_name or "",
         )
+        if not success:
+            return None
+
+        # Add the desired metadata:
         layers = stage.GetLayerStack()
         new_layers = list(set(layers) - set(current_layers))
         layer = sorted(new_layers, key=lambda x: x.GetDisplayName())[0]

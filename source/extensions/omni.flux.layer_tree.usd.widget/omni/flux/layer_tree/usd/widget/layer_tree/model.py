@@ -196,8 +196,8 @@ class LayerModel(_TreeModelBase[ItemBase]):
             with undo.group():
                 # If the layer is already a sublayer, don't re-add it
                 if str(Path(path)) not in [str(Path(i.data["layer"].realPath)) for i in parent.children]:
-                    commands.execute(
-                        "CreateSublayerCommand",
+                    success, new_layer_path = commands.execute(
+                        "CreateOrInsertSublayer",
                         layer_identifier=parent.data["layer"].identifier,
                         sublayer_position=-1,
                         new_layer_path=str(path),
@@ -205,8 +205,8 @@ class LayerModel(_TreeModelBase[ItemBase]):
                         create_or_insert=create_or_insert,
                         usd_context=self._context_name,
                     )
-                if layer_created_callback is not None:
-                    layer_created_callback(path)
+                    if success and layer_created_callback is not None:
+                        layer_created_callback(new_layer_path)
 
         if create_or_insert:
             _open_file_picker(

@@ -1,0 +1,21 @@
+[package]
+version = "1.0.0"
+authors = ["dbataille@nvidia.com", "ptrottier@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["core", "save", "manager", "recent", "project"]
+title = "Lightspeed Recent Project Core"
+description = "Core funtionality to get and save recent projects"
+icon = "data/icon.png"
+preview_image = "data/preview.png"
+category = "internal"
+
+[dependencies]
+"lightspeed.layer_manager.core" = {}
+"omni.client" = {}
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.recent_projects.core"

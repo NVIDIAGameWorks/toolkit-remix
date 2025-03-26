@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["RecentSavedFile"]
+__all__ = ["RecentProjectsCore"]
 
 
 import asyncio
@@ -29,6 +29,7 @@ from typing import Dict
 import carb
 import carb.tokens
 import omni.client
+import omni.usd
 from lightspeed.layer_manager.core import (
     LSS_LAYER_GAME_NAME,
     LSS_LAYER_MOD_NAME,
@@ -40,7 +41,7 @@ from omni.flux.utils.common.omni_url import OmniUrl
 from pxr import Sdf, Tf
 
 
-class RecentSavedFile:
+class RecentProjectsCore:
     def __get_recent_dir(self) -> str:
         """Return the file"""
         token = carb.tokens.get_tokens_interface()
@@ -171,7 +172,7 @@ class RecentSavedFile:
         if result == omni.client.Result.OK:
             return path, thumbnail
         if not auto:
-            return await RecentSavedFile.find_thumbnail_async(path, auto=True)
+            return await RecentProjectsCore.find_thumbnail_async(path, auto=True)
         return None, None
 
     @staticmethod
@@ -183,13 +184,3 @@ class RecentSavedFile:
         p = math.pow(1024, i)
         s = round(size_bytes / p, 2)
         return f"{s} {size_name[i]}"
-
-
-_INSTANCE = None
-
-
-def get_instance():
-    global _INSTANCE
-    if _INSTANCE is None:
-        _INSTANCE = RecentSavedFile()
-    return _INSTANCE  # noqa R504

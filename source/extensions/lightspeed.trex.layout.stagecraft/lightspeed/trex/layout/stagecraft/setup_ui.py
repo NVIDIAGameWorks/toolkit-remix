@@ -34,7 +34,6 @@ from lightspeed.common.constants import (
     REMIX_SAMPLE_PATH,
     GlobalEventNames,
 )
-from lightspeed.event.save_recent.recent_saved_file_utils import RecentSavedFile as _RecentSavedFile
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.trex.components_pane.stagecraft.controller import SetupUI as ComponentsPaneSetupUI
@@ -45,6 +44,7 @@ from lightspeed.trex.home.widget import HomePageWidget as _HomePageWidget
 from lightspeed.trex.layout.shared.base import SetupUI as TrexLayout
 from lightspeed.trex.menu.workfile import get_instance as get_burger_menu_instance
 from lightspeed.trex.properties_pane.stagecraft.widget import SetupUI as PropertyPanelUI
+from lightspeed.trex.recent_projects.core import RecentProjectsCore as _RecentProjectsCore
 from lightspeed.trex.stage_manager.widget import StageManagerWidget as _StageManagerWidget
 from lightspeed.trex.utils.common.dialog_utils import delete_dialogs as _delete_dialogs
 from lightspeed.trex.utils.common.file_utils import (
@@ -100,7 +100,7 @@ class SetupUI(TrexLayout):
             self.__on_stage_event, name="StageChanged"
         )
 
-        self._recent_saved_file = _RecentSavedFile()
+        self._recent_saved_file = _RecentProjectsCore()
 
         self.__current_page = None
 

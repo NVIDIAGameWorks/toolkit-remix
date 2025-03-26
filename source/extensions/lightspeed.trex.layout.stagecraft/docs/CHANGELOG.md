@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.4.0]
+## Changed
+- Use better dependency for recent projects
+
 ## [2.3.0]
 ## Changed
 - Enable the Stage Manager by default

@@ -1,16 +1,20 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.8]
+### Fixed
+- Changed usages of the `CreateSublayer` command for `CreateOrInsertSublayer`
+
 ## [2.2.7]
-## Changed
+### Changed
 - Update to Kit 106.5
 
 ## [2.2.6]
-## Fixed
+### Fixed
 - Fixed crash for new stage unloading logic
 
 ## [2.2.5]
-## Changed
+### Changed
 - update to use omni.kit.test public api
 
 ## [2.2.4]

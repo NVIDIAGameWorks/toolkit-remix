@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.1.0"
+version = "1.2.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -31,9 +31,9 @@ icon = "data/icon.png"
 
 [dependencies]
 "omni.kit.commands" = {}
-"omni.usd" = {}
-"omni.kit.usd_undo" = {}
 "omni.kit.usd.layers" = {}
+"omni.kit.usd_undo" = {}
+"omni.usd" = {}
 
 [core]
 # Load as early as possible

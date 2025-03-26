@@ -111,7 +111,7 @@ class MassTexturePreview(_CheckBaseUSD):
                 # here we want to add the current stage as a layer, and assign materials with texture(s) to the same
                 # binding than the default material of the lookdev stage
                 omni.kit.commands.execute(
-                    "CreateSublayer",
+                    "CreateOrInsertSublayer",
                     layer_identifier=stage.GetRootLayer().identifier,
                     sublayer_position=0,
                     new_layer_path=schema_data.temp_usd,
