@@ -35,6 +35,7 @@ from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _Contexts
 from lightspeed.trex.material.core.shared import Setup as _MaterialCore
 from lightspeed.trex.utils.common.prim_utils import get_reference_file_paths as _get_reference_file_paths
+from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
 from lightspeed.trex.utils.common.prim_utils import is_material_prototype as _is_material_prototype
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui, usd
@@ -568,12 +569,21 @@ class SetupUI:
             if not isinstance(item, Usd.Prim):
                 continue
 
-            is_material_prim = _is_material_prototype(item)
-            if is_material_prim or (not is_material_prim and _get_reference_file_paths(item)):
-                # If not a mat prim and has reference, refresh widget to clear
-                if not is_material_prim:
-                    self.refresh([])
-                filtered_items.append(item)
+            # If instance prim, get and use the correlating mesh prim
+            if _is_instance(item):
+                prototype_prim = self._asset_replacement_core.get_corresponding_prototype_prims([item])
+                if not prototype_prim:
+                    continue
+                item = self._stage.GetPrimAtPath(prototype_prim[0])
+                if not item:
+                    continue
+
+            # If not a mat prim and has reference, refresh widget to clear
+            if not _is_material_prototype(item) and _get_reference_file_paths(item)[1]:
+                self.refresh([])
+
+            # Add the item; Should be mat or mesh prim
+            filtered_items.append(item)
 
         if not filtered_items:
             hide_properties()
