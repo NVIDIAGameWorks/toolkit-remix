@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3581: Fix multi-selection visibility toggle to have consistent behavior
 - REMIX-4043: Fixed layer creation transferring metadata from parent layer
 - REMIX-4073: Fixed Material Property Widget saving overrides onto instances instead of meshes
+- Fixed Toolkit Build Dependencies to allow building externally
 
 ### Removed
 - Cleaned up legacy code and unused files
