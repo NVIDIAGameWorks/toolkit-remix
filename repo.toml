@@ -6,8 +6,13 @@
 logging = "warn"
 
 # Use Kit Template repo configuration as a base. Only override things specific to the repo.
-import_configs = ["${root}/_repo/deps/repo_kit_tools/kit-template/repo.toml", "${root}/repo_public.toml"]
-import_optional_configs = ["${root}/repo_internal.toml"]
+import_configs = [
+    "${root}/_repo/deps/repo_kit_tools/kit-template/repo.toml",
+    "${root}/repo_public.toml"
+]
+import_optional_configs = [
+    "${root}/repo_internal.toml"
+]
 
 # Reposiory Name. It is used for solution name and final package name
 name = "rtx_remix"
@@ -341,14 +346,14 @@ release.files_exclude = [
 #######################################################################################################################
 [repo_build]
 
+# Build is disabled but pre-build commands are still executed
 pre_build.commands = [
+    # Pull install-time dependencies
     ["${root}/_build/${platform}/${config}/pull_dependencies${shell_ext}"],
-]
 
-# Multiple commands (processes) can be executed in order after build.
-# These have the same behavior as repo_build.pre_build.commands, except that they run after the build.
-post_build.commands = [
+    # Generate the stubgen config file
     ["${root}/repo${shell_ext}", "stubgen", "-c", "${config}"],
+
     # Generate a shortcut to run the Mass Ingestion CLI in LSS
     ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/lightspeed.app.trex.validation_cli_generator.kit", "--no-window", "--/app/extensions/excluded/0='omni.kit.splash' --/app/extensions/excluded/1='omni.kit.window.splash' --/app/settings/persistent=0 --/app/settings/loadUserConfig=0 --/structuredLog/enable=0 --/app/hangDetector/enabled=0 --/crashreporter/skipOldDumpUpload=1 --/app/content/emptyStageOnStart=1", "--/app/file/ignoreUnsavedOnExit=1", "--/app/fastShutdown=1", "--/app/quitAfter=10", "--exec", "${root}/tools/custom/generate_mass_cli.py"],
     ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/omni.flux.app.service.documentation_cli_generator.kit", "--no-window", "--exec", "${root}/tools/custom/generate_app.py -id omni.flux.service.documentation -n omni.flux.app.service.documentation.cli"],
@@ -367,10 +372,12 @@ files_to_pull = [
     "${root}/deps/pip_internal.toml",
 ]
 
+[repo_build.build]
+enabled = false
+
+# Disable linbuild until we have a public image available.
 [repo_build.docker]
-# Linbuild against Ubuntu 22 CI Builder images
-"platform:linux-x86_64".image_url = "urm.nvidia.com/ct-omniverse-docker/ci-jammy-x86_64-builder:1.0.6-97c67f00"
-"platform:linux-aarch64".image_url = "urm.nvidia.com/ct-omniverse-docker/ci-jammy-aarch64-builder:1.0.6-97c67f00"
+enabled = false
 
 [repo_stubgen]
 exts_exclude = [
