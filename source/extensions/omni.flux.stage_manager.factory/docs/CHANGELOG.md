@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.6.1]
+### Added
+- Added a refresh call back to the interaction plugin
+
 ## [3.6.0]
 ### Added
 - Added `sort_items()` to `StageManagerTreeModel`

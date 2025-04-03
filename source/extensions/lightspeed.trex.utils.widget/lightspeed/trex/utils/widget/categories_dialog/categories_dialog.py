@@ -49,7 +49,9 @@ class RemixCategoriesDialog:
     _BACKGROUND_HEIGHT = 556
     _BACKGROUND_WIDTH = 356
 
-    def __init__(self, context_name: str = None, refresh_func: Callable[["Usd.Prim"], None] = None):
+    def __init__(
+        self, context_name: str = None, refresh_func: Callable[["Usd.Prim"], None] = None, paths: list[str] = None
+    ):
         self._expanded_items = {}
         self._context = omni.usd.get_context(context_name)
         self._stage = self._context.get_stage()
@@ -63,6 +65,7 @@ class RemixCategoriesDialog:
                 tooltip=attr_details["tooltip"],
                 attribute=attr_details["attr"],
             )
+        self._paths = paths
         self._refresh_func = refresh_func
 
         self._build_ui()
@@ -95,7 +98,10 @@ class RemixCategoriesDialog:
         _add_dialog(self._window)
 
         # Grab any previously set category values
-        prim_paths = self._core.get_selected_prim_paths()
+        if not self._paths:
+            prim_paths = self._core.get_selected_prim_paths()
+        else:
+            prim_paths = self._paths
         mesh_prims = self._core.get_corresponding_prototype_prims(
             [self._stage.GetPrimAtPath(path) for path in prim_paths]
         )
@@ -164,7 +170,7 @@ class RemixCategoriesDialog:
                         ui.Spacer()
                         ui.Button(
                             text="Assign",
-                            clicked_fn=functools.partial(self._assign_remix_category, values),
+                            clicked_fn=functools.partial(self._assign_remix_category, values, mesh_prims),
                             height=ui.Pixel(self._BUTTON_HEIGHT),
                             width=ui.Pixel(self._BUTTON_WIDTH),
                             identifier="AssignCategoryButton",
@@ -178,10 +184,8 @@ class RemixCategoriesDialog:
                         )
                         ui.Spacer()
 
-    def _assign_remix_category(self, prev_values: dict) -> None:
+    def _assign_remix_category(self, prev_values: dict[str, bool], meshes: list[str]) -> None:
         """Assigning the remix category value."""
-        paths = self._core.get_selected_prim_paths()
-        meshes = self._core.get_corresponding_prototype_prims([self._stage.GetPrimAtPath(path) for path in paths])
         checkboxes = self._categories_delegate.get_all_checkboxes()
         with omni.kit.undo.group():
             for name, box in checkboxes.items():
@@ -193,4 +197,5 @@ class RemixCategoriesDialog:
                     self._core.add_attribute(meshes, name, 0, prev_value, Sdf.ValueTypeNames.Bool)
 
         self.close()
-        self._refresh_func([self._stage.GetPrimAtPath(meshes[0])])
+        if self._refresh_func:
+            self._refresh_func([self._stage.GetPrimAtPath(mesh) for mesh in meshes])

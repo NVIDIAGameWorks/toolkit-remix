@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.6]
+## Added
+- Added Remix Categories action to the Categories tab
+- Added new Remix Categories icons
+
 ## [1.15.5]
 ## Changed
 - Stage Manager: Added LSS Materials Tab interaction plugin wrapper

@@ -38,6 +38,7 @@ from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import It
 from lightspeed.trex.utils.common.file_utils import (
     is_usd_file_path_valid_for_filepicker as _is_usd_file_path_valid_for_filepicker,
 )
+from lightspeed.trex.utils.widget import RemixCategoriesDialog as _RemixCategoriesDialog
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
 from omni.flux.properties_pane.transformation.usd.widget import TransformPropertyWidget as _TransformPropertyWidget
@@ -47,8 +48,6 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from pxr import Sdf, UsdGeom, UsdLux
-
-from .categories_dialog import RemixCategoriesDialog as _RemixCategoriesDialog
 
 if typing.TYPE_CHECKING:
     from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
