@@ -498,6 +498,8 @@ class SetupUI(TrexLayout):
             )
             with self._stage_manager_frame:
                 self._stage_manager = _StageManagerWidget()
+                frame = self._properties_pane.get_frame(ComponentsEnumItems.ASSET_REPLACEMENTS)
+                self._stage_manager.set_refresh_callback(frame.refresh)
 
     def _build_stage_manager_splitter(self):
         if not self._feature_flags_core.is_enabled("stage_manager"):

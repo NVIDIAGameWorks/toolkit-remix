@@ -15,4 +15,5 @@
 * limitations under the License.
 """
 
+from .categories_dialog.categories_dialog import RemixCategoriesDialog
 from .message_dialog import TrexMessageDialog

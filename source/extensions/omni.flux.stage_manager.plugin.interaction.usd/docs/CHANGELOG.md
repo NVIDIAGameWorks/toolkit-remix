@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.1]
+## Added
+- Added a categories action
+
 ## [1.15.0]
 ## Changed
 - Changed `usd_base.py` to use override-able `_get_selection()`

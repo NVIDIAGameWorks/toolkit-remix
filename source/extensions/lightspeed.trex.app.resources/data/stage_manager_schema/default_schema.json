@@ -57,7 +57,8 @@
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
                         { "name": "FocusInViewportActionWidgetPlugin" },
-                        { "name": "IsVisibleActionWidgetPlugin" }
+                        { "name": "IsVisibleActionWidgetPlugin" },
+                        { "name": "AssignCategoryActionWidgetPlugin" }
                     ]
                 }
             ]
@@ -116,7 +117,8 @@
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
                         { "name": "FocusInViewportActionWidgetPlugin" },
-                        { "name": "IsVisibleActionWidgetPlugin" }
+                        { "name": "IsVisibleActionWidgetPlugin" },
+                        { "name": "AssignCategoryActionWidgetPlugin" }
                     ]
                 }
             ]
@@ -175,7 +177,8 @@
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
                         { "name": "FocusInViewportActionWidgetPlugin" },
-                        { "name": "IsVisibleActionWidgetPlugin" }
+                        { "name": "IsVisibleActionWidgetPlugin" },
+                        { "name": "AssignCategoryActionWidgetPlugin" }
                     ]
                 }
             ]
@@ -233,7 +236,8 @@
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
                         { "name": "FocusInViewportActionWidgetPlugin" },
-                        { "name": "IsVisibleActionWidgetPlugin" }
+                        { "name": "IsVisibleActionWidgetPlugin" },
+                        { "name": "AssignCategoryActionWidgetPlugin" }
                     ]
                 }
             ]
@@ -308,7 +312,8 @@
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
                         { "name": "FocusInViewportActionWidgetPlugin" },
-                        { "name": "IsVisibleActionWidgetPlugin" }
+                        { "name": "IsVisibleActionWidgetPlugin" },
+                        { "name": "AssignCategoryActionWidgetPlugin" }
                     ]
                 }
             ]
@@ -370,7 +375,8 @@
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
                         { "name": "FocusInViewportActionWidgetPlugin" },
-                        { "name": "IsVisibleActionWidgetPlugin" }
+                        { "name": "IsVisibleActionWidgetPlugin" },
+                        { "name": "AssignCategoryActionWidgetPlugin" }
                     ]
                 }
             ]
@@ -430,7 +436,8 @@
                     "width": { "unit": "Pixel", "value": 100 },
                     "widgets": [
                         { "name": "FocusInViewportActionWidgetPlugin" },
-                        { "name": "IsVisibleActionWidgetPlugin" }
+                        { "name": "IsVisibleActionWidgetPlugin" },
+                        { "name": "AssignCategoryActionWidgetPlugin" }
                     ]
                 }
             ]

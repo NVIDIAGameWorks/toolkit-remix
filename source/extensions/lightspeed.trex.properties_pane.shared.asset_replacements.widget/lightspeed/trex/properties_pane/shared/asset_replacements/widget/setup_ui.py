@@ -447,6 +447,8 @@ class AssetReplacementsPane:
         self._material_properties_widget.refresh(items)
 
     def refresh(self):
+        if not self._root_frame.visible:
+            return
         self._selection_tree_widget.refresh()
         self._refresh_mesh_properties_widget()
         self._refresh_material_properties_widget()
