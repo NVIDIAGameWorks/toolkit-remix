@@ -359,11 +359,6 @@ pre_build.commands = [
     ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/omni.flux.app.service.documentation_cli_generator.kit", "--no-window", "--exec", "${root}/tools/custom/generate_app.py -id omni.flux.service.documentation -n omni.flux.app.service.documentation.cli"],
 ]
 
-copy = [
-    # WAR NRC DLL loading issue, we can remove this when get NRC that allows us to specify absolute path
-    ["${root}/_build/${platform}/${config}/deps/hdremix/cudart64_12.dll", "${root}/_build/${platform}/${config}/kit/"],
-]
-
 [repo_build.fetch.pip]
 # List of pip files to pip install from (in order)
 files_to_pull = [

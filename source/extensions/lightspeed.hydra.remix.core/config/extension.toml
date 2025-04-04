@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.5.0"
+version = "0.5.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alex Dunn <adunn@nvidia.com>"]
@@ -83,3 +83,11 @@ value = "1"
 isPath = false
 append = false
 override = true
+
+# Setup CUDA DLL path
+[[env]]
+name = "RTX_NRC_CUDA_DEPS_DIR"
+value = "${kit}/../deps/hdremix"
+isPath = true
+append = true
+override = false

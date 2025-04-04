@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added release notes for 1.0.0
 - Added tests for REST API endpoints
 - REMIX-3891: Added Material Property Widget control with Stage Manager Materials Tab
+- REMIX-3812: Specified path to NRC dependencies
 
 ### Changed
 - Improved the documentation layout and contents
@@ -31,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4043: Fixed layer creation transferring metadata from parent layer
 - REMIX-4073: Fixed Material Property Widget saving overrides onto instances instead of meshes
 - Fixed Toolkit Build Dependencies to allow building externally
+- REMIX-4084: Fixed NRC initialization failure
 
 ### Removed
 - Cleaned up legacy code and unused files
