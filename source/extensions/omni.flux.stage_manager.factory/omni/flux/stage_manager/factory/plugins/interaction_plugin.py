@@ -119,7 +119,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     _item_expansion_states: dict[int, bool] = PrivateAttr({})
 
     _context_items_changed: _Event = PrivateAttr(_Event())
-    _context_attr_changed: _Event = PrivateAttr(_Event())
 
     _app_window_size_changed_sub = PrivateAttr(None)
 
@@ -645,8 +644,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         else:
             self._tree_widget.dirty_widgets()
 
-        self._context_attr_changed()
-
     @omni.usd.handle_exception
     async def _update_context_items(self):
         """
@@ -762,18 +759,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             Return an object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self._context_items_changed, callback)
-
-    def subscribe_context_attr_changed(self, callback: Callable[[], None]) -> _EventSubscription:
-        """
-        Execute the callback when context items are updated to update the prim attributes.
-
-        Args:
-            callback: The callback to execute
-
-        Returns:
-            Return an object that will automatically unsubscribe when destroyed.
-        """
-        return _EventSubscription(self._context_attr_changed, callback)
 
     def destroy(self):
         if self._update_content_size_task:

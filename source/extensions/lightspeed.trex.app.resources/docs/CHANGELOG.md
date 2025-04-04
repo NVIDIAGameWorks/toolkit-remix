@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.7]
+## Added
+- Added force refresh for categories on all Stage Manager tabs with mesh prims
+
 ## [1.15.6]
 ## Added
 - Added Remix Categories action to the Categories tab

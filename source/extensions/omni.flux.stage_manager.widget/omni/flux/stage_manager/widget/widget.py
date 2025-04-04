@@ -66,9 +66,6 @@ class StageManagerWidget:
         self.__resize_task = None
         self.__select_tab_task = None
 
-        self._refresh_callback = None
-        self._refresh_subs = []
-
         self.build_ui()
 
     @property
@@ -207,12 +204,6 @@ class StageManagerWidget:
         # Make sure the interaction is visible before making it active
         for enabled_interaction in enabled_interactions:
             enabled_interaction.set_active(enabled_interaction == interaction)
-
-    def set_refresh_callback(self, callback):
-        enabled_interactions = [i for i in self._core.schema.interactions if i.enabled]
-        self._refresh_callback = callback
-        for _, interaction in enumerate(enabled_interactions):
-            self._refresh_subs.append(interaction.subscribe_context_attr_changed(self._refresh_callback))
 
     def destroy(self):
         if self.__select_tab_task:

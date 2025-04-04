@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4073: Fixed Material Property Widget saving overrides onto instances instead of meshes
 - Fixed Toolkit Build Dependencies to allow building externally
 - REMIX-4084: Fixed NRC initialization failure
+- Fixed Remix Categories and Asset Replacements tab refresh
 
 ### Removed
 - Cleaned up legacy code and unused files

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.2]
+## Changed
+- Removed a function to set a refresh callback
+
 ## [1.5.1]
 ## Added
 - Added a function to set a refresh callback
