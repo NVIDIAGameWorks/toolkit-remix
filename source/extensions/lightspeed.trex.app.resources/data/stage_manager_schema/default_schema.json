@@ -10,6 +10,9 @@
             "filters": [
                 { "name": "IsCaptureFilterPlugin" }
             ],
+            "filtering_rules": {
+                "force_refresh_rules": [{"use_name":  true, "start": "remix_category:"}]
+            },
             "context_filters": [
                 { "name": "OmniPrimsFilterPlugin", "include_results": false },
                 {
@@ -68,6 +71,9 @@
             "filters": [
                 { "name": "IsCaptureFilterPlugin" }
             ],
+            "filtering_rules": {
+                "force_refresh_rules": [{"use_name":  true, "start": "remix_category:"}]
+            },
             "context_filters": [
                 { "name": "OmniPrimsFilterPlugin", "include_results": false },
                 {
@@ -128,6 +134,9 @@
             "filters": [
                 { "name": "IsCaptureFilterPlugin" }
             ],
+            "filtering_rules": {
+                "force_refresh_rules": [{"use_name":  true, "start": "remix_category:"}]
+            },
             "context_filters": [
                 { "name": "OmniPrimsFilterPlugin", "include_results": false },
                 {
@@ -384,7 +393,7 @@
         {
             "name": "AllTagsInteractionPlugin",
             "filtering_rules": {
-                "force_refresh_rules": [{"use_name":  true, "start": "collection:", "end": ":includes"}]
+                "force_refresh_rules": [{"use_name":  true, "start": "collection:", "end": ":includes"}, {"use_name":  true, "start": "remix_category:"}]
             },
             "filters": [
                 { "name": "IsCaptureFilterPlugin" }
