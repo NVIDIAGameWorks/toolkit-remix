@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.5.1]
+### Added
+- Specified path to NRC dependencies
+
 ## [0.5.0]
 ### Changed
 - Update hdremix with new remixsdk
