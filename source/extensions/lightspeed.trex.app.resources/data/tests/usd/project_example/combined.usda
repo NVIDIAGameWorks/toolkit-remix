@@ -24,7 +24,7 @@
         dictionary omni_layer = {
             string authoring_layer = "./replacements.usda"
             dictionary locked = {
-                bool "./capture.usda" = 1
+                bool "./deps/captures/capture.usda" = 1
             }
         }
     }
@@ -32,7 +32,7 @@
     metersPerUnit = 1
     subLayers = [
         @./replacements.usda@,
-        @./.deps/captures/capture.usda@
+        @./deps/captures/capture.usda@
     ]
     timeCodesPerSecond = 24
     upAxis = "Z"

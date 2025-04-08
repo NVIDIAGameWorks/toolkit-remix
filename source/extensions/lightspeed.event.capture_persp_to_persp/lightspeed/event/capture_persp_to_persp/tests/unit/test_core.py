@@ -169,8 +169,8 @@ class TestCore(AsyncTestCase):
         async with make_temp_directory(context) as temp_dir:
             shutil.copytree(_get_test_data("usd/project_example"), f"{temp_dir.name}/project_example")
             # create a second capture
-            new_capture = f"{temp_dir.name}/project_example/.deps/captures/capture2.usda"
-            shutil.copy2(f"{temp_dir.name}/project_example/.deps/captures/capture.usda", new_capture)
+            new_capture = f"{temp_dir.name}/project_example/deps/captures/capture2.usda"
+            shutil.copy2(f"{temp_dir.name}/project_example/deps/captures/capture.usda", new_capture)
             await open_stage(f"{temp_dir.name}/project_example/combined.usda")
 
             layer_manager = _LayerManagerCore(_CONTEXT_NAME)

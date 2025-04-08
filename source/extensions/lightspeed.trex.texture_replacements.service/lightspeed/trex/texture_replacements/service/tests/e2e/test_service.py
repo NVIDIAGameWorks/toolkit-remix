@@ -67,7 +67,7 @@ class TestTextureReplacementsService(AsyncTestCase):
                                 "/RootNode/Looks/mat_BC868CE5A075ABB1/Shader.inputs:diffuse_texture",
                                 str(
                                     project_dir
-                                    / ".deps"
+                                    / "deps"
                                     / "captures"
                                     / "materials"
                                     / "textures"

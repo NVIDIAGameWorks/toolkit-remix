@@ -140,7 +140,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
@@ -163,13 +163,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
 
         await item_prims[0].click()
 
@@ -245,7 +245,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
@@ -280,12 +280,16 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
+
+        # scroll up
+        await ui_test.human_delay(human_delay_speed=10)
+        _selection_wid._tree_scroll_frame.scroll_y = 0  # noqa PLW0212
 
         await ui_test.human_delay(human_delay_speed=3)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
         await item_prims[0].click()
 
         # test restore
@@ -346,13 +350,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
         await item_prims[0].click()
 
         # test replace a mesh with a new one
@@ -414,12 +418,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
             # Select
             usd_context = omni.usd.get_context()
             usd_context.get_selection().set_selected_prim_paths(
-                ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+                ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"],
+                False,
             )
             await ui_test.human_delay(human_delay_speed=3)
 
             item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-            self.assertEquals(len(item_prims), 3)
+            self.assertEquals(len(item_prims), 6)
             await item_prims[0].click()
 
             # Test replace a mesh with a new one
@@ -484,7 +489,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await cancel_external_asset_button.click()
         await ui_test.human_delay(5)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -500,12 +505,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
             # Select
             usd_context = omni.usd.get_context()
             usd_context.get_selection().set_selected_prim_paths(
-                ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+                ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"],
+                False,
             )
             await ui_test.human_delay(human_delay_speed=3)
 
             item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-            self.assertEquals(len(item_prims), 3)
+            self.assertEquals(len(item_prims), 6)
             await item_prims[0].click()
 
             # Test replace a mesh with a new one
@@ -598,12 +604,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
             # Select
             usd_context = omni.usd.get_context()
             usd_context.get_selection().set_selected_prim_paths(
-                ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+                ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"],
+                False,
             )
             await ui_test.human_delay(human_delay_speed=3)
 
             item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-            self.assertEquals(len(item_prims), 3)
+            self.assertEquals(len(item_prims), 6)
             await item_prims[0].click()
 
             # Test replace a mesh with a new one
@@ -658,7 +665,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await cancel_ingestion_button.click()
         await ui_test.human_delay(5)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -677,13 +684,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
         await item_prims[0].click()
 
         # test replace a mesh with a new one
@@ -711,12 +718,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # nothing changed
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -727,13 +734,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
         await item_prims[0].click()
 
         # test replace a mesh with a new one
@@ -794,13 +801,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
         await item_prims[0].click()
 
         # test replace a mesh with a new one
@@ -833,12 +840,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # nothing changed
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -864,13 +871,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
         await item_prims[0].click()
 
         # test replace a mesh with a new one
@@ -918,13 +925,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # Select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
         await item_prims[0].click()
 
         # Make sure the mesh reference field exists
@@ -972,7 +979,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await cancel_external_asset_button.click()
         await ui_test.human_delay(5)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
 
         # The text should revert back to what it was originally
         self.assertEquals(original_text, mesh_ref_field.widget.model.get_value_as_string())
@@ -986,13 +993,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # Select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
         await item_prims[0].click()
 
         # Make sure the mesh reference field exists
@@ -1067,13 +1074,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # Select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
         await item_prims[0].click()
 
         # Make sure the mesh reference field exists
@@ -1114,7 +1121,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # There should still be the same amount of prims
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 3)
+        self.assertEquals(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -1125,7 +1132,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
@@ -1149,7 +1156,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # Check that the category got assigned on the prim
         stage = usd_context.get_stage()
         prim = stage.GetPrimAtPath(
-            "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"
+            "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
         )
         attrs = prim.GetAttributes()
         test_attr = [attr for attr in attrs if attr.GetName() == "remix_category:world_ui"]
@@ -1165,7 +1172,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
@@ -1193,7 +1200,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # Check that the category got assigned on the prim
         stage = usd_context.get_stage()
         prim = stage.GetPrimAtPath(
-            "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"
+            "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
         )
         attrs = prim.GetAttributes()
         test_attr = [
@@ -1210,7 +1217,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
         await ui_test.human_delay(human_delay_speed=3)
 
@@ -1224,7 +1231,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertFalse(category_button.widget.visible)
 
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
         await ui_test.human_delay(human_delay_speed=3)
 
@@ -1252,7 +1259,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         category_button = ui_test.find(f"{_window.title}//Frame/**/ScrollingFrame[*].name=='CategoriesFrame'")

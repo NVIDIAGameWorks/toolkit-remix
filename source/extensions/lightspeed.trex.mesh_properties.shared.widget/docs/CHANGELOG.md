@@ -1,29 +1,33 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.3]
+### Changed
+- Updated test to use new `cube.usda` material
+
 ## [1.2.2]
-## Changed
+### Changed
 - Moved the categories dialog
 
 ## [1.2.1]
-## Changed
+### Changed
 - Set the column widths and allow resizing
 
 ## [1.2.0]
-## Changed
+### Changed
 - rename trex prim utility names for clarity
 - Added support for optional properties on light prims
 
 ## [1.1.12]
-## Changed
+### Changed
 - Update to Kit 106.5
 
 ## [1.1.11]
-## Fixed
+### Fixed
 - Fix naming for item identifiers for test readability
 
 ## [1.1.10]
-## Changed
+### Changed
 - Added check to make sure categories button doesn't show up for non-mesh prims
 
 ## [1.1.9]
@@ -31,11 +35,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Restructured categories window and added more documentation for users
 
 ## [1.1.8]
-## Fixed
+### Fixed
 - Fixed separators and spacing layout
 
 ## [1.1.7]
-## Changed
+### Changed
 - update to use omni.kit.test public api
 
 ## [1.1.6]

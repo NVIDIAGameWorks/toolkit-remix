@@ -94,8 +94,10 @@ class TestAssetReplacementsService(AsyncTestCase):
                             "/RootNode/lights/light_0FBF0D906770A019",
                             "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh",
                             "/RootNode/meshes/mesh_CED45075A077A49A/mesh",
-                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube",
-                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube_01",
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/AssetImporter/Looks/Cube_01__",  # noqa E501
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Looks/CubeMaterial",  # noqa E501
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube",  # noqa E501
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01",  # noqa E501
                             "/RootNode/Looks/mat_BC868CE5A075ABB1",
                         ]
                     },
@@ -105,8 +107,10 @@ class TestAssetReplacementsService(AsyncTestCase):
                     {
                         "asset_paths": [
                             "/RootNode/meshes/mesh_CED45075A077A49A/mesh",
-                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube",
-                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube_01",
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/AssetImporter/Looks/Cube_01__",  # noqa E501
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Looks/CubeMaterial",  # noqa E501
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube",  # noqa E501
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01",  # noqa E501
                         ]
                     },
                 ),
@@ -149,7 +153,7 @@ class TestAssetReplacementsService(AsyncTestCase):
         # Arrange
         expected_diffuse_value = str(
             Path(get_test_data("usd/project_example"))
-            / ".deps"
+            / "deps"
             / "captures"
             / "materials"
             / "textures"
@@ -204,7 +208,7 @@ class TestAssetReplacementsService(AsyncTestCase):
         # Arrange
         expected_diffuse_value = str(
             Path(get_test_data("usd/project_example"))
-            / ".deps"
+            / "deps"
             / "captures"
             / "materials"
             / "textures"
@@ -239,7 +243,7 @@ class TestAssetReplacementsService(AsyncTestCase):
     async def test_get_asset_file_paths_returns_expected_response(self):
         # Arrange
         expected_relative_path = str(Path("meshes") / "mesh_CED45075A077A49A.usda")
-        expected_layer_path = str(Path(get_test_data("usd/project_example")) / ".deps" / "captures" / "capture.usda")
+        expected_layer_path = str(Path(get_test_data("usd/project_example")) / "deps" / "captures" / "capture.usda")
 
         # Act
         response = await send_request(
@@ -322,7 +326,7 @@ class TestAssetReplacementsService(AsyncTestCase):
         # Act
         response = await send_request(
             "PUT",
-            f"{self.service.prefix}/%2FRootNode%2Fmeshes%2Fmesh_BAC90CAA733B0859%2Fref_c89e0497f4ff4dc4a7b70b79c85692da%2FCube_01/file-paths",  # noqa: E501
+            f"{self.service.prefix}/%2FRootNode%2Fmeshes%2Fmesh_BAC90CAA733B0859%2Fref_c89e0497f4ff4dc4a7b70b79c85692da%2FXForms%2FRoot%2FCube_01/file-paths",  # noqa: E501
             json={
                 "existing_asset_file_path": original_asset_path,
                 "existing_asset_layer_id": original_layer,

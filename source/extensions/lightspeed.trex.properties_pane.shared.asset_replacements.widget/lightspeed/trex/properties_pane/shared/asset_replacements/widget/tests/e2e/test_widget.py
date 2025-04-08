@@ -376,12 +376,20 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         await pin_icon_images[0].click()
         await ui_test.human_delay()
 
+        # ensure the pin label is accurate
+        pin_labels = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='pin_label_text'")
+        self.assertEqual(pin_labels[0].widget.text, "meshes/mesh_0AB745B8BEE1F16B")
+
         # change the selection to the mesh prim
         await item_prims[1].click()
 
         # ensure the property visibility hasn't changed
         self.assertTrue(frame_mesh_ref.widget.visible)
         self.assertFalse(frame_mesh_prim.widget.visible)
+
+        # ensure the pin label is still accurate
+        pin_labels = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='pin_label_text'")
+        self.assertEqual(pin_labels[0].widget.text, "meshes/mesh_0AB745B8BEE1F16B")
 
         # click the pin icons to un-pin
         await pin_icon_images[0].click()
@@ -390,6 +398,11 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         # ensure that only the mesh prim widget is now visible
         self.assertFalse(frame_mesh_ref.widget.visible)
         self.assertTrue(frame_mesh_prim.widget.visible)
+
+        # ensure the pin label is now empty
+        pin_labels = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='pin_label_text'")
+        self.assertListEqual(pin_labels, [])
+
         await self.__destroy(_window, _wid)
 
     async def test_material_pinning_from_mesh_selection(self):
@@ -412,6 +425,10 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         await pin_icon_images[1].click()
         await ui_test.human_delay()
 
+        # ensure the pin label is accurate
+        pin_labels = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='pin_label_text'")
+        self.assertEqual(pin_labels[0].widget.text, "Looks/mat_BC868CE5A075ABB1")
+
         # change selection to the mesh reference
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         await item_prims[0].click()
@@ -420,6 +437,10 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         # material properties should still be visible since pinned
         self.assertTrue(frame_material.widget.visible)
 
+        # ensure the pin label is accurate
+        pin_labels = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='pin_label_text'")
+        self.assertEqual(pin_labels[0].widget.text, "Looks/mat_BC868CE5A075ABB1")
+
         # click the pin icons to un-pin
         pin_icon_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_frame_pin_icon'")
         await pin_icon_images[1].click()
@@ -427,6 +448,11 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         # material properties should no longer be visible since un-pinned
         self.assertFalse(frame_material.widget.visible)
+
+        # ensure the pin label is now empty
+        pin_labels = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='pin_label_text'")
+        self.assertListEqual(pin_labels, [])
+
         await self.__destroy(_window, _wid)
 
     async def test_material_pinning_from_material_selection(self):
@@ -449,6 +475,10 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         await pin_icon_images[1].click()
         await ui_test.human_delay()
 
+        # ensure the pin label is accurate
+        pin_labels = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='pin_label_text'")
+        self.assertEqual(pin_labels[0].widget.text, "Looks/mat_BC868CE5A075ABB1")
+
         # change selection to the mesh reference in USD context and selection tree
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=10)
@@ -459,6 +489,10 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         # material properties should still be visible since pinned
         self.assertTrue(frame_material.widget.visible)
 
+        # ensure the pin label is still accurate
+        pin_labels = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='pin_label_text'")
+        self.assertEqual(pin_labels[0].widget.text, "Looks/mat_BC868CE5A075ABB1")
+
         # click the pin icons to un-pin
         pin_icon_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_frame_pin_icon'")
         await pin_icon_images[1].click()
@@ -466,6 +500,11 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         # material properties should no longer be visible since un-pinned
         self.assertFalse(frame_material.widget.visible)
+
+        # ensure the pin label is now empty
+        pin_labels = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='pin_label_text'")
+        self.assertListEqual(pin_labels, [])
+
         await self.__destroy(_window, _wid)
 
     async def test_object_and_material_pin_labels_exist(self):

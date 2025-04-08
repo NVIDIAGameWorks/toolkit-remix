@@ -18,7 +18,7 @@
 import functools
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, List
+from typing import Any, Callable
 
 import omni.client
 import omni.usd
@@ -32,9 +32,7 @@ from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshProper
 from lightspeed.trex.replacement.core.shared import Setup as _AssetReplacementCore
 from lightspeed.trex.replacement.core.shared.layers import AssetReplacementLayersCore as _AssetReplacementLayersCore
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
-from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstance as _ItemInstance
-from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemPrim as _ItemPrim
-from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemReferenceFile as _ItemReferenceFile
+from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui
 from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as _UsdBookmarkCollectionModel
@@ -49,7 +47,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
-from pxr import Sdf, Tf, Usd
+from pxr import Sdf, Tf
 
 
 class CollapsiblePanels(Enum):
@@ -262,9 +260,7 @@ class AssetReplacementsPane:
                                 "the weaker layer (bottom).\n",
                                 collapsed=False,
                                 pinnable=True,
-                                pinned_text_fn=lambda: self._get_selection_name_by_type(
-                                    [_ItemReferenceFile, _ItemPrim, _ItemInstance]
-                                ),
+                                pinned_text_fn=self._get_selection_pin_name,
                                 unpinned_fn=self._refresh_mesh_properties_widget,
                             )
                             self._collapsible_frame_states[CollapsiblePanels.MESH_PROPERTIES] = True
@@ -292,7 +288,7 @@ class AssetReplacementsPane:
                                 "the weaker layer (bottom).\n",
                                 collapsed=False,
                                 pinnable=True,
-                                pinned_text_fn=lambda: self._get_selection_name_by_type([Usd.Prim]),
+                                pinned_text_fn=lambda: self._get_selection_pin_name(for_materials=True),
                                 unpinned_fn=self._refresh_material_properties_widget,
                             )
                             self._collapsible_frame_states[CollapsiblePanels.MATERIAL_PROPERTIES] = True
@@ -340,33 +336,47 @@ class AssetReplacementsPane:
     def selection_tree_widget(self):
         return self._selection_tree_widget
 
-    def _get_selection_name_by_type(self, selection_types: List):
+    def _get_selection_pin_name(self, for_materials: bool = False) -> str:
+        """
+        Get a formatted name of the current USD selection for the pin label.
+
+        Args:
+            for_materials: Whether to target relevant materials from the selection or use the selection directly.
+
+        Returns:
+            A formatted string of the `parent/prim` with handling of no selection, multi-selection, and long paths.
+        """
         context = omni.usd.get_context(self._context_name)
         stage = context.get_stage()
-        selection_prim_paths = context.get_selection().get_selected_prim_paths()
 
-        # Get all of the material prims from the current selection without duplicates
-        material_prims = set()
-        for prim_path in selection_prim_paths:
+        prims = []
+        prim_paths = list(set(context.get_selection().get_selected_prim_paths()))
+        for prim_path in prim_paths:
             prim = stage.GetPrimAtPath(prim_path)
-            for material_prim in self._material_core.get_materials_from_prim(prim):
-                material_prims.add(stage.GetPrimAtPath(material_prim))
-        selection = list(material_prims)
+            if not prim:
+                continue
 
-        # Get a filtered selection based on desired types in descending order from selection_types
-        type_filtered_selection = []
-        for selection_type in selection_types:
-            type_filtered_selection = [item for item in selection if isinstance(item, selection_type)]
-            if type_filtered_selection:
-                break
+            # If material pinning, get mesh from instance to later grab all relevant materials
+            if for_materials and _is_instance(prim):
+                prim = self._material_properties_widget.get_mesh_from_instance(prim)
+                if not prim:
+                    continue
 
-        if not type_filtered_selection:
+            prims.append(prim)
+
+        # Use materials relevant to USD selection for material pinning
+        if for_materials:
+            prims = [
+                stage.GetPrimAtPath(path) for path in self._material_properties_widget.get_materials_from_prims(prims)
+            ]
+
+        # Return the appropriate prim name
+        if not prims:
             return "None Selected"
-        if len(type_filtered_selection) == 1:
-            # Create parent/child formatted name and limit to 50 chars in length
-            path = type_filtered_selection[0].GetPath()
-            formatted_name = f"{path.GetParentPath().name}/{path.name}"
-            return formatted_name if len(formatted_name) < 50 else "..." + formatted_name[-50:]
+        if len(prims) == 1:
+            path = prims[0].GetPath()
+            formatted_name = f"{path.GetParentPath().name}/{path.name}"  # parent/child
+            return formatted_name if len(formatted_name) < 50 else "..." + formatted_name[-50:]  # 50 char limit
         return "Multiple Selected"
 
     def __validate_existing_layer(self, path):
