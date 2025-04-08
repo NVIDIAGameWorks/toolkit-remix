@@ -86,10 +86,10 @@ class TestCore(AsyncTestCase):
         context = omni.usd.get_context()
         async with make_temp_directory(context) as temp_dir:
             shutil.copytree(_get_test_data("usd/project_example"), f"{temp_dir.name}/project_example")
-            second_capture = f"{temp_dir.name}/project_example/.deps/captures/capture2.usda"
+            second_capture = f"{temp_dir.name}/project_example/deps/captures/capture2.usda"
 
             # create another capture
-            shutil.copy(_get_test_data("usd/project_example/.deps/captures/capture.usda"), second_capture)
+            shutil.copy(_get_test_data("usd/project_example/deps/captures/capture.usda"), second_capture)
             stage = Usd.Stage.Open(second_capture)
 
             # change the value of the camera of the second capture

@@ -77,7 +77,7 @@ class TestLayerManagerService(AsyncTestCase):
                                     "children": [],
                                 },
                                 {
-                                    "layer_id": str(project_dir / ".deps" / "captures" / "capture.usda"),
+                                    "layer_id": str(project_dir / "deps" / "captures" / "capture.usda"),
                                     "layer_type": "capture",
                                     "children": [],
                                 },
@@ -158,7 +158,7 @@ class TestLayerManagerService(AsyncTestCase):
                             "children": [],
                         },
                         {
-                            "layer_id": str(project_dir / ".deps" / "captures" / "capture.usda"),
+                            "layer_id": str(project_dir / "deps" / "captures" / "capture.usda"),
                             "layer_type": "capture",
                             "children": [],
                         },

@@ -105,7 +105,7 @@ class SetupUI:
 
         self._current_single_material: Sdf.Path | None = None
         self._current_material_mdl_file: Path | None = None
-        self._selected_prims: list[Usd.Prim] = []
+        self._unfiltered_selected_prims: list[Usd.Prim] = []
         self._material_properties_frames = {}
 
         # Populated during a right click event within `_show_copy_menu` to avoid garbage collection
@@ -182,6 +182,7 @@ class SetupUI:
                         ui.Image(
                             "",
                             name="MenuBurger",
+                            identifier="menu_burger_image",
                             height=ui.Pixel(24),
                             width=ui.Pixel(24),
                             mouse_pressed_fn=lambda x, y, b, m: self.__show_material_menu(),
@@ -559,6 +560,7 @@ class SetupUI:
             self._set_material_label("None")
             self._set_material_mdl_label("")
 
+        self._unfiltered_selected_prims = []
         self._current_material_mdl_file = None
         self._current_single_material = None
         mdl_files: set[Path] = set()
@@ -569,14 +571,15 @@ class SetupUI:
             if not isinstance(item, Usd.Prim):
                 continue
 
+            # Update hamburger menu items
+            self._unfiltered_selected_prims.append(item)
+
             # If instance prim, get and use the correlating mesh prim
             if _is_instance(item):
-                prototype_prim = self._asset_replacement_core.get_corresponding_prototype_prims([item])
-                if not prototype_prim:
-                    continue
-                item = self._stage.GetPrimAtPath(prototype_prim[0])
-                if not item:
-                    continue
+                item = self.get_mesh_from_instance(item)
+
+            if not item:
+                continue
 
             # If not a mat prim and has reference, refresh widget to clear
             if not _is_material_prototype(item) and _get_reference_file_paths(item)[1]:
@@ -590,12 +593,7 @@ class SetupUI:
             return
 
         # Gather materials
-        materials = set()
-        for prim in filtered_items:
-            for mat in self._core.get_materials_from_prim(prim):
-                materials.add(mat)
-        materials = list(materials)
-
+        materials = self.get_materials_from_prims(filtered_items)
         if not materials:
             hide_properties()
             return
@@ -750,11 +748,12 @@ class SetupUI:
             shared_material_items: list[Usd.Prim] = []
             instance_material_items: list[Usd.Prim] = []
             # sort prims into buckets with independent controls
-            for prim in self._selected_prims:
-                if _AssetReplacementsCore.prim_is_from_a_capture_reference(prim):
-                    shared_material_items.append(prim)
-                else:
-                    instance_material_items.append(prim)
+            for prim in self._unfiltered_selected_prims:
+                if prim.IsValid():
+                    if _AssetReplacementsCore.prim_is_from_a_capture_reference(prim):
+                        shared_material_items.append(prim)
+                    else:
+                        instance_material_items.append(prim)
             # build the menus
             refresh_instance_items(instance_material_items, len(instance_material_items))
             await refresh_shared_items(shared_material_items, len(shared_material_items))
@@ -812,8 +811,21 @@ class SetupUI:
         """
         return _EventSubscription(self.__on_material_changed, function)
 
+    def get_mesh_from_instance(self, prim: Usd.Prim) -> Usd.Prim | None:
+        """Get a corresponding mesh prim from an input instance prim."""
+        prototype_prims = self._asset_replacement_core.get_corresponding_prototype_prims([prim])
+        return self._stage.GetPrimAtPath(prototype_prims[0]) if prototype_prims else None
+
+    def get_materials_from_prims(self, prims: list[Usd.Prim]) -> list[Sdf.Path]:
+        """Get a list of material paths relevant to a list of input prims without duplicates."""
+        materials = set()
+        for prim in prims:
+            for mat in self._core.get_materials_from_prim(prim):
+                materials.add(mat)
+        return list(materials)
+
     def destroy(self):
-        self._selected_prims = []
+        self._unfiltered_selected_prims = []
         if self._external_drag_and_drop:
             self._external_drag_and_drop.destroy()
             self._external_drag_and_drop = None

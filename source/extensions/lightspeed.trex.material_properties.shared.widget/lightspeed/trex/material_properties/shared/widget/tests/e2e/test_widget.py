@@ -1,3 +1,4 @@
+# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -45,7 +46,7 @@ from pxr import Sdf, Usd
 MATERIAL_HASH = "BC868CE5A075ABB1"
 MATERIAL_ROOT_PATH = "/RootNode/Looks/"
 RELATIVE_SOURCE_TEXTURE_PATH = "project_example/sources/textures/"
-RELATIVE_CAPTURE_TEXTURE_PATH = "project_example/.deps/captures/materials/textures/"
+RELATIVE_CAPTURE_TEXTURE_PATH = "project_example/deps/captures/materials/textures/"
 METAL_WALL_ASSET_PARTIAL_BASENAME = "T_MetalPanelWall_HeavyRust_"
 # Map of property name to whether it has a texture attribute set in the test material
 PROPERTY_BRANCHES_MAP = {
@@ -155,6 +156,19 @@ class TestMaterialPropertyWidget(AsyncTestCase):
 
         return components
 
+    def __check_override_exists(self, prim_spec, attr_name):
+        # return false if there is no prim_spec in first place
+        if not prim_spec:
+            return False
+
+        # check if the attribute exists in the prim spec
+        if attr_name in prim_spec.attributes:
+            attr_spec = prim_spec.attributes[attr_name]
+            # check if it has a value
+            if attr_spec.default is not None:
+                return True
+        return False
+
     async def __destroy(self, window, material_property_wid):
         self._events = None
         self._stage_event_delegate.unsubscribe()
@@ -229,7 +243,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube"], False
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
         )
 
         await ui_test.human_delay(human_delay_speed=3)
@@ -259,6 +273,72 @@ class TestMaterialPropertyWidget(AsyncTestCase):
         for frame_none in none_frames:
             self.assertTrue(frame_none.widget.visible)
         self.assertFalse(frame_material.widget.visible)
+
+        await self.__destroy(_window, _material_property_wid)
+
+    async def test_override_texture_on_captured_asset(self):
+        # setup
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=10)
+        texture_file_fields = await self._get_group_texture_file_fields(_window, "Base Material")
+
+        # ensure the override is not yet on RootNode/Looks/...
+        target_layer = usd_context.get_stage().GetEditTarget().GetLayer()
+        prim_spec = target_layer.GetPrimAtPath("/RootNode/Looks/mat_BC868CE5A075ABB1/Shader")
+        self.assertFalse(self.__check_override_exists(prim_spec, "asset inputs:diffuse_texture"))
+
+        # we add a new texture
+        asset_path = _get_test_data("usd/project_example/sources/textures/ingested/16px_Diffuse.dds")
+        await texture_file_fields[0].click()
+        await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
+        await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
+        await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(3)
+
+        # ensure override is now on RootNode/Looks/...
+        prim_spec = target_layer.GetPrimAtPath("/RootNode/Looks/mat_BC868CE5A075ABB1/Shader")
+        self.assertTrue(self.__check_override_exists(prim_spec, "inputs:diffuse_texture"))
+
+        await self.__destroy(_window, _material_property_wid)
+
+    async def test_override_texture_on_replaced_asset_with_material(self):
+        # setup
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
+        )
+        await ui_test.human_delay(human_delay_speed=10)
+        texture_file_fields = await self._get_group_texture_file_fields(_window, "Base Material")
+
+        # ensure the override is not yet on RootNode/meshes/...
+        target_layer = usd_context.get_stage().GetEditTarget().GetLayer()
+        prim_spec = target_layer.GetPrimAtPath(
+            "/RootNode/meshes/mesh_BAC90CAA733B0859/"
+            "ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Looks/CubeMaterial/Shader"
+        )
+        self.assertFalse(self.__check_override_exists(prim_spec, "asset inputs:diffuse_texture"))
+
+        # we add a new texture
+        asset_path = _get_test_data("usd/project_example/sources/textures/ingested/16px_Diffuse.dds")
+        await texture_file_fields[0].click()
+        await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
+        await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
+        await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(3)
+
+        # ensure override is now on RootNode/meshes/...
+        prim_spec = target_layer.GetPrimAtPath(
+            "/RootNode/meshes/mesh_BAC90CAA733B0859/"
+            "ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Looks/CubeMaterial/Shader"
+        )
+        self.assertTrue(self.__check_override_exists(prim_spec, "inputs:diffuse_texture"))
 
         await self.__destroy(_window, _material_property_wid)
 
@@ -814,6 +894,49 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             context_menu = await omni.kit.ui_test.menu.get_context_menu()
             await ui_test.human_delay(5)
             self.assertFalse("Copy File Path Hash" in context_menu.get("_"))
+
+        await self.__destroy(_window, _material_property_wid)
+
+    async def test_burger_menu_populates(self):
+        _window, _material_property_wid = await self.__setup_widget()
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
+        await ui_test.human_delay(10)
+
+        # grab burger menu and click
+        # NOTE: There are value grabbing limitations with `omni.kit.ui_test.menu`
+        menu_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].identifier=='menu_burger_image'")
+        self.assertIsNotNone(menu_image)
+        await menu_image.click()
+        await ui_test.human_delay(5)
+
+        # grab hamburger menu and ensure it is populated correctly
+        context_menu = await omni.kit.ui_test.menu.get_context_menu()
+        self.assertTrue("Convert to Translucent" in context_menu.get("_"))
+
+        # click away and reset context_menu var
+        await ui_test.emulate_mouse_move_and_click(menu_image.position - ui_test.Vec2(10, 0))
+        await ui_test.human_delay(5)
+
+        # select something different
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_CED45075A077A49A_0/mesh"], False)
+        await ui_test.human_delay(10)
+
+        # grab burger menu and click
+        menu_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].identifier=='menu_burger_image'")
+        self.assertIsNotNone(menu_image)
+        await menu_image.click()
+        await ui_test.human_delay(5)
+
+        # grab hamburger menu and ensure it is populated correctly
+        context_menu = await omni.kit.ui_test.menu.get_context_menu()
+        self.assertTrue("Convert to Translucent" in context_menu.get("_"))
+
+        # click away to avoid interference with other tests
+        await ui_test.emulate_mouse_move_and_click(menu_image.position - ui_test.Vec2(10, 0))
+        await ui_test.human_delay(5)
 
         await self.__destroy(_window, _material_property_wid)
 

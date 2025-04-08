@@ -1,30 +1,40 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Fixed
+- Fixed Object Property pinning
+
+### Added
+- Pin label checking in tests
+
+### Changed
+- Property pinning now works with generic USD selection
+
 ## [1.4.1]
 ## Changed
 - Added check for frame visibility in refresh
 
 ## [1.4.0]
-## Changed
+### Changed
 - Material property widget & pinning now driven by USD stage selection
 - Direct material prim selection now populates the material property widget
 - Fixed test bug where tests couldn't re-run without failing
 
 ## [1.3.2]
-## Changed
+### Changed
 - Update to Kit 106.5
 
 ## [1.3.1]
-## Fixed
+### Fixed
 - Fixed widgets refreshing when collapsed
 
 ## [1.3.0]
-## Changed
+### Changed
 - Allow the widgets to display information even when the selection panel is collapsed
 
 ## [1.2.13]
-## Changed
+### Changed
 - update to use omni.kit.test public api
 
 ## [1.2.12]

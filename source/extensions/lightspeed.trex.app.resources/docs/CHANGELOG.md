@@ -1,76 +1,83 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.16.0]
+### Added
+- Added material to `cube.usda`
+
+### Changed
+- Changed `project_example` to use `deps` instead of `.deps` dir
+
 ## [1.15.7]
-## Added
+### Added
 - Added force refresh for categories on all Stage Manager tabs with mesh prims
 
 ## [1.15.6]
-## Added
+### Added
 - Added Remix Categories action to the Categories tab
 - Added new Remix Categories icons
 
 ## [1.15.5]
-## Changed
+### Changed
 - Stage Manager: Added LSS Materials Tab interaction plugin wrapper
 
 ## [1.15.4]
-## Added
+### Added
 - Added ingested images to test project
 
 ## [1.15.3]
-## Fixed
+### Fixed
 - Fixed the Mixed icon to be colorable in the styles
 
 ## [1.15.2]
-## Fixed
+### Fixed
 - Added prim path that should be ignored in the Stage Manager schema
 
 ## [1.15.1]
-## Changed
+### Changed
 - Use updated scale attribute
 
 ## [1.15.0]
-## Added
+### Added
 - Stage Manager: Added Materials Tab
 - Added `circle-opacity.svg` icon to represent materials
 
 ## [1.14.2]
-## Added
+### Added
 - Stage Manager: Added `force_refresh_rules` for the categories and custom tags tabs
 
 ## [1.14.1]
-## Added
+### Added
 - Validation: Added default output directory endpoint for the contexts
 
 ## [1.14.0]
-## Added
+### Added
 - Added an icon for project with no thumbnails
 
 ## [1.13.0]
-## Added
+### Added
 - Stage Manager: Added a mesh/instance tab
 
-## Changed
+### Changed
 - Stage Manager: Changed the prims columns display names for consistency
 
 ## [1.12.0]
-## Added
+### Added
 - Stage Manager: Added custom tags interaction tab
 - Added Stage Manager icon for Custom Tags
 
 ## [1.11.0]
-## Added
+### Added
 - Stage Manager: Added custom tags columns
 - Added Stage Manager icons for Custom Tags
 
 ## [1.10.0]
-## Added
+### Added
 - Stage Manager: Added a skeleton interaction tab
 - Add skeleton related icons
 
 ## [1.9.1]
-## Fixed
+### Fixed
 - conform disclosure icon meaning so down arrow means expanded
 
 ## [1.9.0]

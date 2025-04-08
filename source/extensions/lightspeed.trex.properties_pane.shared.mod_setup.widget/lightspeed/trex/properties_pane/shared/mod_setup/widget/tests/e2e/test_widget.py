@@ -84,8 +84,8 @@ class TestModSetupWidget(AsyncTestCase):
             for char in chars:
                 for i in range(number_captures):
                     shutil.copy(
-                        _get_test_data("usd/project_example/.deps/captures/capture.usda"),
-                        f"{temp_dir.name}/project_example/.deps/captures/{char}_capture{i}.usda",
+                        _get_test_data("usd/project_example/deps/captures/capture.usda"),
+                        f"{temp_dir.name}/project_example/deps/captures/{char}_capture{i}.usda",
                     )
 
             await open_stage(f"{temp_dir.name}/project_example/combined.usda")
@@ -124,8 +124,8 @@ class TestModSetupWidget(AsyncTestCase):
 
             # Duplicate the capture file
             shutil.copy(
-                _get_test_data("usd/project_example/.deps/captures/capture.usda"),
-                f"{temp_dir.name}/project_example/.deps/captures/duplicate_capture.usda",
+                _get_test_data("usd/project_example/deps/captures/capture.usda"),
+                f"{temp_dir.name}/project_example/deps/captures/duplicate_capture.usda",
             )
 
             # Check if refresh icon button exists and click it
@@ -139,7 +139,7 @@ class TestModSetupWidget(AsyncTestCase):
             self.assertEqual(len(items), 2)
 
             # Delete the duplicate capture
-            os.remove(f"{temp_dir.name}/project_example/.deps/captures/duplicate_capture.usda")
+            os.remove(f"{temp_dir.name}/project_example/deps/captures/duplicate_capture.usda")
             await ui_test.human_delay(human_delay_speed=3)
 
             # Refresh again

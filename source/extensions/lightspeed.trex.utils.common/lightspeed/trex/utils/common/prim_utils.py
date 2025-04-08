@@ -26,6 +26,7 @@ __all__ = [
     "is_instance",
     "get_extended_selection",
     "get_children_prims",
+    "get_reference_file_paths",
 ]
 
 import re
@@ -343,7 +344,9 @@ def get_children_prims(
     return list(traverse_instanced_children(prim, current_level, skip_remix_ref))
 
 
-def get_reference_file_paths(prim) -> Tuple[List[Tuple["Usd.Prim", "Sdf.Reference", "Sdf.Layer", int]], int]:
+def get_reference_file_paths(
+    prim: "Usd.Prim",
+) -> Tuple[List[Tuple["Usd.Prim", "Sdf.Reference", "Sdf.Layer", int]], int]:
     """
     Collects file references from a USD prim and its reference children.
     Handles special child prims for multiple identical references.

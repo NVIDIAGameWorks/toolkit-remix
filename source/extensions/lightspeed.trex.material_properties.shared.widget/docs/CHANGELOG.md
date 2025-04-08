@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Added
+- Moved some `refresh()` functionality to new public class functions
+- Added public functions `get_mesh_from_instance()` and `get_materials_from_prims()`
+
 ## [1.4.1]
 ### Fixed
 - Fixed `refresh()` to function to account for instance prims

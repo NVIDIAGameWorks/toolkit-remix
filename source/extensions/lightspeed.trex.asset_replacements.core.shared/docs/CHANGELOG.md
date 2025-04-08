@@ -1,35 +1,39 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.5]
+### Changed
+- Updated test to use new `cube.usda` material
+
 ## [2.5.4]
-## Fixed
+### Fixed
 - Fixed some validators and core functions with bugs discovered during testing
 
 ## [2.5.3]
-## Changed
+### Changed
 - rename trex prim utility names for clarity
 
 ## [2.5.2]
-## Changed
+### Changed
 - Update to Kit 106.5
 
 ## [2.5.1]
-## Changed
+### Changed
 - Fix for skel logic if not fully defined.
 
 ## [2.5.0]
-## Changed
+### Changed
 - Changed `get_default_output_directory_with_data_model` to add the ability to specify which default path to use
 
 ## [2.4.0]
-## Changed
+### Changed
 - Separated skeleton logic into its own module
 
-## Added
+### Added
 - created a class to help with skel remapping operations
 
 ## [2.3.6]
-## Changed
+### Changed
 - update to use omni.kit.test public api
 
 ## [2.3.5]

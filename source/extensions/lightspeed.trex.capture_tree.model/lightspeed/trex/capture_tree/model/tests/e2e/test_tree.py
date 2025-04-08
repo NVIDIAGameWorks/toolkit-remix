@@ -40,10 +40,10 @@ class TestTreeWidget(AsyncTestCase):
         capture_model.refresh(
             [
                 (
-                    _get_test_data("usd/project_example/.deps/captures/capture.usda"),
-                    _get_test_data("usd/project_example/.deps/captures/.thumbs/capture.usda.dds"),
+                    _get_test_data("usd/project_example/deps/captures/capture.usda"),
+                    _get_test_data("usd/project_example/deps/captures/.thumbs/capture.usda.dds"),
                 ),
-                (_get_test_data("usd/project_example/.deps/captures/capture.usda"), None),
+                (_get_test_data("usd/project_example/deps/captures/capture.usda"), None),
             ]
         )
         capture_delegate = _CaptureTreeDelegate()
@@ -94,7 +94,7 @@ class TestTreeWidget(AsyncTestCase):
 
         self.assertTrue(big_thumbnail_window.window.visible)
         self.assertEqual(
-            big_images.widget.source_url, _get_test_data("usd/project_example/.deps/captures/.thumbs/capture.usda.dds")
+            big_images.widget.source_url, _get_test_data("usd/project_example/deps/captures/.thumbs/capture.usda.dds")
         )
         self.assertFalse(no_images.widget.visible)
 

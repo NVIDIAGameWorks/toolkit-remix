@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.4]
+## Changed
+- Updated test to use `deps` instead of `.deps` dir
+
 ## [1.5.3]
 ## Changed
 - Changed `__get_model_from_prototype_path()` to exclude prims that are simultaneously materials

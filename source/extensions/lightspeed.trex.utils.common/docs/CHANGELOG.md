@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.1]
+## Fixed
+- Added typing to `get_reference_file_paths` and added to `__all__`
+
 ## [1.5.0]
 ## Added
 - Added `get_reference_file_paths` to `prim_utils.py`
