@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4084: Fixed NRC initialization failure
 - Fixed Remix Categories and Asset Replacements tab refresh
 - REMIX-4082: Fixed Object Property pinning and added respective coverage in tests
+- Fixed `omni.flux.validator.mass.widget` tests flakiness
 
 ### Removed
 - Cleaned up legacy code and unused files
