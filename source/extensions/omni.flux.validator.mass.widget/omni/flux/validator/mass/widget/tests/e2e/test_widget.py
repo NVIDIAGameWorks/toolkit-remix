@@ -47,37 +47,44 @@ class TestMassWidget(AsyncTestCase):
 
     @asynccontextmanager
     async def __setup_widget(self, name: str):
-        window = ui.Window(f"TestMassValidationUI_{name}", height=800, width=1000)
-        with window.frame:
-            wid = _ValidatorMassWidget(schema_paths=self.SCHEMAS, use_global_style=False)
+        await self.__destroy_setup()
+
+        self._window = ui.Window(f"TestMassValidationUI_{name}", height=800, width=1000)
+        with self._window.frame:
+            self._widget = _ValidatorMassWidget(schema_paths=self.SCHEMAS, use_global_style=False)
 
         await ui_test.human_delay(human_delay_speed=1)
 
         try:
-            yield window, wid
+            yield self._window, self._widget
         finally:
-            await self.__destroy_setup(window, wid)
+            await self.__destroy_setup()
 
-    async def __destroy_setup(self, window, wid):
+    async def __destroy_setup(self):
         await ui_test.human_delay(human_delay_speed=1)
 
-        wid.destroy()
-        window.frame.clear()
-        window.destroy()
+        if hasattr(self, "_widget") and self._widget:
+            self._widget.destroy()
+            self._widget = None
+        if hasattr(self, "_window") and self._window:
+            self._window.destroy()
+            self._window = None
 
         await ui_test.human_delay(human_delay_speed=1)
 
     async def test_expose_mass_ui(self):
         # setup
-        async with self.__setup_widget("test_expose_mass_ui") as (window, _wid):
+        async with self.__setup_widget("test_expose_mass_ui"):
             # grab the buttons
             context_buttons = ui_test.find_all(
-                f"{window.title}//Frame/**/Label[*].identifier=='FakeContextMassBuildUI'"
+                f"{self._window.title}//Frame/**/Label[*].identifier=='FakeContextMassBuildUI'"
             )
             selector_buttons = ui_test.find_all(
-                f"{window.title}//Frame/**/Label[*].identifier=='FakeSelectorMassBuildUI'"
+                f"{self._window.title}//Frame/**/Label[*].identifier=='FakeSelectorMassBuildUI'"
             )
-            check_buttons = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='FakeCheckMassBuildUI'")
+            check_buttons = ui_test.find_all(
+                f"{self._window.title}//Frame/**/Label[*].identifier=='FakeCheckMassBuildUI'"
+            )
 
             self.assertEqual(len(context_buttons), 3)
             self.assertEqual(len(selector_buttons), 1)
@@ -85,9 +92,9 @@ class TestMassWidget(AsyncTestCase):
 
     async def test_add_to_queue(self):
         # setup
-        async with self.__setup_widget("test_add_to_queue") as (window, _wid):
+        async with self.__setup_widget("test_add_to_queue"):
             # grab the buttons
-            add_to_queue_button = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
+            add_to_queue_button = ui_test.find(f"{self._window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
 
             self.assertIsNotNone(add_to_queue_button)
 
@@ -95,12 +102,12 @@ class TestMassWidget(AsyncTestCase):
             await add_to_queue_button.click()
 
             # we should have 3 job labels, 3 context action buttons, 3 check action buttons
-            job_labels = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='QueueJobLabel'")
+            job_labels = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].identifier=='QueueJobLabel'")
             action_context_buttons = ui_test.find_all(
-                f"{window.title}//Frame/**/Button[*].identifier=='FakeContextMassActionUI'"
+                f"{self._window.title}//Frame/**/Button[*].identifier=='FakeContextMassActionUI'"
             )
             action_check_buttons = ui_test.find_all(
-                f"{window.title}//Frame/**/Button[*].identifier=='FakeCheckMassActionUI'"
+                f"{self._window.title}//Frame/**/Button[*].identifier=='FakeCheckMassActionUI'"
             )
             self.assertEqual(len(job_labels), 3)
             self.assertEqual(len(action_context_buttons), 3)
@@ -108,9 +115,9 @@ class TestMassWidget(AsyncTestCase):
 
     async def test_toggle_validation_widget(self):
         # setup
-        async with self.__setup_widget("test_toggle_validation_widget") as (window, _wid):
+        async with self.__setup_widget("test_toggle_validation_widget"):
             # grab the buttons
-            add_to_queue_button = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
+            add_to_queue_button = ui_test.find(f"{self._window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
 
             self.assertIsNotNone(add_to_queue_button)
 
@@ -119,12 +126,14 @@ class TestMassWidget(AsyncTestCase):
 
             # we should have 3 job labels, 3 context action buttons, 3 check action buttons
             toggle_in_validation_tab = ui_test.find_all(
-                f"{window.title}//Frame/**/ToolButton[*].identifier=='ToggleInValidationTab'"
+                f"{self._window.title}//Frame/**/ToolButton[*].identifier=='ToggleInValidationTab'"
             )
             self.assertEqual(len(toggle_in_validation_tab), 3)
 
             # click on the first one
-            validation_frame = ui_test.find(f"{window.title}//Frame/**/Frame[*].identifier=='ValidationWidgetFrame'")
+            validation_frame = ui_test.find(
+                f"{self._window.title}//Frame/**/Frame[*].identifier=='ValidationWidgetFrame'"
+            )
             self.assertFalse(validation_frame.widget.visible)
 
             await toggle_in_validation_tab[0].click()
@@ -140,33 +149,33 @@ class TestMassWidget(AsyncTestCase):
 
     async def test_remove_from_queue(self):
         # setup
-        async with self.__setup_widget("test_remove_from_queue") as (window, _wid):
+        async with self.__setup_widget("test_remove_from_queue"):
             # grab the buttons
-            add_to_queue_button = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
+            add_to_queue_button = ui_test.find(f"{self._window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
 
             self.assertIsNotNone(add_to_queue_button)
 
             # click on it
             await add_to_queue_button.click()
 
-            job_labels = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='QueueJobLabel'")
+            job_labels = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].identifier=='QueueJobLabel'")
             await job_labels[0].click()
 
-            remove_job_button = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='RemoveSelection'")
+            remove_job_button = ui_test.find(f"{self._window.title}//Frame/**/Button[*].identifier=='RemoveSelection'")
             await remove_job_button.click()
 
-            job_labels = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='QueueJobLabel'")
+            job_labels = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].identifier=='QueueJobLabel'")
             self.assertEqual(len(job_labels), 2)
 
     async def test_run_should_crash(self):
         # setup
-        async with self.__setup_widget("test_run_should_crash") as (window, _wid):
+        async with self.__setup_widget("test_run_should_crash"):
             # grab the buttons
-            add_to_queue_button = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
+            add_to_queue_button = ui_test.find(f"{self._window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
 
             self.assertIsNotNone(add_to_queue_button)
 
-            items = _wid.core.schema_model.get_item_children(None)
+            items = self._widget.core.schema_model.get_item_children(None)
 
             with patch.object(
                 items[0].model.model.check_plugins[0].data.Config, "validate_assignment", new_callable=PropertyMock
@@ -184,9 +193,9 @@ class TestMassWidget(AsyncTestCase):
 
     async def test_update_context_after_cooking(self):
         # setup
-        async with self.__setup_widget("test_update_context_after_cooking") as (window, _wid):
+        async with self.__setup_widget("test_update_context_after_cooking"):
             # grab the buttons
-            add_to_queue_button = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
+            add_to_queue_button = ui_test.find(f"{self._window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
 
             self.assertIsNotNone(add_to_queue_button)
 
@@ -194,19 +203,19 @@ class TestMassWidget(AsyncTestCase):
             await add_to_queue_button.click()
 
             # we should have 3 job labels, 3 context action buttons, 3 check action buttons
-            job_labels = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='QueueJobLabel'")
+            job_labels = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].identifier=='QueueJobLabel'")
             self.assertEqual(len(job_labels), 3)
 
             # Remove Job #1
             remove_buttons = ui_test.find_all(
-                f"{window.title}//Frame/**/Button[*].identifier=='RemoveContextItemMassUI'"
+                f"{self._window.title}//Frame/**/Button[*].identifier=='RemoveContextItemMassUI'"
             )
             self.assertEqual(len(remove_buttons), 6)
             await remove_buttons[0].click()
 
             # Remove Job #3
             remove_buttons = ui_test.find_all(
-                f"{window.title}//Frame/**/Button[*].identifier=='RemoveContextItemMassUI'"
+                f"{self._window.title}//Frame/**/Button[*].identifier=='RemoveContextItemMassUI'"
             )
             self.assertEqual(len(remove_buttons), 5)
             await remove_buttons[1].click()
@@ -214,31 +223,31 @@ class TestMassWidget(AsyncTestCase):
             # Should only add Job #2
             await add_to_queue_button.click()
 
-            job_labels = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='QueueJobLabel'")
+            job_labels = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].identifier=='QueueJobLabel'")
             self.assertEqual(len(job_labels), 4)
 
     async def test_add_no_cooked_template_should_have_no_item_in_queue(self):
         # setup
-        window = ui.Window("TestMassValidationUI_add_no_cooked_template", height=800, width=800)
-        with window.frame:
-            _wid = _ValidatorMassWidget(schema_paths=[], use_global_style=False)
+        self._window = ui.Window("TestMassValidationUI_add_no_cooked_template", height=800, width=800)
+        with self._window.frame:
+            self._widget = _ValidatorMassWidget(schema_paths=[], use_global_style=False)
 
         await ui_test.human_delay(human_delay_speed=1)
 
         try:
             # grab the buttons
-            add_to_queue_button = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
+            add_to_queue_button = ui_test.find(f"{self._window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
 
             # by default if there is no template, there is no queue!
             self.assertIsNone(add_to_queue_button)
         finally:
-            await self.__destroy_setup(window, _wid)
+            await self.__destroy_setup()
 
     async def test_add_cooked_template_failed_should_have_no_item_in_queue(self):
         # setup
-        window = ui.Window("TestMassValidationUI_add_cooked_template_failed", height=800, width=800)
-        with window.frame:
-            _wid = _ValidatorMassWidget(
+        self._window = ui.Window("TestMassValidationUI_add_cooked_template_failed", height=800, width=800)
+        with self._window.frame:
+            self._widget = _ValidatorMassWidget(
                 schema_paths=[get_test_data_path(__name__, "schemas/fail_cook_template.json")], use_global_style=False
             )
 
@@ -246,7 +255,7 @@ class TestMassWidget(AsyncTestCase):
 
         try:
             # grab the buttons
-            add_to_queue_button = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
+            add_to_queue_button = ui_test.find(f"{self._window.title}//Frame/**/Button[*].identifier=='AddToQueue'")
 
             self.assertIsNotNone(add_to_queue_button)
 
@@ -257,26 +266,26 @@ class TestMassWidget(AsyncTestCase):
             self.assertIsNotNone(modal_button)
             await modal_button.click()
 
-            job_labels = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='QueueJobLabel'")
+            job_labels = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].identifier=='QueueJobLabel'")
             action_context_buttons = ui_test.find_all(
-                f"{window.title}//Frame/**/Button[*].identifier=='FakeContextMassActionUI'"
+                f"{self._window.title}//Frame/**/Button[*].identifier=='FakeContextMassActionUI'"
             )
             action_check_buttons = ui_test.find_all(
-                f"{window.title}//Frame/**/Button[*].identifier=='FakeCheckMassActionUI'"
+                f"{self._window.title}//Frame/**/Button[*].identifier=='FakeCheckMassActionUI'"
             )
             self.assertEqual(len(job_labels), 0)
             self.assertEqual(len(action_context_buttons), 0)
             self.assertEqual(len(action_check_buttons), 0)
         finally:
-            await self.__destroy_setup(window, _wid)
+            await self.__destroy_setup()
 
     async def test_adjust_processor_count(self):
         # setup
-        async with self.__setup_widget("test_add_to_queue") as (window, _wid):
+        async with self.__setup_widget("test_adjust_processor_count"):
             # grab the combo boxes
-            executors_cb = ui_test.find(f"{window.title}//Frame/**/ComboBox[*].identifier=='executors_combo_box'")
+            executors_cb = ui_test.find(f"{self._window.title}//Frame/**/ComboBox[*].identifier=='executors_combo_box'")
             processors_cb = ui_test.find(
-                f"{window.title}//Frame/**/ComboBox[*].identifier=='external_processors_count_combo_box'"
+                f"{self._window.title}//Frame/**/ComboBox[*].identifier=='external_processors_count_combo_box'"
             )
             self.assertIsNotNone(executors_cb)
             self.assertIsNotNone(processors_cb)
@@ -297,7 +306,7 @@ class TestMassWidget(AsyncTestCase):
 
             # ensure the combo box for the process count is no longer visible
             processors_cb = ui_test.find(
-                f"{window.title}//Frame/**/ComboBox[*].identifier=='external_processors_count_combo_box'"
+                f"{self._window.title}//Frame/**/ComboBox[*].identifier=='external_processors_count_combo_box'"
             )
             self.assertIsNone(processors_cb)
 
@@ -308,7 +317,7 @@ class TestMassWidget(AsyncTestCase):
 
             # ensure the box for the process count is visible again
             processors_cb = ui_test.find(
-                f"{window.title}//Frame/**/ComboBox[*].identifier=='external_processors_count_combo_box'"
+                f"{self._window.title}//Frame/**/ComboBox[*].identifier=='external_processors_count_combo_box'"
             )
             self.assertIsNotNone(processors_cb)
 

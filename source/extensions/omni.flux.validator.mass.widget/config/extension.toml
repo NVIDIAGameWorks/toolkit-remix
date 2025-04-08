@@ -3,7 +3,7 @@ order = 100  # to start always after the plugins
 
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.9.2"
+version = "1.9.3"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -46,7 +46,6 @@ icon = "data/images/icon.png"
 [[python.module]]
 name = "omni.flux.validator.mass.widget"
 
-
 [[test]]
 stdoutFailPatterns.exclude = [
     "*TypeError: 'NoneType' object is not*",  # Expected when template cook fails
@@ -60,6 +59,7 @@ stdoutFailPatterns.exclude = [
     "*'NoneType' object is not iterable*",  # Expected when template cook fails
     "*Exception when async cook_template_no_exception()*",  # when we fail a validation before the cook
     "*1 validation error for ValidationSchema*",  # when we fail a validation before the cook
+    "*[asyncio] Task exception was never retrieved*",  # when we fail a validation before the cook
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]
 
