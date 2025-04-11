@@ -5,128 +5,25 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Process: Attach (windows-x86_64)",
-            "type": "cppvsdbg",
+            "name": "Python: Remote Attach",
+            "type": "debugpy",
             "request": "attach",
-            "processId": "${command:pickProcess}"
-        },
-		{
-            "name": "Python: Attach (windows-x86_64/linux-x86_64)",
-            "type": "python",
-            "request": "attach",
-            "localRoot": "${workspaceFolder}",
-            "remoteRoot": "${workspaceFolder}",
-            "port": 3000,
-            "host": "localhost",
+            "connect": {
+                "host": "localhost",
+                "port": 3000
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "${workspaceFolder}"
+                }
+            ],
+            "justMyCode": true,
             "subProcess": true,
-            "runtimeArgs": [
+            "runtimeArgs" : [
                 "--preserve-symlinks",
                 "--preserve-symlinks-main"
             ]
-        },
-        {
-            "name": "lightspeed.app.trex (debug)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/_build/windows-x86_64/debug/kit/kit.exe",
-            "args": ["${workspaceFolder}/_build/windows-x86_64/debug/apps/lightspeed.app.trex.kit"],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "console": "internalConsole",
-            "internalConsoleOptions": "openOnSessionStart",
-            "linux": {
-                "type": "cppdbg",
-                "program": "${workspaceFolder}/_build/target-deps/kit_sdk_release/kit",
-                "cwd": "${workspaceFolder}/_build/linux-x86_64/debug/",
-                "externalConsole": false,
-                "MIMode": "gdb",
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    }
-                ]
-            },
-        },
-        {
-            "name": "lightspeed.app.trex (release)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/_build/windows-x86_64/release/kit/kit.exe",
-            "args": ["${workspaceFolder}/_build/windows-x86_64/release/apps/lightspeed.app.trex.kit"],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "console": "internalConsole",
-            "internalConsoleOptions": "openOnSessionStart",
-            "linux": {
-                "type": "cppdbg",
-                "program": "${workspaceFolder}/_build/target-deps/kit_sdk_release/kit",
-                "cwd": "${workspaceFolder}/_build/linux-x86_64/release/",
-                "externalConsole": false,
-                "MIMode": "gdb",
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    }
-                ]
-            },
-        },
-        {
-            "name": "lightspeed.app.trex.stagecraft (release)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/_build/windows-x86_64/release/kit/kit.exe",
-            "args": ["${workspaceFolder}/_build/windows-x86_64/release/apps/lightspeed.app.trex.stagecraft.kit"],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "console": "internalConsole",
-            "internalConsoleOptions": "openOnSessionStart",
-            "linux": {
-                "type": "cppdbg",
-                "program": "${workspaceFolder}/_build/target-deps/kit_sdk_release/kit",
-                "cwd": "${workspaceFolder}/_build/linux-x86_64/release/",
-                "externalConsole": false,
-                "MIMode": "gdb",
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    }
-                ]
-            },
-        },
-        {
-            "name": "lightspeed.app.trex.stagecraft (debug)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/_build/windows-x86_64/debug/kit/kit.exe",
-            "args": ["${workspaceFolder}/_build/windows-x86_64/debug/apps/lightspeed.app.trex.stagecraft.kit"],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "console": "internalConsole",
-            "internalConsoleOptions": "openOnSessionStart",
-            "linux": {
-                "type": "cppdbg",
-                "program": "${workspaceFolder}/_build/target-deps/kit_sdk_release/kit",
-                "cwd": "${workspaceFolder}/_build/linux-x86_64/debug/",
-                "externalConsole": false,
-                "MIMode": "gdb",
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    }
-                ]
-            },
-        },
+        }
     ]
 }
