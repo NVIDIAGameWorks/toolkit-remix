@@ -4,73 +4,135 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "1. Format Code",
             "type": "shell",
-            "command": "./build.sh --release-only",
+            "command": "${workspaceRoot}${/}format_code.sh",
             "windows": {
-                "command": ".\\build.bat --release-only"
+                "command": "${workspaceRoot}${/}format_code.bat"
             },
-            "problemMatcher": {
-                "owner": "cpp",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceRoot}/_compiler/vs2017"
-                ],
-                "pattern": {
-                    "regexp": "^(.*):(\\d+): \\s+(warning|error):\\s+(.*)$",
-                    "file": 1,
-                    "line": 2,
-                    "severity": 3,
-                    "message": 4
-                }
+            "args": [],
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "focus": false
             },
+            "problemMatcher": []
+        },
+        {
+            "label": "2. Lint Code",
+            "type": "shell",
+            "command": "${workspaceRoot}${/}lint_code.sh",
+            "windows": {
+                "command": "${workspaceRoot}${/}lint_code.bat"
+            },
+            "args": [],
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "focus": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "3. Build",
+            "type": "shell",
+            "command": "${workspaceRoot}${/}build.sh",
+            "windows": {
+                "command": "${workspaceRoot}${/}build.bat"
+            },
+            "args": [],
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
             "presentation": {
                 "reveal": "always",
-                "panel": "dedicated",
-                "clear": true
-            }
+                "focus": false
+            },
+            "problemMatcher": []
         },
         {
-            "label": "clean",
+            "label": "4. Rebuild",
             "type": "shell",
-            "command": "./build.sh --clean",
+            "command": "${workspaceRoot}${/}build.sh",
             "windows": {
-                "command": ".\\build.bat --clean"
+                "command": "${workspaceRoot}${/}build.bat"
             },
-            "problemMatcher": {
-                "owner": "cpp",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceRoot}/_compiler/vs2017"
-                ],
-                "pattern": {
-                    "regexp": "^(.*):(\\d+): \\s+(warning|error):\\s+(.*)$",
-                    "file": 1,
-                    "line": 2,
-                    "severity": 3,
-                    "message": 4
-                }
-            },
+            "args": [
+                "--rebuild"
+            ],
             "group": {
-                "kind": "build"
+                "kind": "build",
+                "isDefault": false
             },
             "presentation": {
                 "reveal": "always",
-                "panel": "dedicated",
-                "clear": true
-            }
+                "focus": false
+            },
+            "problemMatcher": []
         },
         {
-            "label": "tests",
+            "label": "5. Clean",
             "type": "shell",
-            "command": "./_build/windows-x86_64/release/tests-omni.app.lightspeed.sh",
+            "command": "${workspaceRoot}${/}build.sh",
             "windows": {
-                "command": ".\\_build\\windows-x86_64\\release\\tests-omni.app.lightspeed.bat"
+                "command": "${workspaceRoot}${/}build.bat"
             },
+            "args": [
+                "--clean"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "always",
+                "focus": false
+            },
+            "problemMatcher": []
         },
+        {
+            "label": "6. Build Docs",
+            "type": "shell",
+            "command": "${workspaceRoot}${/}build_docs.sh",
+            "windows": {
+                "command": "${workspaceRoot}${/}build_docs.bat"
+            },
+            "args": [],
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "focus": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "7. Launch (Release)",
+            "type": "shell",
+            "command": "${workspaceRoot}${/}_build${/}windows-x86_64${/}release${/}lightspeed.app.trex.bat",
+            "args": [
+                "--enable", "omni.kit.debug.vscode",
+            ],
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "focus": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "8. Launch (Development)",
+            "type": "shell",
+            "command": "${workspaceRoot}${/}_build${/}windows-x86_64${/}release${/}lightspeed.app.trex_dev.bat",
+            "args": [
+                "--enable", "omni.kit.debug.vscode",
+            ],
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "focus": true
+            },
+            "problemMatcher": []
+        }
     ]
 }
