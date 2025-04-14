@@ -116,6 +116,7 @@ kit.dxvk-cache
 metrics.txt
 PIC-V.log
 rtx-remix/logs/
+nrc_session_log.txt
 
 # Ignore internal repo tools
 /deps/repo-deps-internal.packman.xml
@@ -125,6 +126,7 @@ repo_internal.toml
 
 # Ignore generated documentation
 docs/toolkitinterface/remix-toolkitinterface-restapi-docs.html
+docs/howto/learning-restapi-docs.html
 
 # Ignore temp files
 *.*~

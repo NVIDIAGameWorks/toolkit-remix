@@ -98,7 +98,9 @@ class LightGroupsModel(_VirtualGroupsModel):
         for light_type in _LightTypes:
             # Since this is a group, make plural
             display_name = f"{light_type.value}s"
-            tree_items[light_type] = LightGroupsItem(display_name, None, tooltip=f"{display_name} Group")
+            tree_items[light_type] = LightGroupsItem(
+                display_name, None, tooltip=f"{display_name} Group", light_type=light_type
+            )
 
         item_names = _StageManagerUtils.get_unique_names(items)
 
@@ -118,7 +120,6 @@ class LightGroupsModel(_VirtualGroupsModel):
                     item_name,
                     item.data,
                     tooltip=str(prim_path),
-                    light_type=light_type,
                     display_name_ancestor=parent_name,
                 )
             )

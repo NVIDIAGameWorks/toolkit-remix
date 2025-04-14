@@ -1,6 +1,7 @@
 # Pathtracing
 
-Pathtracing allows you to tweak the behavior of the Path Tracer in both subtle and profound ways. The technical details go deep into Ray Tracing theory.
+Pathtracing allows you to tweak the behavior of the Path Tracer in both subtle and profound ways. The technical details
+go deep into Ray Tracing theory.
 
 ![PathTracing](../../data/images/rtxremix_030.png)
 

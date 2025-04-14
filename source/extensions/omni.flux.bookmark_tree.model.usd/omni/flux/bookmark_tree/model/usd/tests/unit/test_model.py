@@ -361,6 +361,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
             patch.object(commands, "execute") as execute_mock,
             patch.object(omni.usd.UsdContext, "get_stage") as get_stage_mock,
             patch("pxr.Usd.EditContext") as edit_context_mock,
+            patch("pxr.Usd.CollectionAPI.GetCollection") as get_collection_mock,
             patch.object(BookmarkModel, "add_item_to_collection") as add_item_mock,
         ):
             get_stage_mock.return_value = stage_mock
@@ -377,6 +378,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         self.assertEqual(1 if existing_prim else 2, execute_mock.call_count)
         self.assertEqual(1 if use_parent else 0, add_item_mock.call_count)
         self.assertEqual(1, edit_context_mock.call_count)
+        self.assertEqual(1, get_collection_mock.call_count)
 
         if not existing_prim:
             self.assertEqual(

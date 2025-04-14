@@ -1,6 +1,9 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.11.1]
+- Made Lights Groups Tree Plugin items icons more consistent with the other tree items
+
 ## [1.11.0]
 - Added alphabetical sorting for the tree items
 

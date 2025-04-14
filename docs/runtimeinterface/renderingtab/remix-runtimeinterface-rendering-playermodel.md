@@ -1,6 +1,7 @@
 # Player Model
 
-Player Model allows you to toggle compatibility options related to first person character rendering here, as well as toggle first person character shadows.
+Player Model allows you to toggle compatibility options related to first person character rendering here, as well as
+toggle first person character shadows.
 
 ![PlayerModel](../../data/images/rtxremix_021.PNG)
 
@@ -13,7 +14,6 @@ Player Model allows you to toggle compatibility options related to first person 
 | 5       | Backward Offset                   | rtx.playerModel.backwardOffset              | 18                |                 |
 | 6       | Horizontal Detection Distance     | rtx.playerModel.horizontalDetectionDistance | 34                |                 |
 | 7       | Vertical Detection Distance       | rtx.playerModel.verticalDetectionDistance   | 64                |                 |
-
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

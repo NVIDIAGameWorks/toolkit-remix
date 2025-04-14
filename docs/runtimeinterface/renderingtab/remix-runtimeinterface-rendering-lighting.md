@@ -1,6 +1,8 @@
 # Lighting
 
-Lighting allows you to adjust global lighting intensity and other parameters, as well as go deep under the hood of two of the core lighting algorithms used by the Remix Path Tracing renderer: RTXDI and Restir GI. You can read more about each technology.
+Lighting allows you to adjust global lighting intensity and other parameters, as well as go deep under the hood of two
+of the core lighting algorithms used by the Remix Path Tracing renderer: RTXDI and Restir GI. You can read more about
+each technology.
 
 ![Lighting](../../data/images/rtxremix_029.png)
 

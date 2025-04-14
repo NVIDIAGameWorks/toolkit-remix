@@ -449,10 +449,17 @@ enabled = true
 name = "NVIDIA RTX Remix"
 project = "${conf:repo.name}"
 
-extra_sys_paths = [
-  # libomniAudioSchema.so: cannot open shared object file: No such file or directory
-  "$root/_build/$platform/$config/extscache/omni.usd.schema*/lib",
-]
+# Define the extra content to add to the head of every page
+extra_content_head = ["""
+<style>
+  .svg-icon {
+    height: 24px;
+    padding: 4px;
+    background-color: black !important;
+    border-radius: 4px !important;
+  }
+</style>
+"""]
 
 sphinx_conf_py_extra = """
 import pathlib
@@ -471,7 +478,7 @@ def build_service_docs(app):
     if not exec_path.exists():
         raise RuntimeError("Service Documentation executable not found.")
 
-    source_file = pathlib.Path.cwd() / "docs" / "toolkitinterface" / "remix-toolkitinterface-restapi-docs.html"
+    source_file = pathlib.Path.cwd() / "docs" / "howto" / "learning-restapi-docs.html"
     command = [
         str(exec_path),
         "-o", str(source_file),
@@ -487,7 +494,7 @@ def build_service_docs(app):
     if result.returncode != 0:
         raise RuntimeError("An error occured while generating the Service documentation.")
 
-    output_file = output_dir / "docs" / "toolkitinterface" / "remix-toolkitinterface-restapi-docs.html"
+    output_file = output_dir / "docs" / "howto" / "learning-restapi-docs.html"
     print("Copying generated documentation from", source_file, "to", output_file)
 
     output_file.parent.mkdir(parents=True)
@@ -499,12 +506,6 @@ def copy_assets(app, exc):
     video_src = pathlib.Path.cwd().joinpath("docs", "videos")
     print(f"copying videos from {video_dir} to {video_src}")
     shutil.copytree(video_src, video_dir)
-
-    # Copy Zips
-    zip_dir = pathlib.Path(app.builder.outdir).joinpath("docs", "zips")
-    zip_src = pathlib.Path.cwd().joinpath("docs", "zips")
-    print(f"copying zips from {zip_dir} to {zip_src}")
-    shutil.copytree(zip_src, zip_dir)
 
 sphinx_event_handlers = [
     ("builder-inited", build_service_docs),
@@ -520,7 +521,31 @@ autodoc_mock_imports = [
     "omni.kit.viewport.menubar.camera",  # uses carb.tokens.get_tokens_interface() at module level
     "omni.kit.viewport.menubar.render",  # uses carb.tokens.get_tokens_interface() at module level
 ]
+
+myst_enable_extensions = ["attrs_inline"]
 """
+
+library_paths = [
+    # libomniAudioSchema.so: cannot open shared object file: No such file or directory
+    "${root}/_build/${platform_target}/release/exts/*/bin",
+    "${root}/_build/${platform_target}/release/exts/*/lib",
+    "${root}/_build/${platform_target}/release/extscache/*/bin",
+    "${root}/_build/${platform_target}/release/extscache/*/lib",
+    "${root}/_build/${platform_target}/release/extscache/*/bin/deps",
+    "${root}/_build/${platform_target}/release/extscache/*/lib/deps",
+    "${root}/_build/${platform_target}/release/kit/exts/*/bin",
+    "${root}/_build/${platform_target}/release/kit/exts/*/lib",
+    "${root}/_build/${platform_target}/release/kit/exts/*/bin/deps",
+    "${root}/_build/${platform_target}/release/kit/exts/*/lib/deps",
+    "${root}/_build/${platform_target}/release/kit/extsPhysics/*/bin",
+    "${root}/_build/${platform_target}/release/kit/extsPhysics/*/lib",
+    "${root}/_build/${platform_target}/release/kit/extscore/*/bin",
+    "${root}/_build/${platform_target}/release/kit/extscore/*/lib",
+    "${root}/_build/${platform_target}/release/kit/extscore/*/bin/deps",
+    "${root}/_build/${platform_target}/release/kit/extscore/*/lib/deps",
+    "${root}/_build/${platform_target}/release/kit",
+    "${root}/_build/${platform_target}/release/kit/kernel/plugins",
+]
 
 sphinx_exclude_patterns = [
     ####################################################################################################################
@@ -552,11 +577,22 @@ sphinx_exclude_patterns = [
 ]
 
 redirects = [
-    { path = "docs/remix-releasenote.html", target = "docs/remix-releasenotes.html" },
+    { path = "docs/contributing.html", target = "docs/contributing/api.html" },
+    { path = "docs/howto/learning-overview.html", target = "docs/gettingstarted/learning-runtimesetup.html" },
+    { path = "docs/howto/learning-properties.html", target = "docs/howto/learning-toolkit.html" },
     { path = "docs/howto/learning-runtimesetup.html", target = "docs/gettingstarted/learning-runtimesetup.html" },
-    { path = "docs/howto/tutorial-remixtool.html", target = "docs/tutorials/tutorial-remixtool.html" },
     { path = "docs/howto/learning-viewport.html", target = "docs/toolkitinterface/remix-toolkitinterface-viewport.html" },
     { path = "docs/howto/tutorial-portalhl2.html", target = "docs/tutorials/tutorial-portalhl2.html" },
+    { path = "docs/howto/tutorial-remixtool.html", target = "docs/tutorials/tutorial-remixtool.html" },
+    { path = "docs/remix-changelog.html", target = "docs/changelog/remix-releasenotes.html" },
+    { path = "docs/remix-formats.html", target = "docs/howto/learning-ingestion.html#file-format-compatibility" },
+    { path = "docs/remix-full-changelog.html", target = "docs/changelog/remix-full-changelog.html" },
+    { path = "docs/remix-installation.html", target = "docs/installation/install-selection.html" },
+    { path = "docs/remix-overview.html", target = "docs/introduction/intro-overview.html" },
+    { path = "docs/remix-releasenotes.html", target = "docs/changelog/remix-releasenotes.html" },
+    { path = "docs/toolkitinterface/remix-toolkitinterface-migrations.html", target = "docs/howto/learning-migrations.html" },
+    { path = "docs/toolkitinterface/remix-toolkitinterface-restapi-docs.html", target = "docs/howto/learning-restapi-docs.html" },
+    { path = "docs/toolkitinterface/remix-toolkitinterface-restapi.html", target = "docs/howto/learning-restapi.html" },
 ]
 
 repo_url = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/blob/master"

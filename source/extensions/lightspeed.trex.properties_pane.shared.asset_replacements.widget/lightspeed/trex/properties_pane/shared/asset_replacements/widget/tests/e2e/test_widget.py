@@ -61,7 +61,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         collapsable_frames = ui_test.find_all(
             f"{_window.title}//Frame/**/CollapsableFrame[*].identifier=='PropertyCollapsableFrame'"
         )
-        self.assertEqual(len(collapsable_frames), 6)
+        self.assertEqual(len(collapsable_frames), 5)
         await self.__destroy(_window, _wid)
 
     async def test_collapse_refresh_object_property_when_collapsed(self):
@@ -74,7 +74,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
         frame_mesh_prim = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
 
-        self.assertEqual(len(collapsable_frame_arrows), 6)
+        self.assertEqual(len(collapsable_frame_arrows), 5)
         self.assertIsNotNone(frame_mesh_ref)
         self.assertIsNotNone(frame_mesh_prim)
 
@@ -123,14 +123,14 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         )
         frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
 
-        self.assertEqual(len(collapsable_frame_arrows), 6)
+        self.assertEqual(len(collapsable_frame_arrows), 5)
         self.assertIsNotNone(frame_material)
 
         # by default, no frame are visible
         self.assertFalse(frame_material.widget.visible)
 
         # we close the material property frame
-        await collapsable_frame_arrows[5].click()
+        await collapsable_frame_arrows[4].click()
 
         # we select
         usd_context = omni.usd.get_context()
@@ -141,7 +141,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         collapsable_frame_arrows = ui_test.find_all(
             f"{_window.title}//Frame/**/Image[*].identifier=='PropertyCollapsableFrameArrow'"
         )
-        await collapsable_frame_arrows[5].click()
+        await collapsable_frame_arrows[4].click()
 
         # no we should see the material property
         self.assertTrue(frame_material.widget.visible)
@@ -150,7 +150,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         self.assertEqual(len(item_prims), 2)
 
         # we close the material property frame
-        await collapsable_frame_arrows[5].click()
+        await collapsable_frame_arrows[4].click()
 
         # we select the mesh ref
         await item_prims[0].click()
@@ -160,7 +160,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         collapsable_frame_arrows = ui_test.find_all(
             f"{_window.title}//Frame/**/Image[*].identifier=='PropertyCollapsableFrameArrow'"
         )
-        await collapsable_frame_arrows[5].click()
+        await collapsable_frame_arrows[4].click()
 
         # we still not see the material property
         self.assertFalse(frame_material.widget.visible)
@@ -168,7 +168,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
     async def test_object_properties_cleared_when_none_selected(self):
         # setup
-        _window, _wid = await self.__setup_widget("test_collapse_refresh_material_property_when_collapsed")
+        _window, _wid = await self.__setup_widget("test_object_properties_cleared_when_none_selected")
 
         # ensure the proper frames exist
         frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
@@ -204,7 +204,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
     async def test_material_properties_cleared_when_none_selected(self):
         # setup
-        _window, _wid = await self.__setup_widget("test_collapse_refresh_material_property_when_collapsed")
+        _window, _wid = await self.__setup_widget("test_material_properties_cleared_when_none_selected")
 
         # ensure the proper frames exist
         frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
@@ -238,7 +238,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
     async def test_select_material_prim_populates_material_properties(self):
         # setup
-        _window, _wid = await self.__setup_widget("test_select_material_prim")
+        _window, _wid = await self.__setup_widget("test_select_material_prim_populates_material_properties")
 
         # ensure the proper frames exist
         frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
@@ -312,7 +312,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
     async def test_select_material_and_mesh_prims_populates_widgets(self):
         # setup
-        _window, _wid = await self.__setup_widget("test_select_material_and_mesh_prims")
+        _window, _wid = await self.__setup_widget("test_select_material_and_mesh_prims_populates_widgets")
 
         # ensure the proper frames exist
         frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
@@ -351,7 +351,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
     async def test_object_pinning(self):
         # setup
-        _window, _wid = await self.__setup_widget("test_collapse_refresh_object_property_when_collapsed")
+        _window, _wid = await self.__setup_widget("test_object_pinning")
 
         # ensure the mesh reference and prim frames exist
         frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
@@ -407,7 +407,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
     async def test_material_pinning_from_mesh_selection(self):
         # setup
-        _window, _wid = await self.__setup_widget("test_collapse_refresh_object_property_when_collapsed")
+        _window, _wid = await self.__setup_widget("test_material_pinning_from_mesh_selection")
 
         # ensure the material frame exists
         frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
@@ -457,7 +457,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
     async def test_material_pinning_from_material_selection(self):
         # setup
-        _window, _wid = await self.__setup_widget("test_collapse_refresh_object_property_when_collapsed")
+        _window, _wid = await self.__setup_widget("test_material_pinning_from_material_selection")
 
         # ensure the material frame exists
         frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
@@ -509,7 +509,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
     async def test_object_and_material_pin_labels_exist(self):
         # setup
-        _window, _wid = await self.__setup_widget("test_collapse_refresh_object_property_when_collapsed")
+        _window, _wid = await self.__setup_widget("test_object_and_material_pin_labels_exist")
 
         # ensure the material frame exists
         frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
@@ -653,7 +653,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
     async def test_layer_validation_import_invalid_layer(self):
         # setup
-        _window, _wid = await self.__setup_widget("test_layer_validation_import_layer")
+        _window, _wid = await self.__setup_widget("test_layer_validation_import_invalid_layer")
 
         property_pane_items = ui_test.find_all(f"{_window.title}//Frame/**/ScrollingFrame[*]=='PropertiesPaneSection'")
         await property_pane_items[1].click()
