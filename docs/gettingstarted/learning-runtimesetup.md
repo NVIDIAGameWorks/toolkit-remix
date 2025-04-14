@@ -1,52 +1,131 @@
-# Setup the RTX Remix Runtime with your Game
-
-```{note}
-Please refer to our [Installation](../remix-installation.md) section for directions on how to install the Remix Runtime.
-```
-
-To prepare your game, start by copying the `remix-runtime` directory contents into the main game’s directory. The `d3d9.dll` and `.trex/` folder should end up sitting right next to the main game executable.
+# Setting Up the RTX Remix Runtime with your Game
 
 ```{warning}
-Some games will search for `d3d9.dll` in a directory other than the directory of the main game executable. For example, Source Engine games will search in the bin directory next to the main game executable for d3d9.dll instead.
+**Make sure the RTX Remix Runtime is installed before you start setting up your game.**
+
+You can follow the [RTX Remix Runtime Installation](../installation/install-runtime.md) section
+for directions on how to install the RTX Remix Runtime.
 ```
 
-Once RTX Remix files are in place, you can start the game normally. You can verify RTX Remix is working by checking for the splash message at the top of the screen when the game starts. It should say: “Welcome to NVIDIA Remix… ” and provide hotkey information to access the Remix menus.
-
-## Support for Other Graphics APIs
-While support for D3D9 is included in Remix out of the box, games that use other graphics APIs can also be made to work by utilizing translation layers that target D3D9. You will have to acquire these separately. For example, D3D8 games can be supported through D3D8to9 ([link](https://github.com/crosire/d3d8to9)).
-
-1. Open the folder that contains the source files of the game you wish to mod.
-2. Locate where the executable (.exe) file is stored.  This file is usually found inside a folder named "bin".
-3. Copy and paste the Contents of the RTX Remix Runtime folder into the folder that contains the executable (.exe) file
-
-![FolderStructureDemo](../data/images/rtxremix_018.PNG)
-
-4. Ensure that the d3d9.dll file from the RTX Remix folder copies over the d3d9.dll file in the game folder.
-5. Now, run the game.  If the Runtime has been installed successfully, you should be be able to open the user-end *User Graphics Settings** Remix menu by pressing  **Alt + X**.
-
-![UserGraphicSettings](../data/images/rtxremix_012.PNG)
-
-## Performing Per Game Setup
-If this is the first time RTX Remix is added for a given game, you may need to do some setup in order to get game menus and the game itself to display properly. You will need to open the RTX Remix developer menu to do this (more detailed documentation on this menu below).
-
-1. Press Alt-X on the keyboard to bring up the User Graphics Settings Menu, and from here select Developer Settings Menu.
-2. In Developer Settings, choose the tab for Game Setup, and then go to Step 1 – UI Textures. This section will give you a visual list of textures in the current scene. You need to tag every texture associated with UI components by clicking on them. This will let RTX Remix handle them properly, and not confuse them with in-game textures.
-3. Once done, chances are you will be seeing the main menu of the game render correctly, as well as the game world itself.
-4. Finally, press Save Settings at the bottom of the menu, to store your texture tagging configuration in a file called rtx.conf, which is generated next to your game executable. This way, you won’t have to go through setup again when restarting the game.
-5. You can always return to the UI tagging menu if you encounter new UI textures while exploring the game.
-
-With UI setup out of the way, you can perform an additional test to ensure RTX Remix is functioning correctly.
-
-1. Go to the Enhancements tab in the RTX Remix Developer Menu, and press Capture Frame in USD.
-2. This will create your first capture of the game, which you can use to remaster assets, materials and lights. Capture files will be placed in a special folder called rtx-remix/captures – this will be placed next to the game executable, when first created. The rtx_remix folder is also where pre-made RTX Remix mods will go, under folder mods.
+If you're using RTX Remix with a game for the first time, you might need to do some initial setup so the game's menus
+and visuals display correctly. Use the RTX Remix developer menu for this.
 
 ```{note}
-If you are having trouble, try launching your game in Direct X v.7 or lower
+Per game setup may be different depending on the game you are trying to remaster.
+
+Join the [RTX Remix Showcase Discord Community](https://discord.gg/c7J6gUhXMk)
+where you can check out the [remix-projects](https://discord.com/channels/1028444667789967381/1055020377430048848)
+channel for help with the game you wish to remaster!
 ```
 
-```{warning}
-Per game setup may be different depending on the game you are trying to remaster.  Join the [RTX Discord Community](http://discord.gg/rtxremix) where you can check out the **Remix-Projects** channel for help for the game you wish to remaster!
+***
+
+## Understanding CONF Files
+
+Let's take a moment to get familiar with the settings in the **Alt+X** menu, specifically in the "game setup" tab.
+Firstly, here you’ll find a list of materials from the original game displayed in
+a grid view. RTX Remix will populate this list of materials based on what the original game is currently rendering. You
+might see this list change depending on what's being displayed in the game (this is normal).
+The purpose of this list is to provide an easy way for RTX Remix users to categorize the different materials in
+the original game (see the [Understanding Remix Categories](#understanding-remix-categories) section).
+This helps Remix understand how to handle objects from the original game with a modern
+renderer.
+
+For example, materials marked as UI in the original game don’t need to be raytraced. By letting Remix know about
+them, it can use the original game's rendering for UI, which is often the desired outcome.
+
+Changes you make in the game setup tab are saved in an `RTX.conf` config file. This helps keep all
+your changes for the next time you start the game.
+
+### ModDB CONF Files
+
+[ModDB](https://www.moddb.com/rtx/) hosts `RTX.conf` files for many games, which can help them run best with RTX Remix.
+You can simply download the `RTX.conf` file and place it along with the RTX Remix runtime next to the game’s executable.
+The community can help keep these `RTX.conf` files updated on ModDB, so modders can easily set up a game for RTX Remix.
+
+## Understanding Remix Categories
+
+Remix Categories give special instructions on how to render certain elements. Some important categories include:
+
+* UI (tells Remix to use the original game's rendering)
+* Sky (allows Remix to create a realistic environment map)
+* Particles (lets Remix correctly orient particle effects based on lighting and create a "soft
+  particles" effect)
+* Decals (tells Remix to treat these materials as realistic decals when using path tracing).
+* etc.
+
+These categories primarily help the RTX Runtime render correctly, so some might not be perfectly
+displayed in the Remix Toolkit.
+There are many more categories. Please check the tooltips in the runtime or the specific setting documentation if
+you're unsure what a category means.
+
+Changes you make in the game setup tab are saved in the `RTX.conf` config file. This helps keep all
+your changes for the next time you start the game. For a full list of settings (including Remix Categories) and their
+descriptions, please refer to
+[this document](https://github.com/NVIDIAGameWorks/dxvk-remix/blob/main/RtxOptions.md).
+
+```{note}
+You can also set Remix Categories for meshes and materials in the RTX Remix Toolkit. For more information on
+this, please refer to the [Remix Categories](../toolkitinterface/remix-toolkitinterface-categories.md) section of the
+Toolkit Interface documentation.
 ```
+
+***
+
+## Setting Up UI Textures
+
+Now that you understand the CONF files, let’s start setting up the game. The first thing to do is set up the UI.
+
+1. Press `Alt+X` to open the User Graphics Settings Menu, then select Developer Settings Menu.
+   ```{tip}
+   You can check the `Always Developer Menu` option in the `Developer Settings` menu to always open the developer menu
+   instead of the `Graphics Settings Menu`. This can be useful when setting up a game and needing frequent menu access.
+   ```
+2. In Developer Settings, go to the `Game Setup` tab, then `Step 1 – UI Textures`.
+3. Click on any textures that are part of the game's user interface (UI). This tells RTX Remix to treat them as UI
+   elements, not in-game objects.
+4. After tagging the UI textures, the game's main menu and world should display correctly.
+5. Click `Save Settings` to save your UI texture settings in a file called `rtx.conf`. This file is created next to your
+   game's executable, so you won't need to do this again.
+6. You can always go back to the UI tagging menu if you find more UI textures later.
+
+## Capturing the Scene
+
+RTX Remix can create exact copies of in-game scenes as USD files through a process called “capturing”. These “captures”
+can be opened and edited in NVIDIA Omniverse and other popular DCC tools that support USD. Because the scene is captured
+into a USD file, all assets will be in a single common format. Captured assets include materials, textures, meshes, and
+skeletal data, as well as scene-specific instances and lighting. Meshes and materials are converted to USD format, and
+textures are converted to DDS. These copies are saved next to the captures in similarly named folders.
+
+1. Go to the `Enhancements` tab in the RTX Remix Developer Menu.
+2. Make sure `Enable Enhanced Assets` (in the `Enhancements` sub-menu) is turned off.
+3. Click the `Capture Scene` button to start capturing.
+   ```{tip}
+   You can name your capture in the `Name` field to easily find it later.
+
+   Setting the captured file extension to `USDA` instead of `USD` will capture the scene as readable text files, which
+   can be helpful for debugging.
+   ```
+4. This will create your first game capture. You can use this to improve assets, materials, and lighting. Capture files
+   are saved in the `rtx-remix/captures` folder, next to your game's executable. The `rtx_remix` folder also contains
+   RTX Remix mods (in the `mods` subfolder).
+
+```{note}
+[ModDB](https://www.moddb.com/rtx) also has captures available to help you start your remaster.
+```
+
+***
+
+## Next Steps
+
+Now that you've got everything set up, it's time to start remastering your game using the RTX Remix Toolkit.
+The main focus of the modding process will be to replace assets and textures. By using higher-poly models and PBR
+(Physically-Based Rendering) textures, you can significantly enhance the game's visual quality, surpassing what you
+could achieve with in-engine edits alone.
+
+Go to the
+[Setting Up a Project with the RTX Remix Toolkit](./learning-toolkitsetup.md#setting-up-a-project-with-the-rtx-remix-toolkit)
+section to learn how to set up your first RTX Remix Toolkit project.
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

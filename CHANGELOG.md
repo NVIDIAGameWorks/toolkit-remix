@@ -1,4 +1,4 @@
-# Full changelog
+# RTX Remix Toolkit Changelog
 
 All notable changes to this project will be documented in this file.
 
@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed changelog formatting
 - Tweaked release notes
 - REMIX-3849: Adding Remix Categories dialog to the Stage Manager
+- REMIX-4049: Complete Rewrite of the Remix Documentation
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension

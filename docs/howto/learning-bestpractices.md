@@ -1,41 +1,151 @@
-# Follow Best Practices
+# Following Best Practices
 
+## Selecting the Appropriate USD Format
 
-## Organizing Your Captures
+USD supports several formats: USD (binary), USDA (ASCII), and USDC. USD is a binary format, whereas USDA is a
+human-readable ASCII format.
 
-During a big mod project, you might take lots of captures to capture everything you want to change in the game. To keep things organized, it's a good idea to give these pictures names that make sense, like naming them based on the part of the game they belong to. For example, you can choose to add a "ch1_" in front of the name for captures you took in chapter one.
+USDA's readability facilitates external editing, which is useful for asset issue resolution or collaborative workflows.
+
+USD formats offer slightly more efficient loading. For mod distribution, converting USDA files to USD can optimize
+loading speeds.
+
+## Organizing Captures
+
+In large mod projects, numerous captures may be taken to encompass all desired modifications. To maintain organization,
+it is recommended to adopt a consistent naming convention for these captures, such as prefixing names with the game
+section they represent. For instance, captures taken in chapter one could be named using the prefix "ch1_".
 
 ```{warning}
-If you want to change the name of a capture, it's best to do it before creating a project in RTX Remix. Once a project with the capture is made, trying to change the capture's name will cause the project to fail when loading the capture. You can only rename the capture if it's not being used in any projects.
+Capture renaming is best performed before project creation in RTX Remix. Renaming a capture after it's used in a project
+can cause project loading failures. Renaming is permissible only if the capture is not referenced by any existing
+projects.
 ```
 
-## Layers
+## Project Organization Using Layers
 
-When you create your mod, a file called mod.usda serves as the main control center for your project. It's like the top-level manager. Now, while you can put all your replacement work in this mod.usda, you can also use multiple USDAs stacked on top of each other to keep things organized.
+When a mod is created, a file named `mod.usda` serves as the primary target layer. This layer is read by the runtime.
 
-As your mod grows, that single mod.usda file can become massive, potentially reaching thousands or even tens of thousands of lines. The advantage of using USDAs is that they're in a format that's easy to read (ASCII), so you can edit them outside of Remix. This comes in handy when you need to fix any issues with your assets or when multiple people are collaborating in Remix. So, keeping your USDAs organized is crucial for your own peace of mind in the long run.
+As a mod expands, the `mod.usda` file can become very large, potentially spanning thousands or tens of thousands of
+lines.
 
-Before you dive into making replacements, it's smart to think about the kinds of assets you'll be working with. For example, if you're adding new 3D models and new materials to the game world, it's a good idea to split these replacements into different layers. And if the game you're remastering is extensive, you might even want to organize things on a chapter-by-chapter basis.
+While all overrides can be placed within the `mod.usda` layer, layer composition can enhance organization.
 
-Remember, there can be such a thing as too much organization, but breaking down your mod into component layers will make it way easier to keep track of all your changes in the long haul.
+Prior to implementing replacements, consider the types of assets involved. Separating replacements into distinct layers,
+such as for model replacements and material replacements, is advisable. For extensive games, organizing layers on a
+chapter basis may also be beneficial.
 
+While excessive organization is possible, dividing a mod into component layers simplifies long-term change tracking.
 
-## Storing Files (Source + Ingested)
+Layers are also valuable for team collaboration. The [Working in a Team](#working-in-a-team) section provides guidance
+on project setup for team collaboration.
 
-In your Projects folder, where all the in-game files belong, remember that it's connected to the game's rtx-remix mod folder through a special shortcut called a symlink. This symlink acts like a shortcut, but it's also where the folder is supposed to be.
+## Working in a Team
 
-Now, to keep things neat and tidy, both for yourself and for the people who will use your mod, it's a good idea to make extra folders inside this project folder. These new folders should organize assets in a way that matches the layers we talked about earlier.
+Game remastering can be a substantial undertaking, potentially necessitating team collaboration. Given the artistic
+emphasis of Remix mods, structuring a workflow that enables efficient collaboration among artists is beneficial, even if
+gameplay mechanics are also modified.
 
-Here's another important point: for the files to work properly in Remix, they need to go through a process called **Ingest**. It's smart to set up another folder structure next to your main project folders. This new structure will hold your original assets, like .fbx files (3D models) and png textures, organized in a way that matches your main project folders.
+Designating one or two individuals to manage Remix setup and asset preparation can help maintain consistency and avoid
+confusion. Excessive involvement in these tasks may introduce errors and inconsistencies in project files.
 
-Now, keep in mind that these two sets of folders, the ones for your in-game files and the ones for your source assets, will start taking up quite a bit of space on your computer over time. So, it might be a good idea to consider a versioning system, especially if you're working with a team of people. This helps keep everything organized and makes it easier to collaborate.
+Version control systems (e.g., Git) are highly recommended for tracking changes and ensuring team synchronization.
+The [Setting Up Version Control for Your Project](#setting-up-version-control-for-your-project) section offers
+information on version controlling assets.
 
+## Setting Up Version Control for Your Project
 
-## Building a Team
+Version control is a valuable tool for tracking project changes, enabling reversion to previous versions and preventing
+data loss, especially in team settings.
 
-Revamping an entire game is a big challenge, so you might think about forming a team to help out. Remix mods focus a lot on art, and even if your mod involves changing how the game works, it's a good idea to set up a structure that allows multiple artists to collaborate efficiently.
+When setting up version control, consider the following:
 
-You may want to pick one or two people to handle the Remix setup and asset preparation. This helps avoid confusion and keeps everything consistent. Having too many people involved in this part could lead to mistakes and differences in the project files.
+* Remix projects predominantly involve art assets, making version control systems optimized for large binary files
+  suitable. Git LFS (Large File Storage) or Perforce are viable options.
+* Configure the version control system to ignore Remix-generated files (e.g., thumbnails) to maintain repository
+  cleanliness.
+* Employ a branching strategy to manage different features or changes, allowing concurrent work without interference.
+
+```{important}
+Exclude the `deps` folder from version control, as it is a symlink to the game's rtx-remix folder and cannot be
+transferred between systems.
+
+Failure to exclude this folder may result in errors when attempting to load the project on a different system.
+```
+
+Adding captures to version control facilitates project sharing. However, the potentially large size of captures may
+warrant a separate storage solution, with only the mod itself under version control.
+
+## Choosing Project Directories
+
+It is recommended to create a dedicated folder for all RTX Remix projects, located *outside* the game's installation
+directory.
+
+For example, if the game is installed in `C:/Program Files (x86)/Steam/common/Portal`, projects can be created at
+`C:/Users/<USER>/RemixProjects` or `D:/RemixProjects`.
+
+## Using Relative Paths for Portability
+
+Although absolute paths are supported, using relative paths is recommended for portability. This approach allows the
+project to be moved to different systems without requiring path adjustments.
+
+When creating a project, the RTX Remix Toolkit generates a folder structure that includes a `deps` symlink. This symlink
+connects the project to the game's `rtx-remix/mod` folder and should be used when referencing captures or third-party
+mod dependencies.
+
+```{tip}
+**Example**
+
+Instead of using an absolute capture path:
+
+`C:\Program Files (x86)\Steam\common\Portal\rtx-remix\captures\capture_01.usd`,
+
+use a relative, portable reference:
+
+`./deps/captures/capture_01.usd`.
+```
+
+## Managing Source and Ingested Assets
+
+For organization, consider creating additional folders within the project folder to separate source and ingested assets.
+This structure is particularly useful for version controlled projects, as it allows for easy tracking of changes to
+both source and ingested assets.
+
+* Source directory:
+    * Contains pre-ingestion assets and textures (FBX, USD, OBJ, etc.)
+    * May be external to the project directory
+
+* Output directory:
+    * Created manually within the project directory
+        * `(project_root)/assets/ingested/` is a suitable output directory
+    * The external asset copying feature defaults to `(project_root)/assets/ingested/`
+    * Contains ingested assets (USD or DDS) referenced in the project
+
+### Linking External Assets Depot
+
+Given the potential size of project folders and source asset folders, consider storing assets in a central depot and
+using symlinks to connect them to your projects.
+
+Example command:
+
+```bat
+mklink /J "YOUR_PROJECT_DIR/assets" "INGESTED_ASSET_DIR"
+```
+
+## Optimizing Noise Levels When Relighting
+
+A high number of lights can increase noise due to rendering inefficiencies in light sampling. Similarly, numerous
+occluded lights in a small area can cause noise. While this is generally acceptable in confined spaces, it can be
+problematic in larger areas.
+
+Conversely, insufficient lighting in an area can also increase noise as the renderer relies on longer lighting paths.
+This may be unavoidable in areas primarily lit indirectly.
+
+Thin geometry or detailed curvature on reflective or transparent surfaces may introduce noise because camera jitter (
+used for anti-aliasing and upscaling) can disrupt the denoiser, as Remix loses the ability to track the geometry across
+frames.
+
+Avoid intersecting light sources with other geometry, as this reduces sampling efficiency.
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

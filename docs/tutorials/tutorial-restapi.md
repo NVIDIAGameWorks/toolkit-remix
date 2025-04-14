@@ -1,5 +1,12 @@
 # Create a Blender Add-On using the REST API
 
+```{note}
+**This tutorial is targeted at more technical users.**
+
+To be able to follow this tutorial, you should have a basic understanding of the Python programming language, RESTful
+APIs and Blender.
+```
+
 This tutorial will guide you through building a Blender add-on that communicates with an external application using REST
 APIs.
 
@@ -7,8 +14,6 @@ A Blender add-on consists of code that adds new functionality to the Blender sof
 capabilities of Blender or to integrate it with other software.
 
 We will specifically focus on the RTX Remix REST API, but the process should be the same for any other REST API.
-
-To follow this tutorial, you should have a basic understanding of the Python programming language and Blender.
 
 ---
 
@@ -18,10 +23,10 @@ Before you start building a Blender Add-On, you will need to make sure the follo
 
 - [Blender](https://www.blender.org/)
 - [Python](https://www.python.org/downloads/) ([version 3.11 or greater](https://studio.blender.org/pipeline/td-guide/python))
-- [RTX Remix Toolkit](https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/2024.4.1/docs/remix-installation.html#install-the-rtx-remix-toolkit) (
+- [RTX Remix Toolkit](https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/2024.4.1/docs/remix-installation.html#installing-the-rtx-remix-toolkit) (
   version 2024.4.0 or greater)
 
-**Optional:**
+**_Optional:_**
 
 - A code editor of your choice may work better than Blender's built-in Scripting window:
     - [Visual Studio Code](https://code.visualstudio.com/)
@@ -37,7 +42,9 @@ Before you start building a Blender Add-On, you will need to make sure the follo
 ## Completed Tutorial Code
 
 If you need to access the code produced in this tutorial, you can download it by clicking on the following
-link: <a class="reference external" href="../zips/rtx_remix_addon.zip" target="_blank">Download Code</a>.
+link:
+
+[Download Code](../zips/rtx_remix_addon.zip)
 
 ---
 
@@ -66,7 +73,7 @@ At a very high level, the architecture of an RTX Remix Blender Add-On will be as
 
 
 - Using the RTX API, the Add-On will be able to execute any of the functions, and get information from any
-  of [the endpoints](https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/docs/toolkitinterface/remix-toolkitinterface-restapi-docs.html)
+  of [the endpoints](../howto/learning-restapi-docs.html)
   defined in the REST API
 
 **NOTE:** The Add-On will require the RTX Remix Toolkit to be open for the Add-On to be able to send HTTP requests to
@@ -82,7 +89,7 @@ the REST API server that is created when the Toolkit starts up.
 2. Create a new Project/Directory for your Add-On
 3. Create a new Python script called `rtx_remix_addon.py`
 
-### [OPTIONAL] Opening/Closing the Blender Console Window
+### _[OPTIONAL]_ Opening/Closing the Blender Console Window
 
 Since we will be building a Blender Add-On, opening the Blender console could give us a better idea of what is going on
 during our script's execution.
@@ -310,7 +317,7 @@ start testing your Add-On in Blender.
 However, the Add-On is currently quite limited in its capabilities, so the next section of this tutorial will focus on
 expanding its functionality by utilizing the RTX Remix Toolkit REST API.
 
-### [OPTIONAL] Git Repository Structure
+### _[OPTIONAL]_ Git Repository Structure
 
 If you are using Git, the `rtx_remix_addon` folder should be a subdirectory in your Git repository like such:
 
@@ -402,7 +409,7 @@ That's the only prim utility method we need for now.
 We will now write a utility class to wrap HTTP requests into easy-to-use Python methods.
 
 To create the various utility methods,
-the [RTX Remix REST API documentation](https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/docs/toolkitinterface/remix-toolkitinterface-restapi-docs.html)
+the [RTX Remix REST API documentation](../howto/learning-restapi-docs.html)
 can be used to get information on the possible query parameters, body contents, return values, etc.
 
 Create a `rtx_remix_addon/utils/api.py` file and start by importing the required modules.

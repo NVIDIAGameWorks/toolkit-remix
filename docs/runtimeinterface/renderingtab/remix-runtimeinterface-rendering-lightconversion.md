@@ -1,6 +1,7 @@
 # Light Conversion
 
-Light Conversion allows you to control how game lights are translated into Path Tracing compatible physical light sources in the Remix Toolkit.
+Light Conversion allows you to control how game lights are translated into Path Tracing compatible physical light
+sources in the Remix Toolkit.
 
 ![LightConversion](../../data/images/rtxremix_020.PNG)
 
@@ -12,7 +13,6 @@ Light Conversion allows you to control how game lights are translated into Path 
 | 4       | Distant Light Fixed Angle                    | rtx.lightConversionDistantLightFixedAngle     | 0.0349            | The angular size in radiance of the distant light source for legacy lights converted to distant lights. Set to ~2 degrees in radians by default.                                                                                                                                                                                                                               |
 | 5       | Equality Distance Threshold                  | rtx.lightConversionEqualityDistanceThreshold  | 0.05              | The upper distance threshold between two positions is used to determine if two positional lights are the same light when uniquely identifying legacy lights for conversion.                                                                                                                                                                                                    |
 | 6       | Equality Direction Threshold                 | rtx.lightConversionEqualityDirectionThreshold | 0.99              | The lower cosine angle threshold between two directions is used to determine if two directional lights are the same light when uniquely identifying legacy lights for conversion.                                                                                                                                                                                              |
-
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

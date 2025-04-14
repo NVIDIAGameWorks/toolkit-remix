@@ -54,7 +54,7 @@ technical know-how.
 Before contributing to the RTX Remix project, please review the [contributor documentation](./docs_dev/CONTRIBUTING.md).
 
 For further queries, feel free to [create a GitHub issue](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new/choose)
-or join the RTX Remix Showcase Discord server via [this link](https://discord.gg/rtxremix), where fellow modders can assist you.
+or join the RTX Remix Showcase Discord server via [this link](https://discord.gg/c7J6gUhXMk), where fellow modders can assist you.
 
 ## Additional Documentation
 

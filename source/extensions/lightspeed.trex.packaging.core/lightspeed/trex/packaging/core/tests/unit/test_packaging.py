@@ -221,6 +221,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
 
         mod_layer_mock = Mock(name="mod_layer")
         mod_layer_mock.customLayerData = {}
+        mod_layer_mock.identifier = "C:/mod_layer_identifier.usda"
 
         temp_mod_layer_mock = Mock(name="temp_mod_layer")
 

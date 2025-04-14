@@ -2,7 +2,6 @@
 
 ![About](../data/images/rtxremix_037.png)
 
-
 | Ref | Option  | Description                                                                                                                                              |
 |:---:|:-------:|:---------------------------------------------------------------------------------------------------------------------------------------------------------|
 |  1  | Credits | This section is where we give credit to the people who helped make RTX Remix what is is today!                                                           |

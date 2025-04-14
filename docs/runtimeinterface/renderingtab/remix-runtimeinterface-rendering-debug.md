@@ -1,6 +1,7 @@
 # Debug
 
-Debug allows you to access a large variety of debug views in order to troubleshoot compatibility, content or rendering issues in a game or mod. Please refer to this document for an in depth guide to the Debug Display modes.
+Debug allows you to access a large variety of debug views in order to troubleshoot compatibility, content or rendering
+issues in a game or mod. Please refer to this document for an in depth guide to the Debug Display modes.
 
 ![Debugging](../../data/images/rtxremix_023.PNG)
 

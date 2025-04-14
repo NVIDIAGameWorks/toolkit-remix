@@ -4,10 +4,6 @@
 
 ![Model Ingestion](../data/images/remix-ingestion-models-001.png)
 
-```{note}
-For the Input File Paths to be considered valid during asset import, the list must include at least one file.
-```
-
 | Ref | Option                       | Description                                                                           |
 |:---:|:-----------------------------|:--------------------------------------------------------------------------------------|
 |  1  | Context                      | Ingestcraft                                                                           |

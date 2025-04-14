@@ -2,115 +2,25 @@
 
 ![ProjectWizard](../data/images/rtxremix_067.PNG)
 
-<table>
-  <tr>
-   <td><strong>Ref</strong>
-   </td>
-   <td><strong>Option</strong>
-   </td>
-   <td><strong>Description</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>1
-   </td>
-   <td>Open
-   </td>
-   <td>Open an existing project
-   </td>
-  </tr>
-  <tr>
-   <td>2
-   </td>
-   <td>Create
-   </td>
-   <td>Create a project to author a new mod
-   </td>
-  </tr>
-  <tr>
-   <td>3
-   </td>
-   <td>Edit
-   </td>
-   <td>Create a project to edit an existing mod
-   </td>
-  </tr>
-  <tr>
-   <td>4
-   </td>
-   <td>Remaster
-   </td>
-   <td>Create a project to author and new mod with dependencies
-   </td>
-  </tr>
-</table>
-
-
+| **Ref** | **Option** | **Description**                                          |
+|---------|------------|----------------------------------------------------------|
+| 1       | Open       | Open an existing project                                 |
+| 2       | Create     | Create a project to author a new mod                     |
+| 3       | Edit       | Create a project to edit an existing mod                 |
+| 4       | Remaster   | Create a project to author and new mod with dependencies |
 
 ## Capture Scene File Browser
 
-
 ![ProjectWizard](../data/images/rtxremix_070.png)
 
-<table>
-  <tr>
-   <td><strong>Ref</strong>
-   </td>
-   <td><strong>Option</strong>
-   </td>
-   <td><strong>Description</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>1
-   </td>
-   <td>Project File Location
-   </td>
-   <td>Directory path to the USD project file
-   </td>
-  </tr>
-  <tr>
-   <td>2
-   </td>
-   <td>Remix Directory
-   </td>
-   <td>Directory path to the rtx-remix folder location that contains the captures from the game scene
-   </td>
-  </tr>
-  <tr>
-   <td>3
-   </td>
-   <td>File Browser Icons
-   </td>
-   <td>Opens the file browser
-   </td>
-  </tr>
-  <tr>
-   <td>4
-   </td>
-   <td>Cancel
-   </td>
-   <td>Closed the Capture Scene File Browser
-   </td>
-  </tr>
-  <tr>
-   <td>5
-   </td>
-   <td>Previous
-   </td>
-   <td>Goes to the previous menu screen
-   </td>
-  </tr>
-  <tr>
-   <td>6
-   </td>
-   <td>Create
-   </td>
-   <td><!--- Needs Description --->
-   </td>
-  </tr>
-</table>
-
+| **Ref** | **Option**            | **Description**                                                                                |
+|---------|-----------------------|------------------------------------------------------------------------------------------------|
+| 1       | Project File Location | Directory path to the USD project file                                                         |
+| 2       | Remix Directory       | Directory path to the rtx-remix folder location that contains the captures from the game scene |
+| 3       | File Browser Icons    | Opens the file browser                                                                         |
+| 4       | Cancel                | Close the project wizard                                                                       |
+| 5       | Previous              | Goes to the previous menu screen                                                               |
+| 6       | Create                | Initialize the process creation process                                                        |
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

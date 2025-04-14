@@ -1,6 +1,7 @@
 # Material Filtering
 
-Material Filtering allows you to adjust material filtering options or render all white materials for an easier time when tuning lighting.
+Material Filtering allows you to adjust material filtering options or render all white materials for an easier time when
+tuning lighting.
 
 ![MaterialFiltering](../../data/images/rtxremix_019.PNG)
 
@@ -13,7 +14,6 @@ Material Filtering allows you to adjust material filtering options or render all
 | 5       | Max Anisotropy Level                 | rtx.maxAnisotropySamples         | 8.000             | The maximum number of samples to use when anisotropic filtering is enabled.<br><br>The actual max anisotropy used will be the minimum between this value and the hardware's maximum. Higher values increase quality but will likely reduce performance.                                                                                                                                                                                                                                                                                                                                      |
 | 6       | Translucent Decal Albedo Factor      | rtx.translucentDecalAlbedoFactor | 10                | A global scale factor applied to the albedo of decals that are applied to a translucent base material, to make the decals more visible.<br><br>This is generally needed as albedo values for decals may be fairly low when dealing with opaque surfaces, but the translucent diffuse layer requires a fairly high albedo value to result in an expected look.<br><br>The need for this option could be avoided by simply authoring decals applied to translucent materials with a higher albedo to begin with, but sometimes applications may share decals between different material types. |
 | 7       | Decal Normal Offset                  |                                  | 0.0030            |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

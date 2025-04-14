@@ -1,124 +1,153 @@
-# Setup Material Replacements
+# Setting Up Material Replacements
 
-In Remix, materials on meshes get a PBR (Physically-Based Rendering) makeover, allowing you to use high-quality and more physically accurate Materials in your game. In this tutorial, we'll focus on replacing materials for world geometry. If you want to replace materials on models, check out the Model Replacement section of this guide.
+Similar to asset replacements, materials can be replaced to enhance a game's visual fidelity. Older games often used
+baked lighting and lower-resolution textures, which may not appear optimal in RTX Remix. To improve the game's
+appearance and fully utilize the RTX Remix Runtime's path tracing capabilities, materials can be replaced with
+higher-resolution textures and physically based materials.
 
-```{note}
-Every texture used in Remix materials should be ingested into the project directory.
-The learn about asset ingestion, see the [Ingest Assets](learning-ingestion.md) tutorial.
+```{warning}
+**All textures must be ingested into the project directory before they can be used in a mod.**
+
+Refer to the [Ingesting Assets](learning-ingestion.md) section for information on asset ingestion.
 ```
 
-## Replacing, Adding, or Appending a Material
+## Replacing an Asset's Texture
 
-**Replacing a Material**
-This involves substituting an existing Material with a new one.
+1. **Panel Access:** Navigate to the "Asset Replacements" tab and locate the "Material Properties" panel.
+2. **Mesh Selection:** Select the mesh for which the texture is to be replaced. This can be done by clicking on the mesh
+   in the viewport or selecting it from the Stage Manager.
 
-**Adding a Material**
-Adding a Material typically refers to incorporating a new Material alongside existing ones.
+   ```{tip}
+   If no material properties are displayed:
 
-**Appending a Material**
- Appending a Material implies sequentially adding Materials to a project. For example, you might start with a basic scene and then append additional Materials to enhance or expand the environment.
+    1. Verify that a **mesh** is selected in the Selection Panel. A reference or XForm may be selected instead.
+    2. Captured meshes may lack assigned materials. In this case, replace the original reference with a new one.
+   ```
 
-![Adjust Position](../data/images/remix-assetingest-001.png)
+3. **Texture Properties Modification:** Within the Material Properties panel, expand the "Base Color" section. Replace
+   the texture by clicking the "Browse" button next to the "Diffuse Texture" field. This process applies similarly to
+   the "Normal Map Texture" and other texture properties.
+4. **Texture Set Assignment:** To assign a texture set (albedo, normal, roughness, etc.), click the "Assign Texture Set"
+   button at the top of the Material Properties panel or drag and drop the textures onto the panel. A dialog will
+   appear, attempting to automatically identify and map the various material inputs.
 
-1. **Access Stage:** Go to the "Modding" tab on the top right.
-2. **Select Asset Replacements:** Choose the "Asset Replacements" tab on the left.
-3. **Layers:** In the top left, you'll see layers. Select your desired layer as the edit target.
-4. **Choose Mesh:** Pick your mesh for texture replacement.
-5. **Selection Tab:** Look at the "Selection" tab, where you'll find the original Material hash and the converted/captured USD.
-6. **Add New Reference (Optional):** If you are replacing a model, follow the steps above for “Replacing, Adding, or Appending an Asset”.
-7. **Material Properties:** Scroll down to view the “Material Properties” tab on your selected asset.
-8. **Assigning Textures:** Click the arrow next to a material property to see a list of adjustments you can make.
-    * _For example:_ In the Base Material dropdown, you can add an Albedo, Roughness, Metallic, and Normal Map texture.
-    * If you are replacing a texture on a captured model, the original captured texture will be present in the “Albedo” channel.
-9. **Selecting Textures:** Click the browse icon to navigate to your texture file pathing and then select it to add the texture to that channel
+## Handling Animated Materials
 
+Working with animated textures requires a few additional steps:
 
-## Checking Hash Stability
+1. **Frame Capture:** Reduce the game's framerate to capture each frame of the animated texture.
+2. **Anchor Texture Implementation:**
+    * Generate a series of anchor or stand-in textures for each animation frame.
+    * Render these textures in a test level to capture their hashes.
+3. **Alt+X Developer Menu Utilization:**
+    * Access the material setup tab in the Alt+X developer menu.
+    * Enable "preserve discarded textures" to retain all hashes for each frame in the material menu.
+4. **Hash List Creation:** Compile a list of all hashes obtained from the preserved frames in the material menu.
+5. **USDA Manual Replacement:** Replace these hashes through manual editing within a layer's USDA file.
 
-World geometry has unstable hashes in many older games due to culling mechanisms. To check hash stability, follow these steps:
+### Animated Materials Using a Sprite Sheet
 
-1. **In-Game Debugging:** In-game, press Alt+X, scroll down to the "Debug" tab under "Rendering", and enable "Debug View".
-2. **Check Hash Stability:** To make sure that everything is working smoothly, switch to "Geometry Hash" in the debug view. If you notice a model, Material, or a part of the game world changing color in this view, that's a sign that the hash isn't stable. In such cases, you might need to use a workaround, and replacing it might not be an option.
+To integrate animations from a sprite sheet, the following parameters must be specified:
 
-## Understanding Parallax Occlusion Mapping in RTX Remix
+1. The number of rows
+2. The number of columns
+3. The desired frames per second
 
-Parallax Occlusion Mapping (POM) is a technique used in RTX Remix to add depth and realism to surfaces. It's achieved by simulating the displacement of pixels based on a height map, creating the illusion of intricate surface details.
+After setting these values, ensure that all materials are configured to utilize sprite sheet materials.
 
-**What is Displacement Using Parallax Occlusion Mapping?**
+The spritesheet should be organized from left to right and top to bottom, as shown in the following example:
 
-Displacement is a family of techniques used to make simple geometry appear more complex than it actually is.  In the context of RTX Remix, this is done using Parallax Occlusion Mapping.
+![Sprite Sheet Example](../data/images/sprite_sheet_example.png)
 
-**Depth of a Pixel**
+## Understanding Material Properties
 
-In Remix, five factors determine the apparent depth of the displacement, which is calculated like this:
+### Parallax Occlusion Mapping
+
+Parallax Occlusion Mapping (POM) is a technique employed in RTX Remix to enhance the perceived depth and realism of
+surfaces. It simulates pixel displacement based on a height map, creating the illusion of intricate surface details.
+
+#### Parallax Occlusion Mapping for Displacement
+
+Displacement encompasses techniques that make simple geometry appear more complex. In RTX Remix, Parallax Occlusion
+Mapping achieves this effect.
+
+#### Pixel Depth Calculation
+
+In Remix, the apparent depth of displacement is determined by five factors, calculated as follows:
 
 `(height_map_pixel * (displace_in + displace_out) - displace_in) * displacementFactor * UV_to_world`
 
-* `Height_map_pixel` A black pixel will be displaced back to max_depth, a white pixel will be displaced forward to max_height.
-* `displace_in` A material property that determines how far below the original surface a pixel can appear
-* `displace_out` A material property that determines how far above the original surface a pixel can appear
-* `rtx.displacement.displacementFactor` A global RtxOption primarily used for debugging.  We recommend leaving this at 1.0.
-* `UV_to_world` The UV density of a given surface (i.e. how many world units to go from u=0 to u=1, or how often the texture tiles)
-* For example, if you have a wall panel that repeats every 1.5 meters, a black pixel will appear to be 1.5 * `displace_in</code> meters behind the wall. A white pixel will be 1.5 * <code>displace_out` meters in front of the wall.
+* `Height_map_pixel`: A black pixel is displaced to max_depth, while a white pixel is displaced to max_height.
+* `displace_in`: A material property that defines the maximum displacement below the original surface.
+* `displace_out`: A material property that defines the maximum displacement above the original surface.
+* `rtx.displacement.displacementFactor`: A global RtxOption primarily for debugging (recommended value: 1.0).
+* `UV_to_world`: The UV density of the surface (the number of world units per UV tile).
 
-A few useful calculations:
+For example, for a wall panel repeating every 1.5 meters, a black pixel appears 1.5 \* `displace_in` meters behind the
+wall, and a white pixel appears 1.5 \* `displace_out` meters in front of the wall.
 
-`total_height = displace_out + displace_in` The total possible range of the displacement (before factoring in displacementFactor or uv scale)
+Useful calculations:
 
-`neutral_height = displace_in / total_height` The height_map value to have no displacement
+`total_height = displace_out + displace_in`: The total displacement range (before displacementFactor or UV scaling).
 
-**Comparison with Substance Designer**
+`neutral_height = displace_in / total_height`: The height_map value for no displacement.
 
-In Substance Designer, a black pixel on the height map is 1 unit * `height_scale` deep, with the default preview mesh being 100x100 units.
+#### Comparison with Substance Designer
 
-**Adjusting displace_in for Consistency**
+In Substance Designer, a black pixel on the height map is 1 unit \* `height_scale` deep, with the default preview mesh
+being 100x100 units.
 
-* To match the depth of the surface in Remix with Substance Designer's preview, adjust `displace_in</code> as follows: <code>displace_in = height_scale / 100`.
-* This adjustment ensures that the displacement scale in Remix is consistent with Substance Designer's default preview mesh.
-* If outwards displacement is desired, `displace_in + displace_out</code> should equal <code>height_scale / 100`
+#### Adjusting displace_in for Consistency
 
-**Considerations for Custom Meshes**
+* To align the displacement depth in Remix with Substance Designer's preview, adjust `displace_in` as follows:
+  `displace_in = height_scale / 100`.
+* This ensures consistent displacement scaling between Remix and Substance Designer's default preview mesh.
+* If outward displacement is desired, `displace_in + displace_out` should equal `height_scale / 100`.
 
-If the artist uses a custom mesh in Substance Designer, the adjustment factor for `displace_in</code> and <code>displace_out` may need to be fine-tuned based on the specific characteristics of the custom mesh.  Substance Designer does not factor in the UV density when calculating depth, so rather than simply dividing by 100, they will need to divide by the UV density of their custom mesh.
+**Custom Mesh Considerations**
 
-## Animated Materials
+For custom meshes in Substance Designer, the adjustment factor for `displace_in` and `displace_out` may require
+fine-tuning based on the mesh's specific UV density. Substance Designer does not account for UV density in depth
+calculations, so instead of dividing by 100, divide by the custom mesh's UV density.
 
-Working with animated textures involves a few additional steps. Follow this easy guide:
+### Translucency
 
-1. **Capture Each Frame:** Slow down the game's framerate to capture each frame of the animated texture.
-2. **Use Anchor Textures:**
-    * Generate a series of Anchor or stand-in textures for each animation frame.
-    * Render these textures into a test level to capture the hashes.
-3. **Utilize the Alt+X Developer Menu:**
-    * Access the material setup tab in the Alt+X developer menu.
-    * Tick on "preserve discarded textures" to retain all the hashes for each frame in the material menu.
-4. **Create a Hash List:** Make a list of all the hashes obtained from the preserved frames in the material menu.
-5. **Manual Replacement in USDA:** Replace these hashes through simple manual editing in a layer's USDA.
+Translucency is managed during the ingestion process. Materials with "translucent," "glass," or "trans" in their name
+are automatically converted to translucent materials.
 
-### Animated Materials using a Sprite Sheet
+#### Automatic Conversion during Ingestion
 
-To bring animations from a sprite sheet into the application, it's a simple process. The user just needs to specify three things:
-1. The number of rows
-1. The number of columns
-1. The desired frames per second
+* Materials containing "translucent," "glass," or "trans" in their name are automatically converted to translucent
+  during ingestion.
+* While an asset is selected in the viewport, access the "material properties" panel.
+* Use the three-line menu in the top right of the panel to convert a material to translucent or opaque.
 
-Once you've set these values, ensure that all your Materials are configured to use sprite sheet Materials.
+#### Manual Conversion (If Ingestion Fails)
 
-A key point to remember is that the spritesheet should be organized from left to right, and from top to bottom, just like the example image presented below:
+* Select the mesh to convert to translucent or opaque.
+* In Asset Replacements, locate "Material Properties."
+* Use the hamburger menu in "Material" and select "Create Material Override (Translucent)."
 
-<img src="../data/images/sprite_sheet_example.png" alt="drawing" width="400"/>
+### Emissive Elements
 
-## Subsurface Scattering
+**Emissive Textures:** To make parts of an asset emit light, go to the "emissive" tab, enable "Enable Emission," and
+assign the Emissive Mask map texture. Adjust the Emissive Intensity as needed.
 
-Subsurface Scattering (SSS) allows light to penetrate through a solid object. The SSS is described with a BSSRDF model, an extension of BRDF model which assumes the light enters and exits at the same point of the surface.
-This model is often used to render realistic models for translucent objects, such as skin, wax, marble, etc. When light enters these objects, it should be scattered longer than the standard opaque models. Using a BSDF model would hide the feature and cause unrealistic results.
+### Subsurface Scattering
 
-To setup SSS, the user needs to set the following parameters in Subsurface:
+Subsurface Scattering (SSS) simulates light penetration through solid objects. It is described by a BSSRDF model, an
+extension of the BRDF model that assumes light enters and exits at the same surface point. SSS is used to render
+realistic translucent objects like skin, wax, and marble, where light scattering is more pronounced than in opaque
+objects.
 
-* `Transmittance Color` Determines the base color of the SSS surface, it's similar to the diffuse albedo color for diffuse materials. This parameter can also be set with a texture map.
-* `Subsurface Scattering Radius` Determines the distance (mean free path) that light will be transported inside the SSS object for each color channel. Larger value will allow the corresponding color scattered further on the surface, it will look like a tail extends from the diffuse model. This parameter can also be set with a texture map.
-* `Subsurface Scattering Scale` A scale that controls the SSS intensity of the whole object.
-* `Subsurface Scattering Max Scale` The maximum distance that that light can scatter. Samples larger than this scale will be clamped.
+To configure SSS, set the following parameters in Subsurface:
+
+* `Transmittance Color`: The base color of the SSS surface, analogous to the diffuse albedo color for diffuse materials.
+  A texture map can also be used.
+* `Subsurface Scattering Radius`: The distance (mean free path) that light travels within the SSS object for each color
+  channel. Larger values increase scattering and create a tail-like effect. A texture map can also be used.
+* `Subsurface Scattering Scale`: A scale factor that controls the overall SSS intensity.
+* `Subsurface Scattering Max Scale`: The maximum scattering distance. Samples exceeding this value are clamped.
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

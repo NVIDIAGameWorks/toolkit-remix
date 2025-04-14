@@ -1,6 +1,8 @@
 # Volumetrics
 
-Volumetrics allows you to adjust everything related to the volumetric fog in Remix. You can also turn the volumetric fog off or on via the Enable Volumetric Lighting Checkbox. Turning on “Enable Legacy Fog Remapping” will allow the volumetric fog to take in information from the legacy fog in the game and attempt to match its look.
+Volumetrics allows you to adjust everything related to the volumetric fog in Remix. You can also turn the volumetric fog
+off or on via the Enable Volumetric Lighting Checkbox. Turning on “Enable Legacy Fog Remapping” will allow the
+volumetric fog to take in information from the legacy fog in the game and attempt to match its look.
 
 ![Volumetrics](../../data/images/rtxremix_028.png)
 

@@ -122,6 +122,9 @@ class UsdBookmarkCollectionModel(BookmarkCollectionModel):
                     collection_name=collection_name,
                     usd_context_name=self._context_name,
                 )
+                # Set the expansion rule to not automatically include children
+                Usd.CollectionAPI.GetCollection(self._stage, collection_path).CreateExpansionRuleAttr("explicitOnly")
+                # Add the collection to the parent collection
                 if parent is not None:
                     self.add_item_to_collection(collection_path, parent.data, False)
                 return collection_path

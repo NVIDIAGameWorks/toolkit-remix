@@ -1,78 +1,107 @@
-# NVIDIA RTX Remix
+# Index
 
-```{include} ./docs/remix-overview.md
-:relative-docs: docs/
-:relative-images:
-```
-
-```{toctree}
----
-maxdepth: 1
----
-docs/remix-index
-```
+<meta http-equiv="refresh" content="0; url=docs/introduction/intro-overview.html">
 
 ```{toctree}
 ---
 maxdepth: 1
 caption: Introduction
+hidden: true
 ---
-docs/remix-overview
-docs/remix-formats
+docs/introduction/intro-overview
+docs/introduction/intro-requirements
+docs/introduction/intro-compatibility
 ```
 
 ```{toctree}
 ---
 maxdepth: 1
 caption: Installation Guide
+hidden: true
 ---
-docs/remix-installation
+docs/installation/install-selection
+docs/installation/install-runtime
+docs/installation/install-toolkit
 ```
 
 ```{toctree}
 ---
 maxdepth: 1
 caption: Getting Started
+hidden: true
 ---
-docs/gettingstarted/index
+docs/gettingstarted/learning-runtimesetup
+docs/gettingstarted/learning-toolkitsetup
 ```
 
 ```{toctree}
 ---
 maxdepth: 1
 caption: How To
+hidden: true
 ---
-docs/howto/index
+docs/howto/learning-toolkit
+docs/howto/learning-ingestion
+docs/howto/learning-assets
+docs/howto/learning-materials
+docs/howto/learning-lighting
+docs/howto/learning-packaging
+docs/howto/learning-aitexturetools
+docs/howto/learning-restapi
+docs/howto/learning-migrations
+docs/howto/learning-bestpractices
 ```
 
 ```{toctree}
 ---
 maxdepth: 1
 caption: Tutorials
+hidden: true
 ---
-docs/tutorials/index
+docs/tutorials/tutorial-videos
+docs/tutorials/tutorial-remixtool
+docs/tutorials/tutorial-portalhl2
+docs/tutorials/tutorial-restapi
 ```
 
 ```{toctree}
 ---
 maxdepth: 1
 caption: RTX Remix Runtime Interface
+hidden: true
 ---
-docs/runtimeinterface/index
+docs/runtimeinterface/remix-runtimeinterface-overview
+docs/runtimeinterface/remix-runtimeinterface-usergraphicsettings
+docs/runtimeinterface/remix-runtimeinterface-developermenu
+docs/runtimeinterface/remix-runtimeinterface-general
+docs/runtimeinterface/renderingtab/index
+docs/runtimeinterface/remix-runtimeinterface-gamesetup
+docs/runtimeinterface/remix-runtimeinterface-enhancements
+docs/runtimeinterface/remix-runtimeinterface-about
 ```
 
 ```{toctree}
 ---
 maxdepth: 1
 caption: RTX Remix Toolkit Interface
+hidden: true
 ---
-docs/toolkitinterface/index
+docs/toolkitinterface/remix-toolkitinterface-launchscreen
+docs/toolkitinterface/remix-toolkitinterface-projectwizard
+docs/toolkitinterface/remix-toolkitinterface-viewport
+docs/toolkitinterface/remix-toolkitinterface-layouttab
+docs/toolkitinterface/remix-toolkitinterface-categories
+docs/toolkitinterface/remix-toolkitinterface-ingesttab
+docs/toolkitinterface/remix-toolkitinterface-aitools
+docs/toolkitinterface/remix-toolkitinterface-lighting
+docs/toolkitinterface/remix-toolkitinterface-shortcuts
 ```
 
 ```{toctree}
 ---
 maxdepth: 1
 caption: Glossary and Terms
+hidden: true
 ---
 docs/remix-glossary
 ```
@@ -81,14 +110,17 @@ docs/remix-glossary
 ---
 maxdepth: 1
 caption: Changelog
+hidden: true
 ---
-docs/remix-changelog
+docs/changelog/remix-releasenotes.md
+docs/changelog/remix-full-changelog.md
 ```
 
 ```{toctree}
 ---
 maxdepth: 1
 caption: Frequently Asked Questions
+hidden: true
 ---
 docs/remix-faq
 ```
@@ -97,6 +129,8 @@ docs/remix-faq
 ---
 maxdepth: 1
 caption: Contributing to RTX Remix
+hidden: true
 ---
-docs/contributing
+docs/contributing/contributing-overview
+docs/contributing/api
 ```

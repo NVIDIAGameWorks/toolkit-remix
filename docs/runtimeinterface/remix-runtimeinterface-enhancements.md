@@ -1,8 +1,13 @@
 # Enhancements Tab
 
-The Enhancements tab allows you to review the impact and extent of replacements in the active mod. Remix mods can replace virtually any mesh, texture or light in the modded game, and this menu allows you to toggle these enhancements on and off at will to help compare with unmodded assets.
+The Enhancements tab allows you to review the impact and extent of replacements in the active mod. Remix mods can
+replace virtually any mesh, texture or light in the modded game, and this menu allows you to toggle these enhancements
+on and off at will to help compare with unmodded assets.
 
-The Enhancements tab also contains the all-important Capture Frame in USD button, at the top. Clicking on this button will create a capture of the game world in that location and point of time and store it in USD format on disk. These captures are the basis of all remastering work in the Remix App, where you can replace materials, meshes and lights with physically correct modern equivalents.
+The Enhancements tab also contains the all-important Capture Frame in USD button, at the top. Clicking on this button
+will create a capture of the game world in that location and point of time and store it in USD format on disk. These
+captures are the basis of all remastering work in the Remix App, where you can replace materials, meshes and lights with
+physically correct modern equivalents.
 
 ![Enhancements](../data/images/rtxremix_036.png)
 
