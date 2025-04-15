@@ -757,6 +757,28 @@ class ListModel(ui.AbstractItemModel):
         self.__children_last_get_all_items_by_type_result = result
         return result
 
+    def get_parent_item(self, item):
+        """Get the parent item of the given item."""
+        if not hasattr(item, "parent") or not item.parent:
+            return None
+        if isinstance(item.parent, (ItemAsset, ItemPrim)):
+            return item.parent
+        if isinstance(item.parent, ItemLiveLightGroup):
+            lights = item.parent.lights
+            if lights:
+                remaining_lights = [light for light in lights if light != item]
+                if remaining_lights:
+                    return remaining_lights[0]
+        return self.get_parent_item(item.parent)
+
+    def get_root_asset_item(self, item):
+        """Get the root asset item parent of the given item."""
+        if not hasattr(item, "parent") or not item.parent:
+            return None
+        if isinstance(item.parent, ItemAsset):
+            return item.parent
+        return self.get_root_asset_item(item.parent)
+
     def get_item_children(self, item: AnyItemType = None) -> List[AnyItemType]:
         """Returns all the children when the widget asks it."""
         if item is None:
