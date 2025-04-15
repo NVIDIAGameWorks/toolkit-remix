@@ -266,33 +266,24 @@ class SetupUI:
         self._add_new_ref_mesh(item, abs_path)
 
     def _on_duplicate_prim(self, item: _ItemPrim):
-        omni.kit.commands.execute(
-            "CopyPrimCommand",
-            path_from=item.path,
-            usd_context_name=self._context_name,
-        )
+        # need to save the current instance selection before calling usd command
+        instances = [item for item in self._instance_selection if isinstance(item, _ItemInstance)]
+        with omni.kit.undo.group(), self._tree_model.refresh_only_at_the_end():
+            omni.kit.commands.execute(
+                "CopyPrimCommand",
+                path_from=item.path,
+                usd_context_name=self._context_name,
+            )
+            if not instances:
+                instances = self._tree_model.get_root_asset_item(item).instance_group_item.instances
+            if instances:
+                # newly duplicated prim paths will be selected after copy command
+                duplicated_prim_paths = self._core.get_selected_prim_paths()
+                self._core.select_prim_paths(
+                    self._core.get_instance_from_mesh(duplicated_prim_paths, [instances[0].path])
+                )
 
     def _on_delete_prim(self, item: _ItemPrim):
-        def _get_parent_item(_item):
-            if not hasattr(_item, "parent") or not _item.parent:
-                return None
-            if isinstance(_item.parent, (_ItemAsset, _ItemPrim)):
-                return _item.parent
-            if isinstance(_item.parent, _ItemLiveLightGroup):
-                lights = _item.parent.lights
-                if lights:
-                    remaining_lights = [light for light in lights if light != item]
-                    if remaining_lights:
-                        return remaining_lights[0]
-            return _get_parent_item(_item.parent)
-
-        def _get_parent_root_item_asset(_item):
-            if not hasattr(_item, "parent") or not _item.parent:
-                return None
-            if isinstance(_item.parent, _ItemAsset):
-                return _item.parent
-            return _get_parent_root_item_asset(_item.parent)
-
         # select the previous selection. If nothing was selected, select the parent of the item.
         previous_selected_item_prims = [
             _item for _item in self._previous_tree_selection if isinstance(_item, _ItemPrim) and _item.path != item.path
@@ -300,29 +291,23 @@ class SetupUI:
         if previous_selected_item_prims:
             item_prims = previous_selected_item_prims
         else:
-            item_prims = [_get_parent_item(item)]
+            item_prims = [self._tree_model.get_parent_item(item)]
 
         to_select_path_str = []
-
         if item_prims:
-            # we select the instance, not the mesh
-            previous_selected_item_instances = [
-                _item for _item in self._previous_instance_selection if isinstance(_item, _ItemInstance)
+            # Get the path relative to the selected instance or first instance
+            instance_paths = [
+                item.path for item in self._previous_instance_selection if isinstance(item, _ItemInstance)
             ]
-            if previous_selected_item_instances:
-                to_select_path_str = self._core.get_instance_from_mesh(
-                    [item_prim.path for item_prim in item_prims],
-                    [
-                        previous_selected_item_instance.path
-                        for previous_selected_item_instance in previous_selected_item_instances
-                    ],
-                )
-            else:  # no instance selected? We grab the first one
-                instances = _get_parent_root_item_asset(item).instance_group_item.instances
+            if not instance_paths:
+                instances = self._tree_model.get_root_asset_item(item).instance_group_item.instances
                 if instances:
-                    to_select_path_str = self._core.get_instance_from_mesh(
-                        [item_prim.path for item_prim in item_prims], [instances[0].path]
-                    )
+                    instance_paths = [instances[0].path]
+
+            if instance_paths:
+                to_select_path_str = self._core.get_instance_from_mesh(
+                    [item_prim.path for item_prim in item_prims], instance_paths
+                )
 
         with omni.kit.undo.group(), self._tree_model.refresh_only_at_the_end():
             self._core.delete_prim([item.path])
@@ -793,14 +778,13 @@ class SetupUI:
 
         def _hide(light_path: str):
             asyncio.ensure_future(_deferred_hide())
-            # we select the light from the instance, not the mesh!
+            # Select the new light path relative to the selected instance or the first instance
             instances = [item for item in self._instance_selection if isinstance(item, _ItemInstance)]
-            if instances:
-                self._core.select_prim_paths(self._core.get_instance_from_mesh([light_path], [instances[0].path]))
-            else:  # no instance selected? We grab the first one
+            if not instances:
                 instances = add_item.parent.instance_group_item.instances
-                if instances:
-                    self._core.select_prim_paths(self._core.get_instance_from_mesh([light_path], [instances[0].path]))
+            if instances:
+                instance_path = instances[0].path
+                self._core.select_prim_paths(self._core.get_instance_from_mesh([light_path], [instance_path]))
 
         self._light_creator_window = ui.Window(
             "Light creator",

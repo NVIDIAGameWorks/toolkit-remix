@@ -25,7 +25,7 @@
             "windows": {
                 "command": "${workspaceRoot}${/}lint_code.bat"
             },
-            "args": [],
+            "args": ["all"],
             "group": "none",
             "presentation": {
                 "reveal": "always",
