@@ -130,3 +130,6 @@ docs/howto/learning-restapi-docs.html
 
 # Ignore temp files
 *.*~
+
+# Ignore log file
+nrc_session_log.txt
