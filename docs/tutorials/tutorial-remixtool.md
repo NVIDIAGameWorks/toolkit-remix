@@ -64,7 +64,8 @@ Sample Application.
    ![RemixTool Tutorial 3](../data/images/remix_909.png)
 
 5. Since the Sample Application is simple and
-   lacks [UI Textures](../gettingstarted/learning-runtimesetup.md#setting-up-ui-textures), that step can be skipped.
+   lacks [UI Textures](../gettingstarted/learning-runtimesetup.md#setting-up-ui-textures), texture tagging can be
+   skipped.
 
    Proceed to capturing the first scene.
 
@@ -85,7 +86,7 @@ Sample Application.
 
    ![RemixTool Tutorial 6](../data/images/remix_912.png)
 
-## Create a Project for the Sample Application Mod
+## 4. Create a Project for the Sample Application Mod
 
 With the Sample Application captured, a project for the Sample Application mod can be created.
 
@@ -145,7 +146,7 @@ With the Sample Application captured, a project for the Sample Application mod c
 
    ![Remix Project Ready](../data/images/remix-remixtutorial-003.png)
 
-## Ingest and Replace Assets
+## 5. Ingest and Replace Assets
 
 With a project created, asset replacement in the mod can begin.
 
