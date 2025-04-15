@@ -15,4 +15,4 @@
 * limitations under the License.
 """
 
-from .e2e import TestHotkeys
+from .e2e import TestHotkeys, TestStageManagerPropertiesInteraction
