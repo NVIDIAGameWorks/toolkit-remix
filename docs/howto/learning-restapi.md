@@ -50,7 +50,7 @@ application/lightspeed.remix.service+json; version=1.0
 
 Endpoints can be easily tested directly in the documentation. To do so, follow these instructions:
 
-1) Expand the endpoint your would like to test
+1) Expand the endpoint you would like to test
 2) Click the `Try it now` button
 3) Fill in any required parameters/body
 4) Click the `Execute` button

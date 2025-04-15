@@ -45,7 +45,7 @@ Should give you instructions on how to migrate the distant lights in your existi
 
 ## Available Migrations
 
-The migration tool in a central point where you can find all available migrations.
+The migration tool is a central point where you can find all available migrations.
 
 ### Distant Lights Z Direction
 
@@ -67,7 +67,7 @@ from the sun).
 #### Arguments
 
 | Argument                                   | Description                                                                                        |
-|--------------------------------------------|----------------------------------------------------------------------------------------------------|
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | `--file FILE`<br/>`-f FILE`                | Path to the USD file to migrate to the updated standard                                            |
 | `--directory DIRECTORY`<br/>`-d DIRECTORY` | Path to the directory of USD files to migrate to the updated standard                              |
 | `--force`<br/>`-F`                         | Force execute the migration, regardless of if it was already executed or not.                      |

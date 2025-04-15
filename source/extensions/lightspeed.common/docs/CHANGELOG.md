@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.2]
+### Fixed
+- Updated URLs for updated documentation
+
 ## [1.5.1]
 ### Fixed
 - Fixed incorrect URL

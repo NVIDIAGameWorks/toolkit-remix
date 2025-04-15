@@ -270,10 +270,10 @@ LICENSE_AGREEMENT_URL = (
 )
 DOCUMENTATION_URL = "https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/"
 DOCUMENTATION_ROOT_URL = f"{DOCUMENTATION_URL}docs/"
-QUICK_START_GUIDE_URL = f"{DOCUMENTATION_ROOT_URL}gettingstarted/learning-runtimesetup.html"
+QUICK_START_GUIDE_URL = f"{DOCUMENTATION_ROOT_URL}gettingstarted/learning-toolkitsetup.html"
 RELEASE_NOTES_URL = f"{DOCUMENTATION_ROOT_URL}remix-releasenotes.html"
 
-TUTORIALS_URL = "https://www.youtube.com/playlist?list=PL4w6jm6S2lzvgJ97T1_VbLGBR_l6zzOUm"
+TUTORIALS_URL = f"{DOCUMENTATION_ROOT_URL}tutorials/tutorial-videos.html"
 COMMUNITY_SUPPORT_URL = (
     "https://github.com/NVIDIAGameWorks/rtx-remix/?tab=readme-ov-file#forums-support--community-resources"
 )
