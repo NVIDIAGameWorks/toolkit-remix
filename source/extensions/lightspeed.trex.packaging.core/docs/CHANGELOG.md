@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.2]
+### Fixed
+- Fixed temp file deletion
+- Fixed flaky tests
+
 ## [1.1.1]
 ### Fixed
 - Minor fix for `mod_layer_mock.identifier` in tests

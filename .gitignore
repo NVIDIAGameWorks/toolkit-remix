@@ -133,3 +133,6 @@ docs/howto/learning-restapi-docs.html
 
 # Ignore log file
 nrc_session_log.txt
+
+# Ignore VSCode Workspaces
+*.code-workspace
