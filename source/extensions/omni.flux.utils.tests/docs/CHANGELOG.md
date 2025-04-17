@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.4]
+### Fixed
+- Fixed context manager context creation
+
 ## [1.0.3]
 ### Changed
 - Don't use `omni.kit.test_suite.helpers` to fix build

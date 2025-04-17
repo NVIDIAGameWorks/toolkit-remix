@@ -227,7 +227,7 @@ class PackagingCore:
     async def _clean_temp_files(self):
         self._packaging_new_stage("Cleaning up temporary layers...", len(self._temp_files))
 
-        for temp_file in self._temp_files:
+        for temp_file in self._temp_files.keys():  # noqa PLC0201
             try:
                 await _OmniClientWrapper.delete(str(temp_file))
             except Exception:  # noqa PLW0718

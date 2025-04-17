@@ -49,7 +49,10 @@ async def open_test_project(project_data_path: str, ext_name: str, context_name:
     if result != omni.client.Result.OK:
         raise IOError(f"Can't copy the project path to the temporary directory: {result}")
 
-    await omni.usd.get_context(context_name).open_stage_async(temp_project.path)
+    usd_context = omni.usd.get_context(context_name)
+    if not usd_context:
+        usd_context = omni.usd.create_context(context_name)
+    await usd_context.open_stage_async(temp_project.path)
 
     try:
         yield temp_project
