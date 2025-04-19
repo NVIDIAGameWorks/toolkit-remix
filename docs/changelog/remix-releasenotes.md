@@ -282,7 +282,12 @@ iconic visual effects with greater fidelity.
 Look below for our detailed release notes, and for a full changelog, please click [here](remix-full-changelog.md)
 ```
 
-<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/render_target.mp4" title="RenderTarget"></video>
+```{video} ../data/videos/0.6_Release/render_target.mp4
+:alt: RenderTarget
+:class: video-player
+:autoplay:
+:loop:
+```
 
 ### RTX Remix Toolkit Release 2024.5.1
 
@@ -294,20 +299,35 @@ the top-left hamburger menu and enable features that are still being fine-tuned.
 some bugs, they provide an exciting glimpse into the future of RTX Remix. If you encounter issues or have feedback, help
 shape the development by filing an issue on [GitHub](https://github.com/NVIDIAGameWorks/toolkit-remix/).
 
-<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/experimentalfeatures.mp4" title="ExperimentalFeatures"></video>
+```{video} ../data/videos/0.6_Release/experimentalfeatures.mp4
+:alt: ExperimentalFeatures
+:class: video-player
+:autoplay:
+:loop:
+```
 
 **Assign Texture Sets**
 Simplify your asset texturing process with the new "Assign Texture Sets" option. Select one texture from a folder, and
 RTX Remix automatically pulls all relevant textures for that asset, saving you time and streamlining your workflow.
 
-<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/assign_texture_sets.mp4" title="AssignTextureSets"></video>
+```{video} ../data/videos/0.6_Release/assign_texture_sets.mp4
+:alt: AssignTextureSets
+:class: video-player
+:autoplay:
+:loop:
+```
 
 **Stage Manager (Experimental)**
 Revolutionize your project management with the all-new Stage Manager. This powerful tool provides a clear, categorized
 view of every prim in your scene—meshes, textures, lights, and more—allowing you to easily isolate, edit, or replace
 assets.
 
-<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/stagemanager_filtering.mp4" title="StageManagerFiltering"></video>
+```{video} ../data/videos/0.6_Release/stagemanager_filtering.mp4
+:alt: StageManagerFiltering
+:class: video-player
+:autoplay:
+:loop:
+```
 
 *Note:* Stage Manager is experimental and may experience performance issues with larger projects (10,000+ prims).
 
@@ -334,7 +354,12 @@ Added a tutorial on how to use the REST API to build a Blender Add-On.
 Make broad changes with ease. Select multiple objects—like lights—and adjust their properties simultaneously, such as
 intensity or color. This improvement streamlines your workflow, saving time and effort on repetitive edits.
 
-<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/multiselection_multiediting.mp4" title="Multiselection"></
+```{video} ../data/videos/0.6_Release/multiselection_multiediting.mp4
+:alt: Multiselection
+:class: video-player
+:autoplay:
+:loop:
+```
 
 - REMIX-3600: Clarified Selection widget behavior and fixed issues.
 - REMIX-3051: Configured the save prompt to open during stage unloads with unsaved changes.
@@ -379,9 +404,19 @@ intensity or color. This improvement streamlines your workflow, saving time and 
 Take control of your scene's lighting with the ability to visualize and adjust attributes like intensity, radius, and
 direction directly from the viewport. Perfect your lighting with intuitive tools that make your scene shine.
 
-<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/light_shaping_1.mp4" title="LightShaping1"></video>
+```{video} ../data/videos/0.6_Release/light_shaping_1.mp4
+:alt: LightShaping1
+:class: video-player
+:autoplay:
+:loop:
+```
 
-<video  width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls src="videos/0.6_Release/light_shaping_2.mp4" title="LightShaping2"></video>
+```{video} ../data/videos/0.6_Release/light_shaping_2.mp4
+:alt: LightShaping2
+:class: video-player
+:autoplay:
+:loop:
+```
 
 #### Features
 
@@ -447,19 +482,23 @@ page of the Omniverse Launcher.
 - Added a new "Teleport" action to teleport any selected object to your mouse cursor or the center of the screen.
   Teleport via the viewport sidebar or the Ctrl + T hotkey.
 
-<video width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls>
-  <source src="./videos/teleport.mp4" type="video/mp4" />
-  Your browser does not support the video tag.
-</video>
+  ```{video} ../data/videos/teleport.mp4
+  :alt: Teleport
+  :class: video-player
+  :autoplay:
+  :loop:
+  ```
 
 - Added a new “Waypoint” feature, enabling modders to save camera positions as waypoints and snap the camera to them.
   Waypoint options can be found in the top right corner of the viewport. By default, opening a capture will save the
   camera starting position as a waypoint.
 
-<video width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls>
-  <source src="./videos/waypoints.mp4" type="video/mp4" />
-  Your browser does not support the video tag.
-</video>
+  ```{video} ../data/videos/waypoints.mp4
+  :alt: Waypoint
+  :class: video-player
+  :autoplay:
+  :loop:
+  ```
 
 - Added DLSS 3.5 Ray Reconstruction to the Viewport
 
@@ -468,27 +507,33 @@ page of the Omniverse Launcher.
   properties panel, selecting a light near the wall and locking its object properties panel, and being able to
   simultaneously adjust the wall and light in relation to one another.
 
-<video width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls>
-  <source src="./videos/panel_pinning.mp4" type="video/mp4" />
-  Your browser does not support the video tag.
-</video>
+  ```{video} ../data/videos/panel_pinning.mp4
+  :alt: Panel Pinning
+  :class: video-player
+  :autoplay:
+  :loop:
+  ```
 
 - Added the option to unload the stage to reclaim resources without closing the app. This function is useful if you need
   to free up memory to do certain actions (for example, boot the game while running RTX Remix, or run RTX Remix’s AI
   Texture Tools). This option can be found in the top left menu.
 
-<video width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls>
-  <source src="./videos/unload_stage.mp4" type="video/mp4" />
-  Your browser does not support the video tag.
-</video>
+  ```{video} ../data/videos/unload_stage.mp4
+  :alt: Unload Stage
+  :class: video-player
+  :autoplay:
+  :loop:
+  ```
 
 - Rearchitected AI Texture Tool and Ingestion processes to allow the RTX Remix Toolkit to run efficiently in parallel
   with them. Modders should have a much easier time multitasking while ingesting or AI enhancing assets.
 
-<video width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls>
-  <source src="./videos/parallel_processing_no_lag.mp4" type="video/mp4" />
-  Your browser does not support the video tag.
-</video>
+  ```{video} ../data/videos/parallel_processing_no_lag.mp4
+  :alt: Parallel Processing No Lag
+  :class: video-player
+  :autoplay:
+  :loop:
+  ```
 
 #### Quality of Life Improvements
 
@@ -496,10 +541,12 @@ page of the Omniverse Launcher.
 
 - Added sliders for all material and object properties
 
-<video width="640" height="400" style="display:block; margin: 0 auto;" autoplay loop muted controls>
-  <source src="./videos/realtime_sliders.mp4" type="video/mp4" />
-  Your browser does not support the video tag.
-</video>
+  ```{video} ../data/videos/realtime_sliders.mp4
+  :alt: Realtime Sliders
+  :class: video-player
+  :autoplay:
+  :loop:
+  ```
 
 - Closing RTX Remix with unsaved data will now present a save prompt, so that modders do not lose any progress. Also
   streamlined UX for going between open and saved projects.
