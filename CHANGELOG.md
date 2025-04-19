@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3970: Fix selection (and Ctrl+T) after duplicating prims
 - REMIX-4049: Applied QA Feedback for Documentation
 - Fixed Flaky Packaging Core Tests
+- Fixed docs videos references
 
 ### Removed
 - Cleaned up legacy code and unused files

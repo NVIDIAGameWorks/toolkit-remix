@@ -44,7 +44,7 @@ Before you start building a Blender Add-On, you will need to make sure the follo
 If you need to access the code produced in this tutorial, you can download it by clicking on the following
 link:
 
-[Download Code](../zips/rtx_remix_addon.zip)
+[Download Code](../data/zips/rtx_remix_addon.zip)
 
 ---
 
