@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4049: Applied QA Feedback for Documentation
 - Fixed Flaky Packaging Core Tests
 - Fixed docs videos references
+- REMIX-3559: Fix deletion bug for empty references
 
 ### Removed
 - Cleaned up legacy code and unused files
