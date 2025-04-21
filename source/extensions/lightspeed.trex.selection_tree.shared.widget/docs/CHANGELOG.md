@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.6]
+## Changed
+- Adding selection to referenced asset to check that selection after reset is correct
+
 ## [1.5.5]
 ## Fixed
 - Fix selection to retarget insstance after duplicating prims
