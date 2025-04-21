@@ -15,4 +15,5 @@
 * limitations under the License.
 """
 
+from .e2e.test_remove_override_commands import TestRemoveOverrideCommands
 from .unit.test_custom_commands import TestCustomCommands

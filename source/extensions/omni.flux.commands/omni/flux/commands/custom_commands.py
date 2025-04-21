@@ -234,12 +234,14 @@ class RemoveOverrideCommand(omni.kit.commands.Command):
             if seen is None or child not in seen:
                 if self._has_attribute_override(child):
                     return True
+                if not prim.GetPrimIndex().rootNode.children:
+                    return True
                 val = self._has_non_empty_child_overrides(child, seen=seen)
                 if val:
                     return True
         return False
 
-    def _remove_prim_spec(self):
+    def _remove_prim_spec(self) -> None:
         omni.kit.commands.execute(
             "RemovePrimSpecCommand",
             layer_identifier=self._layer.identifier,
@@ -254,7 +256,7 @@ class RemoveOverrideCommand(omni.kit.commands.Command):
 
         if seen is None:
             seen = set()
-            seen.add(prim)
+        seen.add(prim)
 
         # If there is a prim given to check to, don't go past it
         if self._check_up_to_prim and prim == self._check_up_to_prim:
