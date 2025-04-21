@@ -437,6 +437,16 @@ class Setup:
         with omni.kit.undo.group():
             remove_prim_specs_recursive(replacement_layer, [prim_path, *material_prim_paths])
 
+            # Select the first child because selecting the prim_path isn't selectable in the UI
+            stage = self._context.get_stage()
+            prim = stage.GetPrimAtPath(prim_path)
+            if not prim:
+                return
+            children = prim.GetChildren()
+            if not children:
+                return
+            self.select_prim_paths([str(children[0].GetPath())])
+
     def get_selected_prim_paths(self) -> list[str]:
         return self._context.get_selection().get_selected_prim_paths()
 

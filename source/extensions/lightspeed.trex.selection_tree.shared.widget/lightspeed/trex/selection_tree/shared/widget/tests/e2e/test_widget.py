@@ -1314,6 +1314,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 3)  # we have 3 prims: reference file + the regular mesh + new ref
 
+        # select a reference before reverting to make sure selection afterward is correct
+        await item_prims[2].click()
+        await ui_test.human_delay(3)
+
         # test restore
         restore = ui_test.find(f"{_window.title}//Frame/**/Image[*].identifier=='restore'")
         self.assertIsNotNone(restore)
