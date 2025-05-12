@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3849: Adding Remix Categories dialog to the Stage Manager
 - REMIX-4049: Complete Rewrite of the Remix Documentation
 - REMIX-3827: Adding prim selection after override removal
+- REMIX-4176: Removing legacy mesh ingestion steps
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension

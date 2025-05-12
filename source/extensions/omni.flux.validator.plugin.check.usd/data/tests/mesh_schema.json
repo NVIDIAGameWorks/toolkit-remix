@@ -7,12 +7,6 @@
         },
     "check_plugins": [
         {
-            "name": "StripExtraAttributes",
-            "selector_plugins": [{"name": "AllMeshes", "data": {}}],
-            "data": {},
-            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}}
-        },
-        {
             "name": "ForcePrimvarToVertexInterpolation",
             "selector_plugins": [{"name": "AllMeshes", "data": {}}],
             "data": {},
@@ -20,12 +14,6 @@
         },
         {
             "name": "Triangulate",
-            "selector_plugins": [{"name": "AllMeshes", "data": {}}],
-            "data": {},
-            "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}}
-        },
-        {
-            "name": "AddInvertedUVAttr",
             "selector_plugins": [{"name": "AllMeshes", "data": {}}],
             "data": {},
             "context_plugin": {"name": "CurrentStage", "data": {"context_name": ""}}
