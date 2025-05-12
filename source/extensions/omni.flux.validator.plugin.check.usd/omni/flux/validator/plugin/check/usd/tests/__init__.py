@@ -21,10 +21,8 @@ from .unit.ai.test_generate_pbr_material import *
 from .unit.generic.test_value_mapping import *
 from .unit.material.test_default_material import *
 from .unit.material.test_material_shaders import *
-from .unit.mesh.test_add_inverted_uv_attr import *
 from .unit.mesh.test_add_vertex_indices_to_geom_subsets import *
 from .unit.mesh.test_force_primvar_to_vertex_interpolation import *
-from .unit.mesh.test_strip_extra_attributes import *
 from .unit.mesh.test_triangulate import *
 from .unit.meta.test_default_prim import *
 from .unit.meta.test_wrap_root_prims import *

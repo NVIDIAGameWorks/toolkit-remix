@@ -26,12 +26,10 @@ from .generic.value_mapping import ValueMapping as _ValueMapping
 from .material.clear_unassigned_materials import ClearUnassignedMaterial as _ClearUnassignedMaterial
 from .material.default_material import DefaultMaterial as _DefaultMaterial
 from .material.material_shaders import MaterialShaders as _MaterialShaders
-from .mesh.add_inverted_uv_attr import AddInvertedUVAttr as _AddInvertedUVAttr
 from .mesh.add_vertex_indices_to_geom_subsets import AddVertexIndicesToGeomSubsets as _AddVertexIndicesToGeomSubsets
 from .mesh.force_primvar_to_vertex_interpolation import (
     ForcePrimvarToVertexInterpolation as _ForcePrimvarToVertexInterpolation,
 )
-from .mesh.strip_extra_attributes import StripExtraAttributes as _StripExtraAttributes
 from .mesh.triangulate import Triangulate as _Triangulate
 from .meta.default_prim import DefaultPrim as _DefaultPrim
 from .meta.wrap_root_prims import WrapRootPrims as _WrapRootPrims
@@ -58,10 +56,8 @@ class FluxValidatorPluginCheckUSDExtension(omni.ext.IExt):
                 _DefaultMaterial,
                 _ValueMapping,
                 _MaterialShaders,
-                _AddInvertedUVAttr,
                 _AddVertexIndicesToGeomSubsets,
                 _ForcePrimvarToVertexInterpolation,
-                _StripExtraAttributes,
                 _Triangulate,
                 _DefaultPrim,
                 _WrapRootPrims,
@@ -86,10 +82,8 @@ class FluxValidatorPluginCheckUSDExtension(omni.ext.IExt):
                 _DefaultMaterial,
                 _ValueMapping,
                 _MaterialShaders,
-                _AddInvertedUVAttr,
                 _AddVertexIndicesToGeomSubsets,
                 _ForcePrimvarToVertexInterpolation,
-                _StripExtraAttributes,
                 _Triangulate,
                 _DefaultPrim,
                 _WrapRootPrims,

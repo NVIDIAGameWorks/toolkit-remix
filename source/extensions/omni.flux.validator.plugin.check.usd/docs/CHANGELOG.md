@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.15.0]
+### Changed
+- Removed legacy mesh processing that is no longer needed
+
 ## [3.14.2]
 ### Fixed
 - Changed usages of the `CreateSublayer` command for `CreateOrInsertSublayer`
