@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Flaky Packaging Core Tests
 - Fixed docs videos references
 - REMIX-3559: Fix deletion bug for empty references
+- REMIX-3869: Fixed check for mesh error popup
 
 ### Removed
 - Cleaned up legacy code and unused files
@@ -260,8 +261,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed layer validation for new layer
 - Fixed layer validation
+<<<<<<< HEAD
 - Fixed Open Project microservice endpoint + Added tests for service
 - Textures are now reloaded when the corresponding files are overwritten
+=======
+
+### Removed
+>>>>>>> 6deb0757d (Updating layer validation fix)
 
 ## [2024.4.0-RC.3]
 

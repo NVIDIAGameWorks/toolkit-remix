@@ -30,6 +30,9 @@ import omni.ui as ui
 import omni.usd
 from omni.flux.asset_importer.core import AssetImporterModel as _AssetImporterModel
 from omni.flux.asset_importer.core import ImporterCore as _ImporterCore
+from omni.flux.asset_importer.core.data_models import (
+    CASE_SENSITIVE_ASSET_EXTENSIONS as _CASE_SENSITIVE_ASSET_EXTENSIONS,
+)
 from omni.flux.asset_importer.core.data_models import SUPPORTED_ASSET_EXTENSIONS as _SUPPORTED_ASSET_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from omni.flux.asset_importer.widget.file_import_list import FileImportListModel as _FileImportListModel
@@ -413,7 +416,17 @@ class AssetImporter(_ContextBaseUSD):
             return
 
         def __filter_drop(paths: List[str]):
-            return [path for path in paths if _OmniUrl(path).suffix in _SUPPORTED_ASSET_EXTENSIONS]
+            case_sensitive = [
+                path
+                for path in paths
+                if _OmniUrl(path).suffix.lower() in _CASE_SENSITIVE_ASSET_EXTENSIONS
+                and _OmniUrl(path).suffix not in _CASE_SENSITIVE_ASSET_EXTENSIONS
+            ]
+            return [
+                path
+                for path in paths
+                if _OmniUrl(path).suffix.lower() in _SUPPORTED_ASSET_EXTENSIONS and path not in case_sensitive
+            ]
 
         with ui.VStack():
             # context

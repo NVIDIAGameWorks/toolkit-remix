@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.3]
+## Changed
+- Updated file check to have case sensitive check
+
 ## [2.12.2]
 ## Changed
 - Update to Kit 106.5

@@ -27,6 +27,9 @@ from omni import kit, ui, usd
 from omni.flux.asset_importer.core import destroy_scanner_dialog as _destroy_scanner_dialog
 from omni.flux.asset_importer.core import scan_folder as _scan_folder
 from omni.flux.asset_importer.core import setup_scanner_dialog as _setup_scanner_dialog
+from omni.flux.asset_importer.core.data_models import (
+    CASE_SENSITIVE_ASSET_EXTENSIONS as _CASE_SENSITIVE_ASSET_EXTENSIONS,
+)
 from omni.flux.asset_importer.core.data_models import SUPPORTED_ASSET_EXTENSIONS as _SUPPORTED_ASSET_EXTENSIONS
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.path_utils import get_invalid_extensions as _get_invalid_extensions
@@ -122,7 +125,9 @@ class FileImportListWidget:
             paths = event.payload.get("paths", ())
             if not paths:
                 return
-            if not _validate_file_selection(paths):
+            if not _validate_file_selection(
+                paths, case_sensitive_supported_extensions=_CASE_SENSITIVE_ASSET_EXTENSIONS
+            ):
 
                 def reset_drop():
                     self._allow_drop = True
