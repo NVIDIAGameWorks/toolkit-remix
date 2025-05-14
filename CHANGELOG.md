@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Cleaned up legacy code and unused files
+- Cleaned up hdremix bootstrap extension
 
 ## [1.0.0]
 
