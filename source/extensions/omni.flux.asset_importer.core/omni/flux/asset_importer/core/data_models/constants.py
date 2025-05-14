@@ -26,6 +26,13 @@ SUPPORTED_ASSET_EXTENSIONS = [
     ".gltf",
     ".lxo",
 ]
+
+# Will be fixed in USD 23.x in Kit 107
+CASE_SENSITIVE_ASSET_EXTENSIONS = [
+    ".usda",
+    ".usd",
+    ".usdc",
+]
 """
 Taken from `omni.kit.tool.asset_importer`
 """

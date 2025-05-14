@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.14]
+## Fixed
+- Updated validation check to properly display error popup
+
 ## [2.5.13]
 ## Changed
 - Changed texture validation to use lowercase on extension check
