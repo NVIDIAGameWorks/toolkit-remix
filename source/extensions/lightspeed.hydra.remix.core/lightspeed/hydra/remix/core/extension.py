@@ -44,18 +44,23 @@ def is_remix_supported() -> Tuple[RemixSupport, str]:
 
 
 class HdRemixFinalizer(omni.ext.IExt):
-    """Request if Remix is supported"""
+    """Loads HdRemix.dll and stores whether Remix is supported"""
 
-    # Do not call more than once, as it's a heavy operation.
-    # Cache the value for frequent use.
-    def check_support(self) -> Tuple[RemixSupport, str]:
+    def __init__(self):
+        super().__init__()
+        self.__dll = None
+
+    def __check_support(self) -> Tuple[RemixSupport, str]:
         """Request HdRemix about support."""
-        try:
-            dll = ctypes.cdll.LoadLibrary("HdRemix.dll")
-        except FileNotFoundError:
-            msg = "HdRemix.dll is not loaded into the process."
-            carb.log_warn(msg + " Retrying LoadLibrary...")
-            return (RemixSupport.WAITING_FOR_INIT, msg)
+        if self.__dll is None:
+            carb.log_info(r"Loading HdRemix.dll with ctypes.cdll.LoadLibrary(\"HdRemix.dll\")...")
+            try:
+                self.__dll = ctypes.cdll.LoadLibrary("HdRemix.dll")
+            except FileNotFoundError:
+                msg = "HdRemix.dll is not loaded into the process yet. Will Retry."
+                carb.log_info(msg)
+                return (RemixSupport.WAITING_FOR_INIT, msg)
+        dll = self.__dll
 
         if not hasattr(dll, "hdremix_issupported"):
             msg = "HdRemix.dll doesn't have 'hdremix_issupported' function.\nAssuming that Remix is not supported."
@@ -79,14 +84,14 @@ class HdRemixFinalizer(omni.ext.IExt):
                 return (RemixSupport.WAITING_FOR_INIT, msg)
             carb.log_error(msg)
             return (RemixSupport.NOT_SUPPORTED, msg)
+
+        carb.log_info("HdRemix.dll loaded.")
         return (RemixSupport.SUPPORTED, "Success")
 
-    def on_startup(self, ext_id):
-        carb.log_info("[lightspeed.hydra.remix.core] Startup")
-        asyncio.ensure_future(self.__check_support())
-
+    # Do not call more than once, as it's a heavy operation.
+    # Cache the value for frequent use.
     @omni.usd.handle_exception
-    async def __check_support(self):
+    async def _check_support(self):
         frames_passed = 0
         timeout = 500
 
@@ -95,12 +100,13 @@ class HdRemixFinalizer(omni.ext.IExt):
 
         # busy wait until Remix has been initialized
         while hdremix_issupported == RemixSupport.WAITING_FOR_INIT:
-            hdremix_issupported, hdremix_errormessage = self.check_support()
+            hdremix_issupported, hdremix_errormessage = self.__check_support()
             await omni.kit.app.get_app().next_update_async()
             frames_passed += 1
             if frames_passed > timeout:
                 hdremix_issupported = RemixSupport.NOT_SUPPORTED
                 hdremix_errormessage = "Remix initialization timeout"
+                carb.log_error(hdremix_errormessage)
                 return
 
         if hdremix_issupported == RemixSupport.SUPPORTED:
@@ -126,6 +132,12 @@ class HdRemixFinalizer(omni.ext.IExt):
             disable_cancel_button=True,
         )
 
+    def on_startup(self, ext_id):
+        carb.log_info("[lightspeed.hydra.remix.core] Startup")
+        self.__dll = None
+        asyncio.ensure_future(self._check_support())
+
     def on_shutdown(self):
         carb.log_info("[lightspeed.hydra.remix.core] Shutdown")
         extern.remix_extern_destroy()
+        self.__dll = None
