@@ -102,9 +102,9 @@ IS_REMIX_REF_ATTR = "IsRemixRef"
 SHADER_NAME_OPAQUE = "AperturePBR_Opacity.mdl"
 SHADER_NAME_TRANSLUCENT = "AperturePBR_Translucent.mdl"
 
-REMIX_SAMPLE_PATH = "${kit}/../deps/remix_runtime/sample"
-REMIX_LAUNCHER_PATH = "${kit}/../deps/remix_runtime/runtime/NvRemixLauncher32.exe"
-NVTT_PATH = "${kit}/../deps/tools/nvtt/nvtt_export.exe"
+REMIX_SAMPLE_PATH = "${lightspeed.trex.app.resources}/deps/remix_runtime/sample"
+REMIX_LAUNCHER_PATH = "${lightspeed.trex.app.resources}/deps/remix_runtime/runtime/NvRemixLauncher32.exe"
+NVTT_PATH = "${omni.flux.resources}/deps/tools/nvtt/nvtt_export.exe"
 PIX2PIX_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "pytorch-CycleGAN-and-pix2pix"))
 REAL_ESRGAN_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "realesrgan-ncnn-vulkan-20210901-windows"))
 MAT_SR_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "mat-sr"))
@@ -177,11 +177,9 @@ SAVE_USD_FILE_EXTENSIONS_OPTIONS = [
 ]
 READ_USD_FILE_EXTENSIONS_OPTIONS = [("*.usd, *.usda, *.usdc", "USD Files"), *SAVE_USD_FILE_EXTENSIONS_OPTIONS]
 
-MODEL_INGESTION_SCHEMA_PATH = "${kit}/../exts/lightspeed.trex.app.resources/data/validation_schema/model_ingestion.json"
-MATERIAL_INGESTION_SCHEMA_PATH = (
-    "${kit}/../exts/lightspeed.trex.app.resources/data/validation_schema/material_ingestion.json"
-)
-TEXTURE_SCHEMA_PATH = "${kit}/../exts/lightspeed.trex.app.resources/data/validation_schema/ai_texture.json"
+MODEL_INGESTION_SCHEMA_PATH = "${lightspeed.trex.app.resources}/data/validation_schema/model_ingestion.json"
+MATERIAL_INGESTION_SCHEMA_PATH = "${lightspeed.trex.app.resources}/data/validation_schema/material_ingestion.json"
+TEXTURE_SCHEMA_PATH = "${lightspeed.trex.app.resources}/data/validation_schema/ai_texture.json"
 
 INGESTION_SCHEMAS = [
     {"path": MODEL_INGESTION_SCHEMA_PATH, "name": "Model"},

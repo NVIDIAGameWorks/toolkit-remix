@@ -10,7 +10,6 @@ dofile("_repo/deps/repo_kit_tools/kit-template/premake5.lua")
 repo_build.prebuild_copy {
     { "launcher.toml", bin_dir },
     { "source/shell/*${shell_ext}", bin_dir },
-    { "${root}/deps/install-deps.packman.xml", bin_dir.."/dev/deps" },
 }
 
 repo_build.prebuild_link {

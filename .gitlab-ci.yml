@@ -16,6 +16,7 @@ stages:
   - publish_docs
   - build_package
   - publish_extensions
+  - publish_etm_list
   - publish_package
   - publish_package_scheduled
   - gitlab_release
@@ -42,6 +43,7 @@ include:
   - local: tools/ci/gitlab/docs/publish_docs.yml
   - local: tools/ci/gitlab/build/build_package.yml
   - local: tools/ci/gitlab/metrics/measure_startup_time.yml
+  - local: tools/ci/gitlab/publishing/publish_etm_list.yml
   - local: tools/ci/gitlab/publishing/publish_extensions.yml
   - local: tools/ci/gitlab/publishing/publish_package.yml
   - local: tools/ci/gitlab/publishing/publish_package_scheduled.yml

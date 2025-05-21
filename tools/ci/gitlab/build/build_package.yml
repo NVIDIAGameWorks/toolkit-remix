@@ -15,6 +15,8 @@ build-package-windows:
     when: on_success
     paths:
       - _build/packages
+      - deps.json
+      - source/apps
   rules: ## Automatically run publish job only on merge commit to main
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"
       when: always

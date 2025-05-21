@@ -1,8 +1,26 @@
 <project toolsVersion="5.6">
+  <dependency name="nvtt-exporter-standalone" linkPath="../_build/target-deps/tools/nvtt">
+    <package name="nvtt-exporter-standalone" version="2023.4.0.1-dev-windows-x86_64" />
+  </dependency>
   <dependency name="python" linkPath="../_build/target-deps/python">
     <package name="python" version="3.10.10+nv1-${platform}" />
   </dependency>
-  <dependency name="rtx-remix-omni_core_materials" linkPath="../_build/${platform}/${config}/omni_core_materials">
+  <dependency name="remix-models-i2m-artifacts" linkPath="../_build/target-deps/ai_tools/i2m">
+    <package name="remix-models-i2m-artifacts" version="1.1.0" />
+  </dependency>
+  <dependency name="rtx-remix-hdremix" linkPath="../_build/target-deps/hdremix">
+    <package name="rtx-remix-hdremix" version="f845e4f" />
+  </dependency>
+  <dependency name="rtx-remix-lookdev-lighting" linkPath="../_build/target-deps/content/rtx-remix-lookdev-lighting">
+    <package name="rtx-remix-lookdev-lighting" version="2023.1.0" />
+  </dependency>
+  <dependency name="rtx-remix-lookdev-modeling" linkPath="../_build/target-deps/content/rtx-remix-lookdev-modeling">
+    <package name="rtx-remix-lookdev-modeling" version="2023.0.0" />
+  </dependency>
+  <dependency name="rtx-remix-omni_core_materials" linkPath="../_build/target-deps/omni_core_materials">
     <package name="rtx-remix-omni_core_materials" version="16" />
+  </dependency>
+  <dependency name="rtx-remix-remix_runtime" linkPath="../_build/target-deps/remix_runtime">
+    <package name="rtx-remix-remix_runtime" version="remix-1.0.0" />
   </dependency>
 </project>

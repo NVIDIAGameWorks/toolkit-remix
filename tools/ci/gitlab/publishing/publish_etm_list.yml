@@ -1,0 +1,38 @@
+# Publish ETM List
+# Run `.\repo.bat ci publish_etm_list` before `.\repo.bat ci publish_extensions`
+# in publish-extensions-windows
+publish-etm-list:
+  stage: publish_etm_list
+  extends:
+    - .defaults
+    - .windows_agent
+    - .windows_vault
+  needs:
+    - job: publish-extensions-windows
+      artifacts: true
+    # - job: publish-extensions-linux
+    #   artifacts: false
+  before_script:
+    - !reference [ .windows_vault, before_script ]
+    # Cleanup the Kit dir to avoid failure
+    - $kitPath = "_build\windows-x86_64\release\kit"
+    - if (Test-Path $kitPath) { Remove-Item -Path $kitPath -Recurse -Force }
+  script:
+    - $fail_wr = $false
+    - .\repo.bat ci publish_etm_list
+    - if (!$?) { $fail_wr = $true }
+    - Write-Host "WinRel=$fail_wr"
+    - if ($fail_wr) { Exit 1 }
+  variables:
+    GIT_STRATEGY: fetch
+  rules: ## Automatically run publish job only on merge commit to main
+    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
+      when: always
+    - when: never
+  artifacts:
+    paths:
+      - deps.json
+      - source/apps
+    when: always

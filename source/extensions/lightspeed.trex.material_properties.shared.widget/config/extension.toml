@@ -1,5 +1,5 @@
 [package]
-version = "1.5.0"
+version = "1.5.1"
 authors =["Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Material Properties implementation for the StageCraft"
 description = "Material Properties implementation for NVIDIA RTX Remix StageCraft App"
@@ -40,7 +40,7 @@ dependencies = [
 ]
 
 args = [
-    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    "--/renderer/mdl/searchPaths/templates=${lightspeed.trex.app.resources}/deps/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 ]
 
 stdoutFailPatterns.exclude = [

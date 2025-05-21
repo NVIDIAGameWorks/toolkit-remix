@@ -232,9 +232,7 @@ class ConvertToDDS(_CheckBaseUSD):
         processed_files = []
         futures = []
         executor = ThreadPoolExecutor(max_workers=4)
-        nvtt_path = carb.tokens.get_tokens_interface().resolve(
-            "${omni.flux.validator.plugin.check.usd}/../../deps/tools/nvtt/nvtt_export.exe"
-        )
+        nvtt_path = carb.tokens.get_tokens_interface().resolve("${omni.flux.resources}/deps/tools/nvtt/nvtt_export.exe")
         for out_path_str, (in_path_str, is_udim, settings, attrs) in files_needed.items():
             out_path = Path(out_path_str)
             src_hash = _get_new_hash(in_path_str, out_path_str)

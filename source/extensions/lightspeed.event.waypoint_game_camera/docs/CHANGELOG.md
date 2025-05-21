@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.7]
+## Changed
+- Update variables and resource locations for extension testing matrix (ETM) compliance
+
 ## [1.1.6]
 ## Changed
 - Updated test to use `deps` instead of `.deps` dir

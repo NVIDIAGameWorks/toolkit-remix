@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4049: Complete Rewrite of the Remix Documentation
 - REMIX-3827: Adding prim selection after override removal
 - REMIX-4176: Removing legacy mesh ingestion steps
+- REMIX-3961: Publish omni.etm.list.lightspeed_rtx for etm testing
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension
@@ -261,13 +262,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed layer validation for new layer
 - Fixed layer validation
-<<<<<<< HEAD
 - Fixed Open Project microservice endpoint + Added tests for service
 - Textures are now reloaded when the corresponding files are overwritten
-=======
-
-### Removed
->>>>>>> 6deb0757d (Updating layer validation fix)
 
 ## [2024.4.0-RC.3]
 

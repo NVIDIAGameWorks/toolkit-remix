@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.5.2"
+version = "1.5.4"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alexander Jaus <ajaus@nvidia.com>"]
@@ -35,6 +35,8 @@ icon = "data/icon.png"
 [dependencies]
 "omni.usd" = {}
 "omni.ui" = {}
+"omni.flux.resources" = {}
+"lightspeed.trex.app.resources" = {}
 
 # Main python module this extension provides, it will be publicly available as "import omni.example.hello".
 [[python.module]]
