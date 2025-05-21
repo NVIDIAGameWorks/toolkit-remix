@@ -1,5 +1,5 @@
 [package]
-version = "1.6.0"
+version = "1.6.1"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Properties Pane Asset Replacements widget for the StageCraft"
 description = "Asset Replacements Properties Pane widget for NVIDIA RTX Remix StageCraft App"
@@ -37,7 +37,7 @@ dependencies = [
 ]
 
 args = [
-    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    "--/renderer/mdl/searchPaths/templates=${lightspeed.trex.app.resources}/deps/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 ]
 
 stdoutFailPatterns.exclude = [

@@ -1,5 +1,5 @@
 [package]
-version = "1.1.12"
+version = "1.1.13"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -24,7 +24,7 @@ name = "lightspeed.event.capture_persp_to_persp"
 
 [[test]]
 args = [
-    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    "--/renderer/mdl/searchPaths/templates=${lightspeed.trex.app.resources}/deps/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 ]
 
 dependencies = [

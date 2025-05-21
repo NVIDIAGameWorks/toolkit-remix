@@ -7,4 +7,5 @@ repo_build.prebuild_link {
     { "data", ext.target_dir.."/data" },
     { "docs", ext.target_dir.."/docs" },
     { "lightspeed", ext.target_dir.."/lightspeed" },
+    { "${target_deps}/hdremix", ext.target_dir.."/deps/hdremix" },
 }

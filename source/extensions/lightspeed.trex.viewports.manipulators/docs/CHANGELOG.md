@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.6]
+## Changed
+- Update variables and resource locations for extension testing matrix (ETM) compliance
+
 ## [1.3.5]
 ## Changed
 - Increase delay time to fix flaky test

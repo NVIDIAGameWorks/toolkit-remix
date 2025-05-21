@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.9]
+## Changed
+- Update variables and resource locations for extension testing matrix (ETM) compliance
+
 ## [2.0.8]
 ## Changed
 - Update to Kit 106.5

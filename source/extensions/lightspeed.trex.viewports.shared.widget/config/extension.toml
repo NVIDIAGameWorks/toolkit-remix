@@ -1,5 +1,5 @@
 [package]
-version = "1.2.10"
+version = "1.2.11"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Viewports implementation"
 description = "Viewports implementation for NVIDIA RTX Remix App"
@@ -48,7 +48,7 @@ dependencies = [
 ]
 
 args = [
-    "--/renderer/mdl/searchPaths/templates=${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl",
+    "--/renderer/mdl/searchPaths/templates=${lightspeed.trex.app.resources}/deps/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl",
 ]
 
 stdoutFailPatterns.exclude = [

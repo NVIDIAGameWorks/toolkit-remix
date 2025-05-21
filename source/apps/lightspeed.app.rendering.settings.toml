@@ -4,7 +4,7 @@ resolution.height = 1080
 
 [renderer]
 multiGpu.maxGpuCount = 1
-mdl.searchPaths.templates = "${kit}/../omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+mdl.searchPaths.templates = "${lightspeed.trex.app.resources}/deps/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 
 [rtx]
 multiThreading.enabled = true

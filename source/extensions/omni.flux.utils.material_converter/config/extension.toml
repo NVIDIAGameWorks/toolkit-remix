@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.8.5"
+version = "1.8.6"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -48,5 +48,5 @@ stdoutFailPatterns.exclude = [
 ]
 
 args = [
-    "--/renderer/mdl/searchPaths/templates=${kit}/../exts/omni.flux.utils.material_converter/data/tests/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+    "--/renderer/mdl/searchPaths/templates=${omni.flux.utils.material_converter}/data/tests/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 ]

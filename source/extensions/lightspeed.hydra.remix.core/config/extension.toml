@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "0.5.2"
+version = "0.5.3"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alex Dunn <adunn@nvidia.com>"]
@@ -63,7 +63,7 @@ useLegacySelectHighlight = false
 
 [[env]]
 name = "PXR_PLUGINPATH_NAME"
-value = "${kit}/../deps/hdremix"
+value = "${lightspeed.hydra.remix.core}/deps/hdremix"
 isPath = true
 append = true
 override = false
@@ -87,7 +87,7 @@ override = true
 # Setup CUDA DLL path
 [[env]]
 name = "RTX_NRC_CUDA_DEPS_DIR"
-value = "${kit}/../deps/hdremix"
+value = "${lightspeed.hydra.remix.core}/deps/hdremix"
 isPath = true
 append = true
 override = false

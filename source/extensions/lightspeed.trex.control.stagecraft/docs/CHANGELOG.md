@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.3]
+## Changed
+- Update variables and resource locations for extension testing matrix (ETM) compliance
+
 ## [1.4.2]
 ## Changed
 - Added a Stage Manager refresh test

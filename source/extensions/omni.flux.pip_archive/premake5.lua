@@ -5,5 +5,5 @@ project_ext (ext)
         { "docs", ext.target_dir.."/docs" },
         { "data", ext.target_dir.."/data" },
         { "omni", ext.target_dir.."/omni" },
-        { "$root/_build/target-deps/flux_pip_prebundle", ext.target_dir.."/pip_prebundle" },
+        { "${target_deps}/flux_pip_prebundle", ext.target_dir.."/pip_prebundle" },
 }

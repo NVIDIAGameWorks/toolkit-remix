@@ -3,6 +3,10 @@
 This document records all notable changes to ``omni.kit.viewport.bundle`` extension.
 This project adheres to `Semantic Versioning <https://semver.org/>`_.
 
+## [1.1.6]
+## Changed
+- Update variables and resource locations for extension testing matrix (ETM) compliance
+
 ## [1.1.5]
 ## Changed
 - Update to Kit 106.5

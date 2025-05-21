@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.4]
+## Changed
+- Update variables and resource locations for extension testing matrix (ETM) compliance
+
+## [1.5.3]
+### Fixed
+- Added a dependency on lightspeed resources to ensure proper resolve
+- Changed constants using ${kit} in URL for more robustness
+
 ## [1.5.2]
 ### Fixed
 - Updated URLs for updated documentation

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.15.1]
+## Changed
+- Update variables and resource locations for extension testing matrix (ETM) compliance
+
 ## [3.15.0]
 ### Changed
 - Removed legacy mesh processing that is no longer needed

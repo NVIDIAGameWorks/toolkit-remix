@@ -1,4 +1,4 @@
--- Use folder name to build extension name and tag. 
+-- Use folder name to build extension name and tag.
 local ext = get_current_extension_info()
 
 -- Link the current "target" folders into the extension target folder:
