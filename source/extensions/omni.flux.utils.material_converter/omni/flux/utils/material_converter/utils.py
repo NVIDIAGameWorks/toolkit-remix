@@ -41,16 +41,18 @@ class MaterialConverterUtils:
     @staticmethod
     def get_material_library_shader_urls() -> List[_OmniUrl]:
         shader_urls = []
-        lib_paths = carb.settings.get_settings().get(MaterialConverterUtils.MATERIAL_LIBRARY_SETTING_PATH)
+        lib_paths = carb.tokens.get_tokens_interface().resolve(
+            carb.settings.get_settings().get(MaterialConverterUtils.MATERIAL_LIBRARY_SETTING_PATH)
+        )
         if not lib_paths:
             return shader_urls
+        if "${" in lib_paths:
+            carb.log_warn(
+                f"Not all tokens were resolved in "
+                f"'{MaterialConverterUtils.MATERIAL_LIBRARY_SETTING_PATH}' setting. "
+                f"Result: {lib_paths}"
+            )
 
         for lib_path in lib_paths.split(";"):
-            shader_urls.extend(
-                [
-                    file
-                    for file in _OmniUrl(carb.tokens.get_tokens_interface().resolve(lib_path)).iterdir()
-                    if file.suffix == ".mdl"
-                ]
-            )
+            shader_urls.extend([file for file in _OmniUrl(lib_path).iterdir() if file.suffix == ".mdl"])
         return shader_urls

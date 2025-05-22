@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed docs videos references
 - REMIX-3559: Fix deletion bug for empty references
 - REMIX-3869: Fixed check for mesh error popup
+- Fix for unresolved carb tokens in ingestion "External Process" runner
 
 ### Removed
 - Cleaned up legacy code and unused files

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.7]
+## Fixed
+- fix shader_identification validator to resolve mdl path tokens
+
 ## [1.8.6]
 ## Changed
 - Update variables and resource locations for extension testing matrix (ETM) compliance
