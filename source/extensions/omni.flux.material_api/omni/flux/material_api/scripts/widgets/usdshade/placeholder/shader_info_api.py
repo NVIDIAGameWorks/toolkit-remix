@@ -328,7 +328,9 @@ class ShaderInfoAPI:
 
             for token in omni.UsdMdl.GetAllMetadataTokens():
                 if token in metadata:
-                    metadata[UsdShade.Tokens.sdrMetadata][token] = literal_eval(sdr_shader_property, metadata[token])
+                    metadata[UsdShade.Tokens.sdrMetadata][token] = literal_eval(
+                        sdr_shader_property, self._escape_metadata(metadata[token])
+                    )
                     del metadata[token]
 
         def promote_hints(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> None:
@@ -369,7 +371,7 @@ class ShaderInfoAPI:
             for k, v in hints.items():
                 value = v
                 if isinstance(value, str):
-                    value = literal_eval(sdr_shader_property, value)
+                    value = literal_eval(sdr_shader_property, self._escape_metadata(value))
 
                 key = k
                 if k == "hard_range":
@@ -483,3 +485,58 @@ class ShaderInfoAPI:
             set_placeholder_class(sdr_shader_property, metadata)
 
         return metadata
+
+    def _escape_metadata(self, metadata_string: str) -> str:
+        """
+        Recursively escape single quotes within string values in a string representation
+        of Python data structures (dict, list, or single string).
+
+        Handles nested structures of any depth while preserving the exact structure.
+        Only string values have their apostrophes escaped, not keys or structural elements.
+
+        Args:
+            metadata_string (str): String representation of a data structure
+
+        Returns:
+            str: String with escaped single quotes in values only
+        """
+        metadata_string = metadata_string.strip()
+
+        # Handle dictionary
+        if metadata_string.startswith("{") and metadata_string.endswith("}"):
+            return self._parse_dict(metadata_string)
+        # Handle list
+        if metadata_string.startswith("[") and metadata_string.endswith("]"):
+            return self._parse_list(metadata_string)
+        # Handle single string - check if it's quoted
+        if metadata_string.startswith("'") and metadata_string.endswith("'"):
+            escaped_string = metadata_string[1:-1].strip().replace("'", "\\'")
+            return f"'{escaped_string}'"
+
+        return metadata_string
+
+    def _parse_dict(self, dict_str: str) -> str:
+        """Internal helper for _escape_metadata to parse dictionary structures"""
+        stripped_str = dict_str[1:-1].strip()
+
+        results = []
+        for pair in stripped_str.split(","):
+            # Keep the value in 1 chunk to recursively parse it
+            parts = pair.split(":", 1)
+
+            if len(parts) != 2:
+                results.append(pair)
+                continue
+
+            results.append(parts[0] + ":" + self._escape_metadata(parts[1]))
+
+        return "{" + ",".join(results) + "}"
+
+    def _parse_list(self, list_str: str) -> str:
+        """Internal helper for _escape_metadata to parse list structures"""
+        stripped_str = list_str[1:-1].strip()
+
+        results = []
+        for item in stripped_str.split(","):
+            results.append(self._escape_metadata(item))
+        return "[" + ",".join(results) + "]"
