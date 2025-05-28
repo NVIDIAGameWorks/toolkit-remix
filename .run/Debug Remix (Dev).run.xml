@@ -1,0 +1,22 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Debug Remix (Dev)" type="CompoundRunConfigurationType">
+    <toRun name="Attach to Debugger" type="PyRemoteDebugConfigurationType" />
+    <toRun name="Debug Remix (Dev)" type="ShConfigurationType" />
+    <method v="2" />
+  </configuration>
+  <configuration default="false" name="Debug Remix (Dev)" type="ShConfigurationType" folderName="Debug">
+    <option name="SCRIPT_TEXT" value="" />
+    <option name="INDEPENDENT_SCRIPT_PATH" value="false" />
+    <option name="SCRIPT_PATH" value="$PROJECT_DIR$/_build/windows-x86_64/release/lightspeed.app.trex_dev.bat" />
+    <option name="SCRIPT_OPTIONS" value="--/rtx/verifyDriverVersion/enabled=false --enable omni.flux.debug.pycharm --/exts/omni.flux.debug.pycharm/pycharm_location=&quot;%LOCALAPPDATA%\Programs\PyCharm Professional&quot;" />
+    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+    <option name="INTERPRETER_PATH" value="" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="EXECUTE_IN_TERMINAL" value="true" />
+    <option name="EXECUTE_SCRIPT_FILE" value="true" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>

@@ -57,12 +57,10 @@ application.
 
 ### Run Project Profiles
 
-Create launch configurations to run your project directly from PyCharm. For example, to enable the profile extension
-automatically to connect with Tracy, use the following command:
+Run Profiles are available in the repository in the `.run` folder at the root of the project.
 
-```
---enable omni.kit.profile_python --enable omni.kit.profiler.tracy --enable omni.kit.profiler.window --/app/profilerBackend="tracy" --/app/profileFromStart=true
-```
+NOTE: PyCharm professional will be required for the debug configuration to work because of the need for a remote
+debugger setup.
 
 ### Add Templates for TreeView and More
 

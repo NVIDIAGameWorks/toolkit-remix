@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3891: Added Material Property Widget control with Stage Manager Materials Tab
 - REMIX-3812: Specified path to NRC dependencies
 - Added a Stage Manager refresh test
+- Added PyCharm Configuration Files
 
 ### Changed
 - Improved the documentation layout and contents
