@@ -100,12 +100,12 @@ class Item(ui.AbstractItem):
                                 current_data = {}
                             current_data.update({"name_tooltip": data.display_name_mass_template_tooltip})
                             cooked_schema.data = current_data
-                        result_schema.append(_ValidationSchema(**cooked_schema.dict()))
+                        result_schema.append(_ValidationSchema(**cooked_schema.model_dump(serialize_as_any=True)))
             if not result_schema:
                 result_schema = list(_cooked_schemas)
             return result_schema
 
-        model_clone = _ManagerCore(self._model.model.dict())
+        model_clone = _ManagerCore(self._model.model.model_dump(serialize_as_any=True))
         final_result = await _cook_mass_template([model_clone.model.context_plugin], [model_clone.model])
 
         cooked_schemas5 = []
@@ -155,7 +155,7 @@ class Item(ui.AbstractItem):
                 cooked_schemas5 = await _cook_mass_template(cooked_resultor_plugins, cooked_schemas5)
             cooked_schemas5.extend(cooked_schemas)
 
-        return [cooked_schemas.dict() for cooked_schemas in cooked_schemas5]
+        return [cooked_schemas.model_dump(serialize_as_any=True) for cooked_schemas in cooked_schemas5]
 
     @omni.usd.handle_exception
     async def build_ui(self):

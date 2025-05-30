@@ -6,3 +6,5 @@ lightspeed.trex.app.style
 
    README
    CHANGELOG
+
+.. automodule:: lightspeed.trex.app.style

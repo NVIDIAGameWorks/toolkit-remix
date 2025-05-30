@@ -33,6 +33,7 @@ exclude = []
 "platform:linux-x86_64".include = [  # we only test pip archive for linux
     "tests-lightspeed.pip_archive${shell_ext}",
     "tests-omni.flux.pip_archive${shell_ext}",
+    "tests-omni.flux.internal_pip_archive${shell_ext}",
 ]
 "platform:linux-x86_64".exclude = []
 args = [
@@ -84,6 +85,7 @@ include = [
 exclude = []
 "platform:linux-x86_64".include = [  # we only test pip archive for linux
     "tests-omni.flux.pip_archive${shell_ext}",
+    "tests-omni.flux.internal_pip_archive${shell_ext}",
 ]
 "platform:linux-x86_64".exclude = []
 args = [
@@ -222,7 +224,10 @@ include = [
     "tests-omni.flux.[a-s]*${shell_ext}",
 ]
 exclude = []
-"platform:linux-x86_64".include = ["tests-omni.flux.pip_archive${shell_ext}"]  # we only test pip archive for linux
+"platform:linux-x86_64".include = [
+    "tests-omni.flux.pip_archive${shell_ext}",
+    "tests-omni.flux.internal_pip_archive${shell_ext}",
+]  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
     "-n", "default",  # skip startup tests for e2e, they will run in unit
@@ -278,7 +283,10 @@ include = [
     "tests-omni.flux.[t-z]*${shell_ext}",
 ]
 exclude = []
-"platform:linux-x86_64".include = ["tests-omni.flux.pip_archive${shell_ext}"]  # we only test pip archive for linux
+"platform:linux-x86_64".include = [
+    "tests-omni.flux.pip_archive${shell_ext}",
+    "tests-omni.flux.internal_pip_archive${shell_ext}",
+]  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
     "-n", "default",  # skip startup tests for e2e, they will run in unit
@@ -360,8 +368,8 @@ pre_build.commands = [
 # List of pip files to pip install from (in order)
 files_to_pull = [
     "${root}/deps/pip_flux.toml",
-    "${root}/deps/pip_lss.toml",
     "${root}/deps/pip_internal.toml",
+    "${root}/deps/pip_lss.toml",
 ]
 
 [repo_build.build]
@@ -377,6 +385,13 @@ exts_exclude = [
     "omni.flux.pip_archive",
     "omni.flux.internal_pip_archive",
 ]
+
+[repo_build.vscode]
+# Fill up 'python.analysis.extraPaths' of .vscode/settings.json file
+write_python_paths_in_settings_json = true
+
+# Settings template file to copy from
+settings_template_file = "${root}/.vscode/settings.template.json"
 
 ########################################################################################################################
 # Extensions publisher
@@ -395,6 +410,7 @@ exts.include = [
 exts."platform:linux-x86_64".include = [
     "lightspeed.pip_archive.*",
     "omni.flux.pip_archive.*",
+    "omni.flux.internal_pip_archive.*",
 ]  # we only test pip archive for linux
 exts.exclude = [
     "lightspeed_example.*",
@@ -463,9 +479,6 @@ extra_content_head = ["""
     background-color: black !important;
     border-radius: 4px !important;
   }
-  .video-player {
-    width: 100%;
-  }
 </style>
 """]
 
@@ -512,11 +525,51 @@ sphinx_event_handlers = [
     ("builder-inited", build_service_docs),
 ]
 
+autodoc_pydantic_model_show_json_error_strategy = "coerce"
+autodoc_pydantic_settings_show_json_error_strategy = "coerce"
+
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "imported-members": True,
+    "show-inheritance": True,
+    "exclude-members": '''
+        PromptManager,
+        PromptButtonInfo,
+        create_model,
+        BaseModel,
+        ConfigDict,
+        Field,
+        PrivateAttr,
+        SkipValidation,
+        ValidationInfo,
+        ValidationError,
+        field_validator,
+        model_validator,
+        asynccontextmanager,
+        contextmanager,
+        redirect_stdout,
+        ensure_future,
+        partial,
+        proxy,
+        Enum,
+        IntEnum,
+        Path,
+        Generic,
+        Number,
+        OrderedDict,
+        Iterable,
+        TypeVar,
+        ThreadPoolExecutor
+    ''',
+}
+
 autodoc_mock_imports = [
-    "fastapi",  # Import Doc from typing_extensions fails
-    "fast_version",  # No module named 'fast_version'
-    "pyperclip",  #  No module named 'pyperclip'
-    "pydantic",  # Cannot import name 'deprecated' from 'typing_extensions'
+    "fastapi",
+    "fastmcp",
+    "fast_version",
+    "pyperclip",
+    "pydantic",
     "omni.kit.manipulator",  # uses omni.kit.get_app() at module level
     "omni.kit.viewport.menubar.camera",  # uses carb.tokens.get_tokens_interface() at module level
     "omni.kit.viewport.menubar.render",  # uses carb.tokens.get_tokens_interface() at module level
@@ -525,7 +578,7 @@ autodoc_mock_imports = [
 myst_enable_extensions = ["attrs_inline"]
 """
 
-extensions_extra = ["sphinxcontrib.video"]
+extensions_extra = ["sphinxcontrib.video", "sphinxcontrib.autodoc_pydantic"]
 
 library_paths = [
     # libomniAudioSchema.so: cannot open shared object file: No such file or directory
@@ -553,11 +606,18 @@ sphinx_exclude_patterns = [
     ####################################################################################################################
     # Documentation generation failures
     ####################################################################################################################
-    "source/extensions/lightspeed.event.waypoint_game_camera*",  # Carb interface is not available
     "source/extensions/lightspeed.event.generate_thumbnail*",  # Carb interface is not available
+    "source/extensions/lightspeed.event.waypoint_game_camera*",  # Carb interface is not available
+    "source/extensions/lightspeed.trex.app.resources*",  # Carb interface is not available
+    "source/extensions/lightspeed.trex.app.style*",  # Carb interface is not available
+    "source/extensions/lightspeed.trex.control.ingestcraft*",  # Carb interface is not available
+    "source/extensions/lightspeed.trex.control.stagecraft*",  # Carb interface is not available
     "source/extensions/lightspeed.trex.layout.*",  # Carb interface is not available
     "source/extensions/lightspeed.trex.stage_manager.plugin.widget.usd*",  # Carb interface is not available
     "source/extensions/lightspeed.trex.viewports.shared.*",  # Carb interface is not available
+    "source/extensions/lightspeed.trex.viewports.ingestcraft.bundle*",  # Carb interface is not available
+    "source/extensions/lightspeed.trex.viewports.stagecraft.bundle*",  # Carb interface is not available
+    "source/extensions/lightspeed.trex.waypoint.core*",  # Carb interface is not available
     ####################################################################################################################
     # Ignore directories
     ####################################################################################################################

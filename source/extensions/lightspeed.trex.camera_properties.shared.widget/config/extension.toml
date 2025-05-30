@@ -1,5 +1,5 @@
 [package]
-version = "1.0.3"
+version = "1.1.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Camera Properties implementation"
 description = "Camera Properties implementation for NVIDIA RTX Remix App"

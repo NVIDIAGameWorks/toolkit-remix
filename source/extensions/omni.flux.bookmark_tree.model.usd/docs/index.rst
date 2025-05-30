@@ -5,5 +5,6 @@ omni.flux.bookmark_tree.model.usd
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.bookmark_tree.model.usd

@@ -6,3 +6,5 @@ omni.flux.internal_pip_archive
 
    README
    CHANGELOG
+
+.. automodule:: omni.flux.internal_pip_archive

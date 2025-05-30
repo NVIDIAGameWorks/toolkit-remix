@@ -30,6 +30,13 @@ from omni.flux.validator.plugin.context.usd_stage.asset_importer import AssetImp
 from pxr import Sdf
 
 
+class MockValidationInfo:
+    """Mock for pydantic's ValidationInfo."""
+
+    def __init__(self, data):
+        self.data = data
+
+
 class MockListEntry:
     def __init__(self, path: str, flags=omni.client.ItemFlags.READABLE_FILE):
         self.relative_path = path
@@ -56,17 +63,17 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
 
         # Act
         with self.assertRaises(ValueError) as cm:
-            AssetImporter.Data.at_least_one(input_files, {})
+            AssetImporter.Data.at_least_one(input_files, MockValidationInfo({}))
 
         # Assert
-        self.assertEqual("There should at least be 1 item", str(cm.exception))
+        self.assertEqual("There should at least be 1 item in input_files", str(cm.exception))
 
     async def test_data_at_least_one_with_items_should_return_value(self):
         # Arrange
         input_files = [Mock(), Mock(), Mock()]
 
         # Act
-        val = AssetImporter.Data.at_least_one(input_files, {})
+        val = AssetImporter.Data.at_least_one(input_files, MockValidationInfo({}))
 
         # Assert
         self.assertListEqual(input_files, val)
@@ -76,14 +83,14 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
         input_files = []
 
         # Act
-        val = AssetImporter.Data.at_least_one(input_files, {"allow_empty_input_files_list": True})
+        val = AssetImporter.Data.at_least_one(input_files, MockValidationInfo({"allow_empty_input_files_list": True}))
 
         # Assert
         self.assertListEqual(input_files, val)
 
     async def test_data_is_readable_not_okay_should_raise_value_error(self):
         # Arrange
-        input_file = Mock()
+        input_file = [Mock()]
 
         with self.assertRaises(ValueError) as cm, patch.object(omni.client, "stat") as stat_mock:
             stat_mock.return_value = (omni.client.Result.ERROR_NOT_FOUND, MockListEntry("./Test.usd"))
@@ -92,11 +99,11 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
             AssetImporter.Data.is_readable(input_file)
 
         # Assert
-        self.assertEqual("The input file is not valid", str(cm.exception))
+        self.assertEqual(f"The input file is not valid: {input_file[0]}", str(cm.exception))
 
     async def test_data_is_readable_not_readable_should_raise_value_error(self):
         # Arrange
-        input_file = Mock()
+        input_file = [Mock()]
 
         with self.assertRaises(ValueError) as cm, patch.object(omni.client, "stat") as stat_mock:
             stat_mock.return_value = (omni.client.Result.OK, MockListEntry("./Test.usd", flags=0))
@@ -105,11 +112,11 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
             AssetImporter.Data.is_readable(input_file)
 
         # Assert
-        self.assertEqual("The input file is not readable", str(cm.exception))
+        self.assertEqual(f"The input file is not readable: {input_file[0]}", str(cm.exception))
 
     async def test_data_is_readable_valid_should_return_value(self):
         # Arrange
-        input_file = Mock()
+        input_file = [Mock()]
 
         with patch.object(omni.client, "stat") as stat_mock:
             stat_mock.return_value = (omni.client.Result.OK, MockListEntry("./Test.usd"))
@@ -128,10 +135,12 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
             stat_mock.return_value = (omni.client.Result.ERROR_NOT_FOUND, MockListEntry("./Test.usd"))
 
             # Act
-            AssetImporter.Data.can_have_children(input_file, {"create_output_directory_if_missing": False})
+            AssetImporter.Data.can_have_children(
+                input_file, MockValidationInfo({"create_output_directory_if_missing": False})
+            )
 
         # Assert
-        self.assertEqual("The output directory is not valid", str(cm.exception))
+        self.assertEqual(f"The output directory is not valid: {input_file}", str(cm.exception))
 
     async def test_data_can_have_children_cannot_have_children_should_raise_value_error(self):
         # Arrange
@@ -141,10 +150,12 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
             stat_mock.return_value = (omni.client.Result.OK, MockListEntry("./Test.usd", flags=0))
 
             # Act
-            AssetImporter.Data.can_have_children(input_file, {"create_output_directory_if_missing": False})
+            AssetImporter.Data.can_have_children(
+                input_file, MockValidationInfo({"create_output_directory_if_missing": False})
+            )
 
         # Assert
-        self.assertEqual("The output directory cannot have children", str(cm.exception))
+        self.assertEqual(f"The output directory cannot have children: {input_file}", str(cm.exception))
 
     async def test_data_can_have_children_valid_should_return_value(self):
         # Arrange
@@ -157,7 +168,9 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
             )
 
             # Act
-            val = AssetImporter.Data.can_have_children(input_file, {"create_output_directory_if_missing": False})
+            val = AssetImporter.Data.can_have_children(
+                input_file, MockValidationInfo({"create_output_directory_if_missing": False})
+            )
 
         # Assert
         self.assertEqual(input_file, val)
@@ -169,7 +182,9 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
 
         with self.assertRaises(ValueError) as cm:
             # Act
-            AssetImporter.Data.output_dir_unequal_input_dirs(output_folder, {"input_files": input_files})
+            AssetImporter.Data.output_dir_unequal_input_dirs(
+                output_folder, MockValidationInfo({"input_files": input_files})
+            )
 
         # Assert
         self.assertEqual(
@@ -182,7 +197,9 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
         output_folder = OmniUrl("./TestDir/SubDir")
 
         # Act
-        val = AssetImporter.Data.output_dir_unequal_input_dirs(output_folder, {"input_files": input_files})
+        val = AssetImporter.Data.output_dir_unequal_input_dirs(
+            output_folder, MockValidationInfo({"input_files": input_files})
+        )
 
         # Assert
         self.assertEqual(output_folder, val)
@@ -499,7 +516,9 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
         ]
         self.assertEqual(expected_files if valid_context and valid_stage else None, value)
 
-        data_flow_result = [data_flow_r.dict() for data_flow_r in schema_data.data_flows or []]
+        data_flow_result = [
+            data_flow_r.model_dump(serialize_as_any=True) for data_flow_r in schema_data.data_flows or []
+        ]
 
         data_flow_expected_result = []
         if data_flows:

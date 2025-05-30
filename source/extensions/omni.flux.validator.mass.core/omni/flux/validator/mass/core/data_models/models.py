@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+__all__ = ["MassValidationResponseModel"]
+
 from omni.flux.service.shared import BaseServiceModel
 
 # RESPONSE MODELS

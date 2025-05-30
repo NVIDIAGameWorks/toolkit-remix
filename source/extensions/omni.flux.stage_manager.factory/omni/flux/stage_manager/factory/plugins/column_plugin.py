@@ -37,8 +37,8 @@ class LengthUnit(Enum):
 
 
 class ColumnWidth(BaseModel):
-    unit: LengthUnit = Field(..., description="The unit of the column width")
-    value: float = Field(..., description="The value of the column width")
+    unit: LengthUnit = Field(description="The unit of the column width")
+    value: float = Field(description="The value of the column width")
 
 
 class StageManagerColumnPlugin(_StageManagerUIPluginBase, abc.ABC):
@@ -46,12 +46,18 @@ class StageManagerColumnPlugin(_StageManagerUIPluginBase, abc.ABC):
     A plugin that allows the grouping of multiple widgets in a column
     """
 
-    display_name: str = Field(..., description="The name to display in the column header")
-    tooltip: str = Field("", description="The tooltip to display when hovering over the column header")
-    widgets: list[StageManagerWidgetPlugin] = Field(..., description="Widgets to be displayed in the column")
+    # Don't exclude since the fields will be dynamic
+    display_name: str = Field(description="The name to display in the column header", exclude=False)
+    tooltip: str = Field(
+        default="", description="The tooltip to display when hovering over the column header", exclude=False
+    )
 
-    width: ColumnWidth = Field(ColumnWidth(unit=LengthUnit.FRACTION, value=1), description="Width of the column")
-    centered_title: bool = Field(False, description="Whether the title should be centered or left-aligned")
+    widgets: list[StageManagerWidgetPlugin] = Field(description="Widgets to be displayed in the column")
+
+    width: ColumnWidth = Field(
+        default=ColumnWidth(unit=LengthUnit.FRACTION, value=1), description="Width of the column"
+    )
+    centered_title: bool = Field(default=False, description="Whether the title should be centered or left-aligned")
 
     def build_header(self):
         """
@@ -83,6 +89,3 @@ class StageManagerColumnPlugin(_StageManagerUIPluginBase, abc.ABC):
         should be used to display additional information about all the items in the column.
         """
         pass
-
-    class Config(_StageManagerUIPluginBase.Config):
-        fields = {}  # We want to serialize the `display_name` and `tooltip` since they are dynamically set

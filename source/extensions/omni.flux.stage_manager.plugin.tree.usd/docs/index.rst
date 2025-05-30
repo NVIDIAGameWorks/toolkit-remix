@@ -8,11 +8,10 @@ omni.flux.stage_manager.plugin.tree.usd
    README
    CHANGELOG
 
-
-.. automodule:: omni.flux.stage_manager.plugin.tree.usd
-    :platform: Windows-x86_64, Linux-x86_64
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :imported-members:
-    :exclude-members:
+.. automodule:: omni.flux.stage_manager.plugin.tree.usd.extension
+.. automodule:: omni.flux.stage_manager.plugin.tree.usd.custom_tag_groups
+.. automodule:: omni.flux.stage_manager.plugin.tree.usd.light_groups
+.. automodule:: omni.flux.stage_manager.plugin.tree.usd.material_groups
+.. automodule:: omni.flux.stage_manager.plugin.tree.usd.prim_groups
+.. automodule:: omni.flux.stage_manager.plugin.tree.usd.skeleton_groups
+.. automodule:: omni.flux.stage_manager.plugin.tree.usd.virtual_groups

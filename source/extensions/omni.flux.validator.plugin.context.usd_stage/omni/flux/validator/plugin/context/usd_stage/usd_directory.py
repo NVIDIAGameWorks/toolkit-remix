@@ -30,39 +30,32 @@ from omni.flux.validator.factory import FIXES_APPLIED as _FIXES_APPLIED
 from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.flux.validator.factory import utils as _validator_factory_utils
-from pydantic import root_validator
+from pydantic import Field, model_validator
 
 from .base.context_base_usd import ContextBaseUSD as _ContextBaseUSD
 
 
 class USDDirectory(_ContextBaseUSD):
     class Data(_ContextBaseUSD.Data):
-        directory: str
-        recursive: bool = True  # Recursively go down every subdirectory in the given directory
-        ignore_paths: list[str] | None = (
-            None  # If these tokens are found in a path while walking the directories, the directory will be ignored
-        )
-        save_all_layers_on_exit: bool = False
-        close_stage_on_exit: bool = False
-        # will close each dependency layer at the end. But NOT the main layer. Use close_stage_on_exit for the main
-        # layer
-        close_dependency_between_round: bool = True
-
-        skip_validated_files: bool = False
-        file_validated_fixes: set[str] | None = None  # List of fixes that should be applied to skip the validation
-
-        # For cooked templates only
-        cooked_files: list[str] | None = None
+        directory: str = Field(...)
+        recursive: bool = Field(default=True)
+        ignore_paths: list[str] | None = Field(default=None)
+        save_all_layers_on_exit: bool = Field(default=False)
+        close_stage_on_exit: bool = Field(default=False)
+        close_dependency_between_round: bool = Field(default=True)
+        skip_validated_files: bool = Field(default=False)
+        file_validated_fixes: set[str] | None = Field(default=None)
+        cooked_files: list[str] | None = Field(default=None)
 
         _compatible_data_flow_names = ["InOutData"]
-        data_flows: Optional[List[_InOutDataFlow]] = None  # override base argument with the good typing
+        data_flows: Optional[List[_InOutDataFlow]] = Field(default=None)
 
-        @root_validator(allow_reuse=True)
-        def file_validated_fixes_set(cls, values):  # noqa
-            """Check that `file_validated_fn` was set if `skip_validated_files` is `True`"""
-            if values.get("skip_validated_files", False) and not values.get("file_validated_fixes", None):
+        @model_validator(mode="after")
+        @classmethod
+        def file_validated_fixes_set(cls, instance_model: "USDDirectory.Data") -> "USDDirectory.Data":
+            if instance_model.skip_validated_files and not instance_model.file_validated_fixes:
                 raise ValueError("When `skip_validated_files` is True, `file_validated_fixes` must be set")
-            return values
+            return instance_model
 
     name = "USDDirectory"
     display_name = "USD Directory"
@@ -223,7 +216,7 @@ class USDDirectory(_ContextBaseUSD):
             ):
                 continue
 
-            schema = self.Data(**schema_data_template.dict())
+            schema = self.Data(**schema_data_template.model_dump(serialize_as_any=True))
             schema.cooked_files = [input_file]  # noqa PLW0212
             schema.display_name_mass_template = str(_OmniUrl(input_file).stem)
             schema.display_name_mass_template_tooltip = input_file

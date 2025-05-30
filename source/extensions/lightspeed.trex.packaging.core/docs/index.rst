@@ -5,5 +5,6 @@ lightspeed.trex.packaging.core
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: lightspeed.trex.packaging.core

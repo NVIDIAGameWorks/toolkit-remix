@@ -19,7 +19,7 @@ from typing import List
 
 from omni.flux.utils.material_converter.utils import MaterialConverterUtils as _MaterialConverterUtils
 from pxr import Sdr, Usd
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from .attribute_base import AttributeBase
 
@@ -29,17 +29,18 @@ class ConverterBase(BaseModel):
     output_mdl_subidentifier: str
     attributes: List[AttributeBase]
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    @validator("input_material_prim", allow_reuse=True)
-    def input_material_prim_valid(cls, v):  # noqa
+    @field_validator("input_material_prim", mode="before")
+    @classmethod
+    def input_material_prim_valid(cls, v):
         if not v.IsValid():
             raise ValueError(f"Prim '{v.GetPath()}' is invalid")
         return v
 
-    @validator("output_mdl_subidentifier", allow_reuse=True)
-    def output_mdl_valid(cls, v):  # noqa
+    @field_validator("output_mdl_subidentifier", mode="before")
+    @classmethod
+    def output_mdl_valid(cls, v):
         library_subidentifiers = [u.stem for u in _MaterialConverterUtils.get_material_library_shader_urls()]
         if v not in library_subidentifiers:
             # check if this is not just a regular USD node like UsdPreviewSurface

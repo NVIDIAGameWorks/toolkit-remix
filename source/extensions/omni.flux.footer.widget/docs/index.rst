@@ -5,5 +5,7 @@ omni.flux.footer.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.footer.widget.model
+.. automodule:: omni.flux.footer.widget.setup_ui

@@ -15,15 +15,13 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple
+from typing import Any, Callable, Optional, Tuple
 
-from pydantic import BaseModel
-
-if TYPE_CHECKING:
-    from pxr import Sdf, Usd
+from pxr import Sdf, Usd
+from pydantic import BaseModel, Field
 
 
-def _translate(input_attr_value: Any, input_attr: "Usd.Attribute") -> Any:
+def _translate(input_attr_value: Any, input_attr: Usd.Attribute) -> Any:
     """
     Allows translating the input value to produce the output value
 
@@ -38,8 +36,8 @@ def _translate(input_attr_value: Any, input_attr: "Usd.Attribute") -> Any:
 
 
 def _translate_alt(
-    input_attr_type: "Sdf.ValueTypeNames", input_attr_value: Any, input_attr: "Usd.Attribute"
-) -> Tuple["Sdf.ValueTypeNames", Any]:
+    input_attr_type: Sdf.ValueTypeNames, input_attr_value: Any, input_attr: Usd.Attribute
+) -> Tuple[Sdf.ValueTypeNames, Any]:
     """
     Allows translating the input type and value to produce the output type and value when we need to create
     attributes in the output material.
@@ -65,11 +63,11 @@ class AttributeBase(BaseModel):
     # If set, this value will be used to create the attribute on the output shader when it doesn't exist on the input
     output_default_value: Optional[Any] = None
     # Function used to translate the value of the input shader to the value of the output shader
-    translate_fn: Callable[[Any, Any, Any], Any] = _translate
+    translate_fn: Callable[[Any, Usd.Attribute], Any] = Field(default=_translate)
     # tell if the attribute is a real attribute that exists by default, or if this is a fake one that was created
     fake_attribute: bool = False
     # Function used to translate the value of the input shader to the value of the output shader when we need to
     # create the attribute in the output material first.
     translate_alt_fn: Callable[
-        [Optional["Sdf.ValueTypeNames"], Any, Optional["Usd.Attribute"]], Tuple[Optional["Sdf.ValueTypeNames"], Any]
-    ] = _translate_alt
+        [Optional[Sdf.ValueTypeNames], Any, Optional[Usd.Attribute]], Tuple[Optional[Sdf.ValueTypeNames], Any]
+    ] = Field(default=_translate_alt)

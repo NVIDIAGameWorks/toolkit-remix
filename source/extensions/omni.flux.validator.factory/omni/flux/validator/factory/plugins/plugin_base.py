@@ -25,7 +25,8 @@ import omni.usd
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.validator.factory import DataFlow as _DataFlow
-from pydantic import BaseModel, Extra, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 from .interface_base import IBase as _IBase
 from .interface_base import IBaseSchema as _IBaseSchema
@@ -46,52 +47,57 @@ class Base(_IBase, abc.ABC):
 
         # Write data that plugins can use downstream for example.
         # Useful to do a post-process at the end of the validation
-        _compatible_data_flow_names: list[str] | None = None  # names of data flows compatible for the plugin
-        data_flows: list[_DataFlow] | None = None
-        channel: str = "Default"
-        expose_mass_ui: bool = False  # set this to true if a mass ui is implemented
-        expose_mass_queue_action_ui: bool = (
-            False  # set this to true if you want to show the UI from `_mass_build_queue_action_ui()`
+        data_flows: list[_DataFlow] | None = Field(default=None)
+        channel: str = Field(default="Default")
+        expose_mass_ui: bool = Field(default=False)
+        expose_mass_queue_action_ui: bool = Field(default=False)
+
+        cook_mass_template: bool = Field(
+            default=False,
+            description="Set this to true if you want the mass validator to use the plugin to cook the template",
         )
-        cook_mass_template: bool = (
-            False  # set this to true if you want the mass validator to use the plugin to cook the template
+        display_name_mass_template: str | None = Field(
+            default=None, description="Name to show when we process a cooked template from mass processing"
         )
-        display_name_mass_template: str = None  # name to show when we process a cooked template from mass processing
-        display_name_mass_template_tooltip: str = (
-            None  # tooltip to show when we process a cooked template from mass processing
+        display_name_mass_template_tooltip: str | None = Field(
+            default=None, description="Tooltip to show when we process a cooked template from mass processing"
         )
-        uuid: str | None = None  # unique identifier to track a schema
-        progress: tuple[float, str, bool] | None = (0.0, "Initializing", True)  # progression value of the plugin
-        global_progress_value: float | None = 0.0  # progression value of the plugin
+        uuid: str | None = Field(default=None, description="UUID of the plugin")
+        progress: tuple[float, str, bool] | None = Field(
+            default=(0.0, "Initializing", True), description="Progress of the plugin"
+        )
+        global_progress_value: float | None = Field(default=0.0, description="Global progress value of the plugin")
+
+        model_config = ConfigDict(extra="forbid", validate_assignment=True, arbitrary_types_allowed=True)
+
+        _compatible_data_flow_names: list[str] | None = PrivateAttr(default=None)
 
         @property
         def data_flow_compatible_name(self):
             return self._compatible_data_flow_names
 
-        @validator("uuid", allow_reuse=True)
-        def sanitize_uuid(cls, v):  # noqa N805
+        @field_validator("uuid", mode="before")
+        @classmethod
+        def sanitize_uuid(cls, v: str | None) -> str | None:
             if v is not None:
-                v = v.replace("-", "")
+                v = str(v).replace("-", "")
             return v
 
-        @validator("progress", allow_reuse=True)
-        def _fire_progress_callback(cls, v, values):  # noqa N805
-            callback = values.get("on_progress_callback")
-            if callback:
+        @field_validator("progress", mode="before")
+        @classmethod
+        def _fire_progress_callback(cls, v: tuple[float, str, bool] | None, info: ValidationInfo):
+            callback = info.data.get("on_progress_callback")
+            if callback and v is not None:
                 callback(*v)
             return v
 
-        @validator("global_progress_value", allow_reuse=True)
-        def _fire_global_progress_value_callback(cls, v, values):  # noqa N805
-            callback = values.get("on_global_progress_callback")
-            if callback:
+        @field_validator("global_progress_value", mode="before")
+        @classmethod
+        def _fire_global_progress_value_callback(cls, v: float | None, info: ValidationInfo):
+            callback = info.data.get("on_global_progress_callback")
+            if callback and v is not None:
                 callback(v)
             return v
-
-        class Config:
-            extra = Extra.forbid
-            underscore_attrs_are_private = True
-            validate_assignment = True
 
     def __init__(self):
         self._schema: Optional[_IBaseSchema] = None
@@ -232,7 +238,7 @@ class Base(_IBase, abc.ABC):
 
     def _get_schema_data_flows(self, schema_data: Data, schema: BaseModel) -> list[_DataFlow]:
         all_data_flows = []
-        schema_dict = schema.dict()
+        schema_dict = schema.model_dump(serialize_as_any=True)
         for attr in schema_dict.keys():
             next_plugin = getattr(schema, attr)
             next_plugins = []

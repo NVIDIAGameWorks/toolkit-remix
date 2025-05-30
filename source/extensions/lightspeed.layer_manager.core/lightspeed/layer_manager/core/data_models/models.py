@@ -19,7 +19,8 @@ from pathlib import Path
 from typing import List, Optional, Set
 
 from omni.flux.service.shared import BaseServiceModel
-from pydantic import root_validator, validator
+from pydantic import Field, field_validator, model_validator
+from pydantic_core.core_schema import ValidationInfo
 
 from .enums import LayerType
 from .validators import LayerManagerValidators
@@ -28,162 +29,297 @@ from .validators import LayerManagerValidators
 
 
 class LayerModel(BaseServiceModel):
-    layer_id: Path
-    layer_type: Optional[LayerType] = None
-    children: List["LayerModel"] = []
+    """
+    Generic model describing a layer.
+    """
+
+    layer_id: Path = Field(description="The layer identifier (layer path for non-anonymous layers)")
+    layer_type: Optional[LayerType] = Field(default=None, description="The type of layer")
+    children: List["LayerModel"] = Field(default=[], description="The immediate sublayers of the layer")
 
 
 # PATH PARAM MODELS
 
 
 class OpenProjectPathParamModel(BaseServiceModel):
-    layer_id: Path
+    """
+    Path parameter model for opening a project.
+    """
 
-    @validator("layer_id", allow_reuse=True)
-    def project_path_valid(cls, v):  # noqa
+    layer_id: Path = Field(description="The layer identifier (layer path for non-anonymous layers)")
+
+    @field_validator("layer_id", mode="before")
+    @classmethod
+    def project_path_valid(cls, v):
         return LayerManagerValidators.is_project_layer(v)
 
 
 class GetLayerPathParamModel(BaseServiceModel):
-    layer_id: Path
+    """
+    Path parameter model for getting a layer.
+    """
 
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
-        return values
+    layer_id: Path = Field(description="The layer identifier (layer path for non-anonymous layers)")
+
+    @model_validator(mode="after")
+    @classmethod
+    def root_validators(cls, instance_model, info: ValidationInfo):
+        if not info.context:
+            raise ValueError("Context name is required")
+        context_name = info.context.get("context_name")
+        LayerManagerValidators.layer_is_in_project(instance_model.layer_id, context_name)
+        return instance_model
 
 
 class MoveLayerPathParamModel(BaseServiceModel):
-    layer_id: Path
+    """
+    Path parameter model for moving a layer.
+    """
 
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
-        LayerManagerValidators.can_move_sublayer(values.get("layer_id"), values.get("context_name"))
-        return values
+    layer_id: Path = Field(description="The layer identifier (layer path for non-anonymous layers)")
+
+    @model_validator(mode="after")
+    @classmethod
+    def root_validators(cls, instance_model, info: ValidationInfo):
+        if not info.context:
+            raise ValueError("Context name is required")
+        context_name = info.context.get("context_name")
+        LayerManagerValidators.layer_is_in_project(instance_model.layer_id, context_name)
+        LayerManagerValidators.can_move_sublayer(instance_model.layer_id, context_name)
+        return instance_model
 
 
 class DeleteLayerPathParamModel(BaseServiceModel):
-    layer_id: Path
+    """
+    Path parameter model for deleting a layer.
+    """
 
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
-        LayerManagerValidators.can_delete_layer(values.get("layer_id"), values.get("context_name"))
-        return values
+    layer_id: Path = Field(description="The layer identifier (layer path for non-anonymous layers)")
+
+    @model_validator(mode="after")
+    @classmethod
+    def root_validators(cls, instance_model, info: ValidationInfo):
+        if not info.context:
+            raise ValueError("Context name is required")
+        context_name = info.context.get("context_name")
+        LayerManagerValidators.layer_is_in_project(instance_model.layer_id, context_name)
+        LayerManagerValidators.can_delete_layer(instance_model.layer_id, context_name)
+        return instance_model
 
 
 class MuteLayerPathParamModel(BaseServiceModel):
-    layer_id: Path
+    """
+    Path parameter model for muting a layer.
+    """
 
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
-        LayerManagerValidators.can_mute_layer(values.get("layer_id"), values.get("context_name"))
-        return values
+    layer_id: Path = Field(description="The layer identifier (layer path for non-anonymous layers)")
+
+    @model_validator(mode="after")
+    @classmethod
+    def root_validators(cls, instance_model, info: ValidationInfo):
+        if not info.context:
+            raise ValueError("Context name is required")
+        context_name = info.context.get("context_name")
+        LayerManagerValidators.layer_is_in_project(instance_model.layer_id, context_name)
+        LayerManagerValidators.can_mute_layer(instance_model.layer_id, context_name)
+        return instance_model
 
 
 class LockLayerPathParamModel(BaseServiceModel):
-    layer_id: Path
+    """
+    Path parameter model for locking a layer.
+    """
 
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
-        LayerManagerValidators.can_lock_layer(values.get("layer_id"), values.get("context_name"))
-        return values
+    layer_id: Path = Field(description="The layer identifier (layer path for non-anonymous layers)")
+
+    @model_validator(mode="after")
+    @classmethod
+    def root_validators(cls, instance_model, info: ValidationInfo):
+        if not info.context:
+            raise ValueError("Context name is required")
+        context_name = info.context.get("context_name")
+        LayerManagerValidators.layer_is_in_project(instance_model.layer_id, context_name)
+        LayerManagerValidators.can_lock_layer(instance_model.layer_id, context_name)
+        return instance_model
 
 
 class SetEditTargetPathParamModel(BaseServiceModel):
-    layer_id: Path
+    """
+    Path parameter model for setting the edit target layer.
+    """
 
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
-        LayerManagerValidators.can_set_edit_target_layer(values.get("layer_id"), values.get("context_name"))
-        return values
+    layer_id: Path = Field(description="The layer identifier (layer path for non-anonymous layers)")
+
+    @model_validator(mode="after")
+    @classmethod
+    def root_validators(cls, instance_model, info: ValidationInfo):
+        if not info.context:
+            raise ValueError("Context name is required")
+        context_name = info.context.get("context_name")
+        LayerManagerValidators.layer_is_in_project(instance_model.layer_id, context_name)
+        LayerManagerValidators.can_set_edit_target_layer(instance_model.layer_id, context_name)
+        return instance_model
 
 
 class SaveLayerPathParamModel(BaseServiceModel):
-    layer_id: Path
+    """
+    Path parameter model for saving a layer.
+    """
 
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        LayerManagerValidators.layer_is_in_project(values.get("layer_id"), values.get("context_name"))
-        return values
+    layer_id: Path = Field(description="The layer identifier (layer path for non-anonymous layers)")
+
+    @model_validator(mode="after")
+    @classmethod
+    def root_validators(cls, instance_model, info: ValidationInfo):
+        if not info.context:
+            raise ValueError("Context name is required")
+        context_name = info.context.get("context_name")
+        LayerManagerValidators.layer_is_in_project(instance_model.layer_id, context_name)
+        return instance_model
 
 
 # QUERY MODELS
 
 
 class GetLayersQueryModel(BaseServiceModel):
-    layer_types: Optional[Set[Optional[LayerType]]] = None
-    layer_count: int = -1
+    """
+    Query model that modifies the behavior when getting layers.
+    """
+
+    layer_types: Optional[Set[Optional[LayerType]]] = Field(default=None, description="The type of layer to get")
+    layer_count: int = Field(
+        default=-1, description="The number of layers to get per `layer_type`. Use -1 to get all the layers."
+    )
 
 
 # RESPONSE MODELS
 
 
 class LayerResponseModel(BaseServiceModel):
-    layer_id: Path
+    """
+    Response model received when getting a layer.
+    """
+
+    layer_id: Path = Field(description="The layer identifier (layer path for non-anonymous layers)")
 
 
 class LayerStackResponseModel(BaseServiceModel):
-    layers: List[LayerModel]
+    """
+    Response model received when getting the layer stack.
+    """
+
+    layers: List[LayerModel] = Field(description="The list of layers in the layer stack")
 
 
 class LayerTypeResponseModel(BaseServiceModel):
-    layer_types: List[str]
+    """
+    Response model received when getting the layer types.
+    """
+
+    layer_types: List[str] = Field(description="The types of layers available")
 
 
 # REQUEST MODELS
 
 
 class CreateLayerRequestModel(BaseServiceModel):
-    layer_path: Path
-    layer_type: Optional[LayerType] = None  # If used, will set custom metadata for layer type
-    set_edit_target: bool = False
-    sublayer_position: int = -1  # Insert at the end by default
-    parent_layer_id: Optional[Path] = None  # If none, the root layer will be used
-    create_or_insert: bool = True
-    replace_existing: bool = False  # Remove existing layers of type layer_type if set
+    """
+    Request model for creating a layer.
+    """
 
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        LayerManagerValidators.can_create_layer(values.get("layer_path"), values.get("create_or_insert", True))
-        LayerManagerValidators.layer_is_in_project(values.get("parent_layer_id"), values.get("context_name"))
-        LayerManagerValidators.can_insert_sublayer(values.get("parent_layer_id"), values.get("context_name"))
-        return values
+    layer_path: Path = Field(description="The path to the layer to create")
+    layer_type: Optional[LayerType] = Field(
+        default=None, description="If used, will set custom metadata for the layer type"
+    )
+    set_edit_target: bool = Field(default=False, description="Whether to set the layer as the edit target")
+    sublayer_position: int = Field(
+        default=-1, description="The position to insert the new layer at. Use -1 to insert at the end."
+    )
+    parent_layer_id: Optional[Path] = Field(
+        default=None,
+        description=(
+            "Layer identifier (layer path for non-anonymous layers) for the layer to insert the sublayer into. "
+            "If none, the root layer will be used"
+        ),
+    )
+    create_or_insert: bool = Field(default=True, description="Whether to create a new layer or insert a sublayer")
+    replace_existing: bool = Field(default=False, description="Remove existing layers of type layer_type if set")
 
-    @validator("sublayer_position", allow_reuse=True)
-    def is_valid_index(cls, v):  # noqa
+    @model_validator(mode="after")
+    @classmethod
+    def root_validators(cls, instance_model):
+        context_name = instance_model.context_name if hasattr(instance_model, "context_name") else None
+        LayerManagerValidators.can_create_layer(instance_model.layer_path, instance_model.create_or_insert)
+        LayerManagerValidators.layer_is_in_project(instance_model.parent_layer_id, context_name)
+        LayerManagerValidators.can_insert_sublayer(instance_model.parent_layer_id, context_name)
+        return instance_model
+
+    @field_validator("sublayer_position", mode="before")
+    @classmethod
+    def is_valid_index(cls, v):
         return LayerManagerValidators.is_valid_index(v)
 
 
 class MoveLayerRequestModel(BaseServiceModel):
-    current_parent_layer_id: Path
-    new_parent_layer_id: Optional[Path] = None
-    layer_index: int = -1  # Insert at the end by default
+    """
+    Request model for moving a layer.
+    """
 
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        LayerManagerValidators.layer_is_in_project(values.get("current_parent_layer_id"), values.get("context_name"))
-        LayerManagerValidators.layer_is_in_project(values.get("new_parent_layer_id"), values.get("context_name"))
-        LayerManagerValidators.can_insert_sublayer(values.get("new_parent_layer_id"), values.get("context_name"))
-        return values
+    current_parent_layer_id: Path = Field(
+        description="Layer identifier (layer path for non-anonymous layers) for the layer to move"
+    )
+    new_parent_layer_id: Optional[Path] = Field(
+        default=None,
+        description=(
+            "Layer identifier (layer path for non-anonymous layers) for the new parent layer. "
+            "If none, the layer will be moved to the root layer"
+        ),
+    )
+    layer_index: int = Field(
+        default=-1, description="The position to insert the layer at. Use -1 to insert at the end."
+    )
+
+    @model_validator(mode="after")
+    @classmethod
+    def root_validators(cls, instance_model):
+        context_name = instance_model.context_name if hasattr(instance_model, "context_name") else None
+        LayerManagerValidators.layer_is_in_project(instance_model.current_parent_layer_id, context_name)
+        LayerManagerValidators.layer_is_in_project(instance_model.new_parent_layer_id, context_name)
+        LayerManagerValidators.can_insert_sublayer(instance_model.new_parent_layer_id, context_name)
+        return instance_model
 
 
 class DeleteLayerRequestModel(BaseServiceModel):
-    parent_layer_id: Path
+    """
+    Request model for deleting a layer.
+    """
 
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        LayerManagerValidators.layer_is_in_project(values.get("parent_layer_id"), values.get("context_name"))
-        return values
+    parent_layer_id: Path = Field(
+        description=(
+            "Layer identifier (layer path for non-anonymous layers) for the parent layer of the layer to delete. "
+            "If none, the root layer will be used"
+        ),
+    )
+
+    @model_validator(mode="after")
+    @classmethod
+    def root_validators(cls, instance_model):
+        context_name = instance_model.context_name if hasattr(instance_model, "context_name") else None
+        LayerManagerValidators.layer_is_in_project(instance_model.parent_layer_id, context_name)
+        return instance_model
 
 
 class MuteLayerRequestModel(BaseServiceModel):
-    value: bool
+    """
+    Request model for muting or unmuting a layer.
+    """
+
+    value: bool = Field(description="Whether to mute the layer")
 
 
 class LockLayerRequestModel(BaseServiceModel):
-    value: bool
+    """
+    Request model for locking or unlocking a layer.
+    """
+
+    value: bool = Field(description="Whether to lock the layer")

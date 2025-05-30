@@ -5,5 +5,6 @@ omni.flux.layer_tree.usd.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.layer_tree.usd.widget

@@ -48,6 +48,7 @@ docs/howto/learning-lighting
 docs/howto/learning-packaging
 docs/howto/learning-aitexturetools
 docs/howto/learning-restapi
+docs/howto/learning-mcp
 docs/howto/learning-migrations
 docs/howto/learning-bestpractices
 ```

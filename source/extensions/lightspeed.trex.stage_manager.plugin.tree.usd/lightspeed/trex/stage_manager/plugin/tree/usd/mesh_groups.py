@@ -27,6 +27,7 @@ from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroups
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsItem as _VirtualGroupsItem
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsModel as _VirtualGroupsModel
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsTreePlugin as _VirtualGroupsTreePlugin
+from pydantic import Field
 
 
 class MeshGroupsItem(_VirtualGroupsItem):
@@ -103,8 +104,8 @@ class MeshGroupsTreePlugin(_VirtualGroupsTreePlugin):
     A flat list of prims that can be grouped using virtual groups
     """
 
-    model: MeshGroupsModel = None
-    delegate: MeshGroupsDelegate = None
+    model: MeshGroupsModel = Field(default=None, exclude=True)
+    delegate: MeshGroupsDelegate = Field(default=None, exclude=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

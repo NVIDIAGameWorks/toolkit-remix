@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 from omni import ui, usd
 from omni.flux.custom_tags.core import CustomTagsCore
 from omni.flux.custom_tags.window import EditCustomTagsWindow
-from pydantic import PrivateAttr
+from pydantic import Field, PrivateAttr
 
 from .base import StageManagerUSDWidgetPlugin as _StageManagerUSDWidgetPlugin
 
@@ -31,23 +31,23 @@ if TYPE_CHECKING:
 
 
 class CustomTagsWidgetPlugin(_StageManagerUSDWidgetPlugin):
-    display_name: str = "Tags"
-    tooltip: str = ""
+    display_name: str = Field(default="Tags", exclude=True)
+    tooltip: str = Field(default="", exclude=True)
 
-    _padding: int = PrivateAttr(4)
-    _row_height: int = PrivateAttr(20)
+    _padding: int = PrivateAttr(default=4)
+    _row_height: int = PrivateAttr(default=20)
 
-    _frame: ui.Frame | None = PrivateAttr(None)
+    _frame: ui.Frame | None = PrivateAttr(default=None)
 
-    _arrow_left: ui.Image | None = PrivateAttr(None)
-    _arrow_right: ui.Image | None = PrivateAttr(None)
-    _scrolling_frame: ui.ScrollingFrame | None = PrivateAttr(None)
-    _tags_stack: ui.HStack | None = PrivateAttr(None)
+    _arrow_left: ui.Image | None = PrivateAttr(default=None)
+    _arrow_right: ui.Image | None = PrivateAttr(default=None)
+    _scrolling_frame: ui.ScrollingFrame | None = PrivateAttr(default=None)
+    _tags_stack: ui.HStack | None = PrivateAttr(default=None)
 
-    _tag_widget_index: dict[int, int] = PrivateAttr({})
-    _tag_widgets: dict[int, ui.Widget] = PrivateAttr({})
+    _tag_widget_index: dict[int, int] = PrivateAttr(default={})
+    _tag_widgets: dict[int, ui.Widget] = PrivateAttr(default={})
 
-    _edit_window: EditCustomTagsWindow | None = PrivateAttr(None)
+    _edit_window: EditCustomTagsWindow | None = PrivateAttr(default=None)
 
     def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
         if not item.data:

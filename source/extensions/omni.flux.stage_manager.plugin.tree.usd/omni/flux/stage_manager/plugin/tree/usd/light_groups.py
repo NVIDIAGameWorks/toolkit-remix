@@ -23,6 +23,7 @@ from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerIte
 from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
 from omni.flux.utils.common.lights import LightTypes as _LightTypes
 from omni.flux.utils.common.lights import get_light_type as _get_light_type
+from pydantic import Field
 
 from .virtual_groups import VirtualGroupsDelegate as _VirtualGroupsDelegate
 from .virtual_groups import VirtualGroupsItem as _VirtualGroupsItem
@@ -142,8 +143,8 @@ class LightGroupsTreePlugin(_VirtualGroupsTreePlugin):
     A flat list of prims that can be grouped using virtual groups
     """
 
-    model: LightGroupsModel = None
-    delegate: LightGroupsDelegate = None
+    model: LightGroupsModel = Field(default=None, exclude=True)
+    delegate: LightGroupsDelegate = Field(default=None, exclude=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

@@ -1,0 +1,69 @@
+{
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "modifications",
+    "editor.rulers": [
+        120
+    ],
+    "explorer.autoRevealExclude": {
+        "_build": true,
+        "_compiler": true,
+        "_repo": true,
+        "_testoutput": true,
+        "deploy": true,
+        "rendering": true,
+        "rtx-remix": true,
+        "runtime": true,
+        "schemas": true,
+        "tests": true
+    },
+    "files.associations": {
+        "*.kit": "toml"
+    },
+    "files.exclude": {
+        "**/__pycache__": true
+    },
+    "files.readonlyFromPermissions": true,
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "_build": true,
+        "_compiler": true,
+        "_repo": true,
+        "_testoutput": true,
+        "deploy": true,
+        "rendering": true,
+        "rtx-remix": true,
+        "runtime": true,
+        "schemas": true,
+        "tests": true
+    },
+    "python.analysis.exclude": [
+        "_build",
+        "_compiler",
+        "_repo",
+        "_testoutput",
+        "rtx-remix",
+        "deploy",
+        "rendering",
+        "runtime",
+        "schemas",
+        "tests"
+    ],
+    "python.analysis.extraPaths": [],
+    "python.defaultInterpreterPath": "${workspaceFolder}/_build/windows-x86_64/release/kit/python",
+    "search.exclude": {
+        "_build": true,
+        "_compiler": true,
+        "_repo": true,
+        "_testoutput": true,
+        "deploy": true,
+        "rendering": true,
+        "rtx-remix": true,
+        "runtime": true,
+        "schemas": true,
+        "tests": true
+    },
+    "cursor.cpp.disabledLanguages": []
+}

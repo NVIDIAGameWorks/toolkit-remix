@@ -88,11 +88,11 @@ class TestTextureReplacementsValidators(AsyncTestCase):
 
     async def test_is_valid_texture_asset_returns_expected_value_or_raises(self):
         # Arrange
-        valid_asset_path = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        valid_prim_path = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
 
         test_cases = {
-            (valid_asset_path.name, True): (True, None),
-            (valid_asset_path.name, False): (
+            (valid_prim_path.name, True): (True, None),
+            (valid_prim_path.name, False): (
                 False,
                 "The asset was not ingested. Ingest the asset before replacing the texture",
             ),
@@ -103,11 +103,11 @@ class TestTextureReplacementsValidators(AsyncTestCase):
         }
 
         for input_value, expected_value in test_cases.items():
-            asset_path, force = input_value
+            prim_path, force = input_value
             success, message = expected_value
 
-            with self.subTest(title=f"asset_path_{asset_path}_force_{force}_success_{success}"):
-                input_val = (None, asset_path)
+            with self.subTest(title=f"prim_path_{prim_path}_force_{force}_success_{success}"):
+                input_val = (None, prim_path)
 
                 with patch(
                     "lightspeed.trex.texture_replacements.core.shared.data_models.validators.is_asset_ingested"
@@ -122,4 +122,4 @@ class TestTextureReplacementsValidators(AsyncTestCase):
                 if success:
                     self.assertEqual(value, input_val)
                 else:
-                    self.assertEqual(str(cm.exception), f"{message}: {asset_path}")
+                    self.assertEqual(str(cm.exception), f"{message}: {prim_path}")

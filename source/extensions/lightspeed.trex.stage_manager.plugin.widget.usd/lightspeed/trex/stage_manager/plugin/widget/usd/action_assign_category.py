@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 class AssignCategoryActionWidgetPlugin(StageManagerStateWidgetPlugin):
     """Action to assign Remix Categories"""
 
-    _categories_dialog: _RemixCategoriesDialog = PrivateAttr(None)
+    _categories_dialog: _RemixCategoriesDialog = PrivateAttr(default=None)
 
     def build_overview_ui(self, model: StageManagerTreeModel):
         pass

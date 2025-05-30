@@ -5,5 +5,6 @@ omni.flux.wizard.window
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.wizard.window

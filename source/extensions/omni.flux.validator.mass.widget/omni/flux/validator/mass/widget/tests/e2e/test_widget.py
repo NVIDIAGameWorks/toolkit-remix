@@ -24,6 +24,7 @@ from omni.flux.validator.mass.widget import ValidatorMassWidget as _ValidatorMas
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path
+from pydantic import ConfigDict
 
 from .fake_plugins import register_fake_plugins as _register_fake_plugins
 from .fake_plugins import unregister_fake_plugins as _unregister_fake_plugins
@@ -178,9 +179,9 @@ class TestMassWidget(AsyncTestCase):
             items = self._widget.core.schema_model.get_item_children(None)
 
             with patch.object(
-                items[0].model.model.check_plugins[0].data.Config, "validate_assignment", new_callable=PropertyMock
+                items[0].model.model.check_plugins[0].data.__class__, "model_config", new_callable=PropertyMock
             ) as mock:
-                mock.return_value = False
+                mock.return_value = ConfigDict(extra="forbid", validate_assignment=False, arbitrary_types_allowed=True)
                 items[0].model.model.check_plugins[0].data.fake_data = "Crash"
 
             # click on it
@@ -287,6 +288,13 @@ class TestMassWidget(AsyncTestCase):
             processors_cb = ui_test.find(
                 f"{self._window.title}//Frame/**/ComboBox[*].identifier=='external_processors_count_combo_box'"
             )
+
+            await ui_test.human_delay(human_delay_speed=100)
+            # Select external processor (last option)
+            await executors_cb.click()
+            await ui_test.emulate_mouse_move_and_click(executors_cb.position + ui_test.Vec2(30, 45))
+            await ui_test.human_delay(human_delay_speed=100)
+
             self.assertIsNotNone(executors_cb)
             self.assertIsNotNone(processors_cb)
 

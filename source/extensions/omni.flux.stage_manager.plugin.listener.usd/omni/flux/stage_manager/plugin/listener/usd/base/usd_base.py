@@ -20,19 +20,16 @@ from typing import Generic, TypeVar
 
 from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
 from omni.flux.stage_manager.factory.plugins import StageManagerListenerPlugin as _StageManagerListenerPlugin
-from pydantic import PrivateAttr
+from pydantic import Field, PrivateAttr
 
 T = TypeVar("T")
 
 
 class StageManagerUSDListenerPlugin(_StageManagerListenerPlugin[T], Generic[T], abc.ABC):
-    _context_name: str = PrivateAttr("")
+    compatible_data_type: type = Field(default=_StageManagerDataTypes.USD, exclude=True)
+
+    _context_name: str = PrivateAttr(default="")
 
     def set_context_name(self, name: str):
         """Set usd context to initialize plugin before items are rebuilt."""
         self._context_name = name
-
-    @classmethod
-    @property
-    def compatible_data_type(cls):
-        return _StageManagerDataTypes.USD

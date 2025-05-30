@@ -29,6 +29,7 @@ from omni.flux.stage_manager.plugin.tree.usd.skeleton_groups import (
     SkeletonJointItem,
 )
 from omni.flux.stage_manager.plugin.widget.usd.base import StageManagerUSDWidgetPlugin
+from pydantic import Field
 
 if TYPE_CHECKING:
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem, StageManagerTreeModel
@@ -36,6 +37,9 @@ if TYPE_CHECKING:
 
 class RemapSkeletonInfoWidgetPlugin(StageManagerUSDWidgetPlugin):
     """Remap replacement skeletons to captured skeletons to drive character animation"""
+
+    display_name: str = Field(default="Skeleton Information", exclude=True)
+    tooltip: str = Field(default="Get information about the selected skeleton", exclude=True)
 
     def build_ui(self, model: StageManagerTreeModel, item: StageManagerTreeItem, level: int, expanded: bool):
         prim = item.data

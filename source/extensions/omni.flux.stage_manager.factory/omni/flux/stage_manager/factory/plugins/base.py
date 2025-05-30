@@ -16,9 +16,10 @@
 """
 
 import abc
+from typing import ClassVar
 
 from omni.flux.factory.base import PluginBase as _PluginBase
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class StageManagerPluginBase(_PluginBase, BaseModel, abc.ABC):
@@ -26,16 +27,13 @@ class StageManagerPluginBase(_PluginBase, BaseModel, abc.ABC):
     An abstract base class for stage manager plugins.
     """
 
-    @classmethod
-    @property
-    def name(cls) -> str:
-        return cls.__name__
+    name: ClassVar[str] = Field(description="The name of the plugin")
 
-    def dict(self, *args, **kwargs):  # noqa A003
-        # Override the dict method to include the `name` property
-        data = super().dict(*args, **kwargs)
-        data["name"] = self.name
-        return data
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        cls.name = cls.__name__
 
     def __eq__(self, other):
         if isinstance(other, StageManagerPluginBase):
@@ -45,9 +43,11 @@ class StageManagerPluginBase(_PluginBase, BaseModel, abc.ABC):
     def __hash__(self):
         return hash(self.name)
 
-    class Config:
-        arbitrary_types_allowed = True
-        fields = {}
+    def dict(self, *args, **kwargs):  # noqa A003
+        # Override the dict method to include the `name` property
+        data = super().dict(*args, **kwargs)
+        data["name"] = self.name
+        return data
 
 
 class StageManagerUIPluginBase(StageManagerPluginBase, abc.ABC):
@@ -55,25 +55,10 @@ class StageManagerUIPluginBase(StageManagerPluginBase, abc.ABC):
     An abstract base class for stage manager plugins that should build UI.
     """
 
-    enabled: bool = Field(True, description="Whether the plugin should be enabled or not")
+    enabled: bool = Field(default=True, description="Whether the plugin should be enabled or not")
 
-    @classmethod
-    @property
-    @abc.abstractmethod
-    def display_name(cls) -> str:
-        """
-        The string to display when displaying the plugin in the UI
-        """
-        pass
-
-    @classmethod
-    @property
-    @abc.abstractmethod
-    def tooltip(cls) -> str:
-        """
-        The tooltip to display when hovering over the plugin in the UI
-        """
-        pass
+    display_name: str = Field(description="The string to display when displaying the plugin in the UI", exclude=True)
+    tooltip: str = Field(description="The tooltip to display when hovering over the plugin in the UI", exclude=True)
 
     @abc.abstractmethod
     def build_ui(self, *args, **kwargs):
@@ -81,10 +66,3 @@ class StageManagerUIPluginBase(StageManagerPluginBase, abc.ABC):
         The method used to build the UI for the plugin.
         """
         pass
-
-    class Config(StageManagerPluginBase.Config):
-        fields = {
-            **StageManagerPluginBase.Config.fields,
-            "display_name": {"exclude": True},
-            "tooltip": {"exclude": True},
-        }

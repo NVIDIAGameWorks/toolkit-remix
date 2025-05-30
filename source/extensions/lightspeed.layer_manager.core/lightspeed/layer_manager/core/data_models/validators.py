@@ -51,13 +51,15 @@ class LayerManagerValidators:
         if not layer:
             raise ValueError(f"The layer does not exist: {layer_id}")
 
-        stage = omni.usd.get_context(context_name).get_stage()
-        project_layer_ids = [
-            _layer.identifier for _layer in stage.GetLayerStack(includeSessionLayers=False)
-        ] + stage.GetMutedLayers()
+        def get_layers_recursive(layer):
+            yield layer
+            for sublayer in layer.subLayerPaths:
+                yield from get_layers_recursive(Sdf.Layer.FindOrOpenRelativeToLayer(layer, sublayer))
 
         # Make sure the layer is in the currently opened project
-        if layer.identifier not in project_layer_ids:
+        root_layer = omni.usd.get_context(context_name).get_stage().GetRootLayer()
+        layer_identifiers = [layer.identifier for layer in get_layers_recursive(root_layer)]
+        if layer.identifier not in layer_identifiers:
             raise ValueError(f"The layer is not present in the loaded project's layer stack: {layer_id}")
 
         return layer_id

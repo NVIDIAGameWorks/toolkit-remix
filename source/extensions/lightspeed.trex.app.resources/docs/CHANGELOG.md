@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.0]
+## Added
+- Added missing automodule directives for documentation
+
 ## [1.16.2]
 ## Changed
 - Update final variables and resource locations for extension testing matrix (ETM) compliance

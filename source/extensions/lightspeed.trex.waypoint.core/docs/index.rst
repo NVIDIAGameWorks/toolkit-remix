@@ -8,3 +8,4 @@ lightspeed.trex.waypoint.core
    README
    CHANGELOG
 
+.. automodule:: lightspeed.trex.waypoint.core

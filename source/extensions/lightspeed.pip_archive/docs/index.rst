@@ -10,3 +10,4 @@ Dummy extension to store prebundled pip packages.
    README
    CHANGELOG
 
+.. automodule:: lightspeed.pip_archive

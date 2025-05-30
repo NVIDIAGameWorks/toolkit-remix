@@ -16,7 +16,7 @@
 """
 
 import abc
-from typing import Any, Optional, Type, Union
+from typing import Any, ClassVar, Optional, Type, Union
 
 from fast_version import VersionedAPIRouter
 from fastapi import Depends, Path, Query
@@ -25,6 +25,7 @@ from omni.flux.service.shared import BaseServiceModel
 from omni.services.core import exceptions
 from omni.services.core.routers import ServiceAPIRouter
 from pydantic import Field, ValidationError, create_model
+from pydantic.json_schema import SkipJsonSchema
 
 
 class APIRouter(VersionedAPIRouter, ServiceAPIRouter):
@@ -43,24 +44,19 @@ class ServiceBase(PluginBase, abc.ABC):
 
         self.register_endpoints()
 
-    @classmethod
-    @property
-    def name(cls) -> str:
-        """
-        Returns:
-            The Service Name must be unique. It is used in the Service Factory to fetch specific services
-        """
-        return cls.__name__
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        cls.name = cls.__name__
 
-    @classmethod
-    @property
-    @abc.abstractmethod
-    def prefix(cls) -> str:
-        """
-        Returns:
-            The Service Prefix is prepended to all routes defined in the service. It must start with a "/" character
-        """
-        return "/"
+    name: ClassVar[str] = Field(
+        description="The Service Name must be unique. It is used in the Service Factory to fetch specific services"
+    )
+    prefix: ClassVar[str] = Field(
+        default="/",
+        description=(
+            "The Service Prefix is prepended to all routes defined in the service. It must start with a '/' character"
+        ),
+    )
 
     @property
     def router(self) -> APIRouter:
@@ -90,10 +86,12 @@ class ServiceBase(PluginBase, abc.ABC):
         Returns:
             The model with all the injected fields
         """
-        # Create hidden field from the kwargs
-        fields = {key: (type(val), Field(val, hidden=True)) for key, val in kwargs.items()}
+        # Create hidden field from the kwargs using SkipJsonSchema to hide from OpenAPI and exclude=True to hide from
+        # serialization
+        fields = {key: (SkipJsonSchema[type(val)], Field(default=val)) for key, val in kwargs.items()}
+
         # Inject the hidden fields in the model
-        return create_model(base_model.__name__, **fields, __base__=base_model)
+        return create_model(base_model.__name__, __base__=base_model, **fields)
 
     @staticmethod
     def validate_path_param(
@@ -113,7 +111,7 @@ class ServiceBase(PluginBase, abc.ABC):
         """
 
         # Use the first field name for validation.
-        field_name = next(iter(base_model.__fields__))
+        field_name = next(iter(base_model.model_fields))
 
         async def dependency(value: str = Path(..., alias=field_name, description=description)):  # noqa B008
             try:
@@ -123,7 +121,8 @@ class ServiceBase(PluginBase, abc.ABC):
                 else:
                     validation_value = value
                 # Dynamically create an instance of the model and validate the input
-                model = base_model.parse_obj({field_name: validation_value, **kwargs})
+                # Pass the kwargs as context to the model_validate method
+                model = base_model.model_validate({field_name: validation_value}, context=kwargs)
                 # Return the model rather than the input string
                 return model
             except (ValueError, ValidationError) as e:

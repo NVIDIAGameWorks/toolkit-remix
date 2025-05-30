@@ -41,6 +41,7 @@ class ProjectManagerService(ServiceBase):
     def register_endpoints(self):
         @self.router.get(
             path="/",
+            operation_id="get_loaded_project",
             description="Get the currently loaded project if one is loaded.",
             response_model=LayerResponseModel,
         )
@@ -50,7 +51,7 @@ class ProjectManagerService(ServiceBase):
             except ValueError as e:
                 raise ServiceBase.raise_error(404, e)
 
-        @self.router.put(path="/{layer_id:path}", description="Open a project.")
+        @self.router.put(path="/{layer_id:path}", operation_id="open_project", description="Open a project.")
         async def open_project(
             layer_id: str = ServiceBase.validate_path_param(  # noqa B008
                 OpenProjectPathParamModel, description="Project identifier for the project to open as project"

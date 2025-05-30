@@ -45,7 +45,7 @@ class TestModPackagingSchema(omni.kit.test.AsyncTestCase):
 
     async def test_is_mod_file_valid_invalid_should_raise_value_error(self):
         # Arrange
-        mod_file = Mock()
+        mod_file = [Mock()]
 
         with patch.object(ReplacementCore, "is_mod_file") as mod_file_mock:
             mod_file_mock.return_value = False
@@ -55,14 +55,14 @@ class TestModPackagingSchema(omni.kit.test.AsyncTestCase):
                 ModPackagingSchema.is_mod_file_valid(mod_file)
 
         # Assert
-        self.assertEqual(f"The path is not a valid mod file: {mod_file}", str(cm.exception))
+        self.assertEqual(f"The path is not a valid mod file: {mod_file[0]}", str(cm.exception))
 
         self.assertEqual(1, mod_file_mock.call_count)
-        self.assertEqual(call(str(mod_file)), mod_file_mock.call_args)
+        self.assertEqual(call(str(mod_file[0])), mod_file_mock.call_args)
 
     async def test_is_mod_file_valid_valid_should_return_value(self):
         # Arrange
-        mod_file = Mock()
+        mod_file = [Mock()]
 
         with patch.object(ReplacementCore, "is_mod_file") as mod_file_mock:
             mod_file_mock.return_value = True
@@ -74,11 +74,11 @@ class TestModPackagingSchema(omni.kit.test.AsyncTestCase):
         self.assertEqual(mod_file, val)
 
         self.assertEqual(1, mod_file_mock.call_count)
-        self.assertEqual(call(str(mod_file)), mod_file_mock.call_args)
+        self.assertEqual(call(str(mod_file[0])), mod_file_mock.call_args)
 
     async def test_layer_exists_does_not_exist_should_raise_value_error(self):
         # Arrange
-        mod_file = Mock()
+        mod_file = [Mock()]
 
         with patch.object(OmniUrl, "exists", new_callable=PropertyMock) as exists_mock:
             exists_mock.return_value = False
@@ -88,12 +88,12 @@ class TestModPackagingSchema(omni.kit.test.AsyncTestCase):
                 ModPackagingSchema.layer_exists(mod_file)
 
         # Assert
-        self.assertEqual(f"The selected layer does not exist: {mod_file}", str(cm.exception))
+        self.assertEqual(f"The selected layer does not exist: {mod_file[0]}", str(cm.exception))
         self.assertEqual(1, exists_mock.call_count)
 
     async def test_layer_exists_exists_should_return_value(self):
         # Arrange
-        mod_file = Mock()
+        mod_file = [Mock()]
 
         with patch.object(OmniUrl, "exists", new_callable=PropertyMock) as exists_mock:
             exists_mock.return_value = True

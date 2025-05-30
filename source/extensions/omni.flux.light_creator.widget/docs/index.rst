@@ -1,9 +1,10 @@
-omni.flux.footer.widget
-#############################
+omni.flux.light_creator.widget
+###############################
 
 .. toctree::
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.light_creator.widget

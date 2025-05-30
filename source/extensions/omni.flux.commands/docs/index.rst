@@ -5,5 +5,6 @@ omni.flux.commands
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.commands

@@ -10,11 +10,5 @@ This is a simple utility to convert 3 channel tangent space normal map textures 
    README
    CHANGELOG
 
-
-.. automodule:: omni.flux.utils.octahedral_converter
-    :platform: Windows-x86_64, Linux-x86_64
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :imported-members:
-    :exclude-members: contextmanager
+.. automodule:: omni.flux.utils.octahedral_converter.octahedral_converter_core
+.. automodule:: omni.flux.utils.octahedral_converter.octahedral_converter_open_source_standalone

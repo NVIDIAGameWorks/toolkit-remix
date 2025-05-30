@@ -18,18 +18,19 @@
 import carb
 import omni.usd
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from .current_stage import CurrentStageContextPlugin as _CurrentStageContextPlugin
 
 
 class UsdFileContextPlugin(_CurrentStageContextPlugin):
-    file_path: str = Field(..., description="The file path to the USD File to load")
+    display_name: str = Field(default="USD File", exclude=True)
+    context_name: str = Field(default="", exclude=True)
 
-    display_name: str = "USD File"
-    context_name: str = ""
+    file_path: str = Field(description="The file path to the USD File to load")
 
-    @validator("file_path", allow_reuse=True)
+    @field_validator("file_path", mode="before")
+    @classmethod
     def file_path_is_valid(cls, v):  # noqa N805
         resolved_url = _OmniUrl(carb.tokens.get_tokens_interface().resolve(v))
         if not resolved_url.is_file:

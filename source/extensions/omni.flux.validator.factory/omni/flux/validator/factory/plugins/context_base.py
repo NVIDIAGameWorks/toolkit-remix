@@ -18,13 +18,14 @@
 import abc
 import time
 from functools import partial
-from typing import Any, Awaitable, Callable, List, Optional, Tuple, TypeVar
+from typing import Any, Awaitable, Callable, TypeVar
 
 import carb
 import omni.usd
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from pydantic import Field, validator
+from pydantic import Field, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 from .plugin_base import Base as _Base
 from .resultor_base import Schema as _ResultorSchema
@@ -35,50 +36,52 @@ SetupDataTypeVar = TypeVar("SetupDataTypeVar")
 
 class ContextBase(_Base, abc.ABC):
     class Data(_Base.Data):
+        on_check_callback: Callable[[bool, str], Any] | None = Field(default=None, exclude=True)
+        on_set_callback: Callable[[bool, str, SetupDataTypeVar], Any] | None = Field(default=None, exclude=True)
+        on_exit_callback: Callable[[bool, str], Any] | None = Field(default=None, exclude=True)
 
-        on_check_callback: Optional[Callable[[bool, str], Any]] = Field(default=None, exclude=True)
-        on_set_callback: Optional[Callable[[bool, str, SetupDataTypeVar], Any]] = Field(default=None, exclude=True)
-        on_exit_callback: Optional[Callable[[bool, str], Any]] = Field(default=None, exclude=True)
+        last_check_message: str | None = Field(default=None)
+        last_check_timing: float | None = Field(default=None)
+        last_check_result: bool | None = Field(default=None)
 
-        last_check_message: Optional[str] = None
-        last_check_timing: Optional[float] = None
-        last_check_result: Optional[bool] = None
+        last_set_message: str | None = Field(default=None)
+        last_set_data: SetupDataTypeVar | None = Field(
+            default=None, exclude=True, description="This is tmp we don't keep it in the schema"
+        )
+        last_set_timing: float | None = Field(default=None)
+        last_set_result: bool | None = Field(default=None)
 
-        last_set_message: Optional[str] = None
-        last_set_data: Optional[SetupDataTypeVar] = Field(
-            default=None, exclude=True
-        )  # this is tmp we don't keep it in the schema
-        last_set_timing: Optional[float] = None
-        last_set_result: Optional[bool] = None
+        last_on_exit_message: str | None = Field(default=None)
+        last_on_exit_timing: float | None = Field(default=None)
+        last_on_exit_result: bool | None = Field(default=None)
 
-        last_on_exit_message: Optional[str] = None
-        last_on_exit_timing: Optional[float] = None
-        last_on_exit_result: Optional[bool] = None
+        hide_context_ui: bool = Field(default=False)
 
-        hide_context_ui: bool = False
-
-        @validator("last_check_result", allow_reuse=True)
-        def _fire_last_check_result_callback(cls, v, values):  # noqa N805
+        @field_validator("last_check_result", mode="before")
+        @classmethod
+        def _fire_last_check_result_callback(cls, v: bool | None, info: ValidationInfo):
             """When the check result is set, the message and data is also set"""
-            callback = values.get("on_check_callback")
-            if callback:
-                callback(v, values["last_check_message"])
+            callback = info.data.get("on_check_callback")
+            if callback and v is not None:
+                callback(v, info.data.get("last_check_message"))
             return v
 
-        @validator("last_set_result", allow_reuse=True)
-        def _fire_last_set_result_callback(cls, v, values):  # noqa N805
-            """When the check result is set, the message and data is also set"""
-            callback = values.get("on_set_callback")
-            if callback:
-                callback(v, values["last_set_message"], values["last_set_data"])
+        @field_validator("last_set_result", mode="before")
+        @classmethod
+        def _fire_last_set_result_callback(cls, v: bool | None, info: ValidationInfo):
+            """When the set result is set, the message and data is also set"""
+            callback = info.data.get("on_set_callback")
+            if callback and v is not None:
+                callback(v, info.data.get("last_set_message"), info.data.get("last_set_data"))
             return v
 
-        @validator("last_on_exit_result", allow_reuse=True)
-        def _fire_last_exit_result_callback(cls, v, values):  # noqa N805
-            """When the check result is set, the message and data is also set"""
-            callback = values.get("on_exit_callback")
-            if callback:
-                callback(v, values["last_on_exit_message"])
+        @field_validator("last_on_exit_result", mode="before")
+        @classmethod
+        def _fire_last_exit_result_callback(cls, v: bool | None, info: ValidationInfo):
+            """When the exit result is set, the message is also set"""
+            callback = info.data.get("on_exit_callback")
+            if callback and v is not None:
+                callback(v, info.data.get("last_on_exit_message"))
             return v
 
     def __init__(self):
@@ -123,7 +126,7 @@ class ContextBase(_Base, abc.ABC):
         return _EventSubscription(self.__on_exit, callback)
 
     @omni.usd.handle_exception
-    async def check(self, schema_data: Data, parent_context: SetupDataTypeVar) -> Tuple[bool, str]:
+    async def check(self, schema_data: Data, parent_context: SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to check the data. For example, check that a USD stage is open, or a USD file path
         exist
@@ -148,7 +151,7 @@ class ContextBase(_Base, abc.ABC):
 
     @omni.usd.handle_exception
     @abc.abstractmethod
-    async def _check(self, schema_data: Data, parent_context: SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _check(self, schema_data: Data, parent_context: SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to execute the data. For example, check that a USD stage is open, or a USD file
         path exist
@@ -168,7 +171,7 @@ class ContextBase(_Base, abc.ABC):
         schema_data: Data,
         run_callback: Callable[[SetupDataTypeVar], Awaitable[None]],
         parent_context: SetupDataTypeVar,
-    ) -> Tuple[bool, str, SetupDataTypeVar]:
+    ) -> tuple[bool, str, SetupDataTypeVar]:
         """
         Function that will be called to set the data. For a context plugin, it will grab the data that we want to pass
         them to check plugin. From example, open a USD file and grab the prims. Or grab prims from an opened stage.
@@ -208,7 +211,7 @@ class ContextBase(_Base, abc.ABC):
         schema_data: Data,
         run_callback: Callable[[SetupDataTypeVar], Awaitable[None]],
         parent_context: SetupDataTypeVar,
-    ) -> Tuple[bool, str, SetupDataTypeVar]:
+    ) -> tuple[bool, str, SetupDataTypeVar]:
         """
         Function that will be executed to set the data. For a context plugin, it will grab the data that we want to pass
         them to check plugin. From example, open a USD file and grab the prims. Or grab prims from an opened stage.
@@ -227,7 +230,7 @@ class ContextBase(_Base, abc.ABC):
         return False, "Not implemented", None
 
     @omni.usd.handle_exception
-    async def on_exit(self, schema_data: Data, parent_context: SetupDataTypeVar) -> Tuple[bool, str]:
+    async def on_exit(self, schema_data: Data, parent_context: SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to after the check of the data. For example, save the input USD stage
 
@@ -251,7 +254,7 @@ class ContextBase(_Base, abc.ABC):
 
     @omni.usd.handle_exception
     @abc.abstractmethod
-    async def _on_exit(self, schema_data: Data, parent_context: SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _on_exit(self, schema_data: Data, parent_context: SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to after the check of the data. For example, save the input USD stage
 
@@ -267,4 +270,4 @@ class ContextBase(_Base, abc.ABC):
 
 
 class Schema(_BaseSchema):
-    resultor_plugins: Optional[List[_ResultorSchema]]
+    resultor_plugins: list[_ResultorSchema] | None = Field(default=None)

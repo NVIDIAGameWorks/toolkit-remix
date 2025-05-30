@@ -17,6 +17,7 @@
 
 from omni import ui
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
+from pydantic import Field
 
 from .base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
 
@@ -24,8 +25,8 @@ from .base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
 class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
     # TODO StageManager: Build proper plugin
 
-    display_name: str = "Search"
-    tooltip: str = "Search through the list of prims"
+    display_name: str = Field(default="Search", exclude=True)
+    tooltip: str = Field(default="Search through the list of prims", exclude=True)
 
     def filter_predicate(self, item: _StageManagerItem) -> bool:
         return True

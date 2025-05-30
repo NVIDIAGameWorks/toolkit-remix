@@ -5,5 +5,8 @@ omni.flux.content_library.property.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.content_library.property.widget.setup_ui
+.. automodule:: omni.flux.content_library.property.widget.delegate
+.. automodule:: omni.flux.content_library.property.widget.model

@@ -39,9 +39,9 @@ if TYPE_CHECKING:
 class RemapSkeletonActionWidgetPlugin(StageManagerStateWidgetPlugin):
     """Remap replacement skeletons to captured skeletons to drive character animation"""
 
-    _capture_layer: Sdf.Layer = PrivateAttr(None)
-    _remap_window: SkeletonRemappingWindow | None = PrivateAttr(None)
-    _skel_replacement_cache: CachedReplacementSkeletons = PrivateAttr(None)
+    _capture_layer: Sdf.Layer = PrivateAttr(default=None)
+    _remap_window: SkeletonRemappingWindow | None = PrivateAttr(default=None)
+    _skel_replacement_cache: CachedReplacementSkeletons = PrivateAttr(default=None)
 
     def set_context_name(self, context: str) -> None:
         """Clear skeleton replacement cache to make sure its updated before we build the items."""

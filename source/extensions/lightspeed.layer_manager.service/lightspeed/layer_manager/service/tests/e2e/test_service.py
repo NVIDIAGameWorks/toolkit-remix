@@ -214,9 +214,11 @@ class TestLayerManagerService(AsyncTestCase):
                     "layer_type": "autoupscale",
                     "parent_layer_id": str(mod_layer_path),
                 },
+                raw_response=True,
             )
 
-            self.assertEqual(response, "OK")
+            self.assertEqual(response.status_code, 200, msg=response.json())
+            self.assertEqual(response.json(), "OK")
 
             response = await send_request(
                 "POST",
@@ -227,9 +229,11 @@ class TestLayerManagerService(AsyncTestCase):
                     "set_edit_target": True,
                     "parent_layer_id": str(mod_layer_path),
                 },
+                raw_response=True,
             )
 
-            self.assertEqual(response, "OK")
+            self.assertEqual(response.status_code, 200, msg=response.json())
+            self.assertEqual(response.json(), "OK")
             self.assertEqual(
                 self.context.get_stage().GetEditTarget().GetLayer().realPath.lower(), str(new_layer_path_02).lower()
             )
@@ -245,9 +249,11 @@ class TestLayerManagerService(AsyncTestCase):
                     "current_parent_layer_id": str(mod_layer_path),
                     "new_parent_layer_id": str(new_layer_path_01),
                 },
+                raw_response=True,
             )
 
-            self.assertEqual(response, "OK")
+            self.assertEqual(response.status_code, 200, msg=response.json())
+            self.assertEqual(response.json(), "OK")
 
             mod_layer = self.context.get_stage().GetLayerStack()[2]  # replacements.usda
             new_layer_01 = self.context.get_stage().GetLayerStack()[3]  # new_layer_01.usda
@@ -259,9 +265,11 @@ class TestLayerManagerService(AsyncTestCase):
                 "PUT",
                 f"{self.service.prefix}/{str(new_layer_path_01)}/lock",
                 json={"value": True},
+                raw_response=True,
             )
 
-            self.assertEqual(response, "OK")
+            self.assertEqual(response.status_code, 200, msg=response.json())
+            self.assertEqual(response.json(), "OK")
 
             state = _layers.get_layers(self.context).get_layers_state()
             self.assertTrue(state.is_layer_locked(new_layer_path_01.as_posix()))
@@ -272,9 +280,11 @@ class TestLayerManagerService(AsyncTestCase):
                 "PUT",
                 f"{self.service.prefix}/{str(new_layer_path_01)}/mute",
                 json={"value": True},
+                raw_response=True,
             )
 
-            self.assertEqual(response, "OK")
+            self.assertEqual(response.status_code, 200, msg=response.json())
+            self.assertEqual(response.json(), "OK")
 
             self.assertTrue(stage.IsLayerMuted(new_layer_path_01.as_posix()))
             self.assertFalse(stage.IsLayerMuted(new_layer_path_02.as_posix()))  # in USD, mute state is not inherited
@@ -283,9 +293,11 @@ class TestLayerManagerService(AsyncTestCase):
             response = await send_request(
                 "PUT",
                 f"{self.service.prefix}/target/{str(mod_layer_path)}",
+                raw_response=True,
             )
 
-            self.assertEqual(response, "OK")
+            self.assertEqual(response.status_code, 200, msg=response.json())
+            self.assertEqual(response.json(), "OK")
             self.assertEqual(
                 self.context.get_stage().GetEditTarget().GetLayer().realPath.lower(), str(mod_layer_path).lower()
             )
@@ -294,9 +306,11 @@ class TestLayerManagerService(AsyncTestCase):
             response = await send_request(
                 "POST",
                 f"{self.service.prefix}/{str(new_layer_path_01)}/save",
+                raw_response=True,
             )
 
-            self.assertEqual(response, "OK")
+            self.assertEqual(response.status_code, 200, msg=response.json())
+            self.assertEqual(response.json(), "OK")
             self.assertNotIn(
                 new_layer_path_01.as_posix().lower(),
                 [i.lower() for i in _layers.get_layers_state().get_dirty_layer_identifiers()],
@@ -307,14 +321,14 @@ class TestLayerManagerService(AsyncTestCase):
                 "DELETE",
                 f"{self.service.prefix}/{str(new_layer_path_01)}",
                 json={"parent_layer_id": str(mod_layer_path)},
+                raw_response=True,
             )
 
-            self.assertEqual(response, "OK")
+            self.assertEqual(response.status_code, 200, msg=response.json())
+            self.assertEqual(response.json(), "OK")
 
             mod_layer = self.context.get_stage().GetLayerStack()[2]  # replacements.usda
             self.assertListEqual(list(mod_layer.subLayerPaths), [])
-        except Exception as e:
-            raise e
         finally:
             # Clean up
             new_layer_path_01.unlink(missing_ok=True)

@@ -8,11 +8,7 @@ omni.flux.stage_manager.plugin.listener.usd
    README
    CHANGELOG
 
-
-.. automodule:: omni.flux.stage_manager.plugin.listener.usd
-    :platform: Windows-x86_64, Linux-x86_64
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :imported-members:
-    :exclude-members:
+.. automodule:: omni.flux.stage_manager.plugin.listener.usd.extension
+.. automodule:: omni.flux.stage_manager.plugin.listener.usd.layers_listener
+.. automodule:: omni.flux.stage_manager.plugin.listener.usd.stage_listener
+.. automodule:: omni.flux.stage_manager.plugin.listener.usd.usd_listener

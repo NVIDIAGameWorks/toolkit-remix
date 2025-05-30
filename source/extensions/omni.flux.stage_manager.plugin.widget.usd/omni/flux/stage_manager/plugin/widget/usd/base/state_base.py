@@ -19,6 +19,7 @@ import abc
 from typing import TYPE_CHECKING
 
 from omni import ui
+from pydantic import Field
 
 from .usd_base import StageManagerUSDWidgetPlugin as _StageManagerUSDWidgetPlugin
 
@@ -28,8 +29,8 @@ if TYPE_CHECKING:
 
 
 class StageManagerStateWidgetPlugin(_StageManagerUSDWidgetPlugin, abc.ABC):
-    display_name: str = ""
-    tooltip: str = ""  # The tooltip will be dynamically built on the state icon
+    display_name: str = Field(default="", exclude=True)
+    tooltip: str = Field(default="", exclude=True)  # The tooltip will be dynamically built on the state icon
 
     @property
     def _icon_size(self) -> ui.Length:

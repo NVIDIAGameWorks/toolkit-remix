@@ -5,5 +5,8 @@ omni.flux.welcome_pad.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.welcome_pad.widget.delegate
+.. automodule:: omni.flux.welcome_pad.widget.model
+.. automodule:: omni.flux.welcome_pad.widget.setup_ui

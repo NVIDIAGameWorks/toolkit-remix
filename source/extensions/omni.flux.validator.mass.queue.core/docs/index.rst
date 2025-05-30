@@ -5,5 +5,8 @@ omni.flux.validator.mass.queue.core
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.validator.mass.queue.core.core
+.. automodule:: omni.flux.validator.mass.queue.core.extension
+.. automodule:: omni.flux.validator.mass.queue.core.data_models.models

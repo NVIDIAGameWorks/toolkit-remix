@@ -26,7 +26,6 @@ from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
 from omni.flux.validator.plugin.check.usd.example.print_prims import PrintPrims as _PrintPrims
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, open_stage
-from pydantic import Extra
 
 
 class TestFileCleanup(AsyncTestCase):
@@ -78,7 +77,7 @@ class TestFileCleanup(AsyncTestCase):
                 return ["InOutData"]
 
             class _Config:
-                extra = Extra.allow
+                extra = "ignore"
 
         with (
             patch.object(_PrintPrims, "data_type", new_callable=PropertyMock) as mock_data_type,
@@ -141,7 +140,7 @@ class TestFileCleanup(AsyncTestCase):
                 return ["InOutData"]
 
             class _Config:
-                extra = Extra.allow
+                extra = "ignore"
 
         with (
             patch.object(_PrintPrims, "data_type", new_callable=PropertyMock) as mock_data_type,

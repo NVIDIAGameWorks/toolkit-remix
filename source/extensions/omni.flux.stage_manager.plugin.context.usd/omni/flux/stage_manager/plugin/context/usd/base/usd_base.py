@@ -20,25 +20,21 @@ import abc
 from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
 from omni.flux.stage_manager.factory.plugins import StageManagerContextPlugin as _StageManagerContextPlugin
 from omni.flux.stage_manager.factory.plugins import StageManagerListenerPlugin as _StageManagerListenerPlugin
+from pydantic import Field
 
 
 class StageManagerUSDContextPlugin(_StageManagerContextPlugin, abc.ABC):
-    listeners: list[_StageManagerListenerPlugin] = [
-        {"name": "StageManagerUSDLayersListenerPlugin"},
-        {"name": "StageManagerUSDNoticeListenerPlugin"},
-        {"name": "StageManagerUSDStageListenerPlugin"},
-    ]
+    data_type: _StageManagerDataTypes = Field(default=_StageManagerDataTypes.USD, exclude=True)
 
-    @classmethod
-    @property
-    @abc.abstractmethod
-    def context_name(cls):
-        pass
-
-    @classmethod
-    @property
-    def data_type(cls):
-        return _StageManagerDataTypes.USD
+    context_name: str = Field(exclude=True)
+    listeners: list[_StageManagerListenerPlugin] = Field(
+        default=[
+            {"name": "StageManagerUSDLayersListenerPlugin"},
+            {"name": "StageManagerUSDNoticeListenerPlugin"},
+            {"name": "StageManagerUSDStageListenerPlugin"},
+        ],
+        exclude=True,
+    )
 
     def setup(self):
         for listener in self.listeners:
@@ -46,9 +42,3 @@ class StageManagerUSDContextPlugin(_StageManagerContextPlugin, abc.ABC):
                 listener.set_context_name(self.context_name)
 
         super().setup()
-
-    class Config(_StageManagerContextPlugin.Config):
-        fields = {
-            **_StageManagerContextPlugin.Config.fields,
-            "listeners": {"exclude": True},
-        }

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0]
+## Changed
+- Updated Pydantic to V2
+
 ## [2.0.3]
 ## Changed
 - Conform to ${target_deps} for path

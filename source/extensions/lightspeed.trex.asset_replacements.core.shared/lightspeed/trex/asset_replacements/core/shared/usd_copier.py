@@ -48,7 +48,7 @@ def copy_usd_asset(context: omni.usd.UsdContext, asset_path: str, callback_func:
     # init collector to copy the asset to the appropriate project subdirectory
     asset_replacements_core = _AssetReplacementsCore(context.get_name())
     asset_path_response_model = asset_replacements_core.get_default_output_directory_with_data_model()
-    dest_path = asset_path_response_model.asset_path
+    dest_path = asset_path_response_model.directory_path
     collector = Collector(usd_path=asset_path, collect_dir=dest_path)
 
     def set_ref():
@@ -75,7 +75,7 @@ def copy_non_usd_asset(context: omni.usd.UsdContext, asset_path: str, callback_f
         # obtain the destination directory path
         asset_replacements_core = _AssetReplacementsCore(context.get_name())
         asset_path_response_model = asset_replacements_core.get_default_output_directory_with_data_model()
-        dest_dir_path = asset_path_response_model.asset_path
+        dest_dir_path = asset_path_response_model.directory_path
 
         dest_dir_path_url = _OmniUrl(_OmniUrl(dest_dir_path).path)
         asset_path_basename = _OmniUrl(asset_path).name

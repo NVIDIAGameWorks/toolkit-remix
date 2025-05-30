@@ -16,13 +16,13 @@
 """
 
 from numbers import Number
-from typing import Any, Tuple
+from typing import Any
 
 import omni.ui as ui
 import omni.usd
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from pxr import Sdf
-from pydantic import validator
+from pydantic import Field, field_validator
 
 from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
 
@@ -31,11 +31,12 @@ class ResetPivot(_CheckBaseUSD):
     _ATTRIBUTE_NAME = "xformOp:translate:pivot"
 
     class Data(_CheckBaseUSD.Data):
-        pivot_position: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+        pivot_position: tuple[float, float, float] = Field(default=(0.0, 0.0, 0.0))
 
-        @validator("pivot_position", allow_reuse=True)
-        def translate_format_valid(cls, v):  # noqa N805
-            if len(v) != 3 or not all(isinstance(val, Number) for val in v):
+        @field_validator("pivot_position", mode="before")
+        @classmethod
+        def translate_format_valid(cls, v: tuple[float, float, float]) -> tuple[float, float, float]:
+            if not isinstance(v, tuple) or len(v) != 3 or not all(isinstance(val, Number) for val in v):
                 raise ValueError("The pivot position must be represented by a tuple of 3 float in the format (X,Y,Z).")
             return v
 
@@ -47,7 +48,7 @@ class ResetPivot(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check the data
 
@@ -93,7 +94,7 @@ class ResetPivot(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to fix the data
 

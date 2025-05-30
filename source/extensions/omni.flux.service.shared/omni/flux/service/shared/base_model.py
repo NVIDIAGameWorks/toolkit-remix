@@ -15,29 +15,20 @@
 * limitations under the License.
 """
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, ConfigDict
 
 
 class BaseServiceModel(BaseModel):
     """
-    Base Model used for all service models. It adds the ability for fields with the `hidden=True` attribute to be hidden
-    from the OpenAPI documentation.
+    Base Model used for all service models. It adds the ability for injected fields to be hidden from the OpenAPI
+    documentation and serialization.
 
     Fields should be injected dynamically in the service using `ServiceBase.inject_hidden_field`.
 
     Notes:
-        - Models requiring injected fields should use root_validators as the field will be added at the end of the
+        - Models requiring injected fields should use model_validator as the field will be added at the end of the
           fields list and will therefore not be accessible if using a regular field validator.
         - The first field of any PathParamModel will be used to validate the Path Parameter.
     """
 
-    class Config:
-        extra = Extra.allow
-
-        @staticmethod
-        def schema_extra(schema: dict, _):
-            props = {}
-            for k, v in schema.get("properties", {}).items():
-                if not v.get("hidden", False):
-                    props[k] = v
-            schema["properties"] = props
+    model_config = ConfigDict(extra="ignore")

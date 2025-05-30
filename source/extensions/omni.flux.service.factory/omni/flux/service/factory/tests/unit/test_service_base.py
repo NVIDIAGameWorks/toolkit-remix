@@ -67,10 +67,15 @@ class TestServiceBase(AsyncTestCase):
 
         # Act
         value = TestService.inject_hidden_fields(TestModel, context_name=context_name)
+        model_instance = value(value=True)
 
         # Assert
-        self.assertIsNotNone(value.__fields__.get("context_name", None))
-        self.assertDictEqual(value.__fields__["context_name"].field_info.extra, {"hidden": True})
+        # Verify the field exists in the model
+        self.assertIsNotNone(value.model_fields.get("context_name", None))
+        # Check that the field has the correct value and is accessible
+        self.assertEqual(model_instance.context_name, context_name)
+        # Verify the field is not included in the JSON schema
+        self.assertNotIn("context_name", value.model_json_schema().get("properties", {}))
 
     async def test_validate_param_returns_dependency(self):
         # Arrange
@@ -100,7 +105,7 @@ class TestServiceBase(AsyncTestCase):
         expected_exception = "Test Exception"
         param = TestService.validate_path_param(TestModel, context_name=expected_context)
 
-        with patch.object(BaseServiceModel, "parse_obj") as parse_obj_mock:
+        with patch.object(BaseServiceModel, "model_validate") as parse_obj_mock:
             parse_obj_mock.side_effect = ValueError(expected_exception)
 
             # Act
@@ -109,7 +114,9 @@ class TestServiceBase(AsyncTestCase):
 
         # Assert
         self.assertEqual(1, parse_obj_mock.call_count)
-        self.assertEqual(call({"value": expected_value, "context_name": expected_context}), parse_obj_mock.call_args)
+        self.assertEqual(
+            call({"value": expected_value}, context={"context_name": expected_context}), parse_obj_mock.call_args
+        )
 
         self.assertEqual(cm.exception.status_code, 422)
         self.assertEqual(cm.exception.detail, expected_exception)

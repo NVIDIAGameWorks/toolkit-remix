@@ -41,13 +41,19 @@ titleFormatString = "  NVIDIA RTX Remix TextureCraft  {verKey:/app/version,font_
 icon.file = "${lightspeed.trex.app.resources}/data/icons/nvidia-rtx-remix-icon-dbp-256.ico"
 
 [[test]]
+name = "startup"
+
 dependencies = [
     "lightspeed.trex.tests.settings",
 ]
 
 stdoutFailPatterns.exclude = [
     # lightspeed.dependencies will try to import but the error is still printed
-    "*[omni.ext.plugin] Failed to resolve extension dependencies.*"
+    "*[omni.ext.plugin] Failed to resolve extension dependencies.*",
+	# MCP Logging
+    "*[Error] [fastmcp.utilities.openapi] Failed to extract schema for media type*",
+    "*[py stderr]: *INFO*",
+    "*[py stderr]: *routes*",
 ]
 
 

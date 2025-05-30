@@ -6,3 +6,5 @@ omni.flux.properties_pane.transformation.widget
 
    README
    CHANGELOG
+
+.. automodule:: omni.flux.properties_pane.transformation.widget

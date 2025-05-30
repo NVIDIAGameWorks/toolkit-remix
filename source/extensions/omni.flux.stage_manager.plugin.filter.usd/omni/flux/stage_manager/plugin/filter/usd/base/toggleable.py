@@ -32,12 +32,11 @@ if TYPE_CHECKING:
 
 
 class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
-    filter_active: bool = True
+    filter_active: bool = Field(default=True)
+    include_results: bool = Field(default=True, description="Include or exclude prims")
 
-    include_results: bool = Field(True, description="Include or exclude prims")
-
-    _checkbox: ui.CheckBox | None = PrivateAttr()
-    _value_changed_sub: _EventSubscription | None = PrivateAttr()
+    _checkbox: ui.CheckBox | None = PrivateAttr(default=None)
+    _value_changed_sub: _EventSubscription | None = PrivateAttr(default=None)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

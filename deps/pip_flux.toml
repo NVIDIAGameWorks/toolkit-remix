@@ -35,8 +35,8 @@
 [[dependency]]
 python = "../_build/target-deps/python"
 packages = [
-    "fast-version==1.0.0",          # SWIPAT filed under: http://nvbugs/4546994
-    "pydantic==1.10.7",             # SWIPAT filed under: http://nvbugs/3952548
+    "fast-version==1.4.2",          # SWIPAT filed under: http://nvbugs/4546994
+    "pydantic==2.11.5",             # SWIPAT filed under: http://nvbugs/3952548
     "pyperclip==1.8.2",             # SWIPAT filed under: http://nvbugs/4257389
     "requests==2.32.3",             # SWIPAT filed under: http://nvbugs/4549153
     "shapely==2.0.5",               # SWIPAT filed under: http://nvbugs/4748740

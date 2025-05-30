@@ -24,18 +24,20 @@ from .base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
 
 
 class IgnorePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
-    display_name: str = "Ignore Prims"
-    tooltip: str = "Filter out Omniverse prims.\nInput a comma-separated list of prim paths to ignore."
+    display_name: str = Field(default="Ignore Prims", exclude=True)
+    tooltip: str = Field(
+        default="Filter out Omniverse prims.\nInput a comma-separated list of prim paths to ignore.", exclude=True
+    )
 
     ignore_prim_paths: set[str] = Field(
-        set(),
+        default=set(),
         description=(
             "A set of prim paths to filter out. The filter will filter out the given prims paths and any children paths"
         ),
     )
 
-    _string_field: ui.StringField = PrivateAttr()
-    _value_changed_sub: _EventSubscription | None = PrivateAttr()
+    _string_field: ui.StringField = PrivateAttr(default=None)
+    _value_changed_sub: _EventSubscription | None = PrivateAttr(default=None)
 
     def filter_predicate(self, item: _StageManagerItem) -> bool:
         is_valid = True

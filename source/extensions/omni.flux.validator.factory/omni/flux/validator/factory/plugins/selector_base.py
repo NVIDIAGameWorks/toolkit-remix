@@ -17,13 +17,14 @@
 
 import abc
 import time
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable
 
 import carb
 import omni.usd
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from pydantic import Field, validator
+from pydantic import Field, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 from .context_base import SetupDataTypeVar as _SetupDataTypeVar
 from .plugin_base import Base as _Base
@@ -32,21 +33,21 @@ from .schema_base import BaseSchema as _BaseSchema
 
 class SelectorBase(_Base, abc.ABC):
     class Data(_Base.Data):
-        on_select_callback: Optional[Callable[[bool, str, Any], Any]] = Field(default=None, exclude=True)
+        on_select_callback: Callable[[bool, str, Any], Any] | None = Field(default=None, exclude=True)
 
-        last_select_message: Optional[str] = None
-        last_select_data: Optional[Any] = Field(
-            default=None, exclude=True
-        )  # this is tmp we don't keep it in the schema
-        last_select_timing: Optional[float] = None
-        last_select_result: Optional[bool] = None
+        last_select_message: str | None = Field(default=None)
+        last_select_data: Any | None = Field(
+            default=None, exclude=True, description="This is tmp we don't keep it in the schema"
+        )
+        last_select_timing: float | None = Field(default=None)
+        last_select_result: bool | None = Field(default=None)
 
-        @validator("last_select_result", allow_reuse=True)
-        def _fire_last_select_result_callback(cls, v, values):  # noqa N805
-            """When the check result is set, the message and data is also set"""
-            callback = values.get("on_select_callback")
-            if callback:
-                callback(v, values["last_select_message"], values["last_select_data"])
+        @field_validator("last_select_result", mode="before")
+        @classmethod
+        def _fire_last_select_result_callback(cls, v: bool | None, info: ValidationInfo):
+            callback = info.data.get("on_select_callback")
+            if callback and v is not None:
+                callback(v, info.data.get("last_select_message"), info.data.get("last_select_data"))
             return v
 
     def __init__(self):
@@ -70,7 +71,7 @@ class SelectorBase(_Base, abc.ABC):
     @omni.usd.handle_exception
     async def select(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be called to select the data
 
@@ -100,7 +101,7 @@ class SelectorBase(_Base, abc.ABC):
     @abc.abstractmethod
     async def _select(
         self, schema_data: Any, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to select the data
 

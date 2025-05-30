@@ -20,7 +20,7 @@ import time
 from enum import Enum
 from functools import partial
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any
 
 import carb
 import omni.kit.app
@@ -33,7 +33,7 @@ from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.flux.validator.factory import utils as _validator_factory_utils
 from omni.kit.widget.prompt import Prompt
-from pydantic import validator
+from pydantic import ConfigDict, Field, field_validator
 
 from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
@@ -51,17 +51,22 @@ class GeneratePBRMaterial(_CheckBaseUSD):
     _DEFAULT_UI_WIDTH_PIXEL = 115
 
     class Data(_CheckBaseUSD.Data):
-        model_artifact_path: Path
-        config_artifact_path: Path
-        subdirectory_per_input: bool = True
-        min_inference_resolution: int = 64
-        max_inference_resolution: int = 512
-        noise_level: Optional[float] = None
-        denoising_steps: Optional[int] = None
-        inference_mode: InferenceMode = InferenceMode.QUALITY
+        model_artifact_path: Path = Field(...)
+        config_artifact_path: Path = Field(...)
+        subdirectory_per_input: bool = Field(default=True)
+        min_inference_resolution: int = Field(default=64)
+        max_inference_resolution: int = Field(default=512)
+        noise_level: float | None = Field(default=None)
+        denoising_steps: int | None = Field(default=None)
+        inference_mode: InferenceMode = Field(default=InferenceMode.QUALITY)
 
-        @validator("model_artifact_path", "config_artifact_path", allow_reuse=True)
-        def file_exists(cls, v):  # noqa N805
+        data_flows: list[_InOutDataFlow] | None = Field(default=None)
+
+        model_config = ConfigDict(validate_assignment=True)
+
+        @field_validator("model_artifact_path", "config_artifact_path", mode="before")
+        @classmethod
+        def file_exists(cls, v: Path | str) -> Path:
             resolved_path = carb.tokens.get_tokens_interface().resolve(str(v))
             file_url = _OmniUrl(resolved_path)
             if not file_url.exists or not file_url.is_file:
@@ -69,10 +74,6 @@ class GeneratePBRMaterial(_CheckBaseUSD):
             return Path(resolved_path)
 
         _compatible_data_flow_names = ["InOutData"]
-        data_flows: Optional[List[_InOutDataFlow]] = None  # override base argument with the good typing
-
-        class Config(_CheckBaseUSD.Data.Config):
-            validate_assignment = True
 
     name = "GeneratePBRMaterial"
     display_name = "Generate PBR Material"
@@ -124,7 +125,7 @@ class GeneratePBRMaterial(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check the data
 
@@ -160,7 +161,7 @@ class GeneratePBRMaterial(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to fix the data
 

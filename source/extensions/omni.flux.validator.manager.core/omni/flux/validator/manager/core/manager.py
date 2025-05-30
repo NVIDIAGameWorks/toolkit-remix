@@ -24,8 +24,8 @@ import sys
 from collections.abc import Iterable
 from contextlib import asynccontextmanager, contextmanager, redirect_stderr, redirect_stdout
 from enum import Enum as _Enum
-from json import JSONEncoder, dumps
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, Union
+from json import JSONEncoder
+from typing import Any, Awaitable, Callable
 
 import carb
 import carb.settings
@@ -44,7 +44,8 @@ from omni.flux.validator.factory import ContextSchema as _ContextSchema
 from omni.flux.validator.factory import ResultorSchema as _ResultorSchema
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.flux.validator.factory import get_instance as _get_factory_instance
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 EXTS_OMNI_SERVICES_TRANSPORT_SERVER_HTTP_HOST = "/exts/omni.services.transport.server.http/host"
 EXTS_OMNI_SERVICES_TRANSPORT_SERVER_HTTP_PORT = "/exts/omni.services.transport.server.http/port"
@@ -65,87 +66,101 @@ def disable_exception_traceback():
 
 
 class ValidationSchema(BaseModel):
-    on_progress_callback: Optional[Callable[[float, bool], None]] = Field(default=None, exclude=True)
-    on_finished_callback: Optional[Callable[[bool, str, bool], None]] = Field(default=None, exclude=True)
+    on_progress_callback: Callable[[float, bool], None] | None = Field(default=None, exclude=True)
+    on_finished_callback: Callable[[bool, str, bool], None] | None = Field(default=None, exclude=True)
 
     name: str
-    uuid: Optional[str] = None  # unique identifier to track a schema
-    data: Optional[Dict[Any, Any]] = None
-    progress: Optional[float] = 0.0  # progression value
-    send_request: Optional[bool] = False  # send a request to update the schema from the microservice
-    context_plugin: _ContextSchema
-    check_plugins: List[_CheckSchema]
-    resultor_plugins: Optional[List[_ResultorSchema]] = None
-    validation_passed: bool = False
-    finished: Optional[Tuple[bool, str]] = (False, "Nothing")  # validation finished or not
+    uuid: str | None = Field(default=None)
+    data: dict[Any, Any] | None = Field(default=None)
+    progress: float = Field(default=0.0)
+    send_request: bool = Field(default=False)
+    context_plugin: _ContextSchema = Field(...)
+    check_plugins: list[_CheckSchema] = Field(...)
+    resultor_plugins: list[_ResultorSchema] | None = Field(default=None)
+    validation_passed: bool = Field(default=False)
+    finished: tuple[bool, str] = Field(default=(False, "Nothing"))  # validation finished or not
 
-    @validator("uuid", allow_reuse=True)
-    def sanitize_uuid(cls, v):  # noqa N805
+    model_config = ConfigDict(validate_assignment=True)
+
+    @field_validator("uuid", mode="before")
+    @classmethod
+    def sanitize_uuid(cls, v: str | None) -> str | None:
         if v is not None:
-            v = v.replace("-", "")
+            v = str(v).replace("-", "")
         return v
 
-    @validator("progress", allow_reuse=True)
-    def _fire_progress_callback(cls, v, values):  # noqa N805
-        callback = values.get("on_progress_callback")
+    @field_validator("progress", mode="before")
+    @classmethod
+    def _fire_progress_callback(cls, v: float, info: ValidationInfo) -> float:
+        callback = info.data.get("on_progress_callback")
         if callback:
-            callback(v, set_schema_value=False, force_not_send_request=True)
+            callback(v, False, True)
         return v
 
-    @validator("finished", allow_reuse=True)
-    def _fire_finished_callback(cls, v, values):  # noqa N805
-        callback = values.get("on_finished_callback")
+    @field_validator("finished", mode="before")
+    @classmethod
+    def _fire_finished_callback(cls, v: tuple[bool, str], info: ValidationInfo):
+        callback = info.data.get("on_finished_callback")
         if callback:
             callback(*v, set_schema_value=False, force_not_send_request=True)
         return v
 
-    @validator("check_plugins", allow_reuse=True)
-    def at_least_one(cls, v):  # noqa
-        """Check if there is at least 1 check plugin"""
+    @field_validator("check_plugins", mode="before")
+    @classmethod
+    def at_least_one(cls, v: list[_CheckSchema]) -> list[_CheckSchema]:
         if not v:
             raise ValueError("We should have at least 1 check plugin")
         return v
-
-    class Config:
-        validate_assignment = True
 
     def update(self, data: dict) -> "ValidationSchema":
         """This function updates the attributes of a `ValidationSchema` instance with new values provided in a
         dictionary. The update is performed recursively for nested models and lists within the model."""
 
-        def _update(model: BaseModel, new_values: dict):
+        # Validate only at the top level
+        validated_data = self.model_validate(data).model_dump(serialize_as_any=True)
 
-            def nested_update(value_attr, new_value_attr, model_key, model_val):
-                if new_value_attr is None:
-                    setattr(model, model_key, new_value_attr)
-                    return
-                if isinstance(value_attr, BaseModel):
-                    _update(value_attr, new_value_attr)
-                elif isinstance(value_attr, list):
-                    for i, value in enumerate(value_attr):
-                        nested_update(value, new_value_attr[i], model_key, model_val)
-                elif isinstance(value_attr, dict):
-                    for i, key in enumerate(list(value_attr.keys())):
-                        nested_update(key, list(new_value_attr.keys())[i], model_key, model_val)
-                    for key, value in value_attr.items():
-                        nested_update(value, value_attr[key], model_key, model_val)
+        # Create an update function that works with the validated data
+        def _update(model: BaseModel, updated_values: dict):
+            for field_name, value in updated_values.items():
+                if not hasattr(model, field_name):
+                    continue
+
+                current_value = getattr(model, field_name)
+
+                # Handle nested BaseModels
+                if isinstance(current_value, BaseModel):
+                    if isinstance(value, dict):
+                        _update(current_value, value)
+                    else:
+                        setattr(model, field_name, value)
+                # Handle lists (potentially containing models)
+                elif isinstance(current_value, list):
+                    if isinstance(value, list):
+                        # Only update existing items, don't add new ones
+                        for i, item in enumerate(current_value):
+                            if i >= len(value):
+                                continue
+                            if isinstance(item, BaseModel) and isinstance(value[i], dict):
+                                _update(item, value[i])
+                            else:
+                                current_value[i] = value[i]
+                    else:
+                        setattr(model, field_name, value)
+                # Handle dictionaries
+                elif isinstance(current_value, dict):
+                    if isinstance(value, dict):
+                        for key in current_value:
+                            if key not in value:
+                                continue
+                            current_value[key] = value[key]
+                    else:
+                        setattr(model, field_name, value)
+                # Simple values
                 else:
-                    curr_val = getattr(model, model_key)
-                    if curr_val != model_val:
-                        setattr(model, model_key, model_val)
+                    setattr(model, field_name, value)
 
-            for model_key, model_val in model.validate(new_values).dict(exclude_defaults=False).items():
-                value_attr = getattr(model, model_key)
-                if isinstance(new_values, BaseModel):
-                    new_value_attr = getattr(new_values, model_key)
-                else:
-
-                    new_value_attr = new_values[model_key]
-                nested_update(value_attr, new_value_attr, model_key, model_val)
-
-        update = self.validate(data).dict()
-        update.update(data)
-        _update(self, update)
+        # Update the model with the validated data
+        _update(self, validated_data)
 
         return self
 
@@ -160,7 +175,7 @@ def validation_schema_json_encoder(obj):
 
 
 class ManagerCore:
-    def __init__(self, schema: Dict):
+    def __init__(self, schema: dict):
         """
         Validation manager that will execute the validation.
 
@@ -206,7 +221,8 @@ class ManagerCore:
         self.__pause_validation = False
         self.__stop_validation = False
         self.__progress = 0.0
-        self.__model = ValidationSchema(**schema)
+
+        self.__model = ValidationSchema(**self._recursive_model_dump(schema))
         self.__model.on_progress_callback = self._on_run_progress
         self.__model.on_finished_callback = self._on_run_finished
 
@@ -222,13 +238,27 @@ class ManagerCore:
     def is_stopped(self):
         return self.__stop_validation
 
-    def mass_build_queue_action_ui(self, default_actions: List[Callable[[], Any]], callback: Callable[[str], Any]):
+    def _recursive_model_dump(self, schema: Any) -> dict:
+        """
+        Recursively convert any Pydantic models in the data to dictionaries
+
+        Pydantic V2 doesn't deepcopy the data when validating the model so sub-models will be mutated without this.
+        """
+        if isinstance(schema, BaseModel):
+            return schema.model_dump(serialize_as_any=True)
+        if isinstance(schema, dict):
+            return {k: self._recursive_model_dump(v) for k, v in schema.items()}
+        if isinstance(schema, Iterable) and not isinstance(schema, (str, dict)):
+            return type(schema)(self._recursive_model_dump(item) for item in schema)
+        return schema
+
+    def mass_build_queue_action_ui(self, default_actions: list[Callable[[], Any]], callback: Callable[[str], Any]):
         """
         Default exposed action for Mass validation. The UI will be built into the delegate of the mass queue.
         """
 
         def nester_mass_build_queue_action_ui_for_plugins(model):
-            to_dict = model.dict()
+            to_dict = model.model_dump(serialize_as_any=True)
             for attr in to_dict.keys():
                 next_plugin = getattr(model, attr)
                 next_plugins = []
@@ -246,7 +276,7 @@ class ManagerCore:
 
     def __init_sub_validator_run_by_plugin(self):
         def nester_init_sub_validator_run_by_plugin(model):
-            to_dict = model.dict()
+            to_dict = model.model_dump(serialize_as_any=True)
             for attr in to_dict.keys():
                 next_plugin = getattr(model, attr)
                 next_plugins = []
@@ -292,12 +322,12 @@ class ManagerCore:
         """
         self.__is_ready_to_run[plugin_id] = enable
 
-    def is_ready_to_run(self) -> Dict[int, bool]:
+    def is_ready_to_run(self) -> dict[int, bool]:
         """Tell if the validator is enabled or not"""
         return self.__is_ready_to_run
 
     def __on_validator_run_by_plugin(
-        self, items: List[_BaseInstancePlugin], run_mode: _BaseValidatorRunMode, catch_exception: bool = True
+        self, items: list[_BaseInstancePlugin], run_mode: _BaseValidatorRunMode, catch_exception: bool = True
     ):
         self.run(run_mode=run_mode, instance_plugins=items, catch_exception=catch_exception)
 
@@ -308,14 +338,14 @@ class ManagerCore:
 
     def update_model(self, model: ValidationSchema):
         """Return the current model of the schema"""
-        self.__model.update(model.dict())
+        self.__model.update(model.model_dump(serialize_as_any=True))
 
     @_ignore_function_decorator(attrs=["_ignore_on_run_progress"])
     def _on_run_progress(self, progress, set_schema_value=True, force_not_send_request: bool = False):
         carb.log_info(f"Progress: {progress}%")
 
         def nester_on_run_progress(model):
-            to_dict = model.dict()
+            to_dict = model.model_dump(serialize_as_any=True)
             for attr in to_dict.keys():
                 next_plugin = getattr(model, attr)
                 next_plugins = []
@@ -346,7 +376,6 @@ class ManagerCore:
         port = self.__settings.get(EXTS_OMNI_SERVICES_TRANSPORT_SERVER_HTTP_PORT)
         prefix = self.__settings.get(EXTS_MASS_VALIDATOR_SERVICE_PREFIX)
 
-        data = dumps(self.__model.dict(), default=validation_schema_json_encoder)
         url = f"http://{host}:{port}{prefix}/mass-validator/schema"  # use IP. localhost is very slow
         if self.__current_queue_id:
             url += f"?queue_id={self.__current_queue_id}"  # Set the query param if we have a queue ID
@@ -354,7 +383,7 @@ class ManagerCore:
         r = None
         try:
             # Sending a schema update request should be quick. Set a short timeout.
-            r = requests.put(url, data=data, timeout=5)
+            r = requests.put(url, data=self.model.model_dump_json(serialize_as_any=True), timeout=5)
             r.raise_for_status()
         except (requests.exceptions.ConnectionError, requests.exceptions.HTTPError) as e:
             raise ValueError(r.text) from e
@@ -364,11 +393,11 @@ class ManagerCore:
 
     @_ignore_function_decorator(attrs=["_ignore_on_run_finished"])
     def _on_run_finished(
-        self, result, message: Optional[str] = None, set_schema_value: bool = True, force_not_send_request: bool = False
+        self, result, message: str | None = None, set_schema_value: bool = True, force_not_send_request: bool = False
     ):
         if self.__print_result:
             pprint.pprint("=" * 50)
-            pprint.pprint(self.__model.dict())
+            pprint.pprint(self.__model.model_dump(serialize_as_any=True))
         if set_schema_value:
             self.__model.finished = (result, message)
         self.__run_finished = result
@@ -380,7 +409,7 @@ class ManagerCore:
     def is_run_finished(self):
         return self.__run_finished
 
-    def subscribe_run_finished(self, callback: Callable[[bool, Optional[str]], Any]):
+    def subscribe_run_finished(self, callback: Callable[[bool, str | None], Any]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
@@ -448,7 +477,7 @@ class ManagerCore:
         return selector_data
 
     async def __run_resultor(
-        self, plugin_model: Union[_CheckSchema, ValidationSchema], progress_check: int, progress_check_add: int
+        self, plugin_model: _CheckSchema | ValidationSchema, progress_check: int, progress_check_add: int
     ):
         if plugin_model.resultor_plugins:
             size_plugins = len(plugin_model.resultor_plugins)
@@ -687,7 +716,7 @@ class ManagerCore:
         print_result: bool = False,
         silent: bool = False,
         run_mode: _BaseValidatorRunMode = _BaseValidatorRunMode.BASE_ALL,
-        instance_plugins: Optional[List[_BaseInstancePlugin]] = None,
+        instance_plugins: list[_BaseInstancePlugin] | None = None,
         queue_id: str | None = None,
     ):
         """
@@ -732,7 +761,7 @@ class ManagerCore:
         print_result: bool = False,
         silent: bool = False,
         run_mode: _BaseValidatorRunMode = _BaseValidatorRunMode.BASE_ALL,
-        instance_plugins: Optional[List[_BaseInstancePlugin]] = None,
+        instance_plugins: list[_BaseInstancePlugin] | None = None,
         queue_id: str | None = None,
     ):
         """
@@ -757,7 +786,7 @@ class ManagerCore:
 
     def __set_mode_base_all(self):
         def _nester_set_mode_base_all(model, original_model):
-            to_dict = model.dict()
+            to_dict = model.model_dump(serialize_as_any=True)
             for attr in to_dict.keys():
                 next_plugin = getattr(model, attr)
                 next_original_plugin = getattr(original_model, attr)
@@ -776,7 +805,7 @@ class ManagerCore:
 
         _nester_set_mode_base_all(self.__model, self.__model_original)
 
-    def __set_mode_base_only_selected(self, instance_plugins: Optional[List[_BaseInstancePlugin]] = None):
+    def __set_mode_base_only_selected(self, instance_plugins: list[_BaseInstancePlugin] | None = None):
         if not instance_plugins:
             instance_plugins = []
 
@@ -821,7 +850,7 @@ class ManagerCore:
                     [resultor_plugin.instance in instance_plugins, resultor_original_plugin.enabled]
                 )
 
-    def __set_mode_base_self_to_end(self, instance_plugins: Optional[List[_BaseInstancePlugin]] = None):
+    def __set_mode_base_self_to_end(self, instance_plugins: list[_BaseInstancePlugin] | None = None):
         if not instance_plugins:
             instance_plugins = []
         # context should always be enabled by default
@@ -873,7 +902,7 @@ class ManagerCore:
     async def deferred_set_mode(
         self,
         run_mode: _BaseValidatorRunMode = _BaseValidatorRunMode.BASE_ALL,
-        instance_plugins: Optional[List[_BaseInstancePlugin]] = None,
+        instance_plugins: list[_BaseInstancePlugin] | None = None,
     ):
         """
         Run the validation using the current schema
@@ -893,7 +922,7 @@ class ManagerCore:
     async def disable_some_plugins(
         self,
         run_mode: _BaseValidatorRunMode = _BaseValidatorRunMode.BASE_ALL,
-        instance_plugins: Optional[List[_BaseInstancePlugin]] = None,
+        instance_plugins: list[_BaseInstancePlugin] | None = None,
     ):
         """
         Context manager that will disable some plugins usin a run mode
@@ -903,12 +932,12 @@ class ManagerCore:
             instance_plugins: plugins used by the mode to run
         """
         carb.log_info("Temporarily disable some plugins: start")
-        saved_model = ValidationSchema.parse_obj(self.__model.dict())
+        saved_model = ValidationSchema.parse_obj(self.__model.model_dump(serialize_as_any=True))
         await self.deferred_set_mode(run_mode, instance_plugins=instance_plugins)
         yield
 
         def _nester_disable_some_plugins(model, original_model):
-            to_dict = model.dict()
+            to_dict = model.model_dump(serialize_as_any=True)
             for attr in to_dict.keys():
                 next_plugin = getattr(model, attr)
                 next_original_plugin = getattr(original_model, attr)
@@ -934,7 +963,7 @@ class ManagerCore:
         print_result: bool = False,
         silent: bool = False,
         run_mode: _BaseValidatorRunMode = _BaseValidatorRunMode.BASE_ALL,
-        instance_plugins: Optional[List[_BaseInstancePlugin]] = None,
+        instance_plugins: list[_BaseInstancePlugin] | None = None,
         queue_id: str | None = None,
     ):
         """
@@ -965,7 +994,7 @@ class ManagerCore:
 
         # reset progress for all plugins
         def nester_reset_progress(model):
-            to_dict = model.dict()
+            to_dict = model.model_dump(serialize_as_any=True)
             for attr in to_dict.keys():
                 next_plugin = getattr(model, attr)
                 next_plugins = []
@@ -985,7 +1014,7 @@ class ManagerCore:
         self._on_run_progress(0.0)
 
         async def go():
-            self.__model_original = ValidationSchema.parse_obj(self.__model.dict())
+            self.__model_original = ValidationSchema.parse_obj(self.__model.model_dump(serialize_as_any=True))
             async with self.disable_some_plugins(run_mode, instance_plugins=instance_plugins):
                 self._on_run_progress(50)
                 await self.__run_context(self.__model.context_plugin, self.__run_check_groups, None)
@@ -1000,7 +1029,7 @@ class ManagerCore:
         self.__subs_validator_run_by_plugin = None
 
         def nester_destroy(model):
-            to_dict = model.dict()
+            to_dict = model.model_dump(serialize_as_any=True)
             for attr in to_dict.keys():
                 next_plugin = getattr(model, attr)
                 next_plugins = []

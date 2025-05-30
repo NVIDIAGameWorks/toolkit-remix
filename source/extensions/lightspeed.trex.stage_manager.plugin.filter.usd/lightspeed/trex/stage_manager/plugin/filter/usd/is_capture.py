@@ -36,23 +36,23 @@ class ReferenceType(Enum):
 
 
 class IsCaptureFilterPlugin(_StageManagerUSDFilterPlugin):
-    display_name: str = "Prim Reference Type"
-    tooltip: str = "Filter by prim reference type (captured or replaced)"
+    display_name: str = Field(default="Prim Reference Type", exclude=True)
+    tooltip: str = Field(default="Filter by prim reference type (captured or replaced)", exclude=True)
 
     reference_type: ReferenceType = Field(
-        ReferenceType.ALL, description="Whether to keep captured, replaced, or all references when filtering"
+        default=ReferenceType.ALL, description="Whether to keep captured, replaced, or all references when filtering"
     )
 
     _REFERENCE_TYPE_LABELS: dict = PrivateAttr(
-        {
+        default={
             ReferenceType.ALL: "All References",
             ReferenceType.CAPTURED: "Captured Only",
             ReferenceType.REPLACED: "Replaced Only",
         }
     )
-    _COMBO_BOX_WIDTH: int = PrivateAttr(130)
+    _COMBO_BOX_WIDTH: int = PrivateAttr(default=130)
 
-    _ref_type_combobox: ui.ComboBox | None = PrivateAttr(None)
+    _ref_type_combobox: ui.ComboBox | None = PrivateAttr(default=None)
 
     def filter_predicate(self, item: _StageManagerItem) -> bool:
         match self.reference_type:

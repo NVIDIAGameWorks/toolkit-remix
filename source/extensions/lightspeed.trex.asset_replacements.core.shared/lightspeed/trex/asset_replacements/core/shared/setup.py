@@ -1,3 +1,5 @@
+# noqa PLC0302
+
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -39,6 +41,7 @@ from lightspeed.trex.utils.common.prim_utils import filter_prims_paths as _filte
 from lightspeed.trex.utils.common.prim_utils import get_children_prims
 from lightspeed.trex.utils.common.prim_utils import get_extended_selection as _get_extended_selection
 from lightspeed.trex.utils.common.prim_utils import get_prim_paths as _get_prim_paths
+from omni.flux.asset_importer.core.data_models import SUPPORTED_ASSET_EXTENSIONS as _SUPPORTED_ASSET_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
 from omni.flux.utils.common import path_utils as _path_utils
@@ -55,14 +58,17 @@ if typing.TYPE_CHECKING:
 
 from .data_models import (
     AppendReferenceRequestModel,
-    AssetPathResponseModel,
     AssetReplacementsValidators,
+    AssetType,
     DefaultAssetDirectory,
+    DirectoryResponseModel,
+    FilePathsResponseModel,
+    GetAvailableAssetsQueryModel,
     GetPrimsQueryModel,
     GetTexturesQueryModel,
     PrimInstancesPathParamModel,
+    PrimPathsResponseModel,
     PrimReferencePathParamModel,
-    PrimsResponseModel,
     PrimTexturesPathParamModel,
     ReferenceResponseModel,
     ReplaceReferenceRequestModel,
@@ -96,22 +102,19 @@ class Setup:
 
     # DATA MODEL FUNCTIONS
 
-    def get_selected_prim_paths_with_data_model(self) -> PrimsResponseModel:
-        return PrimsResponseModel(asset_paths=self.get_selected_prim_paths())
-
     def select_prim_paths_with_data_model(self, body: SetSelectionPathParamModel):
-        self.select_prim_paths(body.asset_paths)
+        self.select_prim_paths(body.prim_paths)
 
-    def get_prim_paths_with_data_model(self, query: GetPrimsQueryModel) -> PrimsResponseModel:
+    def get_prim_paths_with_data_model(self, query: GetPrimsQueryModel) -> PrimPathsResponseModel:
         prim_paths = []
 
         selection = None
         if query.return_selection:
             selection = _get_extended_selection(context_name=self._context_name)
 
-        for prim_type in query.asset_types if query.asset_types is not None else [None]:
+        for prim_type in query.prim_types if query.prim_types is not None else [None]:
             prim_paths += _get_prim_paths(
-                asset_hashes=query.asset_hashes,
+                prim_hashes=query.prim_hashes,
                 prim_type=prim_type,
                 selection=selection,
                 filter_session_prims=query.filter_session_prims,
@@ -120,17 +123,17 @@ class Setup:
                 context_name=self._context_name,
             )
 
-        return PrimsResponseModel(asset_paths=prim_paths)
+        return PrimPathsResponseModel(prim_paths=prim_paths)
 
-    def get_instances_with_data_model(self, params: PrimInstancesPathParamModel) -> PrimsResponseModel:
-        return PrimsResponseModel(asset_paths=list(self.get_instances_from_mesh_path(params.asset_path)))
+    def get_instances_with_data_model(self, params: PrimInstancesPathParamModel) -> PrimPathsResponseModel:
+        return PrimPathsResponseModel(prim_paths=list(self.get_instances_from_mesh_path(params.prim_path)))
 
     def get_textures_with_data_model(
         self, params: PrimTexturesPathParamModel, query: GetTexturesQueryModel
     ) -> TexturesResponseModel:
         return TexturesResponseModel(
             textures=self.get_textures_from_material_path(
-                params.asset_path,
+                params.prim_path,
                 texture_types=(
                     {_TextureTypes[texture_type.value] for texture_type in query.texture_types}
                     if query.texture_types
@@ -141,7 +144,7 @@ class Setup:
 
     def get_reference_with_data_model(self, params: PrimReferencePathParamModel) -> ReferenceResponseModel:
         introducing_prim, references = AssetReplacementsValidators.get_prim_references(
-            params.asset_path, self._context_name
+            params.prim_path, self._context_name
         )
         return ReferenceResponseModel(
             reference_paths=[
@@ -157,14 +160,14 @@ class Setup:
             edit_target_layer = stage.GetEditTarget().GetLayer()
 
             introducing_prim, references = AssetReplacementsValidators.get_prim_references(
-                params.asset_path, self._context_name
+                params.prim_path, self._context_name
             )
             prim_path = introducing_prim.GetPath()
 
             if body.existing_asset_layer_id and body.existing_asset_file_path:
                 current_layer = Sdf.Layer.FindOrOpen(str(body.existing_asset_layer_id))
                 current_ref = Sdf.Reference(
-                    assetPath=_OmniUrl(body.existing_asset_file_path).path, primPath=str(params.asset_path)
+                    assetPath=_OmniUrl(body.existing_asset_file_path).path, primPath=str(params.prim_path)
                 )
             else:
                 current_ref, current_layer = references[0]
@@ -197,7 +200,7 @@ class Setup:
         with omni.kit.undo.group():
             stage = self._context.get_stage()
             edit_target_layer = stage.GetEditTarget().GetLayer()
-            introducing_prim, _ = AssetReplacementsValidators.get_prim_references(params.asset_path, self._context_name)
+            introducing_prim, _ = AssetReplacementsValidators.get_prim_references(params.prim_path, self._context_name)
 
             reference, child_prim_path = self.add_new_reference(
                 stage,
@@ -213,7 +216,7 @@ class Setup:
 
     def get_default_output_directory_with_data_model(
         self, directory: DefaultAssetDirectory = DefaultAssetDirectory.INGESTED
-    ) -> AssetPathResponseModel:
+    ) -> DirectoryResponseModel:
         stage = self._context.get_stage()
         if not stage:
             raise ValueError("No stage is currently loaded.")
@@ -224,7 +227,53 @@ class Setup:
         project_url = _OmniUrl(root_layer.realPath)
         output_directory = _OmniUrl(project_url.parent_url) / directory.value
 
-        return AssetPathResponseModel(asset_path=str(output_directory))
+        return DirectoryResponseModel(directory_path=str(output_directory))
+
+    def get_available_assets_with_data_model(
+        self, directory: DefaultAssetDirectory, query: GetAvailableAssetsQueryModel = None
+    ) -> FilePathsResponseModel:
+        output_directory = self.get_default_output_directory_with_data_model(directory)
+        if not output_directory:
+            return FilePathsResponseModel(file_paths=[])
+
+        # List of file paths that match the criteria
+        file_paths = []
+
+        # Get all files recursively
+        def recursive_list_files(dir_path: str) -> list[str]:
+            result = []
+
+            for entry in _OmniUrl(dir_path).iterdir():
+                if entry.is_directory:
+                    # Recursively get files from subdirectories
+                    result.extend(recursive_list_files(str(entry)))
+                else:
+                    # Add file to results
+                    result.append(str(entry))
+
+            return result
+
+        all_files = recursive_list_files(str(output_directory.directory_path))
+
+        # Filter files based on directory type and query.asset_type
+        if directory == DefaultAssetDirectory.INGESTED:
+            if not query or not query.asset_type or query.asset_type == AssetType.ANY:
+                # Return models and textures
+                file_paths = [f for f in all_files if _OmniUrl(f).suffix.lower() in [".dds", *constants.USD_EXTENSIONS]]
+            elif query.asset_type == AssetType.MODELS:
+                # Return only USD files
+                file_paths = [f for f in all_files if _OmniUrl(f).suffix.lower() in constants.USD_EXTENSIONS]
+            elif query.asset_type == AssetType.TEXTURES:
+                # Return only DDS files
+                file_paths = [f for f in all_files if _OmniUrl(f).suffix.lower() == ".dds"]
+        elif directory == DefaultAssetDirectory.MODELS:
+            # Return only supported model files
+            file_paths = [f for f in all_files if _OmniUrl(f).suffix.lower() in _SUPPORTED_ASSET_EXTENSIONS]
+        elif directory == DefaultAssetDirectory.TEXTURES:
+            # Return only supported texture files
+            file_paths = [f for f in all_files if _OmniUrl(f).suffix.lower() in _SUPPORTED_TEXTURE_EXTENSIONS]
+
+        return FilePathsResponseModel(file_paths=file_paths)
 
     # TRADITIONAL FUNCTIONS
 
@@ -518,9 +567,9 @@ class Setup:
 
     def asset_is_in_project_dir(self, path: str, layer: "Sdf.Layer", include_deps_dir: bool = False) -> bool:
         # get asset, root, and deps urls
-        asset_path = layer.ComputeAbsolutePath(path)
-        asset_path_url = omni.client.normalize_url(asset_path)
-        asset_path_str = asset_path_url.lower()
+        prim_path = layer.ComputeAbsolutePath(path)
+        prim_path_url = omni.client.normalize_url(prim_path)
+        prim_path_str = prim_path_url.lower()
 
         root_path_url = _OmniUrl(_OmniUrl(self._context.get_stage_url()).parent_url)
         root_path_str = omni.client.normalize_url(str(root_path_url))
@@ -531,8 +580,8 @@ class Setup:
         deps_path_str = deps_path_url.lower()
 
         # return true if the asset is in proj dir and not in /deps
-        result = root_path_str in asset_path_str
-        if not include_deps_dir and deps_path_str in asset_path_str:
+        result = root_path_str in prim_path_str
+        if not include_deps_dir and deps_path_str in prim_path_str:
             result = False
         return result
 

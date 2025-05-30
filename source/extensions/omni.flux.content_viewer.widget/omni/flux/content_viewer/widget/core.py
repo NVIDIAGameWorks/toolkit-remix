@@ -28,7 +28,7 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import async_wrap as _async_wrap
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.resources import get_icons as _get_icons
-from pydantic import BaseModel, root_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from .thumbnail_core import ThumbnailCore as _ThumbnailCore
 
@@ -48,13 +48,16 @@ class ContentData(BaseContentData):
     checkpoint_version: Optional[int] = None
     original_path: Optional[str] = None  # dont set it
 
-    @root_validator(allow_reuse=True)
-    def inject_checkpoint_version(cls, values):  # noqa: N805
-        if values["original_path"] is None:
-            values["original_path"] = values["path"]
-        if values["checkpoint_version"] is not None:
-            values["path"] = f"{values['original_path']}?&{values['checkpoint_version']}"
-        return values
+    model_config = ConfigDict(validate_assignment=True)
+
+    @model_validator(mode="after")
+    @classmethod
+    def inject_checkpoint_version(cls, instance_model):  # noqa: N805
+        if instance_model.original_path is None:
+            instance_model.original_path = instance_model.path
+        if instance_model.checkpoint_version is not None:
+            instance_model.path = f"{instance_model.original_path}?&{instance_model.checkpoint_version}"
+        return instance_model
 
     def is_checkpointed(self) -> bool:
         result, entry = omni.client.stat(self.original_path)
@@ -64,10 +67,6 @@ class ContentData(BaseContentData):
 
     def __hash__(self):
         return hash((self.title, self.path))
-
-    class Config:
-        underscore_attrs_are_private = True
-        validate_assignment = True
 
 
 class ContentDataAdd(BaseContentData):

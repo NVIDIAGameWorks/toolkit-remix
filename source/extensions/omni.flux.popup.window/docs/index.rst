@@ -5,5 +5,6 @@ omni.flux.popup.window
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.popup.window

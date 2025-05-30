@@ -5,5 +5,6 @@ omni.flux.selection_history_tree.model.usd
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.selection_history_tree.model.usd

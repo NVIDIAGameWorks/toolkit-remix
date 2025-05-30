@@ -23,7 +23,8 @@ import carb
 import omni.usd
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 from .plugin_base import Base as _Base
 from .schema_base import BaseSchema as _BaseSchema
@@ -33,16 +34,17 @@ class ResultorBase(_Base, abc.ABC):
     class Data(_Base.Data):
         on_resultor_callback: Callable[[bool, str], Any] | None = Field(default=None, exclude=True)
 
-        last_resultor_message: str | None = None
-        last_resultor_timing: float | None = None
-        last_resultor_result: bool | None = None
+        last_resultor_message: str | None = Field(default=None)
+        last_resultor_timing: float | None = Field(default=None)
+        last_resultor_result: bool | None = Field(default=None)
 
-        @validator("last_resultor_result", allow_reuse=True)
-        def _fire_last_resultor_result_callback(cls, v, values):  # noqa N805
+        @field_validator("last_resultor_result", mode="before")
+        @classmethod
+        def _fire_last_resultor_result_callback(cls, v: bool | None, info: ValidationInfo):
             """When the check result is set, the message and data is also set"""
-            callback = values.get("on_resultor_callback")
-            if callback:
-                callback(v, values["last_resultor_message"])
+            callback = info.data.get("on_resultor_callback")
+            if callback and v is not None:
+                callback(v, info.data.get("last_resultor_message"))
             return v
 
     def __init__(self):

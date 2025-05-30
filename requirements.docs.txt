@@ -1,1 +1,2 @@
 sphinxcontrib-video==0.4.1
+autodoc_pydantic==2.2.0

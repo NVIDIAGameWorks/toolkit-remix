@@ -55,7 +55,7 @@ async def _mass_cook_template(self, schema_data_template: Data) -> Tuple[bool, O
     """
     result = []
     for file in schema_data_template.input_files:
-        schema = self.Data(**schema_data_template.dict())
+        schema = self.Data(**schema_data_template.model_dump(serialize_as_any=True))
         schema.input_files = [str(file.path)]
         result.append(schema)
     return True, None, result
@@ -90,7 +90,7 @@ async def _mass_cook_template(self, schema_data_template: Data) -> Tuple[bool, O
     """
     result = []
     for file in schema_data_template.input_files:
-        schema = self.Data(**schema_data_template.dict())
+        schema = self.Data(**schema_data_template.model_dump(serialize_as_any=True))
         schema.input_files = [str(file.path)]
         schema.display_name_mass_template = str(file.path.stem)  # <-- here
         result.append(schema)

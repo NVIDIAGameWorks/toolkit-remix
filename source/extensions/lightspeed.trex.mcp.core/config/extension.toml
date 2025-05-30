@@ -1,0 +1,56 @@
+[package]
+version = "1.0.0"
+authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
+title = "NVIDIA RTX Remix Micro-Service MCP Server"
+description = "Micro-Service MCP Server Core for NVIDIA RTX Remix"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["micro", "service", "mcp", "server"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.trex.service.core" = {}  # Make sure the REST API is started before the MCP server
+"lightspeed.pip_archive" = {}  # For FastMCP
+"omni.services.core" = {}
+
+[[python.module]]
+name = "lightspeed.trex.mcp.core"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    "--/renderer/mdl/searchPaths/templates=${lightspeed.trex.app.resources}/deps/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+]
+
+stdoutFailPatterns.exclude = [
+    # MCP Logging
+    "*[Error] [fastmcp.utilities.openapi] Failed to extract schema for media type*",
+    "*[py stderr]: *INFO*",
+    "*[py stderr]: *routes*",
+    # Generic Error
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    "--/renderer/mdl/searchPaths/templates=${lightspeed.trex.app.resources}/deps/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+]
+stdoutFailPatterns.exclude = [
+    # MCP Logging
+    "*[Error] [fastmcp.utilities.openapi] Failed to extract schema for media type*",
+    "*[py stderr]: *INFO*",
+    "*[py stderr]: *routes*",
+    # Generic Error
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]

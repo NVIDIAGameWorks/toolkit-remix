@@ -20,7 +20,7 @@ from typing import Callable, Generic, TypeVar
 
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from pydantic import PrivateAttr
+from pydantic import Field, PrivateAttr
 
 from ..enums import StageManagerDataTypes as _StageManagerDataTypes
 from .base import StageManagerPluginBase as _StageManagerPluginBase
@@ -33,26 +33,17 @@ class StageManagerListenerPlugin(_StageManagerPluginBase, Generic[T], abc.ABC):
     A plugin that allows listening to a source and notify any plugin listening
     """
 
-    _on_event_occurred: _Event = PrivateAttr()
+    event_type: type = Field(description="The type of event that this listener subscribes to", exclude=True)
+    compatible_data_type: _StageManagerDataTypes = Field(
+        default=_StageManagerDataTypes.NONE, description="The data type that this listener supports.", exclude=True
+    )
+
+    _on_event_occurred: _Event = PrivateAttr(default=None)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         self._on_event_occurred = _Event()
-
-    @classmethod
-    @property
-    @abc.abstractmethod
-    def event_type(cls) -> type:
-        """
-        The type of event that this listener subscribes to
-        """
-        pass
-
-    @classmethod
-    @property
-    def compatible_data_type(cls):
-        return _StageManagerDataTypes.NONE
 
     @abc.abstractmethod
     def setup(self):
@@ -75,9 +66,3 @@ class StageManagerListenerPlugin(_StageManagerPluginBase, Generic[T], abc.ABC):
             data: Any data that might be relevant to the event
         """
         self._on_event_occurred(data)
-
-    class Config(_StageManagerPluginBase.Config):
-        fields = {
-            **_StageManagerPluginBase.Config.fields,
-            "event_type": {"exclude": True},
-        }

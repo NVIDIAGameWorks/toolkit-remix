@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from typing import Annotated
+
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from lightspeed.layer_manager.core.data_models import (
     CreateLayerRequestModel,
@@ -35,7 +37,7 @@ from lightspeed.layer_manager.core.data_models import (
     SetEditTargetPathParamModel,
 )
 from omni.flux.service.factory import ServiceBase
-from pydantic import constr
+from pydantic import Field
 
 
 class LayerManagerService(ServiceBase):
@@ -63,12 +65,15 @@ class LayerManagerService(ServiceBase):
 
         @self.router.get(
             path="/",
+            operation_id="get_layers",
             description="Get the layer tree in the current stage.",
             response_model=LayerStackResponseModel,
         )
         async def get_layers(
             # Use regex to validate the enum values since None is also a valid type
-            layer_types: set[constr(regex=layer_types_pattern)] = ServiceBase.describe_query_param(  # noqa B008,F722
+            layer_types: set[
+                Annotated[str, Field(pattern=layer_types_pattern)]
+            ] = ServiceBase.describe_query_param(  # noqa B008,F722
                 None, "The type of layer to get. Filtering by layer type will ignore layer children."
             ),
             layer_count: int = ServiceBase.describe_query_param(  # noqa B008
@@ -84,6 +89,7 @@ class LayerManagerService(ServiceBase):
 
         @self.router.get(
             path="/{layer_id:path}/sublayers",
+            operation_id="get_sublayers",
             description="Get the immediate sublayers of the given layer.",
             response_model=LayerStackResponseModel,
         )
@@ -93,8 +99,10 @@ class LayerManagerService(ServiceBase):
                 description="Layer identifier for the layer to get the sublayers from",
                 context_name=context_name,
             ),
-            layer_types: set[constr(regex=layer_types_pattern)] = ServiceBase.describe_query_param(  # noqa B008,F722
-                None, "The type of layer to get."
+            layer_types: set[
+                Annotated[str, Field(pattern=layer_types_pattern)]
+            ] = ServiceBase.describe_query_param(  # noqa B008,F722
+                None, "The type of layer to get. Filtering by layer type will ignore layer children."
             ),
         ) -> LayerStackResponseModel:
             try:
@@ -105,7 +113,7 @@ class LayerManagerService(ServiceBase):
             except ValueError as e:
                 ServiceBase.raise_error(422, e)
 
-        @self.router.post(path="/", description="Create a layer in the current stage.")
+        @self.router.post(path="/", operation_id="create_layer", description="Create a layer in the current stage.")
         async def create_layer(
             body: ServiceBase.inject_hidden_fields(CreateLayerRequestModel, context_name=context_name)
         ) -> str:
@@ -113,6 +121,7 @@ class LayerManagerService(ServiceBase):
 
         @self.router.delete(
             path="/{layer_id:path}",
+            operation_id="remove_layer",
             description="Remove a layer from the current stage.",
         )
         async def remove_layer(
@@ -127,6 +136,7 @@ class LayerManagerService(ServiceBase):
 
         @self.router.put(
             path="/{layer_id:path}/move",
+            operation_id="move_layer",
             description="Move a layer in the current stage.",
         )
         async def move_layer(
@@ -139,6 +149,7 @@ class LayerManagerService(ServiceBase):
 
         @self.router.put(
             path="/{layer_id:path}/lock",
+            operation_id="lock_layer",
             description="Lock or unlock a layer in the current stage.",
         )
         async def lock_layer(
@@ -153,6 +164,7 @@ class LayerManagerService(ServiceBase):
 
         @self.router.put(
             path="/{layer_id:path}/mute",
+            operation_id="mute_layer",
             description="Mute or unmute a layer in the current stage.",
         )
         async def mute_layer(
@@ -167,6 +179,7 @@ class LayerManagerService(ServiceBase):
 
         @self.router.post(
             path="/{layer_id:path}/save",
+            operation_id="save_layer",
             description="Save a layer in the current stage.",
         )
         async def save_layer(
@@ -178,17 +191,19 @@ class LayerManagerService(ServiceBase):
 
         @self.router.get(
             path="/target",
+            operation_id="get_edit_target_layer",
             description="Get the active edit target in the current stage.",
             response_model=LayerResponseModel,
         )
-        async def get_edit_target() -> LayerResponseModel:
+        async def get_edit_target_layer() -> LayerResponseModel:
             return self.__layer_core.get_edit_target_with_data_model()
 
         @self.router.put(
             path="/target/{layer_id:path}",
+            operation_id="set_edit_target_layer",
             description="Set the active edit target in the current stage.",
         )
-        async def set_edit_target(
+        async def set_edit_target_layer(
             layer_id: str = ServiceBase.validate_path_param(  # noqa B008
                 SetEditTargetPathParamModel,
                 description="Layer identifier for the layer to set as edit target",
@@ -199,6 +214,7 @@ class LayerManagerService(ServiceBase):
 
         @self.router.get(
             path="/types",
+            operation_id="get_layer_types",
             description="Get the available layer types.",
             response_model=LayerTypeResponseModel,
         )

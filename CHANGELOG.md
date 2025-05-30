@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4176: Removing legacy mesh ingestion steps
 - REMIX-3961: Publish omni.etm.list.lightspeed_rtx for etm testing
 - REMIX-4068: Update hdremix package that now originates from a migrated repo
+- REMIX-4173, REMIX-4164: Add MCP Server Support to Remix Toolkit
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension
@@ -52,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3869: Fixed check for mesh error popup
 - Fix for unresolved carb tokens in ingestion "External Process" runner
 - Fix MDL parsing issue for apostrophes
+- Fix documentation videos embedding
 
 ### Removed
 - Cleaned up legacy code and unused files

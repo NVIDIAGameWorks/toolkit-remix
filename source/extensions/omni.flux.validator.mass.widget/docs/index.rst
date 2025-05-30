@@ -5,5 +5,6 @@ omni.flux.validator.mass.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.validator.mass.widget.setup_ui

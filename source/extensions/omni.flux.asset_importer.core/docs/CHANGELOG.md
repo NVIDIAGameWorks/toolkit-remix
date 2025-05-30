@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.0]
+## Changed
+- Updated Pydantic to V2
+
 ## [1.16.13]
 ## Changed
 - Added case sensitive asset ext list

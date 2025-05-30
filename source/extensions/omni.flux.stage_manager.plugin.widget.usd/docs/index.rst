@@ -8,11 +8,7 @@ omni.flux.stage_manager.plugin.widget.usd
    README
    CHANGELOG
 
-
-.. automodule:: omni.flux.stage_manager.plugin.widget.usd
-    :platform: Windows-x86_64, Linux-x86_64
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :imported-members:
-    :exclude-members:
+.. automodule:: omni.flux.stage_manager.plugin.widget.usd.extension
+.. automodule:: omni.flux.stage_manager.plugin.widget.usd.action_is_visible
+.. automodule:: omni.flux.stage_manager.plugin.widget.usd.custom_tags_list
+.. automodule:: omni.flux.stage_manager.plugin.widget.usd.prim_tree

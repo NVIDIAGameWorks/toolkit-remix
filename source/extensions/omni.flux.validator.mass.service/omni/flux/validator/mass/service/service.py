@@ -63,6 +63,7 @@ class MassValidatorService(ServiceBase):
     def register_endpoints(self):
         @self.router.put(
             path="/schema",
+            operation_id="update_ingestion_schema",
             description=(
                 "Update the mass validation schema. "
                 "Can be used to update the validation progress from an external process."
@@ -98,12 +99,15 @@ class MassValidatorService(ServiceBase):
 
             @self.router.post(
                 path=f"/queue/{_schema_model['name'].lower()}",
+                operation_id=f"ingest_{_schema_model['name'].lower()}_asset",
                 description="Add an item to the mass validation queue.",
                 response_model=MassValidationResponseModel,
             )
             async def add_item_to_queue(body: dynamic_model) -> MassValidationResponseModel:
                 # Update the dict non-destructively to only update the values set in the body
-                updated_dict = self.__update_dict_recursively(schema.dict(), body.dict())
+                updated_dict = self.__update_dict_recursively(
+                    schema.model_dump(serialize_as_any=True), body.model_dump(serialize_as_any=True)
+                )
 
                 mass_core = None
                 try:
@@ -164,7 +168,8 @@ class MassValidatorService(ServiceBase):
 
                 # Serialize to JSON using the custom encoder and convert back to a dict after
                 completed_schemas_dicts = [
-                    loads(dumps(v.dict(), default=validation_schema_json_encoder)) for v in tasks.values()
+                    loads(dumps(v.model_dump(serialize_as_any=True), default=validation_schema_json_encoder))
+                    for v in tasks.values()
                 ]
                 return MassValidationResponseModel(completed_schemas=completed_schemas_dicts)
 

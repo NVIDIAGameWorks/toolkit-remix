@@ -24,7 +24,7 @@ import omni.ui as ui
 import omni.usd
 from omni.flux.utils.common.utils import get_omni_prims as _get_omni_prims
 from pxr import Sdf, UsdGeom
-from pydantic import validator
+from pydantic import Field, field_validator
 
 from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
 
@@ -41,19 +41,19 @@ class WrapRootPrims(_CheckBaseUSD):
         self.__last_run = (None, None)
 
     class Data(_CheckBaseUSD.Data):
-        set_default_prim: bool = True
-        wrap_prim_name: Optional[str] = None
+        set_default_prim: bool = Field(default=True)
+        wrap_prim_name: Optional[str] = Field(default=None)
 
-        @validator("wrap_prim_name", allow_reuse=True)
-        def is_not_empty(cls, v):  # noqa
-            """Check that the prim name is not empty"""
+        @field_validator("wrap_prim_name", mode="before")
+        @classmethod
+        def is_not_empty(cls, v: Optional[str]) -> Optional[str]:
             if v and not str(v).strip():
                 raise ValueError("The value cannot be empty")
             return v
 
-        @validator("wrap_prim_name", allow_reuse=True)
-        def is_valid_prim_path(cls, v):  # noqa
-            """Check that the prim name is not empty"""
+        @field_validator("wrap_prim_name", mode="before")
+        @classmethod
+        def is_valid_prim_path(cls, v: Optional[str]) -> Optional[str]:
             if v and not Sdf.Path.IsValidIdentifier(str(v)):
                 raise ValueError("The value is not a valid Prim name")
             return v

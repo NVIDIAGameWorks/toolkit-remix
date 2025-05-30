@@ -68,7 +68,7 @@ class TestUpdateMethod(AsyncTestCase):
         }
 
         updated_dict = _ValidationSchema(**update_data)
-        self.mymodel_instance.update(updated_dict.dict())
+        self.mymodel_instance.update(updated_dict.model_dump(serialize_as_any=True))
 
         # Check if the attributes have been updated correctly
         self.assertEqual(self.mymodel_instance.name, "Test2")

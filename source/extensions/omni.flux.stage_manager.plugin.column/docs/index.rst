@@ -8,11 +8,5 @@ omni.flux.stage_manager.plugin.column
    README
    CHANGELOG
 
-
-.. automodule:: omni.flux.stage_manager.plugin.column
-    :platform: Windows-x86_64, Linux-x86_64
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :imported-members:
-    :exclude-members:
+.. automodule:: omni.flux.stage_manager.plugin.column.extension
+.. automodule:: omni.flux.stage_manager.plugin.column.horizontal_column

@@ -8,11 +8,4 @@ lightspeed.trex.components_pane.ingestcraft.controller
    README
    CHANGELOG
 
-
 .. automodule:: lightspeed.trex.components_pane.ingestcraft.controller
-    :platform: Windows-x86_64, Linux-x86_64
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :imported-members:
-    :exclude-members: contextmanager

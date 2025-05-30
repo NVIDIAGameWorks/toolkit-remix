@@ -31,9 +31,9 @@ class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
     A plugin that allows filtering a list of items based on parameters controlled within the plugin
     """
 
-    display: bool = Field(True, description="Whether the filter plugin should be displayed in the UI")
+    display: bool = Field(default=True, description="Whether the filter plugin should be displayed in the UI")
 
-    _on_filter_items_changed: _Event = PrivateAttr(_Event())
+    _on_filter_items_changed: _Event = PrivateAttr(default=_Event())
 
     @abc.abstractmethod
     def filter_predicate(self, item: _StageManagerItem) -> bool:

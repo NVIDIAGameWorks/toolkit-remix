@@ -5,5 +5,7 @@ omni.flux.validator.mass.service
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.validator.mass.service.extension
+.. automodule:: omni.flux.validator.mass.service.service

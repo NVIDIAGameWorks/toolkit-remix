@@ -16,6 +16,9 @@
 """
 
 from enum import Enum
+from typing import Any, Callable
+
+from pydantic_core import core_schema
 
 
 class UsdExtensions(Enum):
@@ -40,14 +43,17 @@ class TextureTypes(Enum):
     OTHER = "Other"
 
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: Callable[[Any], core_schema.CoreSchema]
+    ) -> core_schema.CoreSchema:
+        return core_schema.json_or_python_schema(
+            json_schema=core_schema.str_schema(),
+            python_schema=core_schema.no_info_plain_validator_function(cls._validate_by_name),
+            serialization=core_schema.to_string_ser_schema(),
+        )
 
     @classmethod
-    def validate(cls, v):
-        """
-        Validate this enum by the names instead of values since we don't want the human-readable values in the JSON file
-        """
+    def _validate_by_name(cls, v: Any) -> str:
         enum_names = cls.__members__.keys()
         if v not in enum_names:
             raise ValueError(f'Invalid value selected ({v}). Valid values are: {", ".join(enum_names)}')

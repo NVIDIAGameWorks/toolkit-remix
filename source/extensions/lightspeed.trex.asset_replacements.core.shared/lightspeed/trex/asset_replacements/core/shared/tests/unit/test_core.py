@@ -183,42 +183,42 @@ class TestAssetReplacementsCore(AsyncTestCase):
 
     async def test_copy_usd_asset(self):
         # Arrange
-        test_asset_path = _get_test_data("usd/project_example/assets/ingested/test_asset.usd")
+        test_prim_path = _get_test_data("usd/project_example/assets/ingested/test_asset.usd")
         test_callback_func = MagicMock()
 
         with patch.object(_usd_copier, "copy_usd_asset") as mock_copy_usd_asset:
             # Act
             _usd_copier.copy_usd_asset(
                 context=self.context,
-                asset_path=test_asset_path,
+                prim_path=test_prim_path,
                 callback_func=test_callback_func,
             )
             # Assert
             mock_copy_usd_asset.assert_called_once_with(
                 context=self.context,
-                asset_path=test_asset_path,
+                prim_path=test_prim_path,
                 callback_func=test_callback_func,
             )
 
     async def test_copy_non_usd_asset(self):
         # Arrange
-        test_asset_path = _get_test_data("usd/project_example/assets/ingested/test_asset.usd")
+        test_prim_path = _get_test_data("usd/project_example/assets/ingested/test_asset.usd")
         test_callback_func = MagicMock()
 
         with patch.object(_usd_copier, "copy_non_usd_asset") as mock_copy_non_usd_asset:
             # Act
             _usd_copier.copy_non_usd_asset(
-                context=self.context, asset_path=test_asset_path, callback_func=test_callback_func
+                context=self.context, prim_path=test_prim_path, callback_func=test_callback_func
             )
             # Assert
             mock_copy_non_usd_asset.assert_called_once_with(
-                context=self.context, asset_path=test_asset_path, callback_func=test_callback_func
+                context=self.context, prim_path=test_prim_path, callback_func=test_callback_func
             )
 
     async def test_is_valid_usd_file_throws(self):
         # Arrange
         temp_dir = TemporaryDirectory()
-        invalid_asset_paths = [
+        invalid_prim_paths = [
             Path(temp_dir.name),
             Path(temp_dir.name) / " ",
             Path(temp_dir.name) / ".",
@@ -233,12 +233,12 @@ class TestAssetReplacementsCore(AsyncTestCase):
             "C:\\..\\..my\\invalid\\path",
         ]
 
-        for invalid_asset_path in invalid_asset_paths:
+        for invalid_prim_path in invalid_prim_paths:
             # Act
             with self.assertRaises(ValueError) as cm:
-                _usd_copier.is_valid_usd_file(invalid_asset_path)
+                _usd_copier.is_valid_usd_file(invalid_prim_path)
 
             # Assert
-            self.assertEqual(f"'{invalid_asset_path}' is not a valid USD path", str(cm.exception))
+            self.assertEqual(f"'{invalid_prim_path}' is not a valid USD path", str(cm.exception))
 
         temp_dir.cleanup()

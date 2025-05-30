@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.1.0]
+## Changed
+- Update the documentation for Pydantic V2 compatbility
+
+## [4.0.0]
+## Changed
+- Updated Pydantic to V2
+
 ## [3.15.1]
 ## Changed
 - Update variables and resource locations for extension testing matrix (ETM) compliance
