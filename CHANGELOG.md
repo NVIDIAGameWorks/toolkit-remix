@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3827: Adding prim selection after override removal
 - REMIX-4176: Removing legacy mesh ingestion steps
 - REMIX-3961: Publish omni.etm.list.lightspeed_rtx for etm testing
+- REMIX-4068: Update hdremix package that now originates from a migrated repo
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension
