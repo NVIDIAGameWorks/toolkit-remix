@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.0]
+## Changed
+- Update the documentation for Pydantic V2 compatbility
+
+## [3.0.0]
+## Changed
+- Updated Pydantic to V2
+
 ## [2.24.0]
 ### Added
 - Added 'materials.py' utility module

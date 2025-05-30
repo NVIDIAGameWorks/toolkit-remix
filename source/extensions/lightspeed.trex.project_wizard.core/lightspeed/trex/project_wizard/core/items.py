@@ -30,7 +30,8 @@ from lightspeed.trex.capture.core.shared import Setup as _CaptureCore
 from lightspeed.trex.contexts import get_instance as _get_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 
 class ProjectWizardKeys(Enum):
@@ -45,10 +46,45 @@ class ProjectWizardKeys(Enum):
 class ProjectWizardSchema(BaseModel):
     existing_project: bool
     project_file: Path
-    remix_directory: Optional[Path]
-    existing_mods: Optional[List[Path]]
-    mod_file: Optional[Path]
-    capture_file: Optional[Path]
+    remix_directory: Optional[Path] = None
+    existing_mods: Optional[List[Path]] = None
+    mod_file: Optional[Path] = None
+    capture_file: Optional[Path] = None
+
+    @field_validator(ProjectWizardKeys.PROJECT_FILE.value, mode="before")
+    @classmethod
+    def _is_project_file_valid(cls, v, info: ValidationInfo):
+        """Protected field validator that calls the public validation method"""
+        values = info.data or {}
+        return cls.is_project_file_valid(v, values)
+
+    @field_validator(ProjectWizardKeys.REMIX_DIRECTORY.value, mode="before")
+    @classmethod
+    def _is_remix_directory_valid(cls, v, info: ValidationInfo):
+        """Protected field validator that calls the public validation method"""
+        values = info.data or {}
+        return cls.is_remix_directory_valid(v, values)
+
+    @field_validator(ProjectWizardKeys.EXISTING_MODS.value, mode="before")
+    @classmethod
+    def _are_all_mod_files_valid(cls, v, info: ValidationInfo):
+        """Protected field validator that calls the public validation method"""
+        values = info.data or {}
+        return cls.are_all_mod_files_valid(v, values)
+
+    @field_validator(ProjectWizardKeys.MOD_FILE.value, mode="before")
+    @classmethod
+    def _is_mod_file_valid(cls, v, info: ValidationInfo):
+        """Protected field validator that calls the public validation method"""
+        values = info.data or {}
+        return cls.is_mod_file_valid(v, values)
+
+    @field_validator(ProjectWizardKeys.CAPTURE_FILE.value, mode="before")
+    @classmethod
+    def _is_capture_file_valid(cls, v, info: ValidationInfo):
+        """Protected field validator that calls the public validation method"""
+        values = info.data or {}
+        return cls.is_capture_file_valid(v, values)
 
     @classmethod
     def are_project_symlinks_valid(cls, project_path: Path) -> bool:
@@ -63,8 +99,8 @@ class ProjectWizardSchema(BaseModel):
             return False
         return True
 
-    @validator(ProjectWizardKeys.PROJECT_FILE.value, allow_reuse=True)
-    def is_project_file_valid(cls, v, values):  # noqa
+    @classmethod
+    def is_project_file_valid(cls, v, values: dict):
         """Check that the path is a valid project file"""
 
         # Make sure there are no invalid characters in the filename
@@ -144,8 +180,8 @@ class ProjectWizardSchema(BaseModel):
                     raise ValueError(f"A project with the same name already exists: '{project_path}'")
         return v
 
-    @validator(ProjectWizardKeys.REMIX_DIRECTORY.value, allow_reuse=True)
-    def is_remix_directory_valid(cls, v, values):  # noqa
+    @classmethod
+    def is_remix_directory_valid(cls, v, values: dict):
         """Check that the path is a valid capture directory"""
         if not v:
             if not values.get(ProjectWizardKeys.EXISTING_PROJECT.value, False):
@@ -172,21 +208,27 @@ class ProjectWizardSchema(BaseModel):
 
         return v
 
-    @validator(ProjectWizardKeys.EXISTING_MODS.value, each_item=True, allow_reuse=True)
-    def are_all_mod_files_valid(cls, v, values):  # noqa
+    @classmethod
+    def are_all_mod_files_valid(cls, v, values: dict):
         """Check that the paths are valid mod layers"""
-        mod_directory = values.get(ProjectWizardKeys.REMIX_DIRECTORY.value, Path("")) / _constants.REMIX_MODS_FOLDER
-        if str(v.parent.parent) != str(mod_directory):
-            raise ValueError(
-                f"The mod should be in the '{_constants.REMIX_MODS_FOLDER}' subdirectory of the Remix Directory"
-            )
-        if not _ReplacementCore.is_mod_file(str(v)):
-            raise ValueError("The path is not a valid mod file")
+
+        if v:
+            for item in v:
+                mod_directory = (
+                    values.get(ProjectWizardKeys.REMIX_DIRECTORY.value, Path("")) / _constants.REMIX_MODS_FOLDER
+                )
+                if str(item.parent.parent) != str(mod_directory):
+                    raise ValueError(
+                        f"The mod should be in the '{_constants.REMIX_MODS_FOLDER}' subdirectory of the Remix Directory"
+                    )
+                if not _ReplacementCore.is_mod_file(str(item)):
+                    raise ValueError("The path is not a valid mod file")
         return v
 
-    @validator(ProjectWizardKeys.MOD_FILE.value, allow_reuse=True)
-    def is_mod_file_valid(cls, v, values):  # noqa
+    @classmethod
+    def is_mod_file_valid(cls, v, values: dict):
         """Check that the file is a valid mod file or None"""
+
         if v:
             if v not in values.get(ProjectWizardKeys.EXISTING_MODS.value, []):
                 raise ValueError("The path must also be present in the `existing_mods` list")
@@ -194,9 +236,10 @@ class ProjectWizardSchema(BaseModel):
                 raise ValueError("The path is not a valid mod file")
         return v
 
-    @validator(ProjectWizardKeys.CAPTURE_FILE.value, allow_reuse=True)
-    def is_capture_file_valid(cls, v, values):  # noqa
+    @classmethod
+    def is_capture_file_valid(cls, v, values: dict):
         """Check that the file is a valid capture file or None"""
+
         if not v:
             if not values.get(ProjectWizardKeys.EXISTING_PROJECT.value, False):
                 raise ValueError("A capture must be selected when creating a project")

@@ -144,7 +144,7 @@ class TestCore(AsyncTestCase):
 
         # because we didn't enabled "cook_mass_template" anywhere in the schema, the output is the same
         # than the input. Nothing changed.
-        self.assertDictEqual(result[0], _ValidationSchema(**fake_schema).dict())
+        self.assertDictEqual(result[0], _ValidationSchema(**fake_schema).model_dump(serialize_as_any=True))
 
     async def test_cook_same_templates_context(self):
 
@@ -169,7 +169,9 @@ class TestCore(AsyncTestCase):
 
                     # schemas should match
                     for res in result:
-                        self.assertDictEqual(res, _ValidationSchema(**fake_schema).dict())
+                        self.assertDictEqual(
+                            res, _ValidationSchema(**copy.deepcopy(fake_schema)).model_dump(serialize_as_any=True)
+                        )
 
     async def test_mass_cook_template_failed_should_throw(self):
         core = _ManagerMassCore()
@@ -245,14 +247,14 @@ class TestCore(AsyncTestCase):
         items = core.schema_model.get_item_children(None)
 
         def my_side_effect(schema_data_template):
-            mass_fake_schema = schema_data_template.dict()
+            mass_fake_schema = schema_data_template.model_dump(serialize_as_any=True)
             mass_fake_schema.update({"last_check_message": "hello01"})
             return (
                 True,
                 None,
                 [
                     _FakeCheck.data_type(**mass_fake_schema),
-                    _FakeCheck.data_type(**schema_data_template.dict()),
+                    _FakeCheck.data_type(**schema_data_template.model_dump(serialize_as_any=True)),
                 ],
             )
 
@@ -260,7 +262,9 @@ class TestCore(AsyncTestCase):
             result = await items[0].cook_template()
 
             self.assertEqual(len(result), 2)
-            default_values = _ValidationSchema(**fake_schema).dict()["check_plugins"][0]["data"]["last_check_message"]
+            default_values = _ValidationSchema(**fake_schema).model_dump(serialize_as_any=True)["check_plugins"][0][
+                "data"
+            ]["last_check_message"]
 
             # template result 01
             self.assertEqual(result[0]["check_plugins"][0]["data"]["last_check_message"], default_values)
@@ -283,7 +287,7 @@ class TestCore(AsyncTestCase):
         items = core.schema_model.get_item_children(None)
 
         def my_side_effect(schema_data_template):
-            mass_fake_schema = schema_data_template.dict()
+            mass_fake_schema = schema_data_template.model_dump(serialize_as_any=True)
             mass_fake_schema.update({"last_check_message": "hello01"})
             return (
                 True,
@@ -298,7 +302,9 @@ class TestCore(AsyncTestCase):
             result = await items[0].cook_template()
 
             self.assertEqual(len(result), 2)
-            default_values = _ValidationSchema(**fake_schema).dict()["check_plugins"][0]["data"]["last_check_message"]
+            default_values = _ValidationSchema(**fake_schema).model_dump(serialize_as_any=True)["check_plugins"][0][
+                "data"
+            ]["last_check_message"]
             # template result 01
             self.assertEqual(result[0]["check_plugins"][0]["data"]["last_check_message"], default_values)
             self.assertEqual(result[0]["check_plugins"][1]["data"]["last_check_message"], "hello01")
@@ -333,9 +339,9 @@ class TestCore(AsyncTestCase):
         items = core.schema_model.get_item_children(None)
 
         def my_side_effect(schema_data_template):
-            mass_fake_schema = schema_data_template.dict()
+            mass_fake_schema = schema_data_template.model_dump(serialize_as_any=True)
             mass_fake_schema.update({"last_check_message": "hello01"})
-            mass_fake_schem2 = schema_data_template.dict()
+            mass_fake_schem2 = schema_data_template.model_dump(serialize_as_any=True)
             mass_fake_schem2.update({"last_check_message": "hello02"})
             return (
                 True,
@@ -350,7 +356,9 @@ class TestCore(AsyncTestCase):
             result = await items[0].cook_template()
 
             self.assertEqual(len(result), 4)
-            default_values = _ValidationSchema(**fake_schema).dict()["check_plugins"][0]["data"]["last_check_message"]
+            default_values = _ValidationSchema(**fake_schema).model_dump(serialize_as_any=True)["check_plugins"][0][
+                "data"
+            ]["last_check_message"]
             # template result 01
             self.assertEqual(result[0]["check_plugins"][0]["data"]["last_check_message"], default_values)
             self.assertEqual(result[0]["check_plugins"][1]["data"]["last_check_message"], "hello01")
@@ -395,11 +403,11 @@ class TestCore(AsyncTestCase):
         items = core.schema_model.get_item_children(None)
 
         def my_side_effect(schema_data_template):
-            mass_fake_schema = schema_data_template.dict()
+            mass_fake_schema = schema_data_template.model_dump(serialize_as_any=True)
             mass_fake_schema.update({"last_check_message": "hello01"})
-            mass_fake_schem2 = schema_data_template.dict()
+            mass_fake_schem2 = schema_data_template.model_dump(serialize_as_any=True)
             mass_fake_schem2.update({"last_check_message": "hello02"})
-            mass_fake_schem3 = schema_data_template.dict()
+            mass_fake_schem3 = schema_data_template.model_dump(serialize_as_any=True)
             return (
                 True,
                 None,
@@ -414,7 +422,9 @@ class TestCore(AsyncTestCase):
             result = await items[0].cook_template()
 
             self.assertEqual(len(result), 9)
-            default_values = _ValidationSchema(**fake_schema).dict()["check_plugins"][0]["data"]["last_check_message"]
+            default_values = _ValidationSchema(**fake_schema).model_dump(serialize_as_any=True)["check_plugins"][0][
+                "data"
+            ]["last_check_message"]
             # template result 01
             self.assertEqual(result[0]["check_plugins"][0]["data"]["last_check_message"], default_values)
             self.assertEqual(result[0]["check_plugins"][1]["data"]["last_check_message"], "hello01")
@@ -475,7 +485,7 @@ class TestCore(AsyncTestCase):
         items = core.schema_model.get_item_children(None)
 
         def my_side_effect(schema_data_template):
-            mass_fake_schema = schema_data_template.dict()
+            mass_fake_schema = schema_data_template.model_dump(serialize_as_any=True)
             mass_fake_schema.update({"last_select_message": "hello01"})
             return (
                 True,
@@ -489,9 +499,9 @@ class TestCore(AsyncTestCase):
             result = await items[0].cook_template()
 
             self.assertEqual(len(result), 1)
-            default_values = _ValidationSchema(**fake_schema).dict()["check_plugins"][0]["selector_plugins"][0]["data"][
-                "last_select_message"
-            ]
+            default_values = _ValidationSchema(**fake_schema).model_dump(serialize_as_any=True)["check_plugins"][0][
+                "selector_plugins"
+            ][0]["data"]["last_select_message"]
             # template result 01
             self.assertEqual(
                 result[0]["check_plugins"][0]["selector_plugins"][0]["data"]["last_select_message"], default_values
@@ -527,11 +537,11 @@ class TestCore(AsyncTestCase):
         items = core.schema_model.get_item_children(None)
 
         def my_side_effect(schema_data_template):
-            mass_fake_schema = schema_data_template.dict()
+            mass_fake_schema = schema_data_template.model_dump(serialize_as_any=True)
             mass_fake_schema.update({"last_select_message": "hello01"})
-            mass_fake_schem2 = schema_data_template.dict()
+            mass_fake_schem2 = schema_data_template.model_dump(serialize_as_any=True)
             mass_fake_schem2.update({"last_select_message": "hello02"})
-            mass_fake_schem3 = schema_data_template.dict()
+            mass_fake_schem3 = schema_data_template.model_dump(serialize_as_any=True)
             return (
                 True,
                 None,
@@ -546,9 +556,9 @@ class TestCore(AsyncTestCase):
             result = await items[0].cook_template()
 
             self.assertEqual(len(result), 9)
-            default_values = _ValidationSchema(**fake_schema).dict()["check_plugins"][0]["selector_plugins"][0]["data"][
-                "last_select_message"
-            ]
+            default_values = _ValidationSchema(**fake_schema).model_dump(serialize_as_any=True)["check_plugins"][0][
+                "selector_plugins"
+            ][0]["data"]["last_select_message"]
             # template result 01
             self.assertEqual(
                 result[0]["check_plugins"][0]["selector_plugins"][0]["data"]["last_select_message"], default_values

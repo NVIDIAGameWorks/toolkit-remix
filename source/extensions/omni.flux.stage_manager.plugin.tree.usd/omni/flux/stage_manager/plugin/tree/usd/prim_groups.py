@@ -16,6 +16,7 @@
 """
 
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
+from pydantic import Field
 
 from .base import StageManagerUSDTreeDelegate as _StageManagerUSDTreeDelegate
 from .base import StageManagerUSDTreeItem as _StageManagerUSDTreeItem
@@ -55,8 +56,8 @@ class PrimGroupsTreePlugin(_StageManagerUSDTreePlugin):
     fetched during item creation.
     """
 
-    model: PrimGroupsModel = None
-    delegate: PrimGroupsDelegate = None
+    model: PrimGroupsModel = Field(default=None, exclude=True)
+    delegate: PrimGroupsDelegate = Field(default=None, exclude=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

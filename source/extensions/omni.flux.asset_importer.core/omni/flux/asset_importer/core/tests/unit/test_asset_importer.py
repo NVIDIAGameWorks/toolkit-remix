@@ -24,7 +24,7 @@ import omni.kit.test
 import omni.usd
 from omni.flux.asset_importer.core import ImporterCore
 from pxr import Usd
-from pydantic.error_wrappers import ValidationError
+from pydantic import ValidationError
 
 # import subprocess
 

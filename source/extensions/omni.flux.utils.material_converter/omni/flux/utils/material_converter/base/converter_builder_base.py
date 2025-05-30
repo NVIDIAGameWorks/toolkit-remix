@@ -15,18 +15,20 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import abc
+
+# Use typing module to handle forward reference to avoid circular imports
 from typing import TYPE_CHECKING
 
+from pxr import Usd
+
 if TYPE_CHECKING:
-    from pathlib import Path
-
-    from pxr import Usd
-
     from .converter_base import ConverterBase
 
 
 class ConverterBuilderBase:
     @abc.abstractmethod
-    def build(self, input_material_prim: "Usd.Prim", output_mdl_path: "Path") -> "ConverterBase":
+    def build(self, input_material_prim: Usd.Prim, output_mdl_path: str) -> ConverterBase:
         raise NotImplementedError

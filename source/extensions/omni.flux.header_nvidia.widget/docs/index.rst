@@ -5,5 +5,6 @@ omni.flux.header_nvidia.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.header_nvidia.widget

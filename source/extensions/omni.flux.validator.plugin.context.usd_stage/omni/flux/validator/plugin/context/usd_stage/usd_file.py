@@ -29,29 +29,28 @@ from omni.flux.validator.factory import FIXES_APPLIED as _FIXES_APPLIED
 from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.flux.validator.factory import utils as _validator_factory_utils
-from pydantic import root_validator
+from pydantic import Field, model_validator
 
 from .base.context_base_usd import ContextBaseUSD as _ContextBaseUSD
 
 
 class USDFile(_ContextBaseUSD):
     class Data(_ContextBaseUSD.Data):
-        file: str
-        save_on_exit: bool = False
-        close_stage_on_exit: bool = False
-
-        skip_validated_files: bool = False
-        file_validated_fixes: set[str] | None = None  # List of fixes that should be applied to skip the validation
+        file: str = Field(...)
+        save_on_exit: bool = Field(default=False)
+        close_stage_on_exit: bool = Field(default=False)
+        skip_validated_files: bool = Field(default=False)
+        file_validated_fixes: set[str] | None = Field(default=None)
 
         _compatible_data_flow_names = ["InOutData"]
-        data_flows: Optional[List[_InOutDataFlow]] = None  # override base argument with the good typing
+        data_flows: Optional[List[_InOutDataFlow]] = Field(default=None)
 
-        @root_validator(allow_reuse=True)
-        def file_validated_fixes_set(cls, values):  # noqa
-            """Check that `file_validated_fn` was set if `skip_validated_files` is `True`"""
-            if values.get("skip_validated_files", False) and not values.get("file_validated_fixes", None):
+        @model_validator(mode="after")
+        @classmethod
+        def file_validated_fixes_set(cls, instance_model: "USDFile.Data") -> "USDFile.Data":
+            if instance_model.skip_validated_files and not instance_model.file_validated_fixes:
                 raise ValueError("When `skip_validated_files` is True, `file_validated_fixes` must be set")
-            return values
+            return instance_model
 
     name = "USDFile"
     display_name = "USD File"
@@ -174,7 +173,7 @@ class USDFile(_ContextBaseUSD):
 
         input_file = schema_data_template.file
 
-        schema = self.Data(**schema_data_template.dict())
+        schema = self.Data(**schema_data_template.model_dump(serialize_as_any=True))
         schema.file = input_file
         schema.display_name_mass_template = str(_OmniUrl(input_file).stem)
         schema.display_name_mass_template_tooltip = input_file

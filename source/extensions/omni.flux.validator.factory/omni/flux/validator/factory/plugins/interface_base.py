@@ -24,6 +24,7 @@ from typing import Any, Callable
 from omni.flux.factory.base import PluginBase
 from omni.flux.validator.factory import DataFlow as _DataFlow
 from pydantic import BaseModel
+from pydantic_core.core_schema import ValidationInfo
 
 
 class IBase(PluginBase, abc.ABC):
@@ -57,13 +58,13 @@ class IBase(PluginBase, abc.ABC):
         @classmethod
         @abc.abstractmethod
         def _fire_progress_callback(
-            cls, v: tuple[float, str, bool] | None, values: dict[str, Any]
+            cls, v: tuple[float, str, bool] | None, info: ValidationInfo
         ) -> tuple[float, str, bool] | None:
             pass
 
         @classmethod
         @abc.abstractmethod
-        def _fire_global_progress_value_callback(cls, v: float | None, values: dict[str, Any]) -> float | None:
+        def _fire_global_progress_value_callback(cls, v: float | None, info: ValidationInfo) -> float | None:
             pass
 
     @abc.abstractmethod

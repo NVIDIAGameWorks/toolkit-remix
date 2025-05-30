@@ -1,5 +1,5 @@
 [package]
-version = "1.0.7"
+version = "1.1.0"
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Omni.UI Scene Sample For Manipulating Select Light"
 description = "This example show an 3D manipulator for a selected light"

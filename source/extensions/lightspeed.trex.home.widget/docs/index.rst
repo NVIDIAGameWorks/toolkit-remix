@@ -6,3 +6,5 @@ lightspeed.trex.home.widget
 
    README
    CHANGELOG
+
+.. automodule:: lightspeed.trex.home.widget

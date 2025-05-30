@@ -8,11 +8,7 @@ omni.flux.custom_tags.window
    README
    CHANGELOG
 
-
-.. automodule:: omni.flux.custom_tags.window
-    :platform: Windows-x86_64, Linux-x86_64
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :imported-members:
-    :exclude-members:
+.. automodule:: omni.flux.custom_tags.window.window
+.. automodule:: omni.flux.custom_tags.window.selection_tree.delegate
+.. automodule:: omni.flux.custom_tags.window.selection_tree.items
+.. automodule:: omni.flux.custom_tags.window.selection_tree.model

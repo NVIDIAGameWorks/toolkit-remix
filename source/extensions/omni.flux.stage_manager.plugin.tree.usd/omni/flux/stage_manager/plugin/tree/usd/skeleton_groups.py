@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Iterable
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
 from pxr import UsdSkel
+from pydantic import Field
 
 from .virtual_groups import VirtualGroupsDelegate as _VirtualGroupsDelegate
 from .virtual_groups import VirtualGroupsItem as _VirtualGroupsItem
@@ -276,8 +277,8 @@ class SkeletonGroupsTreePlugin(_VirtualGroupsTreePlugin):
     An abbreviated tree of skeleton related prims.
     """
 
-    model: SkeletonGroupsModel = None
-    delegate: SkeletonGroupsDelegate = None
+    model: SkeletonGroupsModel = Field(default=None, exclude=True)
+    delegate: SkeletonGroupsDelegate = Field(default=None, exclude=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

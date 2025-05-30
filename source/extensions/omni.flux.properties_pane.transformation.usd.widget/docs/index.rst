@@ -5,5 +5,7 @@ omni.flux.properties_pane.transformation.usd.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.properties_pane.transformation.usd.widget
+   :noindex:

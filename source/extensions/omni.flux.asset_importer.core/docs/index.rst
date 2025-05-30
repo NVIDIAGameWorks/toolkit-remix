@@ -5,5 +5,6 @@ omni.flux.asset_importer.core
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.asset_importer.core

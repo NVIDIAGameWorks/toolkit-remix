@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.0]
+## Changed
+- Update the documentation for Pydantic V2 compatbility
+
+## [3.0.0]
+## Changed
+- Updated Pydantic to V2
+
 ## [2.8.0]
 ## Added
 - Added `show` function in the base class and interface that can be called by the parent widget

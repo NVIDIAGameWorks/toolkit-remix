@@ -32,47 +32,48 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 
 class RefreshRule(BaseModel):
-    use_name: bool = Field(True, description="Whether to use the prim name or full prim path to match")
-    start: str = Field("", description="String to match the start of the affected prims' names")
-    end: str = Field("", description="String to match the end of the affected prims' names")
+    use_name: bool = Field(default=True, description="Whether to use the prim name or full prim path to match")
+    start: str = Field(default="", description="String to match the start of the affected prims' names")
+    end: str = Field(default="", description="String to match the end of the affected prims' names")
 
 
 class USDEventFilteringRules(BaseModel):
-    ignore_properties_events: list[str] = Field(["xformOpOrder"], description="List of property names to ignore")
+    ignore_properties_events: list[str] = Field(
+        default=["xformOpOrder"], description="List of property names to ignore"
+    )
     ignore_paths_events: list[str] = Field(
-        ["/RootNode/Camera"],
+        default=["/RootNode/Camera"],
         description="List of prim paths to ignore (Only exact matches for the Prim Path will be ignored)",
     )
     ignore_xform_events: bool = Field(
-        True, description="Whether the XForm events emitted by the USD listener should be ignored or not"
+        default=True, description="Whether the XForm events emitted by the USD listener should be ignored or not"
     )
     ignore_omni_prims_events: bool = Field(
-        True, description="Whether the events emitted on Omniverse Prims should be ignored or not"
+        default=True, description="Whether the events emitted on Omniverse Prims should be ignored or not"
     )
     ignore_custom_layer_data_events: bool = Field(
-        True, description="Whether the events emitted for Custom Layer Data should be ignored or not"
+        default=True, description="Whether the events emitted for Custom Layer Data should be ignored or not"
     )
     force_refresh_rules: list[RefreshRule] = Field(
-        [], description="List of rules to force a refresh of the tree items rather than a delegate refresh"
+        default=[], description="List of rules to force a refresh of the tree items rather than a delegate refresh"
     )
 
 
 class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
-    synchronize_selection: bool = Field(True, description="Synchronize the USD selection between the stage and the UI")
+    synchronize_selection: bool = Field(
+        default=True, description="Synchronize the USD selection between the stage and the UI"
+    )
     filtering_rules: USDEventFilteringRules = Field(
-        USDEventFilteringRules(), description="Rules used for the USD events in the callback"
+        default=USDEventFilteringRules(), description="Rules used for the USD events in the callback"
     )
 
-    _context_name: str = PrivateAttr("")
-    _selection_update_lock: bool = PrivateAttr(False)
-    _ignore_selection_update: bool = PrivateAttr(False)
-    _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr([])
-    _items_changed_task: Future | None = PrivateAttr(None)
+    compatible_data_type: _StageManagerDataTypes = Field(default=_StageManagerDataTypes.USD, exclude=True)
 
-    @classmethod
-    @property
-    def compatible_data_type(cls):
-        return _StageManagerDataTypes.USD
+    _context_name: str = PrivateAttr(default="")
+    _selection_update_lock: bool = PrivateAttr(default=False)
+    _ignore_selection_update: bool = PrivateAttr(default=False)
+    _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr(default=[])
+    _items_changed_task: Future | None = PrivateAttr(default=None)
 
     @omni.usd.handle_exception
     async def _update_context_items(self):

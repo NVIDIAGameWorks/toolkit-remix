@@ -100,7 +100,7 @@ class FakeContext(_ContextBase):
         # for mass ingestion, from the template, we want to generate multiple schema from the template by input file
         result = []
         for i in range(3):
-            schema = self.Data(**schema_data_template.dict())
+            schema = self.Data(**schema_data_template.model_dump(serialize_as_any=True))
             schema.display_name_mass_template = f"Job display name {i}"
             schema.display_name_mass_template_tooltip = f"Job display tooltip {i}"
             result.append(schema)
@@ -194,7 +194,7 @@ class FakeSelector(_SelectorBase):
         # for mass ingestion, from the template, we want to generate multiple schema from the template by input file
         result = []
         for i in range(3):
-            schema = self.Data(**schema_data_template.dict())
+            schema = self.Data(**schema_data_template.model_dump(serialize_as_any=True))
             schema.display_name_mass_template = f"Job display name {i}"
             schema.display_name_mass_template_tooltip = f"Job display tooltip {i}"
             result.append(schema)
@@ -304,7 +304,7 @@ class FakeCheck(_CheckBase):
         # for mass ingestion, from the template, we want to generate multiple schema from the template by input file
         result = []
         for i in range(3):
-            schema = self.Data(**schema_data_template.dict())
+            schema = self.Data(**schema_data_template.model_dump(serialize_as_any=True))
             schema.display_name_mass_template = f"Job display name {i}"
             schema.display_name_mass_template_tooltip = f"Job display tooltip {i}"
             result.append(schema)

@@ -19,12 +19,12 @@ import operator
 from collections.abc import Iterable
 from enum import Enum
 from functools import partial
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import omni.kit.app
 import omni.kit.commands
 from omni import ui, usd
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
 
@@ -42,47 +42,60 @@ class Operator(Enum):
 
 class AttributeMapping(BaseModel):
     operator: Operator
-    input_value: Any | None = None
-    output_value: Any | None = None
-    # Mapping function will be used in priority over the output_value if set
-    mapping_fn: str | None = None  # String following the lambda format for the mapping function
+    input_value: Any | None = Field(default=None)
+    output_value: Any | None = Field(default=None)
+    mapping_fn: str | None = Field(
+        default=None, description="Mapping function will be used in priority over the output_value if set"
+    )
+
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
 
 class ValueMapping(_CheckBaseUSD):
     class Data(_CheckBaseUSD.Data):
-        attributes: Dict[str, List[AttributeMapping]]
+        attributes: dict[str, list[AttributeMapping]]
 
-        @validator("attributes", allow_reuse=True)
-        def not_empty_attribute_name(cls, v):  # noqa
+        @field_validator("attributes", mode="after")
+        @classmethod
+        def not_empty_attribute_name(cls, v: dict[str, list[AttributeMapping]]) -> dict[str, list[AttributeMapping]]:
             for attr_name, _ in v.items():
                 if not attr_name or not attr_name.strip():
                     raise ValueError("Attribute name cannot be empty")
             return v
 
-        @validator("attributes", allow_reuse=True)
-        def input_output_same_type(cls, v):  # noqa
+        @field_validator("attributes", mode="after")
+        @classmethod
+        def input_output_same_type(cls, v: dict[str, list[AttributeMapping]]) -> dict[str, list[AttributeMapping]]:
             for _, attr_mappings in v.items():
                 for index, mapping in enumerate(attr_mappings):
-                    # Mapping function will be used in priority over the output_value if set
                     if not mapping.mapping_fn and type(mapping.input_value) != type(mapping.output_value):  # noqa
                         raise ValueError(f"Input and Output value types do not match for mapping -> {index}")
             return v
 
-        @validator("attributes", allow_reuse=True)
-        def iterable_input_output_same_length(cls, v):  # noqa
+        @field_validator("attributes", mode="after")
+        @classmethod
+        def iterable_input_output_same_length(
+            cls, v: dict[str, list[AttributeMapping]]
+        ) -> dict[str, list[AttributeMapping]]:
             for _, attr_mappings in v.items():
                 for index, mapping in enumerate(attr_mappings):
-                    # Mapping function will be used in priority over the output_value if set
                     if mapping.mapping_fn:
                         continue
                     if not isinstance(mapping.input_value, Iterable) or isinstance(mapping.input_value, str):
                         continue
-                    if len(mapping.input_value) != len(mapping.output_value):  # noqa
+                    if (
+                        mapping.output_value is None
+                        or not isinstance(mapping.output_value, Iterable)
+                        or isinstance(mapping.output_value, str)
+                    ):
+                        continue
+                    if len(mapping.input_value) != len(mapping.output_value):
                         raise ValueError(f"Input and Output values do not have the same number of items -> {index}")
             return v
 
-        @validator("attributes", allow_reuse=True)
-        def valid_inputs(cls, v):  # noqa N805
+        @field_validator("attributes", mode="after")
+        @classmethod
+        def valid_inputs(cls, v: dict[str, list[AttributeMapping]]) -> dict[str, list[AttributeMapping]]:
             for _, attr_mappings in v.items():
                 for index, mapping in enumerate(attr_mappings):
                     if mapping.mapping_fn:
@@ -93,9 +106,6 @@ class ValueMapping(_CheckBaseUSD):
                             f"-> {index}"
                         )
             return v
-
-        class Config(_CheckBaseUSD.Data.Config):
-            validate_assignment = True
 
     name = "ValueMapping"
     tooltip = "This plugin will remap any value to a different target value for any specified attribute"
@@ -122,7 +132,7 @@ class ValueMapping(_CheckBaseUSD):
     @usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check the data
 
@@ -185,7 +195,7 @@ class ValueMapping(_CheckBaseUSD):
     @usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to fix the data
 
@@ -375,7 +385,7 @@ class ValueMapping(_CheckBaseUSD):
         await self._deferred_update_label_widths(labels)
 
     @usd.handle_exception
-    async def _deferred_update_label_widths(self, labels: List[ui.Label]):
+    async def _deferred_update_label_widths(self, labels: list[ui.Label]):
         await omni.kit.app.get_app().next_update_async()
 
         max_width = 0

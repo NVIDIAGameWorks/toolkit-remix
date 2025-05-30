@@ -16,30 +16,40 @@
 """
 
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
+from pydantic import Field
 
 from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin
 
 
 class AllTagsInteractionPlugin(_StageManagerUSDInteractionPlugin):
-    display_name: str = "Custom Tags"
-    tooltip: str = "View the available prims, grouped by custom tags"
+    display_name: str = Field(default="Custom Tags", exclude=True)
+    tooltip: str = Field(default="View the available prims, grouped by custom tags", exclude=True)
 
-    tree: _StageManagerTreePlugin = {"name": "CustomTagGroupsTreePlugin"}
+    tree: _StageManagerTreePlugin = Field(default={"name": "CustomTagGroupsTreePlugin"}, exclude=True)
 
-    compatible_trees: list[str] = ["CustomTagGroupsTreePlugin", "PrimGroupsTreePlugin"]
-    compatible_filters: list[str] = [
-        "IgnorePrimsFilterPlugin",
-        "IsCaptureFilterPlugin",
-        "OmniPrimsFilterPlugin",
-        "SearchFilterPlugin",
-    ]
+    compatible_trees: list[str] = Field(
+        default=["CustomTagGroupsTreePlugin", "PrimGroupsTreePlugin"],
+        exclude=True,
+    )
+    compatible_filters: list[str] = Field(
+        default=[
+            "IgnorePrimsFilterPlugin",
+            "IsCaptureFilterPlugin",
+            "OmniPrimsFilterPlugin",
+            "SearchFilterPlugin",
+        ],
+        exclude=True,
+    )
     # TODO StageManager: We have LSS plugin names in the flux ext because of this system
-    compatible_widgets: list[str] = [
-        "AssignCategoryActionWidgetPlugin",
-        "CustomTagsWidgetPlugin",
-        "FocusInViewportActionWidgetPlugin",
-        "IsCaptureStateWidgetPlugin",
-        "IsCategoryHiddenStateWidgetPlugin",
-        "IsVisibleActionWidgetPlugin",
-        "PrimTreeWidgetPlugin",
-    ]
+    compatible_widgets: list[str] = Field(
+        default=[
+            "AssignCategoryActionWidgetPlugin",
+            "CustomTagsWidgetPlugin",
+            "FocusInViewportActionWidgetPlugin",
+            "IsCaptureStateWidgetPlugin",
+            "IsCategoryHiddenStateWidgetPlugin",
+            "IsVisibleActionWidgetPlugin",
+            "PrimTreeWidgetPlugin",
+        ],
+        exclude=True,
+    )

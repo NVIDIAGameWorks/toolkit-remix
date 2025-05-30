@@ -16,7 +16,7 @@
 """
 
 from omni import ui
-from omni.flux.custom_tags.core import CustomTagsCore
+from omni.flux.custom_tags.core import CustomTagsCore as _CustomTagsCore
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from pxr import Sdf
 
@@ -57,7 +57,7 @@ class TagsSelectionItem(ui.AbstractItem):
         Returns:
             A Prim Path pointing to the tag
         """
-        return CustomTagsCore.get_tag_name(self._path)
+        return _CustomTagsCore.get_tag_name(self._path)
 
     def __repr__(self):
         return str(self._path)

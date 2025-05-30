@@ -37,7 +37,7 @@ from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
 class MassTexturePreview(_CheckBaseUSD):
     class Data(_CheckBaseUSD.Data):
         # tmp data
-        temp_usd: Optional[str] = Field(None, repr=False)
+        temp_usd: Optional[str] = Field(default=None, repr=False)
 
     name = "MassTexturePreview"
     tooltip = "This plugin is a fake check plugin that we use to show texture preview (in viewport or not)"

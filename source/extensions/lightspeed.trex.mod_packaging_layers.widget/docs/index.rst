@@ -5,5 +5,6 @@ lightspeed.trex.mod_packaging_layers.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: lightspeed.trex.mod_packaging_layers.widget

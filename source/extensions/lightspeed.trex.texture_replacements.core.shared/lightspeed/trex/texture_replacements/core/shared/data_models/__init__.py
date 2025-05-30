@@ -17,9 +17,8 @@
 
 __all__ = [
     "GetTexturesQueryModel",
-    "PrimsResponseModel",
+    "PrimPathsResponseModel",
     "ReplaceTexturesRequestModel",
-    "TextureFilePathParamModel",
     "TextureMaterialPathParamModel",
     "TextureReplacementsValidators",
     "TextureTypesResponseModel",
@@ -28,9 +27,8 @@ __all__ = [
 
 from .models import (
     GetTexturesQueryModel,
-    PrimsResponseModel,
+    PrimPathsResponseModel,
     ReplaceTexturesRequestModel,
-    TextureFilePathParamModel,
     TextureMaterialPathParamModel,
     TexturesResponseModel,
     TextureTypesResponseModel,

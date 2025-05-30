@@ -24,7 +24,7 @@ import requests
 from omni.flux.utils.common import async_wrap
 
 
-async def send_request(method: str, endpoint: str, **kwargs) -> dict:
+async def send_request(method: str, endpoint: str, raw_response: bool = False, **kwargs) -> requests.Response | dict:
     """
     Send an HTTP request to a server.
 
@@ -50,8 +50,11 @@ async def send_request(method: str, endpoint: str, **kwargs) -> dict:
             endpoint = "/" + endpoint
         response = await async_wrap(partial(requests.request, method, f"http://{host}:{port}{endpoint}", **kwargs))()
 
-        response.raise_for_status()
-        return response.json()
+        if not raw_response:
+            response.raise_for_status()
+            return response.json()
+
+        return response
     except (
         requests.RequestException,
         requests.ConnectionError,

@@ -5,5 +5,6 @@ lightspeed.trex.project_wizard.setup_page.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: lightspeed.trex.project_wizard.setup_page.widget

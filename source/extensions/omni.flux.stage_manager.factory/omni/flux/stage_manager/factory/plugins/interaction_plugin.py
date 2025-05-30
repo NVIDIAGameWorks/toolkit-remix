@@ -25,12 +25,13 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable
 import omni.appwindow
 import omni.kit.app
 import omni.usd
+from carb.events import IEvent, ISubscription
 from omni import ui
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.widget.tree_widget import AlternatingRowWidget as _AlternatingRowWidget
 from omni.flux.utils.widget.tree_widget import TreeWidget as _TreeWidget
-from pydantic import Field, PrivateAttr, root_validator, validator
+from pydantic import Field, PrivateAttr, field_validator, model_validator
 
 from ..enums import StageManagerDataTypes as _StageManagerDataTypes
 from ..items import StageManagerItem as _StageManagerItem
@@ -44,8 +45,6 @@ from .tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
 from .tree_plugin import StageManagerTreePlugin as _StageManagerTreePlugin
 
 if TYPE_CHECKING:
-    from carb.events import IEvent
-
     from .column_plugin import ColumnWidth as _ColumnWidth
 
 
@@ -55,21 +54,53 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     The Interaction Plugin builds the TreeWidget and uses the filter, column & widget plugins to build the contents.
     """
 
-    columns: list[_StageManagerColumnPlugin] = Field([], description="Columns to display in the TreeWidget")
+    compatible_data_type: _StageManagerDataTypes = Field(
+        default=_StageManagerDataTypes.NONE, description="The data type that this plugin supports.", exclude=True
+    )
+
+    select_all_children: bool = Field(
+        default=False,
+        description="Whether the tree should select all children items when selecting a parent item or not",
+    )
+    scroll_to_selection: bool = Field(
+        default=True,
+        description="Whether the tree should scroll to the first item in the selection when selection changes",
+    )
+    validate_action_selection: bool = Field(
+        default=True,
+        description=(
+            "Whether the tree selection should be validated & updated to include the item being right-clicked on or not"
+        ),
+    )
+
+    tree: _StageManagerTreePlugin = Field(description="The tree plugin defining the model and delegate", exclude=True)
+
+    compatible_trees: list[str] = Field(
+        default=[], description="The list of tree plugins compatible with this interaction plugin", exclude=True
+    )
+    compatible_filters: list[str] = Field(
+        default=[], description="The list of filter plugins compatible with this interaction plugin", exclude=True
+    )
+    compatible_widgets: list[str] = Field(
+        default=[], description="The list of widget plugins compatible with this interaction plugin", exclude=True
+    )
+
+    columns: list[_StageManagerColumnPlugin] = Field(default=[], description="Columns to display in the TreeWidget")
     filters: list[_StageManagerFilterPlugin] = Field(
-        [],
+        default=[],
         description="User controllable filters to apply to the context data on tree model refresh. "
         "Defined in schema. Will be displayed in UI and will be executed on data that has passed "
         "context filter validation.",
     )
     context_filters: list[_StageManagerFilterPlugin] = Field(
-        [],
-        description="Filters to execute when the context data is updated. Defined in schema. Will never be displayed "
-        "in UI.",
+        default=[],
+        description=(
+            "Filters to execute when the context data is updated. Defined in schema. Will never be displayed in UI."
+        ),
     )
 
     percent_available_core_usage: float | None = Field(
-        None,
+        default=None,
         description=(
             "The percentage of the available CPU cores to use to filter the context items. "
             "If the value is unset, the default python maximum will be used."
@@ -77,7 +108,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     )
 
     internal_context_filters: list[_StageManagerFilterPlugin] = Field(
-        [],
+        default=[],
         description=(
             "Context filters defined solely by the interaction plugin. The definition should not be part of the "
             "schema. Will never be displayed in UI and will be executed with the context filters."
@@ -86,74 +117,78 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     )
 
     include_invalid_parents: bool = Field(
-        True,
+        default=True,
         description=(
             "Whether the tree should include invalid context item parents or whether the tree should be sparse"
         ),
         exclude=True,
     )
 
-    row_height: int = Field(24 + 4, description="The height of the Tree rows in pixels.", exclude=True)
+    row_height: int = Field(default=24 + 4, description="The height of the Tree rows in pixels.", exclude=True)
     header_height: int = Field(
-        24 + 4,
+        default=24 + 4,
         description="The height of the header in pixels. Will be used to offset the alternating row background",
         exclude=True,
     )
     alternate_row_colors: bool = Field(
-        True, description="Whether the tree's rows should alternate in color", exclude=True
+        default=True, description="Whether the tree's rows should alternate in color", exclude=True
     )
 
     debounce_frames: int = Field(
-        5, description="The number of frames that should be used to debounce the item update requests", exclude=True
+        default=5,
+        description="The number of frames that should be used to debounce the item update requests",
+        exclude=True,
     )
-    _alternating_row_widget: _AlternatingRowWidget | None = PrivateAttr(None)
-    _tree_frame: ui.Frame | None = PrivateAttr(None)
-    _tree_widget: _TreeWidget | None = PrivateAttr(None)
-    _tree_scroll_frame: ui.Frame | None = PrivateAttr(None)
-    _loading_frame: ui.ZStack | None = PrivateAttr(None)
+    _alternating_row_widget: _AlternatingRowWidget | None = PrivateAttr(default=None)
+    _tree_frame: ui.Frame | None = PrivateAttr(default=None)
+    _tree_widget: _TreeWidget | None = PrivateAttr(default=None)
+    _tree_scroll_frame: ui.Frame | None = PrivateAttr(default=None)
+    _loading_frame: ui.ZStack | None = PrivateAttr(default=None)
 
-    _context: _StageManagerContextPlugin | None = PrivateAttr(None)
+    _context: _StageManagerContextPlugin | None = PrivateAttr(default=None)
 
-    _result_frames: list[ui.Frame] = PrivateAttr([])
+    _result_frames: list[ui.Frame] = PrivateAttr(default=[])
 
-    _item_expansion_states: dict[int, bool] = PrivateAttr({})
+    _item_expansion_states: dict[int, bool] = PrivateAttr(default={})
 
-    _context_items_changed: _Event = PrivateAttr(_Event())
+    _context_items_changed: _Event = PrivateAttr(default=_Event())
 
-    _app_window_size_changed_sub = PrivateAttr(None)
+    _app_window_size_changed_sub: ISubscription = PrivateAttr(default=None)
 
-    _context_items_changed_sub: _EventSubscription | None = PrivateAttr(None)
-    _item_changed_sub: _EventSubscription | None = PrivateAttr(None)
-    _item_expanded_sub: _EventSubscription | None = PrivateAttr(None)
-    _selection_changed_sub: _EventSubscription | None = PrivateAttr(None)
+    _context_items_changed_sub: _EventSubscription | None = PrivateAttr(default=None)
+    _item_changed_sub: _EventSubscription | None = PrivateAttr(default=None)
+    _item_expanded_sub: _EventSubscription | None = PrivateAttr(default=None)
+    _selection_changed_sub: _EventSubscription | None = PrivateAttr(default=None)
 
-    _widget_item_clicked_subs: list[_EventSubscription] | None = PrivateAttr([])
-    _filter_items_changed_subs: list[_EventSubscription] = PrivateAttr([])
-    _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr([])
+    _widget_item_clicked_subs: list[_EventSubscription] | None = PrivateAttr(default=[])
+    _filter_items_changed_subs: list[_EventSubscription] = PrivateAttr(default=[])
+    _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr(default=[])
 
-    _update_content_size_task: Future | None = PrivateAttr(None)
-    _update_expansion_task: Future | None = PrivateAttr(None)
-    _model_refresh_task: Future | None = PrivateAttr(None)
-    _update_items_task: Future | None = PrivateAttr(None)
+    _update_content_size_task: Future | None = PrivateAttr(default=None)
+    _update_expansion_task: Future | None = PrivateAttr(default=None)
+    _model_refresh_task: Future | None = PrivateAttr(default=None)
+    _update_items_task: Future | None = PrivateAttr(default=None)
 
-    _update_queue: Queue = PrivateAttr(Queue())
+    _update_queue: Queue = PrivateAttr(default=Queue())
 
-    _is_initialized: bool = PrivateAttr(False)
-    _is_active: bool = PrivateAttr(False)
+    _is_initialized: bool = PrivateAttr(default=False)
+    _is_active: bool = PrivateAttr(default=False)
 
-    _previous_frame_height: float = PrivateAttr(-1.0)
+    _previous_frame_height: float = PrivateAttr(default=-1.0)
 
     _FILTERS_HORIZONTAL_PADDING: int = 24
     _FILTERS_VERTICAL_PADDING: int = 8
     _RESULTS_HORIZONTAL_PADDING: int = 8
     _RESULTS_VERTICAL_PADDING: int = 4
 
-    @validator("filters", "context_filters", "internal_context_filters", allow_reuse=True)
+    @field_validator("filters", "context_filters", "internal_context_filters", mode="before")
+    @classmethod
     def check_unique_filters(cls, v):  # noqa N805
         # Use a list + validator to keep the list order
         return list(dict.fromkeys(v))
 
-    @validator("percent_available_core_usage", allow_reuse=True)
+    @field_validator("percent_available_core_usage", mode="before")
+    @classmethod
     def check_valid_percent_available_core_usage(cls, v):  # noqa N805
         if v is None:
             return v
@@ -161,29 +196,56 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             raise ValueError("Value must be larger than 0 and smaller or equal to 1 (percentage)")
         return v
 
-    @validator("debounce_frames", allow_reuse=True)
+    @field_validator("debounce_frames", mode="before")
+    @classmethod
     def check_positive_frame_count(cls, v):  # noqa N805
         if v < 0:
             raise ValueError("Value must be 0 or larger")
         return v
 
-    @root_validator(allow_reuse=True)
-    def check_plugin_compatibility(cls, values):  # noqa N805
-        # In the root validator, plugins are already resolved
-        for filter_plugin in values.get("filters"):
-            cls._check_plugin_compatibility(filter_plugin.name, values.get("compatible_filters"))
-        for filter_plugin in values.get("context_filters"):
-            cls._check_plugin_compatibility(filter_plugin.name, values.get("compatible_filters"))
-        for column_plugin in values.get("columns"):
-            for widget_plugin in column_plugin.widgets:
-                cls._check_plugin_compatibility(widget_plugin.name, values.get("compatible_widgets"))
+    @model_validator(mode="after")
+    @classmethod
+    def check_plugin_compatibility(cls, instance_model):  # noqa N805
+        filters_list = instance_model.filters
+        context_filters_list = instance_model.context_filters
+        columns_list = instance_model.columns
+        internal_context_filters_list = instance_model.internal_context_filters
+        tree_value = instance_model.tree
 
-        # The tree & internal filter plugins are not resolved at this point because we only set the name in the plugins
-        cls._check_plugin_compatibility(values.get("tree").get("name"), values.get("compatible_trees"))
-        for filter_plugin in values.get("internal_context_filters"):
-            cls._check_plugin_compatibility(filter_plugin.get("name"), values.get("compatible_filters"))
+        # Get the values for compatible fields from the instance
+        compatible_filters_list = instance_model.compatible_filters
+        compatible_widgets_list = instance_model.compatible_widgets
+        compatible_trees_list = instance_model.compatible_trees
 
-        return values
+        for filter_plugin in filters_list:
+            # Assuming filter_plugin is an instantiated object or a dict with a 'name' key
+            plugin_name = filter_plugin.name if hasattr(filter_plugin, "name") else filter_plugin.get("name")
+            cls._check_plugin_compatibility(plugin_name, compatible_filters_list)
+
+        for filter_plugin in context_filters_list:
+            plugin_name = filter_plugin.name if hasattr(filter_plugin, "name") else filter_plugin.get("name")
+            cls._check_plugin_compatibility(plugin_name, compatible_filters_list)
+
+        for column_plugin in columns_list:
+            # Assuming column_plugin is an instantiated object or a dict with a 'widgets' key
+            widgets = column_plugin.widgets if hasattr(column_plugin, "widgets") else column_plugin.get("widgets", [])
+            for widget_plugin in widgets:
+                widget_name = widget_plugin.name if hasattr(widget_plugin, "name") else widget_plugin.get("name")
+                cls._check_plugin_compatibility(widget_name, compatible_widgets_list)
+
+        tree_name = None
+        if isinstance(tree_value, dict):
+            tree_name = tree_value.get("name")
+        elif hasattr(tree_value, "name"):  # Check if it's an object with a 'name' attribute
+            tree_name = tree_value.name
+
+        cls._check_plugin_compatibility(tree_name, compatible_trees_list)
+
+        for filter_plugin in internal_context_filters_list:
+            plugin_name = filter_plugin.name if hasattr(filter_plugin, "name") else filter_plugin.get("name")
+            cls._check_plugin_compatibility(plugin_name, compatible_filters_list)
+
+        return instance_model
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -200,74 +262,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             if self.percent_available_core_usage
             else None
         )
-
-    @classmethod
-    @property
-    def compatible_data_type(cls) -> _StageManagerDataTypes:
-        """
-        The data type this plugin supports
-        """
-        return _StageManagerDataTypes.NONE
-
-    @classmethod
-    @property
-    def _select_all_children(cls) -> bool:
-        """
-        Whether the tree should select all children items when selecting a parent item or not
-        """
-        return False
-
-    @classmethod
-    @property
-    def _scroll_to_selection(cls) -> bool:
-        """
-        Whether the tree should scroll to the first item in the selection when selection changes
-        """
-        return True
-
-    @classmethod
-    @property
-    def _validate_action_selection(cls) -> bool:
-        """
-        Whether the tree selection should be validated & updated to include the item being right-clicked on or not
-        """
-        return True
-
-    @classmethod
-    @property
-    @abc.abstractmethod
-    def tree(cls) -> _StageManagerTreePlugin:
-        """
-        The tree plugin defining the model and delegate
-        """
-        pass
-
-    @classmethod
-    @property
-    @abc.abstractmethod
-    def compatible_trees(cls) -> list[str]:
-        """
-        Get the list of tree plugins compatible with this interaction plugin
-        """
-        pass
-
-    @classmethod
-    @property
-    @abc.abstractmethod
-    def compatible_filters(cls) -> list[str]:
-        """
-        Get the list of filter plugins compatible with this interaction plugin
-        """
-        pass
-
-    @classmethod
-    @property
-    @abc.abstractmethod
-    def compatible_widgets(cls) -> list[str]:
-        """
-        Get the list of widget plugins compatible with this interaction plugin
-        """
-        pass
 
     @abc.abstractmethod
     def _setup_listeners(self):
@@ -388,8 +382,8 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                                     self._tree_widget = _TreeWidget(
                                         self.tree.model,
                                         delegate=self.tree.delegate,
-                                        select_all_children=self._select_all_children,
-                                        validate_action_selection=self._validate_action_selection,
+                                        select_all_children=self.select_all_children,
+                                        validate_action_selection=self.validate_action_selection,
                                         root_visible=False,
                                         header_visible=True,
                                         columns_resizable=False,  # Can't resize the results after resizing a column
@@ -723,7 +717,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 continue
             self._tree_widget.set_expanded(item, expanded, False)
 
-        if scroll_to_selection_override and self._scroll_to_selection and self._tree_scroll_frame:
+        if scroll_to_selection_override and self.scroll_to_selection and self._tree_scroll_frame:
             await omni.kit.app.get_app().next_update_async()
             self._scroll_to_items(self._tree_widget.selection)
 
@@ -769,13 +763,3 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             self._model_refresh_task.cancel()
         if self._update_items_task:
             self._update_items_task.cancel()
-
-    class Config(_StageManagerUIPluginBase.Config):
-        fields = {
-            **_StageManagerUIPluginBase.Config.fields,
-            "tree": {"exclude": True},
-            "compatible_data_type": {"exclude": True},
-            "compatible_trees": {"exclude": True},
-            "compatible_filters": {"exclude": True},
-            "compatible_widgets": {"exclude": True},
-        }

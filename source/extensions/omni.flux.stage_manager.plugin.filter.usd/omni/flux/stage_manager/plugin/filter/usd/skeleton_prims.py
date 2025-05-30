@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from pxr import UsdSkel
+from pydantic import Field
 
 from .base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
 
@@ -28,8 +29,8 @@ if TYPE_CHECKING:
 
 
 class SkeletonPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
-    display_name: str = "Skeleton Prims"
-    tooltip: str = "Filter out skeleton prims"
+    display_name: str = Field(default="Skeleton Prims", exclude=True)
+    tooltip: str = Field(default="Filter out skeleton prims", exclude=True)
 
     def _filter_predicate(self, prim: "Usd.Prim") -> bool:
         return prim.HasAPI(UsdSkel.BindingAPI) or prim.GetTypeName() in ("Skeleton", "SkelRoot")

@@ -34,7 +34,7 @@ class StageManagerWidgetPlugin(_StageManagerUIPluginBase, abc.ABC):
     A plugin that provides a widget for the TreeView
     """
 
-    _on_item_clicked: _Event = PrivateAttr(_Event())
+    _on_item_clicked: _Event = PrivateAttr(default=_Event())
 
     @abc.abstractmethod
     def build_ui(  # noqa PLW0221

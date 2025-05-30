@@ -45,7 +45,7 @@ class PrimTypes(Enum):
 
 
 def get_prim_paths(
-    asset_hashes: set[str] = None,
+    prim_hashes: set[str] = None,
     prim_type: PrimTypes = None,
     selection: list[str] | None = None,
     filter_session_prims: bool = True,
@@ -57,7 +57,7 @@ def get_prim_paths(
     Get the list of prim paths of a given type in the stage or current selection
 
     Args:
-        asset_hashes: A set of hashes to filter for
+        prim_hashes: A set of hashes to filter for
         prim_type: The type of prim to fetch
         selection: Current stage selection. If not set, all the prim paths in the stage will be used.
         filter_session_prims: Whether to filter out prims defined on the session prim or not
@@ -74,7 +74,7 @@ def get_prim_paths(
         match prim_type:
             case PrimTypes.LIGHTS:
                 return filter_prims_paths(
-                    lambda prim: is_light_prototype(prim) and includes_hash(prim, asset_hashes),
+                    lambda prim: is_light_prototype(prim) and includes_hash(prim, prim_hashes),
                     prim_paths=selection,
                     filter_session_prims=filter_session_prims,
                     layer_id=layer_id,
@@ -83,7 +83,7 @@ def get_prim_paths(
                 )
             case PrimTypes.MATERIALS:
                 return filter_prims_paths(
-                    lambda prim: is_material_prototype(prim) and includes_hash(prim, asset_hashes),
+                    lambda prim: is_material_prototype(prim) and includes_hash(prim, prim_hashes),
                     prim_paths=selection,
                     filter_session_prims=filter_session_prims,
                     layer_id=layer_id,
@@ -92,7 +92,7 @@ def get_prim_paths(
                 )
             case PrimTypes.MODELS:
                 return filter_prims_paths(
-                    lambda prim: is_mesh_prototype(prim) and includes_hash(prim, asset_hashes),
+                    lambda prim: is_mesh_prototype(prim) and includes_hash(prim, prim_hashes),
                     prim_paths=selection,
                     filter_session_prims=filter_session_prims,
                     layer_id=layer_id,
@@ -104,7 +104,7 @@ def get_prim_paths(
     return filter_prims_paths(
         lambda prim: (
             (is_light_prototype(prim) or is_material_prototype(prim) or is_mesh_prototype(prim))
-            and includes_hash(prim, asset_hashes)
+            and includes_hash(prim, prim_hashes)
         ),
         prim_paths=selection,
         filter_session_prims=filter_session_prims,
@@ -171,16 +171,16 @@ def filter_prims_paths(
     return filtered_paths
 
 
-def includes_hash(prim: "Usd.Prim", asset_hashes: set[str]) -> bool:
+def includes_hash(prim: "Usd.Prim", prim_hashes: set[str]) -> bool:
     """
     Returns:
         Whether the prim can be found in the set of hashes or not
     """
     if not prim:
         return False
-    if asset_hashes is None:
+    if prim_hashes is None:
         return True
-    return bool(any(True for asset_hash in asset_hashes if asset_hash in str(prim.GetPath())))
+    return bool(any(True for asset_hash in prim_hashes if asset_hash in str(prim.GetPath())))
 
 
 def is_light_prototype(prim: "Usd.Prim") -> bool:

@@ -1,5 +1,5 @@
 [package]
-version = "1.0.5"
+version = "1.1.0"
 authors = ["Alex Dunn <adunn@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"

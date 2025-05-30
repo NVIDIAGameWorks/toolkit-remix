@@ -63,7 +63,7 @@ class FileMetadataWritter(_ResultorBase):
         """
 
         all_data_flow = self._get_schema_data_flows(schema_data, schema)
-        fixes_applied = schema.context_plugin.data.dict().get(_CONTEXT_FIXES_APPLIED, [])
+        fixes_applied = schema.context_plugin.data.model_dump(serialize_as_any=True).get(_CONTEXT_FIXES_APPLIED, [])
 
         if all_data_flow:
             for data_flow in all_data_flow:

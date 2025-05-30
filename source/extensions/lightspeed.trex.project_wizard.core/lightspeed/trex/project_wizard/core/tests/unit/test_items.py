@@ -615,7 +615,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
 
         # Act
         with self.assertRaises(ValueError) as cm:
-            ProjectWizardSchema.are_all_mod_files_valid(mod_dir, {ProjectWizardKeys.REMIX_DIRECTORY.value: remix_dir})
+            ProjectWizardSchema.are_all_mod_files_valid([mod_dir], {ProjectWizardKeys.REMIX_DIRECTORY.value: remix_dir})
 
         # Assert
         self.assertEqual(
@@ -633,7 +633,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
             mock.return_value = False
             with self.assertRaises(ValueError) as cm:
                 ProjectWizardSchema.are_all_mod_files_valid(
-                    mod_dir, {ProjectWizardKeys.REMIX_DIRECTORY.value: remix_dir}
+                    [mod_dir], {ProjectWizardKeys.REMIX_DIRECTORY.value: remix_dir}
                 )
 
             # Assert
@@ -650,13 +650,13 @@ class TestItems(omni.kit.test.AsyncTestCase):
         with patch.object(ReplacementCore, "is_mod_file") as mock:
             mock.return_value = True
             value = ProjectWizardSchema.are_all_mod_files_valid(
-                mod_dir, {ProjectWizardKeys.REMIX_DIRECTORY.value: remix_dir}
+                [mod_dir], {ProjectWizardKeys.REMIX_DIRECTORY.value: remix_dir}
             )
 
         # Assert
         args, _ = mock.call_args
         self.assertEqual(str(mod_dir), args[0])
-        self.assertEqual(mod_dir, value)
+        self.assertEqual([mod_dir], value)
 
     async def test_schema_is_mod_file_valid_not_in_existing_mods_throws(self):
         # Arrange

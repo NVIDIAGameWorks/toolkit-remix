@@ -7,3 +7,5 @@ lightspeed.trex.control.stagecraft
 
    README
    CHANGELOG
+
+.. automodule:: lightspeed.trex.control.stagecraft

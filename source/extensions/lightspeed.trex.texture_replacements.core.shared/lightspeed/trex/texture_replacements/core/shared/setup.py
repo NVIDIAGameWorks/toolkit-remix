@@ -41,7 +41,7 @@ from pxr import Sdf, UsdShade
 
 from .data_models import (
     GetTexturesQueryModel,
-    PrimsResponseModel,
+    PrimPathsResponseModel,
     ReplaceTexturesRequestModel,
     TextureMaterialPathParamModel,
     TextureReplacementsValidators,
@@ -66,7 +66,7 @@ class TextureReplacementsCore:
     def get_texture_prims_assets_with_data_models(self, query: GetTexturesQueryModel) -> TexturesResponseModel:
         return TexturesResponseModel(
             textures=self.get_texture_prims_assets(
-                asset_hashes=query.asset_hashes,
+                prim_hashes=query.prim_hashes,
                 texture_types=query.texture_types,
                 return_selection=query.return_selection,
                 filter_session_prims=query.filter_session_prims,
@@ -78,38 +78,40 @@ class TextureReplacementsCore:
     def replace_texture_with_data_models(self, body: ReplaceTexturesRequestModel):
         self.replace_textures(body.textures)
 
-    def get_texture_material_with_data_models(self, params: TextureMaterialPathParamModel) -> PrimsResponseModel:
-        material_asset_path = self.get_texture_material(params.texture_asset_path)
-        if material_asset_path is None:
+    def get_texture_material_with_data_models(self, params: TextureMaterialPathParamModel) -> PrimPathsResponseModel:
+        material_prim_path = self.get_texture_material(params.texture_prim_path)
+        if material_prim_path is None:
             raise ValueError("Unable to find a material associated to the given texture")
-        return PrimsResponseModel(asset_paths=[material_asset_path])
+        return PrimPathsResponseModel(prim_paths=[material_prim_path])
 
     async def get_texture_material_inputs_with_data_models(
         self, params: TextureMaterialPathParamModel
-    ) -> PrimsResponseModel:
-        material_inputs = await self.get_expected_texture_material_inputs(params.texture_asset_path)
+    ) -> PrimPathsResponseModel:
+        material_inputs = await self.get_expected_texture_material_inputs(params.texture_prim_path)
         if material_inputs is None:
             raise ValueError("Unable to find a material associated to the given texture")
-        return PrimsResponseModel(asset_paths=material_inputs)
+        return PrimPathsResponseModel(prim_paths=material_inputs)
 
     async def get_texture_expected_material_inputs_with_data_models(
         self,
         material_params: TextureMaterialPathParamModel,
         texture_type: _TextureTypeNames | str | None = None,
-    ) -> PrimsResponseModel:
+    ) -> PrimPathsResponseModel:
         material_inputs = await self.get_expected_texture_material_inputs(
-            material_params.texture_asset_path,
-            texture_type=_TextureTypes[texture_type.value],
+            material_params.texture_prim_path,
+            texture_type=_TextureTypes[
+                texture_type.value if isinstance(texture_type, _TextureTypeNames) else str(texture_type)
+            ],
         )
         if material_inputs is None:
             raise ValueError("Unable to find a material associated to the given texture")
-        return PrimsResponseModel(asset_paths=material_inputs)
+        return PrimPathsResponseModel(prim_paths=material_inputs)
 
     # TRADITIONAL FUNCTIONS
 
     def get_texture_prims_assets(
         self,
-        asset_hashes: set[str] | None,
+        prim_hashes: set[str] | None,
         texture_types: set[_TextureTypeNames] | None,
         return_selection: bool = False,
         filter_session_prims: bool = True,
@@ -121,7 +123,7 @@ class TextureReplacementsCore:
         current selection
 
         Args:
-            asset_hashes: A set of asset hashes to keep when filtering material asset paths
+            prim_hashes: A set of prim hashes to keep when filtering material asset paths
             texture_types: A set of texture types to keep when filtering textures
             return_selection: Whether to return the current selection or all prims in the stage
             filter_session_prims: Whether to filter prims defined on the session prim or not
@@ -143,7 +145,7 @@ class TextureReplacementsCore:
 
         # Get every asset-type input for every shader and validate that the asset path has a supported texture extension
         for shader_path in _filter_prims_paths(
-            lambda prim: bool(_is_shader_prototype(prim) and _includes_hash(prim, asset_hashes)),
+            lambda prim: bool(_is_shader_prototype(prim) and _includes_hash(prim, prim_hashes)),
             prim_paths=selection,
             filter_session_prims=filter_session_prims,
             layer_id=layer_id,

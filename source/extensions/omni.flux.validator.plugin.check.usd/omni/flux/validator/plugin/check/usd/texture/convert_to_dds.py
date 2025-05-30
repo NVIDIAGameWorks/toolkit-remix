@@ -18,7 +18,7 @@
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import carb
 import carb.tokens
@@ -39,7 +39,7 @@ from omni.flux.utils.common.path_utils import write_metadata as _write_metadata
 from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.factory import utils as _validator_factory_utils
 from pxr import Sdf
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
 
@@ -54,47 +54,50 @@ def _generate_out_path(in_path_str: str, suffix: str):
 
 
 class ConversionArgs(BaseModel):
-    args: List[str]
+    args: list[str]
+    model_config = ConfigDict(extra="forbid")
 
 
 class ConvertToDDS(_CheckBaseUSD):
     class Data(_CheckBaseUSD.Data):
-        conversion_args: Dict[str, ConversionArgs] = {
-            "inputs:diffuse_texture": ConversionArgs(
-                args=["--format", "bc7", "--mip-gamma-correct"],
-            ),
-            "inputs:normalmap_texture": ConversionArgs(
-                args=["--format", "bc5", "--no-mip-gamma-correct"],
-            ),
-            # TODO [REMIX-1018]: our MDL files don't support tangent textures yet.
-            # "inputs:tangent_texture": ConversionArgs(
-            #     args=["--format", "bc5", "--no-mip-gamma-correct"],
-            # ),
-            "inputs:reflectionroughness_texture": ConversionArgs(
-                args=["--format", "bc4", "--no-mip-gamma-correct"],
-            ),
-            "inputs:emissive_mask_texture": ConversionArgs(
-                args=["--format", "bc7", "--mip-gamma-correct"],
-            ),
-            "inputs:metallic_texture": ConversionArgs(
-                args=["--format", "bc4", "--no-mip-gamma-correct"],
-            ),
-            "inputs:height_texture": ConversionArgs(
-                args=["--format", "bc4", "--no-mip-gamma-correct", "--mip-filter", "max"],
-            ),
-            "inputs:transmittance_texture": ConversionArgs(
-                args=["--format", "bc7", "--mip-gamma-correct"],
-            ),
-        }
-        replace_udim_textures_by_empty: bool = False
-        suffix: str = ".rtex.dds"
+        conversion_args: dict[str, ConversionArgs] = Field(
+            default={
+                "inputs:diffuse_texture": ConversionArgs(
+                    args=["--format", "bc7", "--mip-gamma-correct"],
+                ),
+                "inputs:normalmap_texture": ConversionArgs(
+                    args=["--format", "bc5", "--no-mip-gamma-correct"],
+                ),
+                # TODO [REMIX-1018]: our MDL files don't support tangent textures yet.
+                # "inputs:tangent_texture": ConversionArgs(
+                #     args=["--format", "bc5", "--no-mip-gamma-correct"],
+                # ),
+                "inputs:reflectionroughness_texture": ConversionArgs(
+                    args=["--format", "bc4", "--no-mip-gamma-correct"],
+                ),
+                "inputs:emissive_mask_texture": ConversionArgs(
+                    args=["--format", "bc7", "--mip-gamma-correct"],
+                ),
+                "inputs:metallic_texture": ConversionArgs(
+                    args=["--format", "bc4", "--no-mip-gamma-correct"],
+                ),
+                "inputs:height_texture": ConversionArgs(
+                    args=["--format", "bc4", "--no-mip-gamma-correct", "--mip-filter", "max"],
+                ),
+                "inputs:transmittance_texture": ConversionArgs(
+                    args=["--format", "bc7", "--mip-gamma-correct"],
+                ),
+            }
+        )
+        replace_udim_textures_by_empty: bool = Field(default=False)
+        suffix: str = Field(default=".rtex.dds")
 
         _compatible_data_flow_names = ["InOutData"]
-        data_flows: Optional[List[_InOutDataFlow]] = None  # override base argument with the good typing
+        data_flows: list[_InOutDataFlow] | None = Field(default=None)
 
-        @validator("suffix", allow_reuse=True)
-        def dot_in_suffix(cls, v):  # noqa
-            """Check that we have a dot in the suffix"""
+        @field_validator("suffix", mode="before")
+        @classmethod
+        def dot_in_suffix(cls, v: str) -> str:
             if not v.startswith("."):
                 return f".{v}"
             return v
@@ -107,7 +110,7 @@ class ConvertToDDS(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check if asset paths on the selected prims in the attributes listed in schema
         data's `conversion_args` are dds encoded
@@ -172,7 +175,7 @@ class ConvertToDDS(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to triangulate the mesh prims (including geom subsets)
 

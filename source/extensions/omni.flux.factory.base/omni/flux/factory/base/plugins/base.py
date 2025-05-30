@@ -16,11 +16,10 @@
 """
 
 import abc
+from typing import ClassVar
+
+from pydantic import Field
 
 
 class PluginBase(abc.ABC):
-    @classmethod
-    @property
-    @abc.abstractmethod
-    def name(cls) -> str:
-        pass
+    name: ClassVar[str] = Field()

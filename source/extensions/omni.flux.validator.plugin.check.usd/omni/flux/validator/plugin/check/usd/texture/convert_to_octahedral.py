@@ -20,7 +20,7 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import IntEnum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import carb
 import carb.tokens
@@ -37,7 +37,7 @@ from omni.flux.utils.octahedral_converter import OctahedralConverter
 from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.factory import utils as _validator_factory_utils
 from pxr import Sdf
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
 
@@ -65,16 +65,18 @@ class ConversionArgs(BaseModel):
     suffix: str
     replace_suffix: str
 
-    @validator("suffix", allow_reuse=True)
-    def dot_not_in_suffix(cls, v):  # noqa
-        """Check that we have a dot in the suffix"""
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("suffix", mode="before")
+    @classmethod
+    def dot_not_in_suffix(cls, v: str) -> str:
         if "." in v:
             raise ValueError("suffix cannot contain a `.`")
         return v
 
-    @validator("replace_suffix", allow_reuse=True)
-    def dot_not_in_replace_suffix(cls, v):  # noqa
-        """Check that we have a dot in the suffix"""
+    @field_validator("replace_suffix", mode="before")
+    @classmethod
+    def dot_not_in_replace_suffix(cls, v: str) -> str:
         if "." in v:
             raise ValueError("replace_suffix cannot contain a `.`")
         return v
@@ -82,23 +84,25 @@ class ConversionArgs(BaseModel):
 
 class ConvertToOctahedral(_CheckBaseUSD):
     class Data(_CheckBaseUSD.Data):
-        conversion_args: Dict[str, ConversionArgs] = {
-            "inputs:normalmap_texture": ConversionArgs(
-                encoding_attr="inputs:encoding",
-                suffix="_OTH_Normal",
-                replace_suffix="_Normal",
-            ),
-            # TODO [REMIX-1018]: our MDL files don't support tangent textures yet.
-            # "inputs:tangent_texture": ConversionArgs(
-            #     encoding_attr="inputs:tangent_encoding",
-            #     suffix="_OTH_Tangent",
-            #     replace_suffix="_Tangent",
-            # ),
-        }
-        replace_udim_textures_by_empty: bool = False
+        conversion_args: dict[str, ConversionArgs] = Field(
+            default={
+                "inputs:normalmap_texture": ConversionArgs(
+                    encoding_attr="inputs:encoding",
+                    suffix="_OTH_Normal",
+                    replace_suffix="_Normal",
+                ),
+                # TODO [REMIX-1018]: our MDL files don't support tangent textures yet.
+                # "inputs:tangent_texture": ConversionArgs(
+                #     encoding_attr="inputs:tangent_encoding",
+                #     suffix="_OTH_Tangent",
+                #     replace_suffix="_Tangent",
+                # ),
+            }
+        )
+        replace_udim_textures_by_empty: bool = Field(default=False)
 
         _compatible_data_flow_names = ["InOutData"]
-        data_flows: Optional[List[_InOutDataFlow]] = None  # override base argument with the good typing
+        data_flows: list[_InOutDataFlow] | None = Field(default=None)
 
     name = "ConvertToOctahedral"
     tooltip = "This plugin will ensure all normal maps are octahedral encoded"
@@ -108,7 +112,7 @@ class ConvertToOctahedral(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check if normal maps are octahedral encoded
 
@@ -171,7 +175,7 @@ class ConvertToOctahedral(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to convert normal maps to octahedral encoding
 

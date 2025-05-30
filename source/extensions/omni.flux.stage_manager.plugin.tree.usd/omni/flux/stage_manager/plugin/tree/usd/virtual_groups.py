@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from omni import ui
+from pydantic import Field
 
 from .base import StageManagerUSDTreeDelegate as _StageManagerUSDTreeDelegate
 from .base import StageManagerUSDTreeItem as _StageManagerUSDTreeItem
@@ -93,8 +94,8 @@ class VirtualGroupsTreePlugin(_StageManagerUSDTreePlugin):
     A flat list of prims that can be grouped using virtual groups
     """
 
-    model: VirtualGroupsModel = None
-    delegate: VirtualGroupsDelegate = None
+    model: VirtualGroupsModel = Field(default=None, exclude=True)
+    delegate: VirtualGroupsDelegate = Field(default=None, exclude=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

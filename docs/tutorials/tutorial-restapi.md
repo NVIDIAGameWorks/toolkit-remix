@@ -554,8 +554,8 @@ def get_assets(self, **kwargs) -> list[str]:
         **kwargs: Additional query parameters to send with the request.
 
     Possible Query Parameters:
-    - asset_hashes: list[str] - A list of specific asset hashes to get
-    - asset_types: list[str] - A list of specific asset types to get
+    - prim_hashes: list[str] - A list of specific asset hashes to get
+    - prim_types: list[str] - A list of specific asset types to get
     - selection: bool - Whether to return only selected assets or all assets
     - filter_session_assets: bool - Whether to filter out assets defined on the session layer or not
     - layer_identifier: str - Look for assets that exists or not on a given layer
@@ -564,7 +564,7 @@ def get_assets(self, **kwargs) -> list[str]:
     params = {k: v for k, v in kwargs.items() if v is not None}
     response = self._send_request(HTTPMethod.GET, "/stagecraft/assets", params=params)
 
-    return response.get("asset_paths")
+    return response.get("prim_paths")
 ```
 
 This method will send a GET request to the `/stagecraft/assets` endpoint of the RTX Remix API and return the assets
@@ -580,14 +580,14 @@ query parameters will be silently ignored.
 #### Create a utility method to get referenced file paths for a given asset
 
 ```python
-def get_file_paths(self, asset_path: str) -> list[str]:
+def get_file_paths(self, prim_path: str) -> list[str]:
     """
     Get the referenced absolute file paths for the given asset path.
 
     Args:
-        asset_path: The asset path to get the referenced file paths for
+        prim_path: The asset path to get the referenced file paths for
     """
-    encoded_path = self._encode_string(asset_path)
+    encoded_path = self._encode_string(prim_path)
     response = self._send_request(HTTPMethod.GET, f"/stagecraft/assets/{encoded_path}/file-paths")
     reference_paths = response.get("reference_paths")
 
@@ -601,7 +601,7 @@ def get_file_paths(self, asset_path: str) -> list[str]:
 ```
 
 This method will do a bit more than the previous utility method. It will send a GET request to the
-`/stagecraft/assets/{asset_path}/file-paths` endpoint of the RTX Remix API, where `{asset_path}` is one `asset_path`
+`/stagecraft/assets/{prim_path}/file-paths` endpoint of the RTX Remix API, where `{prim_path}` is one `prim_path`
 received from the `get_assets` method.
 
 The method will then process the response received from the REST API and return a list of absolute file paths for the
@@ -668,7 +668,7 @@ def execute(self, context):
 
     try:
         # Get the assets selected in the RTX Remix viewport
-        assets = self._api.get_assets(selection=True, asset_types="models")
+        assets = self._api.get_assets(selection=True, prim_types="models")
 
         # Get the mesh paths for the selected assets
         meshes = [PrimsUtils.get_mesh_path(asset) for asset in assets if PrimsUtils.get_mesh_path(asset)]
@@ -721,7 +721,7 @@ Going back to the steps previously described:
 
 3. Get the assets selected in the viewport
     ```python
-    assets = self._api.get_assets(selection=True, asset_types="models")
+    assets = self._api.get_assets(selection=True, prim_types="models")
 
     # /RootNode/meshes/mesh_HASH/mesh -> /RootNode/meshes/mesh_HASH
     mesh_pattern = r"^(.*mesh_[A-Z0-9]{16}(?:_[0-9])*)\/.*$"
@@ -732,7 +732,7 @@ Going back to the steps previously described:
             meshes.append(pattern_match.group(1))
     ```
    Here we get the model assets selected in the viewport and store them in the `assets` variable. Note that we are using
-   the `selection=True` and `asset_types="models"` kwargs to specify that we only want to get selected model assets.
+   the `selection=True` and `prim_types="models"` kwargs to specify that we only want to get selected model assets.
 
    We then use the `re` module to extract the base mesh Prim Path from the asset path. For example, if the asset path
    is `/RootNode/meshes/mesh_HASH/mesh`, the base mesh Prim Path will be `/RootNode/meshes/mesh_HASH`. Note that we only
@@ -1211,7 +1211,7 @@ def execute(self, context):
 
     try:
         # Get the assets selected in the RTX Remix viewport
-        assets = self._api.get_assets(selection=True, asset_types="models")
+        assets = self._api.get_assets(selection=True, prim_types="models")
 
         # Get the mesh paths for the selected assets
         meshes = [PrimsUtils.get_mesh_path(asset) for asset in assets if PrimsUtils.get_mesh_path(asset)]

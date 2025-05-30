@@ -18,6 +18,7 @@
 from typing import TYPE_CHECKING
 
 from pxr import UsdLux
+from pydantic import Field
 
 from .base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
 
@@ -26,8 +27,8 @@ if TYPE_CHECKING:
 
 
 class LightPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
-    display_name: str = "Light Prims"
-    tooltip: str = "Filter out light prims"
+    display_name: str = Field(default="Light Prims", exclude=True)
+    tooltip: str = Field(default="Filter out light prims", exclude=True)
 
     def _filter_predicate(self, prim: "Usd.Prim") -> bool:
         return prim.HasAPI(UsdLux.LightAPI) if hasattr(UsdLux, "LightAPI") else prim.IsA(UsdLux.Light)

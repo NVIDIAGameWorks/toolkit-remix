@@ -5,5 +5,6 @@ omni.flux.property_widget_builder.delegates
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.property_widget_builder.delegates

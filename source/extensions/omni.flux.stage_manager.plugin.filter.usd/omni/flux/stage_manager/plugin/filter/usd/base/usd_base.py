@@ -22,7 +22,7 @@ from pydantic import PrivateAttr
 
 
 class StageManagerUSDFilterPlugin(_StageManagerFilterPlugin, abc.ABC):
-    _context_name: str = PrivateAttr("")
+    _context_name: str = PrivateAttr(default="")
 
     def set_context_name(self, name: str):
         """Set usd context to initialize plugin before items are rebuilt."""

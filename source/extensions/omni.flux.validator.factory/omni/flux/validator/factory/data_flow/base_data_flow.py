@@ -17,12 +17,11 @@
 
 from typing import Optional
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, ConfigDict
 
 
 class DataFlow(BaseModel):
     name: str
     channel: Optional[str] = "Default"
 
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")

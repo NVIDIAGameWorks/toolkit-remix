@@ -18,7 +18,7 @@
 from lightspeed.trex.texture_replacements.core.shared import TextureReplacementsCore
 from lightspeed.trex.texture_replacements.core.shared.data_models import (
     GetTexturesQueryModel,
-    PrimsResponseModel,
+    PrimPathsResponseModel,
     ReplaceTexturesRequestModel,
     TextureMaterialPathParamModel,
     TexturesResponseModel,
@@ -52,11 +52,12 @@ class TextureReplacementsService(ServiceBase):
 
         @self.router.get(
             path="/",
+            operation_id="get_textures",
             description="Get the texture properties and associated asset paths in the current stage.",
             response_model=TexturesResponseModel,
         )
         async def get_textures(
-            asset_hashes: set[str] | None = ServiceBase.describe_query_param(  # noqa B008
+            prim_hashes: set[str] | None = ServiceBase.describe_query_param(  # noqa B008
                 None, "Filter textures to keep textures from specific material hashes"
             ),
             texture_types: set[TextureTypeNames] | None = ServiceBase.describe_query_param(  # noqa B008
@@ -83,7 +84,7 @@ class TextureReplacementsService(ServiceBase):
             try:
                 return self.__texture_core.get_texture_prims_assets_with_data_models(
                     GetTexturesQueryModel(
-                        asset_hashes=asset_hashes,
+                        prim_hashes=prim_hashes,
                         texture_types=texture_types,
                         return_selection=selection,
                         filter_session_prims=filter_session_prims,
@@ -97,6 +98,7 @@ class TextureReplacementsService(ServiceBase):
 
         @self.router.put(
             path="/",
+            operation_id="override_textures",
             description="Override the given textures on the current edit target in the current stage.",
         )
         async def override_textures(
@@ -106,49 +108,52 @@ class TextureReplacementsService(ServiceBase):
 
         @self.router.get(
             path="/types",
+            operation_id="get_valid_texture_types",
             description="Get a list of the available texture types.",
             response_model=TextureTypesResponseModel,
         )
-        async def get_texture_types() -> TextureTypesResponseModel:
+        async def get_valid_texture_types() -> TextureTypesResponseModel:
             return TextureTypesResponseModel(texture_types=[item.value for item in TextureTypeNames])
 
         @self.router.get(
-            path="/{texture_asset_path:path}/material",
-            description="Get the parent material for a given texture asset path.",
-            response_model=PrimsResponseModel,
+            path="/{texture_prim_path:path}/material",
+            operation_id="get_texture_material",
+            description="Get the parent material for a given texture prim path.",
+            response_model=PrimPathsResponseModel,
         )
         async def get_texture_material(
-            texture_asset_path: str = ServiceBase.validate_path_param(  # noqa B008
+            texture_prim_path: str = ServiceBase.validate_path_param(  # noqa B008
                 TextureMaterialPathParamModel,
-                description="The asset path of a given texture",
+                description="The prim path of a given texture",
                 context_name=context_name,
             )
-        ) -> PrimsResponseModel:
+        ) -> PrimPathsResponseModel:
             try:
-                return self.__texture_core.get_texture_material_with_data_models(texture_asset_path)
+                return self.__texture_core.get_texture_material_with_data_models(texture_prim_path)
             except ValueError as e:
                 ServiceBase.raise_error(404, e)
 
         @self.router.get(
-            path="/{texture_asset_path:path}/material/inputs",
-            description="Get the parent material inputs for a given texture asset path.",
-            response_model=PrimsResponseModel,
+            path="/{texture_prim_path:path}/material/inputs",
+            operation_id="get_texture_material_inputs",
+            description="Get the parent material inputs for a given texture prim path.",
+            response_model=PrimPathsResponseModel,
         )
         async def get_texture_material_inputs(
-            texture_asset_path: str = ServiceBase.validate_path_param(  # noqa B008
+            texture_prim_path: str = ServiceBase.validate_path_param(  # noqa B008
                 TextureMaterialPathParamModel,
-                description="The asset path of a given texture",
+                description="The prim path of a given texture",
                 context_name=context_name,
             ),
             texture_type: TextureTypeNames | str = ServiceBase.describe_query_param(  # noqa B008
                 None, "Get the expected input for a given texture type or based on an ingested texture's file name."
             ),
-        ) -> PrimsResponseModel:
+        ) -> PrimPathsResponseModel:
             try:
                 if texture_type is not None:
                     return await self.__texture_core.get_texture_expected_material_inputs_with_data_models(
-                        texture_asset_path, texture_type=texture_type
+                        texture_prim_path, texture_type=texture_type
                     )
-                return await self.__texture_core.get_texture_material_inputs_with_data_models(texture_asset_path)
+                return await self.__texture_core.get_texture_material_inputs_with_data_models(texture_prim_path)
             except ValueError as e:
                 ServiceBase.raise_error(404, e)

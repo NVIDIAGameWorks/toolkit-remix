@@ -148,42 +148,42 @@ class TestTextureReplacementsService(AsyncTestCase):
 
     async def test_get_texture_material_returns_expected_response(self):
         # Arrange
-        asset_path = quote("/RootNode/Looks/mat_BC868CE5A075ABB1/Shader.inputs:metallic_texture", safe="")
+        prim_path = quote("/RootNode/Looks/mat_BC868CE5A075ABB1/Shader.inputs:metallic_texture", safe="")
         expected_material = "/RootNode/Looks/mat_BC868CE5A075ABB1"
 
         # Act
-        response = await send_request("GET", f"{self.service.prefix}/{asset_path}/material")
+        response = await send_request("GET", f"{self.service.prefix}/{prim_path}/material")
 
         # Assert
-        self.assertEqual(response, {"asset_paths": [expected_material]})
+        self.assertEqual(response, {"prim_paths": [expected_material]})
 
     async def test_get_texture_material_inputs_no_args_returns_all_inputs(self):
         # Arrange
         base_path = "/RootNode/Looks/mat_BC868CE5A075ABB1/Shader."
-        asset_path = quote(f"{base_path}inputs:metallic_texture", safe="")
+        prim_path = quote(f"{base_path}inputs:metallic_texture", safe="")
 
         expected_inputs = sorted({f"{base_path}{i}" for i in TEXTURE_TYPE_INPUT_MAP.values()})
 
         # Act
-        response = await send_request("GET", f"{self.service.prefix}/{asset_path}/material/inputs")
+        response = await send_request("GET", f"{self.service.prefix}/{prim_path}/material/inputs")
 
         # Assert
-        self.assertListEqual(sorted(response.get("asset_paths", [])), expected_inputs)
+        self.assertListEqual(sorted(response.get("prim_paths", [])), expected_inputs)
 
     async def test_get_texture_material_inputs_texture_type_returns_expected_inputs(self):
         # Arrange
         base_path = "/RootNode/Looks/mat_BC868CE5A075ABB1/Shader."
-        asset_path = quote(f"{base_path}inputs:metallic_texture", safe="")
+        prim_path = quote(f"{base_path}inputs:metallic_texture", safe="")
 
         expected_inputs = [f"{base_path}inputs:reflectionroughness_texture"]
 
         # Act
         response = await send_request(
-            "GET", f"{self.service.prefix}/{asset_path}/material/inputs?texture_type=ROUGHNESS"
+            "GET", f"{self.service.prefix}/{prim_path}/material/inputs?texture_type=ROUGHNESS"
         )
 
         # Assert
-        self.assertEqual(response, {"asset_paths": expected_inputs})
+        self.assertEqual(response, {"prim_paths": expected_inputs})
 
     async def test_override_textures_overrides_expected_inputs(self):
         # Arrange
@@ -192,7 +192,7 @@ class TestTextureReplacementsService(AsyncTestCase):
         metallic_input_path = "/RootNode/Looks/mat_BC868CE5A075ABB1/Shader.inputs:metallic_texture"
 
         asset_relative_path = "/ingested_assets/output/good/Bricks092-PNG_Color.a.rtex.dds"
-        asset_path = str(get_test_data(f"usd/project_example{asset_relative_path}"))
+        prim_path = str(get_test_data(f"usd/project_example{asset_relative_path}"))
 
         # Act
         response = await send_request(
@@ -201,8 +201,8 @@ class TestTextureReplacementsService(AsyncTestCase):
             json={
                 "force": False,
                 "textures": [
-                    [diffuse_input_path, asset_path],
-                    [metallic_input_path, asset_path],
+                    [diffuse_input_path, prim_path],
+                    [metallic_input_path, prim_path],
                 ],
             },
         )
@@ -223,7 +223,7 @@ class TestTextureReplacementsService(AsyncTestCase):
         emissive_input_path = "/RootNode/Looks/mat_BC868CE5A075ABB1/Shader.inputs:emissive_mask_texture"
 
         asset_relative_path = "/ingested_assets/output/good/Bricks092-PNG_Color.a.rtex.dds"
-        asset_path = str(get_test_data(f"usd/project_example{asset_relative_path}"))
+        prim_path = str(get_test_data(f"usd/project_example{asset_relative_path}"))
 
         # Act
         response = await send_request(
@@ -232,8 +232,8 @@ class TestTextureReplacementsService(AsyncTestCase):
             json={
                 "force": False,
                 "textures": [
-                    [diffuse_input_path, asset_path],  # Existing
-                    [emissive_input_path, asset_path],  # New
+                    [diffuse_input_path, prim_path],  # Existing
+                    [emissive_input_path, prim_path],  # New
                 ],
             },
         )

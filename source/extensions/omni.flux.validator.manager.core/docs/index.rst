@@ -5,5 +5,7 @@ omni.flux.validator.manager.core
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.validator.manager.core.cli
+.. automodule:: omni.flux.validator.manager.core.manager

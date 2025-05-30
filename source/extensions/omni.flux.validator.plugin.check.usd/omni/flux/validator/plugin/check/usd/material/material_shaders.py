@@ -41,7 +41,7 @@ from omni.flux.utils.material_converter.utils import SupportedShaderInputs as _S
 from omni.flux.utils.material_converter.utils import SupportedShaderOutputs as _SupportedShaderOutputs
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from pxr import UsdShade
-from pydantic import validator
+from pydantic import Field, field_validator
 
 from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
 
@@ -68,18 +68,20 @@ def disable_orphan_parameter_cleanup():
 class MaterialShaders(_CheckBaseUSD):
     class Data(_CheckBaseUSD.Data):
         # The first shader will be used by default when converting invalid materials
-        context_name: Optional[str] = None
-        shader_subidentifiers: OrderedDict[str, str]
-        ignore_not_convertable_shaders: bool = False
+        context_name: Optional[str] = Field(default=None)
+        shader_subidentifiers: OrderedDict[str, str] = Field(...)
+        ignore_not_convertable_shaders: bool = Field(default=False)
 
-        @validator("shader_subidentifiers", allow_reuse=True)
-        def at_least_one(cls, v):  # noqa N805
+        @field_validator("shader_subidentifiers", mode="before")
+        @classmethod
+        def at_least_one(cls, v: OrderedDict[str, str]) -> OrderedDict[str, str]:
             if len(v) < 1:
-                raise ValueError("There should at least be 1 item")
+                raise ValueError("There should at least be 1 item in shader_subidentifiers")
             return v
 
-        @validator("shader_subidentifiers", allow_reuse=True)
-        def valid_subidentifier(cls, v):  # noqa N805
+        @field_validator("shader_subidentifiers", mode="before")
+        @classmethod
+        def valid_subidentifier(cls, v: OrderedDict[str, str]) -> OrderedDict[str, str]:
             library_subidentifiers = [u.stem for u in _MaterialConverterUtils.get_material_library_shader_urls()]
             for key, _ in v.items():
                 if key not in library_subidentifiers:
@@ -91,8 +93,9 @@ class MaterialShaders(_CheckBaseUSD):
                     )
             return v
 
-        @validator("shader_subidentifiers", allow_reuse=True)
-        def supported_shader_output(cls, v):  # noqa N805
+        @field_validator("shader_subidentifiers", mode="before")
+        @classmethod
+        def supported_shader_output(cls, v: OrderedDict[str, str]) -> OrderedDict[str, str]:
             for key, _ in v.items():
                 if key not in [s.value for s in _SupportedShaderOutputs]:
                     raise ValueError(

@@ -17,36 +17,46 @@
 
 from omni.flux.stage_manager.factory.plugins import StageManagerFilterPlugin as _StageManagerFilterPlugin
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
+from pydantic import Field
 
 from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin
 
 
 class AllSkeletonsInteractionPlugin(_StageManagerUSDInteractionPlugin):
-    display_name: str = "Skeletons"
-    tooltip: str = "View the available skeletons and their bound prims"
+    display_name: str = Field(default="Skeletons", exclude=True)
+    tooltip: str = Field(default="View the available skeletons and their bound prims", exclude=True)
 
-    internal_context_filters: list[_StageManagerFilterPlugin] = [
-        {"name": "SkeletonPrimsFilterPlugin"},
-    ]
-    tree: _StageManagerTreePlugin = {"name": "SkeletonGroupsTreePlugin"}
+    internal_context_filters: list[_StageManagerFilterPlugin] = Field(
+        default=[
+            {"name": "SkeletonPrimsFilterPlugin"},
+        ],
+        exclude=True,
+    )
+    tree: _StageManagerTreePlugin = Field(default={"name": "SkeletonGroupsTreePlugin"}, exclude=True)
 
-    compatible_trees: list[str] = ["PrimGroupsTreePlugin", "SkeletonGroupsTreePlugin"]
-    compatible_filters: list[str] = [
-        "IgnorePrimsFilterPlugin",
-        "IsCaptureFilterPlugin",
-        "OmniPrimsFilterPlugin",
-        "SearchFilterPlugin",
-        "SkeletonPrimsFilterPlugin",
-    ]
+    compatible_trees: list[str] = Field(default=["PrimGroupsTreePlugin", "SkeletonGroupsTreePlugin"], exclude=True)
+    compatible_filters: list[str] = Field(
+        default=[
+            "IgnorePrimsFilterPlugin",
+            "IsCaptureFilterPlugin",
+            "OmniPrimsFilterPlugin",
+            "SearchFilterPlugin",
+            "SkeletonPrimsFilterPlugin",
+        ],
+        exclude=True,
+    )
     # TODO StageManager: We have LSS plugin names in the flux ext because of this system
-    compatible_widgets: list[str] = [
-        "AssignCategoryActionWidgetPlugin",
-        "CustomTagsWidgetPlugin",
-        "FocusInViewportActionWidgetPlugin",
-        "IsCaptureStateWidgetPlugin",
-        "IsCategoryHiddenStateWidgetPlugin",
-        "IsVisibleActionWidgetPlugin",
-        "PrimTreeWidgetPlugin",
-        "RemapSkeletonActionWidgetPlugin",
-        "RemapSkeletonInfoWidgetPlugin",
-    ]
+    compatible_widgets: list[str] = Field(
+        default=[
+            "AssignCategoryActionWidgetPlugin",
+            "CustomTagsWidgetPlugin",
+            "FocusInViewportActionWidgetPlugin",
+            "IsCaptureStateWidgetPlugin",
+            "IsCategoryHiddenStateWidgetPlugin",
+            "IsVisibleActionWidgetPlugin",
+            "PrimTreeWidgetPlugin",
+            "RemapSkeletonActionWidgetPlugin",
+            "RemapSkeletonInfoWidgetPlugin",
+        ],
+        exclude=True,
+    )

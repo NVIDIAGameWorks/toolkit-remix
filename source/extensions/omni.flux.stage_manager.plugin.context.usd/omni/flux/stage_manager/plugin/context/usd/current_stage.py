@@ -19,20 +19,20 @@ import omni.usd
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pxr import Usd
-from pydantic import Field, PrivateAttr, validator
+from pydantic import Field, PrivateAttr, field_validator
 
 from .base import StageManagerUSDContextPlugin as _StageManagerUSDContextPlugin
 
 
 class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
-    context_name: str = Field(..., description="The name of the context from which to get the stage")
+    display_name: str = Field(default="Current Stage", exclude=True)
+    context_name: str = Field(description="The name of the context from which to get the stage", exclude=True)
 
-    display_name: str = "Current Stage"
+    _stage: Usd.Stage | None = PrivateAttr(default=None)
+    _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr(default=[])
 
-    _stage: Usd.Stage | None = PrivateAttr(None)
-    _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr([])
-
-    @validator("context_name", allow_reuse=True)
+    @field_validator("context_name", mode="before")
+    @classmethod
     def context_name_is_valid(cls, v):  # noqa N805
         if not omni.usd.get_context(v):
             raise ValueError("The context does not exist")

@@ -8,11 +8,4 @@ lightspeed.tool.material.core
    README
    CHANGELOG
 
-
 .. automodule:: lightspeed.tool.material.core
-    :platform: Windows-x86_64, Linux-x86_64
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :imported-members:
-    :exclude-members: contextmanager

@@ -5,5 +5,7 @@ omni.flux.validator.manager.window
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.validator.manager.window.extension
+.. automodule:: omni.flux.validator.manager.window.setup_ui

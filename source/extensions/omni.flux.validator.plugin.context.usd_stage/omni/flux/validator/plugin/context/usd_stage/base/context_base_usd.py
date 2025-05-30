@@ -33,7 +33,7 @@ class ContextBaseUSD(_ContextBase, abc.ABC):
         create_context_if_not_exist: bool = False
 
         # tmp data
-        computed_context: Optional[str] = Field(None, repr=False)  # the resulting context
+        computed_context: Optional[str] = Field(default=None, repr=False)  # the resulting context
 
     async def _set_current_context(
         self, schema_data: "ContextBaseUSD.Data", parent_context: _SetupDataTypeVar

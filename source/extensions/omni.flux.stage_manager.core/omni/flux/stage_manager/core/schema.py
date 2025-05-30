@@ -23,14 +23,13 @@ from omni.flux.stage_manager.factory import StageManagerPluginBase as _StageMana
 from omni.flux.stage_manager.factory import get_instance as _get_stage_manager_factory_instance
 from omni.flux.stage_manager.factory.plugins import StageManagerContextPlugin as _StageManagerContextPlugin
 from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugin as _StageManagerInteractionPlugin
-from pydantic import BaseModel as _BaseModel
-from pydantic import Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 if TYPE_CHECKING:
     from omni.flux.factory.base import FactoryBase as _FactoryBase
 
 
-class StageManagerSchema(_BaseModel):
+class StageManagerSchema(BaseModel):
     """
     A Pydantic BaseModel class used to define the internal structure of the StageManager data.
 
@@ -38,12 +37,11 @@ class StageManagerSchema(_BaseModel):
     initialize this base model to a completely initialized data structure.
     """
 
-    context: _StageManagerContextPlugin = Field(..., description="The context plugin to use to provide data")
-    interactions: list[_StageManagerInteractionPlugin] = Field(
-        ..., description="List of interactions to display in the UI"
-    )
+    context: _StageManagerContextPlugin = Field(description="The context plugin to use to provide data")
+    interactions: list[_StageManagerInteractionPlugin] = Field(description="List of interactions to display in the UI")
 
-    @validator("interactions", allow_reuse=True)
+    @field_validator("interactions", mode="before")
+    @classmethod
     def check_unique_interactions(cls, v):  # noqa N805
         # Use a list + validator to keep the list order
         return list(dict.fromkeys(v))
@@ -69,7 +67,7 @@ class StageManagerSchema(_BaseModel):
             # Recursively resolve each item in the dict
             return {k: self._resolve_plugins_recursive(factory, v) for k, v in data.items()}
 
-        if isinstance(data, Iterable) and not isinstance(data, (str, bytes, _BaseModel)):
+        if isinstance(data, Iterable) and not isinstance(data, (str, bytes, BaseModel)):
             # Recursively resolve each item in the list
             return [self._resolve_plugins_recursive(factory, item) for item in data]
 

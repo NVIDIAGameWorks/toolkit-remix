@@ -28,11 +28,11 @@ if TYPE_CHECKING:
 
 
 class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin):
-    display_name: str = "Prims"
-    tooltip: str = ""
+    display_name: str = Field(default="Prims", exclude=True)
+    tooltip: str = Field(default="", exclude=True)
 
-    icon_size: int = Field(24 - 8, description="The size of the icon in pixels", exclude=True)
-    item_spacing: int = Field(8, description="The horizontal space between the items in pixels", exclude=True)
+    icon_size: int = Field(default=24 - 8, description="The size of the icon in pixels", exclude=True)
+    item_spacing: int = Field(default=8, description="The horizontal space between the items in pixels", exclude=True)
 
     def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
         with ui.HStack(spacing=ui.Pixel(self.item_spacing), tooltip=item.tooltip or ""):

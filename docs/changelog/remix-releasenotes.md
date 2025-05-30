@@ -284,7 +284,11 @@ Look below for our detailed release notes, and for a full changelog, please clic
 
 ```{video} ../data/videos/0.6_Release/render_target.mp4
 :alt: RenderTarget
+:controlslist: nodownload
 :class: video-player
+:width: 100%
+:playsinline:
+:muted:
 :autoplay:
 :loop:
 ```
@@ -301,7 +305,11 @@ shape the development by filing an issue on [GitHub](https://github.com/NVIDIAGa
 
 ```{video} ../data/videos/0.6_Release/experimentalfeatures.mp4
 :alt: ExperimentalFeatures
+:controlslist: nodownload
 :class: video-player
+:width: 100%
+:playsinline:
+:muted:
 :autoplay:
 :loop:
 ```
@@ -312,7 +320,11 @@ RTX Remix automatically pulls all relevant textures for that asset, saving you t
 
 ```{video} ../data/videos/0.6_Release/assign_texture_sets.mp4
 :alt: AssignTextureSets
+:controlslist: nodownload
 :class: video-player
+:width: 100%
+:playsinline:
+:muted:
 :autoplay:
 :loop:
 ```
@@ -324,7 +336,11 @@ assets.
 
 ```{video} ../data/videos/0.6_Release/stagemanager_filtering.mp4
 :alt: StageManagerFiltering
+:controlslist: nodownload
 :class: video-player
+:width: 100%
+:playsinline:
+:muted:
 :autoplay:
 :loop:
 ```
@@ -356,7 +372,11 @@ intensity or color. This improvement streamlines your workflow, saving time and 
 
 ```{video} ../data/videos/0.6_Release/multiselection_multiediting.mp4
 :alt: Multiselection
+:controlslist: nodownload
 :class: video-player
+:width: 100%
+:playsinline:
+:muted:
 :autoplay:
 :loop:
 ```
@@ -406,14 +426,22 @@ direction directly from the viewport. Perfect your lighting with intuitive tools
 
 ```{video} ../data/videos/0.6_Release/light_shaping_1.mp4
 :alt: LightShaping1
+:controlslist: nodownload
 :class: video-player
+:width: 100%
+:playsinline:
+:muted:
 :autoplay:
 :loop:
 ```
 
 ```{video} ../data/videos/0.6_Release/light_shaping_2.mp4
 :alt: LightShaping2
+:controlslist: nodownload
 :class: video-player
+:width: 100%
+:playsinline:
+:muted:
 :autoplay:
 :loop:
 ```
@@ -484,7 +512,11 @@ page of the Omniverse Launcher.
 
   ```{video} ../data/videos/teleport.mp4
   :alt: Teleport
+  :controlslist: nodownload
   :class: video-player
+  :width: 100%
+  :playsinline:
+  :muted:
   :autoplay:
   :loop:
   ```
@@ -495,7 +527,11 @@ page of the Omniverse Launcher.
 
   ```{video} ../data/videos/waypoints.mp4
   :alt: Waypoint
+  :controlslist: nodownload
   :class: video-player
+  :width: 100%
+  :playsinline:
+  :muted:
   :autoplay:
   :loop:
   ```
@@ -509,7 +545,11 @@ page of the Omniverse Launcher.
 
   ```{video} ../data/videos/panel_pinning.mp4
   :alt: Panel Pinning
+  :controlslist: nodownload
   :class: video-player
+  :width: 100%
+  :playsinline:
+  :muted:
   :autoplay:
   :loop:
   ```
@@ -520,7 +560,11 @@ page of the Omniverse Launcher.
 
   ```{video} ../data/videos/unload_stage.mp4
   :alt: Unload Stage
+  :controlslist: nodownload
   :class: video-player
+  :width: 100%
+  :playsinline:
+  :muted:
   :autoplay:
   :loop:
   ```
@@ -530,7 +574,11 @@ page of the Omniverse Launcher.
 
   ```{video} ../data/videos/parallel_processing_no_lag.mp4
   :alt: Parallel Processing No Lag
+  :controlslist: nodownload
   :class: video-player
+  :width: 100%
+  :playsinline:
+  :muted:
   :autoplay:
   :loop:
   ```
@@ -543,7 +591,11 @@ page of the Omniverse Launcher.
 
   ```{video} ../data/videos/realtime_sliders.mp4
   :alt: Realtime Sliders
+  :controlslist: nodownload
   :class: video-player
+  :width: 100%
+  :playsinline:
+  :muted:
   :autoplay:
   :loop:
   ```

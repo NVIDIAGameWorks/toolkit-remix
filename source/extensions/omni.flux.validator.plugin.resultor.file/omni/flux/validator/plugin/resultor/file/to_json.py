@@ -22,16 +22,16 @@ import omni.ui as ui
 import omni.usd
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.validator.factory import ResultorBase as _ResultorBase
-from omni.flux.validator.manager.core import validation_schema_json_encoder as _validation_schema_json_encoder
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class ToJson(_ResultorBase):
     class Data(_ResultorBase.Data):
-        json_path: str
+        json_path: str = Field(...)
 
-        @validator("json_path", allow_reuse=True)
-        def json_path_empty(cls, v):  # noqa
+        @field_validator("json_path", mode="before")
+        @classmethod
+        def json_path_empty(cls, v: str) -> str:
             if not v.strip():
                 raise ValueError("Path is empty")
             return v
@@ -55,7 +55,7 @@ class ToJson(_ResultorBase):
         json_path = carb.tokens.get_tokens_interface().resolve(schema_data.json_path)
         result = _path_utils.write_file(
             json_path,
-            schema.json(indent=4, encoder=_validation_schema_json_encoder).encode("utf-8"),
+            schema.model_dump_json(indent=4).encode("utf-8"),
             raise_if_error=False,
         )
         if not result:

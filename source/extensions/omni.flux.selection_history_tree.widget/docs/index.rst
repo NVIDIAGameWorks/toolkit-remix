@@ -5,5 +5,6 @@ omni.flux.selection_history_tree.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.selection_history_tree.widget

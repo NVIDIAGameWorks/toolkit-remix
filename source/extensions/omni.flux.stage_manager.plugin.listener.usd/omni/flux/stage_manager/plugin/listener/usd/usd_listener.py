@@ -17,7 +17,7 @@
 
 import omni.usd
 from pxr import Tf, Usd
-from pydantic import PrivateAttr
+from pydantic import Field, PrivateAttr
 
 from .base import StageManagerUSDListenerPlugin as _StageManagerUSDListenerPlugin
 
@@ -27,9 +27,9 @@ class StageManagerUSDNoticeListenerPlugin(_StageManagerUSDListenerPlugin[Usd.Not
     A listener triggered whenever a USD notice is broadcast.
     """
 
-    event_type: type = Usd.Notice.ObjectsChanged
+    event_type: type[Usd.Notice.ObjectsChanged] = Field(default_factory=lambda: Usd.Notice.ObjectsChanged, exclude=True)
 
-    _usd_listener = PrivateAttr(None)
+    _usd_listener: Tf.Notice.Listener | None = PrivateAttr(default=None)
 
     def setup(self):
         stage = omni.usd.get_context(self._context_name).get_stage()

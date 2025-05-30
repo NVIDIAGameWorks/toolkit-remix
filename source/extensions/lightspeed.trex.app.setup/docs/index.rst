@@ -6,3 +6,5 @@ lightspeed.trex.app.setup
 
    README
    CHANGELOG
+
+.. automodule:: lightspeed.trex.app.setup

@@ -22,6 +22,7 @@ from typing import Iterable
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.utils.common.materials import get_materials_from_prim_paths as _get_materials_from_prim_paths
 from pxr import UsdGeom, UsdShade
+from pydantic import Field
 
 from .virtual_groups import VirtualGroupsDelegate as _VirtualGroupsDelegate
 from .virtual_groups import VirtualGroupsItem as _VirtualGroupsItem
@@ -104,8 +105,8 @@ class MaterialGroupsTreePlugin(_VirtualGroupsTreePlugin):
     A flat list of prims that can be grouped using virtual groups
     """
 
-    model: MaterialGroupsModel = None
-    delegate: MaterialGroupsDelegate = None
+    model: MaterialGroupsModel = Field(default=None, exclude=True)
+    delegate: MaterialGroupsDelegate = Field(default=None, exclude=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

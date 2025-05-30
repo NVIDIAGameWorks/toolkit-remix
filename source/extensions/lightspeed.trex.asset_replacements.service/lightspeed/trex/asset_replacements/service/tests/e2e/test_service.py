@@ -52,35 +52,84 @@ class TestAssetReplacementsService(AsyncTestCase):
         self.context = None
         self.project_path = None
 
-    async def test_get_default_model_asset_path_directory_returns_expected_response(self):
+    async def test_get_available_model_assets_returns_expected_response(self):
+        # Arrange
+        expected_value = (Path(get_test_data("usd/project_example")) / "assets" / "models" / "cube.usda").as_posix()
+
+        # Act
+        response = await send_request(
+            "GET", f"{self.service.prefix}/default-directory/models/available", raw_response=True
+        )
+
+        # Assert
+        self.assertEqual(response.status_code, 200, msg=response.json())
+        self.assertEqual(str(response.json()).lower(), str({"file_paths": [expected_value]}).lower())
+
+    async def test_get_available_texture_assets_returns_expected_response(self):
+        # Arrange
+        expected_value = (Path(get_test_data("usd/project_example")) / "assets" / "textures" / "16px.png").as_posix()
+
+        # Act
+        response = await send_request(
+            "GET", f"{self.service.prefix}/default-directory/textures/available", raw_response=True
+        )
+
+        # Assert
+        self.assertEqual(response.status_code, 200, msg=response.json())
+        self.assertEqual(str(response.json()).lower(), str({"file_paths": [expected_value]}).lower())
+
+    async def test_get_available_ingested_assets_returns_expected_response(self):
+        # Arrange
+        texture_path = Path(get_test_data("usd/project_example")) / "assets" / "ingested" / "16px_Diffuse.dds"
+        model_path = Path(get_test_data("usd/project_example")) / "assets" / "ingested" / "cube.usda"
+        for test_data in [
+            ("?asset_type=textures", [texture_path.as_posix()]),
+            ("?asset_type=models", [model_path.as_posix()]),
+            ("", [texture_path.as_posix(), model_path.as_posix()]),
+        ]:
+            query_params, expected_value = test_data
+            with self.subTest(name=f"query_params_{query_params or 'None'}"):
+                # Act
+                response = await send_request(
+                    "GET", f"{self.service.prefix}/default-directory/available{query_params}", raw_response=True
+                )
+
+                # Assert
+                self.assertEqual(response.status_code, 200, msg=response.json())
+                self.assertEqual(str(response.json()).lower(), str({"file_paths": expected_value}).lower())
+
+    async def test_get_default_model_asset_directory_returns_expected_response(self):
         # Arrange
         expected_value = (Path(get_test_data("usd/project_example")) / "assets" / "models").as_posix()
 
         # Act
-        response = await send_request("GET", f"{self.service.prefix}/default-directory/models")
+        response = await send_request("GET", f"{self.service.prefix}/default-directory/models", raw_response=True)
 
         # Assert
-        self.assertEqual(str(response).lower(), str({"asset_path": expected_value}).lower())
+        self.assertEqual(response.status_code, 200, msg=response.json())
+        self.assertEqual(str(response.json()).lower(), str({"directory_path": expected_value}).lower())
 
-    async def test_get_default_texture_asset_path_directory_returns_expected_response(self):
+    async def test_get_default_texture_asset_directory_returns_expected_response(self):
         # Arrange
         expected_value = (Path(get_test_data("usd/project_example/")) / "assets" / "textures").as_posix()
 
         # Act
-        response = await send_request("GET", f"{self.service.prefix}/default-directory/textures")
+        response = await send_request("GET", f"{self.service.prefix}/default-directory/textures", raw_response=True)
 
         # Assert
-        self.assertEqual(str(response).lower(), str({"asset_path": expected_value}).lower())
+        self.assertEqual(response.status_code, 200, msg=response.json())
+        self.assertEqual(str(response.json()).lower(), str({"directory_path": expected_value}).lower())
 
-    async def test_get_default_ingested_asset_path_directory_returns_expected_response(self):
+    async def test_get_default_ingested_asset_directory_returns_expected_response(self):
         # Arrange
         expected_value = (Path(get_test_data("usd/project_example")) / "assets" / "ingested").as_posix()
 
         # Act
-        response = await send_request("GET", f"{self.service.prefix}/default-directory")
+        response = await send_request("GET", f"{self.service.prefix}/default-directory", raw_response=True)
 
         # Assert
-        self.assertEqual(str(response).lower(), str({"asset_path": expected_value}).lower())
+        self.assertEqual(response.status_code, 200, msg=response.json())
+        self.assertEqual(str(response.json()).lower(), str({"directory_path": expected_value}).lower())
 
     async def test_get_assets_returns_expected_response(self):
         for index, test_data in enumerate(
@@ -88,7 +137,7 @@ class TestAssetReplacementsService(AsyncTestCase):
                 (
                     "",
                     {
-                        "asset_paths": [
+                        "prim_paths": [
                             "/RootNode/lights/light_9907D0B07D040077",
                             "/RootNode/lights/light_EDF9B59568FD1142",
                             "/RootNode/lights/light_0FBF0D906770A019",
@@ -103,9 +152,9 @@ class TestAssetReplacementsService(AsyncTestCase):
                     },
                 ),
                 (
-                    "asset_hashes=CED45075A077A49A&asset_hashes=BAC90CAA733B0859",
+                    "prim_hashes=CED45075A077A49A&prim_hashes=BAC90CAA733B0859",
                     {
-                        "asset_paths": [
+                        "prim_paths": [
                             "/RootNode/meshes/mesh_CED45075A077A49A/mesh",
                             "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/AssetImporter/Looks/Cube_01__",  # noqa E501
                             "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Looks/CubeMaterial",  # noqa E501
@@ -115,9 +164,9 @@ class TestAssetReplacementsService(AsyncTestCase):
                     },
                 ),
                 (
-                    "asset_types=lights",
+                    "prim_types=lights",
                     {
-                        "asset_paths": [
+                        "prim_paths": [
                             "/RootNode/lights/light_9907D0B07D040077",
                             "/RootNode/lights/light_EDF9B59568FD1142",
                             "/RootNode/lights/light_0FBF0D906770A019",
@@ -132,10 +181,11 @@ class TestAssetReplacementsService(AsyncTestCase):
                 pass
 
                 # Act
-                response = await send_request("GET", f"{self.service.prefix}/?{params}")
+                response = await send_request("GET", f"{self.service.prefix}/?{params}", raw_response=True)
 
                 # Assert
-                self.assertEqual(response, expected_response)
+                self.assertEqual(response.status_code, 200, msg=response.json())
+                self.assertEqual(str(response.json()).lower(), str(expected_response).lower())
 
     async def test_get_model_instances_returns_expected_response(self):
         # Arrange
@@ -143,11 +193,17 @@ class TestAssetReplacementsService(AsyncTestCase):
 
         # Act
         response = await send_request(
-            "GET", f"{self.service.prefix}/%2FRootNode%2Fmeshes%2Fmesh_CED45075A077A49A%2Fmesh/instances"
+            "GET",
+            f"{self.service.prefix}/%2FRootNode%2Fmeshes%2Fmesh_CED45075A077A49A%2Fmesh/instances",
+            raw_response=True,
         )
 
         # Assert
-        self.assertEqual(response, {"asset_paths": ["/RootNode/instances/inst_CED45075A077A49A_0/mesh"]})
+        self.assertEqual(response.status_code, 200, msg=response.json())
+        self.assertEqual(
+            str(response.json()).lower(),
+            str({"prim_paths": ["/RootNode/instances/inst_CED45075A077A49A_0/mesh"]}).lower(),
+        )
 
     async def test_get_material_textures_returns_expected_response(self):
         # Arrange
@@ -180,12 +236,13 @@ class TestAssetReplacementsService(AsyncTestCase):
 
         # Act
         response = await send_request(
-            "GET", f"{self.service.prefix}/%2FRootNode%2FLooks%2Fmat_BC868CE5A075ABB1/textures"
+            "GET", f"{self.service.prefix}/%2FRootNode%2FLooks%2Fmat_BC868CE5A075ABB1/textures", raw_response=True
         )
 
         # Assert
+        self.assertEqual(response.status_code, 200, msg=response.json())
         self.assertEqual(
-            str(response).lower(),
+            str(response.json()).lower(),
             str(
                 {
                     "textures": [
@@ -225,11 +282,13 @@ class TestAssetReplacementsService(AsyncTestCase):
         response = await send_request(
             "GET",
             f"{self.service.prefix}/%2FRootNode%2FLooks%2Fmat_BC868CE5A075ABB1/textures?texture_types=DIFFUSE&texture_types=NORMAL_OGL",  # noqa E501
+            raw_response=True,
         )
 
         # Assert
+        self.assertEqual(response.status_code, 200, msg=response.json())
         self.assertEqual(
-            str(response).lower(),
+            str(response.json()).lower(),
             str(
                 {
                     "textures": [
@@ -249,11 +308,13 @@ class TestAssetReplacementsService(AsyncTestCase):
         response = await send_request(
             "GET",
             f"{self.service.prefix}/%2FRootNode%2Fmeshes%2Fmesh_CED45075A077A49A%2Fmesh/file-paths",
+            raw_response=True,
         )
 
         # Assert
+        self.assertEqual(response.status_code, 200, msg=response.json())
         self.assertEqual(
-            str(response).lower(),
+            str(response.json()).lower(),
             str(
                 {
                     "reference_paths": [
@@ -265,33 +326,35 @@ class TestAssetReplacementsService(AsyncTestCase):
 
     async def test_append_asset_file_path_should_add_new_reference(self):
         # Arrange
-        append_asset_path = str(Path(get_test_data("usd/project_example/ingested_assets/output/good/cube.usda")))
+        append_prim_path = str(Path(get_test_data("usd/project_example/ingested_assets/output/good/cube.usda")))
         mod_layer = str(Path(get_test_data("usd/project_example/combined.usda"))).replace("\\", "\\\\")
 
         # Act
         response = await send_request(
-            "PUT",
+            "POST",
             f"{self.service.prefix}/%2FRootNode%2Fmeshes%2Fmesh_CED45075A077A49A%2Fmesh/file-paths",
             json={
-                "asset_file_path": append_asset_path,
+                "asset_file_path": append_prim_path,
                 "force": False,
             },
+            raw_response=True,
         )
 
         # Assert
+        self.assertEqual(response.status_code, 200, msg=response.json())
         self.assertRegex(
-            str(response).replace("\\\\", "\\").lower(),
+            str(response.json()).replace("\\\\", "\\").lower(),
             f"{{'reference_paths': \\[\\['/RootNode/meshes/mesh_CED45075A077A49A/ref_[0-9a-z]{{32}}', "
             f"\\['ingested_assets\\\\output\\\\good\\\\cube.usda', '{mod_layer}'\\]\\]\\]}}".lower(),
         )
 
         # Make sure the stage has the appended the reference
-        ref_path = response["reference_paths"][0][0]
+        ref_path = response.json()["reference_paths"][0][0]
         self.assertTrue(self.context.get_stage().GetPrimAtPath(f"{ref_path}/Cube_01").IsValid())
 
     async def test_replace_asset_file_path_no_ref_should_replace_first_ref(self):
         # Arrange
-        replace_asset_path = str(Path(get_test_data("usd/project_example/ingested_assets/output/good/cube.usda")))
+        replace_prim_path = str(Path(get_test_data("usd/project_example/ingested_assets/output/good/cube.usda")))
         mod_layer = str(Path(get_test_data("usd/project_example/combined.usda"))).replace("\\", "\\\\")
 
         # Act
@@ -299,28 +362,30 @@ class TestAssetReplacementsService(AsyncTestCase):
             "PUT",
             f"{self.service.prefix}/%2FRootNode%2Fmeshes%2Fmesh_0AB745B8BEE1F16B%2Fmesh/file-paths",
             json={
-                "asset_file_path": replace_asset_path,
+                "asset_file_path": replace_prim_path,
                 "force": False,
             },
+            raw_response=True,
         )
 
         # Assert
+        self.assertEqual(response.status_code, 200, msg=response.json())
         self.assertRegex(
-            str(response).replace("\\\\", "\\").lower(),
+            str(response.json()).replace("\\\\", "\\").lower(),
             f"{{'reference_paths': \\[\\['/RootNode/meshes/mesh_0AB745B8BEE1F16B/ref_[0-9a-z]{{32}}', "
             f"\\['ingested_assets\\\\output\\\\good\\\\cube.usda', '{mod_layer}'\\]\\]\\]}}".lower(),
         )
 
         # Make sure the stage has the appended the reference
-        ref_path = response["reference_paths"][0][0]
+        ref_path = response.json()["reference_paths"][0][0]
         self.assertTrue(self.context.get_stage().GetPrimAtPath(f"{ref_path}/Cube_01").IsValid())
 
     async def test_replace_asset_file_path_with_ref_should_replace_expected_ref(self):
         # Arrange
-        original_asset_path = "sources\\\\cube.usda"
+        original_prim_path = "sources\\\\cube.usda"
         original_layer = str(Path(get_test_data("usd/project_example/replacements.usda"))).replace("\\", "\\\\")
 
-        replace_asset_path = str(Path(get_test_data("usd/project_example/ingested_assets/output/good/cube.usda")))
+        replace_prim_path = str(Path(get_test_data("usd/project_example/ingested_assets/output/good/cube.usda")))
         mod_layer = str(Path(get_test_data("usd/project_example/combined.usda"))).replace("\\", "\\\\")
 
         # Act
@@ -328,22 +393,24 @@ class TestAssetReplacementsService(AsyncTestCase):
             "PUT",
             f"{self.service.prefix}/%2FRootNode%2Fmeshes%2Fmesh_BAC90CAA733B0859%2Fref_c89e0497f4ff4dc4a7b70b79c85692da%2FXForms%2FRoot%2FCube_01/file-paths",  # noqa: E501
             json={
-                "existing_asset_file_path": original_asset_path,
+                "existing_asset_file_path": original_prim_path,
                 "existing_asset_layer_id": original_layer,
-                "asset_file_path": replace_asset_path,
+                "asset_file_path": replace_prim_path,
                 "force": False,
             },
+            raw_response=True,
         )
 
         # Assert
+        self.assertEqual(response.status_code, 200, msg=response.json())
         self.assertRegex(
-            str(response).replace("\\\\", "\\").lower(),
+            str(response.json()).replace("\\\\", "\\").lower(),
             f"{{'reference_paths': \\[\\['/RootNode/meshes/mesh_BAC90CAA733B0859/ref_[0-9a-z]{{32}}', "
             f"\\['ingested_assets\\\\output\\\\good\\\\cube.usda', '{mod_layer}'\\]\\]\\]}}".lower(),
         )
 
         # Make sure the stage has the appended the reference
-        ref_path = response["reference_paths"][0][0]
+        ref_path = response.json()["reference_paths"][0][0]
         self.assertTrue(self.context.get_stage().GetPrimAtPath(f"{ref_path}/Cube_01").IsValid())
 
     async def test_set_selection_updates_stage_selection(self):
@@ -352,11 +419,11 @@ class TestAssetReplacementsService(AsyncTestCase):
 
         # Act
         response = await send_request(
-            "PUT", f"{self.service.prefix}/selection/%2FRootNode%2Flights%2Flight_9907D0B07D040077"
+            "PUT", f"{self.service.prefix}/selection/%2FRootNode%2Flights%2Flight_9907D0B07D040077", raw_response=True
         )
 
         # Assert
-        self.assertEqual(response, "OK")
+        self.assertEqual(response.status_code, 200, msg=response.json())
         self.assertEqual(
             self.context.get_selection().get_selected_prim_paths(), ["/RootNode/lights/light_9907D0B07D040077"]
         )

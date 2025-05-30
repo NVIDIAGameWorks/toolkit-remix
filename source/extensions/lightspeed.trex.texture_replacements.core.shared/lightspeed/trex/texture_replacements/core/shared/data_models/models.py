@@ -19,7 +19,8 @@ from pathlib import Path
 
 from omni.flux.asset_importer.core.data_models import TextureTypeNames
 from omni.flux.service.shared import BaseServiceModel
-from pydantic import root_validator
+from pydantic import Field, model_validator
+from pydantic_core.core_schema import ValidationInfo
 
 from .validators import TextureReplacementsValidators
 
@@ -27,69 +28,104 @@ from .validators import TextureReplacementsValidators
 
 
 class TextureMaterialPathParamModel(BaseServiceModel):
-    texture_asset_path: str
+    """
+    Path parameter model for getting the textures of a given material prim.
+    """
 
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        TextureReplacementsValidators.is_valid_texture_prim(
-            (values.get("texture_asset_path"), None), values.get("context_name")
-        )
-        return values
+    texture_prim_path: str = Field(description="The shader input path where the texture is set")
 
-
-class TextureFilePathParamModel(BaseServiceModel):
-    texture_file_path: str
-
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        TextureReplacementsValidators.is_valid_texture_asset((None, values.get("texture_file_path")), False)
-        return values
+    @model_validator(mode="after")
+    @classmethod
+    def root_validators(cls, instance_model, info: ValidationInfo):
+        if not info.context:
+            raise ValueError("Context name is required")
+        context_name = info.context.get("context_name")
+        TextureReplacementsValidators.is_valid_texture_prim((instance_model.texture_prim_path, None), context_name)
+        return instance_model
 
 
 # QUERY MODELS
 
 
 class GetTexturesQueryModel(BaseServiceModel):
-    asset_hashes: set[str] | None = None
-    texture_types: set[TextureTypeNames] | None = None
-    return_selection: bool = False
-    filter_session_prims: bool = False
-    layer_identifier: Path | None = None
-    exists: bool = True
+    """
+    Query parameters model for modifying the behavior when getting the textures of a given material prim.
+    """
+
+    prim_hashes: set[str] | None = Field(default=None, description="A set of prim hashes to filter the results by")
+    texture_types: set[TextureTypeNames] | None = Field(
+        default=None, description="A set of texture types to filter the results by"
+    )
+    return_selection: bool = Field(
+        default=False, description="Whether to return only prims selected in the viewport or all prims"
+    )
+    filter_session_prims: bool = Field(
+        default=False, description="Whether to filter out the prims that exist on the session layer or not"
+    )
+    layer_identifier: Path | None = Field(
+        default=None, description="The layer identifier to filter the results by. Use in conjunction with `exists`"
+    )
+    exists: bool = Field(
+        default=True, description="Whether to filter out the prims that exist or not on `layer_identifier`"
+    )
 
     context_name: str = ""  # This is only used to validate the layer_identifier
 
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        TextureReplacementsValidators.layer_is_in_project(values.get("layer_identifier"), values.get("context_name"))
-        return values
+    @model_validator(mode="after")
+    @classmethod
+    def root_validators(cls, instance_model):
+        TextureReplacementsValidators.layer_is_in_project(instance_model.layer_identifier, instance_model.context_name)
+        return instance_model
 
 
 # RESPONSE MODELS
 
 
 class TexturesResponseModel(BaseServiceModel):
-    textures: list[tuple[str, Path]]
+    """
+    Response model received when fetching the textures of a given material prim.
+    """
+
+    textures: list[tuple[str, Path]] = Field(
+        description="A list of prim paths (shader input paths) and their corresponding texture paths"
+    )
 
 
-class PrimsResponseModel(BaseServiceModel):
-    asset_paths: list[str]
+class PrimPathsResponseModel(BaseServiceModel):
+    """
+    Response model received when fetching prim paths in the current stage.
+    """
+
+    prim_paths: list[str] = Field(description="A list of prim paths")
 
 
 class TextureTypesResponseModel(BaseServiceModel):
-    texture_types: list[str]
+    """
+    Response model received when fetching the available texture types.
+    """
+
+    texture_types: list[str] = Field(description="A list of texture types")
 
 
 # REQUEST MODELS
 
 
 class ReplaceTexturesRequestModel(BaseServiceModel):
-    force: bool = False  # Whether to replace a non-ingested asset or fail the validation instead
-    textures: list[tuple[str, Path]]
+    """
+    Request body model for replacing the textures of a given material prim.
+    """
 
-    @root_validator(allow_reuse=True)
-    def root_validators(cls, values):  # noqa
-        for texture_entry in values.get("textures"):
-            TextureReplacementsValidators.is_valid_texture_prim(texture_entry, values.get("context_name"))
-            TextureReplacementsValidators.is_valid_texture_asset(texture_entry, values.get("force"))
-        return values
+    force: bool = Field(
+        default=False, description="Whether to replace a non-ingested asset or fail the validation instead"
+    )
+    textures: list[tuple[str, Path]] = Field(
+        description="A list of prim paths (shader input paths) and their corresponding texture paths"
+    )
+
+    @model_validator(mode="after")
+    @classmethod
+    def root_validators(cls, instance_model):
+        for texture_entry in instance_model.textures:
+            TextureReplacementsValidators.is_valid_texture_prim(texture_entry, instance_model.context_name)
+            TextureReplacementsValidators.is_valid_texture_asset(texture_entry, instance_model.force)
+        return instance_model

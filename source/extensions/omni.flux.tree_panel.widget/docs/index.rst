@@ -5,5 +5,8 @@ omni.flux.tree_panel.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.tree_panel.widget.setup_ui
+.. automodule:: omni.flux.tree_panel.widget.tree.delegate
+.. automodule:: omni.flux.tree_panel.widget.tree.model

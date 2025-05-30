@@ -5,5 +5,6 @@ omni.flux.properties_pane.materials.usd.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.properties_pane.materials.usd.widget

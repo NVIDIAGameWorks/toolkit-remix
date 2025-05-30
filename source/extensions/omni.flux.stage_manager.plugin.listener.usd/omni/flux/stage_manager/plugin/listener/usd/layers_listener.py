@@ -15,15 +15,11 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING
-
+import carb
 import omni.kit.usd.layers as _layers
-from pydantic import PrivateAttr
+from pydantic import Field, PrivateAttr
 
 from .base import StageManagerUSDListenerPlugin as _StageManagerUSDListenerPlugin
-
-if TYPE_CHECKING:
-    import carb
 
 
 class StageManagerUSDLayersListenerPlugin(_StageManagerUSDListenerPlugin[_layers.LayerEventType]):
@@ -31,9 +27,9 @@ class StageManagerUSDLayersListenerPlugin(_StageManagerUSDListenerPlugin[_layers
     A listener triggered whenever a layer event is triggered.
     """
 
-    event_type: type = _layers.LayerEventType
+    event_type: type[_layers.LayerEventType] = Field(default_factory=lambda: _layers.LayerEventType, exclude=True)
 
-    _layer_event_sub = PrivateAttr()
+    _layer_event_sub: carb.events.ISubscription | None = PrivateAttr(default=None)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

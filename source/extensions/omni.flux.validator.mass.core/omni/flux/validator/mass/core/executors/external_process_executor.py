@@ -37,7 +37,6 @@ from omni.flux.validator.manager.core import (
 from omni.flux.validator.manager.core import (
     EXTS_OMNI_SERVICES_TRANSPORT_SERVER_HTTP_PORT as _EXTS_OMNI_SERVICES_TRANSPORT_SERVER_HTTP_PORT,
 )
-from omni.flux.validator.manager.core import validation_schema_json_encoder as _validation_schema_json_encoder
 
 from .base_executor import BaseExecutor as _BaseExecutor
 
@@ -118,7 +117,7 @@ class ExternalProcessExecutor(_BaseExecutor):
             core.model.send_request = not standalone
             _path_utils.write_file(
                 jsonfile,
-                core.model.json(indent=4, encoder=_validation_schema_json_encoder).encode("utf-8"),
+                core.model.model_dump_json(serialize_as_any=True, indent=4).encode("utf-8"),
                 raise_if_error=True,
             )
             cmd = [f'"{str(kit_path)}"', f'"{str(experience_path)}"', "--no-window"]

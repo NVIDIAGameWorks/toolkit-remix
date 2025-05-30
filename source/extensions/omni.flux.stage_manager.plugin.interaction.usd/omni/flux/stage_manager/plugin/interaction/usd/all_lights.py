@@ -17,33 +17,51 @@
 
 from omni.flux.stage_manager.factory.plugins import StageManagerFilterPlugin as _StageManagerFilterPlugin
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
+from pydantic import Field
 
 from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin
 
 
 class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
-    display_name: str = "Lights"
-    tooltip: str = "View the available lights, grouped by light type"
+    display_name: str = Field(default="Lights", exclude=True)
+    tooltip: str = Field(default="View the available lights, grouped by light type", exclude=True)
 
-    internal_context_filters: list[_StageManagerFilterPlugin] = [{"name": "LightPrimsFilterPlugin"}]
-    tree: _StageManagerTreePlugin = {"name": "LightGroupsTreePlugin"}
+    internal_context_filters: list[_StageManagerFilterPlugin] = Field(
+        default=[{"name": "LightPrimsFilterPlugin"}], exclude=True
+    )
 
-    compatible_trees: list[str] = ["LightGroupsTreePlugin", "PrimGroupsTreePlugin"]
-    compatible_filters: list[str] = [
-        "IgnorePrimsFilterPlugin",
-        "IsCaptureFilterPlugin",
-        "LightPrimsFilterPlugin",
-        "OmniPrimsFilterPlugin",
-        "SearchFilterPlugin",
-        "IsCategoryFilterPlugin",
-    ]
+    tree: _StageManagerTreePlugin = Field(default={"name": "LightGroupsTreePlugin"}, exclude=True)
+
+    compatible_trees: list[str] = Field(
+        default=[
+            "LightGroupsTreePlugin",
+            "PrimGroupsTreePlugin",
+        ],
+        exclude=True,
+    )
+
+    compatible_filters: list[str] = Field(
+        default=[
+            "IgnorePrimsFilterPlugin",
+            "IsCaptureFilterPlugin",
+            "LightPrimsFilterPlugin",
+            "OmniPrimsFilterPlugin",
+            "SearchFilterPlugin",
+            "IsCategoryFilterPlugin",
+        ],
+        exclude=True,
+    )
+
     # TODO StageManager: We have LSS plugin names in the flux ext because of this system
-    compatible_widgets: list[str] = [
-        "AssignCategoryActionWidgetPlugin",
-        "CustomTagsWidgetPlugin",
-        "FocusInViewportActionWidgetPlugin",
-        "IsCaptureStateWidgetPlugin",
-        "IsCategoryHiddenStateWidgetPlugin",
-        "IsVisibleActionWidgetPlugin",
-        "PrimTreeWidgetPlugin",
-    ]
+    compatible_widgets: list[str] = Field(
+        default=[
+            "AssignCategoryActionWidgetPlugin",
+            "CustomTagsWidgetPlugin",
+            "FocusInViewportActionWidgetPlugin",
+            "IsCaptureStateWidgetPlugin",
+            "IsCategoryHiddenStateWidgetPlugin",
+            "IsVisibleActionWidgetPlugin",
+            "PrimTreeWidgetPlugin",
+        ],
+        exclude=True,
+    )

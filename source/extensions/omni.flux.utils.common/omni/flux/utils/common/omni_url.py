@@ -18,9 +18,10 @@
 from __future__ import annotations
 
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Any, Callable, Iterator, List, Union
+from typing import Any, Callable
 
 import omni.client
+from pydantic_core import core_schema
 
 
 class OmniUrl:
@@ -28,7 +29,7 @@ class OmniUrl:
     A class to present a pathlib like wrapper around omni client urls.
     """
 
-    def __init__(self, url: Union[str, Path, "OmniUrl"], list_entry=None):
+    def __init__(self, url: str | Path | "OmniUrl", list_entry=None):
         self._url = str(url).replace("\\", "/")
         windows_path = PureWindowsPath(self._url)
         if windows_path.is_absolute():
@@ -39,16 +40,6 @@ class OmniUrl:
             self._path = PurePosixPath(self._parts.path)
 
         self._list_entry = list_entry
-
-    @classmethod
-    def __get_validators__(cls) -> Iterator[Callable[..., Any]]:
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v: Any) -> OmniUrl:
-        if isinstance(v, (OmniUrl, Path, str)):
-            return cls(v)
-        raise TypeError("Invalid type passed to the OmniUrl constructor. Supported types: OmniUrl, Path, str")
 
     def __str__(self):
         return self._url
@@ -61,6 +52,24 @@ class OmniUrl:
 
     def __hash__(self):
         return hash(self.path)
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: Callable[[Any], core_schema.CoreSchema]
+    ) -> core_schema.CoreSchema:
+        return core_schema.json_or_python_schema(
+            json_schema=core_schema.str_schema(),
+            python_schema=core_schema.no_info_plain_validator_function(cls._validate_omni_url_for_pydantic),
+            serialization=core_schema.to_string_ser_schema(),
+        )
+
+    @classmethod
+    def _validate_omni_url_for_pydantic(cls, v: Any) -> "OmniUrl":
+        if isinstance(v, OmniUrl):
+            return v
+        if isinstance(v, (str, Path)):
+            return cls(v)
+        raise TypeError(f"Invalid type for OmniUrl. Expected OmniUrl, Path, or str, got {type(v).__name__}")
 
     def _url_from_list_entry(self, list_entry: omni.client.ListEntry):
         url = self / list_entry.relative_path
@@ -138,9 +147,9 @@ class OmniUrl:
         return self._path.suffix
 
     @property
-    def suffixes(self) -> List[str]:
+    def suffixes(self) -> list[str]:
         """
-        A list of the path’s file extensions
+        A list of the path's file extensions
 
         This includes the leading period. For example: ['.tar', '.gz']
 

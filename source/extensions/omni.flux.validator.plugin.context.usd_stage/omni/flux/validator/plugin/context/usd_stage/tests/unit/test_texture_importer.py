@@ -33,6 +33,13 @@ from omni.flux.validator.plugin.context.usd_stage.texture_importer import Textur
 from pxr import Sdf
 
 
+class MockValidationInfo:
+    """Mock for pydantic's ValidationInfo."""
+
+    def __init__(self, data):
+        self.data = data
+
+
 class MockListEntry:
     def __init__(self, path: str, flags=omni.client.ItemFlags.READABLE_FILE):
         self.relative_path = path
@@ -46,17 +53,17 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
 
         # Act
         with self.assertRaises(ValueError) as cm:
-            TextureImporter.Data.at_least_one(input_files, {})
+            TextureImporter.Data.at_least_one(input_files, MockValidationInfo({}))
 
         # Assert
-        self.assertEqual("There should at least be 1 item", str(cm.exception))
+        self.assertEqual("There should at least be 1 item in input_files", str(cm.exception))
 
     async def test_data_at_least_one_with_items_should_return_value(self):
         # Arrange
         input_files = [Mock(), Mock(), Mock()]
 
         # Act
-        val = TextureImporter.Data.at_least_one(input_files, {})
+        val = TextureImporter.Data.at_least_one(input_files, MockValidationInfo({}))
 
         # Assert
         self.assertListEqual(input_files, val)
@@ -66,14 +73,16 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
         input_files = []
 
         # Act
-        val = TextureImporter.Data.at_least_one(input_files, {"allow_empty_input_files_list": True})
+        val = TextureImporter.Data.at_least_one(input_files, MockValidationInfo({"allow_empty_input_files_list": True}))
 
         # Assert
         self.assertListEqual(input_files, val)
 
     async def test_data_is_readable_does_not_exist_should_raise_value_error(self):
         # Arrange
-        input_files = [Mock()]
+        file_url = Mock(spec=OmniUrl)
+        texture_type = Mock(spec=TextureTypes)
+        input_files = [(file_url, texture_type)]
 
         with patch.object(OmniUrl, "exists", new_callable=PropertyMock) as exists_mock:
             exists_mock.return_value = False
@@ -83,11 +92,13 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
                 TextureImporter.Data.is_valid(input_files)
 
         # Assert
-        self.assertEqual(f"The input file {input_files[0]} does not exist", str(cm.exception))
+        self.assertEqual(f"The input file {file_url} does not exist", str(cm.exception))
 
     async def test_data_is_readable_valid_should_return_value(self):
         # Arrange
-        input_files = [Mock()]
+        file_url = Mock(spec=OmniUrl)
+        texture_type = Mock(spec=TextureTypes)
+        input_files = [(file_url, texture_type)]
 
         with patch.object(OmniUrl, "exists", new_callable=PropertyMock) as exists_mock:
             exists_mock.return_value = True
@@ -106,10 +117,12 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
             stat_mock.return_value = (omni.client.Result.ERROR_NOT_FOUND, MockListEntry("./Test.png"))
 
             # Act
-            TextureImporter.Data.can_have_children(input_file, {"create_output_directory_if_missing": False})
+            TextureImporter.Data.can_have_children(
+                input_file, MockValidationInfo({"create_output_directory_if_missing": False})
+            )
 
         # Assert
-        self.assertEqual("The output directory is not valid", str(cm.exception))
+        self.assertEqual(f"The output directory is not valid: {input_file}", str(cm.exception))
 
     async def test_data_can_have_children_cannot_have_children_should_raise_value_error(self):
         # Arrange
@@ -119,10 +132,12 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
             stat_mock.return_value = (omni.client.Result.OK, MockListEntry("./Test.png", flags=0))
 
             # Act
-            TextureImporter.Data.can_have_children(input_file, {"create_output_directory_if_missing": False})
+            TextureImporter.Data.can_have_children(
+                input_file, MockValidationInfo({"create_output_directory_if_missing": False})
+            )
 
         # Assert
-        self.assertEqual("The output directory cannot have children", str(cm.exception))
+        self.assertEqual(f"The output directory cannot have children: {input_file}", str(cm.exception))
 
     async def test_data_can_have_children_valid_should_return_value(self):
         await self.__run_data_can_have_children(" .  ")
@@ -137,7 +152,9 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
 
         with self.assertRaises(ValueError) as cm:
             # Act
-            TextureImporter.Data.output_dir_unequal_input_dirs(output_folder, {"input_files": input_files})
+            TextureImporter.Data.output_dir_unequal_input_dirs(
+                output_folder, MockValidationInfo({"input_files": input_files})
+            )
 
         # Assert
         self.assertEqual(
@@ -152,7 +169,9 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
         output_folder = OmniUrl("./TestDir/SubDir")
 
         # Act
-        val = TextureImporter.Data.output_dir_unequal_input_dirs(output_folder, {"input_files": input_files})
+        val = TextureImporter.Data.output_dir_unequal_input_dirs(
+            output_folder, MockValidationInfo({"input_files": input_files})
+        )
 
         # Assert
         self.assertEqual(output_folder, val)
@@ -226,7 +245,9 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
             )
 
             # Act
-            val = TextureImporter.Data.can_have_children(value, {"create_output_directory_if_missing": False})
+            val = TextureImporter.Data.can_have_children(
+                value, MockValidationInfo({"create_output_directory_if_missing": False})
+            )
 
         # Assert
         self.assertEqual(value, val)
@@ -326,7 +347,9 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
             self.assertEqual(call(context_name), run_callback_mock.call_args)
 
         # check data flow
-        data_flow_result = [data_flow_r.dict() for data_flow_r in schema_mock.data_flows or []]
+        data_flow_result = [
+            data_flow_r.model_dump(serialize_as_any=True) for data_flow_r in schema_mock.data_flows or []
+        ]
 
         data_flow_expected_result = []
         if data_flows:

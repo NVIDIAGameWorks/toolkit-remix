@@ -9,3 +9,5 @@ Viewport Bundle
 
    README
    CHANGELOG
+
+.. automodule:: lightspeed.trex.viewports.stagecraft.bundle

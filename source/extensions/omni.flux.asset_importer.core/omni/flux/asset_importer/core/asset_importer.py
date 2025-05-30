@@ -30,26 +30,44 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.kit.usd.collect import Collector
-from pydantic import BaseModel, Extra, create_model, validator
+from pydantic import BaseModel, Field, create_model, field_validator
+from pydantic.functional_validators import SkipValidation
 
 from .data_models.enums import UsdExtensions as _UsdExtensions
 
 
-class AssetItemImporterModelBase(BaseModel):
-    input_path: str
-    output_path: Optional[Union[str, Path]] = None
-    output_usd_extension: Optional[_UsdExtensions] = None
+def _get_converter_context():
+    """
+    Adapter for Pydantic V2 to V1 compatibility.
 
-    @validator("input_path", allow_reuse=True)
-    def input_path_exist(cls, v):  # noqa
+    Returns:
+        dict: Processed converter context dictionary with modified boolean fields
+    """
+    converter_context_dict = _kit_asset_converter.AssetConverterContext().to_dict()
+    for field_name, default_value in converter_context_dict.items():
+        if isinstance(default_value, bool):
+            # Wrap the boolean type with SkipValidation
+            converter_context_dict[field_name] = (SkipValidation[bool], default_value)
+    return converter_context_dict
+
+
+class AssetItemImporterModelBase(BaseModel):
+    input_path: str = Field()
+    output_path: Optional[Union[str, Path]] = Field(default=None)
+    output_usd_extension: Optional[_UsdExtensions] = Field(default=None)
+
+    @field_validator("input_path", mode="before")
+    @classmethod
+    def input_path_exist(cls, v):
         """Check if the input path exist"""
         result, entry = omni.client.stat(v)
         if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.READABLE_FILE:
             raise ValueError(f"import_batch was passed an invalid input_path. {v} doesn't exist!")
         return v
 
-    @validator("output_path", allow_reuse=True)
-    def output_folder_valid(cls, v):  # noqa
+    @field_validator("output_path", mode="before")
+    @classmethod
+    def output_folder_valid(cls, v):
         """Check if the input path exist"""
         if v is not None:
             output_folder = OmniUrl(v).parent_url
@@ -59,18 +77,17 @@ class AssetItemImporterModelBase(BaseModel):
         return v
 
 
-__context = _kit_asset_converter.AssetConverterContext()
-
 AssetItemImporterModel = create_model(
-    "AssetItemImporterModel", __base__=AssetItemImporterModelBase, **__context.to_dict(), extra=Extra.forbid
+    "AssetItemImporterModel", __base__=AssetItemImporterModelBase, **_get_converter_context()
 )
 
 
 class AssetImporterModel(BaseModel):
     data: List[AssetItemImporterModel]
 
-    @validator("data", allow_reuse=True)
-    def at_least_one(cls, v):  # noqa
+    @field_validator("data", mode="before")
+    @classmethod
+    def at_least_one(cls, v):
         """Check if there is at least 1 asset"""
         if not v:
             raise ValueError("import_batch's config should have at least 1 asset")

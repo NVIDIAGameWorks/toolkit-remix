@@ -6,3 +6,5 @@ lightspeed.trex.app.resources
 
    README
    CHANGELOG
+
+.. automodule:: lightspeed.trex.app.resources

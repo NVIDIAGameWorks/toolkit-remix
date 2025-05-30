@@ -24,15 +24,16 @@ import omni.usd
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.factory import ResultorBase as _ResultorBase
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class DataflowToJson(_ResultorBase):
     class Data(_ResultorBase.Data):
-        json_path: str
+        json_path: str = Field(...)
 
-        @validator("json_path", allow_reuse=True)
-        def json_path_empty(cls, v):  # noqa
+        @field_validator("json_path", mode="before")
+        @classmethod
+        def json_path_empty(cls, v: str) -> str:
             if not v.strip():
                 raise ValueError("Path is empty")
             return v

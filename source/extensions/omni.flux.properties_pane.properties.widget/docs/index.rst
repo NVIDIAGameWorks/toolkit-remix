@@ -6,3 +6,5 @@ omni.flux.properties_pane.properties.widget
 
    README
    CHANGELOG
+
+.. automodule:: omni.flux.properties_pane.properties.widget

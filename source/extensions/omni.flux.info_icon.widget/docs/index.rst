@@ -5,5 +5,7 @@ omni.flux.info_icon.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.info_icon.widget.setup_ui
+.. automodule:: omni.flux.info_icon.widget.style

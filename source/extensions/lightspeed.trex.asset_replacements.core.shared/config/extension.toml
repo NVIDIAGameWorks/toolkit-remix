@@ -1,5 +1,5 @@
 [package]
-version = "2.5.6"
+version = "3.0.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Asset Replacements extension for the StageCraft"
 description = "Extension that works on asset replacement data for NVIDIA RTX Remix StageCraft App"
@@ -15,12 +15,12 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 "lightspeed.common" = {}
 "lightspeed.error_popup.window" = {}
 "lightspeed.layer_manager.core" = {}
-"lightspeed.pip_archive" = {}  # Required for Pydantic
 "lightspeed.tool.material.core" = {}
 "lightspeed.trex.commands" = {}  # for omni.kit.undo (this is inside omni.kit.commands) and SetPrimTypeName
 "lightspeed.trex.utils.common" = {}
 "omni.client" = {}
 "omni.flux.asset_importer.core" = {}
+"omni.flux.pip_archive" = {}  # Required for Pydantic
 "omni.flux.service.shared" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.validator.factory" = {}

@@ -29,16 +29,18 @@ if TYPE_CHECKING:
 
 
 class IsCategoryFilterPlugin(_StageManagerUSDFilterPlugin):
-    display_name: str = "Remix Category Filter"
-    tooltip: str = "Filter by Remix Categories"
+    display_name: str = Field(default="Remix Category Filter", exclude=True)
+    tooltip: str = Field(default="Filter prims by their assigned Remix categories", exclude=True)
 
-    category_type = Field("All Categories", description="Whether to keep all categories or filter by category type.")
+    category_type: str = Field(
+        default="All Categories", description="Whether to keep all categories or filter by category type."
+    )
 
-    _CATEGORY_DISPLAY_LABELS: dict = PrivateAttr({"All": "All Categories", **_REMIX_CATEGORIES_DISPLAY_NAMES})
-    _COMBO_BOX_WIDTH: int = PrivateAttr(240)
-    _cat_type_combobox: ui.ComboBox | None = PrivateAttr(None)
-    _current_index: int | None = PrivateAttr(None)
-    _current_attr: str | None = PrivateAttr(None)
+    _CATEGORY_DISPLAY_LABELS: dict = PrivateAttr(default={"All": "All Categories", **_REMIX_CATEGORIES_DISPLAY_NAMES})
+    _COMBO_BOX_WIDTH: int = PrivateAttr(default=240)
+    _cat_type_combobox: ui.ComboBox | None = PrivateAttr(default=None)
+    _current_index: int | None = PrivateAttr(default=None)
+    _current_attr: str | None = PrivateAttr(default=None)
 
     def filter_predicate(self, item: _StageManagerItem) -> bool:
         if self.category_type == "All Categories":

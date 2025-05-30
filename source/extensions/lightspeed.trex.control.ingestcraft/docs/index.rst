@@ -7,3 +7,5 @@ lightspeed.trex.control.ingestcraft
 
    README
    CHANGELOG
+
+.. automodule:: lightspeed.trex.control.ingestcraft

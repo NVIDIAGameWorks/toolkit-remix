@@ -415,14 +415,14 @@ import omni.client
 import omni.ui as ui
 import omni.usd
 from omni.flux.validator.factory import ResultorBase as _ResultorBase
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 
 class ToJson(_ResultorBase):
     class Data(_ResultorBase.Data):
         json_path: str
 
-        @validator("json_path", allow_reuse=True)
+        @field_validator("json_path", mode="before")
         def json_path_empty(cls, v):  # noqa
             if not v.strip():
                 raise ValueError("Path is empty")
@@ -444,7 +444,7 @@ class ToJson(_ResultorBase):
         Returns: True if ok + message
         """
 
-        result = await omni.client.write_file_async(schema_data.json_path, json.dumps(schema.dict(), indent=4).encode('utf-8'))
+        result = await omni.client.write_file_async(schema_data.json_path, json.dumps(schema.model_dump(serialize_as_any=True), indent=4).encode('utf-8'))
         if result != omni.client.Result.OK:
             return False, f"Failed to write file {schema_data.json_path}"
         return True, f"Result written in {schema_data.json_path}, Ok"

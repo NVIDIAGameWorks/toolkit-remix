@@ -17,13 +17,14 @@
 
 import abc
 import time
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable
 
 import carb
 import omni.usd
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from pydantic import Field, validator
+from pydantic import Field, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 from .context_base import Schema as _ContextSchema
 from .context_base import SetupDataTypeVar as _SetupDataTypeVar
@@ -35,34 +36,39 @@ from .selector_base import Schema as _SelectorSchema
 
 class CheckBase(_Base, abc.ABC):
     class Data(_Base.Data):
+        on_check_callback: Callable[[bool, str, Any], Any] | None = Field(default=None, exclude=True)
+        on_fix_callback: Callable[[bool, str, Any], Any] | None = Field(default=None, exclude=True)
 
-        on_check_callback: Optional[Callable[[bool, str, Any], Any]] = Field(default=None, exclude=True)
-        on_fix_callback: Optional[Callable[[bool, str, Any], Any]] = Field(default=None, exclude=True)
+        last_check_message: str | None = Field(default=None)
+        last_check_data: Any | None = Field(
+            default=None, exclude=True, description="This is tmp we don't keep it in the schema"
+        )
+        last_check_timing: float | None = Field(default=None)
+        last_check_result: bool | None = Field(default=None)
 
-        last_check_message: Optional[str] = None
-        last_check_data: Optional[Any] = Field(default=None, exclude=True)  # this is tmp we don't keep it in the schema
-        last_check_timing: Optional[float] = None
-        last_check_result: Optional[bool] = None
+        last_fix_message: str | None = Field(default=None)
+        last_fix_data: Any | None = Field(
+            default=None, exclude=True, description="This is tmp we don't keep it in the schema"
+        )
+        last_fix_timing: float | None = Field(default=None)
+        last_fix_result: bool | None = Field(default=None)
 
-        last_fix_message: Optional[str] = None
-        last_fix_data: Optional[Any] = Field(default=None, exclude=True)  # this is tmp we don't keep it in the schema
-        last_fix_timing: Optional[float] = None
-        last_fix_result: Optional[bool] = None
-
-        @validator("last_check_result", allow_reuse=True)
-        def _fire_last_check_result_callback(cls, v, values):  # noqa N805
+        @field_validator("last_check_result", mode="before")
+        @classmethod
+        def _fire_last_check_result_callback(cls, v: bool | None, info: ValidationInfo):
             """When the check result is set, the message and data is also set"""
-            callback = values.get("on_check_callback")
-            if callback:
-                callback(v, values["last_check_message"], values["last_check_data"])
+            callback = info.data.get("on_check_callback")
+            if callback and v is not None:
+                callback(v, info.data.get("last_check_message"), info.data.get("last_check_data"))
             return v
 
-        @validator("last_fix_result", allow_reuse=True)
-        def _fire_last_fix_result_callback(cls, v, values):  # noqa N805
+        @field_validator("last_fix_result", mode="before")
+        @classmethod
+        def _fire_last_fix_result_callback(cls, v: bool | None, info: ValidationInfo):
             """When the fix result is set, the message and data is also set"""
-            callback = values.get("on_fix_callback")
-            if callback:
-                callback(v, values["last_fix_message"], values["last_fix_data"])
+            callback = info.data.get("on_fix_callback")
+            if callback and v is not None:
+                callback(v, info.data.get("last_fix_message"), info.data.get("last_fix_data"))
             return v
 
     def __init__(self):
@@ -94,7 +100,7 @@ class CheckBase(_Base, abc.ABC):
     @omni.usd.handle_exception
     async def check(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be called to check the data
 
@@ -123,7 +129,7 @@ class CheckBase(_Base, abc.ABC):
     @abc.abstractmethod
     async def _check(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check the data
 
@@ -142,7 +148,7 @@ class CheckBase(_Base, abc.ABC):
     @omni.usd.handle_exception
     async def fix(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be called to fix the data if the fix function return False
 
@@ -176,7 +182,7 @@ class CheckBase(_Base, abc.ABC):
     @abc.abstractmethod
     async def _fix(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to fix the data if the fix function return False
 
@@ -195,14 +201,14 @@ class CheckBase(_Base, abc.ABC):
 
 class Schema(_BaseSchema):
     context_plugin: _ContextSchema
-    selector_plugins: List[_SelectorSchema]
-    resultor_plugins: Optional[List[_ResultorSchema]]
-    stop_if_fix_failed: bool = False  # stop the whole process if the fix/auto fix failed
-    pause_if_fix_failed: bool = True  # pause the whole process if the fix/auto fix failed
+    selector_plugins: list[_SelectorSchema]
+    resultor_plugins: list[_ResultorSchema] | None = Field(default=None)
+    stop_if_fix_failed: bool = Field(default=False)
+    pause_if_fix_failed: bool = Field(default=True)
 
-    @validator("selector_plugins", allow_reuse=True)
-    def at_least_one(cls, v):  # noqa
-        """Check that we have at least 1 selector plugin"""
+    @field_validator("selector_plugins", mode="before")
+    @classmethod
+    def at_least_one(cls, v: list[_SelectorSchema]) -> list[_SelectorSchema]:
         if not v:
             raise ValueError("We should have at least 1 selector plugin")
         return v

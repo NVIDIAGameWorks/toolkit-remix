@@ -5,5 +5,6 @@ omni.flux.lookdev.core
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.lookdev.core

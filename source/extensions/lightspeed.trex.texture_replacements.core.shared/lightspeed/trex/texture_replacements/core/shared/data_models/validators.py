@@ -29,7 +29,7 @@ from pxr import Sdf, UsdShade
 
 class TextureReplacementsValidators:
     @classmethod
-    def is_valid_texture_prim(cls, texture_tuple: tuple[str, Path], context_name: str):
+    def is_valid_texture_prim(cls, texture_tuple: tuple[str | None, Path | None], context_name: str):
         property_path, _ = texture_tuple
 
         try:

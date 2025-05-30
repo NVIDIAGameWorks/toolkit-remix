@@ -5,5 +5,8 @@ omni.flux.validator.manager.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.validator.manager.widget.setup_ui
+.. automodule:: omni.flux.validator.manager.widget.tree.delegate
+.. automodule:: omni.flux.validator.manager.widget.tree.model

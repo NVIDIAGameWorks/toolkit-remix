@@ -62,7 +62,7 @@ class TestMaterialShaders(omni.kit.test.AsyncTestCase):
             MaterialShaders.Data.at_least_one(shader_subidentifiers)
 
         # Assert
-        self.assertEqual("There should at least be 1 item", str(cm.exception))
+        self.assertEqual("There should at least be 1 item in shader_subidentifiers", str(cm.exception))
 
     async def test_data_at_least_one_one_should_return_value(self):
         # Arrange

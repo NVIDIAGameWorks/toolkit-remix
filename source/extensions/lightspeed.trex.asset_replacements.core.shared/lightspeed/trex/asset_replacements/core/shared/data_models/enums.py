@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["DefaultAssetDirectory"]
+__all__ = ["DefaultAssetDirectory", "AssetType"]
 
 from enum import Enum
 
@@ -26,3 +26,9 @@ class DefaultAssetDirectory(Enum):
     INGESTED = constants.REMIX_INGESTED_ASSETS_FOLDER
     TEXTURES = constants.REMIX_TEXTURES_ASSETS_FOLDER
     MODELS = constants.REMIX_MODELS_ASSETS_FOLDER
+
+
+class AssetType(Enum):
+    ANY = None
+    TEXTURES = "textures"
+    MODELS = "models"

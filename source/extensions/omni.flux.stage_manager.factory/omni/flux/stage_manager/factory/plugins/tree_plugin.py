@@ -24,6 +24,7 @@ from omni import ui, usd
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
+from pydantic import Field
 
 from ..utils import StageManagerUtils as _StageManagerUtils
 from .base import StageManagerPluginBase as _StageManagerPluginBase
@@ -439,21 +440,5 @@ class StageManagerTreePlugin(_StageManagerPluginBase, abc.ABC):
     A plugin that provides a TreeView model and delegate
     """
 
-    @classmethod
-    @property
-    @abc.abstractmethod
-    def model(cls) -> StageManagerTreeModel:
-        pass
-
-    @classmethod
-    @property
-    @abc.abstractmethod
-    def delegate(cls) -> StageManagerTreeDelegate:
-        pass
-
-    class Config(_StageManagerPluginBase.Config):
-        fields = {
-            **_StageManagerPluginBase.Config.fields,
-            "model": {"exclude": True},
-            "delegate": {"exclude": True},
-        }
+    model: StageManagerTreeModel = Field(description="The tree model", exclude=True)
+    delegate: StageManagerTreeDelegate = Field(description="The tree delegate", exclude=True)

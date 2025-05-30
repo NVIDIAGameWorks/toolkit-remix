@@ -1,7 +1,7 @@
 [package]
 title = "Pip Archive"
 category = "internal"
-version = "2.0.3"
+version = "3.0.0"
 authors = [ "Damien Bataille <dbataille@nvidia.com>",]
 readme = "docs/README.md"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.pip_archive"
@@ -28,7 +28,6 @@ reloadable = false
 # We bundle not only "toml" package, but many other. No need to mention all of them, just importing one will add whole
 # folder (pip_prebundle) to sys.path.
 [[python.module]]
-name = "toml"
 path = "pip_prebundle"
 
 # That is empty module, added here only to make tests discoverable in test run
@@ -50,4 +49,3 @@ dependencies = [
 stdoutFailPatterns.exclude = [
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]
-

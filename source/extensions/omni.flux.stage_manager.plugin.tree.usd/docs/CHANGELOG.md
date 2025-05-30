@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.0]
+## Changed
+- Update the documentation for Pydantic V2 compatbility
+
+## [2.0.0]
+## Changed
+- Updated Pydantic to V2
+
 ## [1.11.1]
 - Made Lights Groups Tree Plugin items icons more consistent with the other tree items
 

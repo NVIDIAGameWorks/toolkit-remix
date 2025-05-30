@@ -8,11 +8,6 @@ omni.flux.stage_manager.plugin.context.usd
    README
    CHANGELOG
 
-
-.. automodule:: omni.flux.stage_manager.plugin.context.usd
-    :platform: Windows-x86_64, Linux-x86_64
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :imported-members:
-    :exclude-members:
+.. automodule:: omni.flux.stage_manager.plugin.context.usd.extension
+.. automodule:: omni.flux.stage_manager.plugin.context.usd.current_stage
+.. automodule:: omni.flux.stage_manager.plugin.context.usd.usd_file

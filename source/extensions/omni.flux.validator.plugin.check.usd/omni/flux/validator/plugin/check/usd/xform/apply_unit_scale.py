@@ -23,7 +23,7 @@ import omni.usd
 from omni.flux.info_icon.widget import InfoIconWidget as _InfoIconWidget
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from pxr import UsdGeom
-from pydantic import validator
+from pydantic import Field, field_validator
 
 from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
 
@@ -34,16 +34,14 @@ class ApplyUnitScale(_CheckBaseUSD):
     _METADATA_KEY = "metersPerUnit"
 
     class Data(_CheckBaseUSD.Data):
-        scale_target: float = 1.0
+        scale_target: float = Field(default=1.0)
 
-        @validator("scale_target", allow_reuse=True)
-        def non_zero_positive_number(cls, v):  # noqa N805
+        @field_validator("scale_target", mode="before")
+        @classmethod
+        def non_zero_positive_number(cls, v: float) -> float:
             if v <= 0:
                 raise ValueError("The target scale should be a non-zero positive number")
             return v
-
-        class Config(_CheckBaseUSD.Data.Config):
-            validate_assignment = True
 
     name = "ApplyUnitScale"
     tooltip = "This plugin will apply the meshes' metersPerUnit scaling to their XForm scale."

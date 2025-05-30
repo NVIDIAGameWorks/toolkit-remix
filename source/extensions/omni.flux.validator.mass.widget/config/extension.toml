@@ -3,7 +3,7 @@ order = 100  # to start always after the plugins
 
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.9.3"
+version = "2.1.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -48,18 +48,15 @@ name = "omni.flux.validator.mass.widget"
 
 [[test]]
 stdoutFailPatterns.exclude = [
-    "*TypeError: 'NoneType' object is not*",  # Expected when template cook fails
-    "*ValueError: ERROR: No input file paths were given.*",  # Expected when template cook fails
-    "*Exception when async '<function ManagerCore.deferred_run_with_exception at*",  # Expected when template cook fails
-    "*Exception when async '<function Item.cook_template at *",  # Expected when template cook fails
-    "*Exception when async '<function ValidatorMassWidget._add_and_run_all at *",  # Expected when template cook fails
-    "*No check plugin(s) enabled to run.*",  # Expected when template cook fails
-    "*Traceback (most recent call last)*",  # Expected when template cook fails
-    "*FakeError*",  # Expected when template cook fails
-    "*'NoneType' object is not iterable*",  # Expected when template cook fails
-    "*Exception when async cook_template_no_exception()*",  # when we fail a validation before the cook
-    "*1 validation error for ValidationSchema*",  # when we fail a validation before the cook
-    "*[asyncio] Task exception was never retrieved*",  # when we fail a validation before the cook
+    # Expected when template cook fails
+    "*Exception when async '<function ValidatorMassWidget._add_and_run_all at *",
+    "*FakeError*",
+    "*Traceback (most recent call last)*",
+    "*Exception when async '<function run at*",
+    "*1 validation error for ValidationSchema*",
+    "*4 validation errors for ValidationSchema*",
+    "*Exception when async cook_template_no_exception()*",
+    # Generic error
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]
 

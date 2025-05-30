@@ -15,10 +15,9 @@
 * limitations under the License.
 """
 
-import carb
 import omni.usd
-from fastapi.testclient import TestClient
 from omni.flux.service.factory import get_instance as get_service_factory_instance
+from omni.flux.utils.common.api import send_request
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.tests.context_managers import open_test_project
 from omni.kit.test import AsyncTestCase
@@ -35,26 +34,20 @@ class TestProjectManagerService(AsyncTestCase):
         self.project_manager = factory.get_plugin_from_name("ProjectManagerService")()
         main.register_router(router=self.project_manager.router, prefix=self.project_manager.prefix)
 
-        # Setup a test client to send requests
-        host = carb.settings.get_settings().get("/exts/omni.services.transport.server.http/host")
-        port = carb.settings.get_settings().get("/exts/omni.services.transport.server.http/port")
-        self.client = TestClient(main.get_app(), base_url=f"http://{host}:{port}")
-
     # After running each test
     async def tearDown(self):
         main.deregister_router(router=self.project_manager.router)
 
-        self.client = None
         self.project_manager = None
 
     async def test_get_loaded_project_valid_should_return_opened_project(self):
         # Arrange
         async with open_test_project("usd/full_project/full_project.usda", __name__) as project_url:
             # Act
-            response = self.client.get(self.project_manager.prefix)
+            response = await send_request("GET", self.project_manager.prefix, raw_response=True)
 
             # Assert
-            self.assertTrue(response.is_success)
+            self.assertEqual(response.status_code, 200, msg=response.json())
             self.assertEqual(response.json(), {"layer_id": project_url.path.replace("/", "\\")})
 
     async def test_get_loaded_project_no_project_should_return_not_found(self):
@@ -62,10 +55,9 @@ class TestProjectManagerService(AsyncTestCase):
         pass
 
         # Act
-        response = self.client.get(self.project_manager.prefix)
+        response = await send_request("GET", self.project_manager.prefix, raw_response=True)
 
         # Assert
-        self.assertTrue(response.is_error)
         self.assertEqual(response.status_code, 404)
 
     async def test_open_project_valid_should_open_project(self):
@@ -73,10 +65,10 @@ class TestProjectManagerService(AsyncTestCase):
         project_path = get_test_data_path(__name__, "usd/full_project/full_project.usda")
 
         # Act
-        response = self.client.put(f"{self.project_manager.prefix}/{project_path}")
+        response = await send_request("PUT", f"{self.project_manager.prefix}/{project_path}", raw_response=True)
 
         # Assert
-        self.assertTrue(response.is_success)
+        self.assertEqual(response.status_code, 200, msg=response.json())
 
         stage = omni.usd.get_context("").get_stage()
         root_layer = stage.GetRootLayer().identifier
@@ -87,8 +79,7 @@ class TestProjectManagerService(AsyncTestCase):
         project_path = "Z:/Invalid/Project/Path.usd"
 
         # Act
-        response = self.client.put(f"{self.project_manager.prefix}/{project_path}")
+        response = await send_request("PUT", f"{self.project_manager.prefix}/{project_path}", raw_response=True)
 
         # Assert
-        self.assertTrue(response.is_error)
         self.assertEqual(response.status_code, 422)

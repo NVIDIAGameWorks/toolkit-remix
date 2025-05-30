@@ -17,7 +17,7 @@
 
 import carb
 import omni.usd
-from pydantic import PrivateAttr
+from pydantic import Field, PrivateAttr
 
 from .base import StageManagerUSDListenerPlugin as _StageManagerUSDListenerPlugin
 
@@ -27,9 +27,9 @@ class StageManagerUSDStageListenerPlugin(_StageManagerUSDListenerPlugin[omni.usd
     A listener triggered whenever a stage event is triggered.
     """
 
-    event_type: type = omni.usd.StageEventType
+    event_type: type[omni.usd.StageEventType] = Field(default_factory=lambda: omni.usd.StageEventType, exclude=True)
 
-    _stage_event_sub = PrivateAttr()
+    _stage_event_sub: carb.events.ISubscription | None = PrivateAttr(default=None)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

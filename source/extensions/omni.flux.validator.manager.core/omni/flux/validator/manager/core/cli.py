@@ -20,6 +20,7 @@ import asyncio
 
 import omni.client
 import omni.kit.app
+import omni.usd
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
 
@@ -48,6 +49,7 @@ def main():
     asyncio.ensure_future(run(args.schema, args.print_result, args.queue_id))
 
 
+@omni.usd.handle_exception
 async def run(json_path: str, print_result: bool, queue_id: str | None):
     exit_code = 1
     try:

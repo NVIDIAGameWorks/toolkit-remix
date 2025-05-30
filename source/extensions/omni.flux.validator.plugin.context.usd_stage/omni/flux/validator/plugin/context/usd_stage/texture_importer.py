@@ -47,7 +47,8 @@ from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.flux.validator.factory import utils as _validator_factory_utils
 from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
-from pydantic import validator
+from pydantic import ConfigDict, Field, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 from .base.context_base_usd import ContextBaseUSD as _ContextBaseUSD
 
@@ -58,60 +59,74 @@ class TextureImporter(_ContextBaseUSD):
     DEFAULT_UI_SPACING_PIXEL = 8
 
     class Data(_ContextBaseUSD.Data):
-        allow_empty_input_files_list: Optional[bool] = False  # Leave before input_files, required in validation
-        input_files: List[Tuple[_OmniUrl, _TextureTypes]]
-        error_on_texture_types: Optional[List[_TextureTypes]] = None  # if we set texture with this type, it will crash
-        create_output_directory_if_missing: bool = True
-        output_directory: _OmniUrl
-        default_output_endpoint: Optional[str] = None  # An API endpoint to hit up to get the default output directory
+        allow_empty_input_files_list: bool | None = Field(default=False)
+        input_files: list[tuple[_OmniUrl, _TextureTypes]] = Field(...)
+        error_on_texture_types: list[_TextureTypes] | None = Field(default=None)
+        create_output_directory_if_missing: bool = Field(default=True)
+        output_directory: _OmniUrl = Field(...)
+        default_output_endpoint: str | None = Field(default=None)
+
+        data_flows: list[_InOutDataFlow] | None = Field(default=None)
+
+        model_config = ConfigDict(validate_assignment=True)
 
         _compatible_data_flow_names = ["InOutData"]
-        data_flows: Optional[List[_InOutDataFlow]] = None  # override base argument with the good typing
 
-        @validator("input_files", allow_reuse=True)
-        def at_least_one(cls, v, values):  # noqa N805
-            if len(v) < 1 and not values.get("allow_empty_input_files_list", False):
-                raise ValueError("There should at least be 1 item")
+        @field_validator("input_files", mode="before")
+        @classmethod
+        def at_least_one(
+            cls, v: list[tuple[_OmniUrl, _TextureTypes]], info: ValidationInfo
+        ) -> list[tuple[_OmniUrl, _TextureTypes]]:
+            if len(v) < 1 and not info.data.get("allow_empty_input_files_list", False):
+                raise ValueError("There should at least be 1 item in input_files")
             return v
 
-        @validator("input_files", each_item=True, allow_reuse=True)
-        def is_valid(cls, v):  # noqa N805
-            result, message = _TextureImportItem.is_valid(v[0])
-            if not result:
-                raise ValueError(message)
-            return v
+        @field_validator("input_files", mode="before")
+        @classmethod
+        def is_valid(cls, v: list[tuple[_OmniUrl, _TextureTypes]]) -> list[tuple[_OmniUrl, _TextureTypes]]:
+            validated_items = []
+            for item_tuple in v:
+                if not (isinstance(item_tuple, tuple) and len(item_tuple) == 2):
+                    raise ValueError(
+                        f"Each item in input_files must be a tuple of (_OmniUrl, _TextureTypes): got {item_tuple}"
+                    )
 
-        @validator("output_directory", allow_reuse=True)
-        def can_have_children(cls, v, values):  # noqa N805
+                file_url, _ = item_tuple
+                result, message = _TextureImportItem.is_valid(file_url)
+                if not result:
+                    raise ValueError(message)
+                validated_items.append(item_tuple)
+            return validated_items
+
+        @field_validator("output_directory", mode="before")
+        @classmethod
+        def can_have_children(cls, v: _OmniUrl, info: ValidationInfo) -> _OmniUrl:
             if str(v).strip() == ".":
                 # empty path
                 return v
-            path = carb.tokens.get_tokens_interface().resolve(str(v))
-            if path.strip() == ".":
-                # token hasn't been set
+
+            resolved_path = carb.tokens.get_tokens_interface().resolve(str(v))
+            if resolved_path.strip() == ".":
                 return v
 
-            # If we allow to create the output, assume the path is valid and fail during setup
-            if values.get("create_output_directory_if_missing"):
+            if info.data.get("create_output_directory_if_missing"):
                 return v
 
-            result, entry = omni.client.stat(path)
+            result, entry = omni.client.stat(resolved_path)
             if result != omni.client.Result.OK:
-                raise ValueError("The output directory is not valid")
+                raise ValueError(f"The output directory is not valid: {resolved_path}")
             if not entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN:
-                raise ValueError("The output directory cannot have children")
+                raise ValueError(f"The output directory cannot have children: {resolved_path}")
             return v
 
-        @validator("output_directory", allow_reuse=True)
-        def output_dir_unequal_input_dirs(cls, v, values):  # noqa N805
-            for input_file, _ in values.get("input_files", []):
-                # check if output_directory is same as input_directory
-                if v.path == input_file.parent_url:
-                    raise ValueError(f'Output directory "{v}" cannot be the same as any input file directory.')
-            return v
-
-        class Config(_ContextBaseUSD.Data.Config):
-            validate_assignment = True
+        @field_validator("output_directory", mode="before")
+        @classmethod
+        def output_dir_unequal_input_dirs(cls, v: _OmniUrl, info: ValidationInfo) -> _OmniUrl:
+            url = _OmniUrl(v)
+            for input_file, _ in info.data.get("input_files", []):
+                if url.path == input_file.parent_url:
+                    raise ValueError(f'Output directory "{url}" cannot be the same as any input file directory.')
+            return url
 
     name = "TextureImporter"
     display_name = "Texture Importer"
@@ -257,7 +272,7 @@ class TextureImporter(_ContextBaseUSD):
         all_paths = {str(texture_url): texture_type for texture_url, texture_type in schema_data_template.input_files}
         texture_sets = _get_texture_sets(list(all_paths.keys()))
         for mat_prefix, texture_types in texture_sets.items():
-            schema = self.Data(**schema_data_template.dict())
+            schema = self.Data(**schema_data_template.model_dump(serialize_as_any=True))
             schema.input_files = [(path, all_paths[str(_OmniUrl(path))]) for _, path in texture_types]
             schema.display_name_mass_template = str(mat_prefix)
             schema.display_name_mass_template_tooltip = "\n".join([str(_OmniUrl(path)) for _, path in texture_types])
@@ -392,7 +407,7 @@ class TextureImporter(_ContextBaseUSD):
         if schema_data.default_output_endpoint:
             try:
                 response = await _send_request("GET", schema_data.default_output_endpoint)
-                schema_data.output_directory = _OmniUrl(response.get("asset_path"))
+                schema_data.output_directory = _OmniUrl(response.get("directory_path"))
             except RuntimeError:
                 pass
 

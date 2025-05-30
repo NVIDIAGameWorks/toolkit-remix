@@ -5,5 +5,6 @@ omni.flux.header_navigator.widget
    :maxdepth: 1
 
    README
-   API
    CHANGELOG
+
+.. automodule:: omni.flux.header_navigator.widget

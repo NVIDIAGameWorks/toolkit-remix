@@ -20,7 +20,7 @@ import uuid
 from asyncio import ensure_future
 from functools import partial
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
+from typing import Any, Awaitable, Callable
 
 import carb
 import omni.client
@@ -47,9 +47,26 @@ from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.flux.validator.factory import utils as _validator_factory_utils
 from omni.kit.viewport.utility import get_active_viewport
 from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
-from pydantic import Extra, Field, ValidationError, create_model, validator
+from pydantic import ConfigDict, Field, ValidationError, create_model, field_validator
+from pydantic.functional_validators import SkipValidation
+from pydantic_core.core_schema import ValidationInfo
 
 from .base.context_base_usd import ContextBaseUSD as _ContextBaseUSD
+
+
+def _get_converter_context():
+    """
+    Adapter for Pydantic V2 to V1 compatibility.
+
+    Returns:
+        dict: Processed converter context dictionary with modified boolean fields
+    """
+    converter_context_dict = _kit_asset_converter.AssetConverterContext().to_dict()
+    for field_name, default_value in converter_context_dict.items():
+        if isinstance(default_value, bool):
+            # Wrap the boolean type with SkipValidation
+            converter_context_dict[field_name] = (SkipValidation[bool], default_value)
+    return converter_context_dict
 
 
 class AssetImporter(_ContextBaseUSD):
@@ -59,74 +76,87 @@ class AssetImporter(_ContextBaseUSD):
     DEFAULT_UI_SPACING_PIXEL = 8
 
     class DataBase(_ContextBaseUSD.Data):
-        allow_empty_input_files_list: Optional[bool] = False  # Leave before input_files, required in validation
-        input_files: List[_OmniUrl]
-        create_output_directory_if_missing: bool = True
-        output_directory: _OmniUrl
-        output_usd_extension: Optional[_UsdExtensions] = None
-        # keep the full path like c:\source\path2\asset.usd will be c:\output\path2\asset.usd if full_path_root is
-        # c:\source\ and full_path_keep is True
-        full_path_keep: bool = False
-        full_path_root: Optional[_OmniUrl] = None
-        close_stage_on_exit: bool = False
-        default_output_endpoint: Optional[str] = None  # An API endpoint to hit up to get the default output directory
+        allow_empty_input_files_list: bool | None = Field(default=False)
+        input_files: list[_OmniUrl] = Field(...)
+        create_output_directory_if_missing: bool = Field(default=True)
+        output_directory: _OmniUrl = Field(...)
+        output_usd_extension: _UsdExtensions | None = Field(default=None)
+        full_path_keep: bool = Field(
+            default=False,
+            description=(
+                "Keep the full path like c:/source/path2/asset.usd will be c:/output/path2/asset.usd if full_path_root "
+                "is c:/source/ and full_path_keep is True"
+            ),
+        )
+        full_path_root: _OmniUrl | None = Field(default=None)
+        close_stage_on_exit: bool = Field(default=False)
+        default_output_endpoint: str | None = Field(
+            default=None, description="An API endpoint to hit up to get the default output directory"
+        )
+
+        data_flows: list[_InOutDataFlow] | None = Field(default=None)
+        output_files: dict[str, str] | None = Field(
+            default=None, exclude=True, description="This is tmp we don't keep it in the schema"
+        )
+
+        model_config = ConfigDict(validate_assignment=True, extra="forbid")
 
         _compatible_data_flow_names = ["InOutData"]
-        data_flows: Optional[List[_InOutDataFlow]] = None  # override base argument with the good typing
 
-        # tmp data
-        output_files: Optional[Dict[str, str]] = Field(None, repr=False)
-
-        @validator("input_files", allow_reuse=True)
-        def at_least_one(cls, v, values):  # noqa N805
-            if len(v) < 1 and not values.get("allow_empty_input_files_list", False):
-                raise ValueError("There should at least be 1 item")
+        @field_validator("input_files", mode="before")
+        @classmethod
+        def at_least_one(cls, v: list[_OmniUrl], info: ValidationInfo) -> list[_OmniUrl]:
+            if len(v) < 1 and not info.data.get("allow_empty_input_files_list", False):
+                raise ValueError("There should at least be 1 item in input_files")
             return v
 
-        @validator("input_files", each_item=True, allow_reuse=True)
-        def is_readable(cls, v):  # noqa N805
-            path = carb.tokens.get_tokens_interface().resolve(str(v))
-            result, entry = omni.client.stat(path)
-            if result != omni.client.Result.OK:
-                raise ValueError("The input file is not valid")
-            if not entry.flags & omni.client.ItemFlags.READABLE_FILE:
-                raise ValueError("The input file is not readable")
-            return v
+        @field_validator("input_files", mode="before")
+        @classmethod
+        def is_readable(cls, v: list[_OmniUrl]) -> list[_OmniUrl]:
+            validated_items = []
+            for item in v:
+                path = carb.tokens.get_tokens_interface().resolve(str(item))
+                result, entry = omni.client.stat(path)
+                if result != omni.client.Result.OK:
+                    raise ValueError(f"The input file is not valid: {item}")
+                if not entry.flags & omni.client.ItemFlags.READABLE_FILE:
+                    raise ValueError(f"The input file is not readable: {item}")
+                validated_items.append(item)
+            return validated_items
 
-        @validator("output_directory", allow_reuse=True)
-        def can_have_children(cls, v, values):  # noqa N805
+        @field_validator("output_directory", mode="before")
+        @classmethod
+        def can_have_children(cls, v: _OmniUrl, info: ValidationInfo) -> _OmniUrl:
             if str(v).strip() == ".":
                 # empty path
                 return v
-            path = carb.tokens.get_tokens_interface().resolve(str(v))
-            if path.strip() == ".":
+
+            resolved_path = carb.tokens.get_tokens_interface().resolve(str(v))
+            if resolved_path.strip() == ".":
                 # token hasn't been set
                 return v
 
             # If we allow to create the output, assume the path is valid and fail during setup
-            if values.get("create_output_directory_if_missing"):
+            if info.data.get("create_output_directory_if_missing"):
                 return v
 
-            result, entry = omni.client.stat(path)
+            result, entry = omni.client.stat(resolved_path)
             if result != omni.client.Result.OK:
-                raise ValueError("The output directory is not valid")
+                raise ValueError(f"The output directory is not valid: {resolved_path}")
             if not entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN:
-                raise ValueError("The output directory cannot have children")
+                raise ValueError(f"The output directory cannot have children: {resolved_path}")
             return v
 
-        @validator("output_directory", allow_reuse=True)
-        def output_dir_unequal_input_dirs(cls, v, values):  # noqa N805
-            for input_file in values.get("input_files", []):
-                if v.path == input_file.parent_url:
-                    raise ValueError(f'Output directory "{v}" cannot be the same as any input file directory.')
-            return v
+        @field_validator("output_directory", mode="before")
+        @classmethod
+        def output_dir_unequal_input_dirs(cls, v: _OmniUrl, info: ValidationInfo) -> _OmniUrl:
+            url = _OmniUrl(v)
+            for input_file in info.data.get("input_files", []):
+                if url.path == input_file.parent_url:
+                    raise ValueError(f'Output directory "{url}" cannot be the same as any input file directory.')
+            return url
 
-        class Config(_ContextBaseUSD.Data.Config):
-            validate_assignment = True
-
-    Data = create_model(
-        "Data", __base__=DataBase, **_kit_asset_converter.AssetConverterContext().to_dict(), extra=Extra.forbid
-    )
+    Data = create_model("Data", __base__=DataBase, **_get_converter_context())
 
     name = "AssetImporter"
     display_name = "Asset Importer"
@@ -146,7 +176,7 @@ class AssetImporter(_ContextBaseUSD):
         self._extensions = [_UsdExtensions.USD, _UsdExtensions.USDA, _UsdExtensions.USDC]
 
     @omni.usd.handle_exception
-    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to execute the data.
 
@@ -217,7 +247,7 @@ class AssetImporter(_ContextBaseUSD):
         schema_data: Data,
         run_callback: Callable[[_SetupDataTypeVar], Awaitable[None]],
         parent_context: _SetupDataTypeVar,
-    ) -> Tuple[bool, str, _SetupDataTypeVar]:
+    ) -> tuple[bool, str, _SetupDataTypeVar]:
         """
         Function that will be executed to set the data. Here we will open the file path and give the stage
 
@@ -300,7 +330,7 @@ class AssetImporter(_ContextBaseUSD):
 
         return True, "Files were imported successfully", final_data
 
-    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to after the check of the data. For example, save the input USD stage
 
@@ -317,7 +347,7 @@ class AssetImporter(_ContextBaseUSD):
         return True, "Exit ok"
 
     @omni.usd.handle_exception
-    async def _mass_cook_template(self, schema_data_template: Data) -> Tuple[bool, Optional[str], List[Data]]:
+    async def _mass_cook_template(self, schema_data_template: Data) -> tuple[bool, str | None, list[Data]]:
         """
         Take a template as an input and the (previous) result, and edit the result for mass processing.
         Here, for each file input, we generate a list of schema
@@ -337,7 +367,7 @@ class AssetImporter(_ContextBaseUSD):
             return False, message, []
 
         for file_url in schema_data_template.input_files:
-            schema = self.Data(**schema_data_template.dict())
+            schema = self.Data(**schema_data_template.model_dump(serialize_as_any=True))
             str_file = str(file_url)
             schema.input_files = [str_file]
             # because of OM-105296, we can create multiple contexts, or it will be very slow
@@ -353,7 +383,7 @@ class AssetImporter(_ContextBaseUSD):
         return True, None, result
 
     def _mass_build_queue_action_ui(
-        self, schema_data: Data, default_actions: List[Callable[[], Any]], callback: Callable[[str], Any]
+        self, schema_data: Data, default_actions: list[Callable[[], Any]], callback: Callable[[str], Any]
     ) -> None:
         """
         Default exposed action for Mass validation. The UI will be built into the delegate of the mass queue.
@@ -415,7 +445,7 @@ class AssetImporter(_ContextBaseUSD):
         if schema_data.expose_mass_ui and not force_build_ui:
             return
 
-        def __filter_drop(paths: List[str]):
+        def __filter_drop(paths: list[str]):
             case_sensitive = [
                 path
                 for path in paths
@@ -539,7 +569,7 @@ class AssetImporter(_ContextBaseUSD):
         if schema_data.default_output_endpoint:
             try:
                 response = await _send_request("GET", schema_data.default_output_endpoint)
-                schema_data.output_directory = _OmniUrl(response.get("asset_path"))
+                schema_data.output_directory = _OmniUrl(response.get("directory_path"))
             except RuntimeError:
                 pass
 
