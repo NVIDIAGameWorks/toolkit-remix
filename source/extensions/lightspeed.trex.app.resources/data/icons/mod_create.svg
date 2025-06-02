@@ -1,3 +1,21 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2b43d9f4adc70caf03ba972a2bbb0e3a7edee43838abf45eaea7c37bad977a30
-size 1365
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="144" height="144" viewBox="0 0 144 144">
+  <defs>
+    <linearGradient id="linear-gradient" x1="0.949" y1="0.973" x2="0.173" y2="0.016" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#4f6a20"/>
+      <stop offset="1" stop-color="#769147"/>
+    </linearGradient>
+    <filter id="Subtraction_67" x="40.5" y="40.5" width="69" height="69" filterUnits="userSpaceOnUse">
+      <feOffset dx="3" dy="3" input="SourceAlpha"/>
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feFlood flood-opacity="0.6"/>
+      <feComposite operator="in" in2="blur"/>
+      <feComposite in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <g id="remix_wizard_create_new_2_icon_only" transform="translate(-5519 -1113)">
+    <rect id="Rectangle_2266" data-name="Rectangle 2266" width="144" height="144" rx="12" transform="translate(5519 1113)" opacity="0" fill="url(#linear-gradient)"/>
+    <g transform="matrix(1, 0, 0, 1, 5519, 1113)" filter="url(#Subtraction_67)">
+      <path id="Subtraction_67-2" data-name="Subtraction 67" d="M30,60A30.008,30.008,0,0,1,18.323,2.358,30.008,30.008,0,0,1,41.677,57.643,29.813,29.813,0,0,1,30,60ZM9,27v6H27V51h6V33H51V27H33V9H27V27Z" transform="translate(42 42)" fill="#fff" opacity="0.7"/>
+    </g>
+  </g>
+</svg>

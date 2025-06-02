@@ -1,3 +1,8 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:4c9c9b74cf3cbf0108939d9088a2d5007a0e364a1e643e516fa8e1a6b378250a
-size 777
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+  <g id="skel_root_dark" transform="translate(-16953.146 7203.852)">
+    <line id="Line_780" data-name="Line 780" y2="8" transform="translate(16962.5 -7200.5)" fill="none" stroke="#ccc" stroke-linecap="round" stroke-width="2.5"/>
+    <line id="Line_781" data-name="Line 781" y1="3" x2="5" transform="translate(16956.5 -7192.5)" fill="none" stroke="#ccc" stroke-linecap="round" stroke-width="2.5"/>
+    <line id="Line_782" data-name="Line 782" x1="5" y1="3" transform="translate(16963.5 -7192.5)" fill="none" stroke="#ccc" stroke-linecap="round" stroke-width="2.5"/>
+    <rect id="Icon_Base" width="18" height="18" transform="translate(16953.146 -7203.852)" fill="none"/>
+  </g>
+</svg>

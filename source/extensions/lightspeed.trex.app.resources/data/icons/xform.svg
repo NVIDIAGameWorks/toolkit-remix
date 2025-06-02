@@ -1,3 +1,86 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:f4963b8cffad745d996b8d0780c15bae1fc6458e8fb8456eee9c231f91e97285
-size 2635
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   sodipodi:docname="Xform.svg"
+   id="svg6"
+   version="1.1"
+   viewBox="0 0 18.530567 17.527023"
+   height="17.527023"
+   width="18.530567">
+  <metadata
+     id="metadata12">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs10" />
+  <sodipodi:namedview
+     inkscape:document-rotation="0"
+     inkscape:current-layer="xform_2"
+     inkscape:window-maximized="1"
+     inkscape:window-y="-8"
+     inkscape:window-x="1912"
+     inkscape:cy="5.2721651"
+     inkscape:cx="9.265284"
+     inkscape:zoom="16.899391"
+     fit-margin-right="2"
+     fit-margin-bottom="2"
+     fit-margin-top="2"
+     fit-margin-left="2"
+     showgrid="false"
+     id="namedview8"
+     inkscape:window-height="1017"
+     inkscape:window-width="1920"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0"
+     guidetolerance="10"
+     gridtolerance="10"
+     objecttolerance="10"
+     borderopacity="1"
+     bordercolor="#666666"
+     pagecolor="#ffffff" />
+  <g
+     transform="translate(-16953.235,7203.7678)"
+     id="xform_2">
+    <line
+       style="fill:none;stroke:#f0f0f0;stroke-width:1.3;stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       x2="16962.5"
+       y1="-7200.855"
+       x1="16962.5"
+       y2="-7192.855"
+       data-name="Line 780"
+       id="Line_780" />
+    <line
+       transform="translate(16956.5,-7192.5)"
+       style="opacity:1;fill:none;stroke:#dedede;stroke-width:1.3;stroke-linecap:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"
+       y2="0"
+       x1="0"
+       x2="5"
+       y1="3"
+       data-name="Line 781"
+       id="Line_781" />
+    <line
+       transform="translate(16963.5,-7192.5)"
+       style="opacity:1;fill:none;stroke:#ebebeb;stroke-width:1.3;stroke-linecap:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"
+       y2="0"
+       x2="0"
+       y1="3"
+       x1="5"
+       data-name="Line 782"
+       id="Line_782" />
+  </g>
+</svg>

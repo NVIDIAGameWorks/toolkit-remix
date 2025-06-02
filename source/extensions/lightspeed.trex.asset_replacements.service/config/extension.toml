@@ -1,5 +1,5 @@
 [package]
-version = "2.0.0"
+version = "2.0.1"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Asset Replacements Service extension"
 description = "Extension that exposes microservices for asset replacement data for NVIDIA RTX Remix"

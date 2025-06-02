@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "2.1.0"
+version = "2.1.1"
 
 authors = ["Mark Henderson <markh@nvidia.com>"]
 title = "Flux Resources"

@@ -1,5 +1,6 @@
 # Normalize text files on commit to LF endings by default
 * text=auto
+
 # Make sure Windows batch files preserve CR/LF line endings, otherwise they may not be able to execute.  Windows
 # batch files require a CR/LF for labels to work properly, otherwise they may fail when labels straddle 512-byte
 # block boundaries.  This is important when files are downloaded through a zip archive that was authored on a
@@ -7,35 +8,15 @@
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.kit text eol=crlf
+*.toml text eol=crlf
 
 # Make sure shell scripts have LF line endings, even when checked out on a Windows client with autocrlf=true
 *.sh text eol=lf
-
-# Make sure toml files have CR/LF line endings, for dependencies
-*.toml text eol=crlf
-
-# All files under data go into Git LFS
-data/** filter=lfs diff=lfs merge=lfs -text
-source/extensions/**/data/** filter=lfs diff=lfs merge=lfs -text
-
-*.exe filter=lfs diff=lfs merge=lfs -text
-*.dll filter=lfs diff=lfs merge=lfs -text
-*.bin filter=lfs diff=lfs merge=lfs -text
-*.mp4 filter=lfs diff=lfs merge=lfs -text
-*.pth filter=lfs diff=lfs merge=lfs -text
 
 # JSON and USDA files should not be tracked in Git LFS
 **/*.json !filter !diff !merge text
 **/*.usda !filter !diff !merge text
 
-# Exception USDA files > 5MB and need to be tracked in Git LFS
-source/extensions/omni.flux.utils.material_converter/data/**/*.usda filter=lfs diff=lfs merge=lfs -text
-source/extensions/**/data/**/pillow_cube_OTH.usda filter=lfs diff=lfs merge=lfs -text
-
-nvngx_dlisr.dll filter=lfs diff=lfs merge=lfs -text
-FreeImage.dll filter=lfs diff=lfs merge=lfs -text
-vcomp140d.dll filter=lfs diff=lfs merge=lfs -text
-vcomp140.dll filter=lfs diff=lfs merge=lfs -text
-realesrnet-x4plus.bin filter=lfs diff=lfs merge=lfs -text
-realesrgan-x4plus.bin filter=lfs diff=lfs merge=lfs -text
-realesrgan-x4plus-anime.bin filter=lfs diff=lfs merge=lfs -text
+# Documentation videos and zips 
+docs/data/videos** filter=lfs diff=lfs merge=lfs -text
+docs/data/zips/** filter=lfs diff=lfs merge=lfs -text

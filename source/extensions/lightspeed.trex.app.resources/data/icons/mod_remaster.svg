@@ -1,3 +1,21 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:c2a8fa635503a41cae801b5efb439664e464dedfb0fd78c2c0f29fd8783daf8b
-size 1529
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="144" height="144" viewBox="0 0 144 144">
+  <defs>
+    <linearGradient id="linear-gradient" x1="0.949" y1="0.973" x2="0.173" y2="0.016" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#4f6a20"/>
+      <stop offset="1" stop-color="#769147"/>
+    </linearGradient>
+    <filter id="Path_5832" x="27.5" y="42.5" width="101.283" height="65.317" filterUnits="userSpaceOnUse">
+      <feOffset dx="3" dy="3" input="SourceAlpha"/>
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feFlood flood-opacity="0.6"/>
+      <feComposite operator="in" in2="blur"/>
+      <feComposite in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <g id="remix_wizard_remaster_icon_only" transform="translate(-5318 -1113)">
+    <rect id="Rectangle_2270" data-name="Rectangle 2270" width="144" height="144" rx="12" transform="translate(5318 1113)" opacity="0" fill="url(#linear-gradient)"/>
+    <g transform="matrix(1, 0, 0, 1, 5318, 1113)" filter="url(#Path_5832)">
+      <path id="Path_5832-2" data-name="Path 5832" d="M-1971.859-1063.721l-15.994,0h-6.87l-31.569-36.606H-2052v-5.633h27.721l31.57,36.606h20.851v-7.038l12.141,9.855-12.141,9.855Zm-53.428,0H-2052v-5.636h25.708l12.5-14.49,3.438,3.986-13.92,16.14Zm20.077-22.118-3.436-3.981,13.923-16.142,6.87,0,13.566,0V-1113l12.141,9.856-12.141,9.855v-7.037h-18.422l-12.5,14.488,0,0Z" transform="translate(2081 1157)" fill="#fff" opacity="0.7"/>
+    </g>
+  </g>
+</svg>

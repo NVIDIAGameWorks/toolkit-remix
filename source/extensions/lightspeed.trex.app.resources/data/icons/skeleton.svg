@@ -1,3 +1,13 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:24b405e36328731613e2a40530b8c3ce4730ad8aa79ae26a34c34c9d773d0b04
-size 1430
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 25 25">
+  <g id="skeleton_dark" transform="translate(-3808 -3854)">
+    <g id="Group_3215" data-name="Group 3215" transform="translate(3813.74 3855.531)">
+      <circle id="Ellipse_143" data-name="Ellipse 143" cx="2.5" cy="2.5" r="2.5" transform="translate(4.26 0.469)" fill="#ccc"/>
+      <path id="Rectangle_1257" data-name="Rectangle 1257" d="M1.25,0h2.5A1.25,1.25,0,0,1,5,1.25V4.5A2.5,2.5,0,0,1,2.5,7h0A2.5,2.5,0,0,1,0,4.5V1.25A1.25,1.25,0,0,1,1.25,0Z" transform="translate(4.26 6.469)" fill="#ccc"/>
+      <line id="Line_848" data-name="Line 848" x2="3.062" y2="4.592" transform="translate(10.716 7.271)" fill="none" stroke="#ccc" stroke-linecap="round" stroke-width="2"/>
+      <line id="Line_850" data-name="Line 850" x2="0.383" y2="6.889" transform="translate(9.185 14.543)" fill="none" stroke="#ccc" stroke-linecap="round" stroke-width="2"/>
+      <line id="Line_851" data-name="Line 851" x1="0.383" y2="6.889" transform="translate(4.21 14.543)" fill="none" stroke="#ccc" stroke-linecap="round" stroke-width="2"/>
+      <line id="Line_849" data-name="Line 849" x1="3.062" y2="4.592" transform="translate(0 7.654)" fill="none" stroke="#ccc" stroke-linecap="round" stroke-width="2"/>
+    </g>
+    <rect id="Rectangle_1258" data-name="Rectangle 1258" width="25" height="25" transform="translate(3808 3854)" fill="none"/>
+  </g>
+</svg>

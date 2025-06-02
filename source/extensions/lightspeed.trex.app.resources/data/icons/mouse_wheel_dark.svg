@@ -1,3 +1,15 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:cba8b7ebbc635c26dc3eea482f2d443f16355b8dbec626e61e071c57f1d81991
-size 2511
+<svg id="mouse_wheel_dark" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  <rect id="Icon_Base" width="40" height="40" fill="none"/>
+  <g id="Mouse" transform="translate(9.398 3)">
+    <path id="RightClick" d="M269.3,27.829a9.064,9.064,0,0,0-7.627-7.228,2.087,2.087,0,0,1-1.639.822V23.97a.851.851,0,0,1,.826.848v6.639a.851.851,0,0,1-.826.848v1.558h9.362Z" transform="translate(-250.429 -20.601)" fill="none" stroke="#00101f" stroke-miterlimit="10" stroke-width="1"/>
+    <path id="LeftClick" d="M139.383,28.2a9.064,9.064,0,0,1,7.627-7.228,2.087,2.087,0,0,0,1.639.822v2.547a.851.851,0,0,0-.826.848v6.639a.851.851,0,0,0,.826.848v1.558h-9.362Z" transform="translate(-139.008 -20.944)" fill="none" stroke="#00101f" stroke-miterlimit="10" stroke-width="1"/>
+    <path id="Body" d="M135.923,192.771l-.212,13.343a9.443,9.443,0,0,0,9.421,9.366h.36a9.443,9.443,0,0,0,9.421-9.366l-.212-13.343Z" transform="translate(-135.711 -179.48)" fill="none" stroke="#00101f" stroke-miterlimit="10" stroke-width="1"/>
+    <path id="ScrollWheel" d="M2.3,0h0c1.272,0,2.3.38,2.3.849V7.488c0,.469-1.031.849-2.3.849h0c-1.272,0-2.3-.38-2.3-.849V.849C0,.38,1.031,0,2.3,0Z" transform="translate(7.323 3.397)" fill="#1a91c5" stroke="#00101f" stroke-width="1"/>
+  </g>
+  <g id="Mouse-2" data-name="Mouse" transform="translate(10.398 2)">
+    <path id="RightClick-2" data-name="RightClick" d="M269.3,27.829a9.064,9.064,0,0,0-7.627-7.228,2.087,2.087,0,0,1-1.639.822V23.97a.851.851,0,0,1,.826.848v6.639a.851.851,0,0,1-.826.848v1.558h9.362Z" transform="translate(-250.429 -20.601)" fill="none" stroke="#afafaf" stroke-miterlimit="10" stroke-width="1"/>
+    <path id="LeftClick-2" data-name="LeftClick" d="M139.383,28.2a9.064,9.064,0,0,1,7.627-7.228,2.087,2.087,0,0,0,1.639.822v2.547a.851.851,0,0,0-.826.848v6.639a.851.851,0,0,0,.826.848v1.558h-9.362Z" transform="translate(-139.008 -20.944)" fill="none" stroke="#afafaf" stroke-miterlimit="10" stroke-width="1"/>
+    <path id="Body-2" data-name="Body" d="M135.923,192.771l-.212,13.343a9.443,9.443,0,0,0,9.421,9.366h.36a9.443,9.443,0,0,0,9.421-9.366l-.212-13.343Z" transform="translate(-135.711 -179.48)" fill="none" stroke="#afafaf" stroke-miterlimit="10" stroke-width="1"/>
+    <path id="ScrollWheel-2" data-name="ScrollWheel" d="M2.3,0h0c1.272,0,2.3.38,2.3.849V7.488c0,.469-1.031.849-2.3.849h0c-1.272,0-2.3-.38-2.3-.849V.849C0,.38,1.031,0,2.3,0Z" transform="translate(7.323 3.397)" fill="#1a91c5" stroke="#1a91c5" stroke-width="1"/>
+  </g>
+</svg>

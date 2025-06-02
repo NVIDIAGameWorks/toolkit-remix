@@ -1,3 +1,4 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2d21b1503c6b45285495136e8c66d841e18648cf614beb84a683abd361b4650c
-size 240
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="2" y="7" width="11" height="1" fill="white"/>
+<rect x="8" y="2" width="11" height="1" transform="rotate(90 8 2)" fill="white"/>
+</svg>

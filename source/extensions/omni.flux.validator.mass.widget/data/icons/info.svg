@@ -1,3 +1,5 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:90ee9d9adcbafa2f940a0d39c8db5d81f73197653630a0d80be210f5dc6d9d55
-size 240
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="8" cy="8" r="5.5" stroke="white"/>
+<path d="M7 7H9V11.5H7V7Z" fill="white"/>
+<circle cx="8" cy="5" r="1" fill="white"/>
+</svg>

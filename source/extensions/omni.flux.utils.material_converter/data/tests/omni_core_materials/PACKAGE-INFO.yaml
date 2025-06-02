@@ -1,3 +1,5 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:55473e26e876c5f8d273f63b1517f45658ccc9503445c962be91f985c94c9b7b
-size 225
+Package : omni-core-materials
+Maintainers : julianc@nvidia.com
+Description : The core MDLs template works for Omniverse clients
+SWIPAT NvBug : 
+Repository : https://gitlab-master.nvidia.com/omniverse/omni-core-materials
