@@ -1,3 +1,63 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:b7a22d1f34aac201ae876196e0745cb97a715a641478c2e6183b321401bad53b
-size 2750
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   sodipodi:docname="Scope.svg"
+   id="svg3"
+   version="1.1"
+   viewBox="-1 -1 18.642 16.406"
+   height="17.406"
+   width="19.642">
+  <metadata
+     id="metadata9">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs7" />
+  <sodipodi:namedview
+     inkscape:current-layer="svg3"
+     inkscape:window-maximized="1"
+     inkscape:window-y="-8"
+     inkscape:window-x="1912"
+     inkscape:cy="9.1922088"
+     inkscape:cx="8.6696349"
+     inkscape:zoom="53.0804"
+     fit-margin-bottom="1"
+     fit-margin-right="1"
+     fit-margin-left="1"
+     fit-margin-top="1"
+     lock-margins="true"
+     showgrid="false"
+     id="namedview5"
+     inkscape:window-height="1017"
+     inkscape:window-width="1920"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0"
+     guidetolerance="10"
+     gridtolerance="10"
+     objecttolerance="10"
+     borderopacity="1"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     inkscape:document-rotation="0" />
+  <path
+     fill-rule="evenodd"
+     fill="#545353"
+     d="m 16.642,5.578 v 6.918 l -0.04,0.2 -0.042,0.225 -0.08,0.183 -0.082,0.183 -0.1,0.164 -0.122,0.183 -0.164,0.164 -0.141,0.143 -0.185,0.122 -0.162,0.1 -0.185,0.1 -0.183,0.082 -0.2,0.04 -0.2,0.021 H 2.888 l -0.2,-0.021 -0.183,-0.04 -0.2,-0.082 -0.183,-0.1 -0.164,-0.1 L 1.796,13.941 1.611,13.798 1.489,13.634 1.346,13.451 1.264,13.287 1.164,13.104 1.103,12.921 1.042,12.696 1.021,12.496 1,12.296 V 3.129 L 1.021,2.904 1.042,2.704 1.103,2.521 1.164,2.321 1.264,2.138 1.346,1.953 1.489,1.791 1.611,1.627 1.796,1.465 1.958,1.365 2.122,1.243 2.305,1.143 2.505,1.103 2.688,1.042 2.888,1.021 3.088,1 h 3.021 l 0.2,0.021 0.2,0.021 0.2,0.061 0.185,0.04 0.183,0.1 0.164,0.122 0.183,0.1 0.143,0.162 0.162,0.164 0.124,0.162 0.1,0.185 0.1,0.183 0.061,0.2 0.061,0.183 0.019,0.2 0.021,0.225 v 0.307 h 6.306 l 0.2,0.019 0.2,0.021 0.2,0.061 0.183,0.042 0.185,0.1 0.162,0.1 0.185,0.122 0.141,0.162 0.164,0.164 0.122,0.164 0.1,0.183 0.082,0.183 0.08,0.2 0.042,0.185 0.04,0.2 v 0.223 z"
+     id="Stage_Folder"
+     style="fill:#fbfbfb;fill-opacity:1" />
+</svg>

@@ -1,3 +1,147 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:99b67e7e8ae93cda38719bb212c576ac285e3a6012c93934584a9b2c5216dde9
-size 5820
+/*****************************************************************************
+*     Copyright 1986-2020 NVIDIA Corporation. All rights reserved.
+******************************************************************************
+
+ MDL MATERIALS ARE PROVIDED PURSUANT TO AN END USER LICENSE  AGREEMENT,
+ WHICH WAS ACCEPTED IN ORDER TO GAIN ACCESS TO THIS FILE.  IN PARTICULAR, 
+ THE MDL MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF 
+ COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL NVIDIA
+ CORPORATION BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING
+ ANY GENERAL, SPECIAL,  INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, 
+ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF 
+ THE USE OR INABILITY TO USE THE MDL MATERIALS OR FROM OTHER DEALINGS IN 
+ THE MDL MATERIALS.
+*/
+
+mdl 1.4;
+
+import ::base::*;
+import ::anno::*;
+import ::df::*;
+import ::state::*;
+import ::tex::*;
+import ::math::*;
+
+
+import ::nvidia::core_definitions::file_texture;
+
+using AperturePBR_Model import *;
+
+// IMPORTANT: When updating defaults or hard ranges, the defaults and ranges in the associated runtime should
+// be updated as well so that the defaults are properly selected even when the USD does not include them (as
+// sometimes tools will not write out the MDL defaults for values not modified by the user), and so the clamping
+// logic is consistent. Additionally, proper hard ranges should be included for any newly added values to ensure
+// that it is not easy for users to specify incorrect data.
+
+export material AperturePBR_Portal(
+  // -------------------- EMISSIVE ----------------------
+  uniform bool enable_emission = false
+  [[
+    anno::display_name("Enable Emission"),
+    anno::description("Enables the emission of light from the material"),
+    anno::in_group("Emissive")
+  ]],
+  uniform texture_2d emissive_mask_texture = texture_2d()
+  [[
+    anno::enable_if("enable_emission == true"),
+    anno::display_name("Emissive Mask Map"),
+    anno::description("The texture masking the emissive color"),
+    anno::in_group("Emissive")
+  ]],
+  uniform float emissive_intensity = 40.f
+  [[
+    anno::enable_if("enable_emission == true"),
+    anno::display_name("Emissive Intensity"),
+    anno::hard_range(0.0, 65504.0),
+    anno::description("Intensity of the emission"),
+    anno::in_group("Emissive")
+  ]],
+  uniform int sprite_sheet_fps = 0
+  [[
+    anno::enable_if("enable_emission == true"),
+    anno::display_name("Spritesheet FPS"),
+    anno::hard_range(0, 255),
+    anno::description("Frames Per Second if the emissive map is a spritesheet"),
+    anno::in_group("Emissive")
+  ]],
+  uniform int sprite_sheet_cols = 1
+  [[
+    anno::enable_if("enable_emission == true"),
+    anno::display_name("Spritesheet Columns"),
+    anno::hard_range(1, 255),
+    anno::description("Number of columns the emissive map is divided into"),
+    anno::in_group("Emissive")
+  ]],
+  uniform int sprite_sheet_rows = 1
+  [[
+    anno::enable_if("enable_emission == true"),
+    anno::display_name("Spritesheet Rows"),
+    anno::hard_range(1, 255),
+    anno::description("Number of row the emissive map is divided into"),
+    anno::in_group("Emissive")
+  ]],
+
+  uniform int portal_index = 0
+  [[
+    anno::display_name("Portal Index"),
+    anno::hard_range(0, 1),
+    anno::description("Which portal this represents"),
+    anno::in_group("Emissive"),
+    anno::unused()
+  ]],
+  uniform float rotation_speed = 0.f
+  [[
+    anno::display_name("Rotation Speed"),
+    anno::soft_range(-10.0, 10.0),
+    anno::description("Speed this rotates at"),
+    anno::in_group("Emissive")
+  ]]
+)
+[[
+  anno::display_name("Aperture PBR Portal"),
+  anno::description("Supports the portal material model of the Aperture Renderer"),
+  anno::version( 1, 0, 0),
+  anno::author("NVIDIA CORPORATION"),
+  anno::key_words(string[]("aperture", "PBR", "portal", "omniverse", "generic"))
+]]
+ = let {
+
+  base::texture_coordinate_info uvw = base::coordinate_source(
+      coordinate_system: base::texture_coordinate_uvw,
+      texture_space: 0);
+
+  varying float cos_rot = math::cos(rotation_speed * state::animation_time());
+  varying float sin_rot = math::sin(rotation_speed * state::animation_time());
+
+  float4x4 translate =
+      float4x4( 1.  ,  0.  ,  0. , 0.0,
+                0.  ,  1.  ,  0. , 0.0,
+                0.  ,  0.  ,  1. , 0.0,
+                -0.5,  -0.5, -0.5, 1.);
+  varying float4x4 rotate =
+      float4x4( cos_rot, -sin_rot, 0. , 0.0,
+                sin_rot,  cos_rot, 0. , 0.0,
+                0.     ,  0.     , 1. , 0.0,
+                0.5    ,  0.5    , 0.5, 1.);
+
+  varying float4 transformed_uvw = rotate * translate * float4(uvw.position.x, uvw.position.y, uvw.position.z, 1);
+
+  varying float2 bound_uv = math::saturate(float2(transformed_uvw.x, transformed_uvw.y));
+
+  int num_frames = sprite_sheet_rows * sprite_sheet_cols;
+  varying int frame_idx = int(state::animation_time() * sprite_sheet_fps) % num_frames;
+  varying float2 emissive_uv = ((bound_uv + float2(frame_idx % sprite_sheet_cols, 1. - frame_idx / sprite_sheet_cols)) / float2(sprite_sheet_cols, sprite_sheet_rows));
+
+  float4 pixel = tex::lookup_float4(emissive_mask_texture, emissive_uv, tex::wrap_repeat, tex::wrap_repeat);
+  color emissive_lookup = color(pixel.x, pixel.y, pixel.z);
+  float opacity = pixel.w;
+  // Normal calculations
+} in AperturePBR_Model(
+  enable_emission: enable_emission,
+  emissive_color: emissive_lookup,
+  emissive_intensity: emissive_intensity,
+  enable_opacity: true,
+  opacity: opacity
+);

@@ -1,3 +1,93 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:358b54a56734d4ffe7a37e530a54d68ef0031a94714897331ba215c9034108cb
-size 4076
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="322.88428"
+   height="365.81671"
+   viewBox="0 0 322.88428 365.81671"
+   version="1.1"
+   id="svg40"
+   sodipodi:docname="light_distant.svg"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)">
+  <metadata
+     id="metadata44">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     fit-margin-bottom="0"
+     fit-margin-right="0"
+     fit-margin-left="0"
+     fit-margin-top="0"
+     inkscape:showpageshadow="false"
+     inkscape:document-rotation="0"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     id="namedview42"
+     showgrid="false"
+     inkscape:zoom="1.8569281"
+     inkscape:cx="162.01406"
+     inkscape:cy="185.9075"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g38" />
+  <defs
+     id="defs24" />
+  <g
+     transform="translate(-32.357937,-10.261)"
+     id="g38"
+     style="fill:#ffffff;fill-opacity:1">
+    <g
+       transform="translate(32.358,10.261)"
+       id="g36"
+       style="fill:#ffffff;fill-opacity:1">
+      <g
+         transform="translate(-31.99,-12)"
+         filter="url(#a)"
+         id="g30"
+         style="fill:#ffffff;fill-opacity:1">
+        <path
+           d="m 161.124,365.815 c -9.351,0 -16.746,-2.238 -23.272,-7.041 -5.9,-4.346 -10.63,-10.467 -15.634,-16.946 -8.091,-10.478 -17.262,-22.354 -34.488,-31.69 -17.918,-9.711 -33.966,-11.22 -46.861,-12.433 -15.5,-1.458 -27.747,-2.61 -35.965,-16.556 -4.158,-7.057 -5.615,-15.092 -4.587,-25.288 0.918,-9.1 3.7,-18.824 6.653,-29.117 4.007,-13.982 8.149,-28.438 8.517,-43.836 0.4,-16.762 -4.09,-29.577 -8.051,-40.882 C 2.18,127.026 -2.359,114.07 4.904,96.171 13.08,76.022 32.527,71.633 53.115,66.986 64.926,64.32 77.138,61.563 87.73,55.68 99.06,49.385 107.7,39.43 116.048,29.8 122.748,22.081 129.07,14.79 136.671,9.229 145.28,2.933 154,0 164.116,0 c 22.641,0 33.576,14.607 45.154,30.072 6.985,9.328 14.208,18.978 24.33,25.608 10.478,6.865 23.85,9.929 36.782,12.891 9.878,2.263 20.091,4.6 28.6,8.619 a 44.815,44.815 0 0 1 11.49,7.538 34.964,34.964 0 0 1 8.25,11.443 42.229,42.229 0 0 1 3.841,23.48 c -0.889,7.277 -3.494,14.379 -6.251,21.9 -4.17,11.374 -8.9,24.265 -9.095,41.359 -0.192,16.669 4.3,32.694 8.255,46.833 5.635,20.122 10.5,37.5 1.406,51.407 -8.9,13.615 -25.948,15.9 -44,18.321 -13.654,1.829 -27.778,3.729 -39.278,10.666 -10.159,6.131 -17.9,15.782 -25.382,25.115 -6.044,7.538 -12.293,15.332 -19.7,21.05 a 45.8,45.8 0 0 1 -12.238,6.9 43.04,43.04 0 0 1 -15.156,2.613 z m 0,-321.02 c -76.156,0 -138.114,61.958 -138.114,138.114 0,76.156 61.958,138.111 138.114,138.111 76.156,0 138.112,-61.957 138.112,-138.112 0,-76.155 -61.957,-138.114 -138.112,-138.114 z"
+           transform="translate(31.99,12)"
+           fill="#ffffff"
+           id="path28"
+           style="fill:#ffffff;fill-opacity:1" />
+      </g>
+      <g
+         transform="translate(-31.99,-12)"
+         filter="url(#c)"
+         id="g34"
+         style="fill:#ffffff;fill-opacity:1">
+        <circle
+           cx="111.5"
+           cy="111.5"
+           r="111.5"
+           transform="translate(83,86.62)"
+           fill="#ffffff"
+           id="circle32"
+           style="fill:#ffffff;fill-opacity:1" />
+      </g>
+    </g>
+  </g>
+</svg>

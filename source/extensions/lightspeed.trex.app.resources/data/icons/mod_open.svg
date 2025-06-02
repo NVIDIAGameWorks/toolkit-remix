@@ -1,3 +1,26 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:61f30efe115e64fa4bb7a1a54b4f47798b1288ee366b801a0ce739ab0c1f3bec
-size 2461
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="144" height="144" viewBox="0 0 144 144">
+  <defs>
+    <linearGradient id="linear-gradient" x1="0.949" y1="0.973" x2="0.173" y2="0.016" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#4f6a20"/>
+      <stop offset="1" stop-color="#769147"/>
+    </linearGradient>
+    <filter id="folder_open" x="33.21" y="39.341" width="88.115" height="69.107" filterUnits="userSpaceOnUse">
+      <feOffset dx="3" dy="3" input="SourceAlpha"/>
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feFlood flood-opacity="0.6"/>
+      <feComposite operator="in" in2="blur"/>
+      <feComposite in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <g id="remix_wizard_open_icon_only" transform="translate(-4843 -1113)">
+    <g id="Group_4102" data-name="Group 4102" transform="translate(-162)" opacity="0">
+      <rect id="Rectangle_2266" data-name="Rectangle 2266" width="144" height="144" rx="12" transform="translate(5005 1113)" fill="url(#linear-gradient)"/>
+    </g>
+    <g id="folder_open-2" data-name="folder_open" transform="translate(4873 1143)" opacity="0.7">
+      <rect id="iconBase" width="84" height="84" fill="none"/>
+      <g transform="matrix(1, 0, 0, 1, -30, -30)" filter="url(#folder_open)">
+        <path id="folder_open-3" data-name="folder_open" d="M119.674,87.076l-.094.727-.272.643-.469.737L118.37,90,104.2,106.891l-1.009,1-1.187.915-1.365.915-1.553.83-1.553.643-1.553.544-1.459.272H45.935l-.643-.178-.554-.281-.469-.357-.366-.469-.272-.469v-1.281l.272-.643.469-.821.544-.643L59.084,89.979l1-1.093,1.1-.915,1.365-1.009,1.553-.737,1.553-.727,1.553-.366,1.459-.366,1.553-.094h45.691l.727.094.643.094.643.178.643.272.366.272.366.366.272.544ZM105.132,72.449v6.765h-34.9l-2.008.188-1.1.084-1,.272-.98.281-1.1.366-1.093.366-1.009.544-1,.554-1.1.469-.915.643-.915.643-1.637,1.365L55,86.456,40.831,103.344l-.272.272V60.468l.188-.915.178-.821.366-.915L41.657,57l.469-.83.5-.718.737-.736.643-.727.821-.469.737-.544.821-.469.821-.141.915-.272L49.036,52l.915-.094H63.475L64.39,52l.915.094.915.272.83.178.821.469.821.544.643.469.821.727.554.736.643.727.469.83.366.821.366.915.178.821.178.915V62.9h22.85l1.009.084.915.094.821.272.915.188.727.469.83.469.727.544.737.727.737.736.469.737.544.821.366.821.272.915.188.83.178.915Z" transform="translate(-5.85 -11.06)" fill="#fff" fill-rule="evenodd"/>
+      </g>
+    </g>
+  </g>
+</svg>

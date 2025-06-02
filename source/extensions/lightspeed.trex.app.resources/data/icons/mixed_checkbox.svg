@@ -1,3 +1,8 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:095361d72c54e5f0fd6947c5163620955379914fbc06e2b5f3243e05bc9fcbb7
-size 764
+<svg xmlns="http://www.w3.org/2000/svg" width="10.969" height="11.124" viewBox="0 0 10.969 11.124">
+  <g id="mixed_checkbox" transform="translate(-5979.019 1599.845)">
+    <line id="Line_664" y2="7" transform="translate(5981 -1597.5)" fill="none" stroke="white" stroke-linecap="round" stroke-width="2"/>
+    <line id="Line_667" y2="7" transform="translate(5988.205 -1597.5)" fill="none" stroke="white" stroke-linecap="round" stroke-width="2"/>
+    <line id="Line_665" x2="3.603" y2="5" transform="translate(5981 -1597.5)" fill="none" stroke="white" stroke-linecap="round" stroke-width="2"/>
+    <line id="Line_666" x1="3.603" y2="5" transform="translate(5984.603 -1597.5)" fill="none" stroke="white" stroke-linecap="round" stroke-width="2"/>
+  </g>
+</svg>

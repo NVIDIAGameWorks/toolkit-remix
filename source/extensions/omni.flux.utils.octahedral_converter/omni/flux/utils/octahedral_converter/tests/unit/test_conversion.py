@@ -35,7 +35,7 @@ class TestOctahedralConverter(omni.kit.test.AsyncTestCaseFailOnLogError):
     async def test_convert_dx(self):
         """Test converting a DirectX Normal Map to an Octahedral Normal Map"""
         texture_folder_path = pathlib.Path(get_test_data_path(__name__, "textures"))
-        oth_path = texture_folder_path.joinpath("Normal_Map_Test_Octahedral.png").absolute()
+        oth_path = texture_folder_path.joinpath("Normal_Map_Test_DX_Octahedral.png").absolute()
         dx_path = texture_folder_path.joinpath("Normal_Map_Test_DirectX.png").absolute()
 
         with Image.open(dx_path) as image_file:
@@ -53,7 +53,7 @@ class TestOctahedralConverter(omni.kit.test.AsyncTestCaseFailOnLogError):
     async def test_convert_ogl(self):
         """Test converting a OpenGL Normal Map to an Octahedral Normal Map"""
         texture_folder_path = pathlib.Path(get_test_data_path(__name__, "textures"))
-        oth_path = texture_folder_path.joinpath("Normal_Map_Test_Octahedral.png").absolute()
+        oth_path = texture_folder_path.joinpath("Normal_Map_Test_OGL_Octahedral.png").absolute()
         ogl_path = texture_folder_path.joinpath("Normal_Map_Test_OpenGL.png").absolute()
 
         with Image.open(oth_path) as image_file:
