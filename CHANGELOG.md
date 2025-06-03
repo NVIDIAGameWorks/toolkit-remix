@@ -55,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix for unresolved carb tokens in ingestion "External Process" runner
 - Fix MDL parsing issue for apostrophes
 - Fix documentation videos embedding
+- Fix regression for external builds
 
 ### Removed
 - Cleaned up legacy code and unused files

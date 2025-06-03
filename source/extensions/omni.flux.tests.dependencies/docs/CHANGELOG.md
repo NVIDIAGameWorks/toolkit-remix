@@ -2,9 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.2]
+## Fixed
+- Fix regression for external builds
+
 ## [2.1.1]
 ## Fixed
-- Fixed Test assets to large to work without LFS
+- Fixed Test assets too large to work without LFS
 
 ## [2.1.0]
 ## Changed

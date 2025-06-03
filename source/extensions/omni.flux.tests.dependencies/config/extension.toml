@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "2.1.1"
+version = "2.1.2"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -35,11 +35,11 @@ order = -1000
 [dependencies]
 "omni.flux.tests.settings" = {}
 "omni.flux.utils.tests" = {}
-"omni.kit.test_suite.helpers" = {}
 "omni.kit.ui_test" = {}
 
 [settings]
 exts."omni.flux.tests.dependencies".deferred_dependencies = [
+    # this ext dependency must be deferred for external builds
     "omni.kit.test_suite.helpers",
 ]
 
