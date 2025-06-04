@@ -16,11 +16,14 @@
 * limitations under the License.
 """
 import asyncio
+import os
 import sys
+import unittest
 from pathlib import Path
 from typing import Any, Optional
 from unittest.mock import call, patch
 
+import carb.tokens
 import omni.kit.app
 from omni.flux.validator.factory import BaseValidatorRunMode as _BaseValidatorRunMode
 from omni.flux.validator.factory import ResultorBase as _ResultorBase
@@ -1019,10 +1022,17 @@ class TestCore(AsyncTestCase):
         self.assertTrue(core.model.check_plugins[1].selector_plugins[0].data.last_select_result)
         self.assertIsNotNone(core.model.check_plugins[1].selector_plugins[0].data.last_select_message)
 
+    # Skip in ETM since the relative paths are different
+    @unittest.skipIf(os.getenv("ETM_ACTIVE"), "skipped in ETM")
     async def test_packman_python_path(self):
-        """Test for CLI"""
-        root = Path(__file__)
-        for _ in range(10):
+        """Test to make sure packman python is available for the cli scripts"""
+        cli_location = carb.tokens.get_tokens_interface().resolve("${omni.flux.validator.manager.core}/bin/cli.bat")
+        cli_dir = Path(cli_location).parent
+        # keep this constant in sync with /bin/cli.bat to make this test valid
+        relative_path_used_in_script = r"%~dp0..\..\..\dev\tools\packman\python"
+        root = cli_dir
+        for _ in range(relative_path_used_in_script.count("..")):
             root = root.parent
+        # add folders in `relative_path_used_in_script` constant
         root_python = root.joinpath("dev", "tools", "packman")
         self.assertTrue(root_python.joinpath("python.bat").exists() or root_python.joinpath("python.sh").exists())

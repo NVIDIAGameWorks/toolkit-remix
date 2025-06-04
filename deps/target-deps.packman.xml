@@ -20,7 +20,7 @@
   <dependency name="rtx-remix-omni_core_materials" linkPath="../_build/target-deps/omni_core_materials">
     <package name="rtx-remix-omni_core_materials" version="16" />
   </dependency>
-  <dependency name="rtx-remix-remix_runtime" linkPath="../_build/target-deps/remix_runtime">
+  <dependency name="rtx-remix-remix_runtime" linkPath="../_build/${platform}/${config}/deps/remix_runtime">
     <package name="rtx-remix-remix_runtime" version="remix-1.0.0" />
   </dependency>
 </project>

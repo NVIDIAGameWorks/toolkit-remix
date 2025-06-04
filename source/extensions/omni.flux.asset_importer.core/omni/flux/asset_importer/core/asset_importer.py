@@ -60,6 +60,7 @@ class AssetItemImporterModelBase(BaseModel):
     @classmethod
     def input_path_exist(cls, v):
         """Check if the input path exist"""
+        v = carb.tokens.get_tokens_interface().resolve(v)
         result, entry = omni.client.stat(v)
         if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.READABLE_FILE:
             raise ValueError(f"import_batch was passed an invalid input_path. {v} doesn't exist!")
@@ -70,6 +71,7 @@ class AssetItemImporterModelBase(BaseModel):
     def output_folder_valid(cls, v):
         """Check if the input path exist"""
         if v is not None:
+            v = carb.tokens.get_tokens_interface().resolve(v)
             output_folder = OmniUrl(v).parent_url
             result, entry = omni.client.stat(output_folder)
             if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN:
@@ -175,23 +177,23 @@ class ImporterCore:
         output_path = None
 
         for config in model.data:
-            input_url = OmniUrl(config.input_path)
-            desired_suffix = f".{config.output_usd_extension.value}" if config.output_usd_extension else ".usd"
-            output_folder = None
+            input_url = OmniUrl(carb.tokens.get_tokens_interface().resolve(config.input_path))
+            if config.output_path:
+                output_path = OmniUrl(carb.tokens.get_tokens_interface().resolve(config.output_path))
             if config.output_path is not None:
-                output_folder = OmniUrl(config.output_path).parent_url
+                output_folder = OmniUrl(carb.tokens.get_tokens_interface().resolve(config.output_path)).parent_url
+            elif default_output_folder is not None:
+                output_folder = default_output_folder
             else:
-                if default_output_folder is not None:
-                    output_folder = omni.client.normalize_url(str(default_output_folder))
-                else:
-                    output_folder = input_url.parent_url
+                output_folder = input_url.parent_url
 
+            desired_suffix = f".{config.output_usd_extension.value}" if config.output_usd_extension else ".usd"
             if input_url.suffix.lower() in {".usd", ".usda", ".usdb", ".usdc"}:
                 # Importing a USD file, need to use collector
                 rename_task = None
                 if config.output_path is not None:
                     collect_out_path = omni.client.normalize_url(str(OmniUrl(output_folder) / input_url.name))
-                    desired_out_path = omni.client.normalize_url(str(config.output_path))
+                    desired_out_path = omni.client.normalize_url(str(output_path))
                     if collect_out_path != desired_out_path:
                         rename_task = (collect_out_path, desired_out_path)
                 elif desired_suffix.lower() != input_url.suffix.lower():
@@ -205,7 +207,7 @@ class ImporterCore:
             else:
                 # Not a USD file, need to use asset converter.
                 if config.output_path is not None:
-                    output_path = omni.client.normalize_url(str(config.output_path))
+                    output_path = omni.client.normalize_url(str(output_path))
                 elif default_output_folder is not None:
                     output_path = OmniUrl(default_output_folder) / input_url.name
                     output_path = str(output_path.with_suffix(desired_suffix))

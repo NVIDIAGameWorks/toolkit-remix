@@ -19,30 +19,24 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import carb
+import carb.tokens
 import omni.kit
 import omni.kit.test
 import omni.usd
 from omni.flux.asset_importer.core import ImporterCore
+from omni.flux.utils.widget.resources import get_test_data
 from pxr import Usd
 from pydantic import ValidationError
-
-# import subprocess
 
 
 class TestAssetImporter(omni.kit.test.AsyncTestCase):
     test_paths = [
-        (
-            "source/extensions/omni.flux.asset_importer.core/data/tests/SM_Fixture_Elevator_Interior"
-            "/SM_Fixture_Elevator_Interior_Textured.fbx"
-        ),
-        (
-            "source/extensions/omni.flux.asset_importer.core/data/tests/SM_Fixture_IndustrialValveCap"
-            "/SM_Fixture_IndustrialValveCap.fbx"
-        ),
-        "source/extensions/omni.flux.asset_importer.core/data/tests/SM_Prop_Mug/SM_Prop_Mug.fbx",
-        "source/extensions/omni.flux.asset_importer.core/data/tests/SM_Prop_RTX4090/SM_Prop_RTX4090_A1_01.fbx",
-        "source/extensions/omni.flux.asset_importer.core/data/tests/filingcabinet_1.fbx",
-        "source/extensions/omni.flux.asset_importer.core/data/tests/subfolder/ref.usda",
+        "SM_Fixture_Elevator_Interior/SM_Fixture_Elevator_Interior_Textured.fbx",
+        "SM_Fixture_IndustrialValveCap/SM_Fixture_IndustrialValveCap.fbx",
+        "SM_Prop_Mug/SM_Prop_Mug.fbx",
+        "SM_Prop_RTX4090/SM_Prop_RTX4090_A1_01.fbx",
+        "filingcabinet_1.fbx",
+        "subfolder/ref.usda",
     ]
 
     # Before running each test
@@ -50,6 +44,7 @@ class TestAssetImporter(omni.kit.test.AsyncTestCase):
         self.temp_dir = TemporaryDirectory()  # noqa PLR1732
         self.temp_path = Path(self.temp_dir.name)
         self._importer = ImporterCore()
+        self.test_config_path = Path(get_test_data("test_config.json", ext_name="omni.flux.asset_importer.core"))
 
     # After running each test
     async def tearDown(self):
@@ -73,13 +68,14 @@ class TestAssetImporter(omni.kit.test.AsyncTestCase):
         config = {"data": []}
         expected_outputs = []
         for path in TestAssetImporter.test_paths:
+            input_path = Path(get_test_data(path, ext_name="omni.flux.asset_importer.core"))
             config["data"].append(
                 {
-                    "input_path": path,
+                    "input_path": str(input_path),
                 }
             )
             expected_outputs.append(self.temp_path / Path(path).with_suffix(".usd").name)
-            self.assertTrue(Path(path).exists())
+            self.assertTrue(input_path.exists())
             self.assertFalse(expected_outputs[-1].exists())
 
         self.assertTrue(await self._importer.import_batch_async(config, str(self.temp_path)))
@@ -101,15 +97,16 @@ class TestAssetImporter(omni.kit.test.AsyncTestCase):
         output_folder.mkdir(exist_ok=True)
         for path in TestAssetImporter.test_paths:
             output_path = output_folder / Path(path).with_suffix(".usda").name
+            input_path = Path(get_test_data(path, ext_name="omni.flux.asset_importer.core"))
             config["data"].append(
                 {
-                    "input_path": path,
-                    "output_path": output_path,
+                    "input_path": str(input_path),
+                    "output_path": str(output_path),
                 }
             )
             expected_outputs.append(output_path)
-            carb.log_info("converting " + path + " to " + str(expected_outputs[-1]))
-            self.assertFalse(expected_outputs[-1].exists())
+            carb.log_info(f"converting {str(input_path)} to {str(output_path)}")
+            self.assertFalse(output_path.exists())
 
         self.assertTrue(await self._importer.import_batch_async(config, str(self.temp_path)))
 
@@ -122,11 +119,7 @@ class TestAssetImporter(omni.kit.test.AsyncTestCase):
         output_folder = self.temp_path / Path("json")
         output_folder.mkdir(exist_ok=True)
 
-        self.assertTrue(
-            await self._importer.import_batch_async(
-                "source/extensions/omni.flux.asset_importer.core/data/tests/test_config.json", str(output_folder)
-            )
-        )
+        self.assertTrue(await self._importer.import_batch_async(self.test_config_path, str(output_folder)))
 
         for input_path in TestAssetImporter.test_paths:
             path = output_folder / Path(input_path).with_suffix(".usd").name
@@ -146,7 +139,7 @@ class TestAssetImporter(omni.kit.test.AsyncTestCase):
 
         self.assertFalse(
             await self._importer.import_batch_async(
-                "source/extensions/omni.flux.asset_importer.core/data/tests/test_bad_config.json", str(output_folder)
+                "${omni.flux.asset_importer.core}/data/tests/test_bad_config.json", str(output_folder)
             )
         )
 
@@ -161,11 +154,7 @@ class TestAssetImporter(omni.kit.test.AsyncTestCase):
     async def test_bad_output_folder(self):
         output_folder = self.temp_path / Path("unmade_folder")
 
-        self.assertFalse(
-            await self._importer.import_batch_async(
-                "source/extensions/omni.flux.asset_importer.core/data/tests/test_config.json", str(output_folder)
-            )
-        )
+        self.assertFalse(await self._importer.import_batch_async(self.test_config_path, str(output_folder)))
 
     # TODO test the CLI parsing - is this even possible?
     # async def test_command_line_json(self):
