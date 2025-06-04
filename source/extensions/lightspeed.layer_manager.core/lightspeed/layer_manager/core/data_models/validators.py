@@ -21,7 +21,7 @@ import omni.usd
 from lightspeed.common import constants
 from omni.flux.layer_tree.usd.core import LayerCustomData
 from omni.flux.utils.common.omni_url import OmniUrl
-from pxr import Sdf
+from pxr import Sdf, Tf
 
 from .enums import LayerType, LayerTypeKeys
 
@@ -47,7 +47,10 @@ class LayerManagerValidators:
         if layer_id is None:
             return layer_id
 
-        layer = Sdf.Layer.FindOrOpen(str(layer_id))
+        try:
+            layer = Sdf.Layer.FindOrOpen(str(layer_id))
+        except Tf.ErrorException as e:
+            raise ValueError(f"Unable to open the layer: {layer_id}") from e
         if not layer:
             raise ValueError(f"The layer does not exist: {layer_id}")
 

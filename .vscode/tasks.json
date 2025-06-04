@@ -112,6 +112,7 @@
             "command": "${workspaceRoot}${/}_build${/}windows-x86_64${/}release${/}lightspeed.app.trex.bat",
             "args": [
                 "--enable", "omni.kit.debug.vscode",
+                "--/app/extensions/fsWatcherEnabled=0",
             ],
             "group": "none",
             "presentation": {
@@ -126,6 +127,7 @@
             "command": "${workspaceRoot}${/}_build${/}windows-x86_64${/}release${/}lightspeed.app.trex_dev.bat",
             "args": [
                 "--enable", "omni.kit.debug.vscode",
+                "--/app/extensions/fsWatcherEnabled=0",
             ],
             "group": "none",
             "presentation": {
