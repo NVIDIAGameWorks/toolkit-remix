@@ -45,18 +45,17 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
         Raises:
             ValueError: If no stage exists for the given context
         """
-        context = omni.usd.get_context(self.context_name)
-        self._stage = context.get_stage()
-
-        if not self._stage:
-            context.new_stage()
-            self._stage = context.get_stage()
-
         super().setup()
-
         self._listener_event_occurred_subs.extend(
             self.subscribe_listener_event_occurred(omni.usd.StageEventType, self._on_stage_event_occurred)
         )
+
+    def update_stage(self):
+        """
+        Setup the stage. This will be called on open or close stage.
+        """
+        context = omni.usd.get_context(self.context_name)
+        self._stage = context.get_stage()
 
     def get_items(self):
         """
@@ -68,8 +67,10 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
         Returns:
             List of USD prims
         """
-        if not self._stage:
+        if not self._listener_event_occurred_subs:
             raise ValueError("The context plugin was not setup")
+        if not self._stage:
+            return []  # no stage is open
 
         items = {}
         current_layer = self._stage.GetPseudoRoot().GetChildren()
@@ -97,4 +98,4 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
         """
         if event_type in [omni.usd.StageEventType.OPENED, omni.usd.StageEventType.CLOSED]:
             # Make sure to update the cached stage
-            self.setup()
+            self.update_stage()
