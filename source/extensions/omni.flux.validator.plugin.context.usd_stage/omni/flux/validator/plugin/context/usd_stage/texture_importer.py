@@ -85,10 +85,24 @@ class TextureImporter(_ContextBaseUSD):
         @classmethod
         def is_valid(cls, v: list[tuple[_OmniUrl, _TextureTypes]]) -> list[tuple[_OmniUrl, _TextureTypes]]:
             validated_items = []
-            for item_tuple in v:
-                if not (isinstance(item_tuple, tuple) and len(item_tuple) == 2):
+            for item in v:
+                if isinstance(item, list):
+                    # Convert list to tuple since JSON doesn't have native tuple support
+                    item_tuple = tuple(item)
+                elif isinstance(item, tuple):
+                    # Already a tuple - use as-is
+                    item_tuple = item
+                else:
+                    # Invalid format - provide clear error message
                     raise ValueError(
-                        f"Each item in input_files must be a tuple of (_OmniUrl, _TextureTypes): got {item_tuple}"
+                        f"Each item in input_files must be a tuple of (_OmniUrl, _TextureTypes): got {item}"
+                    )
+
+                # Now validate the tuple has exactly 2 elements
+                if len(item_tuple) != 2:
+                    raise ValueError(
+                        "Each item in input_files must be a tuple of (_OmniUrl, _TextureTypes) with exactly 2 "
+                        f"elements: got {item_tuple}"
                     )
 
                 file_url, _ = item_tuple

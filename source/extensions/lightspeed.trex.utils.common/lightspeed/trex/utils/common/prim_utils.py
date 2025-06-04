@@ -155,7 +155,7 @@ def filter_prims_paths(
             is_valid = False
         # If we're filtering for a given layer, make sure the prim spec exists/doesn't exist on the layer
         if layer_id is not None:
-            layer = Sdf.Layer.FindOrOpen(layer_id)
+            layer = Sdf.Layer.FindOrOpen(str(layer_id))
             # If the layer doesn't exist, just ignore the filter
             if not layer:
                 return is_valid
