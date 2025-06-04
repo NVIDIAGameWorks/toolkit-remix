@@ -53,14 +53,19 @@ class TestSentryManager(omni.kit.test.AsyncTestCase):
             # Act
             sentry_mgr.app_closing()
 
+        # grab actual sentry start time because that may be earlier than our
+        # test since it records extension load time.
+        elapsed = int(round(time.time() - sentry_mgr.start_time, 0))
+
         # Assert
         mock_metric.assert_called_once()
         args, kwargs = mock_metric.call_args
         self.assertEqual(args[0], ELAPSED_TIME_METRIC_TYPE)
         post_event_value = kwargs["value"]
         post_event_tags = kwargs["tags"]
-        # Since this test should take much less than 1 second, the value for the time should be 0.
-        self.assertEqual(post_event_value, 0)
+        self.assertLessEqual(post_event_value, elapsed)
+        # make sure elapsed time is still reasonable and not hanging.
+        self.assertLessEqual(post_event_value, 10)
         self.assertIsNone(post_event_tags)
 
     def test_post_metric(self):

@@ -1,24 +1,24 @@
 {
   "data" : [
     {
-      "input_path" : "source/extensions/omni.flux.asset_importer.core/data/tests/SM_Fixture_Elevator_Interior/SM_Fixture_Elevator_Interior_Textured.fbx",
+      "input_path" : "${omni.flux.asset_importer.core}/data/tests/SM_Fixture_Elevator_Interior/SM_Fixture_Elevator_Interior_Textured.fbx",
       "merge_all_meshes": true
     },
     {
-      "input_path" : "source/extensions/omni.flux.asset_importer.core/data/tests/SM_Fixture_IndustrialValveCap/SM_Fixture_IndustrialValveCap.fbx",
+      "input_path" : "${omni.flux.asset_importer.core}/data/tests/SM_Fixture_IndustrialValveCap/SM_Fixture_IndustrialValveCap.fbx",
       "convert_fbx_to_z_up": true
     },
     {
-      "input_path" : "source/extensions/omni.flux.asset_importer.core/data/tests/SM_Prop_Mug/SM_Prop_Mug.fbx"
+      "input_path" : "${omni.flux.asset_importer.core}/data/tests/SM_Prop_Mug/SM_Prop_Mug.fbx"
     },
     {
-      "input_path" : "source/extensions/omni.flux.asset_importer.core/data/tests/SM_Prop_RTX4090/SM_Prop_RTX4090_A1_01.fbx"
+      "input_path" : "${omni.flux.asset_importer.core}/data/tests/SM_Prop_RTX4090/SM_Prop_RTX4090_A1_01.fbx"
     },
     {
-      "input_path" : "source/extensions/omni.flux.asset_importer.core/data/tests/filingcabinet_1.fbx"
+      "input_path" : "${omni.flux.asset_importer.core}/data/tests/filingcabinet_1.fbx"
     },
     {
-      "input_path" : "source/extensions/omni.flux.asset_importer.core/data/tests/subfolder/ref.usda"
+      "input_path" : "${omni.flux.asset_importer.core}/data/tests/subfolder/ref.usda"
     }
   ]
 }

@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix MDL parsing issue for apostrophes
 - Fix documentation videos embedding
 - Fix regression for external builds
+- Fix a few more tests to run in etm context
 
 ### Removed
 - Cleaned up legacy code and unused files

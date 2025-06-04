@@ -1,9 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.2]
+## Fixed
+- Fixed location of deployed runtime to match docs and be available to users
+
 ## [1.17.1]
 ## Fixed
-- Fixed Test assets to large to work without LFS
+- Fixed Test assets too large to work without LFS
 
 ## [1.17.0]
 ## Added
