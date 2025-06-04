@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix documentation videos embedding
 - Fix regression for external builds
 - Fix a few more tests to run in etm context
+- Fix false positive error that context isn't set up yet for Stage Manager
 
 ### Removed
 - Cleaned up legacy code and unused files

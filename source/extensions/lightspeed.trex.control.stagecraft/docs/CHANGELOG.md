@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.2]
+## Fixed
+- Tests: Removed exclusion for stdout pattern that should not be triggered anymore
+
 ## [1.5.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS
