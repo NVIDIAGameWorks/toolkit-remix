@@ -1,5 +1,5 @@
 include:
-  - local: tools/ci/gitlab/tests/unit/unit_tests_linux.yml
+  - local: tools/ci/gitlab/tests/unit/unit_tests_linux_defaults.yml
 
 flux-unit-tests-linux:
   extends:

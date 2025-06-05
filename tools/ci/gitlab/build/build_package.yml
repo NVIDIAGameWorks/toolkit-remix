@@ -1,3 +1,7 @@
+####################################
+# Build jobs for Windows and Linux
+# Extended in any other building job
+####################################
 build-package-windows:
   extends:
     - .defaults
@@ -18,8 +22,6 @@ build-package-windows:
       - deps.json
       - source/apps
   rules: ## Automatically run publish job only on merge commit to main
-    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: always
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
       when: always
     - when: never
@@ -41,8 +43,35 @@ build-package-linux:
     paths:
       - _build/packages
   rules: ## Automatically run publish job only on merge commit to main
-    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: always
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
       when: always
     - when: never
+
+#########################################
+# Gitlab build jobs for Windows and Linux
+#########################################
+build-package-gitlab-windows:
+  extends:
+    - build-package-windows
+    - .gitlab_release
+  script:
+    - !reference [build-package-windows, script]
+    - echo (Get-ChildItem  -Filter "_build/packages/*.release.zip" -Force | ForEach-Object {"ARTIFACT_WIN_ZIP_NAME=$_"}) > gitlab_release_win.env
+  # Artifacts required to make the publishing step work
+  artifacts:
+    reports:
+      # To ensure we've access to this file in the next stage
+      dotenv: gitlab_release_win.env
+
+build-package-gitlab-linux:
+  extends:
+    - build-package-linux
+    - .gitlab_release
+  script:
+    - !reference [build-package-linux, script]
+    - find _build/packages -maxdepth 1 -name "*.release.zip" -type f -printf "ARTIFACT_LINUX_ZIP_NAME=%f\n" > gitlab_release_linux.env
+  # Artifacts required to make the publishing step work
+  artifacts:
+    reports:
+      # To ensure we've access to this file in the next stage
+      dotenv: gitlab_release_linux.env

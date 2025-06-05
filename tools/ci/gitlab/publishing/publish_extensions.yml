@@ -22,8 +22,6 @@ publish-extensions-windows:
   variables:
     GIT_STRATEGY: fetch
   rules: ## Automatically run publish job only on merge commit to main
-    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: always
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
       when: always
     - when: never
@@ -50,8 +48,6 @@ publish-extensions-linux:
   variables:
     GIT_STRATEGY: fetch
   rules: ## Automatically run publish job only on merge commit to main
-    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: always
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
       when: always
     - when: never
