@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4199: Reduced the number of files tracked in Git LFS
 - REMIX-4220: Replace Legacy Manipulators with Supported Manipulators
 - General cleanup of CI scripts
+- GitHub actions on demand
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension

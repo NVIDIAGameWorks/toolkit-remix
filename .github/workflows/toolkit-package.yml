@@ -1,25 +1,27 @@
-name: Download Toolkit Remix Package
+name: Download RTX Remix Toolkit Package
 
 on:
-  push:
-    branches: [main]
+  repository_dispatch:
+    types: [trigger-toolkit-download]
 
 jobs:
-  rtx-remix-windows-release:
+  rtx-remix-toolkit-windows-release:
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.client_payload.commit_sha || github.sha }}
     
     - name: Download package
       run: |
         # Read version from VERSION.md
         VERSION=$(cat VERSION.md | head -n 1 | xargs)
         
-        # Get current branch name and commit SHA
-        BRANCH_NAME="${{ github.ref_name }}"
-        COMMIT_SHA="${{ github.sha }}"
+        # Get branch name and commit SHA from client payload or fallback to defaults
+        BRANCH_NAME="${{ github.event.client_payload.ref || github.ref_name }}"
+        COMMIT_SHA="${{ github.event.client_payload.commit_sha || github.sha }}"
         SHORT_SHA="${COMMIT_SHA:0:8}"
         
         # Construct the filename
