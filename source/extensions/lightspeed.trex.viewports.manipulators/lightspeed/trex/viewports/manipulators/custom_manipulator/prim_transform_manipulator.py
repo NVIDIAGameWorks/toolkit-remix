@@ -19,7 +19,7 @@ from typing import List, Optional
 
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
-from omni.kit.manipulator.prim.legacy.prim_transform_manipulator import (
+from omni.kit.manipulator.prim.core.prim_transform_manipulator import (
     PrimTransformManipulator as _PrimTransformManipulator,
 )
 from pxr import Sdf, Usd
