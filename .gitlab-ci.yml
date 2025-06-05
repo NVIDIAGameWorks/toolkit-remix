@@ -20,6 +20,7 @@ stages:
   - publish_package
   - publish_package_scheduled
   - gitlab_release
+  - github_release
   - measure_startup_time
 
 include:
@@ -29,35 +30,31 @@ include:
   - local: tools/ci/gitlab/checks/check_test_location.yml
   - local: tools/ci/gitlab/checks/check_format.yml
   - local: tools/ci/gitlab/checks/check_lint.yml
-  - local: tools/ci/gitlab/tests/unit/flux/run_flux_unit_tests_linux.yml
-  - local: tools/ci/gitlab/tests/unit/flux/run_flux_unit_tests_windows_a2o.yml
-  - local: tools/ci/gitlab/tests/unit/flux/run_flux_unit_tests_windows_p2z.yml
-  - local: tools/ci/gitlab/tests/unit/lss/run_lss_unit_tests_linux.yml
-  - local: tools/ci/gitlab/tests/unit/lss/run_lss_unit_tests_windows_a2o.yml
-  - local: tools/ci/gitlab/tests/unit/lss/run_lss_unit_tests_windows_p2z.yml
-  - local: tools/ci/gitlab/tests/e2e/flux/run_flux_e2e_a2s_tests_windows.yml
-  - local: tools/ci/gitlab/tests/e2e/flux/run_flux_e2e_t2z_tests_windows.yml
-  - local: tools/ci/gitlab/tests/e2e/lss/run_lss_e2e_a2s_tests_windows.yml
-  - local: tools/ci/gitlab/tests/e2e/lss/run_lss_e2e_t2z_tests_windows.yml
+  # Unit tests
+  - local: tools/ci/gitlab/tests/unit/flux_unit_tests_linux.yml
+  - local: tools/ci/gitlab/tests/unit/flux_unit_tests_windows.yml
+  - local: tools/ci/gitlab/tests/unit/lss_unit_tests_linux.yml
+  - local: tools/ci/gitlab/tests/unit/lss_unit_tests_windows.yml
+  # E2E tests
+  - local: tools/ci/gitlab/tests/e2e/flux_e2e_tests_windows.yml
+  - local: tools/ci/gitlab/tests/e2e/lss_e2e_tests_windows.yml
+  # Docs
   - local: tools/ci/gitlab/docs/build_docs.yml
   - local: tools/ci/gitlab/docs/publish_docs.yml
+  # Build packages for Windows and Linux
   - local: tools/ci/gitlab/build/build_package.yml
+  # Metrics
   - local: tools/ci/gitlab/metrics/measure_startup_time.yml
+  # Publishing
   - local: tools/ci/gitlab/publishing/publish_etm_list.yml
   - local: tools/ci/gitlab/publishing/publish_extensions.yml
   - local: tools/ci/gitlab/publishing/publish_package.yml
-  - local: tools/ci/gitlab/publishing/publish_package_scheduled.yml
-  - local: tools/ci/gitlab/gitlab/build_gitlab_package.yml
-  - local: tools/ci/gitlab/gitlab/publish_package.yml
-  - local: tools/ci/gitlab/gitlab/publish_release.yml
   # Base definitions shared between jobs
   - local: tools/ci/gitlab/defaults/defaults.yml
   - local: tools/ci/gitlab/defaults/soak_test_rules.yml
-  - local: tools/ci/gitlab/defaults/gitlab_release.yml
-  - local: tools/ci/gitlab/defaults/agents/linux_agent.yml
-  - local: tools/ci/gitlab/defaults/agents/windows_agent.yml
-  - local: tools/ci/gitlab/defaults/vault/linux_vault.yml
-  - local: tools/ci/gitlab/defaults/vault/windows_vault.yml
+  - local: tools/ci/gitlab/defaults/release_rules.yml
+  - local: tools/ci/gitlab/defaults/agents.yml
+  - local: tools/ci/gitlab/defaults/vault.yml
   # Vault definitions
   - project: 'omniverse/sectools/vault'
     file: 'templates/v3/linux/packman_s3.gitlab-ci.yml'

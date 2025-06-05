@@ -1,0 +1,16 @@
+include:
+  - local: tools/ci/gitlab/tests/e2e/e2e_tests_windows_defaults.yml
+
+flux-e2e-tests-windows-a2s:
+  extends:
+    - .e2e_tests_windows
+  stage: flux_e2e_tests
+  script:
+    - .\repo.bat test --suite flux_e2e_a2s --config release
+
+flux-e2e-tests-windows-t2z:
+  extends:
+    - .e2e_tests_windows
+  stage: flux_e2e_tests
+  script:
+    - .\repo.bat test --suite flux_e2e_t2z --config release

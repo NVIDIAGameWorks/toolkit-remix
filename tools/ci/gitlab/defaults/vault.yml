@@ -1,3 +1,6 @@
+###################
+# Vault definitions
+###################
 .linux_vault:
   extends:
     - .osec:vault:v3:prod_token_job
@@ -12,3 +15,11 @@
     - !reference [ .osec:vault:v3:linux, codesign:perform_vault_requests ]
     - !reference [ .osec:vault:v3:linux, packman_s3:perform_vault_requests ]
     - !reference [ .osec:vault:v3:linux, nucleus:kit-extensions.ov.nvidia.com:kit-extension-svc:perform_vault_requests ]
+
+.windows_vault:
+  extends:
+    - .osec:vault:v3:prod_token_job
+  before_script:
+    - !reference [ .osec:vault:v3:windows:powershell, packman_s3:perform_vault_requests ]
+    - !reference [ .osec:vault:v3:windows:powershell, codesign:perform_vault_requests ]
+    - !reference [ .osec:vault:v3:windows:powershell, nucleus:kit-extensions.ov.nvidia.com:kit-extension-svc:perform_vault_requests ]

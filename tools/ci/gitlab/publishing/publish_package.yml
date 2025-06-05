@@ -1,4 +1,7 @@
-publish-to-launcher:
+###########################################################
+# Publish Windows and Linux packages from Gitlab to Packman
+###########################################################
+publish-package-gitlab:
   extends:
     - .linux_agent
     - .linux_vault
@@ -10,12 +13,76 @@ publish-to-launcher:
       artifacts: true
   before_script:
     - !reference [ .linux_vault, before_script ]
-    # Cleanup the Kit dir to avoid failure
-    - rm -rf _build/linux-x86_64/release/kit
-    - ./build.sh --fetch-only --release
+    - ./build.sh --fetch-only --release --no-docker
   script:
-    # `publish_extensions` will build before publishing
     - fail_wr=0
-    - ./repo.sh ci publish_to_launcher || fail_wr=1
+    - ./repo.sh publish -c release || fail_wr=1
     - echo "WinRel=${fail_wr}"
     - '[ "$fail_wr" -eq 0 ] || exit 1'
+
+#######################################################
+# Publish Windows and Linux packages to Gitlab releases
+#######################################################
+publish-gitlab-release:
+  extends:
+    - .gitlab_release
+    - .windows_agent
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  tags:
+    - release-cli
+  needs:
+    - job: publish-package-gitlab
+      artifacts: true
+    - job: build-package-gitlab-linux  # to get the env
+      artifacts: true
+    - job: build-package-gitlab-windows  # to get the env
+      artifacts: true
+  script:
+    - echo "Running release_job for $env:CI_COMMIT_TAG"
+    - echo "Grabbing zip file $env:ARTIFACT_WIN_ZIP_NAME and $env:ARTIFACT_LINUX_ZIP_NAME"
+    - .\repo.bat get_release_changelog -s _current_changelog.md -sh "[$env:CI_COMMIT_TAG]"
+    - $env:ENCODED_ARTIFACT_WIN_ZIP_NAME=[URI]::EscapeDataString("$env:ARTIFACT_WIN_ZIP_NAME")
+    - echo "Encoded window zip name is $env:ENCODED_ARTIFACT_WIN_ZIP_NAME"
+    - $env:ENCODED_ARTIFACT_LINUX_ZIP_NAME=[URI]::EscapeDataString("$env:ARTIFACT_LINUX_ZIP_NAME")
+    - echo "Encoded linux zip name is $env:ENCODED_ARTIFACT_LINUX_ZIP_NAME"
+    - $env:WIN_URL="$env:PACKMAN_CLOUDFRONT_URL/$env:ENCODED_ARTIFACT_WIN_ZIP_NAME"
+    - echo "Full asset url for WIN is $env:WIN_URL"
+    - $env:LINUX_URL="$env:PACKMAN_CLOUDFRONT_URL/$env:ENCODED_ARTIFACT_LINUX_ZIP_NAME"
+    - echo "Full asset url for LINUX is $env:LINUX_URL"
+    - echo "Token is CI_JOB_TOKEN $env:CI_JOB_TOKEN"
+
+    - $assets_win = @{}
+    - $assets_win.Add("name", "windows-x86_64.release")
+    - $assets_win.Add("url", $env:WIN_URL)
+    - $assets_win = $assets_win | ConvertTo-Json
+    - $assets_win = $assets_win.replace('"','\"')
+
+    - $assets_linux = @{}
+    - $assets_linux.Add("name", "linux-x86_64.release")
+    - $assets_linux.Add("url", $env:LINUX_URL)
+    - $assets_linux = $assets_linux | ConvertTo-Json
+    - $assets_linux = $assets_linux.replace('"','\"')
+
+    # using release feature from the yaml doesn't work with powershell. Need to run the CLI directly
+    - release-cli --private-token $env:GITLAB_RELEASE_TOKEN create --name "$env:CI_COMMIT_TAG" --description "_current_changelog.md" --tag-name "$env:CI_COMMIT_TAG" --ref "$env:CI_COMMIT_SHA" --assets-link=$assets_win --assets-link=$assets_linux
+
+########################################################
+# Publish Windows package to Packman for GitHub releases
+########################################################
+publish-github-release:
+  extends:
+    - .github_release
+    - .windows_agent
+  needs:
+    - job: build-package-windows
+      artifacts: true
+  script:
+    - echo "Running GitHub release job for commit $env:CI_COMMIT_SHA"
+    # Find the zip file name
+    - $zipFile = (Get-ChildItem -Path "_build\packages\" -Filter "rtx_remix@*.zip" | Select-Object -First 1)
+    - 'if (-not $zipFile) { throw "No rtx_remix zip file found in _build/packages/" }'
+    - 'echo "Found zip file $($zipFile.Name)"'
+    # Strip build number from filename and rename
+    - $zipFile = Rename-Item -Path $zipFile.FullName -NewName ($zipFile.Name -replace '(\+[^.]+)\.(\d+)\.([a-f0-9]+\.)', '$1.$3') -PassThru
+    # Publish the package to Packman
+    - ./tools/packman/packman.cmd push -r rtx-remix-external $zipFile.FullName

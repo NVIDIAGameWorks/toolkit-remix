@@ -1,0 +1,55 @@
+name: Download Toolkit Remix Package
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  rtx-remix-windows-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Download package
+      run: |
+        # Read version from VERSION.md
+        VERSION=$(cat VERSION.md | head -n 1 | xargs)
+        
+        # Get current branch name and commit SHA
+        BRANCH_NAME="${{ github.ref_name }}"
+        COMMIT_SHA="${{ github.sha }}"
+        SHORT_SHA="${COMMIT_SHA:0:8}"
+        
+        # Construct the filename
+        FILENAME="rtx_remix@${VERSION}+${BRANCH_NAME}.${SHORT_SHA}.gl.windows-x86_64.release"
+        
+        echo "Downloading package: $FILENAME"
+        echo "Version: $VERSION, Branch: $BRANCH_NAME, SHA: $SHORT_SHA"
+        
+        # Create project.xml for packman pull
+        cat > project.xml << EOF
+        <project toolsVersion="7.6">
+          <dependency name="rtx_remix" copyPath="_artifacts/${FILENAME}">
+            <package name="rtx_remix" version="${VERSION}+${BRANCH_NAME}.${SHORT_SHA}.gl.windows-x86_64.release" />
+          </dependency>
+        </project>
+        EOF
+        
+        # Download from packman using project.xml
+        if ./tools/packman/packman pull project.xml; then
+          echo "✅ Successfully downloaded $FILENAME"
+          echo "SHOULD_UPLOAD=true" >> $GITHUB_ENV
+          echo "FILENAME=$FILENAME" >> $GITHUB_ENV
+        else
+          echo "❌ Failed to download $FILENAME from packman"
+          echo "SHOULD_UPLOAD=false" >> $GITHUB_ENV
+        fi
+    
+    - name: Upload artifact
+      if: env.SHOULD_UPLOAD == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.FILENAME }}
+        path: _artifacts/${{ env.FILENAME }}

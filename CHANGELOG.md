@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3812: Specified path to NRC dependencies
 - Added a Stage Manager refresh test
 - Added PyCharm Configuration Files
+- Added GitHub publishing
 
 ### Changed
 - Improved the documentation layout and contents
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4173, REMIX-4164: Add MCP Server Support to Remix Toolkit
 - REMIX-4199: Reduced the number of files tracked in Git LFS
 - REMIX-4220: Replace Legacy Manipulators with Supported Manipulators
+- General cleanup of CI scripts
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension
