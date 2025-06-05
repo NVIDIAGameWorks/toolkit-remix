@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4068: Update hdremix package that now originates from a migrated repo
 - REMIX-4173, REMIX-4164: Add MCP Server Support to Remix Toolkit
 - REMIX-4199: Reduced the number of files tracked in Git LFS
+- REMIX-4220: Replace Legacy Manipulators with Supported Manipulators
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension
