@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "4.0.1"
+version = "4.1.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -32,6 +32,7 @@ icon = "data/images/icon.png"
 [dependencies]
 "omni.flux.factory.base" = {}
 "omni.flux.pip_archive" = {}  # Required for Pydantic
+"omni.flux.telemetry.core" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
 "omni.ui" = {}

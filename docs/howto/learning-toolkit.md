@@ -287,4 +287,117 @@ Consult the [Packaging Your Mod](learning-packaging.md) section for detailed ins
 ```
 
 ***
+
+## Telemetry
+
+The RTX Remix Toolkit collects anonymous usage data to help us understand how users interact with the application and
+identify areas for improvement. This data helps us make the toolkit more user-friendly and resolve issues in a timely
+manner.
+
+The telemetry data is collected by the `omni.flux.telemetry.core` extension, which is enabled by default but can be
+disabled by overriding the `/exts/omni.flux.telemetry.core/enabled` setting.
+
+```{seealso}
+See the [Overriding Settings](#overriding-settings) section of the documentation for more information on how to
+override the telemetry setting.
+```
+
+***
+
+## Advanced Features
+
+```{warning}
+The following sections provide information on features for advanced users.
+
+Using these features incorrectly can cause the application to crash or behave unexpectedly.
+```
+
+***
+
+### Alternative Application Executables
+
+The RTX Remix Toolkit provides many alternative executables for different purposes.
+
+A few examples of alternative application executables are listed below.
+
+All of the application executables are located in the
+[RTX Remix Toolkit installation directory](../remix-faq.md#how-can-i-locate-the-rtx-remix-toolkit-installation-folder).
+
+| Application                        | Executable                                | Description                                                                                                                                                                   |
+|------------------------------------|-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Release RTX Remix Toolkit          | `lightspeed.app.trex.bat`                 | The standard version of the RTX Remix Toolkit that is used for production purposes.                                                                                           |
+| Developer RTX Remix Toolkit        | `lightspeed.app.trex_dev.bat`             | A special version of the RTX Remix Toolkit that is used for development purposes. It exposes additional menus and settings that are not available in the release application. |
+| Standalone RTX Remix Ingestion CLI | `lightspeed.app.trex.ingestcraft.cli.bat` | A CLI tool that can be used to ingest assets into the RTX Remix Toolkit without needing to launch the complete RTX Remix Toolkit.                                             |
+
+```{seealso}
+Refer to the
+[Utilizing the Ingestion Tool CLI (Advanced)](learning-ingestion.md#utilizing-the-ingestion-tool-cli-advanced)
+section of the documentation for more information on the standalone ingestion application.
+```
+
+***
+
+### Overriding Settings
+
+The RTX Remix Toolkit provides a mechanism for overriding certain settings within the application. This feature is
+particularly useful for users who require customized configurations that deviate from the default settings.
+
+To override a setting:
+
+1. Open a command prompt and navigate to the
+   [RTX Remix Toolkit installation directory](../remix-faq.md#how-can-i-locate-the-rtx-remix-toolkit-installation-folder).
+
+   For example, run the following command:
+
+    ```bash
+    cd "C:\Program Files\NVIDIA Corporation\RTX Remix"
+    ```
+
+2. Run the application executable file with the desired settings.
+
+   For instance, to disable telemetry for the release version of the RTX Remix Toolkit, run the following command:
+
+    ```bash
+    ./lightspeed.app.trex.bat --/exts/omni.flux.telemetry.core/enabled=0
+    ```
+
+   See the [Alternative Application Executables](#alternative-application-executables) section for more information on
+   the different application executables.
+
+#### Getting Available Settings
+
+To get a list of available settings:
+
+1. Open the Developer RTX Remix Toolkit (See [Alternative Application Executables](#alternative-application-executables)
+   section for more information)
+
+2. Open the `Script Editor` window.
+    1. Click the `Window` menu
+    2. Select `Script Editor`.
+
+   ![Script Editor](../data/images/remix-dev-script-editor.png)
+
+3. Copy the following script into the `Script Editor` window:
+
+   ```python
+   import carb
+   print(carb.settings.get_settings().get("/"))
+   ```
+
+4. Click the `Run` button in the bottom left corner.
+
+5. The output will be displayed at the top of the `Script Editor` window and in the command prompt used to open the
+   Developer RTX Remix Toolkit.
+
+```{note}
+The output will likely be overwhelming due to the large number of settings available. Formatting the output may help
+with readability.
+
+Getting sub-sections of the settings will greatly reduce the amount of settings output.
+
+For instance, to get the settings for the `omni.flux.telemetry.core` extension, run the same command as above but
+replace `/` with `/exts/omni.flux.telemetry.core`.
+```
+
+***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

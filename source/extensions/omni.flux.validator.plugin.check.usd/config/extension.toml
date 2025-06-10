@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "4.1.1"
+version = "4.2.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -34,14 +34,16 @@ icon = "data/images/icon.png"
 "omni.flux.asset_importer.core" = {}
 "omni.flux.commands" = {} # For SetDefaultPrim & CreateOrInsertSublayer commands
 "omni.flux.info_icon.widget" = {}
+"omni.flux.internal_pip_archive" = { order = -2001 } # Required for remix-client & remix-models-i2m
 "omni.flux.lookdev.core" = {}
 "omni.flux.pip_archive" = {} # Required for pydantic
-"omni.flux.internal_pip_archive" = { order = -2001 } # Required for remix-client & remix-models-i2m
 "omni.flux.resources" = {}
+"omni.flux.telemetry.core" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.material_converter" = {}
 "omni.flux.utils.octahedral_converter" = {}
 "omni.flux.validator.factory" = {}
+"omni.hydra.engine.stats" = {}
 "omni.kit.material.library" = {}
 "omni.kit.viewport.utility" = {}
 "omni.kit.widget.prompt" = {}

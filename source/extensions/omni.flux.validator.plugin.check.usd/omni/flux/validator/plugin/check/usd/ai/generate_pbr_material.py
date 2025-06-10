@@ -28,10 +28,13 @@ import omni.ui as ui
 import omni.usd
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.info_icon.widget import InfoIconWidget as _InfoIconWidget
+from omni.flux.telemetry.core import get_telemetry_instance
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.flux.validator.factory import utils as _validator_factory_utils
+from omni.gpu_foundation_factory import get_memory_info as _get_memory_info
+from omni.hydra.engine.stats import get_device_info as _get_device_info
 from omni.kit.widget.prompt import Prompt
 from pydantic import ConfigDict, Field, field_validator
 
@@ -187,88 +190,118 @@ class GeneratePBRMaterial(_CheckBaseUSD):
         if not selector_plugin_data:
             return success, message, data
 
-        # Every texture will go through every inference step + Load the inference model
-        progress_delta = 1 / (len(selector_plugin_data) * len(_InferenceStep) + 2)
+        telemetry = get_telemetry_instance()
+        with telemetry.sentry_sdk.start_transaction(op="ai_textures", name="Generate PBR Textures") as transaction:
+            # Every texture will go through every inference step + Load the inference model
+            progress_delta = 1 / (len(selector_plugin_data) * len(_InferenceStep) + 2)
 
-        progress_message = "LOADING: Loading the AI Model"
-        message += f"- {progress_message}\n"
-        progress += progress_delta
-        self.on_progress(progress, progress_message, success)
-
-        # If using Speed Inference, the memory footprint will be that of the output resolution (4x input)
-        # For a 512x512 max size, that means a 2k output all in memory which takes > 24GB VRAM.
-        # Doing this will reduce the output down to 1k which takes about 7.5GB VRAM
-        max_resolution = (
-            schema_data.max_inference_resolution // 2
-            if schema_data.inference_mode == InferenceMode.SPEED
-            else schema_data.max_inference_resolution
-        )
-
-        with _get_factory_instance().get_plugin("local_I2M")(  # noqa PLE1102
-            schema_data.model_artifact_path,
-            schema_data.config_artifact_path,
-            min_resolution=schema_data.min_inference_resolution,
-            max_resolution=max_resolution,
-            noise_level=schema_data.noise_level,
-            denoising_steps=schema_data.denoising_steps,
-            oversized_behavior=self._OVERSIZE_BEHAVIOR_MAP[schema_data.inference_mode],
-            supported_extensions=_SUPPORTED_TEXTURE_EXTENSIONS,
-        ) as model:
-            progress_message = "LOADED: Successfully loaded the AI Model"
+            progress_message = "LOADING: Loading the AI Model"
             message += f"- {progress_message}\n"
             progress += progress_delta
             self.on_progress(progress, progress_message, success)
 
-            def on_inference_progress(step: _InferenceStep, in_progress: bool):
-                nonlocal progress
-                nonlocal message
-                nonlocal success
-                nonlocal current_step
-                # Whe completing a step, present progress
-                if in_progress or current_step == step:
-                    return
-                step_progress = f"PROCESSING: {step.value}"
-                message += f"- {step_progress}\n"
-                progress += progress_delta
-                current_step = step
-                self.on_progress(progress, step_progress, success)
+            # If using Speed Inference, the memory footprint will be that of the output resolution (4x input)
+            # For a 512x512 max size, that means a 2k output all in memory which takes > 24GB VRAM.
+            # Doing this will reduce the output down to 1k which takes about 7.5GB VRAM
+            max_resolution = (
+                schema_data.max_inference_resolution // 2
+                if schema_data.inference_mode == InferenceMode.SPEED
+                else schema_data.max_inference_resolution
+            )
 
-            for _, asset_path in selector_plugin_data:
-                asset_url = _OmniUrl(asset_path)
-                if not asset_url.exists:
-                    success = False
-                    progress_message = f"FAIL: The texture asset does not exist ({asset_path})"
-                    message += f"- {progress_message}\n"
-                    progress += len(_InferenceStep)
-                    self.on_progress(progress, progress_message, success)
-                    continue
-
-                _validator_factory_utils.push_input_data(schema_data, [asset_path])
-
-                output_directory = (
-                    str(_OmniUrl(asset_url.parent_url) / asset_url.stem)
-                    if schema_data.subdirectory_per_input
-                    else asset_url.parent_url
-                )
-
-                try:
-                    inference_output = await model.infer_async(
-                        [Path(str(asset_url))], output_directory, on_inference_progress
-                    )
-                except _RemixClientError as e:
-                    success = False
-                    progress_message = f"FAIL: {e}"
-                    message += f"- {progress_message}\n"
-                    progress += progress_delta
-                    self.on_progress(progress, progress_message, success)
-                    continue
-
-                for output_paths in inference_output.values():
-                    _validator_factory_utils.push_output_data(schema_data, output_paths)
-
-                progress_message = f"SUCCESS: The PBR material was generated: {str(asset_url)}"
+            with _get_factory_instance().get_plugin("local_I2M")(  # noqa PLE1102
+                schema_data.model_artifact_path,
+                schema_data.config_artifact_path,
+                min_resolution=schema_data.min_inference_resolution,
+                max_resolution=max_resolution,
+                noise_level=schema_data.noise_level,
+                denoising_steps=schema_data.denoising_steps,
+                oversized_behavior=self._OVERSIZE_BEHAVIOR_MAP[schema_data.inference_mode],
+                supported_extensions=_SUPPORTED_TEXTURE_EXTENSIONS,
+            ) as model:
+                progress_message = "LOADED: Successfully loaded the AI Model"
                 message += f"- {progress_message}\n"
+                progress += progress_delta
                 self.on_progress(progress, progress_message, success)
+
+                def on_inference_progress(step: _InferenceStep, in_progress: bool):
+                    nonlocal progress
+                    nonlocal message
+                    nonlocal success
+                    nonlocal current_step
+                    # Whe completing a step, present progress
+                    if in_progress or current_step == step:
+                        return
+                    step_progress = f"PROCESSING: {step.value}"
+                    message += f"- {step_progress}\n"
+                    progress += progress_delta
+                    current_step = step
+                    self.on_progress(progress, step_progress, success)
+
+                for _, asset_path in selector_plugin_data:
+                    with telemetry.sentry_sdk.start_span(op="ai_textures", name="Process Input Texture"):
+                        asset_url = _OmniUrl(asset_path)
+                        if not asset_url.exists:
+                            success = False
+                            progress_message = f"FAIL: The texture asset does not exist ({asset_path})"
+                            message += f"- {progress_message}\n"
+                            progress += len(_InferenceStep)
+                            self.on_progress(progress, progress_message, success)
+                            continue
+
+                        _validator_factory_utils.push_input_data(schema_data, [asset_path])
+
+                        output_directory = (
+                            str(_OmniUrl(asset_url.parent_url) / asset_url.stem)
+                            if schema_data.subdirectory_per_input
+                            else asset_url.parent_url
+                        )
+
+                        try:
+                            inference_output = await model.infer_async(
+                                [Path(str(asset_url))], output_directory, on_inference_progress
+                            )
+                        except _RemixClientError as e:
+                            success = False
+                            progress_message = f"FAIL: {e}"
+                            message += f"- {progress_message}\n"
+                            progress += progress_delta
+                            self.on_progress(progress, progress_message, success)
+                            continue
+
+                        for output_paths in inference_output.values():
+                            _validator_factory_utils.push_output_data(schema_data, output_paths)
+
+                        progress_message = f"SUCCESS: The PBR material was generated: {str(asset_url)}"
+                        message += f"- {progress_message}\n"
+                        self.on_progress(progress, progress_message, success)
+
+                    # Get Telemetry Data
+
+                    # Assume the first device is the main GPU
+                    devices_info = _get_device_info()
+                    device_info = devices_info[0] if devices_info else {}
+
+                    # Get the GPU information
+                    gpu_description = device_info.get("description", None)
+                    dedicated_video_memory = device_info.get("dedicated_video_memory", None)
+                    dedicated_system_memory = device_info.get("dedicated_system_memory", None)
+                    usage_info = device_info.get("usage", None)
+
+                    # Get the host memory information
+                    host_info = _get_memory_info()
+                    total_memory = host_info.get("total_memory", None)
+                    available_memory = host_info.get("available_memory", None)
+
+                    # Set the data for the transaction
+                    transaction.set_data("success", success)
+                    transaction.set_data("inference_mode", schema_data.inference_mode.value)
+                    transaction.set_data("gpu", gpu_description)
+                    transaction.set_data("dedicated_video_memory", dedicated_video_memory)
+                    transaction.set_data("dedicated_system_memory", dedicated_system_memory)
+                    transaction.set_data("video_memory_usage", usage_info)
+                    transaction.set_data("total_host_memory", total_memory)
+                    transaction.set_data("available_host_memory", available_memory)
 
         self._is_executed = success
         return success, message, data

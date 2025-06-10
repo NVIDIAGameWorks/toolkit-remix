@@ -21,6 +21,7 @@ import abc
 from typing import TYPE_CHECKING, Any, Callable, Iterable
 
 from omni import ui, usd
+from omni.flux.telemetry.core import get_telemetry_instance
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
@@ -210,12 +211,18 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
 
         Items are filtered before they are returned
         """
-        return (
-            await _StageManagerUtils.filter_items(
+
+        with get_telemetry_instance().sentry_sdk.start_transaction(
+            op="stage_manager", name="Refresh Stage Manager", custom_sampling_context={"sample_rate_override": 0.25}
+        ) as transaction:
+            filtered_items = await _StageManagerUtils.filter_items(
                 self._context_items, self._user_filter_predicates, max_workers=self._max_workers
             )
-            or []
-        )
+
+            transaction.set_data("input_items_count", len(self._context_items))
+            transaction.set_data("output_items_count", len(filtered_items))
+
+            return filtered_items or []
 
     def set_max_workers(self, max_workers: int | None):
         """
