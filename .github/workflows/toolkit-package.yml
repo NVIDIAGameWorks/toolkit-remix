@@ -47,6 +47,7 @@ jobs:
         else
           echo "❌ Failed to download $FILENAME from packman"
           echo "SHOULD_UPLOAD=false" >> $GITHUB_ENV
+          exit 1
         fi
     
     - name: Upload artifact

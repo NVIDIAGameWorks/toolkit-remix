@@ -1,3 +1,9 @@
+#################################################
+# These jobs are run only on merge commit to main 
+# as a dependency of the build-package jobs
+#################################################
+
+# Publish Windows extensions
 publish-extensions-windows:
   stage: publish_extensions
   extends:
@@ -21,11 +27,10 @@ publish-extensions-windows:
     - if ($fail_wr) { Exit 1 }
   variables:
     GIT_STRATEGY: fetch
-  rules: ## Automatically run publish job only on merge commit to main
+  rules:
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
-      when: always
-    - when: never
 
+# Publish Linux extensions
 publish-extensions-linux:
   stage: publish_extensions
   extends:
@@ -47,7 +52,5 @@ publish-extensions-linux:
     - '[ "$fail_wr" -eq 0 ] || exit 1'
   variables:
     GIT_STRATEGY: fetch
-  rules: ## Automatically run publish job only on merge commit to main
+  rules:
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
-      when: always
-    - when: never

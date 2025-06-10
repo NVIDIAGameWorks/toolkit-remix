@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix false positive error that context isn't set up yet for Stage Manager
 - Fixed issues found in ComfyUI
 - REMIX-4248: Fixed AI Tools drag and drop validation
+- REMIX-3651: Artifacts handling by publish jobs
 
 ### Removed
 - Cleaned up legacy code and unused files

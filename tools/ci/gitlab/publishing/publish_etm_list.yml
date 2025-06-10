@@ -33,4 +33,5 @@ publish-etm-list:
     paths:
       - deps.json
       - source/apps
-    when: always
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
