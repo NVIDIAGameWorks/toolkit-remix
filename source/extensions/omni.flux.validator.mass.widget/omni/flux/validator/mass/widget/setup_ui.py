@@ -106,6 +106,7 @@ class ValidatorMassWidget:
             "_queue_tree_delegate": None,
             "_current_process_executor": None,
             "_external_process_executor": None,
+            "_previous_selection": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -143,6 +144,8 @@ class ValidatorMassWidget:
         self.__on_mass_queue_action_pressed = _Event()
         self.__on_schema_tab_toggled = _Event()
         self.__on_schema_selection_changed = _Event()
+
+        self._previous_selection: List[_TabbedItem] = []
 
         self._create_ui()
 
@@ -384,6 +387,7 @@ class ValidatorMassWidget:
                                         self._on_schema_selection_changed
                                     )
                                 )
+                                self._previous_selection = list(self._schema_tree_view.selection)
         self._on_item_changed([])
 
     def _create_work_ui(self):
@@ -480,7 +484,13 @@ class ValidatorMassWidget:
             self._mass_queue_widget.show(value)
         # To ensure that only the previously selected tab is the only enabled one,
         # adding a call to the self._on_schema_selection_changed func.
-        if self._schema_tree_view.selection[0]:
+        if self._schema_tree_view.selection:
+            self._previous_selection = self._schema_tree_view.selection
+        if not value:
+            self._schema_tree_view.selection = []
+        elif value and not self._schema_tree_view.selection:
+            self._schema_tree_view.selection.extend(self._previous_selection)
+        if self._schema_tree_view.selection and self._schema_tree_view.selection[0]:
             self._on_schema_selection_changed(self._schema_tree_view.selection[0].title)
 
     def destroy(self):
