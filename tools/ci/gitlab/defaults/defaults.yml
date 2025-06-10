@@ -1,6 +1,5 @@
 .defaults:
   interruptible: true
-  allow_failure: false
   variables:
     GIT_STRATEGY: fetch
   rules:
