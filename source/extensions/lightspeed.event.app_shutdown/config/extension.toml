@@ -1,0 +1,21 @@
+[package]
+version = "1.0.0"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["event", "app", "shutdown", "time"]
+title = "Lightspeed Event App Shutdown"
+description = "Extension that records the shutdown time of the app"
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.event.shutdown_base" = {}
+"lightspeed.events_manager" = {}
+"omni.flux.telemetry.core" = {}
+"omni.flux.utils.common" = {}
+
+[[python.module]]
+name = "lightspeed.event.app_shutdown"

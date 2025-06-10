@@ -28,7 +28,7 @@ from .base.base_selector import SelectorUSDBase as _SelectorUSDBase
 
 class AllTextures(_SelectorUSDBase):
     class Data(_SelectorUSDBase.Data):
-        filtered_input_names: List[str] = None
+        filtered_input_names: List[str] | None = None
 
     name = "AllTextures"
     tooltip = "This plugin will select all textures in the stage"

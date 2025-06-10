@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.0]
+## Added
+- Added `get_git_branch` and `get_git_hash` functions as part of a new `git` module
+
 ## [3.1.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

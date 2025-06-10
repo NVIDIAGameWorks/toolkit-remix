@@ -565,11 +565,11 @@ autodoc_default_options = {
 }
 
 autodoc_mock_imports = [
+    "fast_version",
     "fastapi",
     "fastmcp",
-    "fast_version",
-    "pyperclip",
     "pydantic",
+    "pyperclip",
     "omni.kit.manipulator",  # uses omni.kit.get_app() at module level
     "omni.kit.viewport.menubar.camera",  # uses carb.tokens.get_tokens_interface() at module level
     "omni.kit.viewport.menubar.render",  # uses carb.tokens.get_tokens_interface() at module level

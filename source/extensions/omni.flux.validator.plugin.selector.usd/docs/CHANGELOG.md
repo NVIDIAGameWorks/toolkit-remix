@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.2]
+## Fixed
+- Fixed Pydantic V2 validation error
+
 ## [1.9.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

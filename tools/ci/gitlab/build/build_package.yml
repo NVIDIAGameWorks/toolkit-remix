@@ -8,8 +8,6 @@ build-package-windows:
     - .windows_agent
   stage: build_package
   before_script:
-    # Ensure that Sentry is enabled in the built product
-    - .\tools\utils\enable_sentry.bat $CI_COMMIT_REF_NAME $CI_PIPELINE_SOURCE
     - .\build.bat --rebuild --release
   script:
     - .\repo.bat publish_exts --verify
@@ -32,7 +30,6 @@ build-package-linux:
     - .linux_agent_gpu
   stage: build_package
   before_script:
-    - ./tools/utils/enable_sentry.sh
     - ./build.sh --rebuild --release
   script:
     - ./repo.sh publish_exts --verify

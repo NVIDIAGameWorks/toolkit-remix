@@ -17,9 +17,13 @@ This experience regroup all extensions shared between all NVIDIA RTX Remix exper
 "lightspeed.app.trex.stagecraft" = {}
 "lightspeed.app.trex.texturecraft" = {}
 
+# Telemetry
+"omni.flux.telemetry.core" = { order = -10000 } # Load right after the Flux PIP Archive extension
+
 # Events
+"lightspeed.event.app_start" = {}
+"lightspeed.event.app_shutdown" = {}
 "lightspeed.event.context_change" = {}
-"lightspeed.sentry_manager.event" = {}
 
 [settings]
 "@import@" = [

@@ -1,0 +1,63 @@
+[package]
+# Semantic Versionning is used: https://semver.org/
+version = "1.0.0"
+
+# Lists people or organizations that are considered the "authors" of the package.
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+
+# The title and description fields are primarly for displaying extension info in UI
+description = "The core plugin responsible for the Sentry telemetry integration"
+title = "Flux Telemetry Core"
+
+# Path (relative to the root) or content of readme markdown file for UI.
+readme = "docs/README.md"
+
+# One of categories for UI.
+category = "internal"
+
+# Keywords for the extension
+keywords = ["kit", "flux", "telemetry", "sentry", "core"]
+
+# Location of change log file in target (final) folder of extension, relative to the root.
+# More info on writing changelog: https://keepachangelog.com/en/1.0.0/
+changelog = "docs/CHANGELOG.md"
+
+# Preview image and icon. Folder named "data" automatically goes in git lfs (see .gitattributes file).
+# Preview image is shown in "Overview" of Extensions window. Screenshot of an extension might be a good preview image.
+preview_image = "data/images/preview.png"
+
+# Icon is shown in Extensions window, it is recommended to be square, of size 256x256.
+icon = "data/images/icon.png"
+
+[settings.exts."omni.flux.telemetry.core"]
+enabled = true
+development_mode = false
+remove_pii = true
+set_default_tags = true
+ignore_span_op_prefixes = []
+ignore_span_name_prefixes = ["starlette.middleware"]
+
+[settings.exts."omni.flux.telemetry.core".sentry]
+# Some variables cannot be overridden (dist, environment, release, auto_enabling_integrations, integrations)
+dsn = "https://df3fec669240482a8e6e1323b818d631@o4505230501543936.ingest.us.sentry.io/4505230654308352"
+traces_sample_rate = 1.0
+profile_session_sample_rate=1.0
+project_root = "${kit}/.."
+send_default_pii = false
+debug = false
+
+[dependencies]
+"omni.flux.pip_archive" = {}
+"omni.flux.utils.common" = {}
+
+[[python.module]]
+name = "omni.flux.telemetry.core"
+
+[[test]]
+dependencies = [
+    "omni.flux.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]

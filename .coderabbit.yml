@@ -1,0 +1,8 @@
+reviews:
+  path_filters:
+    - "!source/extensions/**/premake5.lua"
+  path_instructions:
+    - path: "source/extensions/**/config/extension.toml"
+      instructions: |
+        Ignore remarks about un-pinned dependencies; our team intentionally leaves `"omni.flux.*"` and `"lightspeed.*"`
+        dependencies without an explicit version to get the latest version.
