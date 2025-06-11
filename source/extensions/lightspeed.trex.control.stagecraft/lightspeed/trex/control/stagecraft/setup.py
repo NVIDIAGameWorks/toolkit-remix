@@ -216,7 +216,7 @@ class Setup:
 
     def __create_stage_and_save_previous_identifier(self):
         ensure_future(self._context.close_stage_async())
-        self._layout_instance.show_page(Pages.HOME_PAGE)
+        self._layout_instance.return_to_home_page()
 
     def destroy(self):
         _reset_default_attrs(self)
