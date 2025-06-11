@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4220: Replace Legacy Manipulators with Supported Manipulators
 - General cleanup of CI scripts
 - GitHub actions on demand
+- Update hdremix to ext-bf2d1d04-release-v1-1
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension

@@ -37,7 +37,7 @@ enabled = true
 type = "repo_update"
 schedule = "daily"
 mr_title = "bump rtx-remix-omni_core_materials"
-repo_update_args = ["rtx-remix-omni_core_materials", "--major"]
+repo_update_args = ["rtx-remix-omni_core_materials", "--major", "--include-pre-release"]
 required_paths = ["deps/target-deps.packman.xml"]
 dependabot_branch_name = "update-rtx-remix-omni_core_materials"
 
@@ -55,7 +55,7 @@ enabled = true
 type = "repo_update"
 schedule = "daily"
 mr_title = "bump rtx-remix-hdremix"
-repo_update_args = ["rtx-remix-hdremix", "--major"]
+repo_update_args = ["rtx-remix-hdremix", "--major", "--include-pre-release"]
 required_paths = ["deps/target-deps.packman.xml"]
 dependabot_branch_name = "update-rtx-remix-hdremix"
 
