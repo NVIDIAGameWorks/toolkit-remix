@@ -458,7 +458,7 @@ class SetupUI(TrexLayout):
         # connect the component pane back arrow
         components_pane_widget = self._components_pane.get_ui_widget()
         components_pane_widget.arrow_back_title_widget.set_mouse_pressed_fn(
-            lambda x, y, b, m: self._on_back_arrow_pressed()
+            lambda x, y, b, m: self.return_to_home_page()
         )
 
         # connect the component pane to the property pane
@@ -532,7 +532,7 @@ class SetupUI(TrexLayout):
         if prim and prim.IsValid():
             self._viewport.frame_viewport_selection(selection=[str(prim.GetPath())])
 
-    def _on_back_arrow_pressed(self):
+    def return_to_home_page(self):
         self.show_page(Pages.HOME_PAGE)
         self._refresh_recent_items()
 
