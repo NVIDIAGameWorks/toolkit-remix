@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.1.0-rc1 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.1.0-rc1]
+
+### Added
 - Created 1.0.0 build
 - Added release notes for 1.0.0
 - Added tests for REST API endpoints
