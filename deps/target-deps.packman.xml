@@ -18,7 +18,7 @@
     <package name="rtx-remix-lookdev-modeling" version="2023.0.0" />
   </dependency>
   <dependency name="rtx-remix-omni_core_materials" linkPath="../_build/target-deps/omni_core_materials">
-    <package name="rtx-remix-omni_core_materials" version="16" />
+    <package name="rtx-remix-omni_core_materials" version="ext-bf2d1d0-release-v1.1" />
   </dependency>
   <dependency name="rtx-remix-remix_runtime" linkPath="../_build/${platform}/${config}/deps/remix_runtime">
     <package name="rtx-remix-remix_runtime" version="remix-1.0.0" />
