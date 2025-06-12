@@ -9,7 +9,7 @@
     <package name="remix-models-i2m-artifacts" version="1.1.0" />
   </dependency>
   <dependency name="rtx-remix-hdremix" linkPath="../_build/target-deps/hdremix">
-    <package name="rtx-remix-hdremix" version="ext-bf2d1d04-release-v1-1" />
+    <package name="rtx-remix-hdremix" version="ext-e52ad80-release-v1-1" />
   </dependency>
   <dependency name="rtx-remix-lookdev-lighting" linkPath="../_build/target-deps/content/rtx-remix-lookdev-lighting">
     <package name="rtx-remix-lookdev-lighting" version="2023.1.0" />
