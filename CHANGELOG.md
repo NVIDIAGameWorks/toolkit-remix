@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - General cleanup of CI scripts
 - GitHub actions on demand
 - Update hdremix to ext-bf2d1d04-release-v1-1
+- Update omni_core_materials to ext-bf2d1d0-release-v1.1
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension
