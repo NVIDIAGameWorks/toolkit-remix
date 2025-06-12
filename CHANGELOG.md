@@ -8,15 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.1.0-rc2 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.1.0-rc2]
+
+### Added
 - Created 1.1.0-rc1 build
 
 ### Changed
 - Update omni_core_materials to ext-bf2d1d0-release-v1.1
 - Update hdremix to ext-e52ad80-release-v1-1
-
-### Fixed
-
-### Removed
 
 ## [1.1.0-rc1]
 
