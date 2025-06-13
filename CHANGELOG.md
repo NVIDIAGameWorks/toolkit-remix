@@ -70,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4248: Fixed AI Tools drag and drop validation
 - REMIX-3651: Artifacts handling by publish jobs
 - REMIX-4204: Just opened projects now show in the home page when closed via "Close Project" button without an app restart.
+- REMIX-4337: Fixed machine ID generation to be unique and deterministic.
 
 ### Removed
 - Cleaned up legacy code and unused files
