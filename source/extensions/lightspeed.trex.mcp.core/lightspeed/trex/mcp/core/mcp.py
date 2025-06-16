@@ -19,9 +19,11 @@ __all__ = ["MCPCore"]
 
 import asyncio
 
+import carb
 from fastmcp import FastMCP
 from fastmcp.server.openapi import RouteMap, RouteType
 from omni.services.core import main
+from omni.services.transport.server.base import utils
 
 from .prompts import MCPPrompts
 
@@ -29,6 +31,23 @@ from .prompts import MCPPrompts
 class MCPCore:
     @classmethod
     def initialize(cls, mcp: FastMCP):
+        settings = carb.settings.get_settings()
+
+        # Use the MCP extension's own settings path
+        host = settings.get("/exts/lightspeed.trex.mcp.core/host") or "127.0.0.1"
+        port = settings.get_as_int("/exts/lightspeed.trex.mcp.core/port") or 8000
+        allow_range = settings.get_as_bool("/exts/lightspeed.trex.mcp.core/allow_port_range")
+        log_level = settings.get("/exts/lightspeed.trex.mcp.core/log_level") or "warning"
+
+        # Check if port is available before doing any setup
+        validated_port = utils.validate_port(port, allow_range=allow_range)
+        if validated_port != port:
+            carb.log_warn(
+                f"MCP server was meant to start on {port} but port is taken, starting on port {validated_port} instead"
+            )
+            settings.set("/exts/lightspeed.trex.mcp.core/port", validated_port)
+            port = validated_port
+
         # Mount the REST API MCP server
         rest_api_mcp = FastMCP.from_fastapi(
             main.get_app(),
@@ -44,5 +63,6 @@ class MCPCore:
 
         MCPPrompts.register_prompts(mcp)
 
-        # Run the MCP server in SSE mode
-        asyncio.ensure_future(mcp.run_async(transport="sse"))
+        # Run the MCP server in SSE mode with configured host and port
+        asyncio.ensure_future(mcp.run_async(transport="sse", host=host, port=port, log_level=log_level))
+        carb.log_info(f"MCP server initialized on {host}:{port}")

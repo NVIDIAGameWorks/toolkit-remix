@@ -1,5 +1,5 @@
 [package]
-version = "1.0.1"
+version = "1.1.0"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Micro-Service MCP Server"
 description = "Micro-Service MCP Server Core for NVIDIA RTX Remix"
@@ -14,6 +14,13 @@ preview_image = "data/preview.png"
 "lightspeed.trex.service.core" = {}  # Make sure the REST API is started before the MCP server
 "lightspeed.pip_archive" = {}  # For FastMCP
 "omni.services.core" = {}
+"omni.services.transport.server.base" = {}
+
+[settings.exts."lightspeed.trex.mcp.core"]
+host = "127.0.0.1"
+port = 8000
+allow_port_range = true
+log_level = "warning"
 
 [[python.module]]
 name = "lightspeed.trex.mcp.core"
@@ -30,7 +37,7 @@ args = [
 stdoutFailPatterns.exclude = [
     # MCP Logging
     "*[Error] [fastmcp.utilities.openapi] Failed to extract schema for media type*",
-    "*[py stderr]: *INFO*",
+    "*[py stderr]: *INFO* Created FastMCP OpenAPI server with openapi*",
     "*[py stderr]: *routes*",
     # Generic Error
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
@@ -49,7 +56,7 @@ args = [
 stdoutFailPatterns.exclude = [
     # MCP Logging
     "*[Error] [fastmcp.utilities.openapi] Failed to extract schema for media type*",
-    "*[py stderr]: *INFO*",
+    "*[py stderr]: *INFO* Created FastMCP OpenAPI server with openapi*",
     "*[py stderr]: *routes*",
     # Generic Error
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
