@@ -510,7 +510,7 @@ class SetupUI:
 
     def __remove_material_override(self, prims: list[Usd.Prim]):
         with omni.kit.undo.group():
-            for prim in prims:
+            for prim in self.__get_meshes_from_instances(prims):
                 if self._has_material_override([prim]):
                     _ToolMaterialCore.remove_material_override(self._context_name, prim)
 
@@ -518,7 +518,7 @@ class SetupUI:
 
     def __new_material_override(self, mdl_file_name: str, prims: list[Usd.Prim]):
         with omni.kit.undo.group():
-            for prim in prims:
+            for prim in self.__get_meshes_from_instances(prims):
                 if self._has_material_override([prim]):
                     self.__remove_material_override([prim])
                 _ToolMaterialCore.create_new_material_override(
@@ -533,8 +533,19 @@ class SetupUI:
 
     def __convert_material(self, mdl_file_name: str, prims: list[Usd.Prim]):
         with omni.kit.undo.group():
-            _ToolMaterialCore.convert_materials(prims, mdl_file_name, context_name=self._context_name)
+            _ToolMaterialCore.convert_materials(
+                self.__get_meshes_from_instances(prims),
+                mdl_file_name,
+                context_name=self._context_name,
+            )
             self.__on_material_changed()
+
+    def __get_meshes_from_instances(self, prims: list[Usd.Prim]) -> list[Usd.Prim]:
+        """Get the meshes from the instances."""
+        return [
+            self._stage.GetPrimAtPath(prim_path)
+            for prim_path in self._asset_replacement_core.get_corresponding_prototype_prims(prims)
+        ]
 
     @staticmethod
     def _shorten_material_id_string(input_string: str, size: int, delimiter: str):
