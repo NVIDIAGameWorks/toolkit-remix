@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added PyCharm Configuration Files
 - Added GitHub publishing
 - REMIX-4216: Added telemetry to select parts of the app
+- Added Langflow-specific documentation
 
 ### Changed
 - Improved the documentation layout and contents
