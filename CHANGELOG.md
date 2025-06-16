@@ -71,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3651: Artifacts handling by publish jobs
 - REMIX-4204: Just opened projects now show in the home page when closed via "Close Project" button without an app restart.
 - REMIX-4337: Fixed machine ID generation to be unique and deterministic.
+- REMIX-4333: Fixed MCP server crash when port is already in use
 
 ### Removed
 - Cleaned up legacy code and unused files
