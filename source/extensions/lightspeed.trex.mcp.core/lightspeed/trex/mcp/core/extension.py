@@ -18,7 +18,6 @@
 from typing import Optional
 
 import carb
-import carb.settings
 import omni.ext
 from fastmcp import FastMCP
 
