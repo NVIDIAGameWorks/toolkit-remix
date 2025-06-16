@@ -198,7 +198,11 @@ def _validation_failed_callback(
     )
 
 
-validate_file_selection = functools.partial(_validate_selection, supported_extensions=_SUPPORTED_ASSET_EXTENSIONS)
+validate_file_selection = functools.partial(
+    _validate_selection,
+    supported_extensions=_SUPPORTED_ASSET_EXTENSIONS,
+    case_sensitive_supported_extensions=_CASE_SENSITIVE_ASSET_EXTENSIONS,
+)
 validate_texture_selection = functools.partial(_validate_selection, supported_extensions=_SUPPORTED_TEXTURE_EXTENSIONS)
 file_validation_failed_callback = functools.partial(
     _validation_failed_callback,
