@@ -90,6 +90,7 @@ publish-github-release:
 ########################################################
 # Trigger GitHub Actions workflow to download toolkit
 ########################################################
+# This should always exclusively be run on Linux since we need "jq" to be installed
 trigger-github-toolkit-download:
   extends:
     - .github_release
@@ -100,10 +101,24 @@ trigger-github-toolkit-download:
   script:
     - echo "Triggering GitHub Actions workflow to download toolkit package"
     - |
+      PAYLOAD=$(jq -n \
+        --arg event_type "trigger-toolkit-download" \
+        --arg commit_sha "$CI_COMMIT_SHA" \
+        --arg ref "$CI_COMMIT_REF_NAME" \
+        --arg commit_message "$CI_COMMIT_MESSAGE" \
+        '{
+          event_type: $event_type,
+          client_payload: {
+            commit_sha: $commit_sha,
+            ref: $ref,
+            commit_message: $commit_message
+          }
+        }')
+      
       curl -X POST \
         -H "Accept: application/vnd.github.v3+json" \
         -H "Authorization: token $GITHUB_TOKEN" \
         -H "Content-Type: application/json" \
         https://api.github.com/repos/NVIDIAGameWorks/toolkit-remix/dispatches \
-        -d "{\"event_type\":\"trigger-toolkit-download\",\"client_payload\":{\"commit_sha\":\"$CI_COMMIT_SHA\",\"ref\":\"$CI_COMMIT_REF_NAME\"}}"
+        -d "$PAYLOAD"
     - echo "GitHub Actions workflow triggered successfully"
