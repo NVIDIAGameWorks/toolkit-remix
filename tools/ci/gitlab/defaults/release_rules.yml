@@ -6,6 +6,7 @@
       when: always  # Run this job when a tag is created manually
 
 .github_release:
+  interruptible: false
   stage: github_release
   rules: ## Automatically run publish job only on merge commit to main
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"

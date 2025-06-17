@@ -7,7 +7,7 @@
 publish-extensions-windows:
   stage: publish_extensions
   extends:
-    - .defaults
+    - .release_defaults
     - .windows_agent
     - .windows_vault
   needs:
@@ -25,8 +25,6 @@ publish-extensions-windows:
     - if (!$?) { $fail_wr = $true }
     - Write-Host "WinRel=$fail_wr"
     - if ($fail_wr) { Exit 1 }
-  variables:
-    GIT_STRATEGY: fetch
   rules:
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
 
@@ -34,7 +32,7 @@ publish-extensions-windows:
 publish-extensions-linux:
   stage: publish_extensions
   extends:
-    - .defaults
+    - .release_defaults
     - .linux_agent
     - .linux_vault
   needs:
@@ -50,7 +48,5 @@ publish-extensions-linux:
     - ./repo.sh ci publish_extensions --config release --platform linux-x86_64 || fail_wr=1
     - echo "WinRel=${fail_wr}"
     - '[ "$fail_wr" -eq 0 ] || exit 1'
-  variables:
-    GIT_STRATEGY: fetch
   rules:
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"

@@ -105,13 +105,13 @@ trigger-github-toolkit-download:
         --arg event_type "trigger-toolkit-download" \
         --arg commit_sha "$CI_COMMIT_SHA" \
         --arg ref "$CI_COMMIT_REF_NAME" \
-        --arg commit_message "$CI_COMMIT_MESSAGE" \
+        --arg commit_title "$CI_COMMIT_TITLE" \
         '{
           event_type: $event_type,
           client_payload: {
             commit_sha: $commit_sha,
             ref: $ref,
-            commit_message: $commit_message
+            commit_title: $commit_title
           }
         }')
       

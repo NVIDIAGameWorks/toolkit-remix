@@ -1,6 +1,6 @@
 name: Download RTX Remix Toolkit Package
 
-run-name: '${{ github.event.client_payload.commit_message }}'
+run-name: '${{ github.event.client_payload.commit_title }}'
 
 on:
   repository_dispatch:
