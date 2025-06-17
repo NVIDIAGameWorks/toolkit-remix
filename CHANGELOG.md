@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Langflow-specific documentation
 
 ### Changed
+- Changed the GH actions commit message to the actual commit message in the source
+- Update remix_runtime to remix-1.1.0-rc3
+- Update omni_core_materials to ext-63e88265-release-v1.1
+- Update hdremix to ext-63e8826-release-v1-1
 
 ### Fixed
 - REMIX-4337: Fixed machine ID generation to be unique and deterministic.
@@ -30,7 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Update omni_core_materials to ext-bf2d1d0-release-v1.1
 - Update hdremix to ext-e52ad80-release-v1-1
-- Changed the GH actions commit message to the actual commit message in the source
 
 ## [1.1.0-rc1]
 
