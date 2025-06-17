@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.1.0-rc3 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.1.0-rc3]
+
+### Added
 - Created 1.1.0-rc2 build
 - Added Langflow-specific documentation
 
@@ -23,8 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4348: Fixed Material Property Widget to account for instance prims
 - Fixed Add button validation for ingestion
 - REMIX-4253: Fixed crash when previewing normal maps (or any non-RGBA textures)
-
-### Removed
 
 ## [1.1.0-rc2]
 
