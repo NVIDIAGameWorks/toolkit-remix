@@ -293,9 +293,7 @@ class FileTexturePicker(_FilePicker):
                     with ui.CanvasFrame(style_type_name_override="ImagePreviewCanvas"):
                         with Image.open(resolved_path) as im:
                             provider = ui.ByteImageProvider()
-                            channels = im.getdata().mode
-                            if len(channels) == 1:
-                                im = im.convert("RGBA")
+                            im = im.convert("RGBA")
                             provider.set_bytes_data(list(im.getdata()), [im.size[0], im.size[1]])
                             self._texture_viewer_widget = ui.ImageWithProvider(provider)
                 with ui.ScrollingFrame(name="WorkspaceBackground", width=ui.Pixel(300)):
