@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.19.2]
+## Fixed
+- REMIX-4253: Fixed crash when previewing normal maps (or any non-RGBA textures)
+
 ## [2.19.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS
