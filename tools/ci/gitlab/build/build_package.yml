@@ -4,7 +4,7 @@
 ####################################
 build-package-windows:
   extends:
-    - .defaults
+    - .release_defaults
     - .windows_agent
   stage: build_package
   before_script:
@@ -22,11 +22,11 @@ build-package-windows:
   rules: ## Automatically run publish job only on merge commit to main
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
       when: always
-    - when: never
+
 
 build-package-linux:
   extends:
-    - .defaults
+    - .release_defaults
     - .linux_agent_gpu
   stage: build_package
   before_script:
@@ -42,7 +42,7 @@ build-package-linux:
   rules: ## Automatically run publish job only on merge commit to main
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
       when: always
-    - when: never
+
 
 #########################################
 # Gitlab build jobs for Windows and Linux

@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update omni_core_materials to ext-bf2d1d0-release-v1.1
 - Update hdremix to ext-e52ad80-release-v1-1
 - Changed the GH actions commit message to the actual commit message in the source
+- Changed GH actions commit message to commit title and non interruptible Gitlab releases
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension

@@ -4,3 +4,9 @@
     GIT_STRATEGY: fetch
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_REF_NAME != "main"
+
+# Release jobs are not interruptible, they always should be run on push to main
+.release_defaults:
+  interruptible: false
+  variables:
+    GIT_STRATEGY: fetch
