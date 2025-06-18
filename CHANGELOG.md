@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed GH actions commit message to commit title and non interruptible Gitlab releases
 - Update hdremix to ext-1cfe726-main
 - Update omni_core_materials to ext-1cfe726-main
+- Updated dependabot config to update dependencies as a group
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension

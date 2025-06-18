@@ -32,32 +32,15 @@ mr_title = "bump repo tools"
 repo_update_args = ["repo_", "--major"]
 dependabot_branch_name = "update-repo-tools"
 
-[updater.rtx_remix_omni_core_materials]
+# update rtx-remix dependencies (all at once, to latest)
+[updater.rtx_remix_deps]
 enabled = true
 type = "repo_update"
 schedule = "daily"
-mr_title = "bump rtx-remix-omni_core_materials"
-repo_update_args = ["rtx-remix-omni_core_materials", "--major", "--include-pre-release"]
+mr_title = "bump rtx-remix dependencies"
+repo_update_args = ["rtx-remix-", "--major", "--include-pre-release", "--sort-by-date"]
 required_paths = ["deps/target-deps.packman.xml"]
-dependabot_branch_name = "update-rtx-remix-omni_core_materials"
-
-[updater.rtx-remix-remix_runtime]
-enabled = true
-type = "repo_update"
-schedule = "daily"
-mr_title = "bump rtx-remix-remix_runtime"
-repo_update_args = ["rtx-remix-remix_runtime", "--major", "--include-pre-release"]
-required_paths = ["deps/target-deps.packman.xml"]
-dependabot_branch_name = "update-rtx-remix-remix_runtime"
-
-[updater.rtx-remix-hdremix]
-enabled = true
-type = "repo_update"
-schedule = "daily"
-mr_title = "bump rtx-remix-hdremix"
-repo_update_args = ["rtx-remix-hdremix", "--major", "--include-pre-release"]
-required_paths = ["deps/target-deps.packman.xml"]
-dependabot_branch_name = "update-rtx-remix-hdremix"
+dependabot_branch_name = "update-rtx-remix-target-deps"
 
 ## Kit SDK updater
 #[updater.kit_sdk]
