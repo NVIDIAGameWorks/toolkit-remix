@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update hdremix to ext-1cfe726-main
 - Update omni_core_materials to ext-1cfe726-main
 - Updated dependabot config to update dependencies as a group
+- Update hdremix + omni_core_materials to ext-ed79b22-main (to fix public builds)
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension
