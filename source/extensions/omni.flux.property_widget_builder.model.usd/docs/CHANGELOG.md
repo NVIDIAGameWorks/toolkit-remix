@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.19.3]
+## Fixed
+- REMIX-4246: Preventing vector property widgets trying to convert values to python native types like float and resetting the property to the default value by calling the correct method.
+
 ## [2.19.2]
 ## Fixed
 - REMIX-4253: Fixed crash when previewing normal maps (or any non-RGBA textures)

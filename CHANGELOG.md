@@ -82,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4348: Fixed Material Property Widget to account for instance prims
 - Fixed Add button validation for ingestion
 - REMIX-4253: Fixed crash when previewing normal maps (or any non-RGBA textures)
+- REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
 
 ### Removed
 - Cleaned up legacy code and unused files
