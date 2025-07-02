@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created 1.1.0-rc3 build
 
 ### Changed
+- Update remix_runtime to remix-1.1.0-rc4
+- Update hdremix to ext-53304f5-release-v1-1
+- Update omni_core_materials to ext-53304f5-release-v1-1
 
 ### Fixed
 
