@@ -84,7 +84,7 @@ VEC_TYPES = (
 )
 
 
-TYPE_BUILDER_TABLE = {
+GF_TO_PYTHON_TYPE = {
     tf_half: float,
     tf_float: float,
     tf_double: float,
@@ -95,16 +95,16 @@ TYPE_BUILDER_TABLE = {
     tf_uint64: int,
     tf_bool: bool,
     tf_string: str,
-    tf_gf_vec2i: int,
-    tf_gf_vec2h: int,
+    tf_gf_vec2i: float,  # TODO: Improve data type handling so PropertyWidgets don't need hardcoded conversions anymore.
+    tf_gf_vec2h: float,
     tf_gf_vec2f: float,
     tf_gf_vec2d: float,
-    tf_gf_vec3i: int,
-    tf_gf_vec3h: int,
+    tf_gf_vec3i: float,
+    tf_gf_vec3h: float,
     tf_gf_vec3f: float,
     tf_gf_vec3d: float,
-    tf_gf_vec4i: int,
-    tf_gf_vec4h: int,
+    tf_gf_vec4i: float,
+    tf_gf_vec4h: float,
     tf_gf_vec4f: float,
     tf_gf_vec4d: float,
     tf_gf_col3d: float,

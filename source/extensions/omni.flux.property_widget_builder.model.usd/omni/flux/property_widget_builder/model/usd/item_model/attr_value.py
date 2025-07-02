@@ -28,7 +28,7 @@ from omni.flux.property_widget_builder.widget import Serializable as _Serializab
 from omni.flux.utils.common import path_utils as _path_utils
 from pxr import Gf, Sdf, Usd
 
-from ..mapping import MULTICHANNEL_BUILDER_TABLE, TYPE_BUILDER_TABLE, VEC_TYPES, VecType
+from ..mapping import GF_TO_PYTHON_TYPE, MULTICHANNEL_BUILDER_TABLE, VEC_TYPES, VecType
 from ..utils import get_default_attribute_value as _get_default_attribute_value
 from ..utils import get_item_attributes as _get_item_attributes
 from ..utils import get_metadata as _get_metadata
@@ -69,7 +69,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         else:
             type_name = self._get_type_name(self.metadata)
         self._type_name: Sdf.ValueTypeName = type_name
-        self._override_value_type = TYPE_BUILDER_TABLE.get(self._type_name)
+        self._convert_type = GF_TO_PYTHON_TYPE.get(self._type_name)
 
         self._value = None  # The value that will be represented by the widget
         self._values = []  # The values of all the attribute paths
@@ -303,11 +303,15 @@ class UsdAttributeBase(_Serializable, abc.ABC):
             return False
 
         new_value = value
-        if self._override_value_type is not None:
+        if self._convert_type is not None:
             try:
-                new_value = self._override_value_type(value)
+                new_value = self._convert_type(value)
             except ValueError:
-                carb.log_warn(f"Failed to use override type: {self._override_value_type} with value: {value}")
+                attribs_names = [attr.GetName() for attr in self.attributes]
+                carb.log_warn(
+                    f"Failed to use convert type: {self._convert_type} with value: "
+                    f"{value} for attributes: {attribs_names}"
+                )
 
         self._set_internal_value(new_value)
 
@@ -406,7 +410,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         for index, attribute in enumerate(self.attributes):
             if not attribute:
                 continue
-            default_value = _get_default_attribute_value(attribute)
+            default_value = self._get_default_value(attribute)
             if default_value is None:
                 continue
             # If the item is subscriptable, get the right value
