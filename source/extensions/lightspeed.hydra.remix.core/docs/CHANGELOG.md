@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.7.0]
+## Fixed
+- Refactored hdremix loading to be resilient to test race conditions
+
+## Changed
+- Cleaned up code and added typing
+
 ## [0.6.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS
