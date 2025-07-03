@@ -16,9 +16,6 @@
 """
 
 import asyncio
-import ctypes
-from enum import Enum
-from typing import Tuple
 
 import carb
 import lightspeed.hydra.remix.core.extern as extern
@@ -29,88 +26,17 @@ from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 CARB_SETTING_SHOW_REMIX_SUPPORT_POPUP = "exts/lightspeed/hydra/remix/showpopup"
 
 
-class RemixSupport(Enum):
-    WAITING_FOR_INIT = -1
-    NOT_SUPPORTED = 0
-    SUPPORTED = 1
-
-
-hdremix_issupported = RemixSupport.WAITING_FOR_INIT
-hdremix_errormessage = "<HdRemixFinalizer.check_support was not called>"
-
-
-def is_remix_supported() -> Tuple[RemixSupport, str]:
-    return (hdremix_issupported, hdremix_errormessage)
-
-
 class HdRemixFinalizer(omni.ext.IExt):
-    """Loads HdRemix.dll and stores whether Remix is supported"""
-
-    def __init__(self):
-        super().__init__()
-        self.__dll = None
-
-    def __check_support(self) -> Tuple[RemixSupport, str]:
-        """Request HdRemix about support."""
-        if self.__dll is None:
-            carb.log_info(r"Loading HdRemix.dll with ctypes.cdll.LoadLibrary(\"HdRemix.dll\")...")
-            try:
-                self.__dll = ctypes.cdll.LoadLibrary("HdRemix.dll")
-            except FileNotFoundError:
-                msg = "HdRemix.dll is not loaded into the process yet. Will Retry."
-                carb.log_info(msg)
-                return (RemixSupport.WAITING_FOR_INIT, msg)
-        dll = self.__dll
-
-        if not hasattr(dll, "hdremix_issupported"):
-            msg = "HdRemix.dll doesn't have 'hdremix_issupported' function.\nAssuming that Remix is not supported."
-            carb.log_error(msg)
-            return (RemixSupport.NOT_SUPPORTED, msg)
-
-        pfn_issupported = dll.hdremix_issupported
-        pfn_issupported.argtypes = [ctypes.POINTER(ctypes.c_char_p)]
-        pfn_issupported.restype = ctypes.c_int
-
-        out_errormessage_cstr = ctypes.c_char_p("".encode("utf-8"))
-        ok = pfn_issupported(ctypes.pointer(out_errormessage_cstr))
-
-        if ok != 1:
-            # pylint: disable=no-member
-            if out_errormessage_cstr and out_errormessage_cstr.value:
-                msg = out_errormessage_cstr.value.decode("utf-8")
-            else:
-                msg = "Remix error occurred, but no message" if ok == 0 else "Remix is being initialized..."
-            if ok == -1:
-                return (RemixSupport.WAITING_FOR_INIT, msg)
-            carb.log_error(msg)
-            return (RemixSupport.NOT_SUPPORTED, msg)
-
-        carb.log_info("HdRemix.dll loaded.")
-        return (RemixSupport.SUPPORTED, "Success")
+    """Loads HdRemix.dll early and shows whether Remix is supported"""
 
     # Do not call more than once, as it's a heavy operation.
     # Cache the value for frequent use.
     @omni.usd.handle_exception
     async def _check_support(self):
-        frames_passed = 0
-        timeout = 500
+        frames_passed = await extern.load_remix_extern_async()
 
-        # set global vars
-        global hdremix_issupported, hdremix_errormessage
-
-        # busy wait until Remix has been initialized
-        while hdremix_issupported == RemixSupport.WAITING_FOR_INIT:
-            hdremix_issupported, hdremix_errormessage = self.__check_support()
-            await omni.kit.app.get_app().next_update_async()
-            frames_passed += 1
-            if frames_passed > timeout:
-                hdremix_issupported = RemixSupport.NOT_SUPPORTED
-                hdremix_errormessage = "Remix initialization timeout"
-                carb.log_error(hdremix_errormessage)
-                return
-
-        if hdremix_issupported == RemixSupport.SUPPORTED:
-            extern.remix_extern_init()
+        hdremix_support_level, hdremix_error_message = extern.is_remix_supported()
+        if hdremix_support_level == extern.RemixSupport.SUPPORTED:
             return
 
         if not carb.settings.get_settings().get_as_bool(CARB_SETTING_SHOW_REMIX_SUPPORT_POPUP):
@@ -125,7 +51,7 @@ class HdRemixFinalizer(omni.ext.IExt):
 
         self._dialog = _TrexMessageDialog(
             title="RTX Remix Renderer failed to initialize",
-            message=hdremix_errormessage,
+            message=hdremix_error_message,
             ok_label="Exit",
             ok_handler=exit_app,
             on_window_closed_fn=exit_app,
@@ -134,10 +60,8 @@ class HdRemixFinalizer(omni.ext.IExt):
 
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.hydra.remix.core] Startup")
-        self.__dll = None
         asyncio.ensure_future(self._check_support())
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.hydra.remix.core] Shutdown")
         extern.remix_extern_destroy()
-        self.__dll = None
