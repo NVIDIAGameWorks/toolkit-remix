@@ -84,6 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4253: Fixed crash when previewing normal maps (or any non-RGBA textures)
 - REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
 - REMIX-4311: Fix for flaky viewport test by hardening hdremix initialization
+- Increased delays for material property tests
 
 ### Removed
 - Cleaned up legacy code and unused files

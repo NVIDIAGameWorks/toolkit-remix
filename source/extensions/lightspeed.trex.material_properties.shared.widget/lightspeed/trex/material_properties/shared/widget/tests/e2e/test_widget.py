@@ -837,10 +837,10 @@ class TestMaterialPropertyWidget(AsyncTestCase):
                     str(asset_path), end_key=KeyboardInput.ENTER
                 )
                 await picker_buttons[TestComponents.FILE_PICKER_OPEN].click()
-                await ui_test.human_delay(10)
+                await ui_test.human_delay(20)
 
-                action_button = ui_test.find_all("Texture Assignment//Frame/**/Button[*].identifier=='AssignButton'")
-                await action_button[0].click()
+                action_button = ui_test.find("Texture Assignment//Frame/**/Button[*].identifier=='AssignButton'")
+                await action_button.click()
                 await ui_test.human_delay(3)
 
                 ignore_ingestion_button = ui_test.find(
@@ -987,7 +987,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             menu_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].identifier=='menu_burger_image'")
             self.assertIsNotNone(menu_image)
             await menu_image.click()
-            await ui_test.human_delay(5)
+            await ui_test.human_delay(15)
 
             # grab hamburger menu and ensure it is populated correctly
             context_menu = await omni.kit.ui_test.menu.get_context_menu()
@@ -995,7 +995,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
 
             # click away and reset context_menu var
             await ui_test.emulate_mouse_move_and_click(menu_image.position - ui_test.Vec2(10, 0))
-            await ui_test.human_delay(5)
+            await ui_test.human_delay(10)
 
             # select something different
             usd_context.get_selection().set_selected_prim_paths(
@@ -1007,7 +1007,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             menu_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].identifier=='menu_burger_image'")
             self.assertIsNotNone(menu_image)
             await menu_image.click()
-            await ui_test.human_delay(5)
+            await ui_test.human_delay(15)
 
             # grab hamburger menu and ensure it is populated correctly
             context_menu = await omni.kit.ui_test.menu.get_context_menu()
@@ -1015,7 +1015,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
 
             # click away to avoid interference with other tests
             await ui_test.emulate_mouse_move_and_click(menu_image.position - ui_test.Vec2(10, 0))
-            await ui_test.human_delay(5)
+            await ui_test.human_delay(10)
 
         finally:
             await self.__destroy(_window, _material_property_wid)

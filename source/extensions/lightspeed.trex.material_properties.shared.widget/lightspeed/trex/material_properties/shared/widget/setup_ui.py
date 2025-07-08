@@ -91,6 +91,7 @@ class SetupUI:
             "_convert_translucent_button": None,
             "_sub_on_material_refresh_done": None,
             "_external_drag_and_drop": None,
+            "_texture_dialog": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -107,6 +108,7 @@ class SetupUI:
         self._current_material_mdl_file: Path | None = None
         self._unfiltered_selected_prims: list[Usd.Prim] = []
         self._material_properties_frames = {}
+        self._texture_dialog = None
 
         # Populated during a right click event within `_show_copy_menu` to avoid garbage collection
         self._context_menu: ui.Menu | None = None
@@ -343,8 +345,8 @@ class SetupUI:
             else:
                 checked_boxes = []
 
-            if not checked_boxes and self._dialog:
-                self._dialog.hide()
+            if not checked_boxes and self._texture_dialog:
+                self._texture_dialog.hide()
                 return
 
             with omni.kit.undo.group():
@@ -360,8 +362,8 @@ class SetupUI:
                             ).replace("\\", "/")
                             value_model.set_value(rel_path)
 
-            if self._dialog:
-                self._dialog.hide()
+            if self._texture_dialog:
+                self._texture_dialog.hide()
 
         # Allow for skipping the dialog, if needed
         if allow_dialog_skip:
@@ -372,7 +374,7 @@ class SetupUI:
         for _ in range(len(texture_dict)):
             base_height += 24
         # Dialog to ask for one or all textures
-        self._dialog = TextureDialog(
+        self._texture_dialog = TextureDialog(
             "Texture Assignment",
             visible=True,
             width=500,
@@ -392,7 +394,7 @@ class SetupUI:
         for texture_type, texture_path in texture_dict.items():
             model.add_item(Path(texture_path).name, texture_type)
         delegate = Delegate()
-        with self._dialog.frame:
+        with self._texture_dialog.frame:
             with ui.HStack(spacing=ui.Pixel(self._WIDGET_PADDING)):
                 ui.Spacer(width=0)
                 with ui.VStack(spacing=ui.Pixel(self._WIDGET_PADDING)):
@@ -422,7 +424,7 @@ class SetupUI:
                             identifier="AssignButton",
                             clicked_fn=functools.partial(assign_texture),
                         )
-                        ui.Button(text="Cancel", identifier="CancelButton", clicked_fn=self._dialog.hide)
+                        ui.Button(text="Cancel", identifier="CancelButton", clicked_fn=self._texture_dialog.hide)
                         ui.Spacer()
                     ui.Spacer(height=0)
                 ui.Spacer(width=0)
