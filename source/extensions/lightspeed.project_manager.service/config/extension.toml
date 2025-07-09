@@ -1,5 +1,5 @@
 [package]
-version = "2.0.1"
+version = "2.0.2"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"

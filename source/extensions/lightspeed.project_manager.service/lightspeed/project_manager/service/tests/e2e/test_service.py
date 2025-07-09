@@ -83,3 +83,45 @@ class TestProjectManagerService(AsyncTestCase):
 
         # Assert
         self.assertEqual(response.status_code, 422)
+
+    async def test_close_project_without_pending_changes_should_succeed(self):
+        # Arrange
+        async with open_test_project("usd/full_project/full_project.usda", __name__):
+            # Act - Close project without pending changes (should succeed)
+            response = await send_request("DELETE", self.project_manager.prefix, raw_response=True)
+
+            # Assert - Should return 200 OK (no pending changes, closes successfully)
+            self.assertEqual(response.status_code, 200, msg=response.json())
+            self.assertEqual(response.json(), "OK")
+
+            # Verify no project is loaded after closing
+            get_response = await send_request("GET", self.project_manager.prefix, raw_response=True)
+            self.assertEqual(get_response.status_code, 404)
+
+    async def test_close_project_with_force_flag_should_succeed(self):
+        # Arrange
+        async with open_test_project("usd/full_project/full_project.usda", __name__):
+            # Act - Close project with force flag (should always succeed)
+            response = await send_request("DELETE", f"{self.project_manager.prefix}?force=true", raw_response=True)
+
+            # Assert - Should return 200 OK (force flag bypasses pending changes check)
+            self.assertEqual(response.status_code, 200, msg=response.json())
+            self.assertEqual(response.json(), "OK")
+
+            # Verify no project is loaded after closing
+            get_response = await send_request("GET", self.project_manager.prefix, raw_response=True)
+            self.assertEqual(get_response.status_code, 404)
+
+    async def test_close_project_without_project_loaded_should_handle_gracefully(self):
+        # Arrange - No project loaded
+
+        # Act - Try to close project when none is loaded
+        close_response = await send_request("DELETE", self.project_manager.prefix, raw_response=True)
+
+        # Assert - Should still return success (graceful handling for no project)
+        self.assertEqual(close_response.status_code, 200)
+        self.assertEqual(close_response.json(), "OK")
+
+        # Verify no project is loaded (should still be 404)
+        get_response = await send_request("GET", self.project_manager.prefix, raw_response=True)
+        self.assertEqual(get_response.status_code, 404)

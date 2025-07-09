@@ -91,6 +91,20 @@ class LayerManagerCore:
     def open_project_with_data_models(self, params: OpenProjectPathParamModel):
         self.__context.open_stage(str(params.layer_id))
 
+    def close_project_with_data_models(self, force: bool = False):
+        # Return early if no stage is loaded
+        if not self.__context.get_stage():
+            return
+
+        # Raise exception if there are unsaved changes and force is False
+        if self.__context.has_pending_edit() and not force:
+            raise ValueError(
+                "The stage has pending changes. Please save the pending changes or "
+                "set the force flag to True to discard the pending changes and close the project."
+            )
+
+        self.__context.close_stage()
+
     def get_layer_stack_with_data_models(self, query: GetLayersQueryModel) -> LayerStackResponseModel:
         if query.layer_types is not None:
             layers_dict = {}
