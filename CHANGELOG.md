@@ -86,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
 - REMIX-4311: Fix for flaky viewport test by hardening hdremix initialization
 - Increased delays for material property tests
+- REMIX-4396: Fix initial camera position on capture load and waypoint creation for new captures
 
 ### Removed
 - Cleaned up legacy code and unused files

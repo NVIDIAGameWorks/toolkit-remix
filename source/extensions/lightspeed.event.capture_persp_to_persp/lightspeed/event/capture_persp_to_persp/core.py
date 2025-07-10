@@ -90,7 +90,10 @@ class CopyCapturePerspToPerspCore(_ILSSEvent):
                 camera_prim = stage.GetPrimAtPath(self._PERSP_PATH)
                 if not camera_prim.IsValid():
                     return
-                Sdf.CopySpec(capture_layer, "/RootNode/Camera", session_layer, self._PERSP_PATH)
+                captured_camera_prim = stage.GetPrimAtPath(constants.CAPTURED_CAMERA)
+                if not captured_camera_prim.IsValid():  # support legacy camera location
+                    captured_camera_prim = stage.GetPrimAtPath(constants.ROOTNODE_CAMERA)
+                Sdf.CopySpec(capture_layer, captured_camera_prim.GetPath(), session_layer, self._PERSP_PATH)
 
                 attr_position, _attr_rotation, _attr_scale, _attr_order = omni.usd.TransformHelper().get_transform_attr(
                     camera_prim.GetAttributes()
