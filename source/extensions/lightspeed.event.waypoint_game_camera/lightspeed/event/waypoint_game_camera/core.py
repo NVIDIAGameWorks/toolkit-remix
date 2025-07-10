@@ -20,6 +20,7 @@ import asyncio
 import carb
 import omni.kit.usd.layers as _layers
 import omni.usd
+from lightspeed.common.constants import CAPTURED_CAMERA, ROOTNODE_CAMERA
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManager
 from lightspeed.layer_manager.core import LayerType as _LayerType
@@ -89,13 +90,15 @@ class WaypointGameCameraCore(_ILSSEvent):
         if not stage:
             carb.log_warn("No stage found. Not setting waypoint.")
             return
-        game_camera = stage.GetPrimAtPath("/RootNode/Camera")
+        game_camera = stage.GetPrimAtPath(CAPTURED_CAMERA)
+        if not game_camera:  # support legacy camera location
+            game_camera = stage.GetPrimAtPath(ROOTNODE_CAMERA)
         if not game_camera:
             carb.log_warn("No game camera found. Not setting waypoint.")
             return
 
         # Need to wait for the camera to switch + image to render
-        self._waypoint_instance.waypoint_obj.viewport_widget.set_active_camera("/RootNode/Camera")
+        self._waypoint_instance.waypoint_obj.viewport_widget.set_active_camera(game_camera.GetPath())
         for _ in range(6):
             await omni.kit.app.get_app().next_update_async()
 

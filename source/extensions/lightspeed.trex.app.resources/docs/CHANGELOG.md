@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.18.0]
+## Changed
+- Show cameras in "All Prims" tab by default
+
 ## [1.17.2]
 ## Fixed
 - Fixed location of deployed runtime to match docs and be available to users
