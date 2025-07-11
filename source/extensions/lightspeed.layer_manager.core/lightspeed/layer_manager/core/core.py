@@ -91,6 +91,9 @@ class LayerManagerCore:
     def open_project_with_data_models(self, params: OpenProjectPathParamModel):
         self.__context.open_stage(str(params.layer_id))
 
+    def close_project_with_data_models(self):
+        self.__context.close_stage()
+
     def get_layer_stack_with_data_models(self, query: GetLayersQueryModel) -> LayerStackResponseModel:
         if query.layer_types is not None:
             layers_dict = {}

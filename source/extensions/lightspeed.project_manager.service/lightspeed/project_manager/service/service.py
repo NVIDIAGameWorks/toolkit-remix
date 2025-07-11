@@ -58,3 +58,7 @@ class ProjectManagerService(ServiceBase):
             )
         ) -> str:
             return self.__layer_core.open_project_with_data_models(layer_id) or "OK"
+
+        @self.router.delete(path="/", operation_id="close_project", description="Close the currently open project.")
+        async def close_project() -> str:
+            return self.__layer_core.close_project_with_data_models() or "OK"
