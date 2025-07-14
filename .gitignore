@@ -136,3 +136,6 @@ nrc_session_log.txt
 
 # Ignore VSCode Workspaces
 *.code-workspace
+
+# Do not ignore fixture usda files.
+!**/fixtures/**/*.usda

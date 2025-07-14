@@ -1,0 +1,27 @@
+[core]
+reloadable = false
+
+[package]
+version = "0.0.1"
+authors = ["Emanuel Kozerski <ekozerski@nvidia.com>"]
+title = "Remix USD Schema Loader Extension"
+description="Extension responsible for loading our custom USD schemas such as `RemixParticleSystem`."
+readme  = "docs/README.md"
+repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.schemas"
+category = "internal"
+keywords = ["kit", "lightspeed", "schema", "usd", "particle", "system"]
+changelog="docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[dependencies]
+"omni.usd.libs" = {}
+
+[[python.module]]
+name = "lightspeed.trex.schemas"
+
+[[native.library]]
+"filter:platform"."windows-x86_64"."path" = "usd/plugins/RemixParticleSystem/${lib_prefix}RemixParticleSystem${lib_ext}"
+
+[[test]]
+pyCoverageEnabled = true
