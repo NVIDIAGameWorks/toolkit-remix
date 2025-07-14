@@ -1,0 +1,10 @@
+#usda 1.0
+
+def RemixParticleSystem "TestParticles"
+{
+    float gravityForce = 12.34
+    int maxNumParticles = 12345
+    float opacityMultiplier = 0.5
+    bool useTurbulence = 1
+}
+
