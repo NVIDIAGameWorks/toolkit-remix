@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4216: Added telemetry to select parts of the app
 - Added Langflow-specific documentation
 - REMIX-4380: New extension to load our custom USD schemas such as `RemixParticleSystem`
+- REMIX-4426: Added GitHub PR checks
 
 ### Changed
 - Improved the documentation layout and contents

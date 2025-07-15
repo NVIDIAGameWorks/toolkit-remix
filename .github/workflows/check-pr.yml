@@ -1,0 +1,32 @@
+name: Check PR
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  pr-checks:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        check:
+          - name: forbidden-words
+            command: '.\repo.bat check_forbidden_words'
+          - name: test-location
+            command: '.\repo.bat check_test_file_location'
+          - name: format
+            command: '.\format_code.bat --verify'
+          - name: lint
+            command: '.\lint_code.bat all'
+          - name: changelog
+            command: |
+              $merge_base = (git merge-base ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}).Trim()
+              .\repo.bat check_changelog -s ${{ github.event.pull_request.head.sha }} -t $merge_base
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run ${{ matrix.check.name }}
+        shell: pwsh
+        run: ${{ matrix.check.command }}
