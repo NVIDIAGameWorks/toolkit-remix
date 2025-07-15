@@ -89,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4311: Fix for flaky viewport test by hardening hdremix initialization
 - Increased delays for material property tests
 - REMIX-4396: Fix initial camera position on capture load and waypoint creation for new captures
+- Fix viewport zoom speed and update viewports with omni.kit.viewport.window changes
 
 ### Removed
 - Cleaned up legacy code and unused files

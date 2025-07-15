@@ -17,6 +17,10 @@
 
 from typing import Any, Dict
 
+__all__ = ["SimpleGrid", "SimpleOrigin", "CameraAxisLayer"]
+
+# Simple scene items that don't yet warrant a devoted extension
+
 import omni.ui
 from omni.ui import color as cl
 from omni.ui import scene as sc
