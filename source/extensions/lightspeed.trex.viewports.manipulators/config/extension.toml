@@ -1,5 +1,5 @@
 [package]
-version = "1.5.0"
+version = "1.5.1"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -19,7 +19,6 @@ preview_image = "data/preview.png"
 "omni.kit.manipulator.camera" = {}
 "omni.kit.manipulator.prim" = {}
 "omni.kit.manipulator.selection" = {}
-"omni.kit.viewport.legacy_gizmos" = {}
 "omni.kit.widget.viewport" = {}
 "omni.flux.utils.common" = {}
 "omni.ui" = {}

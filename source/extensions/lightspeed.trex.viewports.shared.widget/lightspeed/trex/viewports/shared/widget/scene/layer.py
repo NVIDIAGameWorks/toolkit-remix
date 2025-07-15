@@ -20,6 +20,7 @@ __all__ = ["ViewportSceneLayer"]
 
 import traceback
 import weakref
+from typing import Sequence
 
 import carb
 import omni.ui as ui
@@ -28,7 +29,7 @@ from omni.ui import scene as sc
 
 from ..events import add_event_delegation, remove_event_delegation
 from ..interface.i_layer_item import LayerItem as _LayerItem
-from .utils import flatten_matrix
+from .utils import flatten_matrix as _flatten_matrix
 
 INCLUDED_SCENE_LAYERS = [
     "omni.kit.viewport.manipulator.Selection",
@@ -52,52 +53,66 @@ class _SceneItem(_LayerItem):
         return f"<class {self.__class__.__name__} {self.__instance}>"
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.__instance.name
 
     @property
-    def visible(self):
+    def visible(self) -> bool:
         return self.__transform.visible
 
     @visible.setter
-    def visible(self, value):
+    def visible(self, value: bool):
         self.__transform.visible = bool(value)
         self.__instance.visible = bool(value)
 
     @property
-    def layers(self):
+    def layers(self) -> Sequence:
         return ()
 
     @property
-    def categories(self):
+    def categories(self) -> Sequence:
         return self.__instance.categories
 
     @property
-    def layer(self):
+    def layer(self) -> Sequence:
         return self.__instance
 
     def destroy(self):
-        try:
-            if hasattr(self.__instance, "destroy"):
-                self.__instance.destroy()
-        except Exception:  # noqa
-            carb.log_error(f"Error destroying {self.__instance}. Traceback:\n{traceback.format_exc()}")
-
-        self.__instance = None
-        self.__transform.clear()
-        self.__transform = None
+        instance, self.__instance = self.__instance, None
+        xform, self.__transform = self.__transform, None
+        if xform and callable(getattr(xform, "clear", None)):
+            xform.clear()
+        if instance and callable(getattr(instance, "destroy", None)):
+            try:
+                instance.destroy()
+            except Exception:  # noqa
+                carb.log_error(f"Error destroying {self.__instance}. Traceback:\n{traceback.format_exc()}")
+                raise
 
 
 class ViewportSceneLayer:
     """Viewport Scene Overlay"""
+
+    def __init__(self, factory_args, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__scene_view = None
+        self.__dd_handler = None  # noqa PLW0238
+        self.__view_change_sub = None  # noqa PLW0238
+        self.__scene_items = {}
+        self.__factory_args = factory_args
+        self.__ui_frame = ui.Frame()
+        RegisterScene.add_notifier(self.___scene_type_notification)
+
+    def __del__(self):
+        self.destroy()
 
     @property
     def layers(self):
         return self.__scene_items.values()
 
     def __view_changed(self, viewport_api):
-        self.__scene_view.view = flatten_matrix(viewport_api.view)
-        self.__scene_view.projection = flatten_matrix(viewport_api.projection)
+        self.__scene_view.view = _flatten_matrix(viewport_api.view)
+        self.__scene_view.projection = _flatten_matrix(viewport_api.projection)
 
     def ___scene_type_added(self, factory):
         # Push both our scopes onto the stack, to capture anything that's created
@@ -116,9 +131,9 @@ class ViewportSceneLayer:
             # 1030 Tell the ViewportAPI that we have a SceneView we want it to be updating
             if hasattr(viewport_api, "add_scene_view"):
                 viewport_api.add_scene_view(self.__scene_view)
-                self.__view_change_sub = None  # noqa
+                self.__view_change_sub = None  # noqa PLW0238
             else:
-                self.__view_change_sub = viewport_api.subscribe_to_view_change(self.__view_changed)  # noqa
+                self.__view_change_sub = viewport_api.subscribe_to_view_change(self.__view_changed)  # noqa PLW0238
 
             # 1030 Fixes menu issue triggering selection (should remove hasattr pre 103-final)
             if hasattr(self.__scene_view, "child_windows_input"):
@@ -132,7 +147,7 @@ class ViewportSceneLayer:
                     instance = factory(self.__factory_args.copy())
                     if instance:
                         self.__scene_items[factory] = _SceneItem(transform, instance)
-                except Exception:  # noqa
+                except Exception:  # noqa PLW0718
                     carb.log_error(f"Error loading {factory}. Traceback:\n{traceback.format_exc()}")
 
     def ___scene_type_removed(self, factory):
@@ -147,7 +162,7 @@ class ViewportSceneLayer:
         if not self.__scene_items and self.__scene_view:
             self.__scene_view.destroy()
             self.__scene_view = None
-            self.__dd_handler = None  # noqa
+            self.__dd_handler = None  # noqa PLW0238
 
     def ___scene_type_notification(self, factory, loading):
         if loading:
@@ -155,28 +170,15 @@ class ViewportSceneLayer:
         else:
             self.___scene_type_removed(factory)
 
-    def __init__(self, factory_args, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__scene_items = {}
-        self.__factory_args = factory_args
-        self.__ui_frame = ui.Frame()
-        self.__scene_view = None
-        self.__dd_handler = None  # noqa
-        self.__view_change_sub = None  # noqa
-        RegisterScene.add_notifier(self.___scene_type_notification)
-
-    def __del__(self):
-        self.destroy()
-
     def destroy(self):
         remove_event_delegation(self.__scene_view)
         RegisterScene.remove_notifier(self.___scene_type_notification)
-        self.__dd_handler = None  # noqa
+        self.__dd_handler = None  # noqa PLW0238
         for factory, instance in self.__scene_items.items():
             try:
                 if hasattr(instance, "destroy"):
                     instance.destroy()
-            except Exception:  # noqa
+            except Exception:  # noqa PLW0718
                 carb.log_error(f"Error destroying {instance} from {factory}. Traceback:\n{traceback.format_exc()}")
         if self.__scene_view:
             scene_view, self.__scene_view = self.__scene_view, None
@@ -186,7 +188,7 @@ class ViewportSceneLayer:
                 if hasattr(viewport_api, "remove_scene_view"):
                     viewport_api.remove_scene_view(scene_view)
                 else:
-                    self.__view_change_sub = None  # noqa
+                    self.__view_change_sub = None  # noqa PLW0238
         if self.__ui_frame:
             self.__ui_frame.destroy()
             self.__ui_frame = None

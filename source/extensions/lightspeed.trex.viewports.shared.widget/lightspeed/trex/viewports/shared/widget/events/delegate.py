@@ -24,6 +24,18 @@ import traceback
 import carb
 
 
+def _limit_camera_velocity(value: float, settings: carb.settings.ISettings, context_name: str):
+    cam_limit = settings.get("/exts/omni.kit.viewport.window/cameraSpeedLimit")
+    if context_name in cam_limit:
+        vel_min = settings.get("/persistent/app/viewport/camVelocityMin")
+        if vel_min is not None:
+            value = max(vel_min, value)
+        vel_max = settings.get("/persistent/app/viewport/camVelocityMax")
+        if vel_max is not None:
+            value = min(vel_max, value)
+    return value
+
+
 class ViewportEventDelegate:
     def __init__(self, scene_view, viewport_api):
         self.__scene_view = scene_view
@@ -74,13 +86,14 @@ class ViewportEventDelegate:
             if mouse_value > 0:
                 settings = carb.settings.get_settings()
                 value = settings.get("/persistent/app/viewport/camMoveVelocity") or 1
-                scaler = settings.get("/persistent/app/viewport/camVelocityScalerMultAmount") or 1
-                amount = y * scaler
-                if amount < 0:
-                    value = value / -amount
-                elif amount > 0:
-                    value = value * amount
+                scaler = settings.get("/persistent/app/viewport/camVelocityScalerMultAmount") or 1.1
+                scaler = 1.0 + (max(scaler, 1.0 + 1e-8) - 1.0) * abs(y)
+                if y < 0:
+                    value = value / scaler
+                elif y > 0:
+                    value = value * scaler
                 if math.isfinite(value) and (value > 1e-8):
+                    value = _limit_camera_velocity(value, settings, "scroll")
                     settings.set("/persistent/app/viewport/camMoveVelocity", value)
                 return True
 
@@ -90,7 +103,7 @@ class ViewportEventDelegate:
                 mouse, carb.input.MouseInput.MIDDLE_BUTTON
             )
 
-        except Exception:  # noqa
+        except Exception:  # noqa PLW0718
             carb.log_error(f"Traceback:\n{traceback.format_exc()}")
 
         return False
@@ -119,7 +132,7 @@ class ViewportEventDelegate:
             from omni.kit.manipulator.camera.viewport_camera_manipulator import _zoom_operation
 
             _zoom_operation(x, y, self.viewport_api)
-        except Exception:  # noqa
+        except Exception:  # noqa PLW0718
             carb.log_error(f"Traceback:\n{traceback.format_exc()}")
 
     def key_pressed(self, key_index: int, modifiers: int, is_down: bool):
@@ -136,7 +149,7 @@ class ViewportEventDelegate:
 
     def mouse_moved(self, x: float, y: float, modifiers: int, is_pressed: bool, *args):
         if self.__dd_handler:
-            self.__dd_handler._perform_query(self.__scene_view, (x, y))  # noqa
+            self.__dd_handler._perform_query(self.__scene_view, (x, y))  # noqa PLW0212
 
     def drop_accept(self, url: str):
         return False
