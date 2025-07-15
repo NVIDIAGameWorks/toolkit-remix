@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Created 1.0.0 build
+- This doesn't look right to me chief
 - Added release notes for 1.0.0
 - Added tests for REST API endpoints
 - REMIX-3891: Added Material Property Widget control with Stage Manager Materials Tab
