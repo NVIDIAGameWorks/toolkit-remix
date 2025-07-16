@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.1.0 build
+- REMIX-4380: New extension to load our custom USD schemas such as `RemixParticleSystem`
+- REMIX-4426: Added GitHub PR checks
+
+### Changed
+- Changed GH actions commit message to commit title and non interruptible Gitlab releases
+- Update hdremix to ext-1cfe726-main
+- Update omni_core_materials to ext-1cfe726-main
+- Updated dependabot config to update dependencies as a group
+- Update hdremix + omni_core_materials to ext-ed79b22-main (to fix public builds)
+- Bumped contributor-assistant github CI module from 2.3.2 to 2.5.1 (to fix CLA Assistant github actions)
+
+### Fixed
+- REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
+- REMIX-4311: Fix for flaky viewport test by hardening hdremix initialization
+- Increased delays for material property tests
+- REMIX-4396: Fix initial camera position on capture load and waypoint creation for new captures
+- Fix viewport zoom speed and update viewports with omni.kit.viewport.window changes
+
+### Removed
+
+## [1.1.0]
+
+### Added
 - Created 1.0.0 build
 - Added release notes for 1.0.0
 - Added tests for REST API endpoints
@@ -18,8 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added GitHub publishing
 - REMIX-4216: Added telemetry to select parts of the app
 - Added Langflow-specific documentation
-- REMIX-4380: New extension to load our custom USD schemas such as `RemixParticleSystem`
-- REMIX-4426: Added GitHub PR checks
 
 ### Changed
 - Improved the documentation layout and contents
@@ -36,16 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4220: Replace Legacy Manipulators with Supported Manipulators
 - General cleanup of CI scripts
 - GitHub actions on demand
-- Update hdremix to ext-bf2d1d04-release-v1-1
-- Update omni_core_materials to ext-bf2d1d0-release-v1.1
-- Update hdremix to ext-e52ad80-release-v1-1
+- Update remix_runtime to remix-1.1.0
+- Update hdremix to ext-5d7d916-release-v1-1
+- Update omni_core_materials to ext-5d7d916-release-v1-1
 - Changed the GH actions commit message to the actual commit message in the source
-- Changed GH actions commit message to commit title and non interruptible Gitlab releases
-- Update hdremix to ext-1cfe726-main
-- Update omni_core_materials to ext-1cfe726-main
-- Updated dependabot config to update dependencies as a group
-- Update hdremix + omni_core_materials to ext-ed79b22-main (to fix public builds)
-- Bumped contributor-assistant github CI module from 2.3.2 to 2.5.1 (to fix CLA Assistant github actions)
 
 ### Fixed
 - Fixed tests for the `omni.flux.validator.mass.widget` extension
@@ -85,11 +101,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4348: Fixed Material Property Widget to account for instance prims
 - Fixed Add button validation for ingestion
 - REMIX-4253: Fixed crash when previewing normal maps (or any non-RGBA textures)
-- REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
-- REMIX-4311: Fix for flaky viewport test by hardening hdremix initialization
-- Increased delays for material property tests
-- REMIX-4396: Fix initial camera position on capture load and waypoint creation for new captures
-- Fix viewport zoom speed and update viewports with omni.kit.viewport.window changes
 
 ### Removed
 - Cleaned up legacy code and unused files
