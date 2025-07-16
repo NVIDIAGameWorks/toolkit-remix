@@ -232,10 +232,10 @@ CREDITS = """
             Zachary Kupu - Lead
         QA
             Dmitriy Marshak - Lead
-            Sunny Thakkar
-            Lindsay Lutz
             David Driver-Gromm
             David Vega
+            Lindsay Lutz
+            Sunny Thakkar
         Rendering
             Nuno Subtil - Lead
             Mark Henderson
@@ -251,13 +251,14 @@ CREDITS = """
             Nicholas Freybler
         Tools
             Damien Bataille - Lead
-            Shona Gillard
-            Nicolas Kendall-Bar
             Ed Leafe
+            Emanuel Kozerski
+            Nicolas Kendall-Bar
             Pierre-Olivier Trottier
+            Sam Ahiro
             Sam Bourne
             Scott Fitzpatrick
-            Sam Ahiro
+            Shona Gillard
         AI Research
             James Lucas
         Art Lead

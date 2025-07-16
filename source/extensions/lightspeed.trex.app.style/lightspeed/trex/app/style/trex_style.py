@@ -656,6 +656,9 @@ current_dict.update(
             "font_size": 18,
             "font": ui.url.nvidia_lt,
         },
+        "Label::VersionLabel:hovered": {
+            "color": _WHITE_60,
+        },
         "Label::ProgressLabel": {"color": _WHITE_100},
         "Label::PropertiesWidgetLabel": {"color": _WHITE_70, "font_size": 18, "font": ui.url.nvidia_md},
         "Label::ExperimentalFeatureLabel": {"color": _WHITE_50, "font_size": 18, "font": ui.url.nvidia_md},

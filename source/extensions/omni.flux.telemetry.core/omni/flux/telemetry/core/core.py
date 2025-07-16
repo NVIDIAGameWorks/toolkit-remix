@@ -28,7 +28,8 @@ import omni.kit.app
 import omni.structuredlog
 import sentry_sdk
 from omni.flux.utils.common import reset_default_attrs
-from omni.flux.utils.common.git import get_git_branch, get_git_hash
+from omni.flux.utils.common.git import get_git_branch
+from omni.flux.utils.common.version import get_app_distribution
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
@@ -94,7 +95,7 @@ class TelemetryCore:
         settings = self._resolve_settings(self.SENTRY_SETTINGS)
 
         # Override the environment
-        settings["dist"] = None if is_production else get_git_hash()
+        settings["dist"] = get_app_distribution()
         settings["environment"] = "production" if is_production else "development"
         settings["release"] = f"{self._app.get_app_filename()}@{self._app.get_app_version()}"
         settings["auto_enabling_integrations"] = False

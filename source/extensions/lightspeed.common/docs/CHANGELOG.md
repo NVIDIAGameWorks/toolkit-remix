@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.1]
+## Fixed
+- Fixed the credits list
+
 ## [1.7.0]
 ## Fixed
 - Update captured camera location to match latest runtime
