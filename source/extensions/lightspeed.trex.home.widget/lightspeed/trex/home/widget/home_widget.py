@@ -30,6 +30,7 @@ from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.utils.common import Event, EventSubscription, reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.common.path_utils import open_file_using_os_default
+from omni.flux.utils.common.version import get_app_version
 from omni.flux.utils.widget.tree_widget import TreeWidget
 
 from .recent_tree import RecentProjectDelegate, RecentProjectModel
@@ -228,10 +229,25 @@ class HomePageWidget:
                             ui.Spacer(height=self._LARGE_SPACING)
 
                             # App Version & Kit Version
+                            app_version = get_app_version()
+                            kit_version = omni.kit.app.get_app().get_kit_version()
+
                             with ui.HStack(height=0, spacing=self._SMALL_SPACING):
-                                ui.Label(carb.settings.get_settings().get("/app/version"), name="VersionLabel", width=0)
+                                ui.Label(
+                                    app_version,
+                                    tooltip="Copy app version to clipboard",
+                                    name="VersionLabel",
+                                    width=0,
+                                    mouse_pressed_fn=partial(self._copy_to_clipboard, app_version),
+                                )
                                 ui.Rectangle(name="WizardSeparator", width=ui.Pixel(2))
-                                ui.Label(omni.kit.app.get_app().get_build_version(), name="VersionLabel", width=0)
+                                ui.Label(
+                                    kit_version,
+                                    tooltip="Copy Kit version to clipboard",
+                                    name="VersionLabel",
+                                    width=0,
+                                    mouse_pressed_fn=partial(self._copy_to_clipboard, kit_version),
+                                )
 
                         ui.Spacer(height=0)
                     ui.Spacer(width=0)
@@ -411,6 +427,15 @@ class HomePageWidget:
         """
         for item in self._recent_tree.selection:
             open_file_using_os_default(item.path)
+
+    def _copy_to_clipboard(self, label: str, x: float, y: float, b: int, m: int):
+        """
+        A callback to copy text to the clipboard when the left mouse button is clicked.
+        """
+        if b != 0:
+            return
+
+        omni.kit.clipboard.copy(label)
 
     def destroy(self):
         reset_default_attrs(self)
