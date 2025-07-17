@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Created 1.1.0 build
+- Added release notes for 1.1.0
 - REMIX-4380: New extension to load our custom USD schemas such as `RemixParticleSystem`
 - REMIX-4426: Added GitHub PR checks
 - Added a more detailed app version number on the home screen

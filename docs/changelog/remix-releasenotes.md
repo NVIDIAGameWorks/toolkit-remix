@@ -1,5 +1,142 @@
 # Release Notes
 
+## RTX Remix Release 1.1 Notes (7/17/2025)
+
+We are excited to announce the official 1.1 release of RTX Remix. This release has some new features, a variety of optimizations, and changes to our backend that should help support the open source Remix community. Let’s get into the details.
+
+### RTX Remix Toolkit
+
+#### New Features
+
+**RTX Remix - AI Agent Support:** We created a framework for our community to build their own RTX Remix AI Agents that can query documentation, and help conduct actions in the RTX Remix Toolkit. As a proof of concept, we are also releasing a template in Langflow, a free and popular open source tool for wiring up AI agents. With this template and new functionality, you could create your own RTX Remix AI chatbot that can use natural language processing to answer any of your questions by digging through RTX Remix’s documentation for you. It can also take actions in the RTX Remix Toolkit based on your instruction, and the evolving capabilities of the RTX Remix REST API!
+
+Please note, the LLM powering your agent will affect the quality of your results.
+
+To support this initiative, we built MCP Server support into the RTX Remix Toolkit. Model Context Protocol (MCP) is an open standard that provides a unified way for AI applications to interact with external tools and data sources. In the context of RTX Remix, MCP acts as a bridge between AI agents and the Toolkit’s functionality, exposing the REST API endpoints in a format that LLMs can understand and use through tool calling.
+
+Please look out in the near future for the  NVIDIA RTX Remix Agent, coming as a default agent to Langflow soon. To learn how to set it up, check out our documentation page. [More info](https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/docs/howto/learning-mcp.html#using-langflow)
+
+#### Quality of Life Improvements:
+- When selecting any prim in the Stage Manager, it will now also be selected in the selection pane
+- Added PyCharm, VS Code, and Cursor Configuration Files
+- RTX Remix users can now set Remix Categories in the Stage manager
+
+#### Improvements to Build Process and Build Availability:
+We made a variety of changes to improve the Toolkit build process and make the latest builds more accessible.
+- Improved stability and solved various issues with the Toolkit Building Process for modders and open-source developers
+- Toolkit nightly builds are now accessible through GitHub Actions, making it easier to access the latest version of the Toolkit without building it yourself. For the latest nightly release, check here.
+- When modders download Toolkit nightly builds, they will also receive more up to date changes to the renderer powering the RTX Remix Viewport than they did before
+
+#### Bug Fixes (RTX Remix Toolkit)
+- Solved various crashes and made improvements to stability
+- When deleting a replacement, the original asset will now be automatically selected
+- Fixed Quick Start Guide link on the Toolkit home page
+- Fixed an issue where previewing grayscale images would show incorrect colors (like red) (REMIX-3900) [GH-722](https://github.com/NVIDIAGameWorks/rtx-remix/issues/722)
+- Fixed how multi-selection and the hide/show toggles interact. Now, all multi-selected entities will be hidden or made visible when toggling
+- When adding a new layer, it will now properly adopt the metadata of its parent layer
+- Fixed an NRC initialization error upon loading captures (REMIX-4084) [GH-808](https://github.com/NVIDIAGameWorks/rtx-remix/issues/808)
+- Fixed an issues with Stage Manager tabs not refreshing
+- Fixed labeling when pinning a selected object in the material properties pane (REMIX-4082)
+- After duplicating a prim, it will now be properly selected (REMIX-3970) [GH-732](https://github.com/NVIDIAGameWorks/rtx-remix/issues/732)
+- Fixed an issue with deleting meshes with multiple instances (REMIX-3559) [GH-610](https://github.com/NVIDIAGameWorks/rtx-remix/issues/610)
+- Cleaned up various error messages in the Kit log/terminal
+- Fixed Drag and drop function with the AI Texture tools to properly support image file extensions (ex: .png, .jpeg, and .jpg file)
+- Fixed an error message that would occur when ingesting textures that feature extensions with uppercase spelling
+- The “Recent Project” list on the home page now updates instantaneously whenever a project is created or opened
+- Fixed crash when previewing normal maps (or any non-RGBA textures)
+- Removed verbose printing to improve Toolkit performance.
+
+#### Bug Fixes (RTX Remix REST API)
+- Fixed `get_texture_material_inputs` API endpoint
+- Fixed `is_valid_texture_prim` API validator
+
+### RTX Remix Runtime/Rendering
+
+#### New Features
+
+**Better Tonemapper:** Improved the accuracy of the ACES tonemapper to preserve highlights better and prevent oversaturation.
+
+   ![Tonemapper_1_old](../data/images/tonemapper_1_old.png)
+   ![Tonemapper_1_new](../data/images/tonemapper_1_new.png)
+
+   ![Tonemapper_2_old](../data/images/tonemapper_2_old.png)
+   ![Tonemapper_2_new](../data/images/tonemapper_2_new.png)
+
+**Brightness Slider:** Introduced a global brightness slider in the User Graphics Settings menu that can be used to adjust the look of the game to meet the monitor’s output
+
+   ![BrightnessSlider](../data/images/brightness_slider.png)
+
+**RTX Volumetrics:** Volumetrics now supports heterogeneous fog as a global setting in the runtime.
+
+   ![Volumetrics](../data/images/rtx_volumetrics.png)
+
+#### Performance and Memory Optimizations:
+- Optimized performance and memory usage by adding BVH refit and instancing support
+- For lower VRAM GPUs, Opacity Micro-Map will now consume less VRAM
+- Finetuned NRC training parameters to increase performance and lower memory usage. With DLSS Performance mode at 4K resolution, NRC Ultra, we saw a decrease of 166 MB memory usage. With 1080p Balanced NRC Medium, we saw a decrease of 92 MB. FPS saw a 2% improvement at 1080p on 3060, though performance gains may vary depending on GPU, workload, and settings.
+- Improved memory usage for RTX Skin
+- Improved performance by limiting max bones per vertex for skinned characters and assets. There is a new rtx.conf option called rtx.limitedBonesPerVertex, which defaults to 4.
+- Optimized memory usage of renderer to better reuse memory across graphics features (ex: saves 25MB at 1080p, more at higher resolutions).
+
+#### Image Quality & Compatibility:
+- The “animated water” texture category now features improved water responsiveness, reflections, refractions and ghosting with ray reconstruction. The animated water texture category now also works properly in more games.
+- Ray Reconstruction now features a new option to improve image stability when dealing with surfaces that lack motion vectors (ex: animated water, animated textures, etc.), in exchange for slightly worse image clarity around those textures. To toggle the feature, look under Denoising > DLSS-RR > Disocclusion Mask > “Blur”
+
+    ![Disocclusion Mask Blur](../data/images/disocclusion_mask_blur.png)
+
+#### For Developers/Contributors:
+- Migrated Bridge into the dxvk-remix repo
+- Migrated MDL files into the dxvk-remix repo
+- Refactored and cleaned up RtxOptions to better support future RTX Remix features. Simplified and standardized the RtxOption API.
+- Re-enabled the option to manually recompile shaders option in the advanced developer menu, under the “Dev Settings” tab:
+
+   ![Recompile shaders](../data/images/recompile_shaders.png)
+
+- Exposed a new developer tool to help track resource aliasing opportunities. Developers can find it here: Dev Settings tab > Developer options > Resource Aliasing Query
+- Changed how texture hashes are sorted in rtx.conf
+- Advanced Developer Menu now provides a “Composite Debug View” setting under Rendering Tab > Debug. Developers can view multiple debug views simultaneously from a predefined list
+
+   ![Composite Debug View](../data/images/composite_debug_view.png)
+
+#### Community Contributions
+
+- Added a Contribution guide on how to effectively contribute to the RTX Remix open source runtime. It is available in the “project documentation” section at the bottom of the DXVK repo. Contributing.md guide with information on how to effectively contribute. Thank you to community contributor “anchorlightforge” (Github PR #70) for submitting the code for this change.
+- Removed Git tracking for deployment binary folder. Thank you to community contributor “xoxor4d” (Github PR #81) for submitting the code for this change.
+- Fixed links in the RTX Remix SDK documentation file. Thank you to community contributor “ElitecombineSoldier” (Github PR #85) for submitting the code for this change.
+- Corrected VirtualKeys parsing for custom keybinds. Thank you to community contributor “skurtyyskirts” (Github PR #95) for submitting the code for this change.
+
+#### Bug Fixes:
+
+##### Path Tracer:
+- Path Termination Fixes. Fixed invalid direction samples being used to continue the path. Fixed Russian Roulette to take recent sampled direction’s throughput into account.
+- Fixed incorrect secondary sky reflections in Primary Surface Replacement (PSR)
+
+##### RTX Skin:
+- Fixed an issue where green corruption could occur when RTX Skin’s transmittance value was set too low
+
+##### General:
+- Disabled Anti-Culling when free camera is activated to prevent artifacting, as this combination is not supported.
+- Fixed parsing of USD vertex color and vertex opacity attributes.
+- Fixed Vulkan Validation Layer errors.
+- Fixed resource aliasing bug when taking a screenshot via Developer Menu.
+
+##### Volumetric Attenuation Fixes:
+- Fixed bugs with attenuation calculations
+- Fixed heterogeneous fog time scale
+- Fixed an issue with the volumetric atmosphere centering around the origin instead of below the camera.
+- Fixed translated world space for atmospheric volumetrics.
+- Fixed visual issues with volumetrics when the player loaded/reloaded a level or experienced a large camera cut
+- Fixed thread pool task result memory order for weakly-ordered systems.
+
+```{seealso}
+Changelogs
+
+- For runtime release notes, please click [here](https://github.com/NVIDIAGameWorks/rtx-remix/releases/tag/remix-1.1.0)
+- For a full toolkit changelog, please click [here](remix-full-changelog.md)
+```
+
+***
+
 ## RTX Remix Release 1.0 Notes (3/13/2025)
 
 We are excited to announce the official 1.0 release of RTX Remix.
