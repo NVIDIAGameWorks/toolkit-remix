@@ -139,3 +139,6 @@ nrc_session_log.txt
 
 # Do not ignore fixture usda files.
 !**/fixtures/**/*.usda
+
+# Ignore private shell scripts
+source/shell/open_project.*

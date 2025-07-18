@@ -1,24 +1,46 @@
+# SPDX-FileCopyrightText: Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: MIT
+
+import contextlib
+import io
 import os
 import sys
-import tempfile
 from http.client import HTTPConnection
-from pathlib import Path
 from urllib.parse import urlparse
 
 import packmanapi
-from packman import errors
 
 REPO_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
-REPO_DEPS_FILE = Path(REPO_ROOT) / "deps" / "repo-deps.packman.xml"
-REPO_INTERNAL_DEPS_FILE = REPO_DEPS_FILE.parent / "repo-deps-internal.packman.xml"
-OPT_DEPS_FILE = "https://gitlab-master.nvidia.com/api/v4/projects/131876/repository/files/deps%2Frepo-deps.packman.xml/raw?ref=main"
-REPO_TOML_PRIVATE = "https://gitlab-master.nvidia.com/api/v4/projects/131876/repository/files/repo.toml/raw?ref=main"
-REPO_INTERNAL_TOML_FILE = Path(REPO_ROOT) / "repo_internal.toml"
+REPO_DEPS_FILE = os.path.join(REPO_ROOT, "deps/repo-deps.packman.xml")
 
+## START CUSTOM BOOTSTRAP CODE ##
+
+# Download the remote dependency files and pull the packages using packman
+INTERNAL_DEPENDENCIES = [
+    (
+        "https://gitlab-master.nvidia.com/api/v4/projects/131876/repository/files/deps%2Frepo-deps.packman.xml/raw?ref=main",
+        os.path.join(REPO_ROOT, "deps/repo-deps-internal.packman.xml"),
+    ),
+]
+# Download the remote files and take no further action
+INTERNAL_DOWNLOADS = [
+    (
+        "https://gitlab-master.nvidia.com/api/v4/projects/131876/repository/files/repo.toml/raw?ref=main",
+        os.path.join(REPO_ROOT, "repo_internal.toml"),
+    ),
+    (
+        "https://gitlab-master.nvidia.com/api/v4/projects/131876/repository/files/source%2Fshell%2Fopen_project.bat/raw?ref=main",
+        os.path.join(REPO_ROOT, "source/shell/open_project.bat"),
+    ),
+    (
+        "https://gitlab-master.nvidia.com/api/v4/projects/131876/repository/files/source%2Fshell%2Fopen_project.sh/raw?ref=main",
+        os.path.join(REPO_ROOT, "source/shell/open_project.sh"),
+    ),
+]
 
 def is_url_reachable(url: str, timeout: float = 2):
     """
-    Check if a URL is reachable.
+    Check if a URL is reachable. Allows for quick checks without downloading the file.
 
     Args:
         url: The URL to check.
@@ -38,6 +60,7 @@ def is_url_reachable(url: str, timeout: float = 2):
         if connection:
             connection.close()
 
+## END CUSTOM BOOTSTRAP CODE ##
 
 def bootstrap():
     """
@@ -45,33 +68,29 @@ def bootstrap():
 
     Pull with packman from repo.packman.xml and add them all to python sys.path to enable importing.
     """
-    files = [REPO_DEPS_FILE]
-    if not is_url_reachable(OPT_DEPS_FILE) and REPO_INTERNAL_DEPS_FILE.exists():
-        REPO_INTERNAL_DEPS_FILE.unlink()
 
-    # Check if the URL is reachable before pulling the deps to avoid the 1-minute delay
-    if is_url_reachable(OPT_DEPS_FILE):
-        try:
-            packmanapi.get_file(OPT_DEPS_FILE, REPO_INTERNAL_DEPS_FILE)
-            files.append(REPO_INTERNAL_DEPS_FILE)
-        except (RuntimeError, errors.PackmanError):
-            pass
-    for file in files:
-        if file.is_file():
-            deps = packmanapi.pull(file.as_posix())
+    # START CUSTOM BOOTSTRAP CODE
+
+    deps_files = [REPO_DEPS_FILE]
+
+    for download in INTERNAL_DEPENDENCIES:
+        if not os.path.exists(download[1]) and is_url_reachable(download[0]) :
+            packmanapi.get_file(download[0], download[1])
+        if os.path.exists(download[1]):
+            deps_files.append(download[1])
+
+    for download in INTERNAL_DOWNLOADS:
+        if not os.path.exists(download[1]) and is_url_reachable(download[0]):
+            packmanapi.get_file(download[0], download[1])
+
+    # END CUSTOM BOOTSTRAP CODE
+
+    with contextlib.redirect_stdout(io.StringIO()):
+        for deps_file in deps_files:
+            deps = packmanapi.pull(deps_file)
             for dep_path in deps.values():
                 if dep_path not in sys.path:
                     sys.path.append(dep_path)
-
-    # internal repo.toml
-    if not is_url_reachable(REPO_TOML_PRIVATE) and REPO_INTERNAL_TOML_FILE.exists():
-        REPO_INTERNAL_TOML_FILE.unlink()
-
-    if is_url_reachable(REPO_TOML_PRIVATE):
-        try:
-            packmanapi.get_file(REPO_TOML_PRIVATE, REPO_INTERNAL_TOML_FILE)
-        except (RuntimeError, errors.PackmanError):
-            pass
 
 
 if __name__ == "__main__":

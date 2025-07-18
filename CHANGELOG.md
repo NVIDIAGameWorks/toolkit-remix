@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4426: Added GitHub PR checks
 - Added a more detailed app version number on the home screen
 - Updated docs and release notes for 1.1.0
+- REMIX-4403: Added a shell script to open a project for Visual Studio debugging
 
 ### Changed
 - Changed GH actions commit message to commit title and non interruptible Gitlab releases
