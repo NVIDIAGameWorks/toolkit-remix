@@ -100,27 +100,27 @@ We made a variety of changes to improve the Toolkit build process and make the l
 
 #### Community Contributions
 
-- Added a Contribution guide on how to effectively contribute to the RTX Remix open source runtime. It is available in the “project documentation” section at the bottom of the DXVK repo. Contributing.md guide with information on how to effectively contribute. Thank you to community contributor “anchorlightforge” (Github PR #70) for submitting the code for this change.
+- Added a Contribution guide on how to effectively contribute to the RTX Remix open source runtime. It is available in the “project documentation” section at the bottom of the DXVK repo. Thank you to community contributor “anchorlightforge” (Github PR #70) for submitting the code for this change.
 - Removed Git tracking for deployment binary folder. Thank you to community contributor “xoxor4d” (Github PR #81) for submitting the code for this change.
 - Fixed links in the RTX Remix SDK documentation file. Thank you to community contributor “ElitecombineSoldier” (Github PR #85) for submitting the code for this change.
 - Corrected VirtualKeys parsing for custom keybinds. Thank you to community contributor “skurtyyskirts” (Github PR #95) for submitting the code for this change.
 
 #### Bug Fixes:
 
-##### Path Tracer:
+**Path Tracer:**
 - Path Termination Fixes. Fixed invalid direction samples being used to continue the path. Fixed Russian Roulette to take recent sampled direction’s throughput into account.
 - Fixed incorrect secondary sky reflections in Primary Surface Replacement (PSR)
 
-##### RTX Skin:
+**RTX Skin:**
 - Fixed an issue where green corruption could occur when RTX Skin’s transmittance value was set too low
 
-##### General:
+**General:**
 - Disabled Anti-Culling when free camera is activated to prevent artifacting, as this combination is not supported.
 - Fixed parsing of USD vertex color and vertex opacity attributes.
 - Fixed Vulkan Validation Layer errors.
 - Fixed resource aliasing bug when taking a screenshot via Developer Menu.
 
-##### Volumetric Attenuation Fixes:
+**RTX Volumetric Attenuation Fixes:**
 - Fixed bugs with attenuation calculations
 - Fixed heterogeneous fog time scale
 - Fixed an issue with the volumetric atmosphere centering around the origin instead of below the camera.
