@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4380: New extension to load our custom USD schemas such as `RemixParticleSystem`
 - REMIX-4426: Added GitHub PR checks
 - Added a more detailed app version number on the home screen
+- Updated docs and release notes for 1.1.0
 
 ### Changed
 - Changed GH actions commit message to commit title and non interruptible Gitlab releases

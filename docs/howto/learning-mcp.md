@@ -1,23 +1,93 @@
 # Using AI Agents with MCP
 
-The RTX Remix Model Context Protocol (MCP) server enables AI agents and Large Language Models (LLMs) to interact with
+The RTX Remix Model Context Protocol (MCP) Server enables AI agents and Large Language Models (LLMs) to interact with
 the Toolkit. This allows for workflow automation, AI-powered feature integration, and Toolkit control through natural
 language commands.
 
 ***
 
-## What is MCP?
+```{seealso}
+To jump straight into setting up a Remix AI Agent Assistant see the [Connecting AI Agents with MCP](#connecting-ai-agents-to-mcp) section.
+```
+
+## Background Information
+
+### What is MCP?
 
 Model Context Protocol (MCP) is an open standard that provides a unified way for AI applications to interact with
 external tools and data sources. In the context of RTX Remix, MCP acts as a bridge between AI agents and the Toolkit's
 functionality, exposing the REST API endpoints in a format that LLMs can understand and use through tool calling.
 
-### Key Benefits
+#### Key Benefits
 
 - **Natural Language Control**: Interact with the Toolkit using conversational commands
 - **Automation**: Create AI-powered workflows to automate repetitive tasks
 - **Integration**: Connect the Toolkit with AI platforms and custom agents
 - **Standardization**: Use a widely-adopted protocol supported by multiple AI frameworks
+
+***
+
+## Finding the MCP Server Information
+
+When the RTX Remix Toolkit starts, the MCP server automatically begins running with the following default configuration:
+
+- **Protocol**: Server-Sent Events (SSE)
+- **Host**: `127.0.0.1` or `localhost`
+- **Port**: `8000`
+- **Endpoint**: `http://127.0.0.1:8000/sse`
+
+***
+
+## Connecting AI Agents to MCP
+
+There are many frameworks that will allow AI Agents to connect to the RTX Remix MCP Server. This guide will go through the steps of connecting an AI Agent to the MCP Server with Langflow, but we also include some general steps for any MCP-Compatible client.
+
+### Using Langflow
+
+[Langflow](https://www.langflow.org/) is a visual framework for building AI agents that supports MCP:
+
+```{important}
+An OpenAI API key is required to use the NVIDIA RTX Remix Langflow template as-is, however, the template can be modified
+to use different LLM providers. See the [Agent component documentation](https://docs.langflow.org/components-agents) for
+more information on the Agent component.
+```
+
+1) Install Langflow by following the [installation guide](https://docs.langflow.org/get-started-installation)
+
+2) Launch the RTX Remix Toolkit
+
+3) Create a new flow in Langflow
+
+   ![Create a new flow](../data/images/langflow_01.png)
+
+4) Select the `NVIDIA RTX Remix` Template in the "Agents" section
+
+   ![Select the RTX Remix Template](../data/images/langflow_02.png)
+
+5) Update the required API Keys. Using Langflow's Environment Variables can simplify this process:
+
+   ![Update the API Keys](../data/images/langflow_03.png)
+
+6) Test the flow by entering the "Playground"
+
+   ![Test the flow](../data/images/langflow_04.png)
+
+7) Interact with the flow by entering a message in the "Input" field and clicking the "Send" button.
+
+   ![Interact with the flow](../data/images/langflow_05.png)
+
+```{tip}
+For troubleshooting flow issues, refer to the README node in the Langflow project for detailed information on template
+usage and common issue resolution.
+```
+
+### Using MCP-Compatible Clients
+
+Many AI frameworks now support MCP. To connect them:
+
+1) Configure the client with the SSE endpoint URL
+2) Ensure the RTX Remix Toolkit is running
+3) The client will automatically discover available tools through the MCP protocol
 
 ***
 
@@ -76,71 +146,9 @@ appropriately.
 
 ***
 
-## Finding the MCP Server Information
+## Troubleshooting
 
-When the RTX Remix Toolkit starts, the MCP server automatically begins running with the following default configuration:
-
-- **Protocol**: Server-Sent Events (SSE)
-- **Host**: `127.0.0.1` or `localhost`
-- **Port**: `8000`
-- **Endpoint**: `http://127.0.0.1:8000/sse`
-
-***
-
-## Connecting AI Agents to MCP
-
-There are several ways to connect AI agents to the RTX Remix MCP server:
-
-### Using Langflow
-
-[Langflow](https://www.langflow.org/) is a visual framework for building AI agents that supports MCP:
-
-```{important}
-An OpenAI API key is required to use the NVIDIA RTX Remix Langflow template as-is, however, the template can be modified
-to use different LLM providers. See the [Agent component documentation](https://docs.langflow.org/components-agents) for
-more information on the Agent component.
-```
-
-1) Install Langflow by following the [installation guide](https://docs.langflow.org/get-started-installation)
-
-2) Launch the RTX Remix Toolkit
-
-3) Create a new flow in Langflow
-
-   ![Create a new flow](../data/images/langflow_01.png)
-
-4) Select the `NVIDIA RTX Remix` Template in the "Agents" section
-
-   ![Select the RTX Remix Template](../data/images/langflow_02.png)
-
-5) Update the required API Keys. Using Langflow's Environment Variables can simplify this process:
-
-   ![Update the API Keys](../data/images/langflow_03.png)
-
-6) Test the flow by entering the "Playground"
-
-   ![Test the flow](../data/images/langflow_04.png)
-
-7) Interact with the flow by entering a message in the "Input" field and clicking the "Send" button.
-
-   ![Interact with the flow](../data/images/langflow_05.png)
-
-```{tip}
-For troubleshooting flow issues, refer to the README node in the Langflow project for detailed information on template
-usage and common issue resolution.
-```
-
-### Using MCP-Compatible Clients
-
-Many AI frameworks now support MCP. To connect them:
-
-1) Configure the client with the SSE endpoint URL
-2) Ensure the RTX Remix Toolkit is running
-3) The client will automatically discover available tools through the MCP protocol
-
-***
-
-## Testing the MCP Server
+### Testing the MCP Server
 
 The [MCP Inspector](https://github.com/modelcontextprotocol/inspector) is the recommended tool for testing:
 
