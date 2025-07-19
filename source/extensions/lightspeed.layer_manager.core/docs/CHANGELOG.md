@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.3]
+### Added
+- Added `close_project_with_data_models` method to close stage via context
+
 ## [3.0.2]
 ## Fixed
 - Fixed validation when layer cannot be opened
