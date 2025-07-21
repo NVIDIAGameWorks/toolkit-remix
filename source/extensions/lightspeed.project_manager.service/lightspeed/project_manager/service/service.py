@@ -58,3 +58,15 @@ class ProjectManagerService(ServiceBase):
             )
         ) -> str:
             return self.__layer_core.open_project_with_data_models(layer_id) or "OK"
+
+        @self.router.delete(path="/", operation_id="close_project", description="Close the currently open project.")
+        async def close_project(
+            force: bool = ServiceBase.describe_query_param(  # noqa B008
+                False, "Whether to force close the project even if there are pending changes."
+            )
+        ) -> str:
+            try:
+                return self.__layer_core.close_project_with_data_models(force=force) or "OK"
+            except ValueError as e:
+                # Convert ValueError to 403 Forbidden error for pending changes
+                raise ServiceBase.raise_error(403, e)
