@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.1]
+## Fixed
+- NoneType error when changing viewport camera speed using the mouse scroll wheel
+
 ## [1.4.0]
 ## Changed
 - Grab updates from omni.kit.viewport.window changes
