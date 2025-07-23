@@ -1,5 +1,5 @@
 [package]
-version = "1.4.0"
+version = "1.4.1"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Viewports implementation"
 description = "Viewports implementation for NVIDIA RTX Remix App"
@@ -38,6 +38,11 @@ icon = "data/icon.png"
 [settings]
 # Default legacy display options for any consumers (all visible but Skeletons)
 persistent.app.viewport.displayOptions = 32255
+
+[settings.exts."omni.kit.viewport.window"]
+cameraSpeedLimit.0="scroll"
+cameraSpeedLimit.1="text"
+cameraSpeedLimit.2="gamepad"
 
 [[python.module]]
 name = "lightspeed.trex.viewports.shared.widget"
