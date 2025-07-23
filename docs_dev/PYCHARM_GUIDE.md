@@ -1,50 +1,7 @@
 # Developing with PyCharm
 
-PyCharm is the Integrated Development Environment (IDE) of choice for the RTX Remix Toolkit team. This documentation
+PyCharm is one of the Integrated Development Environment (IDE) of choice for the RTX Remix Toolkit team. This documentation
 provides tips and tricks utilized by team members to enhance their development experience.
-
-## Live Debugging
-
-### Prerequisites
-
-- PyCharm Professional installed on your system (the community edition will not suffice).
-- Basic knowledge of Python programming.
-
-### Debugging Steps
-
-#### Step 1: Configuring the Debug Server
-
-1. Launch PyCharm Professional.
-2. On the right-hand side, click on "Edit Configurations."
-3. Create a new Python debug server configuration.
-4. Change the port number to 33100 and save the configuration.
-
-#### [OPTIONAL STEP] Workaround for PyCharm 2024.3
-
-1. Disable `python.debug.use.single.port` in **Help | Find Action | Registry**.
-2. Restart PyCharm.
-
-#### Step 2: Starting the Debugger
-
-1. Choose the newly created debug configuration and click "Debug."
-2. The debugger will be activated, displaying the debugging interface.
-
-#### Step 3: Running Kit
-
-1. Execute the following command in your terminal or command prompt:
-
-    ```
-    lightspeed.app.trex.bat --enable omni.flux.debug.pycharm --/exts/omni.flux.debug.pycharm/pycharm_location="%APPDATA%\Local\Programs\PyCharm Professional"
-    ```
-
-   In this command, replace `%APPDATA%\Local\Programs\PyCharm Professional` with the actual path where your PyCharm is
-   installed.
-
-Please note that starting the PyCharm server before using the additional options is essential for proper functionality.
-
-#### Step 4: Enjoy Debugging
-
-You can now enjoy debugging your Python code using the powerful features of PyCharm Pro.
 
 ## Tips and Tricks
 
@@ -92,3 +49,8 @@ folder using the provided macros for directories (e.g., $ProjectFileDir$\format_
 
 By following these steps, you can harness the power of PyCharm and tailor it to your specific needs, making your
 development experience more efficient and enjoyable.
+
+## Debugging the Toolkit
+
+Check out the [DEBUGGING_GUIDE](DEBUGGING_GUIDE.md) docs for more info on how to attach debuggers to the
+toolkit.
