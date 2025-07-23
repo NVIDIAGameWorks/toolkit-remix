@@ -76,6 +76,10 @@ Failure to exclude this folder may result in errors when attempting to load the 
 Adding captures to version control facilitates project sharing. However, the potentially large size of captures may
 warrant a separate storage solution, with only the mod itself under version control.
 
+```{important}
+Keep in mind that sharing captured assets might also go against the terms of service of the game you are modding.
+```
+
 ## Choosing Project Directories
 
 It is recommended to create a dedicated folder for all RTX Remix projects, located *outside* the game's installation
