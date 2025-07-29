@@ -1,7 +1,7 @@
-####################################
-# Build jobs for Windows and Linux
-# Extended in any other building job
-####################################
+########################################################
+# Build Packaging jobs for Windows and Linux
+# *Extended by other package building jobs*
+########################################################
 build-package-windows:
   extends:
     - .release_defaults
@@ -19,8 +19,10 @@ build-package-windows:
       - _build/packages
       - deps.json
       - source/apps
-  rules: ## Automatically run publish job only on merge commit to main
+  rules: ## Automatically run packaging job only on merge commit to main or feature branches
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
+      when: always
+    - if: $CI_COMMIT_REF_NAME =~  "/^feature\/.+/" && $CI_PIPELINE_SOURCE == "push"
       when: always
 
 
@@ -39,14 +41,16 @@ build-package-linux:
     when: on_success
     paths:
       - _build/packages
-  rules: ## Automatically run publish job only on merge commit to main
+  rules: ## Automatically run packaging job only on merge commit to main or feature branches
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
+      when: always
+    - if: $CI_COMMIT_REF_NAME =~  "/^feature\/.+/" && $CI_PIPELINE_SOURCE == "push"
       when: always
 
 
-#########################################
-# Gitlab build jobs for Windows and Linux
-#########################################
+########################################################
+# Gitlab build packaging jobs for Windows and Linux
+########################################################
 build-package-gitlab-windows:
   extends:
     - build-package-windows
