@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped contributor-assistant github CI module from 2.3.2 to 2.5.1 (to fix CLA Assistant github actions)
 - Improved the documentation about debugging the app from Python to runtime code.
 - Updated gitlab CI to produce packages on both main and feature branches
+- Added a note to the documentation about Langflow version support.
 
 ### Fixed
 - REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
