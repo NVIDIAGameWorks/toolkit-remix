@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.2.0]
+## Added
+- Added a `cleanup` pattern to the stage manager context and listener plugins
+
+## Fixed
+- Fixed stage manager not refreshing to USD Notices
+
 ## [4.1.0]
 ## Added
 - Added telemetry to the stage manager refresh function

@@ -52,6 +52,13 @@ class StageManagerListenerPlugin(_StageManagerPluginBase, Generic[T], abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    def cleanup(self):
+        """
+        Cleanup the listeners' subscriptions.
+        """
+        pass
+
     def subscribe_event_occurred(self, callback: Callable[[T], None]):
         """
         Return the object that will automatically unsubscribe when destroyed.

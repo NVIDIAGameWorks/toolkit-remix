@@ -37,10 +37,15 @@ class StageManagerUSDLayersListenerPlugin(_StageManagerUSDListenerPlugin[_layers
         self._layer_event_sub = None
 
     def setup(self):
+        super().setup()
         layers = _layers.get_layers()
         self._layer_event_sub = layers.get_event_stream().create_subscription_to_pop(
             self._on_layer_event, name="StageManagerLayerEventListener"
         )
+
+    def cleanup(self):
+        super().cleanup()
+        self._layer_event_sub = None
 
     def _on_layer_event(self, event: "carb.events.IEvent"):
         """

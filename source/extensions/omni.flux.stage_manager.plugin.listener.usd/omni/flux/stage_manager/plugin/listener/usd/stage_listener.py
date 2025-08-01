@@ -37,10 +37,15 @@ class StageManagerUSDStageListenerPlugin(_StageManagerUSDListenerPlugin[omni.usd
         self._stage_event_sub = None
 
     def setup(self):
+        super().setup()
         context = omni.usd.get_context(self._context_name)
         self._stage_event_sub = context.get_stage_event_stream().create_subscription_to_pop(
             self._on_stage_event, name="StageManagerStageEventListener"
         )
+
+    def cleanup(self):
+        super().cleanup()
+        self._stage_event_sub = None
 
     def _on_stage_event(self, event: "carb.events.IEvent"):
         """

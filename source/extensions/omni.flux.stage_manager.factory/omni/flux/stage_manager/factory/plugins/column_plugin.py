@@ -85,7 +85,7 @@ class StageManagerColumnPlugin(_StageManagerUIPluginBase, abc.ABC):
     @abc.abstractmethod
     def build_overview_ui(self, model: "_StageManagerTreeModel"):
         """
-        Build the result UI for the given column. The result UI is displayed at the bottom the TreeView widget. It
-        should be used to display additional information about all the items in the column.
+        Build the footer UI for the given column. It should be used to display additional information about all the
+        items in the column.
         """
         pass
