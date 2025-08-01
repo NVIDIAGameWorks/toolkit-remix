@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated docs and release notes for 1.1.0
 - REMIX-4403: Added a shell script to open a project for Visual Studio debugging
 - Added close project API endpoint
+- Added a `cleanup` pattern to the stage manager context and listener plugins
 
 ### Changed
 - Changed GH actions commit message to commit title and non interruptible Gitlab releases
@@ -35,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4396: Fix initial camera position on capture load and waypoint creation for new captures
 - Fix viewport zoom speed and update viewports with omni.kit.viewport.window changes
 - Fixing NoneType error when changing viewport camera speed using the mouse scroll wheel
+- Fixed stage manager not refreshing to USD Notices
 
 ### Removed
 

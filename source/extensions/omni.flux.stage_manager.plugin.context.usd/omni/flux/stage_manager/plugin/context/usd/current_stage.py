@@ -50,12 +50,19 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
             self.subscribe_listener_event_occurred(omni.usd.StageEventType, self._on_stage_event_occurred)
         )
 
+    def cleanup(self):
+        self._listener_event_occurred_subs.clear()
+        self._stage = None
+        super().cleanup()
+
     def update_stage(self):
         """
         Setup the stage. This will be called on open or close stage.
         """
+        self.cleanup()
         context = omni.usd.get_context(self.context_name)
         self._stage = context.get_stage()
+        self.setup()
 
     def get_items(self):
         """

@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.0]
+## Added
+- Added a `cleanup` pattern to the stage manager context and listener plugins
+
+## Fixed
+- Fixed stage manager not refreshing to USD Notices
+
 ## [2.2.0]
 ## Fixed
 - fix false positive error that context isn't set up yet

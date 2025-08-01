@@ -71,6 +71,13 @@ class StageManagerContextPlugin(_StageManagerPluginBase, abc.ABC):
         for listener in self.listeners:
             listener.setup()
 
+    def cleanup(self):
+        """
+        Cleanup the context. This will remove all listeners' subscriptions.
+        """
+        for listener in self.listeners:
+            listener.cleanup()
+
     def subscribe_listener_event_occurred(
         self, event_type: type, function: Callable[[Any], None]
     ) -> list[_EventSubscription]:
