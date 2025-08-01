@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix viewport zoom speed and update viewports with omni.kit.viewport.window changes
 - Fixing NoneType error when changing viewport camera speed using the mouse scroll wheel
 - Fixed stage manager not refreshing to USD Notices
+- Fixed documentation for the AI Agents section
 
 ### Removed
 
