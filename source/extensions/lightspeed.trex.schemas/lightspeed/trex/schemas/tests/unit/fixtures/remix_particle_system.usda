@@ -1,10 +1,10 @@
 #usda 1.0
 
-def RemixParticleSystem "TestParticles"
+def Mesh "TestParticles" (
+    prepend apiSchemas = ["ParticleSystemAPI"]
+)
 {
-    float gravityForce = 12.34
-    int maxNumParticles = 12345
-    float opacityMultiplier = 0.5
-    bool useTurbulence = 1
+    float primvars:particle:gravityForce = 12.34
+    int primvars:particle:maxNumParticles = 12345
+    bool primvars:particle:useTurbulence = 1
 }
-
