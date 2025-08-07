@@ -2,7 +2,7 @@
 reloadable = false
 
 [package]
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Emanuel Kozerski <ekozerski@nvidia.com>"]
 title = "Remix USD Schema Loader Extension"
 description="Extension responsible for loading our custom USD schemas such as `RemixParticleSystem`."

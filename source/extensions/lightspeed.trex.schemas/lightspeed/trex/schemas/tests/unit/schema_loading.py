@@ -18,37 +18,49 @@
 import pathlib
 
 from omni.kit.test import AsyncTestCase
-from pxr import Sdf, Usd
+from pxr import Sdf, Usd, UsdGeom
+
+PARTICLE_API_SCHEMA = "RemixParticleSystemAPI"
+PARTICLE_PRIMVAR_PREFIX = "primvars:particle:"
 
 
 class TestSchemaLoading(AsyncTestCase):
     def test_remix_particle_system_schema_is_loading(self):
         # Arrange
         stage = Usd.Stage.CreateInMemory()
+        prim = UsdGeom.Mesh.Define(stage, "/TestParticles").GetPrim()
 
         # Act
-        prim = stage.DefinePrim("/TestParticles", "RemixParticleSystem")
+        prim.ApplyAPI(PARTICLE_API_SCHEMA)
 
         # Assert
-        self.assertEqual(prim.GetTypeName(), "RemixParticleSystem")
+        self.assertEqual(prim.GetTypeName(), "Mesh")
         expected_attrs = [
-            "gravityForce",
-            "initialVelocityFromNormal",
-            "maxNumParticles",
-            "maxParticleSize",
-            "maxSpawnColor",
-            "maxSpeed",
-            "maxTtl",
-            "minParticleSize",
-            "minSpawnColor",
-            "minTtl",
-            "opacityMultiplier",
-            "purpose",
-            "turbulenceAmplitude",
-            "turbulenceFrequency",
-            "useTurbulence",
-            "visibility",
-            "xformOpOrder",
+            PARTICLE_PRIMVAR_PREFIX + "alignParticlesToVelocity",
+            PARTICLE_PRIMVAR_PREFIX + "collisionRestitution",
+            PARTICLE_PRIMVAR_PREFIX + "collisionThickness",
+            PARTICLE_PRIMVAR_PREFIX + "enableCollisionDetection",
+            PARTICLE_PRIMVAR_PREFIX + "enableMotionTrail",
+            PARTICLE_PRIMVAR_PREFIX + "gravityForce",
+            PARTICLE_PRIMVAR_PREFIX + "hideEmitter",
+            PARTICLE_PRIMVAR_PREFIX + "initialVelocityConeAngleDegrees",
+            PARTICLE_PRIMVAR_PREFIX + "initialVelocityFromNormal",
+            PARTICLE_PRIMVAR_PREFIX + "maxNumParticles",
+            PARTICLE_PRIMVAR_PREFIX + "maxParticleSize",
+            PARTICLE_PRIMVAR_PREFIX + "maxRotationSpeed",
+            PARTICLE_PRIMVAR_PREFIX + "maxSpawnColor",
+            PARTICLE_PRIMVAR_PREFIX + "maxSpeed",
+            PARTICLE_PRIMVAR_PREFIX + "maxTimeToLive",
+            PARTICLE_PRIMVAR_PREFIX + "minParticleSize",
+            PARTICLE_PRIMVAR_PREFIX + "minRotationSpeed",
+            PARTICLE_PRIMVAR_PREFIX + "minSpawnColor",
+            PARTICLE_PRIMVAR_PREFIX + "minTimeToLive",
+            PARTICLE_PRIMVAR_PREFIX + "motionTrailMultiplier",
+            PARTICLE_PRIMVAR_PREFIX + "spawnRatePerSecond",
+            PARTICLE_PRIMVAR_PREFIX + "turbulenceAmplitude",
+            PARTICLE_PRIMVAR_PREFIX + "turbulenceFrequency",
+            PARTICLE_PRIMVAR_PREFIX + "useSpawnTexcoords",
+            PARTICLE_PRIMVAR_PREFIX + "useTurbulence",
         ]
         for attr in expected_attrs:
             self.assertTrue(prim.HasAttribute(attr), f"Missing attribute: {attr}")
@@ -56,13 +68,13 @@ class TestSchemaLoading(AsyncTestCase):
     def test_remix_particle_system_schema_authoring_assets_to_usda(self):
         # Arrange
         stage = Usd.Stage.CreateInMemory()
-        prim = stage.DefinePrim("/TestParticles", "RemixParticleSystem")
+        prim = UsdGeom.Mesh.Define(stage, "/TestParticles").GetPrim()
+        prim.ApplyAPI(PARTICLE_API_SCHEMA)
 
         # Act
-        prim.CreateAttribute("gravityForce", Sdf.ValueTypeNames.Float).Set(12.34)
-        prim.CreateAttribute("maxNumParticles", Sdf.ValueTypeNames.Int).Set(12345)
-        prim.CreateAttribute("opacityMultiplier", Sdf.ValueTypeNames.Float).Set(0.5)
-        prim.CreateAttribute("useTurbulence", Sdf.ValueTypeNames.Bool).Set(True)
+        prim.CreateAttribute(PARTICLE_PRIMVAR_PREFIX + "gravityForce", Sdf.ValueTypeNames.Float).Set(12.34)
+        prim.CreateAttribute(PARTICLE_PRIMVAR_PREFIX + "maxNumParticles", Sdf.ValueTypeNames.Int).Set(12345)
+        prim.CreateAttribute(PARTICLE_PRIMVAR_PREFIX + "useTurbulence", Sdf.ValueTypeNames.Bool).Set(True)
 
         # Assert
         usda_result = stage.GetRootLayer().ExportToString()
@@ -78,8 +90,7 @@ class TestSchemaLoading(AsyncTestCase):
         prim = stage.GetPrimAtPath("/TestParticles")
 
         # Assert
-        self.assertEqual(prim.GetTypeName(), "RemixParticleSystem")
-        self.assertAlmostEqual(prim.GetAttribute("gravityForce").Get(), 12.34, places=2)
-        self.assertAlmostEqual(prim.GetAttribute("maxNumParticles").Get(), 12345, places=2)
-        self.assertAlmostEqual(prim.GetAttribute("opacityMultiplier").Get(), 0.5, places=2)
-        self.assertEqual(prim.GetAttribute("useTurbulence").Get(), True)
+        self.assertEqual(prim.HasAPI(PARTICLE_API_SCHEMA), True)
+        self.assertAlmostEqual(prim.GetAttribute(PARTICLE_PRIMVAR_PREFIX + "gravityForce").Get(), 12.34, places=2)
+        self.assertAlmostEqual(prim.GetAttribute(PARTICLE_PRIMVAR_PREFIX + "maxNumParticles").Get(), 12345, places=2)
+        self.assertEqual(prim.GetAttribute(PARTICLE_PRIMVAR_PREFIX + "useTurbulence").Get(), True)
