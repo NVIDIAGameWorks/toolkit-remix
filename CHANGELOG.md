@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated gitlab CI to produce packages on both main and feature branches
 - Added a note to the documentation about Langflow version support.
 - Update hdremix and omni_core_materials to ext-0259d57-main
+- Update hdremix and omni_core_materials to ext-8c71ba9-main
 
 ### Fixed
 - REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
