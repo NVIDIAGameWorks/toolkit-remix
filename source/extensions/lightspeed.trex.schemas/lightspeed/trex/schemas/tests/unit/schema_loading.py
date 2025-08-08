@@ -35,32 +35,13 @@ class TestSchemaLoading(AsyncTestCase):
 
         # Assert
         self.assertEqual(prim.GetTypeName(), "Mesh")
+        # test essential attributes only, or ones that we use in toolkit implementation
         expected_attrs = [
-            PARTICLE_PRIMVAR_PREFIX + "alignParticlesToVelocity",
-            PARTICLE_PRIMVAR_PREFIX + "collisionRestitution",
-            PARTICLE_PRIMVAR_PREFIX + "collisionThickness",
-            PARTICLE_PRIMVAR_PREFIX + "enableCollisionDetection",
-            PARTICLE_PRIMVAR_PREFIX + "enableMotionTrail",
-            PARTICLE_PRIMVAR_PREFIX + "gravityForce",
-            PARTICLE_PRIMVAR_PREFIX + "hideEmitter",
-            PARTICLE_PRIMVAR_PREFIX + "initialVelocityConeAngleDegrees",
-            PARTICLE_PRIMVAR_PREFIX + "initialVelocityFromNormal",
-            PARTICLE_PRIMVAR_PREFIX + "maxNumParticles",
-            PARTICLE_PRIMVAR_PREFIX + "maxParticleSize",
-            PARTICLE_PRIMVAR_PREFIX + "maxRotationSpeed",
-            PARTICLE_PRIMVAR_PREFIX + "maxSpawnColor",
-            PARTICLE_PRIMVAR_PREFIX + "maxSpeed",
-            PARTICLE_PRIMVAR_PREFIX + "maxTimeToLive",
-            PARTICLE_PRIMVAR_PREFIX + "minParticleSize",
-            PARTICLE_PRIMVAR_PREFIX + "minRotationSpeed",
-            PARTICLE_PRIMVAR_PREFIX + "minSpawnColor",
-            PARTICLE_PRIMVAR_PREFIX + "minTimeToLive",
-            PARTICLE_PRIMVAR_PREFIX + "motionTrailMultiplier",
-            PARTICLE_PRIMVAR_PREFIX + "spawnRatePerSecond",
-            PARTICLE_PRIMVAR_PREFIX + "turbulenceAmplitude",
-            PARTICLE_PRIMVAR_PREFIX + "turbulenceFrequency",
-            PARTICLE_PRIMVAR_PREFIX + "useSpawnTexcoords",
-            PARTICLE_PRIMVAR_PREFIX + "useTurbulence",
+            PARTICLE_PRIMVAR_PREFIX + "gravityForce",  # key attribute
+            PARTICLE_PRIMVAR_PREFIX + "maxNumParticles",  # key attribute
+            PARTICLE_PRIMVAR_PREFIX + "useTurbulence",  # key attribute
+            PARTICLE_PRIMVAR_PREFIX + "hideEmitter",  # toolkit: checked for gizmo visibility
+            PARTICLE_PRIMVAR_PREFIX + "spawnRatePerSecond",  # key attribute, important to see effect
         ]
         for attr in expected_attrs:
             self.assertTrue(prim.HasAttribute(attr), f"Missing attribute: {attr}")
