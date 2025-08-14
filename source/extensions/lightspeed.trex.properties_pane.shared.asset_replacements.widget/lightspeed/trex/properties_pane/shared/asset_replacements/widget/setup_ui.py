@@ -145,9 +145,9 @@ class AssetReplacementsPane:
                                 "the widget\n"
                                 "- Existing layers can be imported by clicking the Import button at the "
                                 "bottom of the widget",
-                                collapsed=True,
+                                collapsed=False,
                             )
-                            self._collapsible_frame_states[CollapsiblePanels.LAYERS] = False
+                            self._collapsible_frame_states[CollapsiblePanels.LAYERS] = True
                             with self._layer_collapsable_frame:
                                 model = _LayerModel(
                                     self._context_name,

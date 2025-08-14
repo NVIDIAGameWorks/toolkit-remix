@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0]
+### Changed
+- Expand the layers panels by default
+
 ## [1.7.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

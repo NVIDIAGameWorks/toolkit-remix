@@ -104,6 +104,8 @@ class LayerModel(_TreeModelBase[ItemBase]):
         self._exclude_add_child_fn = exclude_add_child_fn
         self._exclude_move_fn = exclude_move_fn
 
+        self._edit_target_layer = None
+
         self.__on_refresh_started = _Event()
         self.__on_refresh_completed = _Event()
 
@@ -121,12 +123,24 @@ class LayerModel(_TreeModelBase[ItemBase]):
                 "_stage_events": None,
                 "_context_name": None,
                 "_context": None,
-                "_exclude_lock": None,
-                "_exclude_mute": None,
-                "_exclude_edit_target": None,
+                "_layer_creation_validation_fn": None,
+                "_layer_creation_validation_failed_callback": None,
+                "_layer_import_validation_fn": None,
+                "_layer_import_validation_failed_callback": None,
+                "_exclude_remove_fn": None,
+                "_exclude_lock_fn": None,
+                "_exclude_mute_fn": None,
+                "_exclude_edit_target_fn": None,
+                "_exclude_add_child_fn": None,
+                "_exclude_move_fn": None,
+                "_edit_target_layer": None,
             }
         )
         return default_attr
+
+    @property
+    def edit_target_layer(self) -> Optional[LayerItem]:
+        return self._edit_target_layer
 
     # USD methods
 
@@ -690,6 +704,8 @@ class LayerModel(_TreeModelBase[ItemBase]):
 
         self.__on_refresh_started()
 
+        self._edit_target_layer = None
+
         loop = asyncio.get_event_loop()
         with concurrent.futures.ThreadPoolExecutor() as pool:
             # Submit the jobs in an async thread to avoid locking up the UI
@@ -776,7 +792,12 @@ class LayerModel(_TreeModelBase[ItemBase]):
             "exclude_add_child": excludes[_LayerCustomData.EXCLUDE_ADD_CHILD],
             "exclude_move": excludes[_LayerCustomData.EXCLUDE_MOVE],
         }
-        return LayerItem(layer_name, layer_data, parent, children)
+        layer_item = LayerItem(layer_name, layer_data, parent, children)
+
+        if is_authoring:
+            self._edit_target_layer = layer_item
+
+        return layer_item
 
     def _update_inherited_visibility(self, item: LayerItem, visible: bool):
         """
