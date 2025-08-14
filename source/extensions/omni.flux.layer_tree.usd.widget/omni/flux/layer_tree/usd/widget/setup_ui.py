@@ -241,7 +241,20 @@ class LayerTreeWidget:
         # Refresh the expansion states
         await kit.app.get_app().next_update_async()
         selection = []
-        for item in self._model.get_item_children(None, True):
+
+        items = self._model.get_item_children(recursive=True)
+
+        # If there is no selection and there is an edit target
+        if self._model.edit_target_layer and not self._selection and not any(self._tree_expanded.values()):
+            # Select the edit target item
+            self._selection.add(self._model.edit_target_layer.data["layer"].identifier)
+            # Expand the edit target item's parents
+            parent = self._model.edit_target_layer.parent
+            while parent:
+                self._tree_expanded[parent.data["layer"].identifier] = True
+                parent = parent.parent
+
+        for item in items:
             self._layer_tree_widget.set_expanded(
                 item, self._tree_expanded.get(item.data["layer"].identifier, self._expansion_default), False
             )
@@ -252,6 +265,7 @@ class LayerTreeWidget:
         await kit.app.get_app().next_update_async()
         self._ignore_selection_updates = True
         self._layer_tree_widget.selection = selection
+        self._delegate.on_item_selected(selection, items, self._model)
         self._ignore_selection_updates = False
 
         # Update the import & create button states
@@ -275,6 +289,10 @@ class LayerTreeWidget:
             return
         self._loading_frame.visible = started
         self._layer_tree_widget.visible = not started
+
+        if not started:
+            # Refresh the selection
+            self._on_item_changed(None, None)
 
     def _on_item_changed(self, _model, _item):
         if self._refresh_task:

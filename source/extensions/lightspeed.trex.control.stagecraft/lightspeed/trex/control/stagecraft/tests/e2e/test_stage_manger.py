@@ -65,7 +65,13 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         self._stagecraft.show_page(TestPages.WORKSPACE_PAGE)
         panels = ui_test.find_all(f"{_WINDOW_NAME}//Frame/**/Label[*].name=='TreePanelTitleItemTitle'")
         await panels[1].click()
-        await ui_test.human_delay(human_delay_speed=3)
+        await ui_test.human_delay(5)
+
+        # Collapse the layers panel to make space for the material properties panel
+        layers_panel = ui_test.find(f"{_WINDOW_NAME}//Frame/**/Label[*].text=='LAYERS'")
+        self.assertIsNotNone(layers_panel)
+        await layers_panel.click()
+        await ui_test.human_delay()
 
         property_branches = ui_test.find_all(f"{_WINDOW_NAME}//Frame/**/Image[*].identifier=='property_branch'")
         await property_branches[0].click()

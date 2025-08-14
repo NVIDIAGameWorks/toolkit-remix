@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a note to the documentation about Langflow version support.
 - Update hdremix and omni_core_materials to ext-0259d57-main
 - Update hdremix and omni_core_materials to ext-8c71ba9-main
+- REMIX-4421: Expand the layers panels by default
 
 ### Fixed
 - REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
@@ -40,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixing NoneType error when changing viewport camera speed using the mouse scroll wheel
 - Fixed stage manager not refreshing to USD Notices
 - Fixed documentation for the AI Agents section
+- REMIX-4419: Fixed layer tree not properly selecting previous selection/edit target after refreshing
 
 ### Removed
 
