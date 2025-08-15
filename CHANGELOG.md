@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update hdremix and omni_core_materials to ext-0259d57-main
 - Update hdremix and omni_core_materials to ext-8c71ba9-main
 - REMIX-4421: Expand the layers panels by default
+- Updated documentation about Langflow version support.
 
 ### Fixed
 - REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
