@@ -55,13 +55,8 @@ more information on the Agent component.
 1) Install Langflow by following the [installation guide](https://docs.langflow.org/get-started-installation)
 
 ```{tip}
-Temporarily you will need to download an older version (1.4.3) to find the Remix Template specified in step 4. 
-We are looking to resolve this in future versions of Langflow.
-```
-
-You can install a specific older version of langflow via:
-```
-uv pip install langflow==1.4.3
+- Minimum version of the Langflow Desktop application required is `1.5.13`.
+- Minimum version of the Langflow PIP package required is `1.5.0.post2`.
 ```
 
 2) Launch the RTX Remix Toolkit
