@@ -706,14 +706,24 @@ class LayerModel(_TreeModelBase[ItemBase]):
 
         self._edit_target_layer = None
 
+        root_layer = self.stage.GetRootLayer()
+        dirty_layers = set(_layers.LayerUtils.get_dirty_layers(self.stage))
+        edit_target_layer_identifier = _layers.LayerUtils.get_edit_target(self.stage)
+        layers_state = _layers.get_layers(self._context).get_layers_state()
+
         loop = asyncio.get_event_loop()
         with concurrent.futures.ThreadPoolExecutor() as pool:
             # Submit the jobs in an async thread to avoid locking up the UI
-            root_item = await loop.run_in_executor(
+            excluded_layers = await loop.run_in_executor(pool, self._get_excluded_layers)
+            root_item, _ = await loop.run_in_executor(
                 pool,
                 self._create_layer_items,
-                self.stage.GetRootLayer(),
+                root_layer,
                 None,
+                excluded_layers,
+                dirty_layers,
+                edit_target_layer_identifier,
+                layers_state,
             )
 
         self._update_inherited_visibility(root_item, True)
@@ -722,59 +732,56 @@ class LayerModel(_TreeModelBase[ItemBase]):
 
         self.__on_refresh_completed()
 
-    def _create_layer_items(self, layer, parent):
+    def _get_excluded_layers(self) -> dict[_LayerCustomData, set[str]]:
+        return {
+            _LayerCustomData.EXCLUDE_REMOVE: set(self._exclude_remove_fn() if self._exclude_remove_fn else []),
+            _LayerCustomData.EXCLUDE_LOCK: set(self._exclude_lock_fn() if self._exclude_lock_fn else []),
+            _LayerCustomData.EXCLUDE_MUTE: set(self._exclude_mute_fn() if self._exclude_mute_fn else []),
+            _LayerCustomData.EXCLUDE_EDIT_TARGET: set(
+                self._exclude_edit_target_fn() if self._exclude_edit_target_fn else []
+            ),
+            _LayerCustomData.EXCLUDE_ADD_CHILD: set(self._exclude_add_child_fn() if self._exclude_add_child_fn else []),
+            _LayerCustomData.EXCLUDE_MOVE: set(self._exclude_move_fn() if self._exclude_move_fn else []),
+        }
+
+    def _create_layer_items(
+        self,
+        layer: Sdf.Layer,
+        parent: Optional[LayerItem],
+        excluded_layers: dict[_LayerCustomData, set[str]],
+        dirty_layers: set[str],
+        edit_target_layer_identifier: str,
+        layers_state: _layers.LayersState,
+    ) -> tuple[LayerItem, bool]:
         children = []
+        child_authoring = False
         for sub_layer in layer.subLayerPaths:
-            sub_layer_path = layer.ComputeAbsolutePath(sub_layer)
-            if layer.realPath == sub_layer_path:
+            child_layer = Sdf.Layer.FindOrOpenRelativeToLayer(layer, sub_layer)
+            if not child_layer:
                 continue
-            child_layer = Sdf.Layer.FindOrOpen(sub_layer_path)
-            if child_layer is None:
-                continue
-            children.append(self._create_layer_items(child_layer, layer))
 
-        is_dirty = False
-        dirty_layers = _layers.LayerUtils.get_dirty_layers(self.stage)
-        for dirty_layer in dirty_layers:
-            if layer.identifier == dirty_layer:
-                is_dirty = True
-                break
+            child, authoring = self._create_layer_items(
+                child_layer, layer, excluded_layers, dirty_layers, edit_target_layer_identifier, layers_state
+            )
 
-        # If any of the children is the edit target, all parents cannot be muted
-        def has_authoring_child_recursive(items):
-            has_authoring = False
-            for item in items:
-                has_authoring = has_authoring or item.data["authoring"] or has_authoring_child_recursive(item.children)
-                if has_authoring:
-                    break
-            return has_authoring
+            children.append(child)
+            child_authoring = child_authoring or authoring
+
+        is_dirty = layer.identifier in dirty_layers
 
         excludes = {}
         custom_data = layer.customLayerData.get(_LayerCustomData.ROOT.value, {})
-
-        exclude_functions = {
-            _LayerCustomData.EXCLUDE_REMOVE: self._exclude_remove_fn,
-            _LayerCustomData.EXCLUDE_LOCK: self._exclude_lock_fn,
-            _LayerCustomData.EXCLUDE_MUTE: self._exclude_mute_fn,
-            _LayerCustomData.EXCLUDE_EDIT_TARGET: self._exclude_edit_target_fn,
-            _LayerCustomData.EXCLUDE_ADD_CHILD: self._exclude_add_child_fn,
-            _LayerCustomData.EXCLUDE_MOVE: self._exclude_move_fn,
-        }
 
         for exclude_type in _LayerCustomData:
             if exclude_type == _LayerCustomData.ROOT:
                 continue
             value = custom_data.get(exclude_type.value, None)
             if value is None:
-                value = (
-                    layer.identifier in exclude_functions[exclude_type]() if exclude_functions[exclude_type] else False
-                )
+                value = layer.identifier in excluded_layers[exclude_type]
             excludes[exclude_type] = value
 
-        layers_state = _layers.get_layers(self._context).get_layers_state()
-
         layer_name = _layers.LayerUtils.get_custom_layer_name(layer) if parent is not None else "Root Layer"
-        is_authoring = _layers.LayerUtils.get_edit_target(self.stage) == layer.identifier
+        is_authoring = edit_target_layer_identifier == layer.identifier
 
         layer_data = {
             "locked": layers_state.is_layer_locked(layer.identifier),
@@ -784,7 +791,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
             "authoring": is_authoring,
             "dirty": is_dirty,
             "layer": layer,
-            "can_toggle_mute": not is_authoring and not has_authoring_child_recursive(children),
+            "can_toggle_mute": not is_authoring and not child_authoring,
             "exclude_remove": excludes[_LayerCustomData.EXCLUDE_REMOVE],
             "exclude_lock": excludes[_LayerCustomData.EXCLUDE_LOCK],
             "exclude_mute": excludes[_LayerCustomData.EXCLUDE_MUTE],
@@ -797,7 +804,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
         if is_authoring:
             self._edit_target_layer = layer_item
 
-        return layer_item
+        return layer_item, is_authoring or child_authoring
 
     def _update_inherited_visibility(self, item: LayerItem, visible: bool):
         """
