@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.12.0]
+### Changed
+- Optimized the layer tree refresh method
+
 ## [1.11.0]
 ### Fixed
 - Fixed layer tree not properly selecting previous selection/edit target after refreshing
