@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed stage manager not refreshing to USD Notices
 - Fixed documentation for the AI Agents section
 - REMIX-4419: Fixed layer tree not properly selecting previous selection/edit target after refreshing
+- REMIX-4427: Fixed MCP server startup missing reference and logging
 
 ### Removed
 
