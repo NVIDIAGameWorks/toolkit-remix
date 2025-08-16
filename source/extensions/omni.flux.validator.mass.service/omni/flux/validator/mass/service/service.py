@@ -70,13 +70,15 @@ class MassValidatorService(ServiceBase):
             ),
         )
         async def update_schema(
-            body: ValidationSchema,
+            body: dict,
             queue_id: str = ServiceBase.describe_query_param(  # noqa B008
                 None, "ID to describe which queue should be updated"
             ),
         ) -> str:
             return (
-                self._mass_queue_core.update_schema(UpdateSchemaRequestModel(validation_schema=body, queue_id=queue_id))
+                self._mass_queue_core.update_schema(
+                    UpdateSchemaRequestModel(validation_schema=ValidationSchema(**body), queue_id=queue_id)
+                )
                 or "OK"
             )
 
@@ -94,7 +96,7 @@ class MassValidatorService(ServiceBase):
                 **{key: (type(value), value) for key, value in data.items()},
             )
 
-            # Build the schema to pass to the ManagerMassCOre
+            # Build the schema to pass to the ManagerMassCore
             schema = ValidationSchema(**data)
 
             @self.router.post(
