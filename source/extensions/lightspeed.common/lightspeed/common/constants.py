@@ -479,6 +479,28 @@ REMIX_CATEGORIES = {
             "texture factor blendings for the selected textures.",
         ],
     },
+    "Ignore Transparency Layer": {
+        "attr": "remix_category:ignore_transparency_layer",
+        "tooltip": "Textures on draw calls that should be ignored when rendering transparency layers.",
+        "full_description": [
+            "Textures on draw calls that should be ignored when rendering transparency layers.",
+        ],
+    },
+    "Particle Emitter": {
+        "attr": "remix_category:particle_emitter",
+        "tooltip": "Textures on draw calls that should be treated as particle emitters.",
+        "full_description": [
+            "Textures on draw calls that should be treated as particle emitters.",
+        ],
+    },
+    "Ignore Alpha Channel": {
+        "attr": "remix_category:ignore_alpha_channel",
+        "tooltip": "A flag to ignore the alpha channel of the colormap on the opaque material.",
+        "full_description": [
+            "A flag to ignore the alpha channel of the colormap on the opaque material.",
+            "Should only be used for debugging or development.",
+        ],
+    },
 }
 
 REMIX_CATEGORIES_DISPLAY_NAMES = {v["attr"]: k for k, v in REMIX_CATEGORIES.items()}

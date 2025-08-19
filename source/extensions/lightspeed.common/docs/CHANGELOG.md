@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.2]
+## Changed
+- Added new Remix Categories
+
 ## [1.7.1]
 ## Fixed
 - Fixed the credits list
