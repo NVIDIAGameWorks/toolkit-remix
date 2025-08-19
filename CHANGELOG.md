@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.2.0 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.2.0]
+
+### Added
 - Created 1.1.0 build
 - Added release notes for 1.1.0
 - REMIX-4380: New extension to load our custom USD schemas such as `RemixParticleSystem`
@@ -33,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4421: Expand the layers panels by default
 - Updated documentation about Langflow version support.
 - REMIX-4186: Optimized the layer tree refresh method
+- Update hdremix and omni_core_materials to ext-68b1255-release-v1-2
+- Update remix_runtime to 1.2.0
 
 ### Fixed
 - REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
