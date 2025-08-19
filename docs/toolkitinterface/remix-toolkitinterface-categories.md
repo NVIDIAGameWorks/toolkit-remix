@@ -35,5 +35,11 @@ The currently available Remix Categories in the Toolkit and their descriptions:
 | Third Person Player Body  | remix_category:third_person_player_body  | Treated as a third person model to be used forshadows, but not rendered.                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 |   Ignore Baked Lighting   | remix_category:ignore_baked_lighting     | Textures for which to ignore two types of bakedlighting. Texture Factors and Vertex Color. TextureFactor disablement: Using this feature on selectedtextures will eliminate the texture factors.Vertex Color disablement: Using this feature on selectedtextures will eliminate the vertex colors. Note, enablingthis setting will automatically disable multiple-stagetexture factor blendings for the selected textures.                                                                                |
 
+|   Ignore Transparency Layer   | remix_category:ignore_transparency_layer     | Textures on draw calls that should be ignored when rendering transparency layers.                                                                                |
+
+|   Particle Emitter   | remix_category:particle_emitter     | Geometry on draw calls that should be treated as particle emitters.                                                                                |
+
+|   Ignore Alpha Channel   | remix_category:ignore_alpha_channel     | A flag to ignore the alpha channel of the colormap on the opaque material. Should only be used for debugging or development.                                                                                |
+
 Once assigned, the list will be updated in the Object Properties section:
 ![Remix Categories List](../data/images/remix-categories-list.png)
