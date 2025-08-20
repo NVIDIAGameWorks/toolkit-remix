@@ -46,6 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed documentation for the AI Agents section
 - REMIX-4419: Fixed layer tree not properly selecting previous selection/edit target after refreshing
 - REMIX-4427: Fixed MCP server startup missing reference and logging
+- REMIX-4350: Fixed validation callbacks incorrectly triggered when updating the schema
+- REMIX-4479: Fixed ValidationSchema error when multiple input files are provided
 
 ### Removed
 
