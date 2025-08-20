@@ -146,7 +146,7 @@ class MassValidatorService(ServiceBase):
 
                         # Subscribe to the schema update event and update the associated result
                         self._update_subscriptions[task] = self._mass_queue_core.subscribe_on_update_item(
-                            lambda updated_schema, queue_id: tasks.update({task: updated_schema})  # noqa
+                            lambda updated_schema, queue_id, t=task: tasks.update({t: updated_schema})
                         )
 
                 # Executors can be asyncio or concurrent libraries
