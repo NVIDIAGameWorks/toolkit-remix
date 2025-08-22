@@ -100,5 +100,5 @@ class VirtualGroupsTreePlugin(_StageManagerUSDTreePlugin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.model = VirtualGroupsModel(context_name=self._context_name)
+        self.model = VirtualGroupsModel()
         self.delegate = VirtualGroupsDelegate()

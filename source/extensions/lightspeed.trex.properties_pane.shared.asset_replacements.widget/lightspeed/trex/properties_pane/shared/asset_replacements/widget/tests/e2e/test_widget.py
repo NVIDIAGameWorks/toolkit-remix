@@ -61,7 +61,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         collapsable_frames = ui_test.find_all(
             f"{_window.title}//Frame/**/CollapsableFrame[*].identifier=='PropertyCollapsableFrame'"
         )
-        self.assertEqual(len(collapsable_frames), 5)
+        self.assertEqual(len(collapsable_frames), 6)
         await self.__destroy(_window, _wid)
 
     async def test_collapse_refresh_object_property_when_collapsed(self):
@@ -74,7 +74,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
         frame_mesh_prim = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
 
-        self.assertEqual(len(collapsable_frame_arrows), 5)
+        self.assertEqual(len(collapsable_frame_arrows), 6)
         self.assertIsNotNone(frame_mesh_ref)
         self.assertIsNotNone(frame_mesh_prim)
 
@@ -123,7 +123,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         )
         frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
 
-        self.assertEqual(len(collapsable_frame_arrows), 5)
+        self.assertEqual(len(collapsable_frame_arrows), 6)
         self.assertIsNotNone(frame_material)
 
         # by default, no frame are visible
@@ -135,7 +135,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         # we select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
-        await ui_test.human_delay(human_delay_speed=3)
+        await ui_test.human_delay(human_delay_speed=20)
 
         # we re-open the material property frame
         collapsable_frame_arrows = ui_test.find_all(
@@ -372,7 +372,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         # click the pin icons to pin
         pin_icon_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_frame_pin_icon'")
-        self.assertEqual(len(pin_icon_images), 2)
+        self.assertEqual(len(pin_icon_images), 3)
         await pin_icon_images[0].click()
         await ui_test.human_delay()
 
@@ -421,7 +421,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         # click the pin icons to pin
         pin_icon_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_frame_pin_icon'")
-        self.assertEqual(len(pin_icon_images), 2)
+        self.assertEqual(len(pin_icon_images), 3)
         await pin_icon_images[1].click()
         await ui_test.human_delay()
 
@@ -471,7 +471,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         # click the pin icons to pin
         pin_icon_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_frame_pin_icon'")
-        self.assertEqual(len(pin_icon_images), 2)
+        self.assertEqual(len(pin_icon_images), 3)
         await pin_icon_images[1].click()
         await ui_test.human_delay()
 
@@ -523,7 +523,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         # click the pin icons to pin and reveal text
         pin_icon_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_frame_pin_icon'")
-        self.assertEqual(len(pin_icon_images), 2)
+        self.assertEqual(len(pin_icon_images), 3)
         for pin_icon_image in pin_icon_images:
             await pin_icon_image.click()
             await ui_test.human_delay()

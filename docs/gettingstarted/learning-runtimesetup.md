@@ -27,7 +27,7 @@ Firstly, here you’ll find a list of materials from the original game displayed
 a grid view. RTX Remix will populate this list of materials based on what the original game is currently rendering. You
 might see this list change depending on what's being displayed in the game (this is normal).
 The purpose of this list is to provide an easy way for RTX Remix users to categorize the different materials in
-the original game (see the [Understanding Remix Categories](#understanding-remix-categories) section).
+the original game (see the [Understanding Render Categories](#understanding-render-categories) section).
 This helps Remix understand how to handle objects from the original game with a modern
 renderer.
 
@@ -43,9 +43,9 @@ your changes for the next time you start the game.
 You can simply download the `RTX.conf` file and place it along with the RTX Remix runtime next to the game’s executable.
 The community can help keep these `RTX.conf` files updated on ModDB, so modders can easily set up a game for RTX Remix.
 
-## Understanding Remix Categories
+## Understanding Render Categories
 
-Remix Categories give special instructions on how to render certain elements. Some important categories include:
+Render Categories give special instructions on how to render certain elements. Some important categories include:
 
 * UI (tells Remix to use the original game's rendering)
 * Sky (allows Remix to create a realistic environment map)
@@ -60,13 +60,13 @@ There are many more categories. Please check the tooltips in the runtime or the 
 you're unsure what a category means.
 
 Changes you make in the game setup tab are saved in the `RTX.conf` config file. This helps keep all
-your changes for the next time you start the game. For a full list of settings (including Remix Categories) and their
+your changes for the next time you start the game. For a full list of settings (including Render Categories) and their
 descriptions, please refer to
 [this document](https://github.com/NVIDIAGameWorks/dxvk-remix/blob/main/RtxOptions.md).
 
 ```{note}
-You can also set Remix Categories for meshes and materials in the RTX Remix Toolkit. For more information on
-this, please refer to the [Remix Categories](../toolkitinterface/remix-toolkitinterface-categories.md) section of the
+You can also set Render Categories for meshes and materials in the RTX Remix Toolkit. For more information on
+this, please refer to the [Render Categories](../toolkitinterface/remix-toolkitinterface-categories.md) section of the
 Toolkit Interface documentation.
 ```
 

@@ -30,7 +30,8 @@ class UsdListModelAttrValueModel(_UsdListModelBaseValueModel):
 
     def _set_attribute_value(self, attr, new_value: str):
         attribute_path = str(attr.GetPath())
-        index = self._list_options.index(new_value)
+        if self._use_index_in_usd:
+            new_value = self._list_options.index(new_value)
 
         # OM-75480: For props inside session layer, it will always change specs
         # in the session layer to avoid shadowing. Why it needs to be def is that
@@ -48,15 +49,17 @@ class UsdListModelAttrValueModel(_UsdListModelBaseValueModel):
             omni.kit.commands.execute(
                 "ChangeProperty",
                 prop_path=attribute_path,
-                value=index,
+                value=new_value,
                 target_layer=target_layer,
                 prev=None,
                 usd_context_name=self._context_name,
             )
 
     def _get_attribute_value(self, attr) -> str:
-        value: int = attr.Get()
-        return self._list_options[int(value)]
+        if self._use_index_in_usd:
+            value: int = attr.Get()
+            return self._list_options[int(value)]
+        return attr.Get()
 
 
 class VirtualUsdListModelAttrValueModel(UsdListModelAttrValueModel):

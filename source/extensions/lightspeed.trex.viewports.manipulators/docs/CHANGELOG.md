@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0]
+## Changed
+- Generalized viewport gizmo selection to support particles
+
 ## [1.5.1]
 ## Fixed
 - Remove unused dependency

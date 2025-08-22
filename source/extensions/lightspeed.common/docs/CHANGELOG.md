@@ -1,24 +1,33 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0]
+### Added
+- Added constants for particle system
+- Added `REGEX_IN_MESH_CHILDREN_PATH` to check for mesh_HASH prim paths, children and parent mesh_HASH included
+
+## [1.7.2]
+### Changed
+- Added new Remix Categories
+
 ## [1.7.1]
-## Fixed
+### Fixed
 - Fixed the credits list
 
 ## [1.7.0]
-## Fixed
+### Fixed
 - Update captured camera location to match latest runtime
 
 ## [1.6.1]
-## Fixed
+### Fixed
 - Fixed Test assets to large to work without LFS
 
 ## [1.6.0]
-## Changed
+### Changed
 - Update the documentation for Pydantic V2 compatbility
 
 ## [1.5.4]
-## Changed
+### Changed
 - Update variables and resource locations for extension testing matrix (ETM) compliance
 
 ## [1.5.3]

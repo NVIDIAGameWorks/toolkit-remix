@@ -2,24 +2,28 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.1]
+### Added
+- Added `MenuGroups` with IDs for all groups a Menu/Context Menu can have.
+
 ## [3.3.0]
-## Added
+### Added
 - Added `version.py` module to get the app version and distribution
 
 ## [3.2.0]
-## Added
+### Added
 - Added `get_git_branch` and `get_git_hash` functions as part of a new `git` module
 
 ## [3.1.1]
-## Fixed
+### Fixed
 - Fixed Test assets to large to work without LFS
 
 ## [3.1.0]
-## Changed
+### Changed
 - Update the documentation for Pydantic V2 compatbility
 
 ## [3.0.0]
-## Changed
+### Changed
 - Updated Pydantic to V2
 
 ## [2.24.0]

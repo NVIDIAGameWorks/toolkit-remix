@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Dict, Optional
 import carb
 import omni.ext
 from lightspeed.light.gizmos.layer import LightGizmosLayer as _LightGizmosLayer
+from lightspeed.particle.gizmos.layer import ParticleGizmosLayer as _ParticleGizmosLayer
 from lightspeed.trex.viewports.manipulators import camera_default_factory as _manipulator_camera_default
 from lightspeed.trex.viewports.manipulators import grid_default_factory as _manipulator_grid_default
 from lightspeed.trex.viewports.manipulators import prim_transform_default_factory as _prim_transform_manipulator
@@ -117,11 +118,17 @@ class TrexViewportSharedExtension(omni.ext.IExt):
         # layers
         self.__registered.append(RegisterViewportLayer(ViewportStatsLayer, "omni.kit.viewport.ViewportStats"))
         self.__registered.append(RegisterViewportLayer(ViewportSceneLayer, "omni.kit.viewport.SceneLayer"))
-        self.__registered.append(RegisterViewportLayer(ViewportToolsLayer, "omni.kit.viewport.ViewportTools"))
         self.__registered.append(RegisterViewportLayer(_LightGizmosLayer, "omni.kit.viewport.LightGizmosLayer"))
+        self.__registered.append(RegisterViewportLayer(_ParticleGizmosLayer, "omni.kit.viewport.ParticleGizmosLayer"))
         self.__registered.append(
             RegisterViewportLayer(_LightManipulatorLayer, "omni.kit.viewport.LightManipulatorLayer")
         )
+        self.__registered.append(RegisterViewportLayer(ViewportToolsLayer, "omni.kit.viewport.ViewportTools"))
+
+    def __unregister_scenes(self, registered):
+        for item in registered:
+            with contextlib.suppress(Exception):
+                item.destroy()
 
     def __add_tools(self):
         toolbar = _get_toolbar_instance()
@@ -134,11 +141,6 @@ class TrexViewportSharedExtension(omni.ext.IExt):
             toolbar.remove_widget(self.__teleport_button_group)
             self.__teleport_button_group.clean()
             _delete_teleporter_toolbar_button_group()
-
-    def __unregister_scenes(self, registered):
-        for item in registered:
-            with contextlib.suppress(Exception):
-                item.destroy()
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.viewports.shared.widget] Shutdown")

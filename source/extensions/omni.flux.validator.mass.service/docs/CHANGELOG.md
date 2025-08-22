@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.3]
+## Fixed
+- Fixed ValidationSchema error when multiple input files are provided
+
 ## [2.1.2]
 ## Fixed
 - Fixed ValidationSchema to fix MCP missing reference issue

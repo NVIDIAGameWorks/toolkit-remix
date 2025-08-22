@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+## Changed
+- Added particle gizmo layer
+
 ## [1.4.1]
 ## Fixed
 - NoneType error when changing viewport camera speed using the mouse scroll wheel

@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4403: Added a shell script to open a project for Visual Studio debugging
 - Added close project API endpoint
 - Added a `cleanup` pattern to the stage manager context and listener plugins
+- REMIX-4381: Added a viewport gizmo for particle prims
+- REMIX-4288: Adding the Properties Editor panel for Particle Systems.
 
 ### Changed
 - Changed GH actions commit message to commit title and non interruptible Gitlab releases
@@ -44,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4421: Expand the layers panels by default
 - Updated documentation about Langflow version support.
 - REMIX-4186: Optimized the layer tree refresh method
+- REMIX-4490: Updated the Remix Categories list
 - Update hdremix and omni_core_materials to ext-68b1255-release-v1-2
 - Update remix_runtime to 1.2.0
 
@@ -58,6 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed documentation for the AI Agents section
 - REMIX-4419: Fixed layer tree not properly selecting previous selection/edit target after refreshing
 - REMIX-4427: Fixed MCP server startup missing reference and logging
+- REMIX-4350: Fixed validation callbacks incorrectly triggered when updating the schema
+- REMIX-4479: Fixed ValidationSchema error when multiple input files are provided
 
 ### Removed
 

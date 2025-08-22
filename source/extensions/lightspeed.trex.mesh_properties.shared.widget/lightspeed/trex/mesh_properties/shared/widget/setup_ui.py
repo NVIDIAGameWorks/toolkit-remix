@@ -266,7 +266,7 @@ class SetupUI:
                             with ui.HStack(width=PROPERTIES_NAMES_COLUMN_WIDTH):
                                 # Spacer to replace the mixed value, default value, and override indicators
                                 ui.Spacer(width=ui.Pixel((16 + 8) * 3))
-                                ui.Label("Set Remix Categories", name="PropertiesWidgetLabel")
+                                ui.Label("Set Render Categories", name="PropertiesWidgetLabel")
                                 ui.Spacer(width=ui.Pixel(8))
                             self._remix_categories_button = ui.Image(
                                 "",
@@ -281,7 +281,7 @@ class SetupUI:
                             self._remix_categories_frame = ui.ScrollingFrame(
                                 visible=False,
                                 vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_AS_NEEDED,
-                                tooltip="To set categories, use the Remix Categories window.",
+                                tooltip="To set categories, use the Render Categories window.",
                                 mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(b),
                                 name="CategoriesFrame",
                             )
@@ -373,7 +373,9 @@ class SetupUI:
                 specific_attrs = [
                     UsdGeom.Tokens.doubleSided,
                 ]
+
                 self._property_widget.set_specific_attributes(specific_attrs)
+
                 # set lookup table for meshes
                 lookup_table = {
                     attr: {"name": attr.capitalize(), "group": None, "read_only": False} for attr in specific_attrs
@@ -389,6 +391,7 @@ class SetupUI:
                         },
                     }
                 )
+
                 self._refresh_remix_categories(mesh_prims)
                 self._property_widget.set_lookup_table(lookup_table)
                 self._property_widget.refresh([mesh_prim.GetPath() for mesh_prim in mesh_prims])
@@ -804,7 +807,7 @@ class SetupUI:
                 carb.log_info("No reference set")
 
     def _refresh_remix_categories(self, mesh_prims):
-        # Check remix categories to see if any are applied
+        # Check render categories to see if any are applied
         remix_attrs = {}
         decals = []
         decal_static_name = constants.REMIX_CATEGORIES["Decal"]["attr"]
@@ -852,7 +855,7 @@ class SetupUI:
             self._remix_categories_frame.height = ui.Pixel(100)
 
     def _add_remix_category(self, b):
-        """Provide dialog to set remix categories."""
+        """Provide dialog to set render categories."""
         dialog = _RemixCategoriesDialog(context_name=self._context_name, refresh_func=self._refresh_remix_categories)
         dialog.show()
 

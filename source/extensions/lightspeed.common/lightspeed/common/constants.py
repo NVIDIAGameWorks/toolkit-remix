@@ -24,7 +24,7 @@ from pxr import Sdf
 
 from .texture_info import CompressionFormat, TextureInfo
 
-WINDOW_NAME = "Trex Main Window"
+WINDOW_NAME = "Remix Main Window"
 
 MATERIAL_RELATIONSHIP = "material:binding"
 MATERIAL_INPUTS_DIFFUSE_TEXTURE = "inputs:diffuse_texture"
@@ -117,8 +117,12 @@ PIX2PIX_RESULTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("results"))
 REGEX_IN_INSTANCE_PATH = (
     f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa PLW1401
 )
-REGEX_IN_MESH_PATH = f"^(.*)({MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa PLW1401
-REGEX_MESH_PATH = f"^(.*)({MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
+REGEX_MESH_PATH_BASE = rf"^(.*)({MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*"
+REGEX_MESH_PATH = rf"{REGEX_MESH_PATH_BASE}$"
+# direct children of mesh group
+REGEX_IN_MESH_PATH = rf"{REGEX_MESH_PATH_BASE}/([a-zA-Z0-9_\/]+)*$"
+# all children of mesh group
+REGEX_IN_MESH_CHILDREN_PATH = rf"{REGEX_MESH_PATH_BASE}/*([a-zA-Z0-9_\/]+)*$"
 REGEX_INSTANCE_PATH = f"^(.*)({INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
 REGEX_HASH = f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX}|{MATERIAL_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*(.*)$"  # noqa E501
 REGEX_HASH_GENERIC = f"^(.*)([A-Z0-9]{{16}})(_[a-zA-Z0-9]+)*(.*)$"  # noqa PLW1309
@@ -479,8 +483,32 @@ REMIX_CATEGORIES = {
             "texture factor blendings for the selected textures.",
         ],
     },
+    "Ignore Transparency Layer": {
+        "attr": "remix_category:ignore_transparency_layer",
+        "tooltip": "Textures on draw calls that should be ignored when rendering transparency layers.",
+        "full_description": [
+            "Textures on draw calls that should be ignored when rendering transparency layers.",
+        ],
+    },
+    "Particle Emitter": {
+        "attr": "remix_category:particle_emitter",
+        "tooltip": "Textures on draw calls that should be treated as particle emitters.",
+        "full_description": [
+            "Textures on draw calls that should be treated as particle emitters.",
+        ],
+    },
+    "Ignore Alpha Channel": {
+        "attr": "remix_category:ignore_alpha_channel",
+        "tooltip": "A flag to ignore the alpha channel of the colormap on the opaque material.",
+        "full_description": [
+            "A flag to ignore the alpha channel of the colormap on the opaque material.",
+            "Should only be used for debugging or development.",
+        ],
+    },
 }
 
+# Categories
+REMIX_CATEGORIES_ALLOWED_PRIM_TYPES = ["Mesh"]
 REMIX_CATEGORIES_DISPLAY_NAMES = {v["attr"]: k for k, v in REMIX_CATEGORIES.items()}
 HIDDEN_REMIX_CATEGORIES = ["Third Person Player Body", "Third Person Player Model", "Hidden", "Ignore", "Ignore Lights"]
 
@@ -511,3 +539,14 @@ class GlobalEventNames(Enum):
     ACTIVE_VIEWPORT_CHANGED = "Active viewport changed"  # Emitted by trex.viewports.shared.widgets
     CONTEXT_CHANGED = "Context changed"
     PAGE_CHANGED = "Page changed"
+
+
+# Particle System
+PARTICLE_SCHEMA_NAME = "RemixParticleSystemAPI"
+PARTICLE_CPP_SCHEMA_NAME = "ParticleSystemAPI"  # Use this with USDRT or low level code.
+PARTICLE_ALLOWED_PRIM_TYPES = ["Mesh", "Material"]
+PARTICLE_PRIMVAR_PREFIX = "primvars:particle:"
+PARTICLE_HIDE_EMITTER_ATTR = PARTICLE_PRIMVAR_PREFIX + "hideEmitter"
+
+# Viewport
+VIEWPORT_MENU_SHOW_BY_TYPE = "Show By Type"

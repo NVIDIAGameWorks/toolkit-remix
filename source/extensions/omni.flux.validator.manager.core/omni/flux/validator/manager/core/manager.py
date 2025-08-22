@@ -131,32 +131,42 @@ class ValidationSchema(BaseModel):
                 if isinstance(current_value, BaseModel):
                     if isinstance(value, dict):
                         _update(current_value, value)
-                    else:
+                        continue
+                    if current_value != value:
                         setattr(model, field_name, value)
+                    continue
+
                 # Handle lists (potentially containing models)
-                elif isinstance(current_value, list):
-                    if isinstance(value, list):
-                        # Only update existing items, don't add new ones
-                        for i, item in enumerate(current_value):
-                            if i >= len(value):
-                                continue
-                            if isinstance(item, BaseModel) and isinstance(value[i], dict):
-                                _update(item, value[i])
-                            else:
-                                current_value[i] = value[i]
-                    else:
+                if isinstance(current_value, list):
+                    if not isinstance(value, list):
                         setattr(model, field_name, value)
+                        continue
+                    # Only update existing items, don't add new ones
+                    for i, item in enumerate(current_value):
+                        if i >= len(value):
+                            continue
+                        next_value = value[i]
+                        if isinstance(item, BaseModel) and isinstance(next_value, dict):
+                            _update(item, next_value)
+                            continue
+                        if current_value[i] != next_value:
+                            current_value[i] = next_value
+                    continue
+
                 # Handle dictionaries
-                elif isinstance(current_value, dict):
-                    if isinstance(value, dict):
-                        for key in current_value:
-                            if key not in value:
-                                continue
-                            current_value[key] = value[key]
-                    else:
+                if isinstance(current_value, dict):
+                    if not isinstance(value, dict):
                         setattr(model, field_name, value)
+                        continue
+                    for key in current_value:
+                        if key not in value:
+                            continue
+                        if current_value[key] != value[key]:
+                            current_value[key] = value[key]
+                    continue
+
                 # Simple values
-                else:
+                if current_value != value:
                     setattr(model, field_name, value)
 
         # Update the model with the validated data

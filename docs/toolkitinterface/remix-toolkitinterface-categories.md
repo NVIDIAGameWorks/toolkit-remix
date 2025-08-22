@@ -1,18 +1,18 @@
-# Remix Categories
+# Render Categories
 
 If you would like to set a Remix Category from the Toolkit interface, you can find the Set Remix Category button in the
 Asset Replacements tab under the Oject Properties section.
 
-![Remix Categories Button](../data/images/remix-categories-button.png)
+![Render Categories Button](../data/images/remix-categories-button.png)
 
 To set a Remix Category, use the window that the button opens. You can select multiple categories to assign at a time.
 Be aware that not all will behave correctly in the Toolkit viewport because they need the game engine to properly
 render. Also note that some categories hide geometry from the viewport, so it will no longer be selectable in the
 viewport.
 
-![Remix Categories Window](../data/images/remix-categories-window.png)
+![Render Categories Window](../data/images/remix-categories-window.png)
 
-The currently available Remix Categories in the Toolkit and their descriptions:
+The currently available Render Categories in the Toolkit and their descriptions:
 
 |       Display Name        | Attribubte Name                          | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 |:-------------------------:|:-----------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -35,5 +35,11 @@ The currently available Remix Categories in the Toolkit and their descriptions:
 | Third Person Player Body  | remix_category:third_person_player_body  | Treated as a third person model to be used forshadows, but not rendered.                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 |   Ignore Baked Lighting   | remix_category:ignore_baked_lighting     | Textures for which to ignore two types of bakedlighting. Texture Factors and Vertex Color. TextureFactor disablement: Using this feature on selectedtextures will eliminate the texture factors.Vertex Color disablement: Using this feature on selectedtextures will eliminate the vertex colors. Note, enablingthis setting will automatically disable multiple-stagetexture factor blendings for the selected textures.                                                                                |
 
+|   Ignore Transparency Layer   | remix_category:ignore_transparency_layer     | Textures on draw calls that should be ignored when rendering transparency layers.                                                                                |
+
+|   Particle Emitter   | remix_category:particle_emitter     | Geometry on draw calls that should be treated as particle emitters.                                                                                |
+
+|   Ignore Alpha Channel   | remix_category:ignore_alpha_channel     | A flag to ignore the alpha channel of the colormap on the opaque material. Should only be used for debugging or development.                                                                                |
+
 Once assigned, the list will be updated in the Object Properties section:
-![Remix Categories List](../data/images/remix-categories-list.png)
+![Render Categories List](../data/images/remix-categories-list.png)

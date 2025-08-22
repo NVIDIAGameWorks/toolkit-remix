@@ -110,5 +110,5 @@ class CustomTagGroupsTreePlugin(_VirtualGroupsTreePlugin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.model = CustomTagGroupsModel(context_name=self._context_name)
+        self.model = CustomTagGroupsModel()
         self.delegate = CustomTagGroupsDelegate()

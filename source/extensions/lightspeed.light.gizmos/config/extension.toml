@@ -1,5 +1,5 @@
 [package]
-version = "1.1.1"
+version = "1.2.0"
 authors = ["Alex Dunn <adunn@nvidia.com>", "Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Light gizmos extension"
 description = "Render light gizmos using omni.ui.scene"
@@ -21,6 +21,7 @@ icon = "data/icon.png"
 name = "lightspeed.light.gizmos"
 
 [[test]]
+# TODO: Verify if this is still needed after fixing golden tests.
 args = [
     "--/app/window/dpiScaleOverride=1.0",
     "--/app/window/scaleToMonitor=false",
@@ -28,8 +29,6 @@ args = [
 
 dependencies = [
     "lightspeed.trex.tests.dependencies",
-    "omni.kit.renderer.core",
-    "omni.kit.renderer.capture",
     "omni.kit.viewport.utility",
 ]
 

@@ -168,7 +168,7 @@ class CustomTagsWidgetPlugin(_StageManagerUSDWidgetPlugin):
              x: The clicked location's x component
              y: The clicked location's y component
              b: The button used to double-click
-             m: Modified used while clicking
+             m: Modifier used while clicking
         """
         if b != 0:
             return
