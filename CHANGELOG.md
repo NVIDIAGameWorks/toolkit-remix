@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4490: Updated the Remix Categories list
 - Update hdremix and omni_core_materials to ext-68b1255-release-v1-2
 - Update remix_runtime to 1.2.0
+- Update hdremix and omni_core_materials to ext-c59aaea-release-v1-2
+- Update remix_runtime to 1.2.1
 
 ### Fixed
 - REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
