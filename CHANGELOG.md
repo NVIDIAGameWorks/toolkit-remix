@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated documentation about Langflow version support.
 - REMIX-4186: Optimized the layer tree refresh method
 - REMIX-4490: Updated the Remix Categories list
+- Update hdremix and omni_core_materials to ext-03aa211-main
 
 ### Fixed
 - REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
