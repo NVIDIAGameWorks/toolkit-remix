@@ -17,13 +17,17 @@
 
 from typing import TYPE_CHECKING
 
-import omni.usd
+import carb
 from lightspeed.common import constants
 from lightspeed.trex.viewports.shared.widget import get_active_viewport as _get_active_viewport
-from omni import ui
+from omni import ui, usd
+from omni.flux.stage_manager.factory.plugins import StageManagerMenuMixin as _StageManagerMenuMixin
 from omni.flux.stage_manager.plugin.widget.usd.base import (
     StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,
 )
+from omni.flux.utils.common.menus import MenuGroup as _MenuGroup
+from omni.flux.utils.common.menus import MenuItem as _MenuItem
+from omni.flux.utils.widget.resources import get_icons as _get_icons
 from pxr import UsdGeom
 
 if TYPE_CHECKING:
@@ -31,7 +35,7 @@ if TYPE_CHECKING:
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 
 
-class FocusInViewportActionWidgetPlugin(_StageManagerStateWidgetPlugin):
+class FocusInViewportActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageManagerMenuMixin):
     def build_icon_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
         # Build the icon
         enabled = item.data and UsdGeom.Imageable(item.data)
@@ -67,7 +71,42 @@ class FocusInViewportActionWidgetPlugin(_StageManagerStateWidgetPlugin):
         #  Ideally we don't change the selection after the action is performed to keep multi-selections.
 
         self._item_clicked(button, True, model, item)
+        self._on_frame_on_the_viewport({"context_name": self._context_name})
 
-        context = omni.usd.get_context(self._context_name)
-        selected_prim_paths = context.get_selection().get_selected_prim_paths()
-        _get_active_viewport().frame_viewport_selection(selected_prim_paths)
+    @classmethod
+    def _get_menu_items(cls):
+        frame_icon = _get_icons("frame")
+        return [
+            (
+                {
+                    "name": _MenuItem.FOCUS_IN_VIEWPORT.value,
+                    "glyph": frame_icon,
+                    "appear_after": _MenuItem.COPY_PRIM_PATH.value,
+                    "onclick_fn": cls._on_frame_on_the_viewport,
+                    "enabled_fn": cls._on_frame_on_the_viewport_enabled_fn,
+                },
+                _MenuGroup.SELECTED_PRIMS.value,
+                "",
+            ),
+            (
+                {
+                    "name": _MenuItem.DYNAMIC_SPLITTER.value,
+                },
+                _MenuGroup.SELECTED_PRIMS.value,
+                "",
+            ),
+        ]
+
+    @classmethod
+    def _on_frame_on_the_viewport(cls, payload: dict):
+        context = usd.get_context(payload.get("context_name", ""))
+        if not context:
+            carb.log_error(f"Context not found: {payload.get('context_name', '')}")
+            return
+
+        _get_active_viewport().frame_viewport_selection(context.get_selection().get_selected_prim_paths())
+
+    @classmethod
+    def _on_frame_on_the_viewport_enabled_fn(cls, payload: dict):
+        item = payload.get("right_clicked_item")
+        return item and item.data and UsdGeom.Imageable(item.data)

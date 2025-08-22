@@ -169,7 +169,7 @@ For example:
 
   ![Light Properties](../data/images/remix-properties-lights.png)
 
-* Furthermore, this panel allows the assignment of Remix Categories to various objects within the scene, influencing how
+* Furthermore, this panel allows the assignment of Render Categories to various objects within the scene, influencing how
   they are rendered by the RTX Remix Runtime.
 
 ***

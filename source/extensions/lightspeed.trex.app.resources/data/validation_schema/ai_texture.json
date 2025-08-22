@@ -25,7 +25,7 @@
                 "data": {"channel": "cleanup_files", "cleanup_output": false}
             }],
             "data": {
-                "model_artifact_path": "${lightspeed.trex.app.resources}/deps/ai_tools/i2m/artifacts/model.pt",
+                "ai_model_artifact_path": "${lightspeed.trex.app.resources}/deps/ai_tools/i2m/artifacts/model.pt",
                 "config_artifact_path": "${lightspeed.trex.app.resources}/deps/ai_tools/i2m/artifacts/config.yaml",
                 "data_flows": [
                     {"name": "InOutData", "push_input_data": true, "push_output_data": true, "channel": "cleanup_files"}

@@ -306,7 +306,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         if self._convert_type is not None:
             try:
                 new_value = self._convert_type(value)
-            except ValueError:
+            except (ValueError, TypeError):
                 attribs_names = [attr.GetName() for attr in self.attributes]
                 carb.log_warn(
                     f"Failed to use convert type: {self._convert_type} with value: "

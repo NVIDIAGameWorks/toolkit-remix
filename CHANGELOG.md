@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4403: Added a shell script to open a project for Visual Studio debugging
 - Added close project API endpoint
 - Added a `cleanup` pattern to the stage manager context and listener plugins
+- REMIX-4381: Added a viewport gizmo for particle prims
+- REMIX-4288: Adding the Properties Editor panel for Particle Systems.
 
 ### Changed
 - Changed GH actions commit message to commit title and non interruptible Gitlab releases

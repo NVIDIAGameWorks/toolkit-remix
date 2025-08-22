@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.19.4]
+## Fixed
+- REMIX-4288: Adding a check for uncaught TypeError when converting values to property panel attributes.
+
 ## [2.19.3]
 ## Fixed
 - REMIX-4246: Preventing vector property widgets trying to convert values to python native types like float and resetting the property to the default value by calling the correct method.

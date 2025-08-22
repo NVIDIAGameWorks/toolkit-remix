@@ -23,12 +23,17 @@ from typing import Any, Callable
 import omni.client
 import omni.usd
 from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER as _GAME_READY_ASSETS_FOLDER
+from lightspeed.common.constants import PARTICLE_SCHEMA_NAME as _PARTICLE_SCHEMA_NAME
+from lightspeed.common.constants import PROPERTIES_NAMES_COLUMN_WIDTH as _PROPERTIES_NAMES_COLUMN_WIDTH
 from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.material.core.shared import Setup as _MaterialCore
 from lightspeed.trex.material_properties.shared.widget import SetupUI as _MaterialPropertiesWidget
 from lightspeed.trex.mesh_properties.shared.widget import SetupUI as _MeshPropertiesWidget
+from lightspeed.trex.properties_pane.particle_system.widget import (
+    ParticleSystemPropertyWidget as _ParticleSystemPropertyWidget,
+)
 from lightspeed.trex.replacement.core.shared import Setup as _AssetReplacementCore
 from lightspeed.trex.replacement.core.shared.layers import AssetReplacementLayersCore as _AssetReplacementLayersCore
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
@@ -55,6 +60,7 @@ class CollapsiblePanels(Enum):
     MATERIAL_PROPERTIES = 3
     MESH_PROPERTIES = 4
     SELECTION = 5
+    PARTICLE_PROPERTIES = 6
 
 
 class AssetReplacementsPane:
@@ -72,17 +78,21 @@ class AssetReplacementsPane:
             "_mesh_properties_widget": None,
             "_material_converted_sub": None,
             "_material_properties_widget": None,
+            "_particle_properties_widget": None,
             "_layer_collapsable_frame": None,
             "_bookmarks_collapsable_frame": None,
             "_selection_history_collapsable_frame": None,
             "_selection_collapsable_frame": None,
             "_mesh_properties_collapsable_frame": None,
             "_material_properties_collapsable_frame": None,
+            "_particle_properties_collapsable_frame": None,
+            "_stage": None,
             "_sub_tree_selection_changed": None,
             "_sub_go_to_ingest_tab1": None,
             "_sub_go_to_ingest_tab2": None,
             "_sub_go_to_ingest_tab3": None,
             "_sub_stage_event": None,
+            "_usd_context": None,
             "_layer_validation_error_msg": None,
             "_collapsible_frame_states": None,
         }
@@ -90,6 +100,8 @@ class AssetReplacementsPane:
             setattr(self, attr, value)
 
         self._context_name = context_name
+        self._usd_context = omni.usd.get_context(context_name)
+        self._stage = self._usd_context.get_stage()
         self._replacement_core = _AssetReplacementCore(context_name)
         self._layers_core = _AssetReplacementLayersCore(context_name)
         self._material_core = _MaterialCore(context_name)
@@ -259,7 +271,7 @@ class AssetReplacementsPane:
                                 "the weaker layer (bottom).\n",
                                 collapsed=False,
                                 pinnable=True,
-                                pinned_text_fn=self._get_selection_pin_name,
+                                pinned_text_fn=self._get_default_selection_pin_name,
                                 unpinned_fn=self._refresh_mesh_properties_widget,
                             )
                             self._collapsible_frame_states[CollapsiblePanels.MESH_PROPERTIES] = True
@@ -287,7 +299,7 @@ class AssetReplacementsPane:
                                 "the weaker layer (bottom).\n",
                                 collapsed=False,
                                 pinnable=True,
-                                pinned_text_fn=lambda: self._get_selection_pin_name(for_materials=True),
+                                pinned_text_fn=self._get_material_selection_pin_name,
                                 unpinned_fn=self._refresh_material_properties_widget,
                             )
                             self._collapsible_frame_states[CollapsiblePanels.MATERIAL_PROPERTIES] = True
@@ -309,6 +321,37 @@ class AssetReplacementsPane:
 
                             ui.Spacer(height=ui.Pixel(16))
 
+                            self._particle_properties_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
+                                "PARTICLE PROPERTIES",
+                                info_text="Properties of selected particle prims.\n\n"
+                                "- Shows particle system attributes like gravity, speed, and turbulence\n"
+                                "- Properties are organized into logical groups\n"
+                                "- Changes are applied in real-time",
+                                collapsed=False,
+                                pinnable=True,
+                                pinned_text_fn=self._get_particle_selection_pin_name,
+                                unpinned_fn=self._refresh_particle_properties_widget,
+                            )
+                            self._collapsible_frame_states[CollapsiblePanels.PARTICLE_PROPERTIES] = True
+                            with self._particle_properties_collapsable_frame:
+                                self._particle_properties_widget = _ParticleSystemPropertyWidget(
+                                    self._context_name,
+                                    tree_column_widths=[_PROPERTIES_NAMES_COLUMN_WIDTH, ui.Fraction(1)],
+                                    right_aligned_labels=False,
+                                    columns_resizable=True,
+                                )
+
+                            self._particle_properties_collapsable_frame.root.set_collapsed_changed_fn(
+                                functools.partial(
+                                    self.__on_collapsable_frame_changed,
+                                    CollapsiblePanels.PARTICLE_PROPERTIES,
+                                    self._particle_properties_widget,
+                                    refresh_fn=self._refresh_particle_properties_widget,
+                                )
+                            )
+
+                            ui.Spacer(height=ui.Pixel(16))
+
         self._sub_tree_selection_changed = self._selection_tree_widget.subscribe_tree_selection_changed(
             self._on_tree_selection_changed
         )
@@ -321,6 +364,7 @@ class AssetReplacementsPane:
 
         self._refresh_mesh_properties_widget()
         self._refresh_material_properties_widget()
+        self._refresh_particle_properties_widget()
 
     def __on_collapsable_frame_changed(
         self, collapsible_panel_type, widget, collapsed, refresh_fn: Callable[[], Any] = None
@@ -335,41 +379,29 @@ class AssetReplacementsPane:
     def selection_tree_widget(self):
         return self._selection_tree_widget
 
-    def _get_selection_pin_name(self, for_materials: bool = False) -> str:
+    def _get_prims_from_selection(self, resolve_to_prototypes: bool = False) -> list:
         """
-        Get a formatted name of the current USD selection for the pin label.
-
-        Args:
-            for_materials: Whether to target relevant materials from the selection or use the selection directly.
-
-        Returns:
-            A formatted string of the `parent/prim` with handling of no selection, multi-selection, and long paths.
+        Helper to get prims from current selection, optionally resolving instances to meshes.
         """
-        context = omni.usd.get_context(self._context_name)
-        stage = context.get_stage()
-
         prims = []
-        prim_paths = list(set(context.get_selection().get_selected_prim_paths()))
+        prim_paths = list(set(self._usd_context.get_selection().get_selected_prim_paths()))
         for prim_path in prim_paths:
-            prim = stage.GetPrimAtPath(prim_path)
+            prim = self._stage.GetPrimAtPath(prim_path)
             if not prim:
                 continue
-
-            # If material pinning, get mesh from instance to later grab all relevant materials
-            if for_materials and _is_instance(prim):
+            if resolve_to_prototypes and _is_instance(prim):
                 prim = self._material_properties_widget.get_mesh_from_instance(prim)
                 if not prim:
                     continue
-
             prims.append(prim)
+        return prims
 
-        # Use materials relevant to USD selection for material pinning
-        if for_materials:
-            prims = [
-                stage.GetPrimAtPath(path) for path in self._material_properties_widget.get_materials_from_prims(prims)
-            ]
+    def _format_prim_names_for_pin(self, prims: list) -> str:
+        """
+        Format prim names for Pin label.
 
-        # Return the appropriate prim name
+        Returns a formatted string of the `parent/prim` with handling of no selection, multi-selection, and long paths.
+        """
         if not prims:
             return "None Selected"
         if len(prims) == 1:
@@ -377,6 +409,39 @@ class AssetReplacementsPane:
             formatted_name = f"{path.GetParentPath().name}/{path.name}"  # parent/child
             return formatted_name if len(formatted_name) < 50 else "..." + formatted_name[-50:]  # 50 char limit
         return "Multiple Selected"
+
+    def _get_default_selection_pin_name(self) -> str:
+        """
+        Get a formatted name of the current USD selection for the pin label.
+        """
+        prims = self._get_prims_from_selection()
+        return self._format_prim_names_for_pin(prims)
+
+    def _get_material_selection_pin_name(self) -> str:
+        """
+        Get a formatted name of the current USD material selection for the pin label.
+        """
+        prims = self._get_prims_from_selection(resolve_to_prototypes=True)
+        # Use materials relevant to USD selection for material pinning
+        material_paths = self._material_properties_widget.get_materials_from_prims(prims)
+        material_prims = [self._stage.GetPrimAtPath(path) for path in material_paths]
+        if not material_prims:
+            return "No Material Assigned"
+        return self._format_prim_names_for_pin(material_prims)
+
+    def _get_particle_selection_pin_name(self) -> str:
+        """
+        Get a formatted name of the current USD particle selection for the pin label.
+        """
+        prims = self._get_prims_from_selection(resolve_to_prototypes=True)
+        particle_prims = [prim for prim in prims if (prim.IsValid() and prim.HasAPI(_PARTICLE_SCHEMA_NAME))]
+        particle_count = len(particle_prims)
+        if particle_count == 0:
+            return "No Particle Systems"
+        return (
+            f"{particle_count} Particle System{'s' if particle_count > 1 else ''} "
+            f"{self._format_prim_names_for_pin(particle_prims)}"
+        )
 
     def __validate_existing_layer(self, path):
         try:
@@ -437,7 +502,12 @@ class AssetReplacementsPane:
             self._refresh_mesh_properties_widget()
         if not self._material_properties_collapsable_frame.root.collapsed:
             self._refresh_material_properties_widget()
+        if not self._particle_properties_collapsable_frame.root.collapsed:
+            self._refresh_particle_properties_widget()
+        # Rebuild all collapsible frames to update pin labels
         self._mesh_properties_collapsable_frame.root.rebuild()
+        self._material_properties_collapsable_frame.root.rebuild()
+        self._particle_properties_collapsable_frame.root.rebuild()
 
     def _refresh_mesh_properties_widget(self):
         if self._mesh_properties_collapsable_frame.pinned:
@@ -450,17 +520,41 @@ class AssetReplacementsPane:
             return
 
         # Grab the selection prims and refresh the properties
-        context = omni.usd.get_context(self._context_name)
-        prim_paths = list(set(context.get_selection().get_selected_prim_paths()))
-        items = [context.get_stage().GetPrimAtPath(prim_path) for prim_path in prim_paths]
+        prim_paths = list(set(self._usd_context.get_selection().get_selected_prim_paths()))
+        items = [self._stage.GetPrimAtPath(prim_path) for prim_path in prim_paths]
         self._material_properties_widget.refresh(items)
+
+    def _refresh_particle_properties_widget(self):
+        """Refresh the particle properties widget based on current selection"""
+        if self._particle_properties_collapsable_frame.pinned:
+            return
+
+        if not self._particle_properties_widget:
+            return
+
+        # Get selected prims
+        selected_paths = self._usd_context.get_selection().get_selected_prim_paths()
+        particle_system_paths = []
+
+        # Filter for RemixParticleSystem prims
+        for path in selected_paths:
+            prim = self._stage.GetPrimAtPath(path)
+            if prim.IsValid() and prim.HasAPI(_PARTICLE_SCHEMA_NAME):
+                particle_system_paths.append(path)
+
+        # Refresh the widget
+        self._particle_properties_widget.refresh(particle_system_paths)
 
     def refresh(self):
         if not self._root_frame.visible:
             return
+
+        self._stage = self._usd_context.get_stage()
+
         self._selection_tree_widget.refresh()
         self._refresh_mesh_properties_widget()
         self._refresh_material_properties_widget()
+        self._refresh_particle_properties_widget()
 
     def show(self, value):
         # Update the widget visibility
@@ -473,6 +567,10 @@ class AssetReplacementsPane:
         self._material_properties_widget.show(
             self._collapsible_frame_states[CollapsiblePanels.MATERIAL_PROPERTIES] and value
         )
+        self._particle_properties_widget.show(
+            self._collapsible_frame_states[CollapsiblePanels.PARTICLE_PROPERTIES] and value
+        )
+
         if value:
             self.refresh()
 

@@ -16,3 +16,5 @@
 """
 
 from .custom_commands import *
+from .extension import LightspeedCommandsExtension
+from .particle import CreateParticleSystemCommand, RemoveParticleSystemCommand

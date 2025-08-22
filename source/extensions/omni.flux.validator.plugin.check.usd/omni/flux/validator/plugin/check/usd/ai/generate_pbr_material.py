@@ -54,7 +54,7 @@ class GeneratePBRMaterial(_CheckBaseUSD):
     _DEFAULT_UI_WIDTH_PIXEL = 115
 
     class Data(_CheckBaseUSD.Data):
-        model_artifact_path: Path = Field(...)
+        ai_model_artifact_path: Path = Field(...)
         config_artifact_path: Path = Field(...)
         subdirectory_per_input: bool = Field(default=True)
         min_inference_resolution: int = Field(default=64)
@@ -67,7 +67,7 @@ class GeneratePBRMaterial(_CheckBaseUSD):
 
         model_config = ConfigDict(validate_assignment=True)
 
-        @field_validator("model_artifact_path", "config_artifact_path", mode="before")
+        @field_validator("ai_model_artifact_path", "config_artifact_path", mode="before")
         @classmethod
         def file_exists(cls, v: Path | str) -> Path:
             resolved_path = carb.tokens.get_tokens_interface().resolve(str(v))
@@ -210,7 +210,7 @@ class GeneratePBRMaterial(_CheckBaseUSD):
             )
 
             with _get_factory_instance().get_plugin("local_I2M")(  # noqa PLE1102
-                schema_data.model_artifact_path,
+                schema_data.ai_model_artifact_path,
                 schema_data.config_artifact_path,
                 min_resolution=schema_data.min_inference_resolution,
                 max_resolution=max_resolution,

@@ -2,7 +2,7 @@
 reloadable = false
 
 [package]
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Emanuel Kozerski <ekozerski@nvidia.com>"]
 title = "Remix USD Schema Loader Extension"
 description="Extension responsible for loading our custom USD schemas such as `RemixParticleSystem`."
@@ -16,6 +16,7 @@ icon = "data/icon.png"
 
 [dependencies]
 "omni.usd.libs" = {}
+"lightspeed.common" = {}
 
 [[python.module]]
 name = "lightspeed.trex.schemas"

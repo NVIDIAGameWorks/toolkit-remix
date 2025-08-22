@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,17 +15,6 @@
 * limitations under the License.
 """
 
-import os
+__all__ = ["LightspeedSchemasExtension", "get_schema_registry"]
 
-from pxr import Plug
-
-
-def register_plugins():
-    plugins_root = os.path.join(os.path.dirname(__file__), "../../../usd/plugins")
-    remix_particle_system_path = os.path.join(plugins_root, "RemixParticleSystem/resources")
-
-    # Register the plugin directory with USD
-    Plug.Registry().RegisterPlugins(remix_particle_system_path)
-
-
-register_plugins()
+from .extension import LightspeedSchemasExtension, get_schema_registry

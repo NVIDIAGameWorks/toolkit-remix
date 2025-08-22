@@ -142,3 +142,6 @@ nrc_session_log.txt
 
 # Ignore private shell scripts
 source/shell/open_project.*
+
+# Docs Temporary Config File
+conf.py

@@ -21,6 +21,7 @@ __all__ = [
     "StageManagerFilterPlugin",
     "StageManagerInteractionPlugin",
     "StageManagerListenerPlugin",
+    "StageManagerMenuMixin",
     "StageManagerTreePlugin",
     "StageManagerWidgetPlugin",
     "LengthUnit",
@@ -32,5 +33,6 @@ from .context_plugin import StageManagerContextPlugin
 from .filter_plugin import StageManagerFilterPlugin
 from .interaction_plugin import StageManagerInteractionPlugin
 from .listener_plugin import StageManagerListenerPlugin
+from .mixins import StageManagerMenuMixin
 from .tree_plugin import StageManagerTreePlugin
 from .widget_plugin import StageManagerWidgetPlugin

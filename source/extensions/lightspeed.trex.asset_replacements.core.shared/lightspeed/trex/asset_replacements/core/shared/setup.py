@@ -41,6 +41,7 @@ from lightspeed.trex.utils.common.prim_utils import filter_prims_paths as _filte
 from lightspeed.trex.utils.common.prim_utils import get_children_prims
 from lightspeed.trex.utils.common.prim_utils import get_extended_selection as _get_extended_selection
 from lightspeed.trex.utils.common.prim_utils import get_prim_paths as _get_prim_paths
+from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
 from omni.flux.asset_importer.core.data_models import SUPPORTED_ASSET_EXTENSIONS as _SUPPORTED_ASSET_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
@@ -441,14 +442,9 @@ class Setup:
         (mesh_123456789/*)"""
         paths = []
         for prim in prims:
-            if not prim.IsValid():
-                continue
-
-            stage = prim.GetStage()
-            path = re.sub(constants.REGEX_INSTANCE_TO_MESH_SUB, rf"{constants.MESH_PATH}\2", str(prim.GetPath()))
-            if not stage.GetPrimAtPath(path).IsValid():
-                continue
-            paths.append(path)
+            prototype = _get_prototype(prim)
+            if prototype:
+                paths.append(str(prototype.GetPath()))
         return paths
 
     def get_corresponding_prototype_prims_from_path(self, paths) -> list[str]:

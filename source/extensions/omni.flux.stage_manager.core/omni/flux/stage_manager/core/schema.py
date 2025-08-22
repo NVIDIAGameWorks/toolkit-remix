@@ -26,7 +26,7 @@ from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugi
 from pydantic import BaseModel, Field, field_validator
 
 if TYPE_CHECKING:
-    from omni.flux.factory.base import FactoryBase as _FactoryBase
+    from omni.flux.stage_manager.factory import StageManagerFactory as _StageManagerFactory
 
 
 class StageManagerSchema(BaseModel):
@@ -53,7 +53,7 @@ class StageManagerSchema(BaseModel):
         super().__init__(**data)
 
     def _resolve_plugins_recursive(
-        self, factory: "_FactoryBase", data: dict | Iterable | _StageManagerPluginBase
+        self, factory: "_StageManagerFactory", data: dict | Iterable | _StageManagerPluginBase
     ) -> dict | Iterable | _StageManagerPluginBase:
         if isinstance(data, dict):
             if "name" in data:
@@ -78,7 +78,7 @@ class StageManagerSchema(BaseModel):
         return data
 
     def __resolve_plugin_attributes(
-        self, factory: "_FactoryBase", plugin: _StageManagerPluginBase
+        self, factory: "_StageManagerFactory", plugin: _StageManagerPluginBase
     ) -> _StageManagerPluginBase:
         # Use __dict__ to get all fields, including excluded ones
         fields = plugin.__dict__

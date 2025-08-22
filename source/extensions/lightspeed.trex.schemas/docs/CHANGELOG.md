@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.2.1]
+### Changed
+- Configured dependencies and imports
+
 ## [0.2.0]
 ### Added
 - Updated test for latest `RemixParticleSystem` schema to test essential attributes only.

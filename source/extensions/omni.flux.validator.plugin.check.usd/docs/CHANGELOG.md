@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.2.1]
+### Changed
+- Renamed `model_artifact_path` to `ai_model_artifact_path`
+
 ## [4.2.0]
 ## Added
 - Added telemetry to the `GeneratePBRMaterial` plugin

@@ -1,5 +1,5 @@
 [package]
-version = "1.4.1"
+version = "1.5.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Viewports implementation"
 description = "Viewports implementation for NVIDIA RTX Remix App"
@@ -24,6 +24,7 @@ icon = "data/icon.png"
 "lightspeed.trex.viewports.manipulators" = {}
 "lightspeed.trex.viewports.properties_pane.widget" = {}
 "lightspeed.light.gizmos" = {}
+"lightspeed.particle.gizmos" = {}
 "lightspeed.ui_scene.light_manipulator" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.viewport.utility" = {}

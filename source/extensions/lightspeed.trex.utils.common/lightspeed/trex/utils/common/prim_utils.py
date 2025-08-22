@@ -27,11 +27,12 @@ __all__ = [
     "get_extended_selection",
     "get_children_prims",
     "get_reference_file_paths",
+    "get_prototype",
 ]
 
 import re
 from enum import Enum
-from typing import Callable, List, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import omni.usd
 from lightspeed.common import constants
@@ -219,7 +220,7 @@ def is_shader_prototype(prim: "Usd.Prim") -> bool:
 def is_mesh_prototype(prim: "Usd.Prim") -> bool:
     """
     Returns:
-        Whether the prim is a mesh prototype prim or not
+        Whether the prim is under a mesh_HASH path and is a Mesh prim type
     """
     if not prim:
         return False
@@ -229,10 +230,20 @@ def is_mesh_prototype(prim: "Usd.Prim") -> bool:
     )
 
 
+def is_a_prototype(prim: "Usd.Prim") -> bool:
+    """
+    Returns:
+        Whether the prim is under a mesh_HASH path
+    """
+    if not prim:
+        return False
+    return bool(re.match(constants.REGEX_IN_MESH_CHILDREN_PATH, str(prim.GetPath())))
+
+
 def is_instance(prim: "Usd.Prim") -> bool:
     """
     Returns:
-        Whether the prim is an instance prim or not
+        Whether the prim is under an inst_HASH path
     """
     if not prim:
         return False
@@ -243,7 +254,7 @@ def get_extended_selection(context_name: str = "") -> list[str]:
     """
     Get the current selection and related prims.
     - If an instance is selected, select the mesh, material, and shader associated to it
-    - If a mesh is selection, select the material, and shader associated to it
+    - If a mesh is selected, select the material, and shader associated to it
     - If a material is selected, select the shader associated to it
     - Select all children prims that are meshes, materials, shaders or lights
     """
@@ -381,3 +392,33 @@ def get_reference_file_paths(
                 i += 1
 
     return prim_paths, i
+
+
+def get_prototype(prim: "Usd.Prim") -> Optional["Usd.Prim"]:
+    """
+    Idempotent function to retrieve the prototype (mesh_hash) version of a prim, if existent, else None.
+
+    I.e:
+
+    - /RootNode/instances/inst_HASH_0/hovercraft -> /RootNode/meshes/mesh_HASH/hovercraft
+    - /RootNode/instances/inst_HASH_0 -> /RootNode/meshes/mesh_HASH
+    - /RootNode/meshes/mesh_HASH/hovercraft -> /RootNode/meshes/mesh_HASH/hovercraft
+    - /RootNode/meshes/mesh_HASH -> /RootNode/meshes/mesh_HASH
+    - /RootNode/other -> /RootNode/other
+
+    Returns:
+        - The equivalent prototype prim instance.
+    """
+    if not prim.IsValid():
+        return None
+
+    if is_a_prototype(prim):
+        return prim
+
+    prototype_path = constants.COMPILED_REGEX_INSTANCE_TO_MESH_SUB.sub(rf"{constants.MESH_PATH}\2", str(prim.GetPath()))
+    stage = prim.GetStage()
+    prototype_prim = stage.GetPrimAtPath(prototype_path)
+    if not prototype_prim.IsValid():
+        return None
+
+    return prototype_prim

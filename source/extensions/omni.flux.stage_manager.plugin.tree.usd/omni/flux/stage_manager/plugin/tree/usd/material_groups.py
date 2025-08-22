@@ -111,5 +111,5 @@ class MaterialGroupsTreePlugin(_VirtualGroupsTreePlugin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.model = MaterialGroupsModel(context_name=self._context_name)
+        self.model = MaterialGroupsModel()
         self.delegate = MaterialGroupsDelegate()

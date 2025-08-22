@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.2]
+## Fixed
+- Cleanup unnecessary calls to hdremix selection class
+
 ## [1.1.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

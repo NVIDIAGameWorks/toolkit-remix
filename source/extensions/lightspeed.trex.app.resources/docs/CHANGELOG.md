@@ -1,28 +1,32 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.19.0]
+### Changed
+- Added particle svg icon
+
 ## [1.18.0]
-## Changed
+### Changed
 - Show cameras in "All Prims" tab by default
 
 ## [1.17.2]
-## Fixed
+### Fixed
 - Fixed location of deployed runtime to match docs and be available to users
 
 ## [1.17.1]
-## Fixed
+### Fixed
 - Fixed Test assets too large to work without LFS
 
 ## [1.17.0]
-## Added
+### Added
 - Added missing automodule directives for documentation
 
 ## [1.16.2]
-## Changed
+### Changed
 - Update final variables and resource locations for extension testing matrix (ETM) compliance
 
 ## [1.16.1]
-## Changed
+### Changed
 - Update variables and resource locations for extension testing matrix (ETM) compliance
 
 ## [1.16.0]

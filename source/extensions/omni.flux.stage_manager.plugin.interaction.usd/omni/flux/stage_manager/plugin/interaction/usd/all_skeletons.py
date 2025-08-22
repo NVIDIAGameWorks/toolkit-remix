@@ -54,6 +54,7 @@ class AllSkeletonsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "IsCaptureStateWidgetPlugin",
             "IsCategoryHiddenStateWidgetPlugin",
             "IsVisibleActionWidgetPlugin",
+            "ParticleSystemsActionWidgetPlugin",
             "PrimTreeWidgetPlugin",
             "RemapSkeletonActionWidgetPlugin",
             "RemapSkeletonInfoWidgetPlugin",

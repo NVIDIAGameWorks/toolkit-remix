@@ -1142,13 +1142,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(3)
 
         # Set a random remix category for us to assign
-        box = ui_test.find("Add Remix Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:world_ui'")
+        box = ui_test.find("Add Render Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:world_ui'")
         await ui_test.emulate_mouse_move_and_click(box.position)
         await ui_test.human_delay(3)
 
         # Assign the category
         assign_button = ui_test.find(
-            "Add Remix Categories to Prim//Frame/**/Button[*].identifier=='AssignCategoryButton'"
+            "Add Render Categories to Prim//Frame/**/Button[*].identifier=='AssignCategoryButton'"
         )
         await assign_button.click()
         await ui_test.human_delay(3)
@@ -1182,16 +1182,16 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(3)
 
         # Set a random remix category for us to assign
-        box = ui_test.find("Add Remix Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:world_ui'")
+        box = ui_test.find("Add Render Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:world_ui'")
         await ui_test.emulate_mouse_move_and_click(box.position)
         await ui_test.human_delay(3)
-        box2 = ui_test.find("Add Remix Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:decal_Static'")
+        box2 = ui_test.find("Add Render Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:decal_Static'")
         await ui_test.emulate_mouse_move_and_click(box2.position)
         await ui_test.human_delay(3)
 
         # Assign the category
         assign_button = ui_test.find(
-            "Add Remix Categories to Prim//Frame/**/Button[*].identifier=='AssignCategoryButton'"
+            "Add Render Categories to Prim//Frame/**/Button[*].identifier=='AssignCategoryButton'"
         )
         await assign_button.click()
 

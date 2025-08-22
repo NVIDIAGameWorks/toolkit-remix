@@ -62,5 +62,5 @@ class PrimGroupsTreePlugin(_StageManagerUSDTreePlugin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.model = PrimGroupsModel(context_name=self._context_name)
+        self.model = PrimGroupsModel()
         self.delegate = PrimGroupsDelegate()

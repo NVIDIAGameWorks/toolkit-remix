@@ -83,7 +83,7 @@ class RemixCategoriesDialog:
         # the main window's height.
         final_height = int(dialog_height if dialog_height < 500 else self._WINDOW_HEIGHT)
         self._window = ui.Window(
-            "Add Remix Categories to Prim",
+            "Add Render Categories to Prim",
             visible=True,
             width=self._WINDOW_WIDTH,
             height=final_height,
@@ -134,7 +134,7 @@ class RemixCategoriesDialog:
                         with ui.HStack():
                             ui.Spacer(width=ui.Pixel(self._RECTANGLE_BUFFER))
                             categories_desc = (
-                                "Remix Categories describe how the RTX Renderer treats "
+                                "Render Categories describe how the RTX Renderer treats "
                                 "the geometry or its associated texture during runtime."
                             )
                             ui.Label(categories_desc, word_wrap=True)

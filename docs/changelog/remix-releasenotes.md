@@ -19,7 +19,7 @@ Please look out in the near future for the  NVIDIA RTX Remix Agent, coming as a 
 #### Quality of Life Improvements:
 - When selecting any prim in the Stage Manager, it will now also be selected in the selection pane
 - Added PyCharm, VS Code, and Cursor Configuration Files
-- RTX Remix users can now set Remix Categories in the Stage manager
+- RTX Remix users can now set Render Categories in the Stage manager
 
 #### Improvements to Build Process and Build Availability:
 We made a variety of changes to improve the Toolkit build process and make the latest builds more accessible.
@@ -315,13 +315,13 @@ More information about mod packaging is available [here](../howto/learning-packa
 **Property Widget Improvements:**
 Continued to fix, improve the look and feel, and simplify code controlling selection panel and property editor widgets.
 
-**Remix Categories:**
+**Render Categories:**
 This key feature of Remix has been updated in Toolkit and aligned with the Runtime. We've foregrounded tooltips to help
 guide Modders in tagging replacement meshes with the appropriate category for the runtime.
 
 ```{seealso}
-More information about Remix Categories is available
-[here](../gettingstarted/learning-runtimesetup.md#understanding-remix-categories).
+More information about Render Categories is available
+[here](../gettingstarted/learning-runtimesetup.md#understanding-render-categories).
 ```
 
 **Ingestion Scale Factor**: Flipped asset ingestion parameter from "Meters per Unit" to "Asset Scale Factor" to make
@@ -358,7 +358,7 @@ the [remix-toolkit repo](https://github.com/NVIDIAGameWorks/toolkit-remix).
 
 - Fixed capture window behavior to avoid it hanging on other tabs
 - Fixed disclosure icon display so tree view and panels mean the same thing
-- Fixed display of Remix Categories icon for only when applicable mesh objects are selected
+- Fixed display of Render Categories icon for only when applicable mesh objects are selected
 - Fixed various Stage Manager issues
 - Fixed layers panel performance in large projects
 - Fixed light selection behavior in selection panel

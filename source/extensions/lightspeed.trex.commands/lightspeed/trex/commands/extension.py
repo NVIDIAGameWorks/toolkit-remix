@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,11 +17,18 @@
 
 import carb
 import omni.ext
+import omni.kit.commands
+
+from . import particle
 
 
-class LightspeedLightGizmosExt(omni.ext.IExt):
+class LightspeedCommandsExtension(omni.ext.IExt):
+
     def on_startup(self, ext_id):
-        carb.log_info("[lightspeed.light.gizmos] Lightspeed Light Gizmos startup")
+        carb.log_info("[lightspeed.trex.commands] Lightspeed Commands Startup.")
+
+        # Register all commands in the commands module
+        omni.kit.commands.register_all_commands_in_module(particle)
 
     def on_shutdown(self):
-        carb.log_info("[lightspeed.light.gizmos] Lightspeed Light Gizmos startup")
+        carb.log_info("[lightspeed.trex.commands] Lightspeed Commands Shutdown.")
