@@ -23,7 +23,6 @@ import carb
 import omni.usd
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
-from lightspeed.trex.viewports.manipulators.global_selection import GlobalSelection
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.scene_view.opengl import ViewportOpenGLSceneView
 from pxr import UsdLux
@@ -186,7 +185,6 @@ class LightManipulatorLayer:
                 # make sure this is initialized with the right value
                 manipulator.model.set_manipulator_scale(self._manipulator_scale)
                 self._manipulators[str(light.GetPrimPath())] = manipulator
-            GlobalSelection.g_set_lightmanipulators(self._manipulators)
 
     def _destroy_manipulators(self):
         if self._scene_view:
@@ -194,7 +192,6 @@ class LightManipulatorLayer:
 
         # Release stale manipulators
         self._manipulators = {}
-        GlobalSelection.g_set_lightmanipulators(self._manipulators)
 
     def _on_stage_event(self, event):
         """Called by stage_event_stream"""
@@ -202,10 +199,6 @@ class LightManipulatorLayer:
             return
 
         match event.type:
-            case omni.usd.StageEventType.SELECTION_CHANGED.value:
-                GlobalSelection.get_instance().on_selection_changed(
-                    self._get_context(), self._viewport_api, list(self._manipulators.values())
-                )
             case (
                 omni.usd.StageEventType.HIERARCHY_CHANGED.value
                 | omni.usd.StageEventType.ACTIVE_LIGHT_COUNTS_CHANGED.value

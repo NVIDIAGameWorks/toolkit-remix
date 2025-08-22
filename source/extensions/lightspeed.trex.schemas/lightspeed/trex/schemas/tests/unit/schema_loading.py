@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,11 +17,12 @@
 
 import pathlib
 
+from lightspeed.trex.schemas.utils import get_schema_prim
 from omni.kit.test import AsyncTestCase
 from pxr import Sdf, Usd, UsdGeom
 
-PARTICLE_API_SCHEMA = "RemixParticleSystemAPI"
-PARTICLE_PRIMVAR_PREFIX = "primvars:particle:"
+TEST_PARTICLE_SCHEMA_NAME = "RemixParticleSystemAPI"
+TEST_PARTICLE_PRIMVAR_PREFIX = "primvars:particle:"
 
 
 class TestSchemaLoading(AsyncTestCase):
@@ -31,17 +32,17 @@ class TestSchemaLoading(AsyncTestCase):
         prim = UsdGeom.Mesh.Define(stage, "/TestParticles").GetPrim()
 
         # Act
-        prim.ApplyAPI(PARTICLE_API_SCHEMA)
+        prim.ApplyAPI(TEST_PARTICLE_SCHEMA_NAME)
 
         # Assert
         self.assertEqual(prim.GetTypeName(), "Mesh")
         # test essential attributes only, or ones that we use in toolkit implementation
         expected_attrs = [
-            PARTICLE_PRIMVAR_PREFIX + "gravityForce",  # key attribute
-            PARTICLE_PRIMVAR_PREFIX + "maxNumParticles",  # key attribute
-            PARTICLE_PRIMVAR_PREFIX + "useTurbulence",  # key attribute
-            PARTICLE_PRIMVAR_PREFIX + "hideEmitter",  # toolkit: checked for gizmo visibility
-            PARTICLE_PRIMVAR_PREFIX + "spawnRatePerSecond",  # key attribute, important to see effect
+            TEST_PARTICLE_PRIMVAR_PREFIX + "gravityForce",  # key attribute
+            TEST_PARTICLE_PRIMVAR_PREFIX + "maxNumParticles",  # key attribute
+            TEST_PARTICLE_PRIMVAR_PREFIX + "useTurbulence",  # key attribute
+            TEST_PARTICLE_PRIMVAR_PREFIX + "hideEmitter",  # toolkit: checked for gizmo visibility
+            TEST_PARTICLE_PRIMVAR_PREFIX + "spawnRatePerSecond",  # key attribute, important to see effect
         ]
         for attr in expected_attrs:
             self.assertTrue(prim.HasAttribute(attr), f"Missing attribute: {attr}")
@@ -50,12 +51,12 @@ class TestSchemaLoading(AsyncTestCase):
         # Arrange
         stage = Usd.Stage.CreateInMemory()
         prim = UsdGeom.Mesh.Define(stage, "/TestParticles").GetPrim()
-        prim.ApplyAPI(PARTICLE_API_SCHEMA)
+        prim.ApplyAPI(TEST_PARTICLE_SCHEMA_NAME)
 
         # Act
-        prim.CreateAttribute(PARTICLE_PRIMVAR_PREFIX + "gravityForce", Sdf.ValueTypeNames.Float).Set(12.34)
-        prim.CreateAttribute(PARTICLE_PRIMVAR_PREFIX + "maxNumParticles", Sdf.ValueTypeNames.Int).Set(12345)
-        prim.CreateAttribute(PARTICLE_PRIMVAR_PREFIX + "useTurbulence", Sdf.ValueTypeNames.Bool).Set(True)
+        prim.CreateAttribute(TEST_PARTICLE_PRIMVAR_PREFIX + "gravityForce", Sdf.ValueTypeNames.Float).Set(12.34)
+        prim.CreateAttribute(TEST_PARTICLE_PRIMVAR_PREFIX + "maxNumParticles", Sdf.ValueTypeNames.Int).Set(12345)
+        prim.CreateAttribute(TEST_PARTICLE_PRIMVAR_PREFIX + "useTurbulence", Sdf.ValueTypeNames.Bool).Set(True)
 
         # Assert
         usda_result = stage.GetRootLayer().ExportToString()
@@ -71,7 +72,23 @@ class TestSchemaLoading(AsyncTestCase):
         prim = stage.GetPrimAtPath("/TestParticles")
 
         # Assert
-        self.assertEqual(prim.HasAPI(PARTICLE_API_SCHEMA), True)
-        self.assertAlmostEqual(prim.GetAttribute(PARTICLE_PRIMVAR_PREFIX + "gravityForce").Get(), 12.34, places=2)
-        self.assertAlmostEqual(prim.GetAttribute(PARTICLE_PRIMVAR_PREFIX + "maxNumParticles").Get(), 12345, places=2)
-        self.assertEqual(prim.GetAttribute(PARTICLE_PRIMVAR_PREFIX + "useTurbulence").Get(), True)
+        self.assertEqual(prim.HasAPI(TEST_PARTICLE_SCHEMA_NAME), True)
+        self.assertAlmostEqual(prim.GetAttribute(TEST_PARTICLE_PRIMVAR_PREFIX + "gravityForce").Get(), 12.34, places=2)
+        self.assertAlmostEqual(
+            prim.GetAttribute(TEST_PARTICLE_PRIMVAR_PREFIX + "maxNumParticles").Get(), 12345, places=2
+        )
+        self.assertEqual(prim.GetAttribute(TEST_PARTICLE_PRIMVAR_PREFIX + "useTurbulence").Get(), True)
+
+    def test_remix_particle_system_attribute_default_values(self):
+        # Arrange
+        schema_layer, schema_prim = get_schema_prim(TEST_PARTICLE_SCHEMA_NAME)
+        if not schema_layer or not schema_prim:
+            raise ValueError("Schema prim not found")
+
+        # Act
+        default_value = schema_prim.properties.get(TEST_PARTICLE_PRIMVAR_PREFIX + "billboardType").default
+        options = schema_prim.properties.get(TEST_PARTICLE_PRIMVAR_PREFIX + "billboardType").allowedTokens
+
+        # Assert
+        self.assertEqual(default_value, "FaceCamera_Spherical")
+        self.assertTrue(len(options) > 1)

@@ -18,7 +18,7 @@
 from typing import TYPE_CHECKING
 
 import omni.kit.commands
-from omni import ui
+from omni import ui, usd
 from pxr import Usd, UsdGeom
 
 from .base import StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin
@@ -71,14 +71,13 @@ class IsVisibleActionWidgetPlugin(_StageManagerStateWidgetPlugin):
 
         self._item_clicked(button, True, model, item)
 
-        context = omni.usd.get_context(self._context_name)
         target_value = (
             UsdGeom.Imageable(item.data).ComputeVisibility(Usd.TimeCode.Default()) == UsdGeom.Tokens.invisible
         )
 
         omni.kit.commands.execute(
             "SetVisibilitySelectedPrims",
-            selected_paths=context.get_selection().get_selected_prim_paths(),
+            selected_paths=usd.get_context(self._context_name).get_selection().get_selected_prim_paths(),
             value=target_value,
             context_name=self._context_name,
         )

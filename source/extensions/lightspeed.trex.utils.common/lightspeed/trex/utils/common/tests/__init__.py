@@ -15,4 +15,4 @@
 * limitations under the License.
 """
 
-from .unit import TestUserUtils
+from .unit import TestGetPrototype, TestUserUtils

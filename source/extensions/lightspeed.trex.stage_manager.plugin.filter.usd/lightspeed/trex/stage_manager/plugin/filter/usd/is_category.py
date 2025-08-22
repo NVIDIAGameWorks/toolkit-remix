@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 class IsCategoryFilterPlugin(_StageManagerUSDFilterPlugin):
     display_name: str = Field(default="Remix Category Filter", exclude=True)
-    tooltip: str = Field(default="Filter prims by their assigned Remix categories", exclude=True)
+    tooltip: str = Field(default="Filter prims by their assigned Render Categories", exclude=True)
 
     category_type: str = Field(
         default="All Categories", description="Whether to keep all categories or filter by category type."

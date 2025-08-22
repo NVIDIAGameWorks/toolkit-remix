@@ -17,7 +17,12 @@
 
 from typing import TYPE_CHECKING
 
-from omni import ui
+import carb
+import omni.kit.clipboard
+from omni import ui, usd
+from omni.flux.stage_manager.factory.plugins import StageManagerMenuMixin as _StageManagerMenuMixin
+from omni.flux.utils.common.menus import MenuGroup as _MenuGroup
+from omni.flux.utils.common.menus import MenuItem as _MenuItem
 from pydantic import Field
 
 from .base import StageManagerUSDWidgetPlugin as _StageManagerUSDWidgetPlugin
@@ -27,7 +32,7 @@ if TYPE_CHECKING:
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 
 
-class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin):
+class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin, _StageManagerMenuMixin):
     display_name: str = Field(default="Prims", exclude=True)
     tooltip: str = Field(default="", exclude=True)
 
@@ -50,3 +55,25 @@ class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin):
         prims_count = len([i for i in model.iter_items_children() if not (hasattr(i, "is_virtual") and i.is_virtual)])
 
         ui.Label(f"{prims_count} prim{'s' if prims_count > 1 else '' } available")
+
+    @classmethod
+    def _get_menu_items(cls):
+        return [
+            (
+                {
+                    "name": _MenuItem.COPY_PRIM_PATH.value,
+                    "glyph": "copy.svg",
+                    "onclick_fn": cls._on_copy_prim_path,
+                },
+                _MenuGroup.SELECTED_PRIMS.value,
+                "",
+            )
+        ]
+
+    @classmethod
+    def _on_copy_prim_path(cls, payload: dict):
+        selected_prim_paths = usd.get_context(payload.get("context_name", "")).get_selection().get_selected_prim_paths()
+        clipboard_content = ", ".join(selected_prim_paths)
+
+        omni.kit.clipboard.copy(clipboard_content)
+        carb.log_info(f"Copied '{clipboard_content}' to clipboard")

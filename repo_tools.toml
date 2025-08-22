@@ -17,7 +17,7 @@ source_commit = "HEAD"
 # Path prefix for extensions
 extension_path_prefix = "source/extensions"
 # Default changelog text
-default_changelog_text = "## Changed\n- "
+default_changelog_text = "### Changed\n- "
 
 
 [repo_check_changelog]

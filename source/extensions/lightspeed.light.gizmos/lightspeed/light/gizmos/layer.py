@@ -144,6 +144,7 @@ class LightGizmosLayer:
         if not self._scene_view:
             return
         if event.type == int(omni.usd.StageEventType.SELECTION_CHANGED):
+            # TODO: There may be a better place to wire up this event. The list of manipulators is not used.
             GlobalSelection.get_instance().on_selection_changed(
                 self._get_context(), self._viewport_api, list(self._manipulators.values())
             )
@@ -188,7 +189,6 @@ class LightGizmosLayer:
                         continue
                     if UsdGeom.Xformable.IsTransformationAffectedByAttrNamed(path.name):
                         manipulator.model.update_from_prim()
-        GlobalSelection.g_set_lightmanipulators(self._manipulators)
         self._ignore_update = False
 
     def _create_manipulators(self, stage):
@@ -214,7 +214,7 @@ class LightGizmosLayer:
                     self._viewport_api, model=LightGizmosModel(light, self._usd_context_name, self._gizmo_scale)
                 )
                 self._manipulators[str(light.GetPrimPath())] = manipulator
-            GlobalSelection.g_set_lightmanipulators(self._manipulators)
+            GlobalSelection.get_instance().set_manipulators(self._manipulators)
 
     def _destroy_manipulators(self):
         if self._scene_view:
@@ -224,4 +224,4 @@ class LightGizmosLayer:
         for manipulator in self._manipulators.values():
             manipulator.destroy()
         self._manipulators = {}
-        GlobalSelection.g_set_lightmanipulators(self._manipulators)
+        GlobalSelection.get_instance().set_manipulators(self._manipulators)

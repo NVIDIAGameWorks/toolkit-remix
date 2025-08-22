@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.2]
+## Changed
+- Renaming "Remix Categories" to "Render Categories" to better reflect the purpose for newcomers
+
 ## [1.3.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

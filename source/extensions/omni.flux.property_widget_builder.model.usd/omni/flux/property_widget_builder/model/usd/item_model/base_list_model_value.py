@@ -55,6 +55,8 @@ class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
         self._override_value_type = None
         # Guard to avoid inf loop and skip _current_index_changed when updating value in code
         self.__block_set_value = False
+        # Whether to save the value in USD as the integer index of options or as the value itself
+        self._use_index_in_usd = self._type_name == Sdf.ValueTypeNames.Int
 
         self._default_value = default_value
         self._item_options = []

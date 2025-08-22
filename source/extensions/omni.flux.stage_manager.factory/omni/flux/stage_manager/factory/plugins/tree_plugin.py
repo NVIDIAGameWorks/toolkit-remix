@@ -17,11 +17,16 @@
 
 from __future__ import annotations
 
+__all__ = ["StageManagerTreeItem", "StageManagerTreeModel", "StageManagerTreeDelegate", "StageManagerTreePlugin"]
+
 import abc
 from typing import TYPE_CHECKING, Any, Callable, Iterable
 
+import omni.kit.context_menu
 from omni import ui, usd
 from omni.flux.telemetry.core import get_telemetry_instance
+from omni.flux.utils.common.menus import Menu as _Menu
+from omni.flux.utils.common.menus import MenuGroup as _MenuGroup
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
@@ -317,6 +322,12 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
             for item in items:
                 self.sort_items(item.children)
 
+    def get_context_menu_payload(self, item: StageManagerTreeItem) -> dict[str, Any]:
+        return {
+            "model": self,
+            "right_clicked_item": item,
+        }
+
     def _build_items(self, items: Iterable[_StageManagerItem]) -> list[StageManagerTreeItem] | None:
         """
         Recursively build the model items from Stage Manager items
@@ -440,6 +451,17 @@ class StageManagerTreeDelegate(_TreeDelegateBase):
         with ui.Frame(height=self.header_height):
             if column_id in self._column_header_builders:
                 self._column_header_builders[column_id]()
+
+    def _show_context_menu(self, model: "StageManagerTreeModel", item: "StageManagerTreeItem"):
+        super()._show_context_menu(model, item)
+
+        context_menu = omni.kit.context_menu.get_instance()
+        registered_menus = omni.kit.context_menu.get_menu_dict(_MenuGroup.SELECTED_PRIMS.value, "")
+
+        omni.kit.context_menu.reorder_menu_dict(registered_menus)
+        context_menu.show_context_menu(
+            _Menu.STAGE_MANAGER.value, model.get_context_menu_payload(item), registered_menus
+        )
 
 
 class StageManagerTreePlugin(_StageManagerPluginBase, abc.ABC):

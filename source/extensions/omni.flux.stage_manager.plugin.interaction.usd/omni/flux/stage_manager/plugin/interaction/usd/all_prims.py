@@ -51,6 +51,7 @@ class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "IsCaptureStateWidgetPlugin",
             "IsCategoryHiddenStateWidgetPlugin",
             "IsVisibleActionWidgetPlugin",
+            "ParticleSystemsActionWidgetPlugin",
             "PrimTreeWidgetPlugin",
         ],
         exclude=True,

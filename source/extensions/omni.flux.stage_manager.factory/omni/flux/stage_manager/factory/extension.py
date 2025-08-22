@@ -16,16 +16,14 @@
 """
 
 import carb
-import carb.settings
 import omni.ext
-from omni.flux.factory.base import FactoryBase as _FactoryBase
 
-from .plugins.base import StageManagerPluginBase as _StageManagerPluginBase
+from .factory import StageManagerFactory as _StageManagerFactory
 
-_instance: _FactoryBase | None = None
+_instance: _StageManagerFactory | None = None
 
 
-def get_instance() -> _FactoryBase:
+def get_instance() -> _StageManagerFactory:
     """
     Returns:
         The Stage Manager Factory instance
@@ -40,7 +38,7 @@ class StageManagerFactoryExtension(omni.ext.IExt):
         global _instance
         carb.log_info("[omni.flux.stage_manager.factory] Startup")
 
-        _instance = _FactoryBase[_StageManagerPluginBase]()
+        _instance = _StageManagerFactory()
 
     def on_shutdown(self):
         global _instance
