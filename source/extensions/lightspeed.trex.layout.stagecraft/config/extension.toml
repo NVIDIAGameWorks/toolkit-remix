@@ -1,5 +1,5 @@
 [package]
-version = "2.5.2"
+version = "2.5.3"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix layout for the StageCraft"
 description = "Layout for NVIDIA RTX Remix StageCraft App"
@@ -15,7 +15,6 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 "lightspeed.common" = {}
 "lightspeed.events_manager" = {}
 "lightspeed.layer_manager.core" = {}
-"lightspeed.trex.components_pane.stagecraft.controller" = {}
 "lightspeed.trex.components_pane.stagecraft.models" = {}
 "lightspeed.trex.contexts" = {}
 "lightspeed.trex.home.widget" = {}
@@ -31,6 +30,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 "omni.flux.footer.widget" = {}
 "omni.flux.utils.widget" = {}
 "omni.flux.welcome_pad.widget" = {}
+"omni.flux.tabbed.widget" = {}
 "omni.kit.widget.filebrowser" = {}
 "omni.kit.window.filepicker" = {}
 "omni.ui" = {}
