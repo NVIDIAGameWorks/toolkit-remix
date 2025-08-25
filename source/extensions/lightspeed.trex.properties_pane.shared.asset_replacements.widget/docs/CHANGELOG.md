@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.11.0]
+### Changed
+- Adjusted spacing for the new vertical modding tabs
+
 ## [1.10.1]
 ### Fixed
 - Fixed logic to enable particle system creation on prims

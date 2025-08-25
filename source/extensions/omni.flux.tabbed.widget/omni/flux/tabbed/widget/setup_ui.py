@@ -42,6 +42,7 @@ class SetupUI:
         disable_tab_toggle: bool = False,
         hidden_by_default: bool = False,
         width: ui.Length = None,
+        add_initial_spacer: bool = True,
     ):
         """
         Create some tabs easily using this widget. Under, a treeview is used.
@@ -54,6 +55,7 @@ class SetupUI:
             size_tab_label: size of the label inside the tabs
             disable_tab_toggle: clicking on a tab will close the frame. Enable or disable this feature
             hidden_by_default: should the main frame be hidden by default or not
+            add_initial_spacer: Add a spacer at the beginning of the tab list
         """
 
         self._default_attr = {
@@ -73,6 +75,7 @@ class SetupUI:
         self._horizontal = horizontal
         self._disable_tab_toggle = disable_tab_toggle
         self._hidden_by_default = hidden_by_default
+        self._add_initial_spacer = add_initial_spacer
         self._model = _Model() if model is None else model
         if not horizontal and rotation is None:  # rotate by default in horizontal
             rotation = _Rotation.RIGHT_90
@@ -239,7 +242,8 @@ class SetupUI:
                                 height = ui.Pixel(20)
                                 width = 0
                             with stack:
-                                ui.Spacer(height=height, width=width)
+                                if self._add_initial_spacer:
+                                    ui.Spacer(height=height, width=width)
                                 scrollbar = ui.ScrollingFrame(
                                     name="PropertiesPaneSection",
                                     vertical_scrollbar_policy=(
