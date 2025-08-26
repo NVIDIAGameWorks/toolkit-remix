@@ -37,7 +37,9 @@ from lightspeed.trex.properties_pane.particle_system.widget import (
 from lightspeed.trex.replacement.core.shared import Setup as _AssetReplacementCore
 from lightspeed.trex.replacement.core.shared.layers import AssetReplacementLayersCore as _AssetReplacementLayersCore
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
+from lightspeed.trex.utils.common.prim_utils import is_a_prototype as _is_a_prototype
 from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
+from lightspeed.trex.utils.common.prim_utils import is_material_prototype as _is_material_prototype
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui
 from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as _UsdBookmarkCollectionModel
@@ -535,15 +537,19 @@ class AssetReplacementsPane:
         # Get selected prims
         selected_paths = self._usd_context.get_selection().get_selected_prim_paths()
         particle_system_paths = []
+        valid_target_paths = []
 
-        # Filter for RemixParticleSystem prims
+        # Filter for RemixParticleSystem prims and valid target prims
         for path in selected_paths:
             prim = self._stage.GetPrimAtPath(path)
+
             if prim.IsValid() and prim.HasAPI(_PARTICLE_SCHEMA_NAME):
                 particle_system_paths.append(path)
+            elif _is_a_prototype(prim) or _is_instance(prim) or _is_material_prototype(prim):
+                valid_target_paths.append(path)
 
         # Refresh the widget
-        self._particle_properties_widget.refresh(particle_system_paths)
+        self._particle_properties_widget.refresh(particle_system_paths, valid_target_paths)
 
     def refresh(self):
         if not self._root_frame.visible:

@@ -19,14 +19,16 @@ from __future__ import annotations
 
 __all__ = ["ParticleSystemsActionWidgetPlugin"]
 
-from typing import TYPE_CHECKING
+from functools import partial
+from typing import TYPE_CHECKING, Callable
 
-import carb
 import omni.kit.commands
 from lightspeed.common.constants import PARTICLE_SCHEMA_NAME as _PARTICLE_SCHEMA_NAME
 from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
 from lightspeed.trex.utils.common.prim_utils import is_a_prototype as _is_a_prototype
 from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
+from lightspeed.trex.utils.common.prim_utils import is_material_prototype as _is_material_prototype
+from omni import ui
 from omni.flux.stage_manager.factory.plugins import StageManagerMenuMixin as _StageManagerMenuMixin
 from omni.flux.stage_manager.plugin.widget.usd.base import (
     StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,
@@ -43,11 +45,50 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
     """Action to create or remove Particle Systems"""
 
     def build_icon_ui(self, model: StageManagerTreeModel, item: StageManagerTreeItem, level: int, expanded: bool):
-        # TODO: Build a UI for the particle systems
-        return
+        if not item.data:
+            ui.Spacer(width=self._icon_size, height=self._icon_size)
+            return
+
+        payload = {"context_name": self._context_name, "selected_paths": [item.data.GetPrimPath()]}
+        enabled = self._modify_particle_system_show_fn(payload)
+        has_particle_system = self._has_particle_system(payload)
+
+        if enabled:
+            icon = "DeleteParticle" if has_particle_system else "Particle"
+            tooltip = "Remove the Particle System" if has_particle_system else "Create a Particle System"
+            callback = (
+                partial(self._build_callback, payload, self._remove_particle_system)
+                if has_particle_system
+                else partial(self._build_callback, payload, self._create_particle_system)
+            )
+        else:
+            icon = "ParticleDisabled"
+            tooltip = (
+                "Particle Systems are only supported on:\n"
+                "- Material prims\n"
+                "- Mesh prims\n"
+                "- Children of mesh prims\n\n"
+                "NOTE: Instance prims are also supported but the particle system will be created on the associated "
+                "mesh prim."
+            )
+            callback = None
+
+        ui.Image(
+            "",
+            width=self._icon_size,
+            height=self._icon_size - 3,  # Particle icons appear larger than the other icons
+            name=icon,
+            tooltip=tooltip,
+            mouse_released_fn=callback,
+        )
 
     def build_overview_ui(self, model: StageManagerTreeModel):
         pass
+
+    def _build_callback(self, payload: dict, callback: Callable, x: int, y: int, button: int, modifiers: int):
+        if button != 0 or not self._modify_particle_system_show_fn(payload):
+            return
+        callback(payload)
 
     @classmethod
     def _get_menu_items(cls):
@@ -88,57 +129,77 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
 
     @classmethod
     def _modify_particle_system_show_fn(cls, payload: dict) -> bool:
-        if "right_clicked_item" not in payload:
+        if "selected_paths" not in payload or "context_name" not in payload:
             return False
 
-        prim = payload["right_clicked_item"].data
-        if not prim or not prim.IsValid():
+        stage = omni.usd.get_context(payload["context_name"]).get_stage()
+        if not stage:
             return False
 
-        # Check if the prim or any of its ancestors is under mesh or instance paths
-        current_prim = prim
-        while current_prim and current_prim.IsValid():
-            if _is_a_prototype(current_prim) or _is_instance(current_prim):
+        prims = [
+            prim for path in payload["selected_paths"] if (prim := _get_prototype(stage.GetPrimAtPath(path))).IsValid()
+        ]
+        if not prims:
+            return False
+
+        # Check if the prims or any of their ancestors are material paths, or under mesh or instance paths
+        for prim in prims:
+            if _is_material_prototype(prim):
                 return True
-            current_prim = current_prim.GetParent()
+
+            current_prim = prim
+            while current_prim and current_prim.IsValid():
+                if _is_a_prototype(current_prim) or _is_instance(current_prim):
+                    return True
+                current_prim = current_prim.GetParent()
 
         return False
 
     @classmethod
     def _has_particle_system(cls, payload: dict) -> bool:
-        if "right_clicked_item" not in payload:
+        if "selected_paths" not in payload or "context_name" not in payload:
             return False
 
-        prim = payload["right_clicked_item"].data
-        if not prim or not prim.IsValid():
+        stage = omni.usd.get_context(payload["context_name"]).get_stage()
+        if not stage:
             return False
 
-        return prim.HasAPI(_PARTICLE_SCHEMA_NAME)
+        prims = [
+            prim for path in payload["selected_paths"] if (prim := _get_prototype(stage.GetPrimAtPath(path))).IsValid()
+        ]
+        if not prims:
+            return False
+
+        return any(prim.HasAPI(_PARTICLE_SCHEMA_NAME) for prim in prims)
 
     @classmethod
     def _create_particle_system(cls, payload: dict):
-        if "right_clicked_item" not in payload:
-            carb.log_warn("Particle Systems Context Menu didn't receive the right clicked item. Returning...")
+        if "selected_paths" not in payload or "context_name" not in payload:
+            return
+
+        stage = omni.usd.get_context(payload["context_name"]).get_stage()
+        if not stage:
             return
 
         if cls._has_particle_system(payload):
-            carb.log_warn("The prim already has a particle system. Returning...")
             return
 
-        omni.kit.commands.execute(
-            "CreateParticleSystemCommand", prim=_get_prototype(payload["right_clicked_item"].data)
-        )
+        with omni.kit.undo.group():
+            for path in payload["selected_paths"]:
+                omni.kit.commands.execute("CreateParticleSystemCommand", prim=_get_prototype(stage.GetPrimAtPath(path)))
 
     @classmethod
     def _remove_particle_system(cls, payload: dict):
-        if "right_clicked_item" not in payload:
-            carb.log_warn("Particle Systems Context Menu didn't receive the right clicked item. Returning...")
+        if "selected_paths" not in payload or "context_name" not in payload:
+            return
+
+        stage = omni.usd.get_context(payload["context_name"]).get_stage()
+        if not stage:
             return
 
         if not cls._has_particle_system(payload):
-            carb.log_warn("The prim doesn't have a particle system. Returning...")
             return
 
-        omni.kit.commands.execute(
-            "RemoveParticleSystemCommand", prim=_get_prototype(payload["right_clicked_item"].data)
-        )
+        with omni.kit.undo.group():
+            for path in payload["selected_paths"]:
+                omni.kit.commands.execute("RemoveParticleSystemCommand", prim=_get_prototype(stage.GetPrimAtPath(path)))

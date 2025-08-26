@@ -81,7 +81,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 100
+                        "value": 120
                     },
                     "widgets": [
                         {
@@ -180,7 +180,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 100
+                        "value": 120
                     },
                     "widgets": [
                         {
@@ -279,7 +279,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 100
+                        "value": 120
                     },
                     "widgets": [
                         {
@@ -369,7 +369,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 100
+                        "value": 120
                     },
                     "widgets": [
                         {
@@ -483,7 +483,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 100
+                        "value": 120
                     },
                     "widgets": [
                         {
@@ -584,7 +584,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 100
+                        "value": 120
                     },
                     "widgets": [
                         {
@@ -686,7 +686,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 100
+                        "value": 120
                     },
                     "widgets": [
                         {
