@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4427: Fixed MCP server startup missing reference and logging
 - REMIX-4350: Fixed validation callbacks incorrectly triggered when updating the schema
 - REMIX-4479: Fixed ValidationSchema error when multiple input files are provided
+- REMIX-4548: Fixed stage manager not refreshing when enabling the stage manager feature flag while a stage is open
 
 ### Removed
 
