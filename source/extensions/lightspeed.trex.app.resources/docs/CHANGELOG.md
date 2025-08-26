@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.20.0]
+### Added
+- Added particle deletion icon
+
+### Changed
+- Change Actions column width to 120px to accommodate the new particle system action icon
+
 ## [1.19.0]
 ### Changed
 - Added particle svg icon

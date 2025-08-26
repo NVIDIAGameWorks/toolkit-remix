@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a `cleanup` pattern to the stage manager context and listener plugins
 - REMIX-4381: Added a viewport gizmo for particle prims
 - REMIX-4288: Adding the Properties Editor panel for Particle Systems.
+- REMIX-4539: Added a particle system action icon in the Stage Manager + Button in the properties to create particle systems
 
 ### Changed
 - Changed GH actions commit message to commit title and non interruptible Gitlab releases
@@ -37,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4186: Optimized the layer tree refresh method
 - REMIX-4490: Updated the Remix Categories list
 - Update hdremix and omni_core_materials to ext-03aa211-main
+- REMIX-4539: Added the ability to create particle systems on materials
 
 ### Fixed
 - REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
