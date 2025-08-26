@@ -1,27 +1,31 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.1]
+### Fixed
+- Fixed stage manager not refreshing when enabling the stage manager feature flag while a stage is open
+
 ## [2.3.0]
-## Added
+### Added
 - Added a `cleanup` pattern to the stage manager context and listener plugins
 
-## Fixed
+### Fixed
 - Fixed stage manager not refreshing to USD Notices
 
 ## [2.2.0]
-## Fixed
+### Fixed
 - fix false positive error that context isn't set up yet
 
 ## [2.1.1]
-## Fixed
+### Fixed
 - Fixed Test assets to large to work without LFS
 
 ## [2.1.0]
-## Changed
+### Changed
 - Update the documentation for Pydantic V2 compatbility
 
 ## [2.0.0]
-## Changed
+### Changed
 - Updated Pydantic to V2
 
 ## [1.7.1]

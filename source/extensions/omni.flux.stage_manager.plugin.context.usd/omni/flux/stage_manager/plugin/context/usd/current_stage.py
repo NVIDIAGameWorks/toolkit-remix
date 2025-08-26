@@ -45,6 +45,7 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
         Raises:
             ValueError: If no stage exists for the given context
         """
+        self._stage = omni.usd.get_context(self.context_name).get_stage()
         super().setup()
         self._listener_event_occurred_subs.extend(
             self.subscribe_listener_event_occurred(omni.usd.StageEventType, self._on_stage_event_occurred)
@@ -60,8 +61,7 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
         Setup the stage. This will be called on open or close stage.
         """
         self.cleanup()
-        context = omni.usd.get_context(self.context_name)
-        self._stage = context.get_stage()
+        self._stage = omni.usd.get_context(self.context_name).get_stage()
         self.setup()
 
     def get_items(self):
