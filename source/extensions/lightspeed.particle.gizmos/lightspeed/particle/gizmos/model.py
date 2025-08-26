@@ -170,9 +170,8 @@ class ParticleGizmoModel(sc.AbstractManipulatorModel):
             self._stage_listener.Revoke()
             self._stage_listener = None
 
-        # TODO:
         # Send a changed signal that will invalidate manipulator and redraw it.
-        # self._item_changed(self.visible)
+        self._item_changed(self.visible)
 
     def _on_stage_event(self, event):
         """Called by stage_event_stream"""
@@ -224,7 +223,7 @@ class ParticleGizmoModel(sc.AbstractManipulatorModel):
                 continue
 
             if UsdGeom.Xformable.IsTransformationAffectedByAttrNamed(p.name):
-                changed_items.add(self.transform)
+                changed_items.update([self.transform, self.gizmo_transform])
 
             if p.name in (UsdGeom.Tokens.visibility, PARTICLE_HIDE_EMITTER_ATTR):
                 changed_items.add(self.visible)
