@@ -463,6 +463,7 @@ class ParticleGizmoManipulator(sc.Manipulator):
         self._root = None
         self._gizmo_root = None
         self._viewport_api = None
+        self.model.destroy()
 
     def on_build(self):
         """Called when the model is changed and rebuilds the whole gizmo"""
@@ -545,6 +546,8 @@ class ParticleGizmoManipulator(sc.Manipulator):
         # Regenerate the mesh
         if not self.model:
             return
+        if not self._root:
+            return  # build() has not yet been called or destroy() has been called
 
         match item:
             case self.model.transform:

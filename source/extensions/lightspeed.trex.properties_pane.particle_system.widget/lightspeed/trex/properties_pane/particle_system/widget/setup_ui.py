@@ -24,8 +24,7 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.common.constants import PARTICLE_PRIMVAR_PREFIX, PARTICLE_SCHEMA_NAME
 from lightspeed.trex.schemas.utils import get_schema_prim as _get_schema_prim
-from lightspeed.trex.utils.common.prim_utils import get_prototype
-from omni.flux.property_widget_builder.model.usd import DisableAllListenersBlock as _USDDisableAllListenersBlock
+from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
 from omni.flux.property_widget_builder.model.usd import USDAttrListItem as _USDAttrListItem
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
@@ -76,11 +75,11 @@ class ParticleSystemPropertyWidget:
             "_context_name": None,
             "_lookup_table": None,
             "_paths": None,
+            "_valid_target_paths": None,
             "_property_delegate": None,
             "_property_model": None,
             "_property_widget": None,
             "_right_aligned_labels": None,
-            "_none_frame": None,
             "_root_frame": None,
             "_tree_column_widths": None,
         }
@@ -99,6 +98,8 @@ class ParticleSystemPropertyWidget:
         self.__usd_listener_instance = _get_usd_listener_instance()
 
         self._paths = []
+        self._valid_target_paths = []
+
         if not lookup_table:
             lookup_table = _get_particle_lookup_table()
         self._lookup_table = lookup_table
@@ -127,21 +128,12 @@ class ParticleSystemPropertyWidget:
         self._property_delegate = _USDPropertyDelegate(
             field_builders=field_builders, right_aligned_labels=self._right_aligned_labels
         )
-        with ui.ZStack():
-            self._none_frame = ui.Frame(visible=True)
-            with self._none_frame:
-                with ui.VStack():
-                    with ui.HStack(height=ui.Pixel(24), spacing=ui.Pixel(8)):
-                        ui.Spacer(height=0)
-                        with ui.VStack(width=0):
-                            ui.Spacer()
-                            ui.Label("None", name="PropertiesWidgetLabel")
-                            ui.Spacer()
-                        ui.Spacer(height=0)
-                    ui.Spacer(height=ui.Pixel(8))
+        self._root_frame = ui.Frame(build_fn=self._build_root_frame)
 
-            self._root_frame = ui.Frame(visible=False)
-            with self._root_frame:
+    def _build_root_frame(self):
+        with ui.ZStack():
+            # A particle system exists
+            if self._paths:
                 self._property_widget = _PropertyWidget(
                     self._context_name,
                     model=self._property_model,
@@ -150,8 +142,32 @@ class ParticleSystemPropertyWidget:
                     columns_resizable=self._columns_resizable,
                     refresh_callback=self.refresh,
                 )
+            # No particle system exists
+            else:
+                # Check if a particle system can be created from the selected prims
+                if self._valid_target_paths:
+                    tooltip = "Create a particle system on the selected prim"
+                else:
+                    tooltip = (
+                        "Select a material prim, mesh prim or any child of a mesh prim to create a particle system"
+                    )
+                with ui.VStack(height=0):
+                    with ui.VStack(height=ui.Pixel(24)):
+                        ui.Spacer()
+                        ui.Button(
+                            "Create a Particle System",
+                            clicked_fn=lambda: self._create_particle_systems(self._valid_target_paths),
+                            tooltip=tooltip,
+                            enabled=bool(self._valid_target_paths),
+                        )
+                        ui.Spacer()
+                    ui.Spacer(height=ui.Pixel(8))
 
-    def refresh(self, paths: Optional[List[Union[str, "Sdf.Path"]]] = None):
+    def refresh(
+        self,
+        paths: Optional[List[Union[str, "Sdf.Path"]]] = None,
+        valid_target_paths: Optional[List[Union[str, "Sdf.Path"]]] = None,
+    ):
         """
         Refresh the panel with the given prim paths
 
@@ -160,10 +176,14 @@ class ParticleSystemPropertyWidget:
         """
         if self._refresh_task is not None:
             self._refresh_task.cancel()
-        self._refresh_task = asyncio.ensure_future(self._deferred_refresh(paths))
+        self._refresh_task = asyncio.ensure_future(self._deferred_refresh(paths, valid_target_paths))
 
     @omni.usd.handle_exception
-    async def _deferred_refresh(self, paths: Optional[List[Union[str, "Sdf.Path"]]] = None):
+    async def _deferred_refresh(
+        self,
+        paths: Optional[List[Union[str, "Sdf.Path"]]] = None,
+        valid_target_paths: Optional[List[Union[str, "Sdf.Path"]]] = None,
+    ):
         """
         Deferred refresh to handle USD updates properly
 
@@ -172,6 +192,8 @@ class ParticleSystemPropertyWidget:
         """
         if paths is not None:
             self._paths = paths
+        if valid_target_paths is not None:
+            self._valid_target_paths = valid_target_paths
 
         # Wait 1 frame to make sure the USD is up-to-date
         await omni.kit.app.get_app().next_update_async()
@@ -193,31 +215,30 @@ class ParticleSystemPropertyWidget:
             prims = [
                 prototype_prim
                 for path in self._paths
-                if (prototype_prim := get_prototype(stage.GetPrimAtPath(path)))  # Filtering Nones out
+                if (prototype_prim := _get_prototype(stage.GetPrimAtPath(path)))  # Filtering Nones out
             ]
 
             # Group attributes by name across all selected prims
             attr_added: dict[str, list[tuple[Usd.Prim, Usd.Attribute]]] = {}
 
-            with _USDDisableAllListenersBlock(self.__usd_listener_instance):
-                for prim in prims:
-                    if not prim.IsValid():
+            for prim in prims:
+                if not prim.IsValid():
+                    continue
+
+                if not prim.HasAPI(PARTICLE_SCHEMA_NAME):
+                    continue
+
+                valid_paths.append(prim.GetPath())
+
+                attrs = prim.GetAttributes()
+                for attr in attrs:
+                    attr_name = attr.GetName()
+
+                    if not attr_name.startswith("primvars:particle"):
                         continue
 
-                    if not prim.HasAPI(PARTICLE_SCHEMA_NAME):
-                        continue
-
-                    valid_paths.append(prim.GetPath())
-
-                    attrs = prim.GetAttributes()
-                    for attr in attrs:
-                        attr_name = attr.GetName()
-
-                        if not attr_name.startswith("primvars:particle"):
-                            continue
-
-                        # Group attributes by name across all prims
-                        attr_added.setdefault(attr_name, []).append((prim, attr))
+                    # Group attributes by name across all prims
+                    attr_added.setdefault(attr_name, []).append((prim, attr))
 
             # Group items by category for better organization
             group_items = {}
@@ -287,16 +308,11 @@ class ParticleSystemPropertyWidget:
                 if group_name not in PARTICLE_ATTR_GROUP_ORDER:
                     items.append(group)
 
-        if valid_paths:
-            self._none_frame.visible = False
-            self._root_frame.visible = True
-        else:
-            self._none_frame.visible = True
-            self._root_frame.visible = False
-
         self._property_model.set_prim_paths(valid_paths)
         self._property_model.set_items(items)
         self.__usd_listener_instance.add_model(self._property_model)
+
+        self._root_frame.rebuild()
 
         self._refresh_done()
 
@@ -379,6 +395,13 @@ class ParticleSystemPropertyWidget:
                     pairs[base_name] = max_name
 
         return pairs
+
+    def _create_particle_systems(self, prim_paths: list[str]):
+        with omni.kit.undo.group():
+            for prim_path in prim_paths:
+                omni.kit.commands.execute(
+                    "CreateParticleSystemCommand", prim=self._context.get_stage().GetPrimAtPath(prim_path)
+                )
 
     @property
     def property_model(self):
