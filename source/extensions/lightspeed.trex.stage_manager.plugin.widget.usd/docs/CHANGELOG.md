@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.1]
+### Fixed
+- Fixed a crash on selection of prims compatible with particle systems
+
 ## [2.2.0]
 ### Added
 - Added an icon for the particle system action
