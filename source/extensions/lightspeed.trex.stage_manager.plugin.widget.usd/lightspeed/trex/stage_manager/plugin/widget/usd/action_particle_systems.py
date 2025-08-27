@@ -137,7 +137,9 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
             return False
 
         prims = [
-            prim for path in payload["selected_paths"] if (prim := _get_prototype(stage.GetPrimAtPath(path))).IsValid()
+            prim
+            for path in payload["selected_paths"]
+            if (prim := _get_prototype(stage.GetPrimAtPath(path))) and prim.IsValid()
         ]
         if not prims:
             return False
@@ -165,7 +167,9 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
             return False
 
         prims = [
-            prim for path in payload["selected_paths"] if (prim := _get_prototype(stage.GetPrimAtPath(path))).IsValid()
+            prim
+            for path in payload["selected_paths"]
+            if (prim := _get_prototype(stage.GetPrimAtPath(path))) and prim.IsValid()
         ]
         if not prims:
             return False
@@ -174,7 +178,11 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
 
     @classmethod
     def _create_particle_system(cls, payload: dict):
-        if "selected_paths" not in payload or "context_name" not in payload:
+        if (
+            "selected_paths" not in payload
+            or "context_name" not in payload
+            or not cls._modify_particle_system_show_fn(payload)
+        ):
             return
 
         stage = omni.usd.get_context(payload["context_name"]).get_stage()
@@ -190,7 +198,11 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
 
     @classmethod
     def _remove_particle_system(cls, payload: dict):
-        if "selected_paths" not in payload or "context_name" not in payload:
+        if (
+            "selected_paths" not in payload
+            or "context_name" not in payload
+            or not cls._modify_particle_system_show_fn(payload)
+        ):
             return
 
         stage = omni.usd.get_context(payload["context_name"]).get_stage()

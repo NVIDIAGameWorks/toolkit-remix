@@ -55,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4479: Fixed ValidationSchema error when multiple input files are provided
 - REMIX-4548: Fixed stage manager not refreshing when enabling the stage manager feature flag while a stage is open
 - REMIX-4542: Fixed updating particle gizmo transform when moved using transform manipulators
+- Fixed a crash on selection of prims compatible with particle systems
 
 ### Removed
 
