@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- REMIX-4569: Fixed stage manager not scrolling to the previous scroll position correctly
 
 ### Removed
 
@@ -93,6 +94,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4427: Fixed MCP server startup missing reference and logging
 - REMIX-4350: Fixed validation callbacks incorrectly triggered when updating the schema
 - REMIX-4479: Fixed ValidationSchema error when multiple input files are provided
+- REMIX-4548: Fixed stage manager not refreshing when enabling the stage manager feature flag while a stage is open
+- REMIX-4542: Fixed updating particle gizmo transform when moved using transform manipulators
+- Fixed a crash on selection of prims compatible with particle systems
+- Fixed logic to enable particle system creation on prims
 
 ### Removed
 

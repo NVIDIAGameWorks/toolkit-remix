@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.3.1]
+### Fixed
+- Fixed stage manager not scrolling to the previous scroll position correctly
+
 ## [4.3.0]
 ### Added
 - Refactor to expose `StageManagerFactory`
