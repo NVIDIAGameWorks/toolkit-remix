@@ -21,6 +21,6 @@
     <package name="rtx-remix-omni_core_materials" version="ext-2ad1c2e-release-v1-2" />
   </dependency>
   <dependency name="rtx-remix-remix_runtime" linkPath="../_build/${platform}/${config}/deps/remix_runtime">
-    <package name="rtx-remix-remix_runtime" version="remix-1.2.1" />
+    <package name="rtx-remix-remix_runtime" version="remix-1.2.2" />
   </dependency>
 </project>

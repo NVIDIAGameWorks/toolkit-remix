@@ -8,10 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.2.3 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.2.3]
+
+### Added
 - Created 1.2.2 build
 
 ### Changed
 - Updated hdremix and omni_core_materials to ext-2ad1c2e-release-v1-2
+- Update remix_runtime to remix-1.2.0
 
 ### Fixed
 - Fixed a crash on selection of prims compatible with particle systems
