@@ -695,9 +695,8 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             self._tree_scroll_frame.scroll_y = 0
             # Wait for the updated widget to be drawn
             await omni.kit.app.get_app().next_update_async()
-            if previous_scroll_y > self._tree_scroll_frame.scroll_y_max:
-                # Scroll to the bottom of the tree or the previous scroll position if still valid
-                self._tree_scroll_frame.scroll_y = min(previous_scroll_y, self._tree_scroll_frame.scroll_y_max)
+            # Scroll to the bottom of the tree or the previous scroll position if still valid
+            self._tree_scroll_frame.scroll_y = min(previous_scroll_y, self._tree_scroll_frame.scroll_y_max)
         # Cache the current frame height for the next update
         self._previous_frame_height = self._tree_widget.computed_height
 
