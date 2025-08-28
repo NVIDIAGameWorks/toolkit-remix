@@ -36,6 +36,7 @@ from omni.flux.stage_manager.plugin.widget.usd.base import (
 from omni.flux.utils.common.menus import MenuGroup as _MenuGroup
 from omni.flux.utils.common.menus import MenuItem as _MenuItem
 from omni.flux.utils.widget.resources import get_icons as _get_icons
+from pxr import UsdGeom
 
 if TYPE_CHECKING:
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem, StageManagerTreeModel
@@ -64,10 +65,7 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
         else:
             icon = "ParticleDisabled"
             tooltip = (
-                "Particle Systems are only supported on:\n"
-                "- Material prims\n"
-                "- Mesh prims\n"
-                "- Children of mesh prims\n\n"
+                "Select a material prim or mesh prim to create a particle system.\n\n"
                 "NOTE: Instance prims are also supported but the particle system will be created on the associated "
                 "mesh prim."
             )
@@ -137,7 +135,9 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
             return False
 
         prims = [
-            prim for path in payload["selected_paths"] if (prim := _get_prototype(stage.GetPrimAtPath(path))).IsValid()
+            prim
+            for path in payload["selected_paths"]
+            if (prim := _get_prototype(stage.GetPrimAtPath(path))) and prim.IsValid()
         ]
         if not prims:
             return False
@@ -150,7 +150,7 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
             current_prim = prim
             while current_prim and current_prim.IsValid():
                 if _is_a_prototype(current_prim) or _is_instance(current_prim):
-                    return True
+                    return prim.IsA(UsdGeom.Mesh)  # The selected prim itself must be a mesh
                 current_prim = current_prim.GetParent()
 
         return False
@@ -165,7 +165,9 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
             return False
 
         prims = [
-            prim for path in payload["selected_paths"] if (prim := _get_prototype(stage.GetPrimAtPath(path))).IsValid()
+            prim
+            for path in payload["selected_paths"]
+            if (prim := _get_prototype(stage.GetPrimAtPath(path))) and prim.IsValid()
         ]
         if not prims:
             return False
@@ -174,7 +176,11 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
 
     @classmethod
     def _create_particle_system(cls, payload: dict):
-        if "selected_paths" not in payload or "context_name" not in payload:
+        if (
+            "selected_paths" not in payload
+            or "context_name" not in payload
+            or not cls._modify_particle_system_show_fn(payload)
+        ):
             return
 
         stage = omni.usd.get_context(payload["context_name"]).get_stage()
@@ -190,7 +196,11 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
 
     @classmethod
     def _remove_particle_system(cls, payload: dict):
-        if "selected_paths" not in payload or "context_name" not in payload:
+        if (
+            "selected_paths" not in payload
+            or "context_name" not in payload
+            or not cls._modify_particle_system_show_fn(payload)
+        ):
             return
 
         stage = omni.usd.get_context(payload["context_name"]).get_stage()
