@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4542: Fixed updating particle gizmo transform when moved using transform manipulators
 - Fixed a crash on selection of prims compatible with particle systems
 - Fixed logic to enable particle system creation on prims
+- REMIX-4569: Fixed stage manager not scrolling to the previous scroll position correctly
 
 ### Removed
 
