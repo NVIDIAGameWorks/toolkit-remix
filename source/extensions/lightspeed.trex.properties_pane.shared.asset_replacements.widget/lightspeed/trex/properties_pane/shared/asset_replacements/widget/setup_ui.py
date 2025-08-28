@@ -37,6 +37,7 @@ from lightspeed.trex.properties_pane.particle_system.widget import (
 from lightspeed.trex.replacement.core.shared import Setup as _AssetReplacementCore
 from lightspeed.trex.replacement.core.shared.layers import AssetReplacementLayersCore as _AssetReplacementLayersCore
 from lightspeed.trex.selection_tree.shared.widget import SetupUI as _SelectionTreeWidget
+from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
 from lightspeed.trex.utils.common.prim_utils import is_a_prototype as _is_a_prototype
 from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
 from lightspeed.trex.utils.common.prim_utils import is_material_prototype as _is_material_prototype
@@ -52,7 +53,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
-from pxr import Sdf, Tf
+from pxr import Sdf, Tf, UsdGeom
 
 
 class CollapsiblePanels(Enum):
@@ -545,8 +546,13 @@ class AssetReplacementsPane:
 
             if prim.IsValid() and prim.HasAPI(_PARTICLE_SCHEMA_NAME):
                 particle_system_paths.append(path)
-            elif _is_a_prototype(prim) or _is_instance(prim) or _is_material_prototype(prim):
+            elif _is_material_prototype(prim):
                 valid_target_paths.append(path)
+            elif _is_a_prototype(prim) or _is_instance(prim):
+                prototype = _get_prototype(prim)
+                if not prototype or not prototype.IsA(UsdGeom.Mesh):
+                    continue
+                valid_target_paths.append(prototype.GetPath())
 
         # Refresh the widget
         self._particle_properties_widget.refresh(particle_system_paths, valid_target_paths)

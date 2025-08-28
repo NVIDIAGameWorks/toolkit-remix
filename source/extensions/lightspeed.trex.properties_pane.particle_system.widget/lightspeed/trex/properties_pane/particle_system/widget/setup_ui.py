@@ -149,7 +149,9 @@ class ParticleSystemPropertyWidget:
                     tooltip = "Create a particle system on the selected prim"
                 else:
                     tooltip = (
-                        "Select a material prim, mesh prim or any child of a mesh prim to create a particle system"
+                        "Select a material prim or mesh prim to create a particle system.\n\n"
+                        "NOTE: Instance prims are also supported but the particle system will be created on the "
+                        "associated mesh prim."
                     )
                 with ui.VStack(height=0):
                     with ui.VStack(height=ui.Pixel(24)):

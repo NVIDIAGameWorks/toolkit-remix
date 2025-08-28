@@ -1,9 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.2]
+### Fixed
+- Fixed logic to enable particle system creation on prims
+
 ## [2.2.1]
 ### Fixed
-- Fixed a crash on selection of prims compatible with particle systems
+- Fixed a bug on selection of prims compatible with particle systems
 
 ## [2.2.0]
 ### Added
