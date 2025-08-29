@@ -58,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed a crash on selection of prims compatible with particle systems
 - Fixed logic to enable particle system creation on prims
 - REMIX-4569: Fixed stage manager not scrolling to the previous scroll position correctly
+- Fixed the icon callback for the add new reference and add new live light items
 
 ### Removed
 

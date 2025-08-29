@@ -228,14 +228,14 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
-        branch_instance_meshes = ui_test.find_all(
-            f"{_window.title}//Frame/**/Image[*].identifier=='branch_instance_group'"
-        )
+        branch_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='Expand'")
 
         self.assertEqual(len(item_instances), 0)  # we didn't expand the instance group
+        self.assertEqual(len(branch_instance_meshes), 6)
 
-        await branch_instance_meshes[0].click()
+        await branch_instance_meshes[2].click()
         await ui_test.human_delay(human_delay_speed=1)
+
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
         self.assertEqual(len(item_instances), 1)
 
