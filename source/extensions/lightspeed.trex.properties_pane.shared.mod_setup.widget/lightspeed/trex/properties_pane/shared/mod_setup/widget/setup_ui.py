@@ -295,7 +295,6 @@ class ModSetupPane:
                     ui.Spacer(height=ui.Pixel(56))
 
                     with ui.HStack():
-                        ui.Spacer(width=ui.Pixel(8), height=ui.Pixel(0))
                         with ui.VStack():
                             self._capture_file_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "CAPTURE FILE",
@@ -528,7 +527,7 @@ class ModSetupPane:
                                 self._mod_file_details_frame = ui.Frame()
 
                             ui.Spacer(height=ui.Pixel(16))
-
+                        ui.Spacer(width=ui.Pixel(16))
                     ui.Spacer()
 
     def _set_mod_file_field(self, path):

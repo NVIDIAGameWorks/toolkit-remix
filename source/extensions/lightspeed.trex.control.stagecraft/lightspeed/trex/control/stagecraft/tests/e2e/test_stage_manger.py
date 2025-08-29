@@ -57,17 +57,14 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         self._temp_dir = None
 
     async def test_material_properties_update_stage_manager_should_not_refresh(self):
-        # select
         usd_context = usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
 
         # Open up the workspace, so we can test the stage manager
         self._stagecraft.show_page(TestPages.WORKSPACE_PAGE)
-        panels = ui_test.find_all(f"{_WINDOW_NAME}//Frame/**/Label[*].name=='TreePanelTitleItemTitle'")
-        await panels[1].click()
-        await ui_test.human_delay(5)
+        self._stagecraft._tabbed_frame.selection = ["Asset Replacements"]  # noqa PLW0212
+        await ui_test.human_delay(10)
 
-        # Collapse the layers panel to make space for the material properties panel
         layers_panel = ui_test.find(f"{_WINDOW_NAME}//Frame/**/Label[*].text=='LAYERS'")
         self.assertIsNotNone(layers_panel)
         await layers_panel.click()
@@ -81,7 +78,6 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         widget_ref = widget_refs[0]
 
         with patch.object(_AssetReplacementsPane, "refresh") as mock:
-            # Test min value - click and drag left
             drag_vector = widget_ref.center
             drag_vector.x = drag_vector.x - 400
             await omni.kit.ui_test.human_delay(30)
