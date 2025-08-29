@@ -1,47 +1,51 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.2]
+### Fixed
+- Fixed layout to make sure the add new reference icon triggers the callback
+
 ## [1.6.1]
-## Fixed
+### Fixed
 - Fixed Test assets to large to work without LFS
 
 ## [1.6.0]
-## Changed
+### Changed
 - Update the documentation for Pydantic V2 compatbility
 
 ## [1.5.6]
-## Changed
+### Changed
 - Adding selection to referenced asset to check that selection after reset is correct
 
 ## [1.5.5]
-## Fixed
+### Fixed
 - Fix selection to retarget insstance after duplicating prims
 
 ## [1.5.4]
-## Changed
+### Changed
 - Updated test to use `deps` instead of `.deps` dir
 
 ## [1.5.3]
-## Changed
+### Changed
 - Changed `__get_model_from_prototype_path()` to exclude prims that are simultaneously materials
 - The Selection Tree will no longer activate solely with mesh prims that are also materials
 - Moved `__reference_file_paths()` to generic `prim_utils.py` from `model.py`
 
 ## [1.5.2]
-## Changed
+### Changed
 - Update to Kit 106.5
 
 ## [1.5.1]
-## Fixed
+### Fixed
 - Fix a bug where light prototypes cannot be reselected in tree
 - Fix naming for item identifiers for test readability
 
 ## [1.5.0]
-## Changed
+### Changed
 - Changed `get_selection` to use USD selection instead of the tree selection for better reliability
 
 ## [1.4.4]
-## Changed
+### Changed
 - update to use omni.kit.test public api
 
 ## [1.4.3]
