@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.2.4 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.2.4]
+
+### Added
 - Created 1.2.3 build
 
 ### Changed
@@ -16,8 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - REMIX-4569: Fixed stage manager not scrolling to the previous scroll position correctly
-
-### Removed
 
 ## [1.2.3]
 
@@ -84,7 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update remix_runtime to 1.2.1
 
 ### Fixed
-- REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
+- REMIX-4259: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
 - REMIX-4311: Fix for flaky viewport test by hardening hdremix initialization
 - Increased delays for material property tests
 - REMIX-4396: Fix initial camera position on capture load and waypoint creation for new captures
