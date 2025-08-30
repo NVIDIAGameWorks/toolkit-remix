@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created 1.2.3 build
 
 ### Changed
+- Updated hdremix and omni_core_materials to ext-8ad165c-release-v1-2
+- Update remix_runtime to remix-1.2.4
 
 ### Fixed
 - REMIX-4569: Fixed stage manager not scrolling to the previous scroll position correctly
