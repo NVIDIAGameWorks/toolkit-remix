@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.21.0]
+### Added
+- Added search field to the all of the Stage Manager tabs
+
 ## [1.20.0]
 ### Added
 - Added particle deletion icon

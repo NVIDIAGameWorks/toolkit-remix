@@ -10,6 +10,9 @@
             "filters": [
                 {
                     "name": "IsCaptureFilterPlugin"
+                },
+                {
+                    "name": "SearchFilterPlugin"
                 }
             ],
             "filtering_rules": {
@@ -105,6 +108,9 @@
             "filters": [
                 {
                     "name": "IsCaptureFilterPlugin"
+                },
+                {
+                    "name": "SearchFilterPlugin"
                 }
             ],
             "filtering_rules": {
@@ -204,6 +210,9 @@
             "filters": [
                 {
                     "name": "IsCaptureFilterPlugin"
+                },
+                {
+                    "name": "SearchFilterPlugin"
                 }
             ],
             "filtering_rules": {
@@ -303,6 +312,9 @@
             "filters": [
                 {
                     "name": "IsCaptureFilterPlugin"
+                },
+                {
+                    "name": "SearchFilterPlugin"
                 }
             ],
             "context_filters": [
@@ -391,6 +403,9 @@
             "filters": [
                 {
                     "name": "IsCaptureFilterPlugin"
+                },
+                {
+                    "name": "SearchFilterPlugin"
                 }
             ],
             "context_filters": [
@@ -518,6 +533,9 @@
                 },
                 {
                     "name": "IsCaptureFilterPlugin"
+                },
+                {
+                    "name": "SearchFilterPlugin"
                 }
             ],
             "context_filters": [
@@ -621,6 +639,9 @@
             "filters": [
                 {
                     "name": "IsCaptureFilterPlugin"
+                },
+                {
+                    "name": "SearchFilterPlugin"
                 }
             ],
             "context_filters": [
