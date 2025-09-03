@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4490: Updated the Remix Categories list
 - Update hdremix and omni_core_materials to ext-03aa211-main
 - REMIX-4539: Added the ability to create particle systems on materials
+- REMIX-4260: Added search field to the Stage Manager
 
 ### Fixed
 - REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
