@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4381: Added a viewport gizmo for particle prims
 - REMIX-4288: Adding the Properties Editor panel for Particle Systems.
 - REMIX-4539: Added a particle system action icon in the Stage Manager + Button in the properties to create particle systems
+- Added documentation for the particle system
 
 ### Changed
 - Changed GH actions commit message to commit title and non interruptible Gitlab releases
