@@ -1,6 +1,6 @@
 # Release Notes
 
-## RTX Remix Release 1.2 Notes (9/3/2025)
+## RTX Remix Release 1.2 Notes (9/9/2025)
 
 We are excited to announce the official 1.2 release of RTX Remix. RTX Remix now features a path-traced particle system,
 adding a major pillar of creation to the platform. With Remix, you can now reimagine *every* major graphical element

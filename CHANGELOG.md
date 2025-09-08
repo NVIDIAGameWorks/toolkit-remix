@@ -8,43 +8,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.2.4 build
+- Added release notes for 1.2
+- REMIX-4260: Added search field to the Stage Manager
+
+### Changed
+- Update hdremix and omni_core_materials to ext-822f7b6-main
+
+### Fixed
+
+### Removed
+
+## [1.2.4]
+
+### Added
 - Created 1.1.0 build
 - Added release notes for 1.1.0
-- REMIX-4380: New extension to load our custom USD schemas such as `RemixParticleSystem`
+- REMIX-4380: Added new extension to load our custom USD schemas such as `RemixParticleSystem`
 - REMIX-4426: Added GitHub PR checks
 - Added a more detailed app version number on the home screen
-- Updated docs and release notes for 1.1.0
 - REMIX-4403: Added a shell script to open a project for Visual Studio debugging
-- Added close project API endpoint
+- Added close project API endpoint (thanks to @Night1099)
 - Added a `cleanup` pattern to the stage manager context and listener plugins
 - REMIX-4381: Added a viewport gizmo for particle prims
 - REMIX-4288: Adding the Properties Editor panel for Particle Systems.
 - REMIX-4539: Added a particle system action icon in the Stage Manager + Button in the properties to create particle systems
 - Added documentation for the particle system
-- Added release notes for 1.2
 
 ### Changed
 - Changed GH actions commit message to commit title and non interruptible Gitlab releases
-- Update hdremix to ext-1cfe726-main
-- Update omni_core_materials to ext-1cfe726-main
 - Updated dependabot config to update dependencies as a group
-- Update hdremix + omni_core_materials to ext-ed79b22-main (to fix public builds)
 - Bumped contributor-assistant github CI module from 2.3.2 to 2.5.1 (to fix CLA Assistant github actions)
 - Improved the documentation about debugging the app from Python to runtime code.
 - Updated gitlab CI to produce packages on both main and feature branches
 - Added a note to the documentation about Langflow version support.
-- Update hdremix and omni_core_materials to ext-0259d57-main
-- Update hdremix and omni_core_materials to ext-8c71ba9-main
 - REMIX-4421: Expand the layers panels by default
 - Updated documentation about Langflow version support.
 - REMIX-4186: Optimized the layer tree refresh method
 - REMIX-4490: Updated the Remix Categories list
-- Update hdremix and omni_core_materials to ext-03aa211-main
-- REMIX-4539: Added the ability to create particle systems on materials
-- REMIX-4260: Added search field to the Stage Manager
+- REMIX-4539: Added the ability to create particle systems on materials as well as meshes
+- Updated hdremix and omni_core_materials to ext-8ad165c-release-v1-2
+- Update remix_runtime to remix-1.2.4
 
 ### Fixed
-- REMIX-4246: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
+- REMIX-4259: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
 - REMIX-4311: Fix for flaky viewport test by hardening hdremix initialization
 - Increased delays for material property tests
 - REMIX-4396: Fix initial camera position on capture load and waypoint creation for new captures
@@ -62,8 +69,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed logic to enable particle system creation on prims
 - REMIX-4569: Fixed stage manager not scrolling to the previous scroll position correctly
 - Fixed the icon callback for the add new reference and add new live light items
-
-### Removed
 
 ## [1.1.0]
 
