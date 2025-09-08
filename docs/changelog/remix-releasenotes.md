@@ -1,52 +1,288 @@
 # Release Notes
 
-## RTX Remix Release 1.1 Notes (7/17/2025)
+## RTX Remix Release 1.2 Notes (9/3/2025)
 
-We are excited to announce the official 1.1 release of RTX Remix. This release has some new features, a variety of optimizations, and changes to our backend that should help support the open source Remix community. Let’s get into the details.
+We are excited to announce the official 1.2 release of RTX Remix. RTX Remix now features a path-traced particle system,
+adding a major pillar of creation to the platform. With Remix, you can now reimagine *every* major graphical element
+in [over 165 classic games](https://www.moddb.com/rtx) to build them back up to modern fidelity– path-traced lighting,
+polygonally detailed assets, physically accurate materials, and now, path-traced particles.
+
+RTX Remix particles are GPU-driven, meaning you can add tens of thousands of them without significantly reducing
+performance. They are path-traced, meaning they cast accurate shadows and are reflected in the world–a rarity in games.
+And they feature a realistic physics simulation complete with proper collisions with the environment. All of these
+elements together give modders a chance to make breathtaking VFX.
+
+```{video} ../data/videos/remix-particle-example.mp4
+:alt: Remix Particles Example
+:controlslist: nodownload
+:class: video-player
+:width: 100%
+:playsinline:
+:muted:
+:autoplay:
+:loop:
+```
+
+*Example: Half-Life 2 RTX enemy sheds 100,000 particles with realistic physics and shadows*
+
+We support two workflows for adding RTX Remix Particles.
+
+1. ***Make particles while you play:*** During live gameplay, you can use the RTX Remix Runtime to instantly tag any
+   texture you see as a particle emitter. This is great for prototyping or implementing a handful of particles in your
+   mod.
+2. ***Author particles in the Toolkit:*** In the RTX Remix Toolkit, we provide a robust set of controls for adding and
+   manipulating particles. This is your best way for filling your mod with many particles, updating the look with
+   gorgeous visual effects
+
+Let's get into the details —
 
 ### RTX Remix Toolkit
 
 #### New Features
 
-**RTX Remix - AI Agent Support:** We created a framework for our community to build their own RTX Remix AI Agents that can query documentation, and help conduct actions in the RTX Remix Toolkit. As a proof of concept, we are also releasing a template in Langflow, a free and popular open source tool for wiring up AI agents. With this template and new functionality, you could create your own RTX Remix AI chatbot that can use natural language processing to answer any of your questions by digging through RTX Remix’s documentation for you. It can also take actions in the RTX Remix Toolkit based on your instruction, and the evolving capabilities of the RTX Remix REST API!
+* **RTX Remix Path-traced Particles:**
+
+    * **Create Particle Systems**: We offer a few ways to add particles into your mod via the RTX Remix Toolkit.
+      Simply, select a mesh or material, and turn it into a particle emitter via one of these options:
+        * **Option 1**: choose the “Create a Particle System” button in the Particle Properties pane
+        * **Option 2**: right-click the mesh in the Stage Manager, and select “Particle System” \> “Add”
+        * **Option 3**: choose the particle icon in the Stage Manager, under the Actions column
+
+  ![Remix Particle Creation Options](../data/images/remix-particle-creation-options.png)
+
+    * **Viewport Gizmo and Selection**: You can now select particle systems in the viewport using a new gizmo. When
+      selected, the gizmo highlights the emitter mesh.
+
+  ![Remix Particle Gizmo](../data/images/remix-particle-gizmo.png)
+
+    * **Properties Editor**: A new Particle Properties panel has been added. We wanted to give modders the kind of
+      control professional studio artists are used to, offering the ability to tune the look of particles, their physics
+      simulation, and even their collision properties. You can upload texture maps and change the color of particles over
+      time to tailor their look, modify their physics to adjust gravity and turbulence, and even define how they should
+      collide with the environment. Take a look:
+
+  ![Remix Particle Properties](../data/images/remix-particle-properties.png)
+
+    * **Particle Emitter Category**: The Remix Categories list now includes a "particle emitter" category, allowing for
+      runtime tagging of global particles.
+    * **Stage Manager Actions**: An action button has been added to the Stage Manager that displays which prims are
+      particle systems and allows for one-click creation or destruction of them.
+    * **Documentation**: [New documentation has been added for the particle system.](../howto/learning-particles.md)
+
+#### Performance and Memory Optimizations
+
+* **Layer Tree Refresh Optimization**: The method for refreshing the layer tree has been optimized, which should improve
+  performance on large projects.
+
+#### Image Quality & Compatibility
+
+* **App Version Display**: The home screen now displays a more detailed app version number.
+
+#### For Developers/Contributors
+
+* **Custom USD Schema Support**: Added support for custom USD schemas, such as `RemixParticleSystem`.
+
+* **Improved Debugging Documentation**: Documentation on how to debug the application from Python has been improved.
+
+* **GitHub PR Checks**: GitHub PR checks have been added to the workflow.
+
+* **CLA Assistant Fix**: The CLA Assistant for GitHub pull requests has been fixed.
+
+* **Stage Manager Cleanup Pattern**: A `cleanup` pattern has been added to the stage manager context and listener
+  plugins to alleviate possible memory leaks.
+
+#### Community Contributions
+
+* **Close Project REST API**: Thanks to **@Night1099**, a REST API endpoint to close the active project has been added.
+
+#### Bug Fixes
+
+* **Properties Panel**: Fixed an issue where the "Reset to Default" button did not work for certain attributes in the
+  Properties Panel.
+
+* **Viewport & Camera**:
+
+    * Fixed the initial camera position on capture load and when creating waypoints for new captures.
+    * Fixed viewport zoom speed to correctly respect the settings.
+
+* **Stage Manager**: Fixed a bug where the Stage Manager was not refreshing in response to USD Notices.
+
+* **Ingestion Service:**
+
+    * Fixed a bug where a validation callback was incorrectly triggered when updating the schema.
+    * Fixed a ValidationSchema error that occurred when multiple input files were provided.
+    * Fixed a minor bug where an error occurred in ValidationSchema when multiple input files were provided.
+
+* **Layers Panel:**
+
+    * Fixed an issue where the layer tree was not properly re-selecting the previous selection or edit target after a
+      refresh.
+    * Fixed an issue where the layer panel did not expand by default.
+
+* **MCP Server**: Fixed a missing reference and logging issue during MCP server startup.
+
+## RTX Remix Runtime
+
+### New Features
+
+* **RTX Remix Particle System**: With the RTX Remix Runtime, you can now add particles instantly while you play. During
+  live gameplay, use the RTX Remix Runtime to tag any texture to be a particle emitter. There are three key limitations
+  with authoring particles this way:
+
+    * Particles created this way are tuned using global sliders, whereas particles created in the RTX Remix Toolkit will
+      have their settings saved per particle emitter.
+    * Particles created this way will look like the underlying texture that has been tagged. In the RTX Remix Toolkit,
+      you can use a custom texture you’ve made to drive the look of particles.
+    * A mesh can only be defined as a particle emitter in the RTX Remix Toolkit.
+    * These limitations mean the RTX Remix Runtime is great for prototyping or implementing a handful of particles in
+      your mod, but more complex implementations should be done in the RTX Remix Toolkit.
+
+* **Create and Modify Particles as you play:**
+
+    * In the advanced developer menu, under the top tabs for Games Setup \> Categorize Textures, you can now pick any
+      texture and tag it with the new “Particle Emitters” option
+
+  ![Remix Particle Runtime](../data/images/remix-particle-runtime.png)
+
+    * Modify the look of the particles using the global sliders found under the “Rendering” Tab \> “Particle System”
+
+  ![Remix Particles Global Settings](../data/images/remix-particles-global-settings.png)
+
+* **Settings Clamping**: We added support for clamping in RTX Options, which means developers can set valid ranges for
+  settings. This prevents you from entering invalid or out-of-range values, making configuration safer and more
+  user-friendly.
+
+* **SPIR-V Shader Compilation**: The shader compilation process now generates SPIR-V directly from Slang, enabling
+  support for new shader functionalities like cooperative vector intrinsics for neural shading.
+
+#### Performance and Memory Optimizations
+
+* **Improved Build Stability and Speed**: We've improved Remix project build stability and reduced compilation times.
+* **Better Rendering Efficiency**: The renderer now has more robust calculations, fixing several sources of invalid
+  values throughout the pipeline.
+* **Efficient Resource Management**: Remix now tracks replacements for instances and lights, which lays the groundwork
+  for future features and more efficient resource management.
+
+#### Image Quality & Compatibility
+
+* **Order-Independent Transparency**: Remix now supports order-independent transparency, which greatly improves how it
+  handles scenes with many overlapping, alpha-blended objects like smoke or foliage.
+* **Expanded Bloom Effect**: You can now control the blooming radius (with the `rtx.bloom.steps` option) and we've
+  increased the maximum number of bloom steps from 5 to 8, allowing for a wider, more expansive bloom filter effect.
+* **Vertex Color Improvements**: We've improved the vertex color support for the emissive channel.
+* **Vertex Capture Precision**: We've improved vertex capture by performing the perspective divide earlier,
+  significantly increasing precision in games that rely on vertex shaders. This makes new titles like OutRun 2006: Coast 2 Coast more compatible.
+* **System Information Logging**: Remix log files now include system details (CPU, memory, OS, etc.) to help with
+  various actions including diagnosing and categorizing user issues more effectively.
+#### For Developers/Contributors
+
+* **Improved Shader Compilation Logging**: Runtime shader compilation now outputs to `stdout`/`stderr`, so you can see
+  the output directly in the IDE debugger.
+* **Unified Global Time System**: A new unified global time system ensures consistent timing queries across the code.
+
+#### Community Contributions
+
+* **Ignore Baked Vertex Color Lighting**: Thanks to **watbulb** (PR \#99), you can now ignore all baked vertex color
+  lighting in vertex processing via the `rtx.conf` file (`rtx.ignoreAllVertexColorBakedLighting`). This simplifies
+  workflows for games with inconsistent baked lighting, removing the need to manually tag many textures.
+
+#### Bug Fixes
+
+* **Rendering Fixes**:
+
+    * Fixed an issue where users couldn't create materials with controllable emissive parameters for alpha-blended
+      objects.
+    * Fixed a bug where emissive materials from USD files would only be emissive at runtime if they specified a
+      non-default intensity.
+    * Fixed an issue that prevented some texture categories from being applied.
+    * Fixed flickering artifacts and unexpected image scaling in certain games when DLSS-FG was enabled.
+    * Fixed an issue with volumetric atmosphere incorrectly centering around the origin instead of the camera.
+    * Fixed a bug where a BLAS (Bottom-Level Acceleration Structure) wouldn't update, causing geometry to remain fixed
+      in place.
+
+* **Stability & Crash Fixes**:
+
+    * Fixed several rare crashes related to RTX Neural Radiance Cache.
+    * Fixed a rare use-after-free bug related to replacement instance objects.
+    * Fixed a crash that could occur when a replacement light was overridden by an unrelated game light.
+    * Fixed a crash in a corner case where different draw calls shared the same object and transform.
+    * Fixed several Vulkan validation errors to improve stability.
+    * Fixed crashes in the light manager by ensuring the debugger UI doesn't access deleted lights.
+    * Fixed a crash when the number of replacement prims attached to a light changes.
+
+***
+
+## RTX Remix Release 1.1 Notes (7/17/2025)
+
+We are excited to announce the official 1.1 release of RTX Remix. This release has some new features, a variety of
+optimizations, and changes to our backend that should help support the open source Remix community. Let’s get into the
+details.
+
+### RTX Remix Toolkit
+
+#### New Features
+
+**RTX Remix - AI Agent Support:** We created a framework for our community to build their own RTX Remix AI Agents that
+can query documentation, and help conduct actions in the RTX Remix Toolkit. As a proof of concept, we are also releasing
+a template in Langflow, a free and popular open source tool for wiring up AI agents. With this template and new
+functionality, you could create your own RTX Remix AI chatbot that can use natural language processing to answer any of
+your questions by digging through RTX Remix’s documentation for you. It can also take actions in the RTX Remix Toolkit
+based on your instruction, and the evolving capabilities of the RTX Remix REST API!
 
 Please note, the LLM powering your agent will affect the quality of your results.
 
-To support this initiative, we built MCP Server support into the RTX Remix Toolkit. Model Context Protocol (MCP) is an open standard that provides a unified way for AI applications to interact with external tools and data sources. In the context of RTX Remix, MCP acts as a bridge between AI agents and the Toolkit’s functionality, exposing the REST API endpoints in a format that LLMs can understand and use through tool calling.
+To support this initiative, we built MCP Server support into the RTX Remix Toolkit. Model Context Protocol (MCP) is an
+open standard that provides a unified way for AI applications to interact with external tools and data sources. In the
+context of RTX Remix, MCP acts as a bridge between AI agents and the Toolkit’s functionality, exposing the REST API
+endpoints in a format that LLMs can understand and use through tool calling.
 
-Please look out in the near future for the  NVIDIA RTX Remix Agent, coming as a default agent to Langflow soon. To learn how to set it up, check out our documentation page. [More info](https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/docs/howto/learning-mcp.html#using-langflow)
+Please look out in the near future for the NVIDIA RTX Remix Agent, coming as a default agent to Langflow soon. To learn
+how to set it up, check out our documentation page. [More info](../howto/learning-mcp.md#using-langflow)
 
 #### Quality of Life Improvements:
+
 - When selecting any prim in the Stage Manager, it will now also be selected in the selection pane
 - Added PyCharm, VS Code, and Cursor Configuration Files
 - RTX Remix users can now set Render Categories in the Stage manager
 
 #### Improvements to Build Process and Build Availability:
+
 We made a variety of changes to improve the Toolkit build process and make the latest builds more accessible.
+
 - Improved stability and solved various issues with the Toolkit Building Process for modders and open-source developers
-- Toolkit nightly builds are now accessible through GitHub Actions, making it easier to access the latest version of the Toolkit without building it yourself. For the latest nightly release, check here.
-- When modders download Toolkit nightly builds, they will also receive more up to date changes to the renderer powering the RTX Remix Viewport than they did before
+- Toolkit nightly builds are now accessible through GitHub Actions, making it easier to access the latest version of the
+  Toolkit without building it yourself. For the latest nightly release, check here.
+- When modders download Toolkit nightly builds, they will also receive more up to date changes to the renderer powering
+  the RTX Remix Viewport than they did before
 
 #### Bug Fixes (RTX Remix Toolkit)
+
 - Solved various crashes and made improvements to stability
 - When deleting a replacement, the original asset will now be automatically selected
 - Fixed Quick Start Guide link on the Toolkit home page
-- Fixed an issue where previewing grayscale images would show incorrect colors (like red) (REMIX-3900) [GH-722](https://github.com/NVIDIAGameWorks/rtx-remix/issues/722)
-- Fixed how multi-selection and the hide/show toggles interact. Now, all multi-selected entities will be hidden or made visible when toggling
+- Fixed an issue where previewing grayscale images would show incorrect colors (like red) (REMIX-3900)
+  [GH-722](https://github.com/NVIDIAGameWorks/rtx-remix/issues/722)
+- Fixed how multi-selection and the hide/show toggles interact. Now, all multi-selected entities will be hidden or made
+  visible when toggling
 - When adding a new layer, it will now properly adopt the metadata of its parent layer
-- Fixed an NRC initialization error upon loading captures (REMIX-4084) [GH-808](https://github.com/NVIDIAGameWorks/rtx-remix/issues/808)
+- Fixed an NRC initialization error upon loading captures (REMIX-4084)
+  [GH-808](https://github.com/NVIDIAGameWorks/rtx-remix/issues/808)
 - Fixed an issues with Stage Manager tabs not refreshing
 - Fixed labeling when pinning a selected object in the material properties pane (REMIX-4082)
-- After duplicating a prim, it will now be properly selected (REMIX-3970) [GH-732](https://github.com/NVIDIAGameWorks/rtx-remix/issues/732)
-- Fixed an issue with deleting meshes with multiple instances (REMIX-3559) [GH-610](https://github.com/NVIDIAGameWorks/rtx-remix/issues/610)
+- After duplicating a prim, it will now be properly selected (REMIX-3970)
+  [GH-732](https://github.com/NVIDIAGameWorks/rtx-remix/issues/732)
+- Fixed an issue with deleting meshes with multiple instances (REMIX-3559)
+  [GH-610](https://github.com/NVIDIAGameWorks/rtx-remix/issues/610)
 - Cleaned up various error messages in the Kit log/terminal
-- Fixed Drag and drop function with the AI Texture tools to properly support image file extensions (ex: .png, .jpeg, and .jpg file)
+- Fixed Drag and drop function with the AI Texture tools to properly support image file extensions (ex: .png, .jpeg, and
+  .jpg file)
 - Fixed an error message that would occur when ingesting textures that feature extensions with uppercase spelling
 - The “Recent Project” list on the home page now updates instantaneously whenever a project is created or opened
 - Fixed crash when previewing normal maps (or any non-RGBA textures)
 - Removed verbose printing to improve Toolkit performance.
 
 #### Bug Fixes (RTX Remix REST API)
+
 - Fixed `get_texture_material_inputs` API endpoint
 - Fixed `is_valid_texture_prim` API validator
 
@@ -54,73 +290,100 @@ We made a variety of changes to improve the Toolkit build process and make the l
 
 #### New Features
 
-**Better Tonemapper:** Improved the accuracy of the ACES tonemapper to preserve highlights better and prevent oversaturation.
+**Better Tonemapper:** Improved the accuracy of the ACES tonemapper to preserve highlights better and prevent
+oversaturation.
 
-   ![Tonemapper_1_old](../data/images/tonemapper_1_old.png)
-   ![Tonemapper_1_new](../data/images/tonemapper_1_new.png)
+![Tonemapper_1_old](../data/images/tonemapper_1_old.png)
+![Tonemapper_1_new](../data/images/tonemapper_1_new.png)
 
-   ![Tonemapper_2_old](../data/images/tonemapper_2_old.png)
-   ![Tonemapper_2_new](../data/images/tonemapper_2_new.png)
+![Tonemapper_2_old](../data/images/tonemapper_2_old.png)
+![Tonemapper_2_new](../data/images/tonemapper_2_new.png)
 
-**Brightness Slider:** Introduced a global brightness slider in the User Graphics Settings menu that can be used to adjust the look of the game to meet the monitor’s output
+**Brightness Slider:** Introduced a global brightness slider in the User Graphics Settings menu that can be used to
+adjust the look of the game to meet the monitor’s output
 
-   ![BrightnessSlider](../data/images/brightness_slider.png)
+![BrightnessSlider](../data/images/brightness_slider.png)
 
 **RTX Volumetrics:** Volumetrics now supports heterogeneous fog as a global setting in the runtime.
 
-   ![Volumetrics](../data/images/rtx_volumetrics.png)
+![Volumetrics](../data/images/rtx_volumetrics.png)
 
 #### Performance and Memory Optimizations:
+
 - Optimized performance and memory usage by adding BVH refit and instancing support
 - For lower VRAM GPUs, Opacity Micro-Map will now consume less VRAM
-- Finetuned NRC training parameters to increase performance and lower memory usage. With DLSS Performance mode at 4K resolution, NRC Ultra, we saw a decrease of 166 MB memory usage. With 1080p Balanced NRC Medium, we saw a decrease of 92 MB. FPS saw a 2% improvement at 1080p on 3060, though performance gains may vary depending on GPU, workload, and settings.
+- Finetuned NRC training parameters to increase performance and lower memory usage. With DLSS Performance mode at 4K
+  resolution, NRC Ultra, we saw a decrease of 166 MB memory usage. With 1080p Balanced NRC Medium, we saw a decrease of
+  92 MB. FPS saw a 2% improvement at 1080p on 3060, though performance gains may vary depending on GPU, workload, and
+  settings.
 - Improved memory usage for RTX Skin
-- Improved performance by limiting max bones per vertex for skinned characters and assets. There is a new rtx.conf option called rtx.limitedBonesPerVertex, which defaults to 4.
-- Optimized memory usage of renderer to better reuse memory across graphics features (ex: saves 25MB at 1080p, more at higher resolutions).
+- Improved performance by limiting max bones per vertex for skinned characters and assets. There is a new rtx.conf
+  option called rtx.limitedBonesPerVertex, which defaults to 4.
+- Optimized memory usage of renderer to better reuse memory across graphics features (ex: saves 25MB at 1080p, more at
+  higher resolutions).
 
 #### Image Quality & Compatibility:
-- The “animated water” texture category now features improved water responsiveness, reflections, refractions and ghosting with ray reconstruction. The animated water texture category now also works properly in more games.
-- Ray Reconstruction now features a new option to improve image stability when dealing with surfaces that lack motion vectors (ex: animated water, animated textures, etc.), in exchange for slightly worse image clarity around those textures. To toggle the feature, look under Denoising > DLSS-RR > Disocclusion Mask > “Blur”
 
-    ![Disocclusion Mask Blur](../data/images/disocclusion_mask_blur.png)
+- The “animated water” texture category now features improved water responsiveness, reflections, refractions and
+  ghosting with ray reconstruction. The animated water texture category now also works properly in more games.
+- Ray Reconstruction now features a new option to improve image stability when dealing with surfaces that lack motion
+  vectors (ex: animated water, animated textures, etc.), in exchange for slightly worse image clarity around those
+  textures. To toggle the feature, look under Denoising > DLSS-RR > Disocclusion Mask > “Blur”
+
+  ![Disocclusion Mask Blur](../data/images/disocclusion_mask_blur.png)
 
 #### For Developers/Contributors:
+
 - Migrated Bridge into the dxvk-remix repo
 - Migrated MDL files into the dxvk-remix repo
-- Refactored and cleaned up RtxOptions to better support future RTX Remix features. Simplified and standardized the RtxOption API.
-- Re-enabled the option to manually recompile shaders option in the advanced developer menu, under the “Dev Settings” tab:
+- Refactored and cleaned up RtxOptions to better support future RTX Remix features. Simplified and standardized the
+  RtxOption API.
+- Re-enabled the option to manually recompile shaders option in the advanced developer menu, under the “Dev Settings”
+  tab:
 
-   ![Recompile shaders](../data/images/recompile_shaders.png)
+  ![Recompile shaders](../data/images/recompile_shaders.png)
 
-- Exposed a new developer tool to help track resource aliasing opportunities. Developers can find it here: Dev Settings tab > Developer options > Resource Aliasing Query
+- Exposed a new developer tool to help track resource aliasing opportunities. Developers can find it here: Dev Settings
+  tab > Developer options > Resource Aliasing Query
 - Changed how texture hashes are sorted in rtx.conf
-- Advanced Developer Menu now provides a “Composite Debug View” setting under Rendering Tab > Debug. Developers can view multiple debug views simultaneously from a predefined list
+- Advanced Developer Menu now provides a “Composite Debug View” setting under Rendering Tab > Debug. Developers can view
+  multiple debug views simultaneously from a predefined list
 
-   ![Composite Debug View](../data/images/composite_debug_view.png)
+  ![Composite Debug View](../data/images/composite_debug_view.png)
 
 #### Community Contributions
 
-- Added a Contribution guide on how to effectively contribute to the RTX Remix open source runtime. It is available in the “project documentation” section at the bottom of the DXVK repo. Thank you to community contributor “anchorlightforge” (Github PR #70) for submitting the code for this change.
-- Removed Git tracking for deployment binary folder. Thank you to community contributor “xoxor4d” (Github PR #81) for submitting the code for this change.
-- Fixed links in the RTX Remix SDK documentation file. Thank you to community contributor “ElitecombineSoldier” (Github PR #85) for submitting the code for this change.
-- Corrected VirtualKeys parsing for custom keybinds. Thank you to community contributor “skurtyyskirts” (Github PR #95) for submitting the code for this change.
+- Added a Contribution guide on how to effectively contribute to the RTX Remix open source runtime. It is available in
+  the “project documentation” section at the bottom of the DXVK repo. Thank you to community contributor
+  “anchorlightforge” (Github PR #70) for submitting the code for this change.
+- Removed Git tracking for deployment binary folder. Thank you to community contributor “xoxor4d” (Github PR #81) for
+  submitting the code for this change.
+- Fixed links in the RTX Remix SDK documentation file. Thank you to community contributor “ElitecombineSoldier” (Github
+  PR #85) for submitting the code for this change.
+- Corrected VirtualKeys parsing for custom keybinds. Thank you to community contributor “skurtyyskirts” (Github PR #95)
+  for submitting the code for this change.
 
 #### Bug Fixes:
 
 **Path Tracer:**
-- Path Termination Fixes. Fixed invalid direction samples being used to continue the path. Fixed Russian Roulette to take recent sampled direction’s throughput into account.
+
+- Path Termination Fixes. Fixed invalid direction samples being used to continue the path. Fixed Russian Roulette to
+  take recent sampled direction’s throughput into account.
 - Fixed incorrect secondary sky reflections in Primary Surface Replacement (PSR)
 
 **RTX Skin:**
+
 - Fixed an issue where green corruption could occur when RTX Skin’s transmittance value was set too low
 
 **General:**
+
 - Disabled Anti-Culling when free camera is activated to prevent artifacting, as this combination is not supported.
 - Fixed parsing of USD vertex color and vertex opacity attributes.
 - Fixed Vulkan Validation Layer errors.
 - Fixed resource aliasing bug when taking a screenshot via Developer Menu.
 
 **RTX Volumetric Attenuation Fixes:**
+
 - Fixed bugs with attenuation calculations
 - Fixed heterogeneous fog time scale
 - Fixed an issue with the volumetric atmosphere centering around the origin instead of below the camera.
