@@ -279,6 +279,22 @@ class Delegate(ui.AbstractItemDelegate):
                                 ui.Spacer(width=0)
                         else:
                             ui.Spacer(width=ui.Pixel(16))
+                    ui.Spacer()
+
+    # noinspection PyUnusedLocal
+    def build_widget(self, model, item, column_id, level, expanded):
+        """Create a widget per item"""
+        if item is None:
+            return
+        if column_id == 0:
+            with ui.HStack(mouse_hovered_fn=lambda hovered: self._on_item_hovered(hovered, item)):
+                with ui.ZStack():
+                    if id(item) not in self._background_rectangle:
+                        self._background_rectangle[id(item)] = []
+                    self._background_rectangle[id(item)].append(
+                        ui.Rectangle(style_type_name_override=self.__get_item_background_style(item))
+                    )
+                    with ui.HStack():
                         if isinstance(
                             item,
                             (
@@ -326,22 +342,6 @@ class Delegate(ui.AbstractItemDelegate):
                                     ui.Spacer(width=0)
                         else:
                             ui.Spacer(width=ui.Pixel(24))
-                    ui.Spacer()
-
-    # noinspection PyUnusedLocal
-    def build_widget(self, model, item, column_id, level, expanded):
-        """Create a widget per item"""
-        if item is None:
-            return
-        if column_id == 0:
-            with ui.HStack(mouse_hovered_fn=lambda hovered: self._on_item_hovered(hovered, item)):
-                with ui.ZStack():
-                    if id(item) not in self._background_rectangle:
-                        self._background_rectangle[id(item)] = []
-                    self._background_rectangle[id(item)].append(
-                        ui.Rectangle(style_type_name_override=self.__get_item_background_style(item))
-                    )
-                    with ui.HStack():
                         ui.Spacer(height=0, width=ui.Pixel(8))
                         with ui.HStack():
                             tooltip = self.__generate_tool_tip(item)
