@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4288: Adding the Properties Editor panel for Particle Systems.
 - REMIX-4539: Added a particle system action icon in the Stage Manager + Button in the properties to create particle systems
 - Added documentation for the particle system
+- Added a new menu bar to support the vertical tab layout
 
 ### Changed
 - Changed GH actions commit message to commit title and non interruptible Gitlab releases
@@ -46,9 +47,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated documentation about Langflow version support.
 - REMIX-4186: Optimized the layer tree refresh method
 - REMIX-4490: Updated the Remix Categories list
+- Update hdremix and omni_core_materials to ext-03aa211-main
 - REMIX-4539: Added the ability to create particle systems on materials as well as meshes
 - Updated hdremix and omni_core_materials to ext-8ad165c-release-v1-2
 - Update remix_runtime to remix-1.2.4
+- Changed modding tabs to a vertical layout, consistent with Ingestion and AI Tools tabs
 
 ### Fixed
 - REMIX-4259: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.

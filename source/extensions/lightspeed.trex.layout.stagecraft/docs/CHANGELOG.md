@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.3]
+## Changed
+- Changed modding tabs to vertical layout consistent with ingestion and AI Tools tabs
+
 ## [2.5.2]
 ## Fixed
 - Just opened projects now show in the home page when closed via "Close Project" button without an app restart.
