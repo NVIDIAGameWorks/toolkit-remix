@@ -356,6 +356,9 @@ release.files_exclude = [
 
 # Build is disabled but pre-build commands are still executed
 pre_build.commands = [
+    # Regenerate Pyright config from VSCode settings dynamic extraPaths
+	["${root}/_build/${platform}/${config}/kit/python/python${exe_ext}", "${root}/tools/utils/update_pyright_from_settings.py"],
+
     # Generate the stubgen config file
     ["${root}/repo${shell_ext}", "stubgen", "-c", "${config}"],
 

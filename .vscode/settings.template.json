@@ -1,4 +1,5 @@
 {
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "modifications",
     "editor.rulers": [
@@ -9,12 +10,7 @@
         "_compiler": true,
         "_repo": true,
         "_testoutput": true,
-        "deploy": true,
-        "rendering": true,
-        "rtx-remix": true,
-        "runtime": true,
-        "schemas": true,
-        "tests": true
+        "rtx-remix": true
     },
     "files.associations": {
         "*.kit": "toml"
@@ -32,38 +28,65 @@
         "_compiler": true,
         "_repo": true,
         "_testoutput": true,
-        "deploy": true,
-        "rendering": true,
-        "rtx-remix": true,
-        "runtime": true,
-        "schemas": true,
-        "tests": true
+        "rtx-remix": true
     },
+    "psi-header.changes-tracking": {
+        "isActive": true,
+        "autoHeader": "autoSave",
+        "include": [
+            "python"
+        ],
+        "exclude": []
+    },
+    "psi-header.config": {
+        "forceToTop": true,
+        "blankLinesAfter": 1,
+        "creationDateZero": "asIs"
+    },
+    "psi-header.lang-config": [
+        {
+            "language": "python",
+            "begin": "\"\"\"",
+            "prefix": "* ",
+            "end": "\"\"\""
+        }
+    ],
+    "psi-header.templates": [
+        {
+            "language": "python",
+            "template": [
+                "SPDX-FileCopyrightText: Copyright (c) <<year>> NVIDIA CORPORATION & AFFILIATES. All rights reserved.",
+                "SPDX-License-Identifier: Apache-2.0",
+                "",
+                "Licensed under the Apache License, Version 2.0 (the \"License\");",
+                "you may not use this file except in compliance with the License.",
+                "You may obtain a copy of the License at",
+                "",
+                "https://www.apache.org/licenses/LICENSE-2.0",
+                "",
+                "Unless required by applicable law or agreed to in writing, software",
+                "distributed under the License is distributed on an \"AS IS\" BASIS,",
+                "WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.",
+                "See the License for the specific language governing permissions and",
+                "limitations under the License."
+            ]
+        }
+    ],
     "python.analysis.exclude": [
         "_build",
         "_compiler",
         "_repo",
         "_testoutput",
-        "rtx-remix",
-        "deploy",
-        "rendering",
-        "runtime",
-        "schemas",
-        "tests"
+        "rtx-remix"
     ],
     "python.analysis.extraPaths": [],
-    "python.defaultInterpreterPath": "${workspaceFolder}/_build/windows-x86_64/release/kit/python",
+    "python.languageServer": "Pylance",
     "search.exclude": {
         "_build": true,
         "_compiler": true,
         "_repo": true,
         "_testoutput": true,
-        "deploy": true,
-        "rendering": true,
-        "rtx-remix": true,
-        "runtime": true,
-        "schemas": true,
-        "tests": true
+        "rtx-remix": true
     },
     "cursor.cpp.disabledLanguages": []
 }
