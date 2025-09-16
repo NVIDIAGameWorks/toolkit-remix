@@ -145,3 +145,6 @@ source/shell/open_project.*
 
 # Docs Temporary Config File
 conf.py
+
+# Ignore Pyright directories config
+pyrightconfig.json

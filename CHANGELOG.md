@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update hdremix and omni_core_materials to ext-822f7b6-main
 
 ### Fixed
+- Improved Pyright configuration by generating a list of search paths
 
 ### Removed
 

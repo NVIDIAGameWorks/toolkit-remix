@@ -2,8 +2,14 @@
 	// See http://go.microsoft.com/fwlink/?LinkId=827846
 	// for the documentation about the extensions.json format
 	"recommendations": [
+		"aaron-bond.better-comments",
+		"anysphere.cursorpyright",
+		"charliermarsh.ruff",
+		"eamodio.gitlens",
 		"ms-python.python",
-		"ms-python.vscode-pylance",
-		"bungcip.better-toml"
+		"psioniq.psi-header",
+		"redhat.vscode-yaml",
+		"streetsidesoftware.code-spell-checker",
+		"tamasfe.even-better-toml"
 	],
 }
