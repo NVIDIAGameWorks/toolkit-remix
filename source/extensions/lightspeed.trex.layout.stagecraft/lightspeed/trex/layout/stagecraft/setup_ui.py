@@ -23,6 +23,7 @@ from enum import Enum
 from functools import partial
 from pathlib import Path
 
+import carb
 import carb.events
 import omni.appwindow
 import omni.kit.app
@@ -32,11 +33,11 @@ from lightspeed.common.constants import (
     READ_USD_FILE_EXTENSIONS_OPTIONS,
     REMIX_LAUNCHER_PATH,
     REMIX_SAMPLE_PATH,
+    UNTITLED_PROJECT_NAME,
     GlobalEventNames,
 )
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
-from lightspeed.trex.components_pane.stagecraft.controller import SetupUI as ComponentsPaneSetupUI
 from lightspeed.trex.components_pane.stagecraft.models import EnumItems as ComponentsEnumItems
 from lightspeed.trex.contexts import get_instance as trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as TrexContexts
@@ -53,9 +54,9 @@ from lightspeed.trex.utils.common.file_utils import (
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
 from omni.flux.feature_flags.core import FeatureFlagsCore as _FeatureFlagsCore
+from omni.flux.tabbed.widget import SetupUI as _TabbedFrame
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.widget.file_pickers.file_picker import destroy_file_picker as _destroy_file_picker
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
@@ -76,12 +77,15 @@ class SetupUI(TrexLayout):
     HEIGHT_STAGE_MANAGER_SPLITTER = 12
     HEIGHT_STAGE_MANAGER_PANEL = 400
     MIN_HEIGHT_STAGE_MANAGER_PANEL = 100
-    WIDTH_COMPONENT_PANEL = 256
+    HEIGHT_TOP_BAR = 40
+    WIDTH_TOP_BAR = 40
     WIDTH_PROPERTY_PANEL = 600
     MIN_WIDTH_PROPERTY_PANEL = 375
 
     def __init__(self, ext_id):
         super().__init__(ext_id)
+
+        self._project_name_label = None
 
         self._feature_flags_core = _FeatureFlagsCore()
 
@@ -139,12 +143,11 @@ class SetupUI(TrexLayout):
             int(omni.usd.StageEventType.OPENED),
             int(omni.usd.StageEventType.SAVED),
         ]:
+            self._update_project_name_label()
+
             if self.__enable_items_task:
                 self.__enable_items_task.cancel()
             self.__enable_items_task = asyncio.ensure_future(self.__deferred_enable_items())
-
-            if self._components_pane:
-                self._components_pane.refresh()
 
     @omni.usd.handle_exception
     async def __deferred_enable_items(self):
@@ -157,10 +160,57 @@ class SetupUI(TrexLayout):
         if self._home_page:
             self._home_page.set_resume_enabled(self.enable_welcome_resume_item())
 
+    def _update_project_name_label(self):
+        """Updates the project name label based on the current stage."""
+        if not self._project_name_label:
+            return
+
+        project_name = UNTITLED_PROJECT_NAME
+        stage = self._context.get_stage()
+        if stage:
+            root_layer = stage.GetRootLayer()
+            if root_layer and not root_layer.anonymous and root_layer.realPath:
+                project_name = os.path.splitext(os.path.basename(root_layer.realPath))[0]
+
+        self._project_name_label.text = project_name
+        self._project_name_field.model.set_value(project_name)
+        self._project_name_label.visible = True
+        self._project_name_field.visible = False
+
+    def _on_project_name_double_clicked(self, x, y, b, m):
+        """Handle double-click on project name to enable editing."""
+        if b != 0:
+            return
+        if not self._project_name_label or not self._project_name_field:
+            return
+        self._project_name_label.visible = False
+        self._project_name_field.visible = True
+        self._project_name_field.focus_keyboard()
+
+    def _on_end_edit_project_name(self, model):
+        """Handle end of editing for the project name."""
+        if not self._project_name_label or not self._project_name_field:
+            return
+
+        new_name = model.get_value_as_string().strip()
+        stage = self._context.get_stage()
+        if not new_name or not stage:
+            self._update_project_name_label()
+            return
+
+        root_layer = stage.GetRootLayer()
+        if root_layer and not root_layer.anonymous and root_layer.realPath:
+            carb.log_warn("Renaming file-based projects directly is not supported. Reverting display name.")
+            self._update_project_name_label()
+        else:
+            self._project_name_label.text = new_name
+            self._project_name_field.model.set_value(new_name)
+            self._project_name_label.visible = True
+            self._project_name_field.visible = False
+
     def _import_replacement_layer(self, path, use_existing_layer):
         """Call the event object that has the list of functions"""
         self.__on_import_capture_layer(path, use_existing_layer)
-        self._components_pane.refresh()
 
     def subscribe_import_replacement_layer(self, function):
         """
@@ -251,11 +301,11 @@ class SetupUI(TrexLayout):
     def _resume_work_file_clicked(self):
         self.show_page(Pages.WORKSPACE_PAGE)
         self._on_resume_work_file_clicked()
-        if not self._components_pane.get_ui_widget().get_selection():
-            self._components_pane.get_ui_widget().set_selection(
-                self._components_pane.get_model().get_item_children(None)[0]
-            )
-        self._components_pane.refresh()
+
+        if self._tabbed_frame and not self._tabbed_frame.selection:
+            children = self._tabbed_frame.model.get_item_children(None)
+            if children:
+                self._tabbed_frame.selection = [children[0].title]
 
     def subscribe_resume_work_file_clicked(self, fn):
         """
@@ -290,9 +340,7 @@ class SetupUI(TrexLayout):
                 "_viewport": None,
                 "_stage_manager_frame": None,
                 "_stage_manager": None,
-                "_components_pane": None,
                 "_properties_pane": None,
-                "_components_pane_tree_selection_changed": None,
                 "_property_panel_frame": None,
                 "_all_frames": None,
                 "_splitter_property_viewport": None,
@@ -307,6 +355,14 @@ class SetupUI(TrexLayout):
                 "_last_property_viewport_splitter_x": None,
                 "_sub_frame_prim_selection_panel": None,
                 "_sub_go_to_ingest": None,
+                "_tabbed_frame": None,
+                "_sub_tab_selection_changed": None,
+                "_previous_selection": None,
+                "_project_name_label": None,
+                "_project_name_field": None,
+                "_project_name_stack": None,
+                "_arrow_back_button": None,
+                "_menu_burger_widget": None,
             }
         )
         return default_attr
@@ -354,9 +410,7 @@ class SetupUI(TrexLayout):
                     case Pages.WORKSPACE_PAGE.value:
                         if self._stage_manager is not None:
                             self._stage_manager.resize_tabs()
-                        self._components_pane.get_ui_widget().set_selection(
-                            self._components_pane.get_model().get_item_children(None)[0]
-                        )
+                        self.show(True)
             else:
                 frame.visible = False
         self.__current_page = page
@@ -392,25 +446,104 @@ class SetupUI(TrexLayout):
             )
 
             self._all_frames.append(self._frame_workspace)
+
             with self._frame_workspace:
                 with ui.HStack():
+                    # Left side: Panels and their splitter
                     with ui.ZStack(width=0):
-                        with ui.HStack():
-                            with ui.Frame(width=ui.Pixel(self.WIDTH_COMPONENT_PANEL)):
-                                self._components_pane = ComponentsPaneSetupUI(self._context_name)
-                            self._property_panel_frame = ui.Frame(
-                                visible=False, width=ui.Pixel(self.WIDTH_PROPERTY_PANEL)
-                            )
-                            with self._property_panel_frame:
-                                self._properties_pane = PropertyPanelUI(self._context_name)
-                                # hidden by default
-                                self._properties_pane.show_panel(forced_value=False)
+                        # VStack (top bar + tabs/properties)
+                        with ui.VStack():
+                            with ui.ZStack(height=ui.Pixel(self.HEIGHT_TOP_BAR)):
+
+                                # Background for the top bar
+                                with ui.ZStack(height=ui.Pixel(self.HEIGHT_TOP_BAR)):
+                                    ui.Rectangle(name="WorkspaceBackground")
+                                    with ui.ScrollingFrame(
+                                        name="TreePanelBackground",
+                                        vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                                        horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                                        scroll_y_max=0,
+                                    ):
+                                        with ui.VStack():
+                                            for _ in range(10):
+                                                with ui.HStack():
+                                                    for _ in range(10):
+                                                        ui.Image(
+                                                            "",
+                                                            name="TreePanelLinesBackground",
+                                                            fill_policy=ui.FillPolicy.PRESERVE_ASPECT_FIT,
+                                                            height=ui.Pixel(256),
+                                                            width=ui.Pixel(256),
+                                                        )
+
+                                with ui.ZStack(content_clipping=True):
+                                    with ui.VStack():
+                                        ui.Spacer()
+                                        with ui.HStack(height=ui.Pixel(24)):
+                                            ui.Spacer(width=ui.Pixel(4))
+                                            # Back button
+                                            with ui.VStack(
+                                                width=ui.Pixel(24),
+                                                mouse_pressed_fn=lambda x, y, b, m: self.return_to_home_page(),
+                                            ):
+                                                ui.Spacer()
+                                                self._arrow_back_button = ui.Image(
+                                                    "", name="GoBack", width=ui.Pixel(24), height=ui.Pixel(24)
+                                                )
+                                                ui.Spacer()
+
+                                            ui.Spacer(width=ui.Pixel(24))
+
+                                            # Project name
+                                            self._project_name_stack = ui.ZStack(
+                                                mouse_double_clicked_fn=self._on_project_name_double_clicked
+                                            )
+                                            with self._project_name_stack:
+                                                self._project_name_field = ui.StringField(visible=False)
+                                                self._project_name_field.model.add_end_edit_fn(
+                                                    self._on_end_edit_project_name
+                                                )
+                                                self._project_name_label = ui.Label("", name="TopBarTitle")
+
+                                            ui.Spacer()
+
+                                            # Menu burger
+                                            with ui.VStack(
+                                                width=ui.Pixel(16),
+                                                mouse_pressed_fn=lambda x, y, b, m: self._on_menu_burger_mouse_pressed(
+                                                    b
+                                                ),
+                                            ):
+                                                ui.Spacer(height=ui.Pixel(4))
+                                                with ui.ZStack(width=ui.Pixel(24), height=ui.Pixel(24)):
+                                                    self._menu_burger_widget = ui.Image("", name="MenuBurger")
+                                                ui.Spacer(height=ui.Pixel(4))
+
+                                            ui.Spacer(width=ui.Pixel(24))
+
+                                        ui.Spacer()
+
+                            with ui.HStack():
+                                self._tabbed_frame = _TabbedFrame(
+                                    horizontal=False,
+                                    size_tab_label=(ui.Pixel(self.WIDTH_TOP_BAR), ui.Pixel(100)),
+                                    disable_tab_toggle=True,
+                                    add_initial_spacer=False,
+                                )
+                                self._property_panel_frame = ui.Frame(
+                                    visible=True, width=ui.Pixel(self.WIDTH_PROPERTY_PANEL)
+                                )
+                                with self._property_panel_frame:
+                                    self._properties_pane = PropertyPanelUI(self._context_name)
+                                    self._properties_pane.show_panel(forced_value=False)
+
                         self._splitter_property_viewport = ui.Placer(
                             draggable=True,
-                            offset_x=ui.Pixel(self.WIDTH_COMPONENT_PANEL + self.WIDTH_PROPERTY_PANEL),
+                            offset_x=ui.Pixel(self.WIDTH_TOP_BAR + self.WIDTH_PROPERTY_PANEL),
                             drag_axis=ui.Axis.X,
                             width=50,
                             offset_x_changed_fn=self._on_property_viewport_splitter_change,
+                            visible=True,
                         )
                         with self._splitter_property_viewport:
                             with ui.ZStack(width=ui.Pixel(12), opaque_for_mouse_events=True):
@@ -423,68 +556,95 @@ class SetupUI(TrexLayout):
                                             fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP,
                                             width=ui.Pixel(12),
                                         )
-
                                 splitter = ui.Rectangle(name="TreePanelBackgroundSplitter")
                                 _hover_helper(splitter)
-                    with ui.ZStack():
-                        with ui.VStack():
-                            self._viewport = _create_viewport_instance(self._context_name)
-                            stage_manager_frame = ui.Frame(build_fn=self._build_stage_manager, height=0)
-                        stage_manager_splitter_frame = ui.Frame(build_fn=self._build_stage_manager_splitter, height=0)
 
-        def rebuild_stage_manager():
-            # Clear the existing UI in case the feature flag is disabled
-            stage_manager_frame.clear()
-            stage_manager_splitter_frame.clear()
+                    # Right side: Viewport and its splitter
+                    with ui.VStack():
+                        with ui.ZStack():
+                            with ui.VStack():
+                                self._viewport = _create_viewport_instance(self._context_name)
+                                stage_manager_frame = ui.Frame(build_fn=self._build_stage_manager, height=0)
+                            stage_manager_splitter_frame = ui.Frame(
+                                build_fn=self._build_stage_manager_splitter, height=0
+                            )
 
-            # Destroy the stage manager to disable listeners
-            if self._stage_manager:
-                self._stage_manager.destroy()
+            tab_names = [e.value for e in ComponentsEnumItems]
+            self._tabbed_frame.add(tab_names)
 
-            # Rebuild the UI if required
-            stage_manager_frame.rebuild()
-            stage_manager_splitter_frame.rebuild()
+            self._sub_tab_selection_changed = self._tabbed_frame.subscribe_selection_changed(
+                self._on_tab_selection_changed
+            )
 
-        # Rebuild feature-flag-gated UI when feature flags change
-        self._feature_flags_changed_subs = self._feature_flags_core.subscribe_feature_flags_changed(
-            lambda *_: rebuild_stage_manager()
-        )
+            def rebuild_stage_manager():
+                # Clear the existing UI in case the feature flag is disabled
+                stage_manager_frame.clear()
+                stage_manager_splitter_frame.clear()
 
-        # subscribe to the burger menu
-        self._sub_menu_burger_pressed = self._components_pane.get_ui_widget().menu_burger_widget.set_mouse_pressed_fn(
-            lambda x, y, b, m: self._on_menu_burger_mouse_pressed(b)
-        )
+                # Destroy the stage manager to disable listeners
+                if self._stage_manager:
+                    self._stage_manager.destroy()
 
-        # connect the component pane back arrow
-        components_pane_widget = self._components_pane.get_ui_widget()
-        components_pane_widget.arrow_back_title_widget.set_mouse_pressed_fn(
-            lambda x, y, b, m: self.return_to_home_page()
-        )
+                # Rebuild the UI if required
+                stage_manager_frame.rebuild()
+                stage_manager_splitter_frame.rebuild()
 
-        # connect the component pane to the property pane
-        self._components_pane_tree_selection_changed = components_pane_widget.subscribe_tree_selection_changed(
-            self._on_components_pane_tree_selection_changed
-        )
+            # Rebuild feature-flag-gated UI when feature flags change
+            self._feature_flags_changed_subs = self._feature_flags_core.subscribe_feature_flags_changed(
+                lambda *_: rebuild_stage_manager()
+            )
 
-        # connect the property pane with the component pane
-        self._sub_import_replacement_layer = self._properties_pane.get_frame(
-            ComponentsEnumItems.MOD_SETUP
-        ).subscribe_import_replacement_layer(self._import_replacement_layer)
+            # connect the property pane with the component pane
+            self._sub_import_replacement_layer = self._properties_pane.get_frame(
+                ComponentsEnumItems.MOD_SETUP
+            ).subscribe_import_replacement_layer(self._import_replacement_layer)
 
-        # connect the property selection pane with the viewport
-        self._sub_frame_prim_selection_panel = self._properties_pane.get_frame(
-            ComponentsEnumItems.ASSET_REPLACEMENTS
-        ).selection_tree_widget.subscribe_frame_prim(self._frame_prim)
+            # connect the property selection pane with the viewport
+            self._sub_frame_prim_selection_panel = self._properties_pane.get_frame(
+                ComponentsEnumItems.ASSET_REPLACEMENTS
+            ).selection_tree_widget.subscribe_frame_prim(self._frame_prim)
 
-        # connect the go to ingest event
-        self._sub_go_to_ingest = self._properties_pane.get_frame(
-            ComponentsEnumItems.ASSET_REPLACEMENTS
-        ).subscribe_go_to_ingest_tab(partial(self.show_layout_by_name, "Ingestion"))
+            # connect the go to ingest event
+            self._sub_go_to_ingest = self._properties_pane.get_frame(
+                ComponentsEnumItems.ASSET_REPLACEMENTS
+            ).subscribe_go_to_ingest_tab(partial(self.show_layout_by_name, "Ingestion"))
 
-        self._refresh_recent_items()
+            self._previous_selection = []
+            self._refresh_recent_items()
+            self._update_project_name_label()
 
     def show(self, value: bool):
-        pass
+        if not self._tabbed_frame:
+            return
+        if self._tabbed_frame.selection:
+            self._previous_selection = list(self._tabbed_frame.selection)
+
+        if not value:
+            return
+
+        sel = None
+        children = self._tabbed_frame.model.get_item_children(None)
+        if not children:
+            return
+
+        if not self._tabbed_frame.selection:
+            # No selection, select the first tab
+            sel = children[0]
+            self._tabbed_frame.selection = [sel.title]
+            sel.selected = True
+        else:
+            # Find the item object matching the selected title
+            selected_title = self._tabbed_frame.selection[0]
+            sel = next((item for item in children if item.title == selected_title), None)
+            if sel:
+                sel.selected = True
+            else:
+                # Selection not found, fallback to first
+                sel = children[0]
+                self._tabbed_frame.selection = [sel.title]
+                sel.selected = True
+
+        self._on_tab_selection_changed(sel)
 
     def _build_stage_manager(self):
         if not self._feature_flags_core.is_enabled("stage_manager"):
@@ -562,12 +722,13 @@ class SetupUI(TrexLayout):
     def _on_menu_burger_mouse_pressed(self, button):
         if button != 0:
             return
-        get_burger_menu_instance().show_at(
-            self._components_pane.get_ui_widget().menu_burger_widget.screen_position_x,
-            self._components_pane.get_ui_widget().menu_burger_widget.screen_position_y
-            + self._components_pane.get_ui_widget().menu_burger_widget.computed_height
-            + ui.Pixel(8),
-        )
+
+        burger_menu = get_burger_menu_instance()
+        if burger_menu is not None:
+            x_position = self._menu_burger_widget.screen_position_x
+            y_position = self._menu_burger_widget.screen_position_y + self._menu_burger_widget.computed_height + 8.0
+
+            burger_menu.show_at(x_position, y_position)
 
     def subscribe_import_capture_layer(self, function):
         """
@@ -590,39 +751,22 @@ class SetupUI(TrexLayout):
             self._frame_workspace.computed_height - clamped_offset - self.HEIGHT_STAGE_MANAGER_SPLITTER
         )
 
-    @_ignore_function_decorator(attrs=["_ignore_property_viewport_splitter_change"])
     def _on_property_viewport_splitter_change(self, x):
-        if x.value <= self.WIDTH_COMPONENT_PANEL + self.MIN_WIDTH_PROPERTY_PANEL:
-            self._splitter_property_viewport.offset_x = self.WIDTH_COMPONENT_PANEL + self.MIN_WIDTH_PROPERTY_PANEL
-        if (
-            self._last_property_viewport_splitter_x is not None
-            and self._splitter_property_viewport.offset_x.value >= self._last_property_viewport_splitter_x.value
-            and self._frame_workspace.computed_width + 8 > omni.appwindow.get_default_app_window().get_width()
-        ):
-            self._splitter_property_viewport.offset_x = self._last_property_viewport_splitter_x
-            return
-        asyncio.ensure_future(self.__deferred_on_property_viewport_splitter_change(x))
+        """
+        Handles splitter drag events by clamping its position
+        """
+        min_offset = self.WIDTH_TOP_BAR + self.MIN_WIDTH_PROPERTY_PANEL
+        max_offset = self.WIDTH_TOP_BAR + self.WIDTH_PROPERTY_PANEL
 
-    @omni.usd.handle_exception
-    async def __deferred_on_property_viewport_splitter_change(self, x):
-        await omni.kit.app.get_app_interface().next_update_async()
-        if x.value < self.WIDTH_COMPONENT_PANEL + self.MIN_WIDTH_PROPERTY_PANEL:
-            x = ui.Pixel(self.WIDTH_COMPONENT_PANEL + self.MIN_WIDTH_PROPERTY_PANEL)
-        self._property_panel_frame.width = ui.Pixel(x - self.WIDTH_COMPONENT_PANEL)
-        self._last_property_viewport_splitter_x = x
+        clamped_offset = ui.Pixel(min(max(x.value, min_offset), max_offset))
 
-    def _on_components_pane_tree_selection_changed(self, selection):
-        self._property_panel_frame.visible = bool(selection)
-        offset = 0
-        if bool(selection) != self._splitter_property_viewport.visible:
-            offset = 1 if bool(selection) else -1
-        self._splitter_property_viewport.visible = bool(selection)
-        # force refresh
-        self._splitter_property_viewport.offset_x = self._splitter_property_viewport.offset_x + offset
-        if not selection:
-            self._properties_pane.show_panel(forced_value=False)
-            return
-        self._properties_pane.show_panel(title=selection[0].title)
+        self._splitter_property_viewport.offset_x = clamped_offset
+
+        self._property_panel_frame.width = ui.Pixel(clamped_offset.value - self.WIDTH_TOP_BAR)
+
+    def _on_tab_selection_changed(self, selected_item):
+        """Respond to tab selection."""
+        self._properties_pane.show_panel(title=selected_item.title)
 
     def destroy(self):
         if self._feature_flags_changed_subs:

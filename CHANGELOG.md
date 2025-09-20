@@ -11,9 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created 1.2.4 build
 - Added release notes for 1.2
 - REMIX-4260: Added search field to the Stage Manager
+- Added a new menu bar to support the vertical tab layout
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
+- Changed modding tabs to a vertical layout, consistent with Ingestion and AI Tools tabs
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths

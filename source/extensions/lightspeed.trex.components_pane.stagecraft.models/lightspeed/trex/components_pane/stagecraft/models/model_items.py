@@ -22,7 +22,7 @@ from omni.flux.tree_panel.widget.tree.model import Item as _Item
 
 
 class EnumItems(Enum):
-    MOD_SETUP = "Captures / Setup"
+    MOD_SETUP = "Project Setup"
     ASSET_REPLACEMENTS = "Asset Replacements"
     MOD_PACKAGING = "Mod Packaging"
 
