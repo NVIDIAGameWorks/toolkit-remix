@@ -105,9 +105,7 @@ class ModPackagingPane:
                 with ui.VStack():
                     ui.Spacer(height=ui.Pixel(56))
                     with ui.HStack():
-                        ui.Spacer(width=ui.Pixel(8), height=ui.Pixel(0))
                         with ui.VStack():
-                            ui.Spacer(height=ui.Pixel(8))
                             self._package_details_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "MOD DETAILS",
                                 info_text="The packaged mod name and any additional details about the mod.",
@@ -189,6 +187,7 @@ class ModPackagingPane:
                             )
 
                             ui.Spacer(height=ui.Pixel(16))
+                        ui.Spacer(width=ui.Pixel(16))
 
     def show(self, value):
         self._root_frame.visible = value

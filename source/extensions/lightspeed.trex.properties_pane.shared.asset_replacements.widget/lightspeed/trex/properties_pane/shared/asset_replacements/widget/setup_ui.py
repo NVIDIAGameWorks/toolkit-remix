@@ -140,9 +140,7 @@ class AssetReplacementsPane:
                     ui.Spacer(height=ui.Pixel(56))
 
                     with ui.HStack():
-                        ui.Spacer(width=ui.Pixel(8), height=ui.Pixel(0))
                         with ui.VStack():
-                            ui.Spacer(height=ui.Pixel(8))
                             self._layer_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "LAYERS",
                                 info_text="Visual representation of the USD layers in the mod.\n\n"
@@ -354,6 +352,7 @@ class AssetReplacementsPane:
                             )
 
                             ui.Spacer(height=ui.Pixel(16))
+                        ui.Spacer(width=ui.Pixel(16))
 
         self._sub_tree_selection_changed = self._selection_tree_widget.subscribe_tree_selection_changed(
             self._on_tree_selection_changed

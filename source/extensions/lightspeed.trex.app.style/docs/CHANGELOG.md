@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.12.1]
+## Added
+- Added styles for top bar title in modding tabs
+
 ## [1.12.0]
 ## Added
 - Added styles for the new particle system action icon

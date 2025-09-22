@@ -42,7 +42,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         pass
 
     async def __setup_widget(self, title: str):
-        window = ui.Window(title, height=800, width=400)
+        window = ui.Window(title, height=800, width=500)
         with window.frame:
             wid = _AssetReplacementsPane("")
             wid.show(True)

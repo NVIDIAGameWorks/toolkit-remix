@@ -1,41 +1,45 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.2]
+### Changed
+- Adjusted spacing for the new vertical modding tabs
+
 ## [1.7.1]
-## Fixed
+### Fixed
 - Fixed Test assets to large to work without LFS
 
 ## [1.7.0]
-## Changed
+### Changed
 - Update the documentation for Pydantic V2 compatbility
 
 ## [1.6.4]
-## Changed
+### Changed
 - Updated test to use `deps` instead of `.deps` dir
 
 ## [1.6.3]
-## Changed
+### Changed
 - Use left-aligned properties widget
 - Changed minor parts of the layout to be more consistent
 
 ## [1.6.2]
-## Changed
+### Changed
 - Update to Kit 106.5
 
 ## [1.6.1]
-## Changed
+### Changed
 - Updated the look of the "Loading..." panel
 
 ## [1.6.0]
-## Removed
+### Removed
 - removed "Open Wizard" button from property panel
 
 ## [1.5.7]
-## Changed
+### Changed
 - Improved Mod File button labels
 
 ## [1.5.6]
-## Changed
+### Changed
 - update to use omni.kit.test public api
 
 ## [1.5.5]

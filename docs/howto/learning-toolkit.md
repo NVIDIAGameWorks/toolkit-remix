@@ -8,7 +8,7 @@ dedicated tabs for each of these steps.
 
 ## Project Setup
 
-The `Captures / Setup` tab is primarily used to manage the currently loaded capture layer, as the project wizard
+The `Project Setup` tab is primarily used to manage the currently loaded capture layer, as the project wizard
 streamlines the remaining setup processes.
 
 ```{seealso}

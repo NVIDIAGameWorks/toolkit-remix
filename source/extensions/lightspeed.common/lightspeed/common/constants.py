@@ -550,3 +550,6 @@ PARTICLE_HIDE_EMITTER_ATTR = PARTICLE_PRIMVAR_PREFIX + "hideEmitter"
 
 # Viewport
 VIEWPORT_MENU_SHOW_BY_TYPE = "Show By Type"
+
+# Modding top bar
+UNTITLED_PROJECT_NAME = "Untitled Project"

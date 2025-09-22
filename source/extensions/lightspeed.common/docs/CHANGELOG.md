@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.1]
+### Added
+- Added constants for untitled project name
+
 ## [1.8.0]
 ### Added
 - Added constants for particle system
