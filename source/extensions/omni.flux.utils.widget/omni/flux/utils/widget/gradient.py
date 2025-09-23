@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import Tuple
-
 import numpy as np
 
 
@@ -40,7 +38,7 @@ def create_gradient_1d(width: int, height: int, int1: int, int2: int, is_horizon
 
 
 def create_gradient(
-    width: int, height: int, values1: Tuple[int, ...], values2: Tuple[int, ...], is_horizontal_list: Tuple[bool, ...]
+    width: int, height: int, values1: tuple[int, ...], values2: tuple[int, ...], is_horizontal_list: tuple[bool, ...]
 ) -> np.ndarray:
     """
     Create a gradient (like a RGBA) of any dimension

@@ -15,29 +15,18 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 __all__ = ("Converter", "Serializer", "register_std")
 
 import dataclasses
 import functools
 import inspect
 import json
-from typing import Any, Callable, Generic, Mapping, Type, TypeAlias, TypeVar, Union
+from typing import Any, Callable, Generic, Mapping, Type, TypeAlias, TypeVar
 
-JSON: TypeAlias = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
-PrimitiveValue: TypeAlias = Union[JSON, "Primitive"]
+Json: TypeAlias = dict[str, "Json"] | list["Json"] | str | int | float | bool | None
 T = TypeVar("T")
-
-
-@dataclasses.dataclass
-class Converter(Generic[T]):
-    """
-    A dataclass which holds methods used to convert data from one format to another.
-    """
-
-    key: str
-    claim_func: Callable[[Any], bool]
-    serialize_hook: Callable[[T], PrimitiveValue] = dataclasses.field(default=lambda x: x)
-    deserialize_hook: Callable[[PrimitiveValue], T] = dataclasses.field(default=lambda x: x)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -49,22 +38,37 @@ class Primitive(Generic[T]):
     _KEY_REMAP = {"key": "_key", "value": "_value"}
 
     key: str
-    value: PrimitiveValue
+    value: PrimitiveType
 
     @classmethod
     def is_serialized_primitive(cls, data: Any) -> bool:
         return isinstance(data, Mapping) and all(k in data for k in cls._KEY_REMAP.values())
 
     @classmethod
-    def from_serialized(cls, data: Any) -> "Primitive[T]":
+    def from_serialized(cls, data: Any) -> Primitive[T]:
         if isinstance(data, Primitive):
             return data
         if cls.is_serialized_primitive(data):
             return cls(key=data["_key"], value=data["_value"])
         raise TypeError(data)
 
-    def asdict(self) -> dict[str, PrimitiveValue]:
+    def asdict(self) -> dict[str, PrimitiveType]:
         return dataclasses.asdict(self, dict_factory=lambda kv: {self._KEY_REMAP[k]: v for k, v in kv})
+
+
+PrimitiveType: TypeAlias = Json | Primitive
+
+
+@dataclasses.dataclass
+class Converter(Generic[T]):
+    """
+    A dataclass which holds methods used to convert data from one format to another.
+    """
+
+    key: str
+    claim_func: Callable[[Any], bool]
+    serialize_hook: Callable[[T], PrimitiveType] = dataclasses.field(default=lambda x: x)
+    deserialize_hook: Callable[[PrimitiveType], T] = dataclasses.field(default=lambda x: x)
 
 
 class Serializer(Generic[T]):
@@ -188,9 +192,9 @@ class Serializer(Generic[T]):
                 return Primitive(key=converter.key, value=converter.serialize_hook(obj))
         return obj
 
-    def deserialize(self, data: JSON) -> T:
+    def deserialize(self, data: Json) -> T:
         """
-        Deserialize json data back into native types.
+        Deserialize Json data back into native types.
         """
         try:
             primitive = Primitive.from_serialized(data)
@@ -202,9 +206,9 @@ class Serializer(Generic[T]):
                 return converter.deserialize_hook(primitive.value)
         return data
 
-    def serialize(self, obj: T) -> JSON:
+    def serialize(self, obj: T) -> Json:
         """
-        Serialize `obj` to something json friendly.
+        Serialize `obj` to something Json friendly.
 
         This method is called recursively for nested types such as `tuple`, `list`, `set`, and `dict`.
         """
@@ -218,13 +222,13 @@ class Serializer(Generic[T]):
             primitive = [self.serialize(x) for x in primitive]
         return primitive
 
-    def dumps(self, obj: T) -> JSON:
+    def dumps(self, obj: T) -> Json:
         """
         Wrapper for `json.dumps` which will serialize any complex types using the registered converters.
         """
         return json.dumps(obj, cls=functools.partial(SerializerJSONEncoder, self))
 
-    def loads(self, s: JSON) -> T:
+    def loads(self, s: Json) -> T:
         """
         Wrapper for `json.loads` which will deserialize into native types using the registered converters.
         """

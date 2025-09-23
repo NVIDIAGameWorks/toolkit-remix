@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import abc
 from typing import TYPE_CHECKING, Callable, Iterable
 
@@ -53,20 +55,20 @@ class TreeDelegateBase(ui.AbstractItemDelegate):
         return {"_selection": None}
 
     @property
-    def selection(self) -> list["_TreeItemBase"]:
+    def selection(self) -> list[_TreeItemBase]:
         """
         Get the currently selected items
         """
         return self._selection
 
     @selection.setter
-    def selection(self, value: Iterable["_TreeItemBase"]):
+    def selection(self, value: Iterable[_TreeItemBase]):
         """
         Set the currently selected items
         """
         self._selection = list(value)
 
-    def build_widget(self, model: "_TreeModelBase", item: "_TreeItemBase", column_id: int, level: int, expanded: bool):
+    def build_widget(self, model: _TreeModelBase, item: _TreeItemBase, column_id: int, level: int, expanded: bool):
         """
         Create a widget per item. To define the build function, override `_build_widget`. This function wraps the widget
         in a frame with an on-click listener.
@@ -77,7 +79,7 @@ class TreeDelegateBase(ui.AbstractItemDelegate):
         with ui.Frame(mouse_pressed_fn=lambda x, y, b, m: self._item_clicked(b, b == 1, model, item)):
             self._build_widget(model, item, column_id, level, expanded)
 
-    def build_branch(self, model: "_TreeModelBase", item: "_TreeItemBase", column_id: int, level: int, expanded: bool):
+    def build_branch(self, model: _TreeModelBase, item: _TreeItemBase, column_id: int, level: int, expanded: bool):
         """
         Create a branch widget that opens or closes the subtree. To define the build function, override `_build_branch`.
         """
@@ -97,15 +99,13 @@ class TreeDelegateBase(ui.AbstractItemDelegate):
         self._build_header(column_id=column_id)
 
     @abc.abstractmethod
-    def _build_widget(self, model: "_TreeModelBase", item: "_TreeItemBase", column_id: int, level: int, expanded: bool):
+    def _build_widget(self, model: _TreeModelBase, item: _TreeItemBase, column_id: int, level: int, expanded: bool):
         """
         Define how the widget should be built. Must be overridden.
         """
         raise NotImplementedError()
 
-    def _build_branch(
-        self, _model: "_TreeModelBase", item: "_TreeItemBase", _column_id: int, _level: int, expanded: bool
-    ):
+    def _build_branch(self, _model: _TreeModelBase, item: _TreeItemBase, _column_id: int, _level: int, expanded: bool):
         """
         Define how the expansion branch should be built.
         """
@@ -123,13 +123,13 @@ class TreeDelegateBase(ui.AbstractItemDelegate):
         """
         pass
 
-    def _show_context_menu(self, model: "_TreeModelBase", item: "_TreeItemBase"):
+    def _show_context_menu(self, model: _TreeModelBase, item: _TreeItemBase):
         """
         Function called to display the context menu on right click. Should be overridden or not menu will be displayed.
         """
         self._context_menu_shown(model, item)
 
-    def _item_clicked(self, button: int, should_validate: bool, model: "_TreeModelBase", item: "_TreeItemBase"):
+    def _item_clicked(self, button: int, should_validate: bool, model: _TreeModelBase, item: _TreeItemBase):
         """
         Callback called whenever an item is clicked on.
         """
@@ -138,13 +138,13 @@ class TreeDelegateBase(ui.AbstractItemDelegate):
         if button == 1:
             self._show_context_menu(model, item)
 
-    def subscribe_item_clicked(self, function: Callable[[bool, "_TreeModelBase", "_TreeItemBase"], None]):
+    def subscribe_item_clicked(self, function: Callable[[bool, _TreeModelBase, _TreeItemBase], None]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__on_item_clicked, function)
 
-    def _item_expanded(self, button: int, item: "_TreeItemBase", expanded: bool):
+    def _item_expanded(self, button: int, item: _TreeItemBase, expanded: bool):
         """Call the event object that has the list of functions"""
         if button != 0:
             return
@@ -156,14 +156,14 @@ class TreeDelegateBase(ui.AbstractItemDelegate):
         """
         return _EventSubscription(self.__on_item_expanded, function)
 
-    def _context_menu_shown(self, model: "_TreeModelBase", item: "_TreeItemBase"):
+    def _context_menu_shown(self, model: _TreeModelBase, item: _TreeItemBase):
         """
         Callback called whenever an item is clicked on.
         """
         # First emit the event which allows the parent tree to potentially modify the selection.
         self.__on_context_menu_shown(model, item)
 
-    def subscribe_context_menu_shown(self, function: Callable[["_TreeModelBase", "_TreeItemBase"], None]):
+    def subscribe_context_menu_shown(self, function: Callable[[_TreeModelBase, _TreeItemBase], None]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """

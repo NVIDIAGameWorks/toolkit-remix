@@ -16,17 +16,16 @@
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import carb.settings
 import omni.kit.app
 
 
-def __get_default_resources_ext():
-    return carb.settings.get_settings().get("/exts/omni.flux.utils.widget/default_resources_ext")
+def _get_default_resources_ext() -> str | None:
+    return carb.settings.get_settings().get("/exts/omni.flux.utils.widget/default_resources_ext")  # type: ignore kit
 
 
-def __get_extension_root(name: str) -> Path:
+def _get_extension_root(name: str) -> Path:
     """
     Get the extension root folder
 
@@ -40,7 +39,7 @@ def __get_extension_root(name: str) -> Path:
     return Path(omni.kit.app.get_app().get_extension_manager().get_extension_path(ext_id))
 
 
-def get_icons(name: str, ext_name: Optional[str] = None) -> Optional[str]:
+def get_icons(name: str, ext_name: str | None = None) -> str | None:
     """
     Get icon from a resource extension
 
@@ -53,17 +52,17 @@ def get_icons(name: str, ext_name: Optional[str] = None) -> Optional[str]:
         Path of the icon
     """
     if ext_name is None:
-        ext_name = __get_default_resources_ext()
+        ext_name = _get_default_resources_ext()
     if ext_name is None:
         carb.log_warn("No resource extension found!")
         return None
-    for icon in __get_extension_root(ext_name).joinpath("data", "icons").iterdir():
+    for icon in _get_extension_root(ext_name).joinpath("data", "icons").iterdir():
         if icon.stem == name:
             return str(icon)
     return None
 
 
-def get_image(name: str, ext_name: Optional[str] = None) -> Optional[str]:
+def get_image(name: str, ext_name: str | None = None) -> str | None:
     """
     Get image from a resource extension
 
@@ -76,17 +75,17 @@ def get_image(name: str, ext_name: Optional[str] = None) -> Optional[str]:
         Path of the image
     """
     if ext_name is None:
-        ext_name = __get_default_resources_ext()
+        ext_name = _get_default_resources_ext()
     if ext_name is None:
         carb.log_warn("No resource extension found!")
         return None
-    for image in __get_extension_root(ext_name).joinpath("data", "images").iterdir():
+    for image in _get_extension_root(ext_name).joinpath("data", "images").iterdir():
         if image.stem == name:
             return str(image)
     return None
 
 
-def get_background_images(ext_name: Optional[str] = None) -> List[str]:
+def get_background_images(ext_name: str | None = None) -> list[str]:
     """
     Get background image from a resource extension
 
@@ -99,18 +98,18 @@ def get_background_images(ext_name: Optional[str] = None) -> List[str]:
         Path of the background image
     """
     if ext_name is None:
-        ext_name = __get_default_resources_ext()
+        ext_name = _get_default_resources_ext()
     if ext_name is None:
         carb.log_warn("No resource extension found!")
         return []
     return [
         str(image)
-        for image in __get_extension_root(ext_name).joinpath("data", "images", "background_images").iterdir()
+        for image in _get_extension_root(ext_name).joinpath("data", "images", "background_images").iterdir()
         if not image.is_dir()
     ]
 
 
-def get_fonts(name: str, ext_name: Optional[str] = None) -> Optional[str]:
+def get_fonts(name: str, ext_name: str | None = None) -> str | None:
     """
     Get font from a resource extension
 
@@ -123,17 +122,17 @@ def get_fonts(name: str, ext_name: Optional[str] = None) -> Optional[str]:
         Path of the font
     """
     if ext_name is None:
-        ext_name = __get_default_resources_ext()
+        ext_name = _get_default_resources_ext()
     if ext_name is None:
         carb.log_warn("No resource extension found!")
         return None
-    for font in __get_extension_root(ext_name).joinpath("data", "fonts").iterdir():
+    for font in _get_extension_root(ext_name).joinpath("data", "fonts").iterdir():
         if font.stem == name:
             return str(font)
     return None
 
 
-def get_test_data(name: str, ext_name: Optional[str] = None) -> Optional[str]:
+def get_test_data(name: str, ext_name: str | None = None) -> str | None:
     """
     Get test data from a resource extension
 
@@ -146,18 +145,18 @@ def get_test_data(name: str, ext_name: Optional[str] = None) -> Optional[str]:
         Path of test data
     """
     if ext_name is None:
-        ext_name = __get_default_resources_ext()
+        ext_name = _get_default_resources_ext()
     if ext_name is None:
         carb.log_warn("No resource extension found!")
         return None
-    root_path = __get_extension_root(ext_name).joinpath("data", "tests")
+    root_path = _get_extension_root(ext_name).joinpath("data", "tests")
     for data in root_path.rglob("*"):
         if data == root_path.joinpath(name):
             return str(data)
     return None
 
 
-def get_font_list(ext_name: Optional[str] = None) -> Dict[str, str]:
+def get_font_list(ext_name: str | None = None) -> dict[str, str]:
     """
     Get font list from a resource extension
 
@@ -169,8 +168,8 @@ def get_font_list(ext_name: Optional[str] = None) -> Dict[str, str]:
         Dictionary with the name of the font and the font path
     """
     if ext_name is None:
-        ext_name = __get_default_resources_ext()
+        ext_name = _get_default_resources_ext()
     if ext_name is None:
         carb.log_warn("No resource extension found!")
         return {}
-    return {font.stem: str(font) for font in __get_extension_root(ext_name).joinpath("data", "fonts").iterdir()}
+    return {font.stem: str(font) for font in _get_extension_root(ext_name).joinpath("data", "fonts").iterdir()}

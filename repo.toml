@@ -527,47 +527,44 @@ def build_service_docs(app):
 sphinx_event_handlers = [
     ("builder-inited", build_service_docs),
 ]
+"""
 
-autodoc_pydantic_model_show_json_error_strategy = "coerce"
-autodoc_pydantic_settings_show_json_error_strategy = "coerce"
+autodoc.default_options.members = true
+autodoc.default_options.undoc_members = true
+autodoc.default_options.imported_members = true
+autodoc.default_options.show_inheritance = true
+autodoc.default_options.exclude_members = [
+    "BaseModel",
+    "Callable",
+    "ConfigDict",
+    "Enum",
+    "Field",
+    "Generic",
+    "IntEnum",
+    "Iterable",
+    "Number",
+    "OrderedDict",
+    "Path",
+    "PrivateAttr",
+    "PromptButtonInfo",
+    "PromptManager",
+    "SkipValidation",
+    "ThreadPoolExecutor",
+    "TypeVar",
+    "ValidationError",
+    "ValidationInfo",
+    "asynccontextmanager",
+    "contextmanager",
+    "create_model",
+    "ensure_future",
+    "field_validator",
+    "model_validator",
+    "partial",
+    "proxy",
+    "redirect_stdout",
+]
 
-autodoc_default_options = {
-    "members": True,
-    "undoc-members": True,
-    "imported-members": True,
-    "show-inheritance": True,
-    "exclude-members": '''
-        PromptManager,
-        PromptButtonInfo,
-        create_model,
-        BaseModel,
-        ConfigDict,
-        Field,
-        PrivateAttr,
-        SkipValidation,
-        ValidationInfo,
-        ValidationError,
-        field_validator,
-        model_validator,
-        asynccontextmanager,
-        contextmanager,
-        redirect_stdout,
-        ensure_future,
-        partial,
-        proxy,
-        Enum,
-        IntEnum,
-        Path,
-        Generic,
-        Number,
-        OrderedDict,
-        Iterable,
-        TypeVar,
-        ThreadPoolExecutor
-    ''',
-}
-
-autodoc_mock_imports = [
+autodoc.mock_imports = [
     "fast_version",
     "fastapi",
     "fastmcp",
@@ -578,8 +575,8 @@ autodoc_mock_imports = [
     "omni.kit.viewport.menubar.render",  # uses carb.tokens.get_tokens_interface() at module level
 ]
 
-myst_enable_extensions = ["attrs_inline"]
-"""
+autodoc.pydantic_model_show_json_error_strategy = "coerce"
+autodoc.pydantic_settings_show_json_error_strategy = "coerce"
 
 extensions_extra = ["sphinxcontrib.video", "sphinxcontrib.autodoc_pydantic"]
 
@@ -604,6 +601,8 @@ library_paths = [
     "${root}/_build/${platform_target}/release/kit",
     "${root}/_build/${platform_target}/release/kit/kernel/plugins",
 ]
+
+myst_enable_extensions = ["attrs_inline"]
 
 sphinx_exclude_patterns = [
     ####################################################################################################################

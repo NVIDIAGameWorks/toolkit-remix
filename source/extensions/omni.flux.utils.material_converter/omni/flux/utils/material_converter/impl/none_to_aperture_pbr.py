@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from omni.flux.utils.material_converter.base.converter_base import ConverterBase
@@ -25,7 +27,7 @@ if TYPE_CHECKING:
 
 
 class NoneToAperturePBRConverterBuilder(ConverterBuilderBase):
-    def build(self, input_material_prim: "Usd.Prim", output_mdl_subidentifier: str) -> ConverterBase:
+    def build(self, input_material_prim: Usd.Prim, output_mdl_subidentifier: str) -> ConverterBase:
         return ConverterBase(
             input_material_prim=input_material_prim, output_mdl_subidentifier=output_mdl_subidentifier, attributes=[]
         )

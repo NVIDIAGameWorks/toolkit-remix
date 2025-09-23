@@ -15,10 +15,12 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import fnmatch
 import re
+from collections.abc import Callable
 from pathlib import Path as _Path
-from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import carb
 import omni.client
@@ -32,7 +34,10 @@ _file_picker_dialog = None
 
 
 def _on_filter_item(
-    dialog: _FilePickerDialog, item: _FileBrowserItem, extensions: List[str] = None, select_directory: bool = False
+    dialog: _FilePickerDialog,
+    item: _FileBrowserItem,
+    extensions: list[str] | None = None,
+    select_directory: bool = False,
 ) -> bool:
     if not item or item.is_folder:
         return True
@@ -48,10 +53,10 @@ def _on_click_open(
     dialog: _FilePickerDialog,
     filename: str,
     dirname: str,
-    callback: Callable[[Union[str, List[str]]], None],
-    validate_selection: Optional[Union[Callable[[str, str], bool], Callable[[List[str]], bool]]],
-    validation_failed_callback: Optional[Union[Callable[[str, str], None], Callable[[List[str]], None]]],
-    extensions: List[str] = None,
+    callback: Callable[[str | list[str]], None],
+    validate_selection: Callable[[str, str], bool] | Callable[[list[str]], bool] | None,
+    validation_failed_callback: Callable[[str, str], None] | Callable[[list[str]], None] | None,
+    extensions: list[str] | None = None,
     select_directory: bool = False,
     allow_multi_selection: bool = False,
 ):
@@ -69,9 +74,9 @@ def _on_click_open(
     def fail_callback():
         if validation_failed_callback is not None:
             if allow_multi_selection:
-                validation_failed_callback(selection_paths)
+                validation_failed_callback(selection_paths)  # type: ignore
             else:
-                validation_failed_callback(dirname, filename)
+                validation_failed_callback(dirname, filename)  # type: ignore
         else:
             carb.log_error("Validation failed")
 
@@ -94,8 +99,7 @@ def _on_click_open(
             PromptManager.post_simple_prompt(
                 "Wrong file or extension",
                 "Wrong file or please write the extension in your filename",
-                ok_button_info=PromptButtonInfo("Okay", None),
-                cancel_button_info=None,
+                ok_button_info=PromptButtonInfo("Okay"),
                 modal=True,
                 no_title_bar=False,
             )
@@ -104,18 +108,18 @@ def _on_click_open(
     # Work around. If selection paths is empty but we have multi selection, we grab the path from the field.
     # It happens when something is written in the field, but nothing is selected in the UI.
     if allow_multi_selection and not selection_paths:
-        result = __get_full_path(filename, dirname, select_directory)
+        result = _get_full_path(filename, dirname, select_directory)
         if result:
             selection_paths = [omni.client.normalize_url(result)]
         else:
             fail_callback()
             return
 
-    if validate_selection is not None:
-        if allow_multi_selection and not validate_selection(selection_paths):
+    if validate_selection:
+        if allow_multi_selection and not validate_selection(selection_paths):  # type: ignore
             fail_callback()
             return
-        if not allow_multi_selection and not validate_selection(dirname, filename):
+        if not allow_multi_selection and not validate_selection(dirname, filename):  # type: ignore
             fail_callback()
             return
 
@@ -126,7 +130,7 @@ def _on_click_open(
         last_known_url = _OmniUrl(selection_paths[0])
         callback(selection_paths)
     else:
-        selected_path = omni.client.normalize_url(__get_full_path(filename, dirname, select_directory))
+        selected_path = omni.client.normalize_url(_get_full_path(filename, dirname, select_directory))
         last_known_url = _OmniUrl(selected_path)
         callback(selected_path)
 
@@ -149,10 +153,10 @@ def _on_click_cancel(
     if allow_multi_selection:
         callback(dialog.get_current_selections())
     else:
-        callback(omni.client.normalize_url(__get_full_path(filename, dirname, select_directory)))
+        callback(omni.client.normalize_url(_get_full_path(filename, dirname, select_directory)))
 
 
-def __get_full_path(filename, dirname, select_directory):
+def _get_full_path(filename, dirname, select_directory):
     if dirname:
         return f"{dirname}/{filename}" if not select_directory else dirname
     return filename if not select_directory else ""
@@ -160,16 +164,16 @@ def __get_full_path(filename, dirname, select_directory):
 
 def open_file_picker(
     title,
-    callback: Callable[[Union[str, List[str]]], None],
-    callback_cancel: Callable[[Union[str, List[str]]], None],
-    apply_button_label: str = None,
-    current_file: str = None,
+    callback: Callable[[str | list[str]], None],
+    callback_cancel: Callable[[str | list[str]], None],
+    apply_button_label: str = "Select",
+    current_file: str | None = None,
     fallback=False,
-    file_extension_options: List[Tuple[str, str]] = None,
+    file_extension_options: list[tuple[str, str]] | None = None,
     select_directory: bool = False,
-    validate_selection: Optional[Union[Callable[[str, str], bool], Callable[[List[str]], bool]]] = None,
-    validation_failed_callback: Optional[Union[Callable[[str, str], None], Callable[[List[str]], None]]] = None,
-    bookmarks: Dict[str, str] = None,
+    validate_selection: Callable[[str, str], bool] | Callable[[list[str]], bool] | None = None,
+    validation_failed_callback: Callable[[str, str], None] | Callable[[list[str]], None] | None = None,
+    bookmarks: dict[str, str] | None = None,
     allow_multi_selection: bool = False,
 ):
     """
@@ -205,7 +209,7 @@ def open_file_picker(
     extensions = None
     # we copy the file_extension_options because if the value comes from a global variable, it will modify the global
     # variable
-    tmp_file_extension_options = list(file_extension_options) if file_extension_options is not None else None
+    tmp_file_extension_options = list(file_extension_options) if file_extension_options is not None else []
     if tmp_file_extension_options:
         extensions = [
             f".{ext.split('.')[-1]}" for ext_tuple in tmp_file_extension_options for ext in ext_tuple[0].split(",")
@@ -217,12 +221,17 @@ def open_file_picker(
         tmp_file_extension_options = [("", "")]
     else:
         tmp_file_extension_options = [("*", "All Files (*)")]
-    file_path = _Path(current_file) if current_file else None
-    # If not current file is given, try to get the last known directory
-    navigate_to = current_file or carb.settings.get_settings().get(LAST_SELECTED_DIRECTORY_SETTING)
+
+    current_file_path: _Path | None = _Path(current_file) if current_file else None
+    current_directory = None
+    current_filename = None
+    if current_file_path and current_file_path.is_file():
+        current_directory = str(current_file_path.parent)
+        current_filename = str(current_file_path.name)
+
     dialog = _FilePickerDialog(
         title,
-        apply_button_label=apply_button_label or "Select",
+        apply_button_label=apply_button_label,
         click_apply_handler=lambda filename, dirname: _on_click_open(
             dialog,
             filename,
@@ -239,19 +248,22 @@ def open_file_picker(
         ),
         file_extension_options=tmp_file_extension_options,
         item_filter_fn=lambda item: _on_filter_item(dialog, item, extensions, select_directory),
-        current_directory=str(file_path.parent if file_path.is_file() else file_path) if file_path else None,
-        current_filename=str(file_path.name) if file_path and file_path.is_file() else None,
+        current_directory=current_directory,
+        current_filename=current_filename,
         allow_multi_selection=allow_multi_selection,
         enable_filename_input=not select_directory,
         show_grid_view=False,
     )
     dialog.hide()
+
+    # If current file is not given, try to get the last known directory
+    navigate_to: str | None = current_file or carb.settings.get_settings().get(LAST_SELECTED_DIRECTORY_SETTING)
     if fallback and dialog.get_current_directory():
         navigate_to = None
     if bookmarks:
         for name, path in bookmarks.items():
             dialog.toggle_bookmark_from_path(name, path, True)
-    dialog.show(path=navigate_to)
+    dialog.show(path=navigate_to)  # type: ignore kit _FilePickerDialog.show should accept path=None
     _file_picker_dialog = dialog
 
 

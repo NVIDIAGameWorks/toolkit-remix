@@ -16,7 +16,7 @@
 """
 
 import asyncio
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import omni.ext
 import omni.ui as ui
@@ -43,9 +43,9 @@ class _SearchWidget:
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
-        self.__callback = callback
+        self._callback = callback
 
-        self.__create_ui()
+        self._create_ui()
 
     def _do_search(self, model):
         value = model.get_value_as_string()
@@ -54,9 +54,9 @@ class _SearchWidget:
 
         if value == "":
             value = None
-        self.__callback(value)
+        self._callback(value)
 
-    def get_current_text(self) -> Optional[str]:
+    def get_current_text(self) -> str | None:
         """Get the current text in the input field"""
         value = self._field.model.get_value_as_string()
         if not value:
@@ -67,7 +67,7 @@ class _SearchWidget:
         self._field.model.set_value("")
         self._field.focus_keyboard()
 
-    def __create_ui(self):
+    def _create_ui(self):
         """Create the UI"""
         self._root_frame = ui.Frame()
         with self._root_frame:
@@ -151,7 +151,7 @@ class SearchModel(AbstractSearchModel):
         self._current_dir = current_dir
         self._search_lifetime = search_lifetime
 
-        self.__list_task = asyncio.ensure_future(self.__list())
+        self.__list_task = asyncio.ensure_future(self._list())
         self.__items = []
 
     def destroy(self):
@@ -164,7 +164,7 @@ class SearchModel(AbstractSearchModel):
         return self.__items
 
     @omni.usd.handle_exception
-    async def __list(self):
+    async def _list(self):
         result, entries = await omni.client.list_async(self._current_dir)
 
         if result != omni.client.Result.OK:

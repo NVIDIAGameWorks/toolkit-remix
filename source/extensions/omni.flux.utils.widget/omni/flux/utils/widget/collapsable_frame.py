@@ -16,7 +16,7 @@
 """
 
 import contextlib
-from typing import Callable
+from collections.abc import Callable
 
 from omni import ui
 from omni.flux.info_icon.widget import InfoIconWidget as _InfoIconWidget
@@ -29,8 +29,8 @@ class PropertyCollapsableFrame:
         collapsed: bool = False,
         show_info_icon: bool = False,
         pinnable: bool = False,
-        pinned_text_fn: Callable[[], str] = None,
-        unpinned_fn: Callable[[], None] = None,
+        pinned_text_fn: Callable[[], str] | None = None,
+        unpinned_fn: Callable[[], None] | None = None,
         enabled: bool = True,
     ):
         """
@@ -104,7 +104,7 @@ class PropertyCollapsableFrame:
     def pinned(self):
         return self.__pinned
 
-    def __click_pin(self):
+    def _click_pin(self):
         self.__pinned = not self.__pinned
         self.__lock_icon.name = "Pin" if self.__pinned else "PinOff"
 
@@ -143,7 +143,7 @@ class PropertyCollapsableFrame:
                             width=ui.Pixel(14),
                             height=ui.Pixel(14),
                             tooltip="Click to pin these properties",
-                            mouse_pressed_fn=lambda *_: self.__click_pin(),
+                            mouse_pressed_fn=lambda *_: self._click_pin(),
                             identifier="property_frame_pin_icon",
                         )
                         ui.Spacer()

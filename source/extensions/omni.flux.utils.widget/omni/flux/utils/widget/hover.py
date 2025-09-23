@@ -68,10 +68,10 @@ class _HoverHelper:
         app_window = omni.appwindow.get_default_app_window()
         self._mouse = app_window.get_mouse()
 
-        widget.set_mouse_hovered_fn(self.__on_widget_hovered)
-        widget.set_mouse_released_fn(self.__on_widget_mouse_released)
+        widget.set_mouse_hovered_fn(self._on_widget_hovered)
+        widget.set_mouse_released_fn(self._on_widget_mouse_released)
 
-    def __on_widget_hovered(self, hovered: bool) -> None:
+    def _on_widget_hovered(self, hovered: bool) -> None:
         """
         Called when the widget is hovered.
 
@@ -92,7 +92,7 @@ class _HoverHelper:
         else:
             self._main_window_cursor.clear_overridden_cursor_shape()
 
-    def __on_widget_mouse_released(self, *args) -> None:
+    def _on_widget_mouse_released(self, *args) -> None:
         """
         Called when the mouse button is released.
 

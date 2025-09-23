@@ -16,23 +16,23 @@
 """
 
 import functools
-from typing import Callable, Tuple, Union
+from collections.abc import Callable
 
 import omni.ui as ui
 
 
 def create_widget_with_pattern(
-    widget: Union[Callable, functools.partial],
+    widget: Callable | functools.partial,
     background_name: str,
     v_pattern_loop: int = 3,
     h_pattern_loop: int = 3,
     image_size: int = 256,
     height: ui.Length = None,
     width: ui.Length = None,
-    background_margin: Tuple[int, int] = None,
+    background_margin: tuple[int, int] | None = None,
     pattern_image_name: str = "TreePanelLinesBackground",
     pattern_background_rectangle_name: str = "WorkspaceBackground",
-    widget_margin: Tuple[int, int] = None,
+    widget_margin: tuple[int, int] | None = None,
 ):
     """
     Create a widget with a pattern as a background

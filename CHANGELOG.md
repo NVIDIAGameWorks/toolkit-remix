@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
 - Changed modding tabs to a vertical layout, consistent with Ingestion and AI Tools tabs
+- Modernize typing and minor cleanup in omni.flux.utils.* extensions
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths

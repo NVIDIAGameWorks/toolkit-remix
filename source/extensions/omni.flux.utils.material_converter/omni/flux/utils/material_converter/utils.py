@@ -16,7 +16,6 @@
 """
 
 from enum import Enum
-from typing import List
 
 import carb
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
@@ -39,7 +38,7 @@ class MaterialConverterUtils:
     MATERIAL_LIBRARY_SETTING_PATH = "/renderer/mdl/searchPaths/templates"
 
     @staticmethod
-    def get_material_library_shader_urls() -> List[_OmniUrl]:
+    def get_material_library_shader_urls() -> list[_OmniUrl]:
         shader_urls = []
         lib_paths = carb.tokens.get_tokens_interface().resolve(
             carb.settings.get_settings().get(MaterialConverterUtils.MATERIAL_LIBRARY_SETTING_PATH)

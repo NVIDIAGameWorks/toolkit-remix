@@ -15,15 +15,13 @@
 * limitations under the License.
 """
 
-from typing import List, Union
-
 import omni.usd
 from pxr import Usd, UsdGeom, UsdShade
 
 
 def get_materials_from_prim_paths(
-    prim_paths: List[str], context_name: str = ""
-) -> List[Union[UsdShade.Material, UsdShade.MaterialBindingAPI, None]]:
+    prim_paths: list[str], context_name: str = ""
+) -> list[UsdShade.Material | UsdShade.MaterialBindingAPI | None]:
     """
     For each str prim path, get the materials that are used by the prim.
 

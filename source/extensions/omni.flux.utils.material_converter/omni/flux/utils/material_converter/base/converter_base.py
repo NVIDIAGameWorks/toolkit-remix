@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import List
-
 from omni.flux.utils.material_converter.utils import MaterialConverterUtils as _MaterialConverterUtils
 from pxr import Sdr, Usd
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -27,7 +25,7 @@ from .attribute_base import AttributeBase
 class ConverterBase(BaseModel):
     input_material_prim: Usd.Prim
     output_mdl_subidentifier: str
-    attributes: List[AttributeBase]
+    attributes: list[AttributeBase]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

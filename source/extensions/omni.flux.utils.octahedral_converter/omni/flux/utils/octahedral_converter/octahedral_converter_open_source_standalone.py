@@ -38,7 +38,7 @@ from PIL import Image
 class LightspeedOctahedralConverter:
     # Convert DirectX style normal maps (green is down)
     @staticmethod
-    def convert_dx_file_to_octahedral(dx_path, oth_path):
+    def convert_dx_file_to_octahedral(dx_path: str, oth_path: str):
         if not Path(dx_path).exists():
             print("convert_dx_to_octahedral called on non-existant path: " + dx_path)
             return
@@ -50,7 +50,7 @@ class LightspeedOctahedralConverter:
 
     # Convert OpenGL style normal maps (green is up)
     @staticmethod
-    def convert_ogl_file_to_octahedral(ogl_path, oth_path):
+    def convert_ogl_file_to_octahedral(ogl_path: str, oth_path: str):
         if not Path(ogl_path).exists():
             print("convert_ogl_to_octahedral called on non-existant path: " + ogl_path)
             return
@@ -61,18 +61,18 @@ class LightspeedOctahedralConverter:
             Image.fromarray(img_int, "RGB").save(oth_path)
 
     @staticmethod
-    def convert_dx_to_octahedral(image):
+    def convert_dx_to_octahedral(image: np.ndarray) -> np.ndarray:
         normals = LightspeedOctahedralConverter._pixels_to_normals(image)
         octahedrals = LightspeedOctahedralConverter._convert_to_octahedral(normals)
         return LightspeedOctahedralConverter._octahedrals_to_pixels(octahedrals)
 
     @staticmethod
-    def convert_ogl_to_octahedral(image):
+    def convert_ogl_to_octahedral(image: np.ndarray) -> np.ndarray:
         dx_image = LightspeedOctahedralConverter._ogl_to_dx(image)
         return LightspeedOctahedralConverter.convert_dx_to_octahedral(dx_image)
 
     @staticmethod
-    def _check_for_spherical_normals(original_path, image):
+    def _check_for_spherical_normals(original_path: str, image: np.ndarray):
         # Check for blue values below 128.
         mask = image[:, :, 2] < 128
         num_negative = image[mask].shape[0]
@@ -89,24 +89,24 @@ class LightspeedOctahedralConverter:
         image[mask, 2] = 255 - image[mask, 2]
 
     @staticmethod
-    def _pixels_to_normals(image):
+    def _pixels_to_normals(image: np.ndarray) -> np.ndarray:
         image = image[:, :, 0:3].astype("float32") / 255
         image = image * 2.0 - 1.0
         return image / np.linalg.norm(image, axis=2)[:, :, np.newaxis]
 
     @staticmethod
-    def _octahedrals_to_pixels(octahedrals):
+    def _octahedrals_to_pixels(octahedrals: np.ndarray) -> np.ndarray:
         image = np.floor(octahedrals * 255 + 0.5).astype("uint8")
         return np.pad(image, ((0, 0), (0, 0), (0, 1)), mode="constant")
 
     @staticmethod
-    def _ogl_to_dx(image):
+    def _ogl_to_dx(image: np.ndarray) -> np.ndarray:
         # flip the g channel to convert to DX style
         image[:, :, (1)] = 255 - image[:, :, (1)]
         return image
 
     @staticmethod
-    def _convert_to_octahedral(image):
+    def _convert_to_octahedral(image: np.ndarray) -> np.ndarray:
         # convert from 3 channel to 2 channel normal map
         abs_values = np.absolute(image)
         snorm_octahedrals = image[:, :, 0:2] / np.expand_dims(abs_values.sum(2), axis=2)

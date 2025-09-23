@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 __all__ = [
     "cleanup_file",
     "delete_metadata",
@@ -45,17 +47,16 @@ import platform
 import posixpath
 import re
 import subprocess
-import typing
 from io import BytesIO
 from pathlib import Path
-from typing import List, Optional
+from typing import TYPE_CHECKING, Any
 
 import carb
 import carb.tokens
 import omni.client
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from pxr import Sdf
 
 _REGEX_MATCH_UDIM = re.compile("^.*(<UDIM>|<UVTILE0>|<UVTILE1>).*")
@@ -69,7 +70,7 @@ def is_absolute_path(path: str) -> bool:
     return parts.scheme not in {None, "file"} or ntpath.isabs(parts.path) or posixpath.isabs(parts.path)
 
 
-def get_absolute_path_from_relative(path: str, layer: "Sdf.Layer" = None):
+def get_absolute_path_from_relative(path: str, layer: Sdf.Layer):
     """
     Get absolute path from a relative path. If a layer is given, it will compute the absolute path from the layer
 
@@ -83,7 +84,7 @@ def get_absolute_path_from_relative(path: str, layer: "Sdf.Layer" = None):
     return omni.client.normalize_url(layer.ComputeAbsolutePath(path)).replace("\\", "/")
 
 
-def is_file_path_valid(path: str, layer: "Sdf.Layer" = None, log_error: bool = True) -> bool:
+def is_file_path_valid(path: str, layer: Sdf.Layer | None = None, log_error: bool = True) -> bool:
     """
     Check if the relative path that depends on the layer is a valid path
 
@@ -110,7 +111,7 @@ def is_file_path_valid(path: str, layer: "Sdf.Layer" = None, log_error: bool = T
     return True
 
 
-def read_file(file_path) -> bytes:
+def read_file(file_path: str) -> bytes:
     """
     Read a file on a disk (Omniverse server or regular os disk)
 
@@ -136,7 +137,7 @@ def read_file(file_path) -> bytes:
     return result_data
 
 
-def read_json_file(file_path: str) -> typing.Dict[typing.Any, typing.Any]:
+def read_json_file(file_path: str) -> dict[Any, Any]:
     """
     Read a json file from Nucleus or local disk
 
@@ -181,7 +182,7 @@ def write_file(file_path: str, data: bytes, raise_if_error: bool = True) -> bool
     return True
 
 
-def write_json_file(file_path: str, data: typing.Dict[typing.Any, typing.Any], raise_if_error: bool = True) -> bool:
+def write_json_file(file_path: str, data: dict[Any, Any], raise_if_error: bool = True) -> bool:
     """
     Write a json file on Nucleus or local disk
 
@@ -197,7 +198,7 @@ def write_json_file(file_path: str, data: typing.Dict[typing.Any, typing.Any], r
     return write_file(file_path, json.dumps(data, indent=4).encode("utf-8"), raise_if_error=raise_if_error)
 
 
-def get_new_hash(abs_in_path_str: str, abs_out_path_str: str, key: str = "src_hash") -> Optional[str]:
+def get_new_hash(abs_in_path_str: str, abs_out_path_str: str, key: str = "src_hash") -> str | None:
     """
     Get the new hash of a file.
     If the input file doesn't exist, None is returned.
@@ -222,7 +223,7 @@ def get_new_hash(abs_in_path_str: str, abs_out_path_str: str, key: str = "src_ha
     return None
 
 
-def hash_match_metadata(file_path: str, key: str = "src_hash") -> Optional[bool]:
+def hash_match_metadata(file_path: str, key: str = "src_hash") -> bool | None:
     """
     Check is a hash matches the one from the metadata file
 
@@ -242,7 +243,7 @@ def hash_match_metadata(file_path: str, key: str = "src_hash") -> Optional[bool]
     return True
 
 
-def hash_file(file_path: str, block_size: int = 8192) -> typing.Optional[str]:
+def hash_file(file_path: str, block_size: int = 8192) -> str | None:
     """
     Generate a hash from the data in a file.
 
@@ -281,16 +282,16 @@ def delete_metadata(file_path: str, key: str):
     Returns:
         None
     """
-    file_path_p = Path(carb.tokens.get_tokens_interface().resolve(file_path))
-    file_path = file_path_p.with_suffix(file_path_p.suffix + ".meta")
-    if file_path.exists():
-        data = read_json_file(str(file_path))
+    resolved_path = Path(carb.tokens.get_tokens_interface().resolve(file_path))
+    meta_file_path = resolved_path.with_suffix(resolved_path.suffix + ".meta")
+    if meta_file_path.exists():
+        data = read_json_file(str(meta_file_path))
         if key in data:
             del data[key]
-            write_json_file(str(file_path), data)
+            write_json_file(str(meta_file_path), data)
 
 
-def write_metadata(file_path: str, key: str, value: typing.Any, append: bool = False):
+def write_metadata(file_path: str, key: str, value: Any, append: bool = False):
     """
     Write a metadata key for a file
 
@@ -303,11 +304,10 @@ def write_metadata(file_path: str, key: str, value: typing.Any, append: bool = F
     Returns:
         None
     """
-    file_path_p = Path(carb.tokens.get_tokens_interface().resolve(file_path))
-    file_path = file_path_p.with_suffix(file_path_p.suffix + ".meta")
-    file_path_str = str(file_path)
-    if file_path.exists():
-        data = read_json_file(file_path_str)
+    resolved_path = Path(carb.tokens.get_tokens_interface().resolve(file_path))
+    meta_file_path = resolved_path.with_suffix(resolved_path.suffix + ".meta")
+    if meta_file_path.exists():
+        data = read_json_file(str(meta_file_path))
         if append:
             if key in data:
                 if isinstance(data[key], list):
@@ -318,12 +318,12 @@ def write_metadata(file_path: str, key: str, value: typing.Any, append: bool = F
                 data[key] = [value]
         else:
             data[key] = value
-        write_json_file(file_path_str, data)
+        write_json_file(str(meta_file_path), data)
     else:
-        write_json_file(file_path_str, {key: [value]} if append else {key: value})
+        write_json_file(str(meta_file_path), {key: [value]} if append else {key: value})
 
 
-def read_metadata(file_path: str, key: str) -> typing.Optional[typing.Any]:
+def read_metadata(file_path: str, key: str) -> Any | None:
     """
     Write a metadata key for a file
 
@@ -334,16 +334,16 @@ def read_metadata(file_path: str, key: str) -> typing.Optional[typing.Any]:
     Returns:
         The value of the key
     """
-    file_path_p = Path(carb.tokens.get_tokens_interface().resolve(file_path))
-    file_path = file_path_p.with_suffix(file_path_p.suffix + ".meta")
-    if file_path.exists():
-        data = read_json_file(str(file_path))
+    resolved_path = Path(carb.tokens.get_tokens_interface().resolve(file_path))
+    meta_file_path = resolved_path.with_suffix(resolved_path.suffix + ".meta")
+    if meta_file_path.exists():
+        data = read_json_file(str(meta_file_path))
         if key in data:
             return data[key]
     return None
 
 
-def cleanup_file(file_path: typing.Union[_OmniUrl, Path, str]):
+def cleanup_file(file_path: _OmniUrl | Path | str):
     """
     Cleanup/delete a file + his metadata file
 
@@ -361,7 +361,7 @@ def cleanup_file(file_path: typing.Union[_OmniUrl, Path, str]):
         meta_file_url.delete()
 
 
-def is_udim_texture(file_path: typing.Union[_OmniUrl, Path, str]) -> bool:
+def is_udim_texture(file_path: _OmniUrl | Path | str) -> bool:
     """
     Tell if the file path is an udim texture or not
 
@@ -377,7 +377,7 @@ def is_udim_texture(file_path: typing.Union[_OmniUrl, Path, str]) -> bool:
     return False
 
 
-def get_udim_sequence(file_path: typing.Union[_OmniUrl, Path, str]) -> List[str]:
+def get_udim_sequence(file_path: _OmniUrl | Path | str) -> list[str]:
     """
     Get the list of the textures from an UDIM path
 
@@ -391,6 +391,8 @@ def get_udim_sequence(file_path: typing.Union[_OmniUrl, Path, str]) -> List[str]
     if is_udim_texture(file_path):
         file_url = _OmniUrl(file_path)
         match0 = _REGEX_UDIM_GROUP_UV_TILE.match(str(file_url))
+        if match0 is None:
+            raise AssertionError(f"Failed to match {str(file_url)}")
         for file in _OmniUrl(file_url.parent_url).iterdir():
             match1 = _REGEX_UDIM_GROUP_NUMBERS.match(str(file))
             if (
@@ -403,7 +405,7 @@ def get_udim_sequence(file_path: typing.Union[_OmniUrl, Path, str]) -> List[str]
     return result
 
 
-def texture_to_udim(file_path: typing.Union[_OmniUrl, Path, str]) -> str:
+def texture_to_udim(file_path: _OmniUrl | Path | str) -> str:
     """
     Transform an UDIM texture like toto.1001.png to the UDIM representation like toto.<UDIM>.png
 
@@ -430,8 +432,8 @@ def open_file_using_os_default(path: str):
 
 
 def get_invalid_extensions(
-    file_paths: List[typing.Union[_OmniUrl, Path, str]], valid_extensions: List[str], case_sensitive: bool = False
-) -> List[str]:
+    file_paths: list[_OmniUrl | Path | str], valid_extensions: list[str], case_sensitive: bool = False
+) -> list[str]:
     """
     Given a list of paths and a list of valid extensions, find and return the extensions that were not valid
 
