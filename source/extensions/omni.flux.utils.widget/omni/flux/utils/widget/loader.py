@@ -23,8 +23,8 @@ class Loader:
     def __init__(
         self,
         style_name: str = "Hourglass",
-        width: ui.Length = 16,
-        height: ui.Length = 16,
+        width: ui.Length | int = 16,
+        height: ui.Length | int = 16,
     ):
         self._default_attr = {
             "_style_name": None,

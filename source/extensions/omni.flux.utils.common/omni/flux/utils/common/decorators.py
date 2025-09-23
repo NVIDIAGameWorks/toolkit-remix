@@ -17,7 +17,6 @@
 
 import functools
 import threading
-from typing import Dict, List
 
 
 def limit_recursion(num_allowed_recursive_calls: int = 0, error: bool = False):
@@ -71,13 +70,15 @@ def limit_recursion(num_allowed_recursive_calls: int = 0, error: bool = False):
     return _deco
 
 
-def ignore_function_decorator(attrs: List[str] = None):
+def ignore_function_decorator(attrs: list[str] | None = None):
     """
     This decorator will break the infinite loop if a function calls itself
 
     Args:
         attrs:  list of attributes
     """
+    if attrs is None:
+        attrs = []
 
     def decorator(func):
         @functools.wraps(func)
@@ -95,13 +96,15 @@ def ignore_function_decorator(attrs: List[str] = None):
     return decorator
 
 
-def ignore_function_decorator_async(attrs: List[str] = None):
+def ignore_function_decorator_async(attrs: list[str] | None = None):
     """
     This decorator will break the infinite loop if a function calls itself
 
     Args:
         attrs:  list of attributes
     """
+    if attrs is None:
+        attrs = []
 
     def decorator(func):
         @functools.wraps(func)
@@ -119,7 +122,7 @@ def ignore_function_decorator_async(attrs: List[str] = None):
     return decorator
 
 
-def ignore_function_decorator_and_reset_value(attrs: Dict[str, bool] = None):
+def ignore_function_decorator_and_reset_value(attrs: dict[str, bool] | None = None):
     """
     This decorator will break the infinite loop if a function calls itself.
     If the given attribute already exist and have a True value, we can set a new value to it
@@ -127,6 +130,8 @@ def ignore_function_decorator_and_reset_value(attrs: Dict[str, bool] = None):
     Args:
         attrs:  list of attributes
     """
+    if attrs is None:
+        attrs = {}
 
     def decorator(func):
         @functools.wraps(func)
@@ -145,13 +150,15 @@ def ignore_function_decorator_and_reset_value(attrs: Dict[str, bool] = None):
     return decorator
 
 
-def sandwich_attrs_function_decorator(attrs: List[str] = None):
+def sandwich_attrs_function_decorator(attrs: list[str] | None = None):
     """
     Set new attributes before and after that the function is executed
 
     Args:
         attrs: list of attributes to set
     """
+    if attrs is None:
+        attrs = []
 
     def decorator(func):
         @functools.wraps(func)

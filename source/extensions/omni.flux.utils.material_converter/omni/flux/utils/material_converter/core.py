@@ -15,7 +15,9 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING, Optional, Tuple
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import carb
 import omni.kit
@@ -31,7 +33,7 @@ if TYPE_CHECKING:
 
 class MaterialConverterCore:
     @staticmethod
-    async def convert(context_name: str, converter: "ConverterBase") -> Tuple[bool, Optional[str], bool]:
+    async def convert(context_name: str, converter: ConverterBase) -> tuple[bool, str | None, bool]:
         """
         Convert the material
 
@@ -156,7 +158,7 @@ class MaterialConverterCore:
         )
 
     @staticmethod
-    def _create_material_definition_prim(context_name: str, converter: "ConverterBase", output_material_path: str):
+    def _create_material_definition_prim(context_name: str, converter: ConverterBase, output_material_path: str):
         stage = omni.usd.get_context(context_name).get_stage()
 
         omni.kit.commands.execute(
@@ -194,7 +196,7 @@ class MaterialConverterCore:
 
     @staticmethod
     async def _convert_material_attributes(
-        context_name: str, converter: "ConverterBase", input_shader_prim: "Usd.Prim", output_shader_prim: "Usd.Prim"
+        context_name: str, converter: ConverterBase, input_shader_prim: Usd.Prim, output_shader_prim: Usd.Prim
     ):
         context = omni.usd.get_context(context_name)
         root_layer = context.get_stage().GetRootLayer()
@@ -265,8 +267,8 @@ class MaterialConverterCore:
 
     @staticmethod
     async def find_matching_supported_material(
-        input_shader_prim: "Usd.Prim",
-    ) -> Tuple[Optional["ConverterBase"], Optional["_SupportedShaderInputs"]]:
+        input_shader_prim: Usd.Prim,
+    ) -> tuple[ConverterBase | None, _SupportedShaderInputs | None]:
         """
         Find the matching supported material from all inputs.
         It can happen that inside a MDL, a supported MDL is imported and some attributes are set.
@@ -291,7 +293,7 @@ class MaterialConverterCore:
 
     @staticmethod
     async def _create_material_attributes(
-        context_name: str, converter: "ConverterBase", input_shader_prim: "Usd.Prim", output_shader_prim: "Usd.Prim"
+        context_name: str, converter: ConverterBase, input_shader_prim: Usd.Prim, output_shader_prim: Usd.Prim
     ):
         stage = omni.usd.get_context(context_name).get_stage()
         root_layer = stage.GetRootLayer()

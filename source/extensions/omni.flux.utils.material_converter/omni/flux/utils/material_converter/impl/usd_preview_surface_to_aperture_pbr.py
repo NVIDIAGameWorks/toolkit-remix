@@ -15,8 +15,10 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from enum import Enum
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING
 
 from omni.flux.utils.material_converter.base.attribute_base import AttributeBase
 from omni.flux.utils.material_converter.base.converter_base import ConverterBase
@@ -34,7 +36,7 @@ class _NormalMapEncodings(Enum):
 
 
 class USDPreviewSurfaceToAperturePBRConverterBuilder(ConverterBuilderBase):
-    def build(self, input_material_prim: "Usd.Prim", output_mdl_subidentifier: str) -> ConverterBase:
+    def build(self, input_material_prim: Usd.Prim, output_mdl_subidentifier: str) -> ConverterBase:
         attributes = [
             # Direct translation
             AttributeBase(
@@ -87,7 +89,7 @@ class USDPreviewSurfaceToAperturePBRConverterBuilder(ConverterBuilderBase):
             attributes=attributes,
         )
 
-    def _convert_connection_to_texture(self, _value: "Gf.Vec3f", input_attr: "Usd.Attribute") -> Sdf.AssetPath:
+    def _convert_connection_to_texture(self, _value: Gf.Vec3f, input_attr: Usd.Attribute) -> Sdf.AssetPath:
         """
         Convert the attribute. If the attribute has a connection, and this connection is `UsdUVTexture` with a `file`
         input, we set the texture.
@@ -117,8 +119,8 @@ class USDPreviewSurfaceToAperturePBRConverterBuilder(ConverterBuilderBase):
         return Sdf.AssetPath()
 
     def _convert_connection_to_texture_alt(
-        self, _: Sdf.ValueTypeNames, value: "Gf.Vec3f", input_attr: Optional["Usd.Attribute"]
-    ) -> Tuple["Sdf.ValueTypeNames", str]:
+        self, _: Sdf.ValueTypeNames, value: Gf.Vec3f, input_attr: Usd.Attribute | None
+    ) -> tuple[Sdf.ValueTypeNames, str]:
         return (
             Sdf.ValueTypeNames.Asset,
             self._convert_connection_to_texture(value, input_attr),

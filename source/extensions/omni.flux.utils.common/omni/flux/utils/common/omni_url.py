@@ -17,8 +17,9 @@
 
 from __future__ import annotations
 
-from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Any, Callable
+from collections.abc import Callable, Generator
+from pathlib import Path, PurePath, PurePosixPath, PureWindowsPath
+from typing import Any
 
 import omni.client
 from pydantic_core import core_schema
@@ -33,7 +34,7 @@ class OmniUrl:
         self._url = str(url).replace("\\", "/")
         windows_path = PureWindowsPath(self._url)
         if windows_path.is_absolute():
-            self._path = windows_path
+            self._path: PurePath = windows_path
             self._parts = omni.client.break_url("")
         else:
             self._parts = omni.client.break_url(self._url)
@@ -41,7 +42,7 @@ class OmniUrl:
 
         self._list_entry = list_entry
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._url
 
     def __repr__(self) -> str:
@@ -50,7 +51,7 @@ class OmniUrl:
     def __eq__(self, other: object) -> bool:
         return self._url == str(other)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.path)
 
     @classmethod
@@ -71,7 +72,7 @@ class OmniUrl:
             return cls(v)
         raise TypeError(f"Invalid type for OmniUrl. Expected OmniUrl, Path, or str, got {type(v).__name__}")
 
-    def _url_from_list_entry(self, list_entry: omni.client.ListEntry):
+    def _url_from_list_entry(self, list_entry: omni.client.ListEntry) -> OmniUrl:
         url = self / list_entry.relative_path
         return OmniUrl(url, list_entry=list_entry)
 
@@ -93,7 +94,7 @@ class OmniUrl:
         result, entry = omni.client.stat(self._url)
         return entry if result == omni.client.Result.OK else None
 
-    def iterdir(self):
+    def iterdir(self) -> Generator[OmniUrl]:
         """When the path points to a directory, yield path objects of the directory contents."""
         res, file_entries = omni.client.list(self._url)
         if res != omni.client.Result.OK:
@@ -156,7 +157,7 @@ class OmniUrl:
         """
         return self._path.suffixes
 
-    def with_path(self, path: Path) -> OmniUrl:
+    def with_path(self, path: PurePath) -> OmniUrl:
         """Return a new url with the path changed."""
         path_str = str(path.as_posix())
 
@@ -200,6 +201,6 @@ class OmniUrl:
         """
         return omni.client.delete(str(self._url))
 
-    def __truediv__(self, arg):
+    def __truediv__(self, arg) -> OmniUrl:
         new_path = self.path / PurePosixPath(arg)
         return self.with_path(new_path)

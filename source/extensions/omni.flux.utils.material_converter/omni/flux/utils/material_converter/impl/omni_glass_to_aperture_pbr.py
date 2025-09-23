@@ -15,8 +15,10 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from enum import Enum
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING
 
 from omni.flux.utils.material_converter.base.attribute_base import AttributeBase
 from omni.flux.utils.material_converter.base.converter_base import ConverterBase
@@ -34,7 +36,7 @@ class _NormalMapEncodings(Enum):
 
 
 class OmniGlassToAperturePBRConverterBuilder(ConverterBuilderBase):
-    def build(self, input_material_prim: "Usd.Prim", output_mdl_subidentifier: str) -> ConverterBase:
+    def build(self, input_material_prim: Usd.Prim, output_mdl_subidentifier: str) -> ConverterBase:
         attributes = [
             # Direct translation
             AttributeBase(input_attr_name="inputs:glass_color", output_attr_name="inputs:diffuse_color_constant"),
@@ -65,12 +67,12 @@ class OmniGlassToAperturePBRConverterBuilder(ConverterBuilderBase):
             attributes=attributes,
         )
 
-    def _convert_normal_encoding(self, value: bool, input_attr: "Usd.Attribute") -> int:
+    def _convert_normal_encoding(self, value: bool, input_attr: Usd.Attribute) -> int:
         return _NormalMapEncodings.TANGENT_SPACE_DX.value if value else _NormalMapEncodings.TANGENT_SPACE_OGL.value
 
     def _convert_normal_encoding_alt(
-        self, _: Sdf.ValueTypeNames, value: bool, input_attr: Optional["Usd.Attribute"]
-    ) -> Tuple["Sdf.ValueTypeNames", int]:
+        self, _: Sdf.ValueTypeNames, value: bool, input_attr: Usd.Attribute | None
+    ) -> tuple[Sdf.ValueTypeNames, int]:
         return (
             Sdf.ValueTypeNames.Int,
             self._convert_normal_encoding(value, input_attr),

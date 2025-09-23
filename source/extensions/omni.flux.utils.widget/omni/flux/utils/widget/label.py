@@ -16,7 +16,6 @@
 """
 
 import asyncio
-from typing import Optional, Tuple
 
 import omni.ui as ui
 import omni.usd
@@ -26,7 +25,7 @@ from .text_to_image import Rotation as _Rotation
 from .text_to_image import generate_image_from_text as _generate_image_from_text
 
 
-def __generate_image(
+def _generate_image(
     text: str,
     style_name: str,
     remove_offset: bool = True,
@@ -36,8 +35,8 @@ def __generate_image(
     font_size_multiply: float = 1.0,
     multiline_if_max_width: bool = True,
     quality_multiplier: int = 2,
-    ext_name: Optional[str] = None,
-    rotation: _Rotation = None,
+    ext_name: str | None = None,
+    rotation: _Rotation | None = None,
 ):
     text = "" if text is None else str(text)
     dpi = ui.Workspace.get_dpi_scale()
@@ -65,7 +64,7 @@ def __generate_image(
 
 
 @omni.usd.handle_exception
-async def __deferred_create_label_with_font(
+async def _deferred_create_label_with_font(
     text: str,
     style_name: str,
     image: ui.ImageWithProvider,
@@ -74,15 +73,15 @@ async def __deferred_create_label_with_font(
     offset_divider: int = 1,
     max_width: int = 0,
     max_height: int = 0,
-    custom_image_height: ui.Length = None,
+    custom_image_height: ui.Length | None = None,
     font_size_multiply: float = 1.0,
     multiline_if_max_width: bool = True,
     quality_multiplier: int = 2,
-    ext_name: Optional[str] = None,
-    rotation: _Rotation = None,
+    ext_name: str | None = None,
+    rotation: _Rotation | None = None,
 ):
     def do_it():
-        return __generate_image(
+        return _generate_image(
             text,
             style_name,
             remove_offset=remove_offset,
@@ -110,15 +109,15 @@ def create_label_with_font(
     offset_divider: int = 1,
     max_width: int = 0,
     max_height: int = 0,
-    custom_image_height: ui.Length = None,
+    custom_image_height: ui.Length | None = None,
     font_size_multiply: float = 1.0,
     deferred: bool = False,
     multiline_if_max_width: bool = True,
-    tooltip: str = None,
+    tooltip: str | None = None,
     quality_multiplier: int = 2,
-    ext_name: Optional[str] = None,
-    rotation: _Rotation = None,
-) -> Tuple[ui.ByteImageProvider, ui.ImageWithProvider, Optional[asyncio.Task]]:
+    ext_name: str | None = None,
+    rotation: _Rotation | None = None,
+) -> tuple[ui.ByteImageProvider, ui.ImageWithProvider, asyncio.Task | None]:
     """
     Create a label with a custom font
 
@@ -149,7 +148,7 @@ def create_label_with_font(
         if tooltip:
             image.set_tooltip(tooltip)
         task_object = asyncio.ensure_future(
-            __deferred_create_label_with_font(
+            _deferred_create_label_with_font(
                 text,
                 style_name,
                 image,
@@ -167,7 +166,7 @@ def create_label_with_font(
             )
         )
         return images_provider, image, task_object
-    width_image, height_image, pixels, size = __generate_image(
+    width_image, height_image, pixels, size = _generate_image(
         text,
         style_name,
         remove_offset=remove_offset,

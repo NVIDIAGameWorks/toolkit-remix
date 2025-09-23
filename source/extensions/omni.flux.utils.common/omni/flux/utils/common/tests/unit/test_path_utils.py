@@ -256,11 +256,11 @@ class TestPathUtils(omni.kit.test.AsyncTestCase):
     async def test_get_invalid_extensions(self):
         valid_extensions = [".dds", ".jpg", ".png"]
         for file_paths, invalid_extensions in {
-            "mat.png": [],
-            "mat.PNG": [],
-            "mat.gif": [".gif"],
-            "mat.pngg": [".pngg"],
-            "mat.PNGG": [".pngg"],
+            ("mat.png",): [],
+            ("mat.PNG",): [],
+            ("mat.gif",): [".gif"],
+            ("mat.pngg",): [".pngg"],
+            ("mat.PNGG",): [".pngg"],
             ("mat.PnG", "mat.png"): [],
             ("mat.PNGG", "mat.jpg"): [".pngg"],
             ("mat.png", "mat.JPG", "mat.dds"): [],
@@ -269,7 +269,6 @@ class TestPathUtils(omni.kit.test.AsyncTestCase):
             ("mat.mno", "mat.jkl", "mat.ghi", "mat.abc", "mat.def"): [".abc", ".def", ".ghi", ".jkl", ".mno"],
         }.items():
             with self.subTest(name=f"get_invalid_extensions_{file_paths}"):
-                file_paths_list = [file_paths] if isinstance(file_paths, str) else list(file_paths)
                 self.assertEqual(
-                    _path_utils.get_invalid_extensions(file_paths_list, valid_extensions), invalid_extensions
+                    _path_utils.get_invalid_extensions(list(file_paths), valid_extensions), invalid_extensions
                 )

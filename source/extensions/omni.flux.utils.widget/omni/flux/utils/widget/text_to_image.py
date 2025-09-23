@@ -18,7 +18,6 @@
 import math
 from enum import Enum as _Enum
 from pathlib import Path
-from typing import Optional
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -40,8 +39,8 @@ def generate_image_from_text(
     max_height: int = 0,
     size_multiplier: float = 1,
     multiline_if_max_width: bool = True,
-    ext_name: Optional[str] = None,
-    rotation: Rotation = None,
+    ext_name: str | None = None,
+    rotation: Rotation | None = None,
 ):
     """
     Generate an image from a text

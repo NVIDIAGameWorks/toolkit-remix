@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.2]
+### Changed
+- Modernize typing and minor cleanup
+
 ## [3.3.1]
 ### Added
 - Added `MenuGroups` with IDs for all groups a Menu/Context Menu can have.

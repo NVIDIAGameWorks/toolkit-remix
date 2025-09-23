@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.20.2]
+### Changed
+- Modernize typing and minor cleanup
+
 ## [1.20.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

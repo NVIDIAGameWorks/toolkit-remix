@@ -18,7 +18,7 @@
 __all__ = ["FILE_DIALOG_EXTENSIONS", "create_layer", "save_layer_as", "validate_edit_target"]
 
 import weakref
-from typing import Callable, List
+from collections.abc import Callable
 
 import carb
 import omni.kit
@@ -55,7 +55,7 @@ def save_layer_as(
     replace: bool,
     layer_weakref: weakref,
     parent_weakref: weakref,
-    on_save_done: Callable[[bool, str, List[str]], None],
+    on_save_done: Callable[[bool, str, list[str]], None],
     file_path: str,
 ):
     """Save layer as new layer.

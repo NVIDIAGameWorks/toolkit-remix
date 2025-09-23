@@ -17,7 +17,7 @@
 
 import asyncio
 import functools
-from typing import Callable, List, Set
+from collections.abc import Callable
 
 import omni.kit.app
 import omni.usd
@@ -25,7 +25,7 @@ from carb import log_warn as _log_warn
 from pxr import Sdf
 
 
-def get_omni_prims() -> Set[Sdf.Path]:
+def get_omni_prims() -> set[Sdf.Path]:
     """
     Get default reserved prims used by Omniverse Kit
 
@@ -57,7 +57,7 @@ def async_wrap(func) -> Callable:
 
 
 @omni.usd.handle_exception
-async def deferred_destroy_tasks(tasks: List[asyncio.Task]):
+async def deferred_destroy_tasks(tasks: list[asyncio.Task]):
     """
     Wait for a task to be done and destroy it
 

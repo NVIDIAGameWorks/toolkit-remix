@@ -15,26 +15,26 @@
 * limitations under the License.
 """
 
-from typing import Optional, Tuple
 
-
-def color_to_hex(color: Tuple[float, float, float, Optional[float]]) -> int:
+def color_to_hex(color: tuple[float, float, float] | tuple[float, float, float, float]) -> int:
     """Convert float rgb to int"""
 
     def to_int(number: float) -> int:
         return int(255 * max(0.0, min(1.0, number)))
 
-    red = to_int(color[0])
-    green = to_int(color[1])
-    blue = to_int(color[2])
-    alpha = to_int(color[3]) if len(color) > 3 else 255
+    red: int = to_int(color[0])
+    green: int = to_int(color[1])
+    blue: int = to_int(color[2])
+    alpha: int = 255
+    if len(color) > 3:
+        alpha = to_int(color[3])
     return (alpha << 8 * 3) + (blue << 8 * 2) + (green << 8 * 1) + red
 
 
-def hex_to_color(hex_value: int) -> Tuple[int, int, int, int]:
+def hex_to_color(hex_value: int) -> tuple[int, int, int, int]:
     """Convert hex to RGBA"""
-    red = hex_value & 255
-    green = (hex_value >> 8) & 255
-    blue = (hex_value >> 16) & 255
-    alpha = (hex_value >> 24) & 255
+    red: int = hex_value & 255
+    green: int = (hex_value >> 8) & 255
+    blue: int = (hex_value >> 16) & 255
+    alpha: int = (hex_value >> 24) & 255
     return red, green, blue, alpha

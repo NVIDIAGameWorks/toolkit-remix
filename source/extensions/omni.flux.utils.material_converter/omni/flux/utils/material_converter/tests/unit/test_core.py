@@ -16,7 +16,6 @@
 """
 
 import asyncio
-from typing import Optional, Tuple
 from unittest.mock import Mock, call, patch
 
 import omni.kit.commands
@@ -46,12 +45,12 @@ class TestConverterBuilder(ConverterBuilderBase):
             attributes=attributes,
         )
 
-    def _convert_test(self, value: bool, input_attr: "Usd.Attribute") -> int:
+    def _convert_test(self, value: bool, input_attr: Usd.Attribute) -> int:
         return value * 2
 
     def _convert_test_alt(
-        self, _: Sdf.ValueTypeNames, value: bool, input_attr: Optional["Usd.Attribute"]
-    ) -> Tuple["Sdf.ValueTypeNames", int]:
+        self, _: Sdf.ValueTypeNames, value: bool, input_attr: Usd.Attribute | None
+    ) -> tuple[Sdf.ValueTypeNames, int]:
         return (Sdf.ValueTypeNames.Int, value * 2)
 
 

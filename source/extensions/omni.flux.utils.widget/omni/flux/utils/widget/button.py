@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Callable, Tuple
+from collections.abc import Callable
 
 import omni.ui as ui
 
@@ -63,8 +63,8 @@ def create_button_with_custom_font(
     rectangle_style_name: str,
     height: ui.Length,
     height_padding: ui.Length,
-    pressed_fn: Callable = None,
-) -> Tuple[ui.ByteImageProvider, ui.Rectangle]:
+    pressed_fn: Callable | None = None,
+) -> tuple[ui.ByteImageProvider, ui.Rectangle]:
     """
     Create a button with a text that has a custom font
 
@@ -101,8 +101,8 @@ def create_button_with_label_style(
     text: str,
     text_style_name: str,
     rectangle_style_name: str,
-    on_clicked: Callable[[float, float, int, int], None] = None,
-) -> Tuple[ui.Label, ui.Rectangle]:
+    on_clicked: Callable[[float, float, int, int], None] | None = None,
+) -> tuple[ui.Label, ui.Rectangle]:
     """
     Create a button with a text that have a custom style
 
