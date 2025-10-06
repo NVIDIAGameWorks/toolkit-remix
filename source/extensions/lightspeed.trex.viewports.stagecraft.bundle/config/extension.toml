@@ -7,7 +7,7 @@ title = "Viewport Bundle"
 description="A bundle of Viewport extensions that creates a baseline interactive Viewport."
 
 # Keywords for the extension
-keywords = ["kit", "ui", "viewport", "hydra", "render", "waypoint"]
+keywords = ["kit", "ui", "viewport", "hydra", "render"]
 
 # Location of change log file in target (final) folder of extension, relative to the root.
 # More info on writing changelog: https://keepachangelog.com/en/1.0.0/
@@ -21,7 +21,7 @@ icon = "data/icon.png"
 preview_image = "data/preview.png"
 
 category = "internal"
-version = "1.2.1"
+version = "1.3.0"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.viewports.stagecraft.bundle"
 
 [dependencies]
@@ -38,10 +38,6 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 "lightspeed.trex.viewports.menubar.camera" = {}  # to be able to toggle it
 # Lighting
 "omni.kit.viewport.menubar.lighting" = {}
-# Waypoint Core
-"lightspeed.trex.waypoint.core" = {}
-# Waypoint
-"omni.kit.viewport.menubar.waypoint" = {}
 
 [settings]
 # Collapse the additional camera control area
@@ -50,8 +46,6 @@ persistent.exts."omni.kit.viewport.menubar.camera".expand = false
 exts."omni.kit.viewport.menubar.display".showByType.exclude_list = [""]
 # Set the default perspective camera focalLength
 persistent.app.primCreation.typedDefaults.camera.focalLength = 18.147562
-exts."omni.kit.waypoint.core".editing_waypoint = ""
-exts."omni.kit.waypoint.core".visible_startup = true
 
 [[test]]
 dependencies = [

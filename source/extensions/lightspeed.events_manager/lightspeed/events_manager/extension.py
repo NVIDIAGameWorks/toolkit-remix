@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import Optional
-
 import carb
 import omni.ext
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -26,7 +24,9 @@ from .core import EventsManagerCore as _EventsManagerCore
 _EVENTS_MANAGER_INSTANCE = None
 
 
-def get_instance() -> Optional[_EventsManagerCore]:
+def get_instance() -> _EventsManagerCore:
+    if not _EVENTS_MANAGER_INSTANCE:
+        raise RuntimeError("[lightspeed.events_manager] Events manager instance is not yet initialized.")
     return _EVENTS_MANAGER_INSTANCE
 
 
@@ -39,8 +39,7 @@ class EventsManagerExtension(omni.ext.IExt):
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
 
-    # noinspection PyUnusedLocal
-    def on_startup(self, ext_id):
+    def on_startup(self, ext_id: str):
         global _EVENTS_MANAGER_INSTANCE
         carb.log_info("[lightspeed.events_manager] Lightspeed Events Manager startup")
         self._events_manager = _EventsManagerCore()

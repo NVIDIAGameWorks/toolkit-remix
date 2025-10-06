@@ -24,7 +24,7 @@ from unittest.mock import MagicMock, patch
 import omni.kit.app
 import omni.kit.commands
 import omni.usd
-from lightspeed.event.capture_persp_to_persp.core import CopyCapturePerspToPerspCore as _CopyCapturePerspToPerspCore
+from lightspeed.event.capture_persp_to_persp.core import EventCapturePerspToPerspCore as _EventCapturePerspToPerspCore
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
@@ -155,8 +155,8 @@ class TestCore(AsyncTestCase):
 
             # mock the function to disable the execution. Camera value should be the default
             with patch.object(
-                _CopyCapturePerspToPerspCore,
-                "_deferred_setup_perspective_camera",
+                _EventCapturePerspToPerspCore,
+                "_deferred_set_perspective_camera",
                 new_callable=AsyncMock,
             ):
                 await open_stage(path)

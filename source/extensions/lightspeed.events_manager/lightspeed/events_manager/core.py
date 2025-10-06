@@ -15,15 +15,19 @@
 * limitations under the License.
 """
 
-import typing
-from typing import Any, Callable, List, Optional
+from __future__ import annotations
+
+__all__ = ["EventsManagerCore"]
+
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 import carb
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 
-if typing.TYPE_CHECKING:  # pragma: no cover
-    from .i_ds_event import ILSSEvent as _ILSSEvent
+if TYPE_CHECKING:
+    from .i_ds_event import ILSSEvent
 
 
 class EventsManagerCore:
@@ -39,7 +43,7 @@ class EventsManagerCore:
         self.__on_global_custom_event_registered = _Event()
         self.__on_global_custom_event_unregistered = _Event()
 
-    def get_registered_global_event_names(self) -> List[str]:
+    def get_registered_global_event_names(self) -> list[str]:
         """
         Get a list of registered event(s) name(s)
 
@@ -125,7 +129,7 @@ class EventsManagerCore:
         """
         return _EventSubscription(self.__on_event_registered, fn)
 
-    def _event_unregistered(self, ds_event: "_ILSSEvent"):
+    def _event_unregistered(self, ds_event: ILSSEvent):
         """Call the event object that has the list of functions"""
         self.__on_event_unregistered(ds_event)
 
@@ -136,7 +140,7 @@ class EventsManagerCore:
         """
         return _EventSubscription(self.__on_event_unregistered, fn)
 
-    def register_event(self, ds_event: "_ILSSEvent"):
+    def register_event(self, ds_event: ILSSEvent):
         """
         Register a new event
         """
@@ -144,18 +148,18 @@ class EventsManagerCore:
         ds_event.install()
         self._event_registered()
 
-    def get_registered_events(self) -> List:
+    def get_registered_events(self) -> list[ILSSEvent]:
         return self.__ds_events
 
-    def get_registered_event(self, name: str) -> Optional["_ILSSEvent"]:
+    def get_registered_event(self, name: str) -> ILSSEvent | None:
         for event in self.__ds_events:
             if event.name == name:
                 return event
         return None
 
-    def unregister_event(self, ds_event: "_ILSSEvent"):
+    def unregister_event(self, ds_event: ILSSEvent):
         """
-        Unregister a _ILSSEvent
+        Unregister a ILSSEvent
         """
         if ds_event in self.__ds_events:
             ds_event.uninstall()

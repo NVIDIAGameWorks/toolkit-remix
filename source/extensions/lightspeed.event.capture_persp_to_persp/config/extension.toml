@@ -1,12 +1,12 @@
 [package]
-version = "1.3.0"
+version = "1.4.0"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
 keywords = ["event", "layer", "manager", "copy", "camera", "capture"]
-title = "Lightspeed Event Copy Capture Perspertive to Perspertive"
-description = "Lightspeed Event that will copy the perspertive camera from the capture layer to the regular perspertive"
+title = "Lightspeed Event Capture Persp to Persp"
+description = "Lightspeed Event that will copy the camera settings from the capture layer to the regular persp camera"
 icon = "data/icon.png"
 category = "internal"
 preview_image = "data/preview.png"

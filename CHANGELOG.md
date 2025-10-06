@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved Pyright configuration by generating a list of search paths
 
 ### Removed
+- Removed Waypoint support based on deprecated kit sample waypoint extension
 
 ## [1.2.4]
 
