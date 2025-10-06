@@ -609,7 +609,6 @@ sphinx_exclude_patterns = [
     # Documentation generation failures
     ####################################################################################################################
     "source/extensions/lightspeed.event.generate_thumbnail*",  # Carb interface is not available
-    "source/extensions/lightspeed.event.waypoint_game_camera*",  # Carb interface is not available
     "source/extensions/lightspeed.trex.app.resources*",  # Carb interface is not available
     "source/extensions/lightspeed.trex.app.style*",  # Carb interface is not available
     "source/extensions/lightspeed.trex.control.ingestcraft*",  # Carb interface is not available
@@ -619,7 +618,6 @@ sphinx_exclude_patterns = [
     "source/extensions/lightspeed.trex.viewports.shared.*",  # Carb interface is not available
     "source/extensions/lightspeed.trex.viewports.ingestcraft.bundle*",  # Carb interface is not available
     "source/extensions/lightspeed.trex.viewports.stagecraft.bundle*",  # Carb interface is not available
-    "source/extensions/lightspeed.trex.waypoint.core*",  # Carb interface is not available
     ####################################################################################################################
     # Ignore directories
     ####################################################################################################################

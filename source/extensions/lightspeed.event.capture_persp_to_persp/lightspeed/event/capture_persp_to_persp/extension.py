@@ -20,7 +20,7 @@ import omni.ext
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
-from .core import CopyCapturePerspToPerspCore as _CopyCapturePerspToPerspCore
+from .core import EventCapturePerspToPerspCore as _EventCapturePerspToPerspCore
 
 
 class EventCopyCapturePerspToPerspExtension(omni.ext.IExt):
@@ -32,10 +32,9 @@ class EventCopyCapturePerspToPerspExtension(omni.ext.IExt):
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
 
-    # noinspection PyUnusedLocal
-    def on_startup(self, ext_id):
+    def on_startup(self, ext_id: str):
         carb.log_info("[lightspeed.event.capture_persp_to_persp] Lightspeed Event Copy Capture Persp to Persp startup")
-        self._core = _CopyCapturePerspToPerspCore()
+        self._core = _EventCapturePerspToPerspCore()
         _get_event_manager_instance().register_event(self._core)
 
     def on_shutdown(self):

@@ -3,6 +3,10 @@
 This document records all notable changes to ``omni.kit.viewport.bundle`` extension.
 This project adheres to `Semantic Versioning <https://semver.org/>`_.
 
+## [1.3.0]
+### Changed
+- Removed support for waypoints
+
 ## [1.2.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

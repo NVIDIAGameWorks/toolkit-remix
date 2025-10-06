@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Changed
+- Cleanup extension code
+- Removed check for repeat capture layer inside extension to simplify and make sure persp cam is always set
+
 ## [1.3.0]
 ## Fixed
 - Update captured camera location to match latest runtime
