@@ -2,6 +2,16 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.3]
+### Changed
+- Remove broken symlinks when creating symlinks
+- Added `get_resolved_symlink` to check if a path is a broken symlink
+
+## [3.3.2]
+### Changed
+- Remove broken symlinks when creating symlinks
+- Added `is_a_broken_symlink` to check if a path is a broken symlink
+
 ## [3.3.2]
 ### Changed
 - Modernize typing and minor cleanup

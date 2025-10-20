@@ -17,13 +17,38 @@
 
 import subprocess
 import sys
+from contextlib import suppress
+from pathlib import Path
+from typing import Tuple
 
 from .uac import UnsupportedPlatformError as _UnsupportedPlatformError
 from .uac import is_admin as _is_admin
 from .uac import sudo as _sudo
 
 
-def create_folder_symlinks(links_targets: list[tuple[str, str]], create_junction: bool = False):
+def get_resolved_symlink(path: str) -> Path | None:
+    """
+    Get the resolved original path for a symlink.
+
+    Args:
+        path: Symlink path to read and resolve
+
+    Returns:
+        The path to the original file that was symlinked, or None if the symlink is broken
+    """
+    path_obj = Path(path)
+    broken_symlink = False
+    # Check if the symlink is broken by checking if the symlink exists and the target does not
+    with suppress(FileNotFoundError):
+        if path_obj.readlink() and not path_obj.exists():
+            broken_symlink = True
+
+    if broken_symlink:
+        return None
+    return path_obj
+
+
+def create_folder_symlinks(links_targets: list[Tuple[str, str]], create_junction: bool = False):
     """
     Create symlink(s). If create_junction is False and the user doesn't have the permission to create symlink(s),
     it will prompt the Windows UAC for Windows user.
@@ -32,6 +57,11 @@ def create_folder_symlinks(links_targets: list[tuple[str, str]], create_junction
         links_targets: list of links and targets folders to use
         create_junction: for Windows, create a junction instead
     """
+
+    # Unlink broken symlinks
+    for link, _ in links_targets:
+        if not get_resolved_symlink(link):
+            Path(link).unlink()
 
     def _generate_cmd(symlink_cmd, symlink_type, reverse: bool = False):
         _cmd = []

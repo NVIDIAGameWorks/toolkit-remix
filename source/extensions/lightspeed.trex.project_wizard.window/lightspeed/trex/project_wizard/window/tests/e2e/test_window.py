@@ -99,6 +99,7 @@ class TestWizardWindow(AsyncTestCase):
         window = ui.Window("TestWizardWindow", width=1000, height=800)
         with window.frame:
             wizard = _ProjectWizardWindow(width=1000, height=800)
+            wizard.create_wizard_window()
 
         await ui_test.human_delay()
 
