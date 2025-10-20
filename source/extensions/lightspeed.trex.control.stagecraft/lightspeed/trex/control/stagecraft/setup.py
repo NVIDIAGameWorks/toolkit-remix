@@ -17,6 +17,7 @@
 
 from asyncio import ensure_future
 from functools import partial
+from pathlib import Path
 from typing import Callable
 
 import carb
@@ -31,6 +32,8 @@ from lightspeed.trex.hotkeys import get_global_hotkey_manager as _get_global_hot
 from lightspeed.trex.layout.stagecraft import get_instance as _get_layout_instance
 from lightspeed.trex.layout.stagecraft.setup_ui import Pages
 from lightspeed.trex.menu.workfile import get_instance as _get_menu_workfile_instance
+from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys
+from lightspeed.trex.project_wizard.core import ProjectWizardSchema as _ProjectWizardSchema
 from lightspeed.trex.project_wizard.window import WizardTypes as _WizardTypes
 from lightspeed.trex.project_wizard.window import get_instance as _get_wizard_instance
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCoreSetup
@@ -194,6 +197,13 @@ class Setup:
         self.prompt_if_unsaved_project(lambda: self.__open_stage_and_save_previous_identifier(path), "changing project")
 
     def __open_stage_and_save_previous_identifier(self, path):
+        if not _ProjectWizardSchema.is_project_file_valid(
+            Path(path), {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
+        ) or not _ProjectWizardSchema.are_project_symlinks_valid(Path(path)):
+            wizard = _get_wizard_instance(_WizardTypes.OPEN, self._context_name)
+            wizard.set_payload({_ProjectWizardKeys.PROJECT_FILE.value: Path(path)})
+            wizard.show_project_wizard(reset_page=True)
+            return
         self._previous_root_layer_identifier = self._layer_manager.open_stage(path)
 
     def _on_save_as(self, on_save_done: Callable[[bool, str], None] = None):

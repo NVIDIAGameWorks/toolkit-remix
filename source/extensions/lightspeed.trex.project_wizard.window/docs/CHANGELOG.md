@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.2]
+## Added
+- Added a project path arg when getting the instance
+
 ## [2.1.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

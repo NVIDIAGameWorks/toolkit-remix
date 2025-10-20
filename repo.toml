@@ -562,6 +562,7 @@ autodoc.default_options.exclude_members = [
     "partial",
     "proxy",
     "redirect_stdout",
+    "suppress",
 ]
 
 autodoc.mock_imports = [

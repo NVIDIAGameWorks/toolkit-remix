@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths
+- REMIX-4000: Added a check to use the project directory if no capture directory is found
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension

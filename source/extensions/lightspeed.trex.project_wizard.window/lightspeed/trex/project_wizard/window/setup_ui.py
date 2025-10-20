@@ -29,6 +29,7 @@ from lightspeed.trex.project_wizard.core import SETTING_JUNCTION_NAME as _SETTIN
 from lightspeed.trex.project_wizard.core import ProjectWizardCore as _ProjectWizardCore
 from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys
 from lightspeed.trex.project_wizard.open_project_page.widget import WizardOpenProjectPage as _WizardOpenProjectPage
+from lightspeed.trex.project_wizard.setup_page.widget import SetupPage as _SetupPage
 from lightspeed.trex.project_wizard.start_page.widget import WizardStartPage as _WizardStartPage
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui, usd
@@ -52,24 +53,11 @@ class ProjectWizardBase(abc.ABC):
 
         self._context_name = context_name
         self._wizard_core = _ProjectWizardCore()
+        self._wizard_window = None
+        self._width = width
+        self._height = height
 
-        self._wizard_window = _WizardWindow(
-            _WizardModel(self._start_page),
-            title="RTX Remix Project Wizard",
-            width=width,
-            height=height,
-            flags=ui.WINDOW_FLAGS_MODAL
-            | ui.WINDOW_FLAGS_NO_DOCKING
-            | ui.WINDOW_FLAGS_NO_COLLAPSE
-            | ui.WINDOW_FLAGS_NO_SCROLLBAR
-            | ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
-            | ui.WINDOW_FLAGS_NO_MOVE
-            | ui.WINDOW_FLAGS_NO_RESIZE,
-        )
-
-        self._wizard_completed_sub = self._wizard_window.widget.subscribe_wizard_completed(
-            lambda payload: asyncio.ensure_future(self._on_wizard_completed(payload))
-        )
+        self._wizard_completed_sub = None
 
         self.__on_wizard_completed = _Event()
 
@@ -81,6 +69,7 @@ class ProjectWizardBase(abc.ABC):
             "_wizard_core": None,
             "_wizard_window": None,
             "_wizard_completed_sub": None,
+            "_payload": None,
         }
 
     @property
@@ -140,9 +129,27 @@ class ProjectWizardBase(abc.ABC):
 
         self.__on_wizard_completed()
 
+    def create_wizard_window(self):
+        self._wizard_window = _WizardWindow(
+            _WizardModel(self._start_page),
+            title="RTX Remix Project Wizard",
+            width=self._width,
+            height=self._height,
+            flags=ui.WINDOW_FLAGS_MODAL
+            | ui.WINDOW_FLAGS_NO_DOCKING
+            | ui.WINDOW_FLAGS_NO_COLLAPSE
+            | ui.WINDOW_FLAGS_NO_SCROLLBAR
+            | ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
+            | ui.WINDOW_FLAGS_NO_MOVE
+            | ui.WINDOW_FLAGS_NO_RESIZE,
+        )
+        self._wizard_completed_sub = self._wizard_window.widget.subscribe_wizard_completed(
+            lambda payload: asyncio.ensure_future(self._on_wizard_completed(payload))
+        )
+
     def show_project_wizard(self, reset_page: bool = False):
         if not self._wizard_window:
-            return
+            self.create_wizard_window()
         self._wizard_window.show_wizard(reset_page=reset_page)
 
     def hide_project_wizard(self):
@@ -156,6 +163,9 @@ class ProjectWizardBase(abc.ABC):
         Called when the wizard is completed.
         """
         return _EventSubscription(self.__on_wizard_completed, function)
+
+    def set_payload(self, payload: dict):
+        self._payload = payload
 
     def destroy(self):
         _reset_default_attrs(self)
@@ -216,7 +226,13 @@ class OpenProjectWizardWindow(ProjectWizardBase):
             return self._start_page_instance
 
         # TODO Feature OM-45888 - File Picker will appear behind the wizard modal (so hide and re-show wizard window)
-        self._start_page_instance = _WizardOpenProjectPage(context_name=self._context_name)
+        # If we have a payload, we are opening an existing project and want to start on the setup page
+        if self._payload and self._payload.get(_ProjectWizardKeys.PROJECT_FILE.value, None):
+            self._start_page_instance = _SetupPage(context_name=self._context_name, previous_page=None)
+            self._start_page_instance.open_or_create = True
+            self._start_page_instance.payload = self._payload
+        else:
+            self._start_page_instance = _WizardOpenProjectPage(context_name=self._context_name)
         self._file_picker_opened_sub = self._start_page_instance.subscribe_file_picker_opened(self.hide_project_wizard)
         self._file_picker_closed_sub = self._start_page_instance.subscribe_file_picker_closed(self.show_project_wizard)
 
