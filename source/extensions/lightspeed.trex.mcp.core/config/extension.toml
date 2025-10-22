@@ -1,5 +1,5 @@
 [package]
-version = "1.2.0"
+version = "1.2.1"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Micro-Service MCP Server"
 description = "Micro-Service MCP Server Core for NVIDIA RTX Remix"
@@ -12,7 +12,7 @@ preview_image = "data/preview.png"
 
 [dependencies]
 "lightspeed.trex.service.core" = {}  # Make sure the REST API is started before the MCP server
-"lightspeed.pip_archive" = {}  # For FastMCP
+"omni.flux.pip_archive" = {}  # For FastMCP
 "omni.services.core" = {}
 "omni.services.transport.server.base" = {}
 "omni.usd" = {}

@@ -10,6 +10,8 @@ omni.flux.utils.common
 .. automodule:: omni.flux.utils.common.api
 .. automodule:: omni.flux.utils.common.decorators
 .. automodule:: omni.flux.utils.common.event
+.. automodule:: omni.flux.utils.common.git
+   :exclude-members: GitError
 .. automodule:: omni.flux.utils.common.layer_utils
 .. automodule:: omni.flux.utils.common.lights
 .. automodule:: omni.flux.utils.common.materials
@@ -19,3 +21,4 @@ omni.flux.utils.common
 .. automodule:: omni.flux.utils.common.symlink
 .. automodule:: omni.flux.utils.common.uac
 .. automodule:: omni.flux.utils.common.utils
+.. automodule:: omni.flux.utils.common.version

@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.4.0]
+### Changed
+- Updated the `git` module to use PyGit2 instead of system Git
+
+### Added
+- Added many `git` utility methods
+
 ## [3.3.3]
 ### Changed
 - Remove broken symlinks when creating symlinks
@@ -11,9 +18,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - Remove broken symlinks when creating symlinks
 - Added `is_a_broken_symlink` to check if a path is a broken symlink
-
-## [3.3.2]
-### Changed
 - Modernize typing and minor cleanup
 
 ## [3.3.1]

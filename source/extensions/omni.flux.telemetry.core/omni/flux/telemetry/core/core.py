@@ -28,7 +28,7 @@ import omni.kit.app
 import omni.structuredlog
 import sentry_sdk
 from omni.flux.utils.common import reset_default_attrs
-from omni.flux.utils.common.git import get_git_branch
+from omni.flux.utils.common.git import get_branch, open_repository
 from omni.flux.utils.common.version import get_app_distribution
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
@@ -86,7 +86,13 @@ class TelemetryCore:
 
     def _initialize_sentry(self) -> bool:
         # Assume that the app is in production if the git branch is main or if no git branch is found
-        git_branch = get_git_branch()
+        repo = open_repository()
+        try:
+            git_branch = get_branch(repo)
+        finally:
+            if repo is not None:
+                repo.free()
+
         is_production = (git_branch is None) or (git_branch == "main")
 
         if not is_production and not self._development_mode:

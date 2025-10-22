@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "3.3.3"
+version = "3.4.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Lewis Weaver <lweaver@nvidia.com>", "Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -30,10 +30,10 @@ preview_image = "data/preview.png"
 icon = "data/icon.png"
 
 [dependencies]
-# omni.kit.pip_archive has Pillow and numpy. Adding Pillow in requirements will not work, because Pillow needs to
+# omni.flux.pip_archive has Pillow and numpy. Adding Pillow in requirements will not work, because Pillow needs to
 # import PIL, not import Pillow.
 "omni.client" = {}
-"omni.kit.pip_archive" = {}
+"omni.flux.pip_archive" = {}  # For PyGit2
 "omni.kit.usd.layers" = {}
 "omni.kit.window.file" = { optional=true }
 "omni.usd" = {}

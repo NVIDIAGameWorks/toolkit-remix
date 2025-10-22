@@ -29,24 +29,22 @@
 ########################################################################################################################
 
 # NOTE - For any new packages added to this list, please make sure that the license is compatible with Omniverse (i.e. avoid GPL/LGPL) and
-# that a SWIPAT bug report is filed for legal to validate if there is no existing ticket.
-# The SWIPAT template is here: http://nvbugs/2732212
+# that a OSRB bug report is filed for legal to validate if there is no existing ticket.
+# The OSRB template is here: http://nvbugs/2732212
 
 [[dependency]]
 python = "../_build/target-deps/python"
 packages = [
-    "remix-client==1.6.8",      # In-House library. No SWIPAT required
-    "remix-models-i2m==1.6.7",  # In-House library. No SWIPAT required
-
-    # TODO Remove these once we switch to release wheels
-    "torch>=2.7.0.dev0",        # Pre-release version requires an entry here. SWIPAT filed under: http://nvbugs/4549134
-    "torchvision>=0.22.0.dev0", # Pre-release version requires an entry here. SWIPAT filed under: http://nvbugs/4549134
+    "remix-client==1.6.8",      # In-House library. No OSRB required
+    "remix-models-i2m==1.6.7",  # In-House library. No OSRB required
 ]
-# Make sure we can get internal packages + the CUDA version of PyTorch
+# Use the internal PyPI index to get internal packages
 extra_args = [
-    "--index-url", "https://download.pytorch.org/whl/nightly/cu128",
-    "--extra-index-url", "https://urm.nvidia.com/artifactory/api/pypi/nv-shared-pypi/simple",
+    "--index-url", "https://urm.nvidia.com/artifactory/api/pypi/nv-shared-pypi/simple",
 ]
+
+# Do not install dependencies, those are handled by pip_flux.toml
+install_dependencies = false
 
 target = "../_build/target-deps/internal_pip_prebundle"
 platforms = ["*-x86_64"]

@@ -2,12 +2,16 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.2]
+### Changed
+- Add missing dependency in comment
+
 ## [2.0.1]
-## Fixed
+### Fixed
 - Fixed Test assets to large to work without LFS
 
 ## [2.0.0]
-## Changed
+### Changed
 - Updated Pydantic to V2
 
 ## [1.1.4]

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added release notes for 1.2
 - REMIX-4260: Added search field to the Stage Manager
 - Added a new menu bar to support the vertical tab layout
+- REMIX-4612: Added ComfyUI core & widget extensions for deeper ComfyUI integration
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main

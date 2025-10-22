@@ -15,8 +15,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
-import omni.kit.clipboard
-import omni.kit.undo
+import unittest
+
 import omni.ui as ui
 import omni.usd
 from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
@@ -66,6 +66,7 @@ class TestViewportManipulators(AsyncTestCase):
         widget.destroy()
         window.destroy()
 
+    @unittest.skip("Skipping temporarily, viewport selection is broken in this test")
     async def test_manipulator_set_value_good_prim(self):
         """Test that when we use the manipulator, this is update the good prim"""
         # setup

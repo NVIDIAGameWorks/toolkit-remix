@@ -31,9 +31,7 @@ path = "${test_root}"
 include = ["tests-lightspeed.*${shell_ext}", "tests-omni.flux.*${shell_ext}"]
 exclude = []
 "platform:linux-x86_64".include = [  # we only test pip archive for linux
-    "tests-lightspeed.pip_archive${shell_ext}",
     "tests-omni.flux.pip_archive${shell_ext}",
-    "tests-omni.flux.internal_pip_archive${shell_ext}",
 ]
 "platform:linux-x86_64".exclude = []
 args = [
@@ -57,9 +55,7 @@ include = [
     "tests-lightspeed.*${shell_ext}",
 ]
 exclude = []
-"platform:linux-x86_64".include = [  # we only test pip archive for linux
-    "tests-lightspeed.pip_archive${shell_ext}",
-]
+"platform:linux-x86_64".include = []  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
     "--portable", "--portable-root", "${root}/portable",
@@ -85,7 +81,6 @@ include = [
 exclude = []
 "platform:linux-x86_64".include = [  # we only test pip archive for linux
     "tests-omni.flux.pip_archive${shell_ext}",
-    "tests-omni.flux.internal_pip_archive${shell_ext}",
 ]
 "platform:linux-x86_64".exclude = []
 args = [
@@ -199,7 +194,7 @@ include = [
     "tests-lightspeed.trex.[a-p]*${shell_ext}",  # trex is so common, we have to split it
 ]
 exclude = []
-"platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
+"platform:linux-x86_64".include = []  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
     "-n", "default",  # skip startup tests for e2e, they will run in unit
@@ -226,7 +221,6 @@ include = [
 exclude = []
 "platform:linux-x86_64".include = [
     "tests-omni.flux.pip_archive${shell_ext}",
-    "tests-omni.flux.internal_pip_archive${shell_ext}",
 ]  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
@@ -256,9 +250,8 @@ serial = [
 ]
 exclude = [
     "tests-lightspeed.trex.[a-p]*${shell_ext}",  # trex is so common, we have to split it (these are run in a2s above)
-    "tests-lightspeed.trex.viewports.manipulators${shell_ext}", # TODO: need to fix test
 ]
-"platform:linux-x86_64".include = ["tests-lightspeed.pip_archive${shell_ext}"]  # we only test pip archive for linux
+"platform:linux-x86_64".include = []  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
     "-n", "default",  # skip startup tests for e2e, they will run in unit
@@ -285,7 +278,6 @@ include = [
 exclude = []
 "platform:linux-x86_64".include = [
     "tests-omni.flux.pip_archive${shell_ext}",
-    "tests-omni.flux.internal_pip_archive${shell_ext}",
 ]  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
@@ -355,6 +347,24 @@ release.files_exclude = [
 [repo_build]
 
 # Build is disabled but pre-build commands are still executed
+
+# Windows-only pre-build commands, all standard commands + pywin32 installation
+pre_build."platform:windows-x86_64".commands = [
+    # Install pywin32 to the python environment directly (not through pip_flux.toml site packages or it will break)
+    ["${root}/_build/${platform}/${config}/kit/python/python${exe_ext}", "-m", "pip", "install", "pywin32"],
+
+    # Regenerate Pyright config from VSCode settings dynamic extraPaths
+	["${root}/_build/${platform}/${config}/kit/python/python${exe_ext}", "${root}/tools/utils/update_pyright_from_settings.py"],
+
+    # Generate the stubgen config file
+    ["${root}/repo${shell_ext}", "stubgen", "-c", "${config}"],
+
+    # Generate a shortcut to run the Mass Ingestion CLI in LSS
+    ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/lightspeed.app.trex.validation_cli_generator.kit", "--no-window", "--/app/extensions/excluded/0='omni.kit.splash' --/app/extensions/excluded/1='omni.kit.window.splash' --/app/settings/persistent=0 --/app/settings/loadUserConfig=0 --/structuredLog/enable=0 --/app/hangDetector/enabled=0 --/crashreporter/skipOldDumpUpload=1 --/app/content/emptyStageOnStart=1", "--/app/file/ignoreUnsavedOnExit=1", "--/app/fastShutdown=1", "--/app/quitAfter=10", "--exec", "${root}/tools/custom/generate_mass_cli.py"],
+    ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/omni.flux.app.service.documentation_cli_generator.kit", "--no-window", "--exec", "${root}/tools/custom/generate_app.py -id omni.flux.service.documentation -n omni.flux.app.service.documentation.cli"],
+]
+
+# Standard pre-build commands
 pre_build.commands = [
     # Regenerate Pyright config from VSCode settings dynamic extraPaths
 	["${root}/_build/${platform}/${config}/kit/python/python${exe_ext}", "${root}/tools/utils/update_pyright_from_settings.py"],
@@ -372,7 +382,6 @@ pre_build.commands = [
 files_to_pull = [
     "${root}/deps/pip_flux.toml",
     "${root}/deps/pip_internal.toml",
-    "${root}/deps/pip_lss.toml",
 ]
 
 [repo_build.build]
@@ -384,9 +393,7 @@ enabled = false
 
 [repo_stubgen]
 exts_exclude = [
-    "lightspeed.pip_archive",
     "omni.flux.pip_archive",
-    "omni.flux.internal_pip_archive",
 ]
 
 [repo_build.vscode]
@@ -411,9 +418,7 @@ exts.include = [
     "omni.etm.list.lightspeed_rtx",
 ]
 exts."platform:linux-x86_64".include = [
-    "lightspeed.pip_archive.*",
     "omni.flux.pip_archive.*",
-    "omni.flux.internal_pip_archive.*",
 ]  # we only test pip archive for linux
 exts.exclude = [
     "lightspeed_example.*",
@@ -490,7 +495,17 @@ import pathlib
 import platform
 import shutil
 import subprocess
+import sys
+import sysconfig
 
+# Ensure interpreter site-packages take precedence over vendored modules
+paths = sysconfig.get_paths()
+for lib_type in ("purelib", "platlib"):
+    lib_paths = paths.get(lib_type)
+    if lib_paths and lib_paths not in sys.path:
+        sys.path.insert(0, lib_paths)
+
+# Generate micro-service documentation
 def build_service_docs(app):
     output_dir = pathlib.Path(app.builder.outdir)
     exec_path = output_dir.parent.parent.parent / "${platform}" / source_substitutions.get("repo_docs_config")
@@ -524,6 +539,7 @@ def build_service_docs(app):
     output_file.parent.mkdir(parents=True)
     shutil.copy2(source_file, output_file)
 
+# Build micro-service documentation before building the rest of the documentation
 sphinx_event_handlers = [
     ("builder-inited", build_service_docs),
 ]
@@ -569,7 +585,9 @@ autodoc.mock_imports = [
     "fast_version",
     "fastapi",
     "fastmcp",
+    "huggingface_hub",
     "pydantic",
+    "pygit2",
     "pyperclip",
     "omni.kit.manipulator",  # uses omni.kit.get_app() at module level
     "omni.kit.viewport.menubar.camera",  # uses carb.tokens.get_tokens_interface() at module level

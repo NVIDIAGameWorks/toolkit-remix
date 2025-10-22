@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1]
+### Changed
+- Use Flux Pip Archive instead of LSS Pip Archive
+
 ## [1.2.0]
 ### Changed
 - Optimized the MCP server initialization by running it in a separate thread

@@ -2,28 +2,32 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.2.2]
+### Changed
+- Combined both Pip Archives into one extension
+
 ## [4.2.1]
 ### Changed
 - Renamed `model_artifact_path` to `ai_model_artifact_path`
 
 ## [4.2.0]
-## Added
+### Added
 - Added telemetry to the `GeneratePBRMaterial` plugin
 
 ## [4.1.1]
-## Fixed
+### Fixed
 - Fixed Test assets to large to work without LFS
 
 ## [4.1.0]
-## Changed
+### Changed
 - Update the documentation for Pydantic V2 compatbility
 
 ## [4.0.0]
-## Changed
+### Changed
 - Updated Pydantic to V2
 
 ## [3.15.1]
-## Changed
+### Changed
 - Update variables and resource locations for extension testing matrix (ETM) compliance
 
 ## [3.15.0]
@@ -35,15 +39,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Changed usages of the `CreateSublayer` command for `CreateOrInsertSublayer`
 
 ## [3.14.1]
-## Changed
+### Changed
 - Update to Kit 106.5
 
 ## [3.14.0]
-## Changed
+### Changed
 - Changed `meters_per_unit_target` for `scale_target`
 
 ## [3.13.3]
-## Changed
+### Changed
 - update to use omni.kit.test public api
 
 ## [3.13.2]

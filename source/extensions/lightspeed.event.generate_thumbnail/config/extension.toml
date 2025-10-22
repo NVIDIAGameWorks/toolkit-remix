@@ -1,5 +1,5 @@
 [package]
-version = "1.1.1"
+version = "1.1.2"
 authors = ["Alex Dunn <adunn@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -16,7 +16,7 @@ preview_image = "data/preview.png"
 "lightspeed.trex.viewports.shared.widget" = {}
 "omni.client" = {}
 "omni.flux.utils.common" = {}
-"omni.kit.pip_archive" = {}  # For PIL
+"omni.flux.pip_archive" = {}  # For PIL
 "omni.kit.widget.viewport" = {}
 "omni.usd" = {}
 
