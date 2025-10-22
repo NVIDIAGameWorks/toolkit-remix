@@ -29,18 +29,42 @@
 ########################################################################################################################
 
 # NOTE - For any new packages added to this list, please make sure that the license is compatible with Omniverse (i.e. avoid GPL/LGPL) and
-# that a SWIPAT bug report is filed for legal to validate if there is no existing ticket.
-# The SWIPAT template is here: http://nvbugs/2732212
+# that a OSRB bug report is filed for legal to validate if there is no existing ticket.
+# The OSRB template is here: https://nvbugs/2732212
 
 [[dependency]]
 python = "../_build/target-deps/python"
 packages = [
-    "fast-version==1.4.2",          # SWIPAT filed under: http://nvbugs/4546994
-    "pydantic==2.11.5",             # SWIPAT filed under: http://nvbugs/3952548
-    "pyperclip==1.8.2",             # SWIPAT filed under: http://nvbugs/4257389
-    "requests==2.32.3",             # SWIPAT filed under: http://nvbugs/4549153
-    "sentry-sdk==2.29.1",           # SWIPAT filed under: http://nvbugs/4575650
-    "shapely==2.0.5",               # SWIPAT filed under: http://nvbugs/4748740
+    # flux common dependencies
+    "fast-version==1.4.2",          # OSRB filed under: https://nvbugs/4546994
+    "fastapi==0.110.0",             # OSRB filed under: https://nvbugs/4575575
+    "fastmcp==2.3.3",               # OSRB filed under: https://nvbugs/5306565
+    "numpy==1.26.0",                # OSRB filed under: https://nvbugs/4575572
+    "pydantic==2.11.5",             # OSRB filed under: https://nvbugs/3952548
+    "pygit2==1.18.2",               # OSRB filed under: https://nvbugs/5571322
+    "pyperclip==1.8.2",             # OSRB filed under: https://nvbugs/4257389
+    "sentry-sdk==2.29.1",           # OSRB filed under: https://nvbugs/4575650
+    "shapely==2.0.5",               # OSRB filed under: https://nvbugs/4748740
+    "six==1.17.0",                  # OSRB filed under: https://nvbugs/5484025
+
+    # remix dependencies
+    "hf_xet==1.1.10",               # OSRB filed under: https://nvbugs/5571291
+    "huggingface-hub==0.35.3",      # OSRB filed under: https://nvbugs/5571291
+    "toml==0.10.2",                 # OSRB filed under: https://nvbugs/4575571
+
+    # remix-models-i2m dependencies
+    "torchvision==0.22.0+cu128",    # OSRB filed under: https://nvbugs/4549134
+    "torch==2.7.0+cu128",           # OSRB filed under: https://nvbugs/4549134
+    "munch==4.0.0",                 # OSRB filed under: https://nvbugs/4549021
+    "pillow==11.0.0",               # OSRB filed under: https://nvbugs/5254655 (shared with flux common dependencies)
+    "PyYAML==6.0.1",                # OSRB filed under: https://nvbugs/4549052
+
+    # remix-client dependencies
+    "requests==2.31.0",             # OSRB filed under: https://nvbugs/4549153 (shared with flux common dependencies)
+]
+
+extra_args = [
+    "--extra-index-url", "https://download.pytorch.org/whl/cu128",
 ]
 
 target = "../_build/target-deps/flux_pip_prebundle"

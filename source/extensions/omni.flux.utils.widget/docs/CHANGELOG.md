@@ -2,20 +2,24 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.20.3]
+### Changed
+- Use Flux Pip Archive instead of Kit Pip Archive
+
 ## [1.20.2]
 ### Changed
 - Modernize typing and minor cleanup
 
 ## [1.20.1]
-## Fixed
+### Fixed
 - Fixed Test assets to large to work without LFS
 
 ## [1.20.0]
-## Changed
+### Changed
 - Update the documentation for Pydantic V2 compatbility
 
 ## [1.19.3]
-## Changed
+### Changed
 - Update to Kit 106.5
 
 ## [1.19.2]

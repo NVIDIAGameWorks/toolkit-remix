@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.3]
+### Changed
+- Use Flux Pip Archive instead of Kit Pip Archive
+
 ## [2.0.2]
 ### Added
 - Added close project API endpoint to close the currently open project

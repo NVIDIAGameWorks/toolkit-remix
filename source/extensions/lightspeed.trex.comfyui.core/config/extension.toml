@@ -1,0 +1,47 @@
+[package]
+version = "1.0.0"
+authors = ["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
+title = "NVIDIA RTX Remix ComfyUI Core"
+description = "ComfyUI Core for NVIDIA RTX Remix"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["comfyui", "core"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
+
+[dependencies]
+"omni.flux.pip_archive" = {}  # For huggingface-hub & toml
+"omni.flux.utils.common" = {}
+"omni.services.transport.server.base" = {}
+"omni.usd" = {}
+
+[settings.exts."lightspeed.trex.comfyui.core".git]
+repository = "https://github.com/NVIDIAGameWorks/ComfyUI.git" # The repository to clone
+branch = "master" # The branch to clone
+
+[settings.exts."lightspeed.trex.comfyui.core".pip]
+torch_index = "https://download.pytorch.org/whl/cu129" # The PyTorch index to use for pip install
+
+[settings.exts."lightspeed.trex.comfyui.core".models]
+requirements_file = "remix_models.toml" # The file to use for the models requirements
+cache_dir = "temp" # The directory to use for the models cache
+
+[settings.exts."lightspeed.trex.comfyui.core".instance]
+address = "127.0.0.1" # The address to use for the instance
+port = 7860 # The port to use for the instance
+start_timeout_s = 120.0 # The timeout to use for the instance start
+poll_interval_s = 0.5 # The interval to use for the instance poll during startup
+
+[[python.module]]
+name = "lightspeed.trex.comfyui.core"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    # Generic Error
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]

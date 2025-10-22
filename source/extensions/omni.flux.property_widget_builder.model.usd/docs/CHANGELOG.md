@@ -2,36 +2,40 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.19.5]
+### Changed
+- Use Flux Pip Archive instead of Kit Pip Archive
+
 ## [2.19.4]
-## Fixed
+### Fixed
 - REMIX-4288: Adding a check for uncaught TypeError when converting values to property panel attributes.
 
 ## [2.19.3]
-## Fixed
+### Fixed
 - REMIX-4246: Preventing vector property widgets trying to convert values to python native types like float and resetting the property to the default value by calling the correct method.
 
 ## [2.19.2]
-## Fixed
+### Fixed
 - REMIX-4253: Fixed crash when previewing normal maps (or any non-RGBA textures)
 
 ## [2.19.1]
-## Fixed
-- Fixed Test assets to large to work without LFS
+### Fixed
+- Fixed Test assets too large to work without LFS
 
 ## [2.19.0]
-## Changed
-- Update the documentation for Pydantic V2 compatbility
+### Changed
+- Update the documentation for Pydantic V2 compatibility
 
 ## [2.18.1]
 ### Fixed
 - Changed to using a ImageWithProvider to better display single channel textures
 
 ## [2.18.0]
-## Added
+### Added
 - Added the ability to left-align property names
 
 ## [2.17.1]
-## Fixed
+### Fixed
 - Virtual attr should display default until they are set
 
 ## [2.17.0]
@@ -40,7 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added slider widget for material attribute subsurface_radius_scale
 
 ## [2.16.0]
-## Changed
+### Changed
 - Update to Kit 106.5
 - property widget tree: support virtual attribute items
 - simplified and refactored property tree items and value models
