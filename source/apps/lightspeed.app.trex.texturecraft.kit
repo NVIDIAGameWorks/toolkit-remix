@@ -14,7 +14,7 @@ A tool to edit texture(s)
 
 [dependencies]
 "lightspeed.app.trex.base" = {}
-"lightspeed.trex.layout.texturecraft" = {}
+"lightspeed.trex.texturecraft.widget" = {}
 
 # needed for the schema setting at the bottom
 "omni.flux.validator.plugin.check.usd" = { order = -10 } # to always start before the manager
@@ -31,6 +31,9 @@ A tool to edit texture(s)
 # Basic Kit App
 ################################
 app.name = "RTX Remix TextureCraft"
+
+[settings.app.trex]
+default_layout = "texturecraft"
 
 [settings.app.window]
 title = "NVIDIA RTX Remix TextureCraft"

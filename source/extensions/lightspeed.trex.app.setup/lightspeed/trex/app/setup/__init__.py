@@ -15,4 +15,4 @@
 * limitations under the License.
 """
 
-from .extension import TrexSetupExtension, get_instance  # noqa F401
+from .extension import TrexSetupExtension

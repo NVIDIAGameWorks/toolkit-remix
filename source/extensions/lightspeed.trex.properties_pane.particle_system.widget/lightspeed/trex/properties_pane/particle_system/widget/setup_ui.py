@@ -426,6 +426,8 @@ class ParticleSystemPropertyWidget:
 
     def destroy(self):
         """Clean up listeners and UI Widgets"""
+        if self._refresh_task:
+            self._refresh_task.cancel()
         if self._root_frame:
             self._root_frame.clear()
         if self.__usd_listener_instance and self._property_model:

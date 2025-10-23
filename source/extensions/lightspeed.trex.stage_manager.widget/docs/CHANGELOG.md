@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+### Added
+- Added workspace integration for dockable Stage Manager window
+
 ## [1.2.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

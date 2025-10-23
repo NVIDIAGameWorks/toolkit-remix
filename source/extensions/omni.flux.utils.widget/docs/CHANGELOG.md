@@ -2,6 +2,15 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.21.1]
+### Fixed
+- Fixed resource functions to handle uninitialized Carb gracefully during docs build
+
+## [1.21.0]
+### Added
+- Added get_quicklayout_config() function for accessing QuickLayout JSON files
+- Added get_menubar_ignore_file() function for accessing menubar filter configuration
+
 ## [1.20.3]
 ### Changed
 - Use Flux Pip Archive instead of Kit Pip Archive

@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Changed
+- Migrated from custom burger menu to standard Kit menubar integration
+- Menu items now appear in File, Edit, and Help menus
+
+### Removed
+- Removed burger menu UI and delegate
+- Removed obsolete burger menu tests
+
 ## [1.4.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

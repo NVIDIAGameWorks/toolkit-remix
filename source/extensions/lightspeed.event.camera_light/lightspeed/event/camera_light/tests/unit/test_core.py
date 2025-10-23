@@ -21,7 +21,6 @@ import tempfile
 
 import carb
 import omni.kit.app
-from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage, wait_stage_loading
@@ -32,9 +31,6 @@ _CONTEXT_NAME = ""
 @contextlib.asynccontextmanager
 async def make_temp_directory(context):
     temp_dir = tempfile.TemporaryDirectory()  # noqa PLR1732
-    viewport = _create_viewport_instance(
-        _CONTEXT_NAME
-    )  # create the viewport object because the viewport generate the persp camera
     try:
         yield temp_dir
     finally:
@@ -45,7 +41,6 @@ async def make_temp_directory(context):
         if context.can_close_stage():
             await context.close_stage_async()
         temp_dir.cleanup()
-        viewport.destroy()
 
 
 class TestCore(AsyncTestCase):

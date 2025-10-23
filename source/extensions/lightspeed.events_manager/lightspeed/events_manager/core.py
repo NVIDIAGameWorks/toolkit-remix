@@ -62,7 +62,7 @@ class EventsManagerCore:
         """
         if name in self.__global_custom_events:
             if show_warning:
-                carb.log_warn(f"Custom event {name} already exist")
+                carb.log_warn(f"Custom event '{name}' already exist")
             return
         self.__global_custom_events[name] = _Event()
         self.__on_global_custom_event_registered(name)
@@ -84,7 +84,7 @@ class EventsManagerCore:
         Called when we click on a tool (change of the selected tool)
         """
         if name not in self.__global_custom_events:
-            message = f"Custom event {name} doesn't exist"
+            message = f"Custom event '{name}' doesn't exist"
             carb.log_error(message)
             raise ValueError(message)
         return _EventSubscription(self.__global_custom_events[name], fn)
@@ -103,7 +103,7 @@ class EventsManagerCore:
         """
         return _EventSubscription(self.__on_global_custom_event_unregistered, fn)
 
-    def call_global_custom_event(self, name: str, *args, **kwargs):
+    def call_global_custom_event(self, name: str, *args, **kwargs) -> list[Any] | None:
         """
         Call the registered event
 
@@ -111,12 +111,15 @@ class EventsManagerCore:
             name: the name of the event to call
             *args: args that will be passed to the callbacks
             **kwargs: kwargs that will be passed to the callbacks
+
+        Returns:
+            List of return values from all subscribers. Use that for 2-way event-subscribers communication.
         """
         if name not in self.__global_custom_events:
-            message = f"Custom event {name} doesn't exist"
+            message = f"Custom event '{name}' doesn't exist"
             carb.log_error(message)
             raise ValueError(message)
-        self.__global_custom_events[name](*args, **kwargs)
+        return self.__global_custom_events[name](*args, **kwargs)
 
     def _event_registered(self):
         """Call the event object that has the list of functions"""
@@ -166,7 +169,7 @@ class EventsManagerCore:
             self._event_unregistered(ds_event)
             self.__ds_events.remove(ds_event)
         else:
-            carb.log_warn(f"Event {ds_event} was never registered")
+            carb.log_warn(f"Event '{ds_event}' was never registered")
 
     def destroy(self):
         for event in self.__ds_events:

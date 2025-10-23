@@ -17,23 +17,38 @@
 
 __all__ = ["HomePageWidget"]
 
+import asyncio
+import os
 import platform
 import webbrowser
 from functools import partial
-from typing import Any, Callable
+from pathlib import Path
+from typing import Callable
 
 import carb
 import omni.kit.app
 from lightspeed.common import constants
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
+from lightspeed.trex.project_wizard.window import WizardTypes as _WizardTypes
+from lightspeed.trex.project_wizard.window import get_instance as _get_wizard_instance
+from lightspeed.trex.recent_projects.core import RecentProjectsCore as _RecentProjectsCore
+from lightspeed.trex.utils.common.dialog_utils import delete_dialogs as _delete_dialogs
+from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni import ui
 from omni.flux.info_icon.widget import InfoIconWidget
-from omni.flux.utils.common import Event, EventSubscription, reset_default_attrs
+from omni.flux.utils.common import reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.common.path_utils import open_file_using_os_default
 from omni.flux.utils.common.version import get_app_version
+from omni.flux.utils.widget.file_pickers import destroy_file_picker as _destroy_file_picker
+from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
 from omni.flux.utils.widget.tree_widget import TreeWidget
+from omni.kit.mainwindow import get_main_window
+from omni.kit.quicklayout import QuickLayout as _QuickLayout
 
 from .recent_tree import RecentProjectDelegate, RecentProjectModel
+
+_HIDE_MENU = "/exts/lightspeed.trex.app.setup/hide_menu"
 
 
 class HomePageWidget:
@@ -51,6 +66,7 @@ class HomePageWidget:
             "_context_name": None,
             "_recent_model": None,
             "_recent_delegate": None,
+            "_recent_saved_file": None,
             "_recent_tree": None,
             "_resume_button": None,
             "_project_count_label": None,
@@ -66,30 +82,28 @@ class HomePageWidget:
 
         self._recent_model = RecentProjectModel()
         self._recent_delegate = RecentProjectDelegate()
+        self._recent_saved_file = _RecentProjectsCore()
 
         self._recent_tree = None
         self._resume_button = None
         self._project_count_label = None
         self._credits_window = None
 
-        self.__on_new_project_clicked = Event()
-        self.__on_open_project_clicked = Event()
-        self.__on_resume_clicked = Event()
-        self.__on_load_project_clicked = Event()
-        self.__on_remove_from_recent_clicked = Event()
-
         self._item_remove_from_recent_sub = self._recent_delegate.subscribe_item_remove_from_recent(
-            lambda: self.__on_remove_from_recent_clicked(
+            lambda: self._remove_project_from_recent(
                 [i.path for i in self._recent_tree.selection] if self._recent_tree else []
             )
         )
         self._item_project_opened_sub = self._recent_delegate.subscribe_item_open_project(
             # A lambda is required, or we get a crash because the event is not hashable
-            lambda path: self.__on_load_project_clicked(path)  # noqa PLW0108
+            self._load_work_file
         )
         self._item_show_in_explorer_sub = self._recent_delegate.subscribe_item_show_in_explorer(self._show_in_explorer)
 
+        self.__settings = carb.settings.get_settings()
+
         self._build_ui()
+        self.refresh()
 
     @property
     def _url_labels(self) -> list:
@@ -121,51 +135,27 @@ class HomePageWidget:
         self._resume_button.enabled = enabled
         self._resume_button.tooltip = "" if enabled else "A project must first be loaded for this option to be enabled"
 
-    def set_recent_items(self, items: list[tuple[str, str, dict]]):
+    def refresh(self):
         """
-        Set the list of recent projects in the recent projects tree
+        Refresh the UI elements and internal states.
         """
-        if not self._recent_model:
+        _delete_dialogs()
+        _destroy_file_picker()
+
+        stage = omni.usd.get_context(self._context_name).get_stage()
+        has_open_project = stage and not bool(stage.GetRootLayer().anonymous)
+        self.set_resume_enabled(has_open_project)
+
+        asyncio.ensure_future(self._refresh_recent_items_deferred())
+
+    def on_visibility_change(self, visible: bool):
+        main_menu_bar = get_main_window().get_main_menu_bar()
+        hide_menu = self.__settings.get(_HIDE_MENU)
+        if not hide_menu:
+            main_menu_bar.visible = True
             return
 
-        if self._project_count_label:
-            self._project_count_label.text = str(len(items))
-
-        self._recent_model.refresh(items)
-
-    def subscribe_new_project_clicked(self, callback: Callable[[], Any]) -> EventSubscription:
-        """
-        Subscribe to the event triggered when the new project button is clicked
-        """
-        return EventSubscription(self.__on_new_project_clicked, callback)
-
-    def subscribe_open_project_clicked(self, callback: Callable[[], Any]) -> EventSubscription:
-        """
-        Subscribe to the event triggered when the open project button is clicked
-        """
-        return EventSubscription(self.__on_open_project_clicked, callback)
-
-    def subscribe_resume_clicked(self, callback: Callable[[], Any]) -> EventSubscription:
-        """
-        Subscribe to the event triggered when the resume button is clicked
-        """
-        return EventSubscription(self.__on_resume_clicked, callback)
-
-    def subscribe_load_project_clicked(self, callback: Callable[[str], Any]) -> EventSubscription:
-        """
-        Subscribe to the event triggered when a project should be opened.
-
-        The callback will receive the project path.
-        """
-        return EventSubscription(self.__on_load_project_clicked, callback)
-
-    def subscribe_remove_from_recent_clicked(self, callback: Callable[[list[str]], Any]) -> EventSubscription:
-        """
-        Subscribe to the event triggered when projects should be removed from the recent projects list.
-
-        The callback will receive a list of project paths to remove.
-        """
-        return EventSubscription(self.__on_remove_from_recent_clicked, callback)
+        main_menu_bar.visible = not visible
 
     def _build_ui(self):
         with ui.HStack():
@@ -193,20 +183,23 @@ class HomePageWidget:
                                         "- Create a new mod\n"
                                         "- Edit existing mods\n"
                                         "- Remaster existing mods",
-                                        self.__on_new_project_clicked,
+                                        partial(self._invoke_mod_setup_wizard, _WizardTypes.CREATE),
                                     )
                                     self._build_button(
                                         "Open",
                                         "Open an existing project",
-                                        self.__on_open_project_clicked,
+                                        partial(self._invoke_mod_setup_wizard, _WizardTypes.OPEN),
                                     )
                                     # Initialize the UI with the right state
                                     stage = omni.usd.get_context(self._context_name).get_stage()
                                     project_opened = stage and not bool(stage.GetRootLayer().anonymous)
+                                    workspace_layout_file = _get_quicklayout_config(
+                                        constants.LayoutFiles.WORKSPACE_PAGE
+                                    )
                                     self._resume_button = self._build_button(
                                         "Resume",
                                         "Resume editing the currently opened project",
-                                        self.__on_resume_clicked,
+                                        lambda *_: _QuickLayout.load_file(workspace_layout_file),
                                     )
                                     self.set_resume_enabled(project_opened)
 
@@ -436,6 +429,64 @@ class HomePageWidget:
             return
 
         omni.kit.clipboard.copy(label)
+
+    @omni.usd.handle_exception
+    async def _refresh_recent_items_deferred(self):
+        items = []
+        for path, _ in self._recent_saved_file.get_recent_file_data().items():
+            title = os.path.basename(path)
+            details = {"Path": path}
+            details.update(self._recent_saved_file.get_path_detail(path))
+            data = await self._recent_saved_file.find_thumbnail_async(path)
+            if data is None:
+                continue
+            _, thumbnail = data
+            items.append((title, thumbnail, details))
+
+        self._set_recent_items(items)
+
+    def _set_recent_items(self, items: list[tuple[str, str, dict]]):
+        """
+        Set the list of recent projects in the recent projects tree
+        """
+        if not self._recent_model:
+            return
+
+        if self._project_count_label:
+            self._project_count_label.text = str(len(items))
+
+        self._recent_model.refresh(items)
+
+    def _remove_project_from_recent(self, paths: list[str]):
+        for path in paths:
+            self._recent_saved_file.remove_path_from_recent_file(path)
+        asyncio.ensure_future(self._refresh_recent_items_deferred())
+
+    def _load_work_file(self, path):
+        """Triggers the "Load Project" event and loads the workspace window layout if there were no interruptions."""
+        if not Path(path).exists():
+            _TrexMessageDialog(
+                "The selected project does not exist at the given location.",
+                title="Invalid Selected Project",
+                disable_cancel_button=True,
+            )
+            return
+
+        event_manager = _get_event_manager_instance()
+        approvals: list[bool] = event_manager.call_global_custom_event(
+            constants.GlobalEventNames.LOAD_PROJECT_PATH.value, path
+        )
+        if all(approvals):
+            _QuickLayout.load_file(_get_quicklayout_config(constants.LayoutFiles.WORKSPACE_PAGE))
+
+    def _invoke_mod_setup_wizard(self, wizard_type: _WizardTypes):
+        def on_load_project():
+            _QuickLayout.load_file(_get_quicklayout_config(constants.LayoutFiles.WORKSPACE_PAGE))
+            self._sub_wizard_completed = None
+
+        wizard = _get_wizard_instance(wizard_type, self._context_name)
+        self._sub_wizard_completed = wizard.subscribe_wizard_completed(on_load_project)
+        wizard.show_project_wizard(reset_page=True)
 
     def destroy(self):
         reset_default_attrs(self)

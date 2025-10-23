@@ -1,6 +1,13 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0]
+### Added
+- Added support for two-way event communication by returning list of callback results
+
+### Changed
+- Improved error and warning messages with consistent event name quoting
+
 ## [1.1.3]
 ### Changed
 - Use Flux Pip Archive for missing dependency

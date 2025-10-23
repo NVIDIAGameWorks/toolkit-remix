@@ -1,0 +1,14 @@
+Edit/*
+!Edit/Preferences
+!Edit/Undo
+!Edit/Redo
+
+Rendering/*
+
+Window/Browsers/
+Window/Profiler
+Window/Extensions
+
+Create/
+
+Profiler/

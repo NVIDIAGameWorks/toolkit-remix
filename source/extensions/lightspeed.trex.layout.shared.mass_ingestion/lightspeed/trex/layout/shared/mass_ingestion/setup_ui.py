@@ -15,7 +15,6 @@
 * limitations under the License.
 """
 
-import abc
 import functools
 from enum import Enum
 from typing import TYPE_CHECKING, List, Optional
@@ -23,7 +22,6 @@ from typing import TYPE_CHECKING, List, Optional
 import omni.ui as ui
 from lightspeed.trex.contexts import get_instance as trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as TrexContexts
-from lightspeed.trex.layout.shared.base import SetupUI as _BaseLayout
 from lightspeed.trex.stage_view.shared.widget import SetupUI as _StageViewWidget
 from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
 from omni.flux.tabbed.widget import SetupUI as _TabbedFrame
@@ -39,15 +37,13 @@ class Pages(Enum):
     WORKSPACE_PAGE = "WorkspacePage"
 
 
-class SetupUI(_BaseLayout):
+class SetupUI:
     WIDTH_TAB_LABEL_PROPERTY = 40
 
     _VALIDATION_TAB_NAME = "Validation"
     _STAGE_VIEW_TAB_NAME = "Stage View"
 
-    def __init__(self, ext_id, schemas: List[dict[str, str]], context: TrexContexts = ""):
-        super().__init__(ext_id)
-
+    def __init__(self, schemas: List[dict[str, str]], context: TrexContexts = ""):
         self._schemas = schemas
         self._trex_context = context
         self._context_name = context.value
@@ -59,41 +55,11 @@ class SetupUI(_BaseLayout):
         self._mass_cores_are_running = {}
 
         self.__last_show_viewport_item = None
-
-    @property
-    def default_attr(self):
-        default_attr = super().default_attr
-        default_attr.update(
-            {
-                "_context": None,
-                "_sub_mass_cores_started": None,
-                "_sub_mass_cores_finished": None,
-                "_mass_cores_are_running": None,
-                "_frame_workspace": None,
-                "_mass_ingest_widget": None,
-                "_sub_mass_core_added": None,
-                "_sub_mass_queue_action_pressed": None,
-                "_properties_panel": None,
-                "_frame_viewport": None,
-                "_viewport": None,
-                "_stage_view_widget": None,
-            }
-        )
-        return default_attr
-
-    @property
-    @abc.abstractmethod
-    def button_name(self) -> str:
-        return ""
+        self._create_layout()
 
     @property
     def context(self) -> TrexContexts:
         return self._trex_context
-
-    @property
-    @abc.abstractmethod
-    def button_priority(self) -> int:
-        return 0
 
     def show(self, value: bool):
         if self._mass_ingest_widget:

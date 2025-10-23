@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.12.0]
+### Added
+- Added workspace integration for dockable Properties window
+
+### Changed
+- Refactored to use context.get_stage() instead of caching stage reference
+- Updated UI styling and spacing for workspace layout
+
 ## [1.11.0]
 ### Changed
 - Adjusted spacing for the new vertical modding tabs

@@ -1,0 +1,19 @@
+[package]
+version = "1.0.0"
+authors = ["Emanuel Kozerski <ekozerski@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["lightspeed", "event", "events", "global", "register"]
+title = "Lightspeed Global Events Registration"
+description = "Extension that registers all global custom events"
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.events_manager" = {}
+"lightspeed.common" = {}
+
+[[python.module]]
+name = "lightspeed.event.events"

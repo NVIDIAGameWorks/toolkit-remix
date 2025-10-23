@@ -45,9 +45,8 @@ class _Setup:
         self._current_context = None
 
         # TODO Feature OM-45888 - File Picker will appear behind the wizard modal
-        # Register the global context change event if not already registered and subscribe
+        # Subscribe to the global context change event
         event_manager = _get_event_manager_instance()
-        event_manager.register_global_custom_event(_constants.GlobalEventNames.CONTEXT_CHANGED.value)
         self._context_changed_sub = event_manager.subscribe_global_custom_event(
             _constants.GlobalEventNames.CONTEXT_CHANGED.value, _destroy_file_picker
         )
@@ -60,6 +59,8 @@ class _Setup:
         if not usd_context:
             usd_context = omni.usd.create_context(usd_context_name.value)
             self._usd_contexts.append(usd_context)
+        if self._current_context is None:
+            self._current_context = usd_context_name
         return usd_context
 
     def get_usd_contexts(self) -> List[omni.usd.UsdContext]:
@@ -73,6 +74,8 @@ class _Setup:
             raise ValueError(f"Context {usd_context_name.value} was never created")
         if not usd_context and create_if_not_exist:
             usd_context = self.create_usd_context(usd_context_name)
+        if usd_context and self._current_context is None:
+            self._current_context = usd_context_name
         return usd_context  # noqa R504
 
     def get_current_context(self) -> Contexts:

@@ -15,22 +15,27 @@
 * limitations under the License.
 """
 
+import asyncio
 from asyncio import ensure_future
 from functools import partial
 from pathlib import Path
 from typing import Callable
 
 import carb
+import omni.kit.app
 import omni.ui
+import omni.usd
+from lightspeed.common.constants import GlobalEventNames
+from lightspeed.common.constants import LayoutFiles as _LayoutFiles
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
+from lightspeed.trex import sidebar
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
 from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 from lightspeed.trex.hotkeys import TrexHotkeyEvent as _TrexHotkeyEvent
 from lightspeed.trex.hotkeys import get_global_hotkey_manager as _get_global_hotkey_manager
-from lightspeed.trex.layout.stagecraft import get_instance as _get_layout_instance
-from lightspeed.trex.layout.stagecraft.setup_ui import Pages
 from lightspeed.trex.menu.workfile import get_instance as _get_menu_workfile_instance
 from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys
 from lightspeed.trex.project_wizard.core import ProjectWizardSchema as _ProjectWizardSchema
@@ -40,15 +45,16 @@ from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCoreSet
 from lightspeed.trex.stage.core.shared import Setup as _StageCoreSetup
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
+from omni.kit.quicklayout import QuickLayout as _QuickLayout
 
 _TREX_IGNORE_UNSAVED_STAGE_ON_EXIT = "/app/file/trexIgnoreUnsavedOnExit"
+_DEFAULT_LAYOUT = "/app/trex/default_layout"
 
 
 class Setup:
     def __init__(self):
         self._default_attr = {
-            "_sub_new_work_file_clicked": None,
-            "_sub_open_work_file_clicked": None,
             "_sub_wizard_completed": None,
             "_stage_core_setup": None,
             "_capture_core_setup": None,
@@ -63,11 +69,13 @@ class Setup:
             "_sub_menu_workfile_undo": None,
             "_sub_menu_workfile_redo": None,
             "_sub_menu_workfile_new_workfile": None,
+            "_menu_workfile_instance": None,
             "_sub_key_undo": None,
             "_sub_key_redo": None,
             "_sub_key_save": None,
             "_sub_key_save_as": None,
             "_sub_key_unselect_all": None,
+            "_sub_stage_event": None,
             "_context": None,
         }
         for attr, value in self._default_attr.items():
@@ -77,26 +85,18 @@ class Setup:
         self._context = _trex_contexts_instance().get_usd_context(_TrexContexts.STAGE_CRAFT)
         self._layer_manager = _LayerManagerCore(context_name=_TrexContexts.STAGE_CRAFT.value)
         self._previous_root_layer_identifier = None
-        self._layout_instance = _get_layout_instance()
         self._menu_workfile_instance = _get_menu_workfile_instance()
         self._stage_core_setup = _StageCoreSetup(self._context_name)
         self._capture_core_setup = _CaptureCoreSetup(self._context_name)
         self._replacement_core_setup = _ReplacementCoreSetup(self._context_name)
 
-        self._sub_new_work_file_clicked = self._layout_instance.subscribe_new_work_file_clicked(
-            partial(self._setup_wizard, _WizardTypes.CREATE)
+        event_manager = _get_event_manager_instance()
+        self._sub_import_capture_layer = event_manager.subscribe_global_custom_event(
+            GlobalEventNames.IMPORT_LAYER.value, self._on_import_layer
         )
-        self._sub_open_work_file_clicked = self._layout_instance.subscribe_open_work_file_clicked(
-            partial(self._setup_wizard, _WizardTypes.OPEN)
+        self._sub_load_workfile = event_manager.subscribe_global_custom_event(
+            GlobalEventNames.LOAD_PROJECT_PATH.value, self._on_open_workfile
         )
-
-        self._sub_import_capture_layer = self._layout_instance.subscribe_import_capture_layer(
-            self._on_import_capture_layer
-        )
-        self._sub_import_replacement_layer = self._layout_instance.subscribe_import_replacement_layer(
-            self._on_import_replacement_layer
-        )
-        self._sub_load_workfile = self._layout_instance.subscribe_load_work_file(self._on_open_workfile)
 
         hotkey_manager = _get_global_hotkey_manager()
         self._sub_key_undo = hotkey_manager.subscribe_hotkey_event(
@@ -110,7 +110,6 @@ class Setup:
         self._sub_key_save_as = hotkey_manager.subscribe_hotkey_event(_TrexHotkeyEvent.CTRL_SHIFT_S, self._on_save_as)
         self._sub_key_unselect_all = hotkey_manager.subscribe_hotkey_event(_TrexHotkeyEvent.ESC, self._on_unselect_all)
 
-        self._sub_menu_workfile_show = self._menu_workfile_instance.subscribe_show_menu(self._on_open_menu)
         self._sub_menu_workfile_save = self._menu_workfile_instance.subscribe_save(self._on_save)
         self._sub_menu_workfile_save_as = self._menu_workfile_instance.subscribe_save_as(self._on_save_as)
         self._sub_menu_workfile_undo = self._menu_workfile_instance.subscribe_undo(self._on_undo)
@@ -118,22 +117,23 @@ class Setup:
         self._sub_menu_workfile_new_workfile = self._menu_workfile_instance.subscribe_create_new_workfile(
             self._on_new_workfile
         )
-
-    def _setup_wizard(self, wizard_type: _WizardTypes):
-        wizard = _get_wizard_instance(wizard_type, self._context_name)
-        self._sub_wizard_completed = wizard.subscribe_wizard_completed(
-            partial(self._layout_instance.show_page, Pages.WORKSPACE_PAGE)
+        self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
+            self._on_stage_event, name="StagecraftStageEvent"
         )
-        wizard.show_project_wizard(reset_page=True)
+        self.__sub_sidebar_items = None  # noqa PLW0238
 
-    def _on_import_capture_layer(self, path: str):
-        self._capture_core_setup.import_capture_layer(path)
+        settings = carb.settings.get_settings()
+        default_layout = settings.get(_DEFAULT_LAYOUT) or ""
+        if default_layout == "stagecraft":
+            _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
 
-    def _on_import_replacement_layer(self, path: str, use_existing_layer: bool = True):
-        self._replacement_core_setup.import_replacement_layer(path, use_existing_layer=use_existing_layer)
+    def prompt_if_unsaved_project(self, callback: Callable[[], None], action_text: str) -> bool:
+        """
+        Check for unsaved project and offer to save before executing callback
 
-    def prompt_if_unsaved_project(self, callback: Callable[[], None], action_text: str) -> None:
-        """Check for unsaved project and offer to save before executing callback"""
+        Returns:
+            True if loading right away, False if it will first prompt the user for unsaved progress.
+        """
 
         def on_save_done(result, error):
             if not result or error:
@@ -168,11 +168,21 @@ class Setup:
                 disable_middle_2_button=False,
                 disable_cancel_button=False,  # Cancel will just do nothing
             )
-        else:
-            # If project does not need to be saved, proceed:
-            callback()
+            return False
 
-    def should_interrupt_shutdown(self):
+        # If project does not need to be saved, proceed:
+        callback()
+        return True
+
+    def should_interrupt_shutdown(self) -> bool:
+        """
+        Implements `lightspeed.event.shutdown_base.InterrupterBase` protocol.
+
+        Show a user prompt and decide whether to continue shutting down the app.
+
+        Returns:
+            True to interrupt shutdown, else False
+        """
         ignore_unsaved_stage = carb.settings.get_settings().get(_TREX_IGNORE_UNSAVED_STAGE_ON_EXIT) or False
         return (
             (not ignore_unsaved_stage)
@@ -181,6 +191,12 @@ class Setup:
         )
 
     def interrupt_shutdown(self, shutdown_callback):
+        """
+        Implements `lightspeed.event.shutdown_base.InterrupterBase` protocol.
+
+        Show a user prompt and decide whether to continue shutting down the app.
+        """
+
         def callback():
             # Clear dirty state to allow shutdown.
             self._context.set_pending_edit(False)
@@ -188,13 +204,32 @@ class Setup:
 
         self.prompt_if_unsaved_project(callback, "closing app")
 
-    def _on_open_menu(self, open_prev_stage_menu_item: omni.ui.MenuItem):
-        # If there is no previous root layer identifier, disable the respective menu item from trex.menu.workfile
-        if open_prev_stage_menu_item:
-            open_prev_stage_menu_item.enabled = bool(self._previous_root_layer_identifier)
+    def register_sidebar_items(self):
+        self.__sub_sidebar_items = sidebar.register_items(  # noqa PLW0238
+            [
+                sidebar.ItemDescriptor(
+                    name="Modding",
+                    tooltip="Modding",
+                    group=sidebar.Groups.LAYOUTS,
+                    mouse_released_fn=self.__open_layout,
+                    sort_index=0,
+                    enabled=False,
+                )
+            ]
+        )
+        self._update_modding_button_state()
+
+    def _on_import_layer(self, layer_type: _LayerType, path: str, existing_file: bool = False):
+        if layer_type == _LayerType.capture:
+            self._capture_core_setup.import_capture_layer(path)
+        elif layer_type == _LayerType.replacement:
+            self._replacement_core_setup.import_replacement_layer(path, use_existing_layer=existing_file)
+        self._update_modding_button_state()
 
     def _on_open_workfile(self, path):
-        self.prompt_if_unsaved_project(lambda: self.__open_stage_and_save_previous_identifier(path), "changing project")
+        return self.prompt_if_unsaved_project(
+            lambda: self.__open_stage_and_save_previous_identifier(path), "changing project"
+        )
 
     def __open_stage_and_save_previous_identifier(self, path):
         if not _ProjectWizardSchema.is_project_file_valid(
@@ -205,6 +240,7 @@ class Setup:
             wizard.show_project_wizard(reset_page=True)
             return
         self._previous_root_layer_identifier = self._layer_manager.open_stage(path)
+        _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
 
     def _on_save_as(self, on_save_done: Callable[[bool, str], None] = None):
         self._stage_core_setup.save_as(on_save_done=on_save_done)
@@ -222,11 +258,37 @@ class Setup:
         self._stage_core_setup.redo()
 
     def _on_new_workfile(self):
-        self.prompt_if_unsaved_project(self.__create_stage_and_save_previous_identifier, "unloading the current stage")
+        return self.prompt_if_unsaved_project(
+            self.__create_stage_and_save_previous_identifier, "unloading the current stage"
+        )
 
     def __create_stage_and_save_previous_identifier(self):
         ensure_future(self._context.close_stage_async())
-        self._layout_instance.return_to_home_page()
+        _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
+
+    def __open_layout(self, x, y, b, m):
+        if b != 0:
+            return
+        _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
+
+    def _on_stage_event(self, event):
+        if event.type in [int(omni.usd.StageEventType.OPENED), int(omni.usd.StageEventType.CLOSING)]:
+            asyncio.ensure_future(self._update_modding_button_state_deferred())
+
+    async def _update_modding_button_state_deferred(self):
+        await omni.kit.app.get_app().next_update_async()
+        self._update_modding_button_state()
+
+    def _update_modding_button_state(self):
+        if not self.__sub_sidebar_items:
+            return
+        stage = self._context.get_stage()
+        if not stage:
+            self.__sub_sidebar_items.set_enabled(False)
+            return
+        root_layer = stage.GetRootLayer()
+        has_project = root_layer and not bool(root_layer.anonymous)
+        self.__sub_sidebar_items.set_enabled(bool(has_project))
 
     def destroy(self):
         _reset_default_attrs(self)

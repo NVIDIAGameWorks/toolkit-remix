@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.0]
+### Added
+- Added global events for workspace management (OPEN_WORKSPACE, LOAD_PROJECT_PATH, IMPORT_LAYER)
+- Added WindowNames enum for UI workspace window integration
+- Added Layouts and LayoutFiles enums for QuickLayout JSON file references
+
+### Changed
+- Renamed global event IMPORT_CAPTURE_LAYER to CAPTURE_LAYER_IMPORTED
+
 ## [1.8.1]
 ### Added
 - Added constants for untitled project name

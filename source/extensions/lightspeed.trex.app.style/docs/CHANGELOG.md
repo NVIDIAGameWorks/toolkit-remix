@@ -1,6 +1,18 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.13.1]
+### Fixed
+- Fixed module import to handle uninitialized Kit gracefully during docs build
+
+## [1.13.0]
+### Added
+- Added styles for new sidebar navigation icons (Home, Project Setup, Modding, Package Mod, Ingestion, AI Tools)
+- Added Background_GREY_26, Background_GREY_60, Background_GREY_50, and Color_WHITE_60 styles
+
+### Changed
+- Updated window shadow opacity for improved visual consistency
+
 ## [1.12.1]
 ## Added
 - Added styles for top bar title in modding tabs

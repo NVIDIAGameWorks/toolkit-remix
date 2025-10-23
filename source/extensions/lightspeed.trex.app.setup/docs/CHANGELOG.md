@@ -1,6 +1,17 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0]
+### Added
+- Added menubar filtering system using menubar_ignore file
+
+### Changed
+- Refactored setup to use workspace-based architecture instead of custom window management
+
+### Removed
+- Removed custom window creation and docking logic
+- Removed app window resizing functionality
+
 ## [1.1.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

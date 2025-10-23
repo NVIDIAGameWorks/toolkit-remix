@@ -17,4 +17,5 @@
 
 __all__ = ["ModPackagingPane"]
 
+from .extension import TrexModPackagingWindowExtension
 from .setup_ui import ModPackagingPane

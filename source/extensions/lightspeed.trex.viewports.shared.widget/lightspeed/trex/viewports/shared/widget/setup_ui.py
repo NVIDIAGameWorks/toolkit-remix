@@ -18,6 +18,7 @@
 import asyncio
 from typing import TYPE_CHECKING, List
 
+import carb
 import carb.input
 import omni.appwindow
 import omni.kit.app
@@ -26,8 +27,6 @@ import omni.usd
 from lightspeed.common.constants import GlobalEventNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.app.style import update_viewport_menu_style
-from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
-from lightspeed.trex.hotkeys import TrexHotkeyEvent, get_global_hotkey_manager
 from lightspeed.trex.viewports.properties_pane.widget import EnumItems as _PropertiesPaneEnumItems
 from lightspeed.trex.viewports.properties_pane.widget import SetupUI as _PropertiesPaneSetupUI
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -68,7 +67,6 @@ class SetupUI:
             "_minimize_window_subscription": None,
             "_active_viewport_change_subscription": None,
             "_stage_event_subscription": None,
-            "_sub_frame_hotkey": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -101,17 +99,8 @@ class SetupUI:
 
         # connect viewport to active viewport event
         event_manager = _get_event_manager_instance()
-        event_manager.register_global_custom_event(GlobalEventNames.ACTIVE_VIEWPORT_CHANGED.value)
         self._active_viewport_change_subscription = event_manager.subscribe_global_custom_event(
             GlobalEventNames.ACTIVE_VIEWPORT_CHANGED.value, self.on_active_viewport_changed
-        )
-
-        # set up a hotkey for framing selection
-        hotkey_manager = get_global_hotkey_manager()
-        self._sub_frame_hotkey = hotkey_manager.subscribe_hotkey_event(
-            TrexHotkeyEvent.F,
-            lambda *_: self.frame_viewport_selection() if self._active else None,
-            context=_TrexContexts(self._context_name),
         )
 
         self._registered = []

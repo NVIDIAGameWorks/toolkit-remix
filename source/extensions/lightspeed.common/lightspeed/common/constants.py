@@ -535,10 +535,16 @@ class NormalMapEncodings(IntEnum):
 
 
 class GlobalEventNames(Enum):
-    IMPORT_CAPTURE_LAYER = "Import capture layer"
+    CAPTURE_LAYER_IMPORTED = "Capture layer imported"
     ACTIVE_VIEWPORT_CHANGED = "Active viewport changed"  # Emitted by trex.viewports.shared.widgets
     CONTEXT_CHANGED = "Context changed"
     PAGE_CHANGED = "Page changed"
+    OPEN_WORKSPACE = "Open the Workspace Page Layout"
+
+    # Requests to load a project by path.
+    # Subscribers should return a True/False approving/interrupting the load. I.e: For pending changes.
+    LOAD_PROJECT_PATH = "Load Toolkit Project Path"
+    IMPORT_LAYER = "Import Layer (LayerType, path, use_existing_file)"
 
 
 # Particle System
@@ -553,3 +559,33 @@ VIEWPORT_MENU_SHOW_BY_TYPE = "Show By Type"
 
 # Modding top bar
 UNTITLED_PROJECT_NAME = "Untitled Project"
+
+
+class WindowNames(str, Enum):
+    """LightSpeed Studio window names for ui.Workspace integration"""
+
+    VIEWPORT = "Viewport"
+    STAGE_MANAGER = "Stage Manager"
+    PROPERTIES = "Editor"  # TODO: Rename to Properties once we break the component to have only property panes in it.
+    SIDEBAR = "Sidebar"
+    MOD_PACKAGING = "Packaging"
+    HOME_PAGE = "Home Page"
+    INGESTCRAFT = "Ingestion"
+    TEXTURECRAFT = "AI Tools"
+    PROJECT_SETUP = "Project Setup"
+    CAPTURES = "Captures"
+
+
+class Layouts(Enum):
+    HOME_PAGE = "HomePage"
+    WORKSPACE_PAGE = "WorkspacePage"
+    INGESTCRAFT = "IngestCraft"
+    TEXTURECRAFT = "TextureCraft"
+
+
+class LayoutFiles(str, Enum):
+    HOME_PAGE = "home_page_default_layout"
+    WORKSPACE_PAGE = "stagecraft_default_layout"
+    INGESTCRAFT = "ingestcraft_default_layout"
+    TEXTURECRAFT = "texturecraft_default_layout"
+    PACKAGING = "packaging_default_layout"

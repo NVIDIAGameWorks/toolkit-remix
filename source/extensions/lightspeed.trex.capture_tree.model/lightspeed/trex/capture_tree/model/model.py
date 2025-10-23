@@ -16,7 +16,6 @@
 """
 
 import asyncio
-from typing import List, Optional, Tuple
 
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCoreSetup
@@ -46,7 +45,7 @@ class CaptureTreeModel(ui.AbstractItemModel):
             "_core_replacement": None,
             "_stage_event_sub": None,
             "_fetch_task": None,
-            "_cancel_token": None,
+            "_progress_cache": None,
         }
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
@@ -59,14 +58,16 @@ class CaptureTreeModel(ui.AbstractItemModel):
 
         self._stage_event_sub = None
         self._fetch_task = None
-        self._cancel_token = False
 
         self.__children = []
+        # Cache for progress data accessible by path
+        self._progress_cache: dict[str, tuple[int, int]] = {}
         self.__on_progress_updated = _Event()
 
-    def refresh(self, paths: List[Tuple[str, str]]):
+    def refresh(self, paths: list[tuple[str, str]]):
         """Refresh the list"""
         self.__children = [CaptureTreeItem(path, image) for path, image in sorted(paths, key=lambda x: x[0])]
+        self._progress_cache.clear()
         self._item_changed(None)
 
         self.fetch_progress()
@@ -93,7 +94,8 @@ class CaptureTreeModel(ui.AbstractItemModel):
 
     def cancel_tasks(self):
         if self._fetch_task is not None:
-            self._cancel_token = True
+            self._fetch_task.cancel()  # Actually cancel the running task
+            self._fetch_task = None
 
     def enable_listeners(self, value: bool):
         if value:
@@ -105,7 +107,7 @@ class CaptureTreeModel(ui.AbstractItemModel):
         else:
             self._stage_event_sub = None
 
-    def fetch_progress(self, items: Optional[List[CaptureTreeItem]] = None):
+    def fetch_progress(self, items: list[CaptureTreeItem] | None = None):
         self.cancel_tasks()
         self._fetch_task = asyncio.ensure_future(self.__fetch_progress(items))
 
@@ -118,52 +120,41 @@ class CaptureTreeModel(ui.AbstractItemModel):
         if self._fetch_task is not None:
             self._fetch_task.cancel()
             self._fetch_task = None
-        self._cancel_token = False
 
     @usd.handle_exception
-    async def async_get_captured_hashes(self, item: CaptureTreeItem, replaced_items: List[str]):
+    async def async_get_captured_hashes(self, item: CaptureTreeItem, replaced_items: list[str]):
         replaced_result, all_assets_result = await self._core_capture.async_get_replaced_hashes(
             item.path, replaced_items
         )
         item.replaced_items = len(replaced_result)
         item.total_items = len(all_assets_result)
 
+        self._progress_cache[item.path] = (item.replaced_items, item.total_items)
+        self._item_changed(None)  # Force full refresh to ensure delegate gets updated data
+
     @usd.handle_exception
-    async def __fetch_progress(self, items: Optional[List[CaptureTreeItem]] = None):
+    async def __fetch_progress(self, items: list[CaptureTreeItem] | None = None):
         collection = items if items else self.__children
-        # Reset the item state
+        # Reset the UI item state
         for item in collection:
             item.replaced_items = None
             item.total_items = None
-        self._progress_updated()
-        # Allow cancelling the task after resetting the UI
-        if self._cancel_token:
-            self.__task_completed()
-            return
+            self._progress_cache.pop(item.path, None)
+
         # Fetch the replaced hashes
         replaced_items = set()
         for layer in self._core_replacement.get_replaced_hashes().items():
-            # Allow cancelling the task for every layer
-            if self._cancel_token:
-                self.__task_completed()
-                return
             replaced_items = replaced_items.union(_ReplacementCoreSetup.group_replaced_hashes(layer))
 
-        tasks = []
-        for item in collection:
-            # Allow cancelling the task for every capture item
-            if self._cancel_token:
-                self.__task_completed()
-                return
-            tasks.append(asyncio.ensure_future(self.async_get_captured_hashes(item, replaced_items)))
+        tasks = [asyncio.ensure_future(self.async_get_captured_hashes(item, replaced_items)) for item in collection]
         await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
-        self._progress_updated()
+        self.__on_progress_updated()
         # Make sure the cancel is reset
         self.__task_completed()
 
-    def _progress_updated(self):
-        """Call the event object that has the list of functions"""
-        self.__on_progress_updated()
+    def get_progress_data(self, item_path: str) -> tuple[int | None, int | None]:
+        """Get progress data from cache by path"""
+        return self._progress_cache.get(item_path, (None, None))
 
     def subscribe_progress_updated(self, func):
         """

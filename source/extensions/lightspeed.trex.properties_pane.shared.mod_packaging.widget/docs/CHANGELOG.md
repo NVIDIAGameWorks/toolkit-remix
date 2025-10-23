@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+### Added
+- Added workspace integration for dockable Mod Packaging window
+- Added sidebar integration with layout switching and stage-based button states
+
+### Changed
+- Updated UI styling and spacing for workspace layout
+
 ## [1.2.2]
 ### Changed
 - Adjusted spacing for the new vertical modding tabs

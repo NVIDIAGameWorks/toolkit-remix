@@ -77,7 +77,6 @@ class SetupUI:
         self._default_attr = {
             "_context_name": None,
             "_core": None,
-            "_stage": None,
             "_frame_none": None,
             "_material_properties_frames": None,
             "_context_menu": None,
@@ -102,8 +101,6 @@ class SetupUI:
         self._core = _MaterialCore(context_name)
         self.set_external_drag_and_drop()  # disable REMIX-3008
 
-        self._stage = usd.get_context(self._context_name).get_stage()
-
         self._current_single_material: Sdf.Path | None = None
         self._current_material_mdl_file: Path | None = None
         self._unfiltered_selected_prims: list[Usd.Prim] = []
@@ -118,7 +115,7 @@ class SetupUI:
         self.__on_material_changed = _Event()
         self.__on_go_to_ingest_tab = _Event()
 
-    def set_external_drag_and_drop(self, window_name=_constants.WINDOW_NAME):
+    def set_external_drag_and_drop(self, window_name="DockSpace"):  # TODO: Should we drag&drop in the whole app window?
         self._external_drag_and_drop = _ExternalDragDrop(window_name=window_name, drag_drop_fn=self._drop_texture)
 
     def _go_to_ingest_tab(self):
@@ -358,7 +355,9 @@ class SetupUI:
                         if display_name in paths:
                             value_model.block_set_value(False)
                             rel_path = omni.client.normalize_url(
-                                usd.make_path_relative_to_current_edit_target(paths[display_name], stage=self._stage)
+                                usd.make_path_relative_to_current_edit_target(
+                                    paths[display_name], stage=self._context.get_stage()
+                                )
                             ).replace("\\", "/")
                             value_model.set_value(rel_path)
 
@@ -458,7 +457,7 @@ class SetupUI:
         callback(value)
 
     def __check_asset_was_ingested_and_in_proj_dir(self, callback, value):
-        layer = self._stage.GetEditTarget().GetLayer()
+        layer = self._context.get_stage().GetEditTarget().GetLayer()
         try:
             abs_new_asset_path = omni.client.normalize_url(layer.ComputeAbsolutePath(value))
         except Exception:  # noqa.
@@ -545,7 +544,7 @@ class SetupUI:
     def __get_meshes_from_instances(self, prims: list[Usd.Prim]) -> list[Usd.Prim]:
         """Get the meshes from the instances."""
         return [
-            self._stage.GetPrimAtPath(prim_path)
+            self._context.get_stage().GetPrimAtPath(prim_path)
             for prim_path in self._asset_replacement_core.get_corresponding_prototype_prims(prims)
         ]
 
@@ -616,7 +615,7 @@ class SetupUI:
         self._material_properties_frames[None].visible = False
 
         for material in materials:
-            material_prim = self._stage.GetPrimAtPath(material)
+            material_prim = self._context.get_stage().GetPrimAtPath(material)
             shader_prim = omni.usd.get_shader_from_material(material_prim, True)
             if shader_prim:
                 shader = UsdShade.Shader(shader_prim)
@@ -812,9 +811,6 @@ class SetupUI:
         self._context_menu.show()
 
     def show(self, value: bool):
-        if value:
-            self._stage = usd.get_context(self._context_name).get_stage()
-
         self._material_properties_widget.show(value)  # to disable the listener
 
     def subscribe_on_material_changed(self, function):
@@ -827,7 +823,7 @@ class SetupUI:
     def get_mesh_from_instance(self, prim: Usd.Prim) -> Usd.Prim | None:
         """Get a corresponding mesh prim from an input instance prim."""
         prototype_prims = self._asset_replacement_core.get_corresponding_prototype_prims([prim])
-        return self._stage.GetPrimAtPath(prototype_prims[0]) if prototype_prims else None
+        return self._context.get_stage().GetPrimAtPath(prototype_prims[0]) if prototype_prims else None
 
     def get_materials_from_prims(self, prims: list[Usd.Prim]) -> list[Sdf.Path]:
         """Get a list of material paths relevant to a list of input prims without duplicates."""

@@ -15,4 +15,5 @@
 * limitations under the License.
 """
 
+from .extension import TrexPropertiesWindowExtension
 from .setup_ui import AssetReplacementsPane  # noqa F401

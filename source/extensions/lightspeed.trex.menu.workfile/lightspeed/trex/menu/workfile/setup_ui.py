@@ -17,8 +17,10 @@
 
 import asyncio
 
+import carb.input
 import carb.tokens
 import omni.flux.feature_flags.window
+import omni.kit.app
 import omni.kit.window.about
 import omni.kit.window.preferences
 import omni.ui as ui
@@ -27,9 +29,9 @@ from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.path_utils import open_file_using_os_default
+from omni.kit.menu import utils as _menu_utils
+from omni.kit.menu.utils import build_submenu_dict as _build_submenu_dict
 from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
-
-from .delegate import Delegate as _Delegate
 
 
 @omni.usd.handle_exception
@@ -60,24 +62,19 @@ def error_prompt(message: str) -> None:
 class SetupUI:
     def __init__(self):
         super().__init__()
-        self._default_attr = {}
+        self._default_attr = {"_menu_items": None, "_sub_app_ready": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
-        self._delegate = _Delegate()
-        self._reload_stage_menu_item = None
-        self.__on_show_menu = _Event()
         self.__on_save = _Event()
         self.__on_save_as = _Event()
         self.__on_new_workfile = _Event()
         self.__undo = _Event()
         self.__redo = _Event()
-        self.__create_ui()
 
-    def subscribe_show_menu(self, function):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        """
-        return _EventSubscription(self.__on_show_menu, function)
+        startup_event_stream = omni.kit.app.get_app().get_startup_event_stream()
+        self._sub_app_ready = startup_event_stream.create_subscription_to_pop_by_type(
+            omni.kit.app.EVENT_APP_READY, lambda *_: self.__register_menu_items(), name="Workfile Menu - App Ready"
+        )
 
     def _save(self):
         """Call the event object that has the list of functions"""
@@ -163,92 +160,53 @@ class SetupUI:
         log_folder = carb.tokens.get_tokens_interface().resolve("${logs}")
         open_file_using_os_default(log_folder)
 
-    def __create_ui(self):
-        def create_separator():
-            ui.Separator(
-                delegate=ui.MenuDelegate(
-                    on_build_item=lambda _: ui.Line(
-                        height=0, alignment=ui.Alignment.V_CENTER, style_type_name_override="Menu.Separator"
-                    )
-                )
-            )
+    def __register_menu_items(self):
+        self._sub_app_ready = None
 
-        self.menu = ui.Menu(
-            "Burger Menu",
-            menu_compatibility=False,
-            delegate=self._delegate,
-            style_type_name_override="MenuBurger",
-        )
+        menu_items = [
+            _menu_utils.MenuItemDescription(
+                name="File/Save",
+                onclick_fn=self._save,
+                hotkey=(carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL, carb.input.KeyboardInput.S),
+            ),
+            _menu_utils.MenuItemDescription(
+                name="File/Save As...",
+                onclick_fn=self._save_as,
+                hotkey=(
+                    carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL | carb.input.KEYBOARD_MODIFIER_FLAG_SHIFT,
+                    carb.input.KeyboardInput.S,
+                ),
+            ),
+            _menu_utils.MenuItemDescription(name="File/Close Project", onclick_fn=self._create_new_workfile),
+            _menu_utils.MenuItemDescription(
+                name="Edit/Undo",
+                onclick_fn=self._undo,
+                hotkey=(carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL, carb.input.KeyboardInput.Z),
+            ),
+            _menu_utils.MenuItemDescription(
+                name="Edit/Redo",
+                onclick_fn=self._redo,
+                hotkey=(carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL, carb.input.KeyboardInput.Y),
+            ),
+            _menu_utils.MenuItemDescription(
+                name="Edit/Preferences", onclick_fn=self._show_preferences_window, appear_after="Edit/Redo"
+            ),
+            _menu_utils.MenuItemDescription(name="Help/Optional Features", onclick_fn=self._show_feature_flags),
+            _menu_utils.MenuItemDescription(name="Help/Show Logs", onclick_fn=self._open_logs_dir),
+            _menu_utils.MenuItemDescription(name="Help/About", onclick_fn=self._show_about_window),
+        ]
 
-        with self.menu:
-            ui.MenuItem(
-                "Close Project",
-                identifier="empty_stage",
-                style_type_name_override="MenuBurgerItem",
-                triggered_fn=self._create_new_workfile,
-                tooltip="Close the currently loaded project. This will free up resources for other tasks.",
-            )
-            create_separator()
-            ui.MenuItem(
-                "Save",
-                identifier="save",
-                style_type_name_override="MenuBurgerItem",
-                triggered_fn=self._save,
-                hotkey_text="Ctrl+S",
-            )
-            ui.MenuItem(
-                "Save as",
-                identifier="save_as",
-                style_type_name_override="MenuBurgerItem",
-                triggered_fn=self._save_as,
-                hotkey_text="Ctrl+Shift+S",
-            )
-            create_separator()
-            ui.MenuItem(
-                "Undo",
-                identifier="undo",
-                style_type_name_override="MenuBurgerItem",
-                triggered_fn=self._undo,
-                hotkey_text="Ctrl+Z",
-            )
-            ui.MenuItem(
-                "Redo",
-                identifier="redo",
-                style_type_name_override="MenuBurgerItem",
-                triggered_fn=self._redo,
-                hotkey_text="Ctrl+Y",
-            )
-            create_separator()
-            ui.MenuItem(
-                "Preferences",
-                identifier="preferences",
-                triggered_fn=self._show_preferences_window,
-            )
-            ui.MenuItem(
-                "Optional Features",
-                identifier="feature_flags",
-                triggered_fn=self._show_feature_flags,
-            )
-            create_separator()
-            ui.MenuItem(
-                "Show Logs",
-                identifier="logs",
-                style_type_name_override="MenuBurgerItem",
-                triggered_fn=self._open_logs_dir,
-            )
-            create_separator()
-            ui.MenuItem(
-                "About",
-                identifier="about",
-                style_type_name_override="MenuBurgerItem",
-                triggered_fn=self._show_about_window,
-            )
+        self._menu_items = _build_submenu_dict(menu_items)
+        for group in self._menu_items:
+            _menu_utils.add_menu_items(self._menu_items[group], group)
 
-    def show_at(self, x, y):
-        if self.menu.shown:
-            return
-        self.__on_show_menu(self._reload_stage_menu_item)
-        self.menu.show_at(x, y)
+        _menu_utils.set_default_menu_priority("File", -2)
+        _menu_utils.set_default_menu_priority("Edit", -1)
+        _menu_utils.set_default_menu_priority("Window", 0)
+        _menu_utils.set_default_menu_priority("Help", 1)
 
     def destroy(self):
+        if self._menu_items:
+            for group in self._menu_items:
+                _menu_utils.remove_menu_items(self._menu_items[group], group)
         _reset_default_attrs(self)

@@ -19,6 +19,8 @@ import carb
 import carb.settings
 import omni.ext
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
+from lightspeed.trex.contexts import get_instance as trex_contexts_instance
+from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 
 from .setup import Setup
 from .unsaved_stage import EventUnsavedStageOnShutdown
@@ -45,10 +47,14 @@ class TrexStageCraftControlExtension(omni.ext.IExt):
 
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.trex.control.stagecraft] Startup")
+
+        trex_contexts_instance().create_usd_context(_TrexContexts.STAGE_CRAFT)
+
         instance = _create_instance()
         self._unsaved_event = EventUnsavedStageOnShutdown()
         self._unsaved_event.register_interrupter(instance)
         _get_event_manager_instance().register_event(self._unsaved_event)
+        instance.register_sidebar_items()
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.control.stagecraft] Shutdown")

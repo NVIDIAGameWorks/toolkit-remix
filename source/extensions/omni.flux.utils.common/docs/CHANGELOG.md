@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.5.0]
+### Added
+- Event now returns list of callback results for two-way communication
+
+### Changed
+- Improved Event and EventSubscription documentation
+
 ## [3.4.0]
 ### Changed
 - Updated the `git` module to use PyGit2 instead of system Git

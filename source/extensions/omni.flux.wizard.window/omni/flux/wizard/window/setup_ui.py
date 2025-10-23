@@ -32,7 +32,7 @@ class WizardWindow:
         title: str = "",
         width: int = 600,
         height: int = 400,
-        flags: tuple = None,
+        flags: int = ui.WINDOW_FLAGS_NONE,
     ):
         self._default_attr = {
             "_model": None,

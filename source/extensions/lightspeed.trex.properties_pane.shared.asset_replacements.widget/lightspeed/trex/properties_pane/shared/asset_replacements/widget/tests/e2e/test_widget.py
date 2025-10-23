@@ -258,7 +258,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/Looks/mat_BC868CE5A075ABB1"], False)
-        await ui_test.human_delay(human_delay_speed=3)
+        await ui_test.human_delay(human_delay_speed=10)
 
         # ensure the respective none frames are visible/invisible and material widget is visible
         none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
@@ -295,7 +295,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         # select
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
-        await ui_test.human_delay(human_delay_speed=3)
+        await ui_test.human_delay(human_delay_speed=10)
 
         # ensure the respective none frames are not visible and material widget is visible
         none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
@@ -334,7 +334,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         usd_context.get_selection().set_selected_prim_paths(
             ["/RootNode/Looks/mat_BC868CE5A075ABB1", "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False
         )
-        await ui_test.human_delay(human_delay_speed=3)
+        await ui_test.human_delay(human_delay_speed=10)
 
         # ensure the respective none frames are not visible and material widget is visible
         none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")

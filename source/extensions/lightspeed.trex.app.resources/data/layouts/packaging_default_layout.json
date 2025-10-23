@@ -1,0 +1,194 @@
+[
+  {
+    "children": [
+      {
+        "children": [
+          {
+            "dock_id": 1,
+            "dock_tab_bar_enabled": false,
+            "dock_tab_bar_visible": false,
+            "height": 874.4000244140625,
+            "position_x": 0.0,
+            "position_y": 24.80000114440918,
+            "selected_in_dock": true,
+            "title": "Sidebar",
+            "visible": true,
+            "width": 56.0
+          }
+        ],
+        "dock_id": 1,
+        "position": "LEFT"
+      },
+      {
+        "children": [
+          {
+            "children": [],
+            "dock_id": 4,
+            "position": "LEFT"
+          },
+          {
+            "children": [
+              {
+                "dock_id": 5,
+                "dock_tab_bar_enabled": true,
+                "dock_tab_bar_visible": true,
+                "height": 874.4000244140625,
+                "position_x": 59.20000076293945,
+                "position_y": 24.80000114440918,
+                "selected_in_dock": true,
+                "title": "Packaging",
+                "visible": true,
+                "width": 1740.800048828125
+              }
+            ],
+            "dock_id": 5,
+            "position": "RIGHT"
+          }
+        ],
+        "dock_id": 6,
+        "position": "RIGHT"
+      }
+    ],
+    "dock_id": 3358485147
+  },
+  {
+    "dock_id": 0,
+    "height": 524.0,
+    "position_x": 402.3999938964844,
+    "position_y": 24.80000114440918,
+    "selected_in_dock": false,
+    "title": "Viewport",
+    "visible": false,
+    "width": 1029.5999755859375
+  },
+  {
+    "dock_id": 0,
+    "height": 874.4000244140625,
+    "position_x": 1435.2000732421875,
+    "position_y": 24.80000114440918,
+    "selected_in_dock": false,
+    "title": "Properties",
+    "visible": false,
+    "width": 364.8000183105469
+  },
+  {
+    "dock_id": 0,
+    "height": 524.0,
+    "position_x": 59.20000076293945,
+    "position_y": 24.80000114440918,
+    "selected_in_dock": false,
+    "title": "Project Setup",
+    "visible": false,
+    "width": 340.0
+  },
+  {
+    "dock_id": 0,
+    "height": 347.20001220703125,
+    "position_x": 59.20000076293945,
+    "position_y": 552.0,
+    "selected_in_dock": false,
+    "title": "Stage Manager",
+    "visible": false,
+    "width": 1372.800048828125
+  },
+  {
+    "dock_id": 0,
+    "height": 874.4000244140625,
+    "position_x": 0.0,
+    "position_y": 24.80000114440918,
+    "selected_in_dock": false,
+    "title": "Home Page",
+    "visible": false,
+    "width": 1800.0
+  },
+  {
+    "dock_id": 0,
+    "height": 600.0,
+    "position_x": 48.0,
+    "position_y": 48.0,
+    "selected_in_dock": false,
+    "title": "Render Settings",
+    "visible": false,
+    "width": 600.0
+  },
+  {
+    "dock_id": 0,
+    "height": 72.0,
+    "position_x": 62.19999694824219,
+    "position_y": 180.1999969482422,
+    "selected_in_dock": false,
+    "title": "Capture tree window",
+    "visible": false,
+    "width": 386.3999938964844
+  },
+  {
+    "dock_id": 0,
+    "height": 400.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "AI Tools",
+    "visible": false,
+    "width": 800.0
+  },
+  {
+    "dock_id": 0,
+    "height": 400.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "Optional Features",
+    "visible": false,
+    "width": 500.0
+  },
+  {
+    "dock_id": 0,
+    "height": 540.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "About",
+    "visible": false,
+    "width": 800.0
+  },
+  {
+    "dock_id": 0,
+    "height": 400.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "Ingestion",
+    "visible": false,
+    "width": 800.0
+  },
+  {
+    "dock_id": 0,
+    "height": 600.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "Capture image bigger",
+    "visible": false,
+    "width": 600.0
+  },
+  {
+    "dock_id": 0,
+    "height": 114.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "omni.ui.scene 2121094222800",
+    "visible": false,
+    "width": 210.8000030517578
+  },
+  {
+    "dock_id": 0,
+    "height": 20.0,
+    "position_x": 451.0,
+    "position_y": 180.0,
+    "selected_in_dock": false,
+    "title": "0",
+    "visible": false,
+    "width": 821.6000366210938
+  }
+]
