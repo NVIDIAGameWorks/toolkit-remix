@@ -17,6 +17,8 @@
 
 import omni.usd
 from carb.input import KeyboardInput
+from lightspeed.trex.contexts.extension import get_instance as get_context_manager
+from lightspeed.trex.contexts.setup import Contexts
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
@@ -27,6 +29,8 @@ class TestHotkeys(AsyncTestCase):
 
     # Before running each test
     async def setUp(self):
+        trex_context_manager = get_context_manager()
+        trex_context_manager.set_current_context(Contexts.TEXTURE_CRAFT)
         await open_stage(_get_test_data("usd/project_example/combined.usda"))
 
     # After running each test

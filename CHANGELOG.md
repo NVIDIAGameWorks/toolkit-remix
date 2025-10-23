@@ -13,12 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4260: Added search field to the Stage Manager
 - Added a new menu bar to support the vertical tab layout
 - REMIX-4612: Added ComfyUI core & widget extensions for deeper ComfyUI integration
+- REMIX-4599: Added Kit UI Workspace support for flexible window based layouts.
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
 - Changed modding tabs to a vertical layout, consistent with Ingestion and AI Tools tabs
 - Modernize typing and minor cleanup in omni.flux.utils.* extensions
 - Update hdremix and omni_core_materials to ext-07e0f43-main
+- REMIX-4599: Changed many widgets across the app to be standalone windows.
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths
@@ -26,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension
+- REMIX-4599: Removed old overarching layout widgets prior to using flexible Kit UI Workspace windows.
 
 ## [1.2.4]
 

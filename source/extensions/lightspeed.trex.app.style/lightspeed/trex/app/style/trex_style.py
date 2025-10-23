@@ -37,10 +37,11 @@ async def __override_imgui_style():
     for _ in range(3):
         await omni.kit.app.get_app().next_update_async()
     imgui = omni.kit.imgui.acquire_imgui()
-    imgui.push_style_color(omni.kit.imgui.StyleColor.WindowShadow, carb.Float4(0.0, 0.0, 0.0, 0.0))
+    imgui.push_style_color(omni.kit.imgui.StyleColor.WindowShadow, carb.Float4(0.0, 0.0, 0.0, 1.0))
 
 
 asyncio.ensure_future(__override_imgui_style())
+
 
 # default values (AABBGGRR)
 _BLUE_SELECTED = 0x66FFC700
@@ -53,6 +54,7 @@ _DARK_40 = 0x66000000
 _DARK_85 = 0xD9000000
 _TRUE_DARK = 0xFF000000
 
+_GREY_26 = 0xFF1A1A1A
 _GREY_32 = 0xFF202020
 _GREY_40 = 0xFF282828
 _GREY_42 = 0xFF2A2A2A
@@ -209,6 +211,7 @@ style = ui.Style.get_instance()
 current_dict = style.default
 current_dict.update(
     {
+        # General Styling
         "Button": {
             "background_color": 0x33000000,
             "border_width": 1,
@@ -441,6 +444,31 @@ current_dict.update(
         "Image::MenuBurger": {"image_url": _get_icons("menu-burger"), "color": _WHITE_60},
         "Image::MenuBurger:hovered": {"image_url": _get_icons("menu-burger"), "color": _WHITE_80},
         "Image::MenuBurger:selected": {"image_url": _get_icons("menu-burger"), "color": _WHITE_100},
+        "Image::MenuBurgerDisabled": {"image_url": _get_icons("menu-burger"), "color": _WHITE_30},
+        "Image::Home": {"image_url": _get_icons("home-icon"), "color": _WHITE_60},
+        "Image::Home:hovered": {"image_url": _get_icons("home-icon"), "color": _WHITE_80},
+        "Image::Home:selected": {"image_url": _get_icons("home-icon"), "color": _WHITE_100},
+        "Image::HomeDisabled": {"image_url": _get_icons("home-icon"), "color": _WHITE_30},
+        "Image::ProjectSetup": {"image_url": _get_icons("project-setup-icon"), "color": _WHITE_60},
+        "Image::ProjectSetup:hovered": {"image_url": _get_icons("project-setup-icon"), "color": _WHITE_80},
+        "Image::ProjectSetup:selected": {"image_url": _get_icons("project-setup-icon"), "color": _WHITE_100},
+        "Image::ProjectSetupDisabled": {"image_url": _get_icons("project-setup-icon"), "color": _WHITE_30},
+        "Image::Modding": {"image_url": _get_icons("modding-icon"), "color": _WHITE_60},
+        "Image::Modding:hovered": {"image_url": _get_icons("modding-icon"), "color": _WHITE_80},
+        "Image::Modding:selected": {"image_url": _get_icons("modding-icon"), "color": _WHITE_100},
+        "Image::ModdingDisabled": {"image_url": _get_icons("modding-icon"), "color": _WHITE_30},
+        "Image::PackageMod": {"image_url": _get_icons("package-mod-icon"), "color": _WHITE_60},
+        "Image::PackageMod:hovered": {"image_url": _get_icons("package-mod-icon"), "color": _WHITE_80},
+        "Image::PackageMod:selected": {"image_url": _get_icons("package-mod-icon"), "color": _WHITE_100},
+        "Image::PackageModDisabled": {"image_url": _get_icons("package-mod-icon"), "color": _WHITE_30},
+        "Image::Ingestion": {"image_url": _get_icons("ingestion-icon"), "color": _WHITE_60},
+        "Image::Ingestion:hovered": {"image_url": _get_icons("ingestion-icon"), "color": _WHITE_80},
+        "Image::Ingestion:selected": {"image_url": _get_icons("ingestion-icon"), "color": _WHITE_100},
+        "Image::IngestionDisabled": {"image_url": _get_icons("ingestion-icon"), "color": _WHITE_30},
+        "Image::AITools": {"image_url": _get_icons("ai-tools-icon"), "color": _WHITE_60},
+        "Image::AITools:hovered": {"image_url": _get_icons("ai-tools-icon"), "color": _WHITE_80},
+        "Image::AITools:selected": {"image_url": _get_icons("ai-tools-icon"), "color": _WHITE_100},
+        "Image::AIToolsDisabled": {"image_url": _get_icons("ai-tools-icon"), "color": _WHITE_30},
         "Image::NvidiaShort": {"image_url": _get_image("NVIDIA-logo-green-white"), "color": _WHITE_100},
         "Image::Preview": {"image_url": _get_icons("magnify-expand"), "color": _WHITE_60},
         "Image::Preview:hovered": {"image_url": _get_icons("magnify-expand"), "color": _WHITE_80},
@@ -1011,6 +1039,8 @@ current_dict.update(
         "Rectangle::AlternateRow": {"background_color": _GREY_40},
         "Rectangle::ColumnSeparator": {"background_color": _WHITE_10},
         "Rectangle::LoadingBackground": {"background_color": 0x80303030},
+        "Rectangle::Background_GREY_26": {"background_color": _GREY_26},
+        "Rectangle::Background_GREY_60": {"background_color": _GREY_60},
         "Label::LoadingLabel": {
             "color": _WHITE_80,
             "font_size": 18,
@@ -1020,6 +1050,7 @@ current_dict.update(
             "background_color": _GREY_42,
             "padding": 8,
         },
+        "ScrollingFrame::Background_GREY_50": {"background_color": _GREY_50},
         "Rectangle::CustomTag": {
             "background_color": _GREY_60,
             "padding": 2,
@@ -1035,6 +1066,7 @@ current_dict.update(
             "font_size": 16,
             "font": ui.url.nvidia_md,
         },
+        "Label::Color_WHITE_60": {"color": _WHITE_60},
     }
 )
 style.default = current_dict

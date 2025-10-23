@@ -44,7 +44,7 @@ class ModPackagingPane:
     _MOD_PACKAGING_CONTEXT = "ModPackaging"
 
     def __init__(self, context_name: str = ""):
-        """Nvidia StageCraft Components Pane"""
+        """Nvidia StageCraft Mod Packaging Pane"""
 
         self._default_attr = {
             "_context_name": None,
@@ -99,13 +99,14 @@ class ModPackagingPane:
         self._root_frame = ui.Frame()
         with self._root_frame:
             with ui.ScrollingFrame(
-                name="PropertiesPaneSection",
+                name="Background_GREY_50",
                 horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
             ):
                 with ui.VStack():
-                    ui.Spacer(height=ui.Pixel(56))
+                    ui.Spacer(height=ui.Pixel(5))
                     with ui.HStack():
-                        with ui.VStack():
+                        ui.Spacer(width=ui.Pixel(5))
+                        with ui.VStack(style={"margin": 0}):
                             self._package_details_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "MOD DETAILS",
                                 info_text="The packaged mod name and any additional details about the mod.",
@@ -187,7 +188,8 @@ class ModPackagingPane:
                             )
 
                             ui.Spacer(height=ui.Pixel(16))
-                        ui.Spacer(width=ui.Pixel(16))
+                        ui.Spacer(width=ui.Pixel(5))
+                    ui.Spacer(height=ui.Pixel(5))
 
     def show(self, value):
         self._root_frame.visible = value

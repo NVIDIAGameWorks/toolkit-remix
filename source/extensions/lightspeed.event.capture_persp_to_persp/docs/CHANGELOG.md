@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.1]
+### Changed
+- Simplified event subscription logic by directly subscribing to capture layer import events
+- Simplified test fixtures by removing manual viewport instance management
+
+### Added
+- Added lightspeed.event.events dependency to ensure proper event registration
+
 ## [1.4.0]
 ### Changed
 - Cleanup extension code

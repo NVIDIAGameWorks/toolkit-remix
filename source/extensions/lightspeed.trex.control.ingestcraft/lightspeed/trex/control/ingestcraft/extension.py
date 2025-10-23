@@ -18,6 +18,8 @@
 import carb
 import carb.settings
 import omni.ext
+from lightspeed.trex.contexts import get_instance as trex_contexts_instance
+from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 
 from .setup import Setup
 
@@ -31,6 +33,7 @@ class TrexStageCraftControlExtension(omni.ext.IExt):
 
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.trex.control.ingestcraft] Startup")
+        trex_contexts_instance().create_usd_context(_TrexContexts.INGEST_CRAFT)
         self._setup = Setup()
 
     def on_shutdown(self):

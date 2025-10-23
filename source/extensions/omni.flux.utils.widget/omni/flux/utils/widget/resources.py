@@ -22,7 +22,12 @@ import omni.kit.app
 
 
 def _get_default_resources_ext() -> str | None:
-    return carb.settings.get_settings().get("/exts/omni.flux.utils.widget/default_resources_ext")  # type: ignore kit
+    try:
+        setting_name = "/exts/omni.flux.utils.widget/default_resources_ext"
+        return carb.settings.get_settings().get(setting_name)  # type: ignore kit
+    except RuntimeError:
+        # Carb not initialized (e.g., during docs build)
+        return None
 
 
 def _get_extension_root(name: str) -> Path:
@@ -55,11 +60,11 @@ def get_icons(name: str, ext_name: str | None = None) -> str | None:
         ext_name = _get_default_resources_ext()
     if ext_name is None:
         carb.log_warn("No resource extension found!")
-        return None
+        return ""
     for icon in _get_extension_root(ext_name).joinpath("data", "icons").iterdir():
         if icon.stem == name:
             return str(icon)
-    return None
+    return ""
 
 
 def get_image(name: str, ext_name: str | None = None) -> str | None:
@@ -78,11 +83,11 @@ def get_image(name: str, ext_name: str | None = None) -> str | None:
         ext_name = _get_default_resources_ext()
     if ext_name is None:
         carb.log_warn("No resource extension found!")
-        return None
+        return ""
     for image in _get_extension_root(ext_name).joinpath("data", "images").iterdir():
-        if image.stem == name:
+        if not image.is_dir() and image.stem == name:
             return str(image)
-    return None
+    return ""
 
 
 def get_background_images(ext_name: str | None = None) -> list[str]:
@@ -125,11 +130,11 @@ def get_fonts(name: str, ext_name: str | None = None) -> str | None:
         ext_name = _get_default_resources_ext()
     if ext_name is None:
         carb.log_warn("No resource extension found!")
-        return None
+        return ""
     for font in _get_extension_root(ext_name).joinpath("data", "fonts").iterdir():
         if font.stem == name:
             return str(font)
-    return None
+    return ""
 
 
 def get_test_data(name: str, ext_name: str | None = None) -> str | None:
@@ -173,3 +178,48 @@ def get_font_list(ext_name: str | None = None) -> dict[str, str]:
         carb.log_warn("No resource extension found!")
         return {}
     return {font.stem: str(font) for font in _get_extension_root(ext_name).joinpath("data", "fonts").iterdir()}
+
+
+def get_quicklayout_config(name: str, ext_name: str | None = None) -> str | None:
+    """
+    Get QuickLayout layout JSON file path from a resource extension
+
+    Args:
+        name: the name of the layout to get (without the extension)
+        ext_name: the name of the resource extension. Defaults to
+            /exts/omni.flux.utils.widget/default_resources_ext setting.
+
+    Returns:
+        Path of the layout
+    """
+    if ext_name is None:
+        ext_name = _get_default_resources_ext()
+    if ext_name is None:
+        carb.log_warn("No resource extension found!")
+        return None
+    for layout in _get_extension_root(ext_name).joinpath("data", "layouts").iterdir():
+        if layout.stem == name:
+            return str(layout)
+    return None
+
+
+def get_menubar_ignore_file(ext_name: str | None = None) -> str | None:
+    """
+    Get menubar ignore file path from a resource extension
+
+    Args:
+        ext_name: the name of the resource extension. Defaults to
+            /exts/omni.flux.utils.widget/default_resources_ext setting.
+
+    Returns:
+        Path of the menubar ignore file
+    """
+    if ext_name is None:
+        ext_name = _get_default_resources_ext()
+    if ext_name is None:
+        carb.log_warn("No resource extension found!")
+        return None
+    menubar_ignore_file = _get_extension_root(ext_name).joinpath("data", "layouts", "menubar_ignore")
+    if menubar_ignore_file.exists():
+        return str(menubar_ignore_file)
+    return None

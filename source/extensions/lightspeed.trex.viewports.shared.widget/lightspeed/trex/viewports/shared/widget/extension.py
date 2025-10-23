@@ -22,6 +22,9 @@ import carb
 import omni.ext
 from lightspeed.light.gizmos.layer import LightGizmosLayer as _LightGizmosLayer
 from lightspeed.particle.gizmos.layer import ParticleGizmosLayer as _ParticleGizmosLayer
+from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
+from lightspeed.trex.hotkeys import TrexHotkeyEvent as _TrexHotkeyEvent
+from lightspeed.trex.hotkeys import get_global_hotkey_manager as _get_global_hotkey_manager
 from lightspeed.trex.viewports.manipulators import camera_default_factory as _manipulator_camera_default
 from lightspeed.trex.viewports.manipulators import grid_default_factory as _manipulator_grid_default
 from lightspeed.trex.viewports.manipulators import prim_transform_default_factory as _prim_transform_manipulator
@@ -39,11 +42,12 @@ from .tools.layer import ViewportToolsLayer
 from .tools.teleport import create_button_instance as _create_teleporter_toolbar_button_group
 from .tools.teleport import delete_button_instance as _delete_teleporter_toolbar_button_group
 from .tools.teleport import teleporter_factory as _teleporter_factory
+from .workspace import MainViewportWindow as _MainViewportWindow
 
 if TYPE_CHECKING:
     from omni.kit.widget.viewport.api import ViewportAPI
 
-_VIEWPORT_MANAGER_INSTANCE: dict[str, _ViewportSetupUI] | None = None
+_VIEWPORT_MANAGER_INSTANCE: dict[str, _ViewportSetupUI] = {}
 
 
 def get_instances() -> Optional[Dict[str, _ViewportSetupUI]]:
@@ -51,14 +55,10 @@ def get_instances() -> Optional[Dict[str, _ViewportSetupUI]]:
 
 
 def get_instance(context_name: str) -> Optional[_ViewportSetupUI]:
-    if context_name in _VIEWPORT_MANAGER_INSTANCE:
-        return _VIEWPORT_MANAGER_INSTANCE[context_name]
-    return None
+    return _VIEWPORT_MANAGER_INSTANCE.get(context_name, None)
 
 
 def get_active_viewport() -> Optional[_ViewportSetupUI]:
-    if not _VIEWPORT_MANAGER_INSTANCE:
-        return None
     for viewport in _VIEWPORT_MANAGER_INSTANCE.values():
         if viewport.is_active():
             return viewport
@@ -66,11 +66,8 @@ def get_active_viewport() -> Optional[_ViewportSetupUI]:
 
 
 def create_instance(context_name: str) -> _ViewportSetupUI:
-    global _VIEWPORT_MANAGER_INSTANCE
     viewport = _ViewportSetupUI(context_name)
-    if _VIEWPORT_MANAGER_INSTANCE is None:
-        _VIEWPORT_MANAGER_INSTANCE = {}
-    _VIEWPORT_MANAGER_INSTANCE.update({context_name: viewport})
+    _VIEWPORT_MANAGER_INSTANCE[context_name] = viewport
     return viewport
 
 
@@ -88,11 +85,16 @@ class TrexViewportSharedExtension(omni.ext.IExt):
         super().__init__()
         self.__registered = None
         self.__teleport_button_group = None
+        self.__frame_hotkey_sub = None  # noqa: PLW0238
 
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.trex.viewports.shared.widget] Startup")
         self.__register_scenes()
         self.__add_tools()
+        self.__register_hotkeys()
+        self._workspace_window = _MainViewportWindow(create_instance, _TrexContexts.STAGE_CRAFT.value)
+        self._workspace_window.create_window()
+        omni.ui.Workspace.set_show_window_fn(self._workspace_window.title, self._workspace_window.show_window_fn)
 
     def __register_scenes(self):
         # scenes. But scenes are filtered in ViewportSceneLayer
@@ -142,9 +144,24 @@ class TrexViewportSharedExtension(omni.ext.IExt):
             self.__teleport_button_group.clean()
             _delete_teleporter_toolbar_button_group()
 
+    def __register_hotkeys(self):
+        def frame_active_viewport():
+            active_viewport = get_active_viewport()
+            if active_viewport:
+                active_viewport.frame_viewport_selection()
+
+        hotkey_manager = _get_global_hotkey_manager()
+        self.__frame_hotkey_sub = hotkey_manager.subscribe_hotkey_event(  # noqa: PLW0238
+            _TrexHotkeyEvent.F,
+            frame_active_viewport,
+        )
+
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.viewports.shared.widget] Shutdown")
         if self.__registered:
             self.__unregister_scenes(self.__registered)
         self.__remove_tools()
         self.__registered = None
+        self.__frame_hotkey_sub = None  # noqa: PLW0238
+        self._workspace_window.cleanup()
+        omni.ui.Workspace.set_show_window_fn(self._workspace_window.title, lambda *_: None)

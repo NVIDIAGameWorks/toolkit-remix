@@ -1,6 +1,15 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Added
+- Added progress data caching for improved performance
+- Added get_progress_data() method to retrieve cached progress values
+
+### Changed
+- Improved async task cancellation using task.cancel() instead of boolean token
+- Modernized type hints throughout the module
+
 ## [1.3.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.22.0]
+### Added
+- Added new sidebar icons for workspace navigation (AI Tools, Home, Ingestion, Modding, Package Mod, Project Setup)
+- Added default layout configurations for Home Page, IngestCraft, Packaging, StageCraft, and TextureCraft
+- Added menubar filter configuration file for production-ready menu filtering
+
+### Changed
+- Updated menu-burger icon for improved visual consistency
+
 ## [1.21.0]
 ### Added
 - Added search field to the all of the Stage Manager tabs

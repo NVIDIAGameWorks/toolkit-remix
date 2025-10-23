@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0]
+### Added
+- Added support for workspace-based architecture with sidebar and home page widgets
+- Added QuickLayout integration for dynamic layout management
+- Added global workspace events (OPEN_WORKSPACE, LOAD_PROJECT_PATH, IMPORT_LAYER)
+
+### Changed
+- Updated to use centralized event registration via lightspeed.event.events
+
 ## [1.5.6]
 ## Fixed
 - Added validation when opening a project with dependencies not in the project directory

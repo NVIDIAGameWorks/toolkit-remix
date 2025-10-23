@@ -1,0 +1,232 @@
+[
+  {
+    "children": [
+      {
+        "children": [
+          {
+            "dock_id": 1,
+            "dock_tab_bar_enabled": false,
+            "dock_tab_bar_visible": false,
+            "height": 1055.2000732421875,
+            "position_x": 0.0,
+            "position_y": 24.80000114440918,
+            "selected_in_dock": true,
+            "title": "Sidebar",
+            "visible": true,
+            "width": 56.0
+          }
+        ],
+        "dock_id": 1,
+        "position": "LEFT"
+      },
+      {
+        "children": [
+          {
+            "children": [],
+            "dock_id": 7,
+            "position": "LEFT"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "dock_id": 3,
+                    "height": 1055.2000732421875,
+                    "position_x": 59.20000076293945,
+                    "position_y": 24.80000114440918,
+                    "selected_in_dock": false,
+                    "title": "Captures",
+                    "visible": true,
+                    "width": 575.2000122070312
+                  },
+                  {
+                    "dock_id": 3,
+                    "height": 1055.2000732421875,
+                    "position_x": 59.20000076293945,
+                    "position_y": 24.80000114440918,
+                    "selected_in_dock": false,
+                    "title": "Project Setup",
+                    "visible": true,
+                    "width": 575.2000122070312
+                  },
+                  {
+                    "dock_id": 3,
+                    "dock_tab_bar_enabled": true,
+                    "dock_tab_bar_visible": true,
+                    "height": 1055.2000732421875,
+                    "position_x": 59.20000076293945,
+                    "position_y": 24.80000114440918,
+                    "selected_in_dock": true,
+                    "title": "Editor",
+                    "visible": true,
+                    "width": 575.2000122070312
+                  }
+                ],
+                "dock_id": 3,
+                "position": "LEFT"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "dock_id": 5,
+                        "dock_tab_bar_enabled": true,
+                        "dock_tab_bar_visible": true,
+                        "height": 591.2000122070312,
+                        "position_x": 637.6000366210938,
+                        "position_y": 24.80000114440918,
+                        "selected_in_dock": true,
+                        "title": "Viewport",
+                        "visible": true,
+                        "width": 2114.400146484375
+                      }
+                    ],
+                    "dock_id": 5,
+                    "position": "TOP"
+                  },
+                  {
+                    "children": [
+                      {
+                        "dock_id": 6,
+                        "dock_tab_bar_enabled": true,
+                        "dock_tab_bar_visible": true,
+                        "height": 460.8000183105469,
+                        "position_x": 637.6000366210938,
+                        "position_y": 619.2000122070312,
+                        "selected_in_dock": true,
+                        "title": "Stage Manager",
+                        "visible": true,
+                        "width": 2114.400146484375
+                      }
+                    ],
+                    "dock_id": 6,
+                    "position": "BOTTOM"
+                  }
+                ],
+                "dock_id": 4,
+                "position": "RIGHT"
+              }
+            ],
+            "dock_id": 8,
+            "position": "RIGHT"
+          }
+        ],
+        "dock_id": 2,
+        "position": "RIGHT"
+      }
+    ],
+    "dock_id": 3358485147
+  },
+  {
+    "dock_id": 0,
+    "height": 1077.5999755859375,
+    "position_x": 0.0,
+    "position_y": 3.200000047683716,
+    "selected_in_dock": false,
+    "title": "Home Page",
+    "visible": false,
+    "width": 2752.0
+  },
+  {
+    "dock_id": 0,
+    "height": 600.0,
+    "position_x": 48.0,
+    "position_y": 48.0,
+    "selected_in_dock": false,
+    "title": "Render Settings",
+    "visible": false,
+    "width": 600.0
+  },
+  {
+    "dock_id": 0,
+    "height": 400.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "Optional Features",
+    "visible": false,
+    "width": 500.0
+  },
+  {
+    "dock_id": 0,
+    "height": 540.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "About",
+    "visible": false,
+    "width": 800.0
+  },
+  {
+    "dock_id": 0,
+    "height": 400.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "Packaging",
+    "visible": false,
+    "width": 1800.0
+  },
+  {
+    "dock_id": 0,
+    "height": 400.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "Ingestion",
+    "visible": false,
+    "width": 1800.0
+  },
+  {
+    "dock_id": 0,
+    "height": 400.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "AI Tools",
+    "visible": false,
+    "width": 1800.0
+  },
+  {
+    "dock_id": 0,
+    "height": 600.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "Capture image bigger",
+    "visible": false,
+    "width": 600.0
+  },
+  {
+    "dock_id": 0,
+    "height": 0.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "Capture tree window",
+    "visible": false,
+    "width": 0.0
+  },
+  {
+    "dock_id": 0,
+    "height": 114.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "omni.ui.scene 2640585638448",
+    "visible": false,
+    "width": 210.8000030517578
+  },
+  {
+    "dock_id": 0,
+    "height": 20.0,
+    "position_x": 927.0,
+    "position_y": 270.3999938964844,
+    "selected_in_dock": false,
+    "title": "0",
+    "visible": false,
+    "width": 648.0
+  }
+]

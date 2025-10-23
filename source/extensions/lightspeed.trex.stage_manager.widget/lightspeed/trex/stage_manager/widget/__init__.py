@@ -15,4 +15,5 @@
 * limitations under the License.
 """
 
+from .extension import StageManagerWindowExtension
 from .stage_manager import StageManagerWidget

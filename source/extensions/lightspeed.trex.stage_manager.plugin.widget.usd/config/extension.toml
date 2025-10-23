@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "2.2.2"
+version = "2.2.3"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -55,6 +55,7 @@ dependencies = [
 ]
 
 stdoutFailPatterns.exclude = [
+    "*[omni.kit.scene_view.opengl] No UsdRender.Product was found at '{render_product_path}'*",
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]
 

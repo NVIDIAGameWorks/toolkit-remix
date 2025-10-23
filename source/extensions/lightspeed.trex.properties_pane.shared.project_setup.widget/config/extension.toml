@@ -1,0 +1,52 @@
+[package]
+version = "1.7.2"
+authors = ["dbataille@nvidia.com"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["properties_pane", "mod", "project", "setup"]
+title = "NVIDIA RTX Remix Properties Pane Project Setup widget for the StageCraft"
+description = "Project Setup Properties Pane widget for NVIDIA RTX Remix StageCraft App"
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.error_popup.window" = {}
+"lightspeed.events_manager" = {}
+"lightspeed.event.events" = {}
+"lightspeed.layer_manager.core" = {}
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.packaging.core" = {}
+"lightspeed.trex.replacement.core.shared" = {}
+"lightspeed.trex.utils.common" = {}
+"lightspeed.trex.utils.widget" = {}
+"omni.client" = {}
+"omni.kit.widget.filebrowser" = {}
+"omni.kit.window.filepicker" = {}
+"omni.flux.property_widget_builder.model.file" = {}
+"omni.flux.property_widget_builder.widget" = {version = "2.0"}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.kit.usd.layers" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.properties_pane.shared.project_setup.widget"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

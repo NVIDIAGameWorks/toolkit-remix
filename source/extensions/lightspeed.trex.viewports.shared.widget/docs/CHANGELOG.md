@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0]
+### Added
+- Added workspace integration for dockable viewport window
+
+### Changed
+- Refactored hotkey subscription to extension level for better lifecycle management
+- Updated test configuration to exclude render product warnings
+
 ## [1.5.0]
 ## Changed
 - Added particle gizmo layer

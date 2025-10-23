@@ -16,149 +16,142 @@
 """
 
 import asyncio
-import math
+from fnmatch import fnmatch
+from pathlib import Path
 
 import carb
 import omni.appwindow
-import omni.kit.app
-import omni.ui as ui
+import omni.kit
 import omni.usd
-from lightspeed.common.constants import WINDOW_NAME
-from omni.kit.mainwindow import get_main_window
+from omni.flux.utils.widget.resources import get_menubar_ignore_file as _get_menubar_ignore_file
+from omni.kit.menu.utils import MenuLayout
 
 _HIDE_MENU = "/exts/lightspeed.trex.app.setup/hide_menu"
 _APP_WINDOW_SETTING = "/app/window/enabled"  # setting affected by "--no-window" arg
 
+MenuLayoutItemTypes = MenuLayout.Menu | MenuLayout.SubMenu | MenuLayout.Item
+
 
 class SetupUI:
-
-    _WINDOW_NAME = WINDOW_NAME
-
     def __init__(self):
-        """Setup the main Lightspeed Trex window"""
-        self._window = None
-        self._flags = ui.WINDOW_FLAGS_NO_COLLAPSE
-        self._flags |= ui.WINDOW_FLAGS_NO_CLOSE
-        self._flags |= ui.WINDOW_FLAGS_NO_MOVE
-        self._flags |= ui.WINDOW_FLAGS_NO_RESIZE
-        self._flags |= ui.WINDOW_FLAGS_NO_SCROLLBAR
-        self._flags |= ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
-        self._flags |= ui.WINDOW_FLAGS_NO_TITLE_BAR
-
+        """Setup the main Lightspeed settings"""
         self.__settings = carb.settings.get_settings()
 
-        if not self.__settings.get(_HIDE_MENU):
-            # show the menu
-            self._show_menu()
+        if self.__settings.get(_HIDE_MENU):
+            # Editor Menu API must be used when the app is ready.
+            startup_event_stream = omni.kit.app.get_app().get_startup_event_stream()
+            self.__sub_app_ready = startup_event_stream.create_subscription_to_pop_by_type(  # noqa PLW0238
+                omni.kit.app.EVENT_APP_READY,
+                self._hide_menu,
+                name="Hide Menubar - App Ready",
+            )
 
-        self._create_ui()
-        appwindow_stream = omni.appwindow.get_default_app_window().get_window_resize_event_stream()
-        self._subcription_app_window_size_changed = appwindow_stream.create_subscription_to_pop(
-            self._on_app_window_size_changed, name="On app window resized", order=0
-        )
+    def _hide_menu(self, *args):
+        self.__sub_app_ready = None  # noqa PLW0238
 
-    def _show_menu(self):
-        # old menu
-        asyncio.ensure_future(self._deferred_show_menu())
-
-    @omni.usd.handle_exception
-    async def _deferred_show_menu(self):
-        timeout = 60
-        i = 0
-        imported = False
-        while i < timeout:
-            try:
-                import omni.kit.ui  # noqa PLC0415, PLW0621
-
-                imported = True
-                break
-            except ImportError:
-                await omni.kit.app.get_app().next_update_async()  # noqa PLE0601
-                i += 1
-        if not imported:
-            carb.log_error("Can't import omni.kit.ui to show main menubar")
-            return
-        editor_menu = omni.kit.ui.get_editor_menu()
-        active_menus = editor_menu.active_menus.copy().keys()
-        for menu in active_menus:
-            editor_menu.remove_item(menu)
-        main_menu_bar = get_main_window().get_main_menu_bar()
-        main_menu_bar.visible = True
-
-    def _on_app_window_size_changed(self, event: carb.events.IEvent):
-        asyncio.ensure_future(self._deferred_on_app_window_size_changed())
-
-    @omni.usd.handle_exception
-    async def _deferred_on_app_window_size_changed(self):
-        """Tricks: re-dock to have the main window updating his size"""
-        self._window.flags = self._flags
-        main_dockspace = ui.Workspace.get_window("DockSpace")
-        self._window.dock_in(main_dockspace, ui.DockPosition.SAME)
-        await omni.kit.app.get_app().next_update_async()
-        self._resize_app_window_to_multiple_two()
-        await self.setup_render_settings_window()
-
-    def _resize_app_window_to_multiple_two(self):
-        # we don't want to have the size of the window to not be a multiple of 2.
-        app_window = omni.appwindow.get_default_app_window()
-        size = app_window.get_size()
-        size = (2 * math.ceil(size[0] / 2), 2 * math.ceil(size[1] / 2))
-        app_window.resize(*size)
-
-    @omni.usd.handle_exception
-    async def _dock(self) -> None:
-        """Dock the main Flux window into the DockSpace."""
-        # Wait for the DockSpace
-        frame = 0
-        while True:
+        async def deferred_hide_menu():
             await omni.kit.app.get_app().next_update_async()
-            main_dockspace = ui.Workspace.get_window("DockSpace")
-            if main_dockspace is not None:
-                break
-            frame += 1
-            if frame == 100:
-                raise TimeoutError("Can't set the workspace, missing DockSpace window")
-
-        # Setup the docking Space:
-        self._window.dock_in(main_dockspace, ui.DockPosition.SAME)
-        await omni.kit.app.get_app().next_update_async()
-        await self.setup_render_settings_window(hide=True)
-        self._window.flags = self._flags
-        await omni.kit.app.get_app().next_update_async()
-        self._window.dock_tab_bar_visible = False
-        self._window.dock_tab_bar_enabled = False
-
-    @omni.usd.handle_exception
-    async def setup_render_settings_window(self, hide=False):
-        """Temp solution TODO: OM-72923"""
-        # skip temp fix if app is launched with "--no-window" and there are no windows to find
-        if not carb.settings.get_settings().get(_APP_WINDOW_SETTING):
-            return
-        # Wait for the render settings windows
-        frame = 0
-        while True:
             await omni.kit.app.get_app().next_update_async()
-            render_settings = ui.Workspace.get_window("Render Settings")
-            if render_settings is not None:
-                break
-            frame += 1
-            if frame == 100:
-                raise TimeoutError("Can't set the workspace, missing Render Settings window")
+            await omni.kit.app.get_app().next_update_async()
 
-        render_settings.height = self._window.height * 0.70
-        render_settings.width = 400
-        render_settings.position_x = self._window.width - render_settings.width
-        render_settings.position_y = 150
-        if hide:
-            render_settings.visible = False
+            menubar_ignore = MenubarIgnore()
+            custom_layouts = menubar_ignore.get_menubar_layout()
+            omni.kit.menu.utils.add_layout(custom_layouts)
 
-    def get_window(self):
-        return self._window
+        asyncio.ensure_future(deferred_hide_menu())
 
-    def _create_ui(self):
-        self._window = ui.Window(self._WINDOW_NAME, name=self._WINDOW_NAME, visible=True, style=ui.Style.get_instance())
-        asyncio.ensure_future(self._dock())
 
-    def destroy(self):
-        self._subcription_app_window_size_changed = None
-        self._window = None
+class MenubarIgnore:
+    """
+    Loads a menubar_ignore file and computes menu bar items/submenus visibility based on it.
+    """
+
+    def __init__(self):
+        ignore_file_path = _get_menubar_ignore_file()
+        if not ignore_file_path:
+            carb.log_warn("No menubar ignore file found!")
+            self.__rules = {"inclusions": set(), "exclusions": set()}
+            return
+        with open(ignore_file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            content = {line.strip() for line in content.split("\n") if line.strip() and not line.startswith("#")}
+
+        # Add a "*" to dirs to be compatible with fnmatch's glob filter style.
+        inclusions = {line + ("*" if line.endswith("/") else "") for line in content if line.startswith("!")}
+        exclusions = {line + ("*" if line.endswith("/") else "") for line in content.difference(inclusions)}
+        self.__rules = {
+            "inclusions": {rule.replace("!", "") for rule in inclusions},
+            "exclusions": exclusions,
+        }
+
+    def is_ignored(self, path: str | Path) -> bool:
+        """Given a menu bar item/submenu path, returns whether it is ignored by the menubar_ignore file or not"""
+        menu_path: str = str(path)
+        excluded = any(fnmatch(menu_path, pattern) for pattern in self.__rules["exclusions"])
+        included = any(fnmatch(menu_path, pattern) for pattern in self.__rules["inclusions"])
+        return excluded and not included
+
+    def get_menubar_layout(self) -> list[MenuLayout.Menu]:
+        """
+        Computes the omni.kit.menu.utils.MenuLayout list to be used with omni.kit.menu.utils.add_layout
+
+        Example format:
+        [
+            MenuLayout.Menu("Window", [
+                MenuLayout.Item("Item 1", remove=True),
+                MenuLayout.Item("Item 2", remove=True),
+            ])
+        ]
+        """
+        all_menus = omni.kit.menu.utils.get_merged_menus()
+        top_level_menus = {menu_name: menu for menu_name, menu in all_menus.items() if not menu.get("sub_menu")}
+
+        def traverse_menus(target_menu, current_menu_path: str):
+            all_items = {item for item in target_menu.get("items") if item.name}
+            sub_menus = [item for item in all_items if item.sub_menu]
+            final_items = all_items.difference(sub_menus)
+            layouts = []
+            has_visible_children = False
+            for item in final_items:
+                is_ignored = self.is_ignored(f"{current_menu_path}/{item.name}")
+                has_visible_children |= not is_ignored
+                if is_ignored:
+                    layouts.append(MenuLayout.Item(item.name, remove=True))
+
+            for menu in sub_menus:
+                visible, sub_layouts = traverse_menus(all_menus[menu.sub_menu], f"{current_menu_path}/{menu.name}")
+                has_visible_children |= visible
+                if sub_layouts:
+                    menu_layout = MenuLayout.SubMenu(menu.name, sub_layouts, remove=not visible)
+                    layouts.append(menu_layout)
+
+            return has_visible_children, layouts
+
+        custom_layouts = []
+        for menu_name, menu in top_level_menus.items():
+            visible, menu_layouts = traverse_menus(menu, menu_name)
+            if menu_layouts:
+                menu_layout = MenuLayout.Menu(menu_name, menu_layouts, remove=not visible)
+                custom_layouts.append(menu_layout)
+            else:
+                custom_layouts.append(MenuLayout.Menu(menu_name, remove=False))
+
+        return custom_layouts
+
+    def print_menus(self, target: MenuLayoutItemTypes | list[MenuLayoutItemTypes], path: str = "") -> None:
+        """
+        Util debug function to print out the menu layouts in plain format.
+
+        Arguments:
+            target: Just pass the return of get_menubar_layout, as it is actually used for recursive search.
+            path: Omit that, also used for recursive search.
+        """
+        if isinstance(target, list):
+            for menu in target:
+                self.print_menus(menu, path)
+        elif isinstance(target, (MenuLayout.Menu, MenuLayout.SubMenu)):
+            print(f"{path}/{target.name}/")
+            for item in target.items:
+                self.print_menus(item, f"{path}/{target.name}")
+        elif isinstance(target, MenuLayout.Item):
+            print(f"{path}/{target.name}")

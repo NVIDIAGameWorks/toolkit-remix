@@ -15,4 +15,5 @@
 * limitations under the License.
 """
 
+from .extension import TrexHomePageWindowExtension
 from .home_widget import HomePageWidget

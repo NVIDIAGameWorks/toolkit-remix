@@ -1,5 +1,5 @@
 [package]
-version = "1.5.0"
+version = "1.6.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Viewports implementation"
 description = "Viewports implementation for NVIDIA RTX Remix App"
@@ -18,6 +18,8 @@ icon = "data/icon.png"
 "lightspeed.trex.app.style" = {}
 "lightspeed.trex.app.resources" = {}
 "lightspeed.trex.utils.common" = {}
+"lightspeed.trex.utils.widget" = {}
+"lightspeed.event.events" = {}
 "lightspeed.events_manager" = {}
 "lightspeed.trex.contexts" = {}
 "lightspeed.trex.hotkeys" = {}
@@ -58,6 +60,7 @@ args = [
 ]
 
 stdoutFailPatterns.exclude = [
+    "*[omni.kit.scene_view.opengl] No UsdRender.Product was found at '{render_product_path}'*",
     "*Multiple textures for pxr engine is not currently supported*",
     "*Setting hydra_engine to pxr failed*",
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",

@@ -592,6 +592,7 @@ autodoc.mock_imports = [
     "omni.kit.manipulator",  # uses omni.kit.get_app() at module level
     "omni.kit.viewport.menubar.camera",  # uses carb.tokens.get_tokens_interface() at module level
     "omni.kit.viewport.menubar.render",  # uses carb.tokens.get_tokens_interface() at module level
+    "lightspeed.trex.app.style",  # uses carb.settings.get_settings() at module level
 ]
 
 autodoc.pydantic_model_show_json_error_strategy = "coerce"
@@ -649,6 +650,7 @@ sphinx_exclude_patterns = [
     "SECURITY.md",
     "VERSION.md",
     "**/omni-core-materials-LICENSE.md",
+    ".cursor",
     ####################################################################################################################
     # Development READMEs
     ####################################################################################################################

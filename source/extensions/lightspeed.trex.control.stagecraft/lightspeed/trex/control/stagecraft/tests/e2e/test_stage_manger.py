@@ -24,13 +24,15 @@ from unittest.mock import patch
 
 import omni.kit.app
 import omni.usd as usd
-from lightspeed.common.constants import WINDOW_NAME as _WINDOW_NAME
-from lightspeed.trex.layout.stagecraft import get_instance as _get_stagecraft_layout
+from lightspeed.common.constants import LayoutFiles as _LayoutFiles
+from lightspeed.common.constants import WindowNames as _WindowNames
 from lightspeed.trex.properties_pane.shared.asset_replacements.widget import (
     AssetReplacementsPane as _AssetReplacementsPane,
 )
+from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
+from omni.kit.quicklayout import QuickLayout as _QuickLayout
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage
 
@@ -46,9 +48,6 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         self._temp_dir = tempfile.TemporaryDirectory()  # noqa PLR1732
         self._temp_path = (Path(self._temp_dir.name) / "test.usda").as_posix()
 
-        self._stagecraft = _get_stagecraft_layout()
-        self._context = self._stagecraft._context  # noqa PLW0212 protected-access
-
         # open something so that context can be set as dirty
         await open_stage(_get_test_data("usd/project_example/combined.usda"))
 
@@ -61,20 +60,23 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
 
         # Open up the workspace, so we can test the stage manager
-        self._stagecraft.show_page(TestPages.WORKSPACE_PAGE)
-        self._stagecraft._tabbed_frame.selection = ["Asset Replacements"]  # noqa PLW0212
+        # TODO: There is a bug where windows won't spawn docked on first call.
+        _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
+        _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
         await ui_test.human_delay(10)
 
-        layers_panel = ui_test.find(f"{_WINDOW_NAME}//Frame/**/Label[*].text=='LAYERS'")
+        layers_panel = ui_test.find(f"{_WindowNames.PROPERTIES}//Frame/**/Label[*].text=='LAYERS'")
         self.assertIsNotNone(layers_panel)
         await layers_panel.click()
         await ui_test.human_delay()
 
-        property_branches = ui_test.find_all(f"{_WINDOW_NAME}//Frame/**/Image[*].identifier=='property_branch'")
+        property_branches = ui_test.find_all(
+            f"{_WindowNames.PROPERTIES}//Frame/**/Image[*].identifier=='property_branch'"
+        )
         await property_branches[0].click()
         await ui_test.human_delay(10)
 
-        widget_refs = omni.kit.ui_test.find_all(f"{_WINDOW_NAME}//Frame/**/FloatDrag[*]")
+        widget_refs = omni.kit.ui_test.find_all(f"{_WindowNames.PROPERTIES}//Frame/**/FloatDrag[*]")
         widget_ref = widget_refs[0]
 
         with patch.object(_AssetReplacementsPane, "refresh") as mock:

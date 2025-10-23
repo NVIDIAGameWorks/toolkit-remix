@@ -174,6 +174,10 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
         """Create a model per item"""
         if item is None:
             return
+
+        # Get the current progress data from the model instead of relying on the passed item
+        replaced_items, total_items = model.get_progress_data(item.path)
+
         with ui.HStack():
             if column_id == 0:
                 with ui.HStack():
@@ -196,10 +200,8 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
                     ui.Spacer(height=0, width=ui.Pixel(8))
             if column_id == 1:
                 with ui.ZStack():
-                    if item.replaced_items is not None and item.total_items is not None:
-                        color = self.__get_progress_color(
-                            item.replaced_items / item.total_items if item.total_items > 0 else 0
-                        )
+                    if replaced_items is not None and total_items is not None:
+                        color = self.__get_progress_color(replaced_items / total_items if total_items > 0 else 0)
                         ui.Rectangle(
                             height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE) - 2,
                             style={"background_color": color},
@@ -207,7 +209,7 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
                         with ui.HStack():
                             ui.Spacer()
                             ui.Label(
-                                f"{'{:.0f}'.format(item.replaced_items)} / {'{:.0f}'.format(item.total_items)}",
+                                f"{replaced_items:.0f} / {total_items:.0f}",
                                 width=0,
                                 name="ProgressLabel",
                             )

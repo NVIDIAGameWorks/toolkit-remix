@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0]
+### Added
+- Added workspace integration for dockable home page window
+- Added support for global workspace events
+
+### Changed
+- Updated to use workspace-based architecture
+
 ## [1.5.0]
 ### Added
 - Added a more detailed app version number with the ability to copy it to the clipboard

@@ -1,0 +1,46 @@
+[package]
+version = "1.0.0"
+authors =["Emanuel Kozerski <ekozerski@nvidia.com>"]
+title = "NVIDIA RTX Remix Capture Tree UI Widget"
+description = "Creates a windowed widget with a TreeView to display game Captures from a given path."
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["remix", "capture", "tree", "widget"]
+icon = "data/icon.png"
+category = "internal"
+preview_image = "data/preview.png"
+
+[dependencies]
+"omni.ui" = {}
+"omni.usd" = {}
+"omni.client" = {}
+"lightspeed.common" = {}
+"lightspeed.events_manager" = {}
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.capture_tree.model" = {}
+"lightspeed.trex.capture.core.shared" = {}
+"lightspeed.trex.replacement.core.shared" = {}
+"lightspeed.trex.utils.widget" = {}
+"omni.flux.property_widget_builder.model.file" = {}
+"omni.flux.property_widget_builder.widget" = {}
+"omni.flux.utils.widget" = {}
+"omni.flux.utils.common" = {}
+
+[[python.module]]
+name = "lightspeed.trex.capture_tree.widget"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

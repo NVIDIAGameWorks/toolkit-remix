@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from typing import Any
+
 
 class Event(set):
     """
@@ -28,26 +30,18 @@ class Event(set):
 
         Args:
             *args: any args
-            copy: if True, it will execute callback(s) from a copy of the set. Why? It can happen that we have a
-                circular pattern where an event execute a callback that will re-create/delete the event itself.
-                For example, imagine a button that sets an event when we click on it. And the event is that this is
-                re-creating the button itself (and the event).
-                As a result, you could have an error like `RuntimeError: Set changed size during iteration`.
-                We don't set this to True by default to force the dev to be aware of the pattern he is doing.
+            copy: Make a copy of the iterated subscribers list/set if it might change while the event is being triggered
+                I.e: A button that dynamically adds/deletes callbacks as it gets clicked.
             **kwargs: any kwargs
         """
         super().__init__(*args, **kwargs)
         self.__copy = copy
 
-    def __call__(self, *args, **kwargs):
-        """Called when the instance is “called” as a function"""
+    def __call__(self, *args, **kwargs) -> list[Any]:
+        """Calls all subscribed callees and returns their results"""
         # Call all the saved functions
-        if self.__copy:
-            for function in self.copy():
-                function(*args, **kwargs)
-        else:
-            for function in self:
-                function(*args, **kwargs)
+        obj = self.copy() if self.__copy else self
+        return [function(*args, **kwargs) for function in obj]
 
     def __repr__(self):
         """
@@ -59,9 +53,9 @@ class Event(set):
 
 class EventSubscription:
     """
-    Event subscription.
+    Holds an Event subscription, auto-unsubscribed when no longer referenced and gets destroyed by GC.
 
-    _Event has callback while this object exists.
+    Event holds the callback while this object exists.
     """
 
     def __init__(self, event, function):

@@ -48,10 +48,6 @@ class Setup:
             self.__on_load_event, name="Recent file loaded"
         )
 
-        _get_event_manager_instance().register_global_custom_event(
-            constants.GlobalEventNames.IMPORT_CAPTURE_LAYER.value
-        )
-
     def get_layer(self):
         return self._layer_manager.get_layer(LayerType.capture)
 
@@ -115,7 +111,7 @@ class Setup:
             if root_layer.customLayerData.get("cameraSettings", {}).get("Perspective", {}).get("position", {}):
                 return
             _get_event_manager_instance().call_global_custom_event(
-                constants.GlobalEventNames.IMPORT_CAPTURE_LAYER.value
+                constants.GlobalEventNames.CAPTURE_LAYER_IMPORTED.value
             )
 
     def import_capture_layer(self, path: str):
@@ -132,7 +128,7 @@ class Setup:
             path, LayerType.capture, add_custom_layer_data=False, set_as_edit_target=False
         )
         self._layer_manager.lock_layer(LayerType.capture)
-        _get_event_manager_instance().call_global_custom_event(constants.GlobalEventNames.IMPORT_CAPTURE_LAYER.value)
+        _get_event_manager_instance().call_global_custom_event(constants.GlobalEventNames.CAPTURE_LAYER_IMPORTED.value)
 
     def set_directory(self, path: str):
         self.__directory = path
@@ -280,6 +276,6 @@ class Setup:
 
     def destroy(self):
         _get_event_manager_instance().unregister_global_custom_event(
-            constants.GlobalEventNames.IMPORT_CAPTURE_LAYER.value
+            constants.GlobalEventNames.CAPTURE_LAYER_IMPORTED.value
         )
         _reset_default_attrs(self)

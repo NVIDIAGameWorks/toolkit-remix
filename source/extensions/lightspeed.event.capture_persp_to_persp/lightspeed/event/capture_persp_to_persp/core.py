@@ -45,8 +45,6 @@ class EventCapturePerspToPerspCore(_ILSSEvent):
         self._context = omni.usd.get_context(self._context_name)
         self._layer_manager = _LayerManagerCore(self._context_name)
         self._sub_capture_layer_imported = None
-        self._sub_global_event_registered = None
-        self._sub_capture_layer_imported = None
 
     @property
     def name(self) -> str:
@@ -56,11 +54,9 @@ class EventCapturePerspToPerspCore(_ILSSEvent):
     def _install(self):
         """Function that will create the behavior"""
         self._uninstall()
-        self._sub_global_event_registered = _get_event_manager_instance().subscribe_global_custom_event_register(
-            self._on_global_event_registered
-        )
-        self._sub_global_event_unregistered = _get_event_manager_instance().subscribe_global_custom_event_unregister(
-            self._on_global_event_unregistered
+
+        self._sub_capture_layer_imported = _get_event_manager_instance().subscribe_global_custom_event(
+            constants.GlobalEventNames.CAPTURE_LAYER_IMPORTED.value, self._on_capture_layer_imported
         )
 
     def _uninstall(self):
@@ -68,16 +64,6 @@ class EventCapturePerspToPerspCore(_ILSSEvent):
         self._sub_global_event_registered = None
         self._sub_global_event_unregistered = None
         self._sub_capture_layer_imported = None
-
-    def _on_global_event_registered(self, name: str):
-        if name == constants.GlobalEventNames.IMPORT_CAPTURE_LAYER.value:
-            self._sub_capture_layer_imported = _get_event_manager_instance().subscribe_global_custom_event(
-                constants.GlobalEventNames.IMPORT_CAPTURE_LAYER.value, self._on_capture_layer_imported
-            )
-
-    def _on_global_event_unregistered(self, name: str):
-        if name == constants.GlobalEventNames.IMPORT_CAPTURE_LAYER.value:
-            self._sub_capture_layer_imported = None
 
     def _set_perspective_camera(self):
         """Setup the session camera to match the capture camera"""

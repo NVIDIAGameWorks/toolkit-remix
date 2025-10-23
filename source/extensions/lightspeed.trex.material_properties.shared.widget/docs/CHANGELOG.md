@@ -1,9 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.4]
+### Changed
+- Refactored to use context.get_stage() instead of caching stage reference
+
 ## [2.0.3]
 ## Changed
-- Increased delays and fixed bookeeping for tests 
+- Increased delays and fixed bookeeping for tests
 
 ## [2.0.2]
 ## Fixed

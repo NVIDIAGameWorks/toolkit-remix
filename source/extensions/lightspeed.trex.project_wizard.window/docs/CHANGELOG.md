@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.3]
+### Changed
+- Refactored wizard window creation to initialize during construction
+
 ## [2.1.2]
 ## Added
 - Added a project path arg when getting the instance

@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.3]
+### Changed
+- Updated to use centralized event registration via lightspeed.event.events
+- Renamed event from IMPORT_CAPTURE_LAYER to CAPTURE_LAYER_IMPORTED
+
 ## [1.3.2]
 ### Changed
 - Use Flux Pip Archive instead of Kit Pip Archive

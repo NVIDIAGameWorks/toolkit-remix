@@ -119,6 +119,8 @@ class TooltipWidget:
             flags=flags,
             position_x=icon_widget.screen_position_x + icon_widget.computed_width,
             position_y=icon_widget.screen_position_y,
+            padding_x=0,
+            padding_y=0,
         )
         with self._tooltip_window.frame:
             with ui.ZStack():
