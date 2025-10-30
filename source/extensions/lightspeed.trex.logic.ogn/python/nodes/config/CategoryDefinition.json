@@ -1,0 +1,17 @@
+{
+    "categoryDefinitions": {
+        "$description": [
+            "This file contains the category information that will tell OGN what the acceptable values for",
+            "categories are in the .ogn file under the 'categories' keyword along with descriptions of each of",
+            "the categories. Categories have an optional namespace to indicate subcategories, e.g. 'math:vector'",
+            "indicates math nodes dealing exclusively with vectors.",
+            "",
+            "The contents of this file will always denote legal categories. The list can be extended by creating",
+            "another file with the same format and adding it under the 'categoryDefinitions' keyword in .ogn, or by",
+            "inserting an individual category definition in the 'category' keyword in .ogn. See the docs for details."
+        ],
+        "Sense": "Nodes that read information about the game state into the graph",
+        "Transform": "Nodes that transform data already in the graph into a different form",
+        "Act": "Nodes that alter the rendering state based on graph state"
+    }
+}

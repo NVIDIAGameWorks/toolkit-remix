@@ -24,6 +24,8 @@ __all__ = [
     "is_shader_prototype",
     "is_mesh_prototype",
     "is_instance",
+    "is_in_mesh_group",
+    "is_in_light_group",
     "get_extended_selection",
     "get_children_prims",
     "get_reference_file_paths",
@@ -116,7 +118,7 @@ def get_prim_paths(
 
 
 def filter_prims_paths(
-    predicate: Callable[["Usd.Prim"], bool],
+    predicate: Callable[[Usd.Prim], bool],
     prim_paths: list[str] | None = None,
     filter_session_prims: bool = False,
     layer_id: str | None = None,
@@ -172,7 +174,7 @@ def filter_prims_paths(
     return filtered_paths
 
 
-def includes_hash(prim: "Usd.Prim", prim_hashes: set[str]) -> bool:
+def includes_hash(prim: Usd.Prim, prim_hashes: set[str]) -> bool:
     """
     Returns:
         Whether the prim can be found in the set of hashes or not
@@ -184,7 +186,7 @@ def includes_hash(prim: "Usd.Prim", prim_hashes: set[str]) -> bool:
     return bool(any(True for asset_hash in prim_hashes if asset_hash in str(prim.GetPath())))
 
 
-def is_light_prototype(prim: "Usd.Prim") -> bool:
+def is_light_prototype(prim: Usd.Prim) -> bool:
     """
     Returns:
         Whether the prims is a light prototype prim or not
@@ -197,7 +199,7 @@ def is_light_prototype(prim: "Usd.Prim") -> bool:
     )
 
 
-def is_material_prototype(prim: "Usd.Prim") -> bool:
+def is_material_prototype(prim: Usd.Prim) -> bool:
     """
     Returns:
         Whether the prim is a material or not
@@ -207,7 +209,7 @@ def is_material_prototype(prim: "Usd.Prim") -> bool:
     return bool(prim.IsA(UsdShade.Material) and not is_instance(prim))
 
 
-def is_shader_prototype(prim: "Usd.Prim") -> bool:
+def is_shader_prototype(prim: Usd.Prim) -> bool:
     """
     Returns:
         Whether the prim is a material prototype prim or not
@@ -217,7 +219,7 @@ def is_shader_prototype(prim: "Usd.Prim") -> bool:
     return bool(prim.IsA(UsdShade.Shader) and not is_instance(prim))
 
 
-def is_mesh_prototype(prim: "Usd.Prim") -> bool:
+def is_mesh_prototype(prim: Usd.Prim) -> bool:
     """
     Returns:
         Whether the prim is under a mesh_HASH path and is a Mesh prim type
@@ -230,7 +232,7 @@ def is_mesh_prototype(prim: "Usd.Prim") -> bool:
     )
 
 
-def is_a_prototype(prim: "Usd.Prim") -> bool:
+def is_a_prototype(prim: Usd.Prim) -> bool:
     """
     Returns:
         Whether the prim is under a mesh_HASH path
@@ -240,7 +242,7 @@ def is_a_prototype(prim: "Usd.Prim") -> bool:
     return bool(re.match(constants.REGEX_IN_MESH_CHILDREN_PATH, str(prim.GetPath())))
 
 
-def is_instance(prim: "Usd.Prim") -> bool:
+def is_instance(prim: Usd.Prim) -> bool:
     """
     Returns:
         Whether the prim is under an inst_HASH path
@@ -248,6 +250,27 @@ def is_instance(prim: "Usd.Prim") -> bool:
     if not prim:
         return False
     return bool(re.match(constants.REGEX_IN_INSTANCE_PATH, str(prim.GetPath())))
+
+
+def is_in_mesh_group(prim: Usd.Prim) -> bool:
+    """
+    Returns:
+        Whether the prim is under a mesh_HASH path or matches the root mesh path
+    """
+    if not prim:
+        return False
+    return bool(re.match(f"{constants.REGEX_MESH_PATH_AND_CHILDREN}", str(prim.GetPath())))
+
+
+def is_in_light_group(prim: Usd.Prim) -> bool:
+    """
+    Returns:
+        Whether the prim is under a light_HASH path or matches the root light path
+    """
+    if not prim:
+        return False
+    # Match if the path matches either the children or root light path regex
+    return bool(re.match(f"{constants.REGEX_LIGHT_PATH_AND_CHILDREN}", str(prim.GetPath())))
 
 
 def get_extended_selection(context_name: str = "") -> list[str]:
@@ -291,12 +314,12 @@ def get_extended_selection(context_name: str = "") -> list[str]:
 
 
 def get_children_prims(
-    prim: "Usd.Prim",
+    prim: Usd.Prim,
     from_reference_layer_path: str = None,
     level: int | None = None,
     skip_remix_ref: bool = False,
     only_prim_not_from_ref: bool = False,
-) -> list["Usd.Prim"]:
+) -> list[Usd.Prim]:
     """
     Get all children prims for any given prim.
 
@@ -356,8 +379,8 @@ def get_children_prims(
 
 
 def get_reference_file_paths(
-    prim: "Usd.Prim",
-) -> Tuple[List[Tuple["Usd.Prim", "Sdf.Reference", "Sdf.Layer", int]], int]:
+    prim: Usd.Prim,
+) -> Tuple[List[Tuple[Usd.Prim, "Sdf.Reference", "Sdf.Layer", int]], int]:
     """
     Collects file references from a USD prim and its reference children.
     Handles special child prims for multiple identical references.
@@ -394,7 +417,7 @@ def get_reference_file_paths(
     return prim_paths, i
 
 
-def get_prototype(prim: "Usd.Prim") -> Optional["Usd.Prim"]:
+def get_prototype(prim: Usd.Prim) -> Optional[Usd.Prim]:
     """
     Idempotent function to retrieve the prototype (mesh_hash) version of a prim, if existent, else None.
 

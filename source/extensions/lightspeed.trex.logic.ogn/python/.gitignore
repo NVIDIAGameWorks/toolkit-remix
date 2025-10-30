@@ -1,0 +1,4 @@
+# Although directories starting with _ are globally ignored, this one is intentional,
+# to follow the Python convention of internal implementation details starting with underscore
+!_impl/
+__pycache__

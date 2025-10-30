@@ -25,6 +25,7 @@ import omni.usd
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.common.path_utils import open_file_using_os_default
 from omni.flux.utils.widget.color import hex_to_color as _hex_to_color
 from omni.flux.utils.widget.gradient import create_gradient as _create_gradient
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
@@ -237,6 +238,10 @@ class LayerDelegate(_TreeDelegateBase):
             ui.MenuItem(
                 "Export Layer",
                 triggered_fn=partial(self._on_export_clicked, item),
+            )
+            ui.MenuItem(
+                "Reveal in File Explorer",
+                triggered_fn=lambda: open_file_using_os_default(str(item.data["layer"].realPath)),
             )
             mergeable_layers = [item for item in self._primary_selection if not item.data["locked"]]
             if len(mergeable_layers) > 1:

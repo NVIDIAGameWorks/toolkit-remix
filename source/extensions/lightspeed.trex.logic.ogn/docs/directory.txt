@@ -1,0 +1,24 @@
+omni.graph.template.python/
+    config/
+        extension.toml
+    data/
+        icon.svg
+        preview.png
+    docs/
+        CHANGELOG.md
+        directory.txt
+        Overview.md
+        README.md
+    premake5.lua
+    python/
+        __init__.py
+        _impl/
+            __init__.py
+            extension.py
+        nodes/
+            OgnTemplateNodePy.ogn
+            OgnTemplateNodePy.py
+        tests/
+            __init__.py
+            test_api.py
+            test_omni_graph_template_python.py

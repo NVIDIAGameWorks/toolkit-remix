@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.1]
+### Added
+- Added Remix Logic Graph Editor widget
+
 ## [1.6.0]
 ### Added
 - Added support for workspace-based architecture with sidebar and home page widgets

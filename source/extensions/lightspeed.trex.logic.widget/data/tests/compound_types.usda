@@ -1,0 +1,1008 @@
+#usda 1.0
+(
+    customLayerData = {
+        dictionary cameraSettings = {
+            dictionary Front = {
+                double3 position = (0, 0, 50000)
+                double radius = 500
+            }
+            dictionary Perspective = {
+                double3 position = (94.89952674796076, 94.89952448287698, 94.89952674796072)
+                double3 target = (0, 0, 0)
+            }
+            dictionary Right = {
+                double3 position = (-50000, 0, 0)
+                double radius = 500
+            }
+            dictionary Top = {
+                double3 position = (0, 50000, 0)
+                double radius = 500
+            }
+            string boundCamera = "/OmniverseKit_Persp"
+        }
+        dictionary omni_layer = {
+            dictionary muteness = {
+            }
+        }
+        dictionary renderSettings = {
+            float3 "rtx:debugView:pixelDebug:textColor" = (0, 1e18, 0)
+            float3 "rtx:dynamicDiffuseGI:probeCounts" = (6, 6, 6)
+            float3 "rtx:dynamicDiffuseGI:probeGridOrigin" = (-210, -250, -10)
+            float3 "rtx:dynamicDiffuseGI:volumeSize" = (600, 440, 300)
+            float3 "rtx:fog:fogColor" = (0.75, 0.75, 0.75)
+            float3 "rtx:lightspeed:material:overrideAlbedo" = (0.5, 0.5, 0.5)
+            float3 "rtx:lightspeed:material:overrideEmissiveColor" = (0.5, 0.5, 0.5)
+            float3 "rtx:post:backgroundZeroAlpha:backgroundDefaultColor" = (0, 0, 0)
+            float3 "rtx:post:colorcorr:contrast" = (1, 1, 1)
+            float3 "rtx:post:colorcorr:gain" = (1, 1, 1)
+            float3 "rtx:post:colorcorr:gamma" = (1, 1, 1)
+            float3 "rtx:post:colorcorr:offset" = (0, 0, 0)
+            float3 "rtx:post:colorcorr:saturation" = (1, 1, 1)
+            float3 "rtx:post:colorgrad:blackpoint" = (0, 0, 0)
+            float3 "rtx:post:colorgrad:contrast" = (1, 1, 1)
+            float3 "rtx:post:colorgrad:gain" = (1, 1, 1)
+            float3 "rtx:post:colorgrad:gamma" = (1, 1, 1)
+            float3 "rtx:post:colorgrad:lift" = (0, 0, 0)
+            float3 "rtx:post:colorgrad:multiply" = (1, 1, 1)
+            float3 "rtx:post:colorgrad:offset" = (0, 0, 0)
+            float3 "rtx:post:colorgrad:whitepoint" = (1, 1, 1)
+            float3 "rtx:post:lensDistortion:lensFocalLengthArray" = (10, 30, 50)
+            float3 "rtx:post:lensFlares:anisoFlareFalloffX" = (450, 475, 500)
+            float3 "rtx:post:lensFlares:anisoFlareFalloffY" = (10, 10, 10)
+            float3 "rtx:post:lensFlares:cutoffPoint" = (2, 2, 2)
+            float3 "rtx:post:lensFlares:haloFlareFalloff" = (10, 10, 10)
+            float3 "rtx:post:lensFlares:haloFlareRadius" = (75, 75, 75)
+            float3 "rtx:post:lensFlares:isotropicFlareFalloff" = (50, 50, 50)
+            float3 "rtx:post:tonemap:whitepoint" = (1, 1, 1)
+            float3 "rtx:raytracing:inscattering:singleScatteringAlbedo" = (0.9, 0.9, 0.9)
+            float3 "rtx:raytracing:inscattering:transmittanceColor" = (0.5, 0.5, 0.5)
+            float3 "rtx:sceneDb:ambientLightColor" = (0.1, 0.1, 0.1)
+        }
+    }
+    defaultPrim = "World"
+    endTimeCode = 100
+    metersPerUnit = 0.01
+    startTimeCode = 0
+    timeCodesPerSecond = 24
+    upAxis = "Y"
+)
+
+def Xform "World"
+{
+    def Scope "Compounds"
+    {
+        def OmniGraphCompoundNodeType "CompoundNode"
+        {
+            prepend rel omni:graph:asset = </World/Compounds/CompoundNode/Graph>
+            custom rel omni:graph:input:a = </World/Compounds/CompoundNode/Graph/add.inputs:a>
+            custom rel omni:graph:input:b = </World/Compounds/CompoundNode/Graph/add.inputs:b>
+            token omni:graph:namespace = "local.nodes"
+            custom rel omni:graph:output:sum = </World/Compounds/CompoundNode/Graph/add_01.outputs:sum>
+
+            def OmniGraph "Graph"
+            {
+                token evaluationMode = "Automatic"
+                token evaluator:type = "push"
+                token fabricCacheBacking = "Shared"
+                int2 fileFormatVersion = (1, 5)
+                token pipelineStage = "pipelineStageSimulation"
+
+                def OmniGraphNode "add" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    custom token inputs:b
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (437.42786, 153.80768)
+                }
+
+                def OmniGraphNode "add_01" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/Compounds/CompoundNode/Graph/add.outputs:sum>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/Compounds/CompoundNode/Graph/add.outputs:sum>
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (731.3284, 235.52846)
+                }
+            }
+        }
+
+        def OmniGraphCompoundNodeType "BundleCompound"
+        {
+            prepend rel omni:graph:asset = </World/Compounds/BundleCompound/Graph>
+            token[] omni:graph:categories = ["bundle"]
+            custom rel omni:graph:input:a = </World/Compounds/BundleCompound/Graph/add.inputs:a>
+            custom rel omni:graph:input:b = </World/Compounds/BundleCompound/Graph/add.inputs:b>
+            token omni:graph:namespace = "local.nodes"
+            custom rel omni:graph:output:sum = </World/Compounds/BundleCompound/Graph/add_01.outputs:sum>
+
+            def OmniGraph "Graph"
+            {
+                token evaluationMode = "Automatic"
+                token evaluator:type = "push"
+                token fabricCacheBacking = "Shared"
+                int2 fileFormatVersion = (1, 5)
+                token pipelineStage = "pipelineStageSimulation"
+
+                def OmniGraphNode "add" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    custom token inputs:b
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (437.42786, 153.80768)
+                }
+
+                def OmniGraphNode "add_01" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/Compounds/BundleCompound/Graph/add.outputs:sum>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/Compounds/BundleCompound/Graph/add.outputs:sum>
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (731.3284, 235.52846)
+                }
+            }
+        }
+
+        def OmniGraphCompoundNodeType "ConstantCompound"
+        {
+            prepend rel omni:graph:asset = </World/Compounds/ConstantCompound/Graph>
+            token[] omni:graph:categories = ["constants"]
+            custom rel omni:graph:input:a = </World/Compounds/ConstantCompound/Graph/add.inputs:a>
+            custom rel omni:graph:input:b = </World/Compounds/ConstantCompound/Graph/add.inputs:b>
+            token omni:graph:namespace = "local.nodes"
+            custom rel omni:graph:output:sum = </World/Compounds/ConstantCompound/Graph/add_01.outputs:sum>
+
+            def OmniGraph "Graph"
+            {
+                token evaluationMode = "Automatic"
+                token evaluator:type = "push"
+                token fabricCacheBacking = "Shared"
+                int2 fileFormatVersion = (1, 5)
+                token pipelineStage = "pipelineStageSimulation"
+
+                def OmniGraphNode "add" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    custom token inputs:b
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (437.42786, 153.80768)
+                }
+
+                def OmniGraphNode "add_01" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/Compounds/ConstantCompound/Graph/add.outputs:sum>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/Compounds/ConstantCompound/Graph/add.outputs:sum>
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (731.3284, 235.52846)
+                }
+            }
+        }
+
+        def OmniGraphCompoundNodeType "DebugCompound"
+        {
+            prepend rel omni:graph:asset = </World/Compounds/DebugCompound/Graph>
+            token[] omni:graph:categories = ["debug"]
+            custom rel omni:graph:input:a = </World/Compounds/DebugCompound/Graph/add.inputs:a>
+            custom rel omni:graph:input:b = </World/Compounds/DebugCompound/Graph/add.inputs:b>
+            token omni:graph:namespace = "local.nodes"
+            custom rel omni:graph:output:sum = </World/Compounds/DebugCompound/Graph/add_01.outputs:sum>
+
+            def OmniGraph "Graph"
+            {
+                token evaluationMode = "Automatic"
+                token evaluator:type = "push"
+                token fabricCacheBacking = "Shared"
+                int2 fileFormatVersion = (1, 5)
+                token pipelineStage = "pipelineStageSimulation"
+
+                def OmniGraphNode "add" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    custom token inputs:b
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (437.42786, 153.80768)
+                }
+
+                def OmniGraphNode "add_01" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/Compounds/DebugCompound/Graph/add.outputs:sum>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/Compounds/DebugCompound/Graph/add.outputs:sum>
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (731.3284, 235.52846)
+                }
+            }
+        }
+
+        def OmniGraphCompoundNodeType "FlowCompound"
+        {
+            prepend rel omni:graph:asset = </World/Compounds/FlowCompound/Graph>
+            token[] omni:graph:categories = ["flowControl"]
+            custom rel omni:graph:input:a = </World/Compounds/FlowCompound/Graph/add.inputs:a>
+            custom rel omni:graph:input:b = </World/Compounds/FlowCompound/Graph/add.inputs:b>
+            token omni:graph:namespace = "local.nodes"
+            custom rel omni:graph:output:sum = </World/Compounds/FlowCompound/Graph/add_01.outputs:sum>
+
+            def OmniGraph "Graph"
+            {
+                token evaluationMode = "Automatic"
+                token evaluator:type = "push"
+                token fabricCacheBacking = "Shared"
+                int2 fileFormatVersion = (1, 5)
+                token pipelineStage = "pipelineStageSimulation"
+
+                def OmniGraphNode "add" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    custom token inputs:b
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (437.42786, 153.80768)
+                }
+
+                def OmniGraphNode "add_01" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/Compounds/FlowCompound/Graph/add.outputs:sum>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/Compounds/FlowCompound/Graph/add.outputs:sum>
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (731.3284, 235.52846)
+                }
+            }
+        }
+
+        def OmniGraphCompoundNodeType "FunctionCompound"
+        {
+            prepend rel omni:graph:asset = </World/Compounds/FunctionCompound/Graph>
+            token[] omni:graph:categories = ["function", "Compounds"]
+            custom rel omni:graph:input:a = </World/Compounds/FunctionCompound/Graph/add.inputs:a>
+            custom rel omni:graph:input:b = </World/Compounds/FunctionCompound/Graph/add.inputs:b>
+            token omni:graph:namespace = "local.nodes"
+            custom rel omni:graph:output:sum = </World/Compounds/FunctionCompound/Graph/add_01.outputs:sum>
+
+            def OmniGraph "Graph"
+            {
+                token evaluationMode = "Automatic"
+                token evaluator:type = "push"
+                token fabricCacheBacking = "Shared"
+                int2 fileFormatVersion = (1, 5)
+                token pipelineStage = "pipelineStageSimulation"
+
+                def OmniGraphNode "add" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    custom token inputs:b
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (437.42786, 153.80768)
+                }
+
+                def OmniGraphNode "add_01" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/Compounds/FunctionCompound/Graph/add.outputs:sum>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/Compounds/FunctionCompound/Graph/add.outputs:sum>
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (731.3284, 235.52846)
+                }
+            }
+        }
+
+        def OmniGraphCompoundNodeType "GenericCompound"
+        {
+            prepend rel omni:graph:asset = </World/Compounds/GenericCompound/Graph>
+            token[] omni:graph:categories = ["generic"]
+            custom rel omni:graph:input:a = </World/Compounds/GenericCompound/Graph/add.inputs:a>
+            custom rel omni:graph:input:b = </World/Compounds/GenericCompound/Graph/add.inputs:b>
+            token omni:graph:namespace = "local.nodes"
+            custom rel omni:graph:output:sum = </World/Compounds/GenericCompound/Graph/add_01.outputs:sum>
+
+            def OmniGraph "Graph"
+            {
+                token evaluationMode = "Automatic"
+                token evaluator:type = "push"
+                token fabricCacheBacking = "Shared"
+                int2 fileFormatVersion = (1, 5)
+                token pipelineStage = "pipelineStageSimulation"
+
+                def OmniGraphNode "add" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    custom token inputs:b
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (437.42786, 153.80768)
+                }
+
+                def OmniGraphNode "add_01" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/Compounds/GenericCompound/Graph/add.outputs:sum>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/Compounds/GenericCompound/Graph/add.outputs:sum>
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (731.3284, 235.52846)
+                }
+            }
+        }
+
+        def OmniGraphCompoundNodeType "InputCompound"
+        {
+            prepend rel omni:graph:asset = </World/Compounds/InputCompound/Graph>
+            token[] omni:graph:categories = ["input"]
+            custom rel omni:graph:input:a = </World/Compounds/InputCompound/Graph/add.inputs:a>
+            custom rel omni:graph:input:b = </World/Compounds/InputCompound/Graph/add.inputs:b>
+            token omni:graph:namespace = "local.nodes"
+            custom rel omni:graph:output:sum = </World/Compounds/InputCompound/Graph/add_01.outputs:sum>
+
+            def OmniGraph "Graph"
+            {
+                token evaluationMode = "Automatic"
+                token evaluator:type = "push"
+                token fabricCacheBacking = "Shared"
+                int2 fileFormatVersion = (1, 5)
+                token pipelineStage = "pipelineStageSimulation"
+
+                def OmniGraphNode "add" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    custom token inputs:b
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (437.42786, 153.80768)
+                }
+
+                def OmniGraphNode "add_01" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/Compounds/InputCompound/Graph/add.outputs:sum>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/Compounds/InputCompound/Graph/add.outputs:sum>
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (731.3284, 235.52846)
+                }
+            }
+        }
+
+        def OmniGraphCompoundNodeType "MathCompound"
+        {
+            prepend rel omni:graph:asset = </World/Compounds/MathCompound/Graph>
+            token[] omni:graph:categories = ["math"]
+            custom rel omni:graph:input:a = </World/Compounds/MathCompound/Graph/add.inputs:a>
+            custom rel omni:graph:input:b = </World/Compounds/MathCompound/Graph/add.inputs:b>
+            token omni:graph:namespace = "local.nodes"
+            custom rel omni:graph:output:sum = </World/Compounds/MathCompound/Graph/add_01.outputs:sum>
+
+            def OmniGraph "Graph"
+            {
+                token evaluationMode = "Automatic"
+                token evaluator:type = "push"
+                token fabricCacheBacking = "Shared"
+                int2 fileFormatVersion = (1, 5)
+                token pipelineStage = "pipelineStageSimulation"
+
+                def OmniGraphNode "add" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    custom token inputs:b
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (437.42786, 153.80768)
+                }
+
+                def OmniGraphNode "add_01" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/Compounds/MathCompound/Graph/add.outputs:sum>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/Compounds/MathCompound/Graph/add.outputs:sum>
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (731.3284, 235.52846)
+                }
+            }
+        }
+
+        def OmniGraphCompoundNodeType "SceneGraphCompound"
+        {
+            prepend rel omni:graph:asset = </World/Compounds/SceneGraphCompound/Graph>
+            token[] omni:graph:categories = ["sceneGraph"]
+            custom rel omni:graph:input:a = </World/Compounds/SceneGraphCompound/Graph/add.inputs:a>
+            custom rel omni:graph:input:b = </World/Compounds/SceneGraphCompound/Graph/add.inputs:b>
+            token omni:graph:namespace = "local.nodes"
+            custom rel omni:graph:output:sum = </World/Compounds/SceneGraphCompound/Graph/add_01.outputs:sum>
+
+            def OmniGraph "Graph"
+            {
+                token evaluationMode = "Automatic"
+                token evaluator:type = "push"
+                token fabricCacheBacking = "Shared"
+                int2 fileFormatVersion = (1, 5)
+                token pipelineStage = "pipelineStageSimulation"
+
+                def OmniGraphNode "add" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    custom token inputs:b
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (437.42786, 153.80768)
+                }
+
+                def OmniGraphNode "add_01" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/Compounds/SceneGraphCompound/Graph/add.outputs:sum>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/Compounds/SceneGraphCompound/Graph/add.outputs:sum>
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (731.3284, 235.52846)
+                }
+            }
+        }
+
+        def OmniGraphCompoundNodeType "AnimationCompound"
+        {
+            prepend rel omni:graph:asset = </World/Compounds/AnimationCompound/Graph>
+            token[] omni:graph:categories = ["animation"]
+            custom rel omni:graph:input:a = </World/Compounds/AnimationCompound/Graph/add.inputs:a>
+            custom rel omni:graph:input:b = </World/Compounds/AnimationCompound/Graph/add.inputs:b>
+            token omni:graph:namespace = "local.nodes"
+            custom rel omni:graph:output:sum = </World/Compounds/AnimationCompound/Graph/add_01.outputs:sum>
+
+            def OmniGraph "Graph"
+            {
+                token evaluationMode = "Automatic"
+                token evaluator:type = "push"
+                token fabricCacheBacking = "Shared"
+                int2 fileFormatVersion = (1, 5)
+                token pipelineStage = "pipelineStageSimulation"
+
+                def OmniGraphNode "add" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    custom token inputs:b
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (437.42786, 153.80768)
+                }
+
+                def OmniGraphNode "add_01" (
+                    prepend apiSchemas = ["NodeGraphNodeAPI"]
+                )
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/Compounds/AnimationCompound/Graph/add.outputs:sum>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/Compounds/AnimationCompound/Graph/add.outputs:sum>
+                    token node:type = "omni.graph.nodes.Add"
+                    int node:typeVersion = 1
+                    custom token outputs:sum
+                    uniform token ui:nodegraph:node:expansionState = "open"
+                    uniform float2 ui:nodegraph:node:pos = (731.3284, 235.52846)
+                }
+            }
+        }
+    }
+
+    def OmniGraph "PushGraph"
+    {
+        token evaluationMode = "Automatic"
+        token evaluator:type = "push"
+        token fabricCacheBacking = "Shared"
+        int2 fileFormatVersion = (1, 5)
+        token pipelineStage = "pipelineStageSimulation"
+
+        def OmniGraphNode "bundlecompound" (
+            prepend apiSchemas = ["NodeGraphNodeAPI"]
+        )
+        {
+            custom token inputs:a
+            custom token inputs:b
+            token node:type = "local.nodes.BundleCompound"
+            token node:type.connect = </World/Compounds/BundleCompound>
+            int node:typeVersion = 1
+            custom rel omni:graph:compound (
+                hidden = true
+            )
+            prepend rel omni:graph:compound = </World/PushGraph/bundlecompound/Graph>
+            custom token outputs:sum
+            prepend token outputs:sum.connect = </World/PushGraph/bundlecompound/Graph/add_01.outputs:sum>
+            uniform token ui:nodegraph:node:expansionState = "open"
+            uniform float2 ui:nodegraph:node:pos = (-72.417786, -301.66724)
+
+            def "Graph" (
+                prepend references = </World/Compounds/BundleCompound/Graph>
+            )
+            {
+                token evaluationMode = "Automatic"
+
+                over "add"
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/PushGraph/bundlecompound.inputs:a>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/PushGraph/bundlecompound.inputs:b>
+                }
+            }
+        }
+
+        def OmniGraphNode "constantcompound" (
+            prepend apiSchemas = ["NodeGraphNodeAPI"]
+        )
+        {
+            custom token inputs:a
+            custom token inputs:b
+            token node:type = "local.nodes.ConstantCompound"
+            token node:type.connect = </World/Compounds/ConstantCompound>
+            int node:typeVersion = 1
+            custom rel omni:graph:compound (
+                hidden = true
+            )
+            prepend rel omni:graph:compound = </World/PushGraph/constantcompound/Graph>
+            custom token outputs:sum
+            prepend token outputs:sum.connect = </World/PushGraph/constantcompound/Graph/add_01.outputs:sum>
+            uniform token ui:nodegraph:node:expansionState = "open"
+            uniform float2 ui:nodegraph:node:pos = (432.08966, -624.1997)
+
+            def "Graph" (
+                prepend references = </World/Compounds/ConstantCompound/Graph>
+            )
+            {
+                token evaluationMode = "Automatic"
+
+                over "add"
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/PushGraph/constantcompound.inputs:a>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/PushGraph/constantcompound.inputs:b>
+                }
+            }
+        }
+
+        def OmniGraphNode "debugcompound" (
+            prepend apiSchemas = ["NodeGraphNodeAPI"]
+        )
+        {
+            custom token inputs:a
+            custom token inputs:b
+            token node:type = "local.nodes.DebugCompound"
+            token node:type.connect = </World/Compounds/DebugCompound>
+            int node:typeVersion = 1
+            custom rel omni:graph:compound (
+                hidden = true
+            )
+            prepend rel omni:graph:compound = </World/PushGraph/debugcompound/Graph>
+            custom token outputs:sum
+            prepend token outputs:sum.connect = </World/PushGraph/debugcompound/Graph/add_01.outputs:sum>
+            uniform token ui:nodegraph:node:expansionState = "open"
+            uniform float2 ui:nodegraph:node:pos = (-72.417786, -616.66724)
+
+            def "Graph" (
+                prepend references = </World/Compounds/DebugCompound/Graph>
+            )
+            {
+                token evaluationMode = "Automatic"
+
+                over "add"
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/PushGraph/debugcompound.inputs:a>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/PushGraph/debugcompound.inputs:b>
+                }
+            }
+        }
+
+        def OmniGraphNode "flowcompound" (
+            prepend apiSchemas = ["NodeGraphNodeAPI"]
+        )
+        {
+            custom token inputs:a
+            custom token inputs:b
+            token node:type = "local.nodes.FlowCompound"
+            token node:type.connect = </World/Compounds/FlowCompound>
+            int node:typeVersion = 1
+            custom rel omni:graph:compound (
+                hidden = true
+            )
+            prepend rel omni:graph:compound = </World/PushGraph/flowcompound/Graph>
+            custom token outputs:sum
+            prepend token outputs:sum.connect = </World/PushGraph/flowcompound/Graph/add_01.outputs:sum>
+            uniform token ui:nodegraph:node:expansionState = "open"
+            uniform float2 ui:nodegraph:node:pos = (-72.417786, -144.16724)
+
+            def "Graph" (
+                prepend references = </World/Compounds/FlowCompound/Graph>
+            )
+            {
+                token evaluationMode = "Automatic"
+
+                over "add"
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/PushGraph/flowcompound.inputs:a>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/PushGraph/flowcompound.inputs:b>
+                }
+            }
+        }
+
+        def OmniGraphNode "functioncompound" (
+            prepend apiSchemas = ["NodeGraphNodeAPI"]
+        )
+        {
+            custom token inputs:a
+            custom token inputs:b
+            token node:type = "local.nodes.FunctionCompound"
+            token node:type.connect = </World/Compounds/FunctionCompound>
+            int node:typeVersion = 1
+            custom rel omni:graph:compound (
+                hidden = true
+            )
+            prepend rel omni:graph:compound = </World/PushGraph/functioncompound/Graph>
+            custom token outputs:sum
+            prepend token outputs:sum.connect = </World/PushGraph/functioncompound/Graph/add_01.outputs:sum>
+            uniform token ui:nodegraph:node:expansionState = "open"
+            uniform float2 ui:nodegraph:node:pos = (431.9678, -300.01447)
+
+            def "Graph" (
+                prepend references = </World/Compounds/FunctionCompound/Graph>
+            )
+            {
+                token evaluationMode = "Automatic"
+
+                over "add"
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/PushGraph/functioncompound.inputs:a>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/PushGraph/functioncompound.inputs:b>
+                }
+            }
+        }
+
+        def OmniGraphNode "genericcompound" (
+            prepend apiSchemas = ["NodeGraphNodeAPI"]
+        )
+        {
+            custom token inputs:a
+            custom token inputs:b
+            token node:type = "local.nodes.GenericCompound"
+            token node:type.connect = </World/Compounds/GenericCompound>
+            int node:typeVersion = 1
+            custom rel omni:graph:compound (
+                hidden = true
+            )
+            prepend rel omni:graph:compound = </World/PushGraph/genericcompound/Graph>
+            custom token outputs:sum
+            prepend token outputs:sum.connect = </World/PushGraph/genericcompound/Graph/add_01.outputs:sum>
+            uniform token ui:nodegraph:node:expansionState = "open"
+            uniform float2 ui:nodegraph:node:pos = (-72.417786, -459.16724)
+
+            def "Graph" (
+                prepend references = </World/Compounds/GenericCompound/Graph>
+            )
+            {
+                token evaluationMode = "Automatic"
+
+                over "add"
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/PushGraph/genericcompound.inputs:a>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/PushGraph/genericcompound.inputs:b>
+                }
+            }
+        }
+
+        def OmniGraphNode "inputcompound" (
+            prepend apiSchemas = ["NodeGraphNodeAPI"]
+        )
+        {
+            custom token inputs:a
+            custom token inputs:b
+            token node:type = "local.nodes.InputCompound"
+            token node:type.connect = </World/Compounds/InputCompound>
+            int node:typeVersion = 1
+            custom rel omni:graph:compound (
+                hidden = true
+            )
+            prepend rel omni:graph:compound = </World/PushGraph/inputcompound/Graph>
+            custom token outputs:sum
+            prepend token outputs:sum.connect = </World/PushGraph/inputcompound/Graph/add_01.outputs:sum>
+            uniform token ui:nodegraph:node:expansionState = "open"
+            uniform float2 ui:nodegraph:node:pos = (184.2403, -304.14075)
+
+            def "Graph" (
+                prepend references = </World/Compounds/InputCompound/Graph>
+            )
+            {
+                token evaluationMode = "Automatic"
+
+                over "add"
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/PushGraph/inputcompound.inputs:a>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/PushGraph/inputcompound.inputs:b>
+                }
+            }
+        }
+
+        def OmniGraphNode "mathcompound" (
+            prepend apiSchemas = ["NodeGraphNodeAPI"]
+        )
+        {
+            custom token inputs:a
+            custom token inputs:b
+            token node:type = "local.nodes.MathCompound"
+            token node:type.connect = </World/Compounds/MathCompound>
+            int node:typeVersion = 1
+            custom rel omni:graph:compound (
+                hidden = true
+            )
+            prepend rel omni:graph:compound = </World/PushGraph/mathcompound/Graph>
+            custom token outputs:sum
+            prepend token outputs:sum.connect = </World/PushGraph/mathcompound/Graph/add_01.outputs:sum>
+            uniform token ui:nodegraph:node:expansionState = "open"
+            uniform float2 ui:nodegraph:node:pos = (425.6137, -457.19678)
+
+            def "Graph" (
+                prepend references = </World/Compounds/MathCompound/Graph>
+            )
+            {
+                token evaluationMode = "Automatic"
+
+                over "add"
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/PushGraph/mathcompound.inputs:a>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/PushGraph/mathcompound.inputs:b>
+                }
+            }
+        }
+
+        def OmniGraphNode "scenegraphcompound" (
+            prepend apiSchemas = ["NodeGraphNodeAPI"]
+        )
+        {
+            custom token inputs:a
+            custom token inputs:b
+            token node:type = "local.nodes.SceneGraphCompound"
+            token node:type.connect = </World/Compounds/SceneGraphCompound>
+            int node:typeVersion = 1
+            custom rel omni:graph:compound (
+                hidden = true
+            )
+            prepend rel omni:graph:compound = </World/PushGraph/scenegraphcompound/Graph>
+            custom token outputs:sum
+            prepend token outputs:sum.connect = </World/PushGraph/scenegraphcompound/Graph/add_01.outputs:sum>
+            uniform token ui:nodegraph:node:expansionState = "open"
+            uniform float2 ui:nodegraph:node:pos = (184.2403, -461.64075)
+
+            def "Graph" (
+                prepend references = </World/Compounds/SceneGraphCompound/Graph>
+            )
+            {
+                token evaluationMode = "Automatic"
+
+                over "add"
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/PushGraph/scenegraphcompound.inputs:a>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/PushGraph/scenegraphcompound.inputs:b>
+                }
+            }
+        }
+
+        def OmniGraphNode "compoundnode" (
+            prepend apiSchemas = ["NodeGraphNodeAPI"]
+        )
+        {
+            custom token inputs:a
+            custom token inputs:b
+            token node:type = "local.nodes.CompoundNode"
+            token node:type.connect = </World/Compounds/CompoundNode>
+            int node:typeVersion = 1
+            custom rel omni:graph:compound (
+                hidden = true
+            )
+            prepend rel omni:graph:compound = </World/PushGraph/compoundnode/Graph>
+            custom token outputs:sum
+            prepend token outputs:sum.connect = </World/PushGraph/compoundnode/Graph/add_01.outputs:sum>
+            uniform token ui:nodegraph:node:expansionState = "open"
+            uniform float2 ui:nodegraph:node:pos = (184.2403, -146.64075)
+
+            def "Graph" (
+                prepend references = </World/Compounds/CompoundNode/Graph>
+            )
+            {
+                token evaluationMode = "Automatic"
+
+                over "add"
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/PushGraph/compoundnode.inputs:a>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/PushGraph/compoundnode.inputs:b>
+                }
+            }
+        }
+
+        def OmniGraphNode "uicompound" (
+            prepend apiSchemas = ["NodeGraphNodeAPI"]
+        )
+        {
+            custom token inputs:a
+            custom token inputs:b
+            token node:type = "local.nodes.UICompound"
+            token node:type.connect = </World/Compounds/UICompound>
+            int node:typeVersion = 1
+            custom rel omni:graph:compound (
+                hidden = true
+            )
+            prepend rel omni:graph:compound = </World/PushGraph/uicompound/Graph>
+            custom token outputs:sum
+            prepend token outputs:sum.connect = </World/PushGraph/uicompound/Graph/add_01.outputs:sum>
+            uniform token ui:nodegraph:node:expansionState = "open"
+            uniform float2 ui:nodegraph:node:pos = (622.845, 852.0182)
+
+            def "Graph" (
+                prepend references = </World/Compounds/UICompound/Graph>
+            )
+            {
+                token evaluationMode = "Automatic"
+
+                over "add"
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/PushGraph/uicompound.inputs:a>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/PushGraph/uicompound.inputs:b>
+                }
+            }
+        }
+
+        def OmniGraphNode "animationcompound" (
+            prepend apiSchemas = ["NodeGraphNodeAPI"]
+        )
+        {
+            custom token inputs:a
+            custom token inputs:b
+            token node:type = "local.nodes.AnimationCompound"
+            token node:type.connect = </World/Compounds/AnimationCompound>
+            int node:typeVersion = 1
+            custom rel omni:graph:compound (
+                hidden = true
+            )
+            prepend rel omni:graph:compound = </World/PushGraph/animationcompound/Graph>
+            custom token outputs:sum
+            prepend token outputs:sum.connect = </World/PushGraph/animationcompound/Graph/add_01.outputs:sum>
+            uniform token ui:nodegraph:node:expansionState = "open"
+            uniform float2 ui:nodegraph:node:pos = (184.2403, -619.14075)
+
+            def "Graph" (
+                prepend references = </World/Compounds/AnimationCompound/Graph>
+            )
+            {
+                token evaluationMode = "Automatic"
+
+                over "add"
+                {
+                    custom token inputs:a
+                    prepend token inputs:a.connect = </World/PushGraph/animationcompound.inputs:a>
+                    custom token inputs:b
+                    prepend token inputs:b.connect = </World/PushGraph/animationcompound.inputs:b>
+                }
+            }
+        }
+    }
+}
+

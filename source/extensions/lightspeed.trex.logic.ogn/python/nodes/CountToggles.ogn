@@ -1,0 +1,38 @@
+{
+  "lightspeed.trex.logic.CountToggles": {
+    "description": ["Counts the number of times a boolean goes from false to true."],
+    "version": 1,
+    "uiName": "Count Toggles",
+    "language": "python",
+    "categoryDefinitions": "config/CategoryDefinition.json",
+    "categories": "Transform",
+    "inputs": {
+      "value": {
+        "description": ["An input boolean.  Every time this goes from false to true, the count is incremented."],
+        "type": "bool",
+        "default": false,
+        "uiName": "Value"
+      },
+      "resetValue": {
+        "description": ["If count reaches this value, it is reset to 0."],
+        "type": "uint",
+        "default": 0,
+        "uiName": "Reset Value"
+      }
+    },
+    "outputs": {
+      "count": {
+        "description": ["The current count value."],
+        "type": "uint",
+        "default": 0,
+        "uiName": "Count"
+      },
+      "countFloat": {
+        "description": ["The current count value as a float."],
+        "type": "float",
+        "default": 0.000000,
+        "uiName": "Count as Float"
+      }
+    }
+  }
+}

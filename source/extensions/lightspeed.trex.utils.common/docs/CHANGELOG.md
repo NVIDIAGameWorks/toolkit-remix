@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.0]
+### Added
+- Added is_in_mesh_group and is_in_light_group utility functions for prim path validation
+
 ## [2.0.3]
 ## Added
 - Added `is_a_prototype` to check for mesh_HASH paths only

@@ -1,0 +1,52 @@
+# Main extension description values
+[package]
+# The current extension version number - uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
+version = "0.0.1"
+# The title of the extension that will appear in the extension window
+title = "Remix OmniGraph Python Nodes"
+# Longer description of the extension
+description = "An extension containing Remix OmniGraph Nodes."
+# Authors/owners of the extension - usually an email by convention
+authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
+# Category under which the extension will be organized
+category = "Graph"
+# Location of the main README file describing the extension for extension developers
+readme = "docs/README.md"
+# Location of the main CHANGELOG file describing the modifications made to the extension during development
+changelog = "docs/CHANGELOG.md"
+# Location of the repository in which the extension's source can be found
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.logic.ogn"
+# Keywords to help identify the extension when searching
+keywords = ["omnigraph", "nodes", "python", "remix", "component"]
+# Image that shows up in the preview pane of the extension window
+preview_image = "data/preview.png"
+# Image that shows up in the navigation pane of the extension window - can be a .png, .jpg, or .svg
+icon = "data/icon.svg"
+
+# Main module for the Python interface. This is how the module will be imported.
+[[python.module]]
+name = "lightspeed.trex.logic.ogn"
+
+# Watch the .ogn files for hot reloading. Only useful during development as after delivery files cannot be changed.
+[fswatcher.patterns]
+include = ["*.ogn", "*.py"]
+exclude = ["Ogn*Database.py"]
+
+# Other extensions that need to load in order for this one to work
+[dependencies]
+"omni.graph" = {}       # For basic functionality
+"omni.graph.tools" = {} # For node generation
+
+# Main pages published as part of documentation. (Only if you build and publish your documentation.)
+[documentation]
+pages = [
+    "docs/Overview.md",
+    "docs/CHANGELOG.md",
+]
+
+# Some extensions are only needed when writing tests, including those automatically generated from a .ogn file.
+# Having special test-only dependencies lets you avoid introducing a dependency on the test environment when only
+# using the functionality.
+[[test]]
+dependencies = [
+]

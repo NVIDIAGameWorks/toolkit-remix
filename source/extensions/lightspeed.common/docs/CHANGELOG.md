@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.10.0]
+### Added
+- Added REMIX_LOGIC_GRAPH window name constant
+- Added regex patterns for mesh and light path matching
+
 ## [1.9.0]
 ### Added
 - Added global events for workspace management (OPEN_WORKSPACE, LOAD_PROJECT_PATH, IMPORT_LAYER)

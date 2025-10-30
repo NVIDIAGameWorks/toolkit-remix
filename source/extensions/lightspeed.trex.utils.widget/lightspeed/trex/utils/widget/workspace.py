@@ -75,12 +75,20 @@ class WorkspaceWindowBase(abc.ABC):
         """
         return self.title
 
+    def _create_window(self) -> ui.Window:
+        """
+        Overridable method to create a ui.Window instance.
+        Default implementation configures a window with the title, flags, and padding.
+        """
+        window = ui.Window(self.title, visible=False, flags=self.flags)
+        return window
+
     def create_window(self):
         """Creates the ui.Window instance and sets up the "Window" menu item."""
         if self._window:
             return
 
-        self._window = ui.Window(self.title, visible=False, flags=self.flags)
+        self._window = self._create_window()
         self._window.padding_x = 0
         self._window.padding_y = 0
         self._window.set_visibility_changed_fn(self._on_visibility_changed)
@@ -99,6 +107,11 @@ class WorkspaceWindowBase(abc.ABC):
                 omni.kit.app.EVENT_APP_READY, add_window_menu_item, name="Window Menu Item - App Ready"
             )
 
+    def get_window(self) -> ui.Window:
+        if not self._window:
+            raise RuntimeError("Window not created yet.")
+        return self._window
+
     def show_window_fn(self, show: bool = True):
         if not self._window or show == self._window.visible:
             return
@@ -106,6 +119,10 @@ class WorkspaceWindowBase(abc.ABC):
         self._window.visible = show
 
     def cleanup(self):
+        # Clean up app ready subscription
+        if self.__sub_app_ready:
+            self.__sub_app_ready = None
+
         if self._window:
             self._window.destroy()
         self._window = None
