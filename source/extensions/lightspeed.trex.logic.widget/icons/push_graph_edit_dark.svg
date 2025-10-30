@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="120" height="120" viewBox="0 0 120 120">
+  <defs>
+    <filter id="pencil_body" x="71.55" y="81.402" width="33.636" height="34.024" filterUnits="userSpaceOnUse">
+      <feOffset dx="-3" dy="3" input="SourceAlpha"/>
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feFlood flood-opacity="0.439"/>
+      <feComposite operator="in" in2="blur"/>
+      <feComposite in="SourceGraphic"/>
+    </filter>
+    <filter id="pencil_top" x="82.801" y="78" width="25.735" height="25.93" filterUnits="userSpaceOnUse">
+      <feOffset dx="-3" dy="3" input="SourceAlpha"/>
+      <feGaussianBlur stdDeviation="3" result="blur-2"/>
+      <feFlood flood-opacity="0.439"/>
+      <feComposite operator="in" in2="blur-2"/>
+      <feComposite in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <g id="actiongraph_edit_dark" transform="translate(-624 -1049)">
+    <rect id="Icon_Base" width="120" height="120" transform="translate(624 1049)" fill="none"/>
+    <path id="bgr" d="M27,0h93V93a27,27,0,0,1-27,27H0V27A27,27,0,0,1,27,0Z" transform="translate(624 1049)" fill="#1e2931"/>
+    <path id="frame" d="M27,4.5A22.526,22.526,0,0,0,4.5,27v88.5H93A22.526,22.526,0,0,0,115.5,93V4.5H27M27,0h93V93a27,27,0,0,1-27,27H0V27A27,27,0,0,1,27,0Z" transform="translate(624 1049)" fill="#9b9b9b"/>
+    <g id="node" transform="translate(660 1085)">
+      <path id="frame-2" data-name="frame" d="M15,0H48V33A15,15,0,0,1,33,48H0V15A15,15,0,0,1,15,0Z" fill="#9b9b9b"/>
+      <path id="body" d="M0,0H36V12A15,15,0,0,1,21,27H0Z" transform="translate(6 15)" fill="#1e2931"/>
+      <path id="output" d="M9,0A9,9,0,1,1,0,9,9,9,0,0,1,9,0Z" transform="translate(36 18)" fill="#1e2931"/>
+      <path id="output_-_Outline" data-name="output - Outline" d="M9,3a6,6,0,1,0,6,6A6.007,6.007,0,0,0,9,3M9,0A9,9,0,1,1,0,9,9,9,0,0,1,9,0Z" transform="translate(36 18)" fill="#9b9b9b"/>
+      <path id="input" d="M6,0A6,6,0,1,1,0,6,6,6,0,0,1,6,0Z" transform="translate(0 21)" fill="#9b9b9b"/>
+    </g>
+    <g transform="matrix(1, 0, 0, 1, 624, 1049)" filter="url(#pencil_body)">
+      <path id="pencil_body-2" data-name="pencil_body" d="M438.4,37.238l1.146-1.179-2.943-2.992-1.171,1.154v1.372h1.634v1.646Zm6.564-11.906-.025-.139-.056-.082-.081-.028-.11-.025-.135.025-.081.028-6.812,7-.053.082-.028.11.028.136.053.082.081.082h.109l.109-.025.109-.057,6.784-6.968.081-.082Zm-.679-2.472,5.2,5.351L439.086,38.884h-5.231V33.562Z" transform="translate(-350.3 64.54)" fill="#efbd17" fill-rule="evenodd"/>
+    </g>
+    <g transform="matrix(1, 0, 0, 1, 624, 1049)" filter="url(#pencil_top)">
+      <path id="pencil_top-2" data-name="pencil_top" d="M449.551,25.091l-.028.328-.081.3-.135.274-.219.246-2.069,2.141-5.2-5.351,2.041-2.113.272-.218.247-.164.326-.085h.626l.3.085.272.164.244.218,2.943,2.992.219.274.135.274.081.3Z" transform="translate(-347.01 63.55)" fill="#ee833b" fill-rule="evenodd"/>
+    </g>
+  </g>
+</svg>

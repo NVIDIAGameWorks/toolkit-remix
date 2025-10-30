@@ -1,0 +1,67 @@
+[package]
+title = "Remix Logic Graph Editor"
+description = "Component editor window for Remix Component Graphs"
+version = "1.0.0"
+authors = ["Chris Grebeldinger <cgrebeldinge@nvidia.com>", "Dean Edmonds <dedmonds@nvidia.com>", "Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.logic.widget"
+keywords = ["graph", "logic", "component", "remix", "ui"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+readme = "docs/README.md"
+category = "Graph"
+icon = "data/icon.svg"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.error_popup.window" = {}
+"lightspeed.trex.logic.ogn" = {}  # to load remix ogn nodes
+"lightspeed.trex.utils.common" = {}
+"lightspeed.trex.utils.widget" = {}
+"omni.graph.core" = { version = ">=2.177.1" }
+"omni.graph" = { version = ">=1.139.0" }
+"omni.graph.tools" = { version = ">=1.77.0" }
+"omni.graph.window.core" = {version=">=1.80.0"}
+"omni.graph.ui" = {version=">=1.5.0"}
+"omni.kit.stage.copypaste" = {}  # for "omni.graph.window.core"
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.logic.widget"
+
+[[test]]
+stdoutFailPatterns.exclude = [
+    # Workaround for OM-47134
+    "*[Error] [asyncio]*Task exception was never retrieved*"
+]
+
+dependencies = [
+    # we should update tests to use logic nodes only and remove these dependencies
+    "omni.graph.nodes",
+    "omni.kit.mainwindow",
+    "omni.kit.test_suite.helpers",
+    "omni.graph.tutorials",
+    "omni.kit.ui_test",
+    "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    "--/app/window/dpiScaleOverride=1.0",
+    "--/app/fastShutdown=true",
+    "--/app/window/scaleToMonitor=false",
+    "--no-window",
+    # Rasterized nodes are drawn differently from non-rasterized. E.g. they use different antialiasing.
+    # This can result in large differences which cause golden image comparisons to fail.
+    # For now we shut off rasterization. Once OM-92215 and OM-89375 are done and we are able to maintain
+    # separate branches of this extension for different releases of Kit we can enable it in the branches
+    # where it is supported and update any affected golden images.
+    # In the meantime, if a test wishes to explicitly test with rasterized nodes it may do so by explicitly
+    # setting /exts/omni.kit.widget.graph/raster_nodes true in the test before creating the GraphView.
+    "--/exts/omni.kit.widget.graph/raster_nodes=false",
+]
+
+[documentation]
+pages = [
+    "docs/Overview.md",
+    "docs/CHANGELOG.md",
+]

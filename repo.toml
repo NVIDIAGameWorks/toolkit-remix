@@ -589,6 +589,10 @@ autodoc.mock_imports = [
     "pydantic",
     "pygit2",
     "pyperclip",
+    "omni.graph.tools",  # uses carb.tokens.get_tokens_interface() at module level
+    "omni.graph.ui",  # uses carb.tokens.get_tokens_interface() at module level
+    "omni.graph.widget",  # uses carb.tokens.get_tokens_interface() at module level
+    "omni.graph.window.core",  # uses carb.tokens.get_tokens_interface() at module level
     "omni.kit.manipulator",  # uses omni.kit.get_app() at module level
     "omni.kit.viewport.menubar.camera",  # uses carb.tokens.get_tokens_interface() at module level
     "omni.kit.viewport.menubar.render",  # uses carb.tokens.get_tokens_interface() at module level

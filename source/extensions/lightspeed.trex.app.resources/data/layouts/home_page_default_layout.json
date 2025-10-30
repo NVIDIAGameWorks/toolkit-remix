@@ -52,6 +52,16 @@
   },
   {
     "dock_id": 0,
+    "height": 488.0,
+    "position_x": 434.0,
+    "position_y": 26.0,
+    "selected_in_dock": false,
+    "title": "Remix Logic Graph Editor",
+    "visible": false,
+    "width": 1366.0
+  },
+  {
+    "dock_id": 0,
     "height": 25.600000381469727,
     "position_x": 887.2000122070312,
     "position_y": 436.8000183105469,

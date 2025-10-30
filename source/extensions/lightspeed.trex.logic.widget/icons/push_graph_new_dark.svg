@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="120" height="120" viewBox="0 0 120 120">
+  <defs>
+    <filter id="add" x="79.025" y="83.137" width="26.197" height="26.197" filterUnits="userSpaceOnUse">
+      <feOffset dx="-3" dy="2" input="SourceAlpha"/>
+      <feGaussianBlur stdDeviation="1" result="blur"/>
+      <feFlood flood-opacity="0.349"/>
+      <feComposite operator="in" in2="blur"/>
+      <feComposite in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <g id="actiongraph_new_dark" transform="translate(-624 -1049)">
+    <rect id="Icon_Base" width="120" height="120" transform="translate(624 1049)" fill="none"/>
+    <path id="bgr" d="M27,0h93V93a27,27,0,0,1-27,27H0V27A27,27,0,0,1,27,0Z" transform="translate(624 1049)" fill="#1e2931"/>
+    <path id="frame" d="M27,4.5A22.526,22.526,0,0,0,4.5,27v88.5H93A22.526,22.526,0,0,0,115.5,93V4.5H27M27,0h93V93a27,27,0,0,1-27,27H0V27A27,27,0,0,1,27,0Z" transform="translate(624 1049)" fill="#9b9b9b"/>
+    <g id="node" transform="translate(660 1085)">
+      <path id="frame-2" data-name="frame" d="M15,0H48V33A15,15,0,0,1,33,48H0V15A15,15,0,0,1,15,0Z" fill="#9b9b9b"/>
+      <path id="body" d="M0,0H36V12A15,15,0,0,1,21,27H0Z" transform="translate(6 15)" fill="#1e2931"/>
+      <path id="output" d="M9,0A9,9,0,1,1,0,9,9,9,0,0,1,9,0Z" transform="translate(36 18)" fill="#1e2931"/>
+      <path id="output_-_Outline" data-name="output - Outline" d="M9,3a6,6,0,1,0,6,6A6.007,6.007,0,0,0,9,3M9,0A9,9,0,1,1,0,9,9,9,0,0,1,9,0Z" transform="translate(36 18)" fill="#9b9b9b"/>
+      <path id="input" d="M6,0A6,6,0,1,1,0,6,6,6,0,0,1,6,0Z" transform="translate(0 21)" fill="#9b9b9b"/>
+    </g>
+    <g transform="matrix(1, 0, 0, 1, 624, 1049)" filter="url(#add)">
+      <path id="add-2" data-name="add" d="M58.8,28.892v2.726l-.029.306-.1.246-.122.243L58.4,32.6l-.218.186-.247.12-.25.095-.279.028H51.46v5.946l-.032.278-.061.243-.157.246-.186.183-.186.183-.25.155-.218.06-.311.032h-2.74l-.279-.032-.247-.06-.218-.155-.25-.183-.157-.183-.122-.246-.064-.243-.029-.278V33.027H39.975L39.725,33l-.279-.095-.218-.12L39.01,32.6l-.186-.183-.093-.243-.093-.246-.032-.306V28.892l.032-.278.093-.243.093-.246.186-.215.218-.152.218-.155.279-.06.25-.032h5.976V21.534l.029-.275.064-.246.122-.243.157-.215.25-.155.218-.12.247-.095.279-.028h2.74l.311.028.218.095.25.12.186.155.186.215.157.243.061.246.032.275v5.977H57.4l.279.032.25.06.247.155.218.152.157.215.122.246.1.243.029.278Z" transform="translate(46.42 63.98)" fill="#76b900" fill-rule="evenodd"/>
+    </g>
+  </g>
+</svg>

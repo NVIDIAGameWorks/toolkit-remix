@@ -123,6 +123,7 @@ REGEX_MESH_PATH = rf"{REGEX_MESH_PATH_BASE}$"
 REGEX_IN_MESH_PATH = rf"{REGEX_MESH_PATH_BASE}/([a-zA-Z0-9_\/]+)*$"
 # all children of mesh group
 REGEX_IN_MESH_CHILDREN_PATH = rf"{REGEX_MESH_PATH_BASE}/*([a-zA-Z0-9_\/]+)*$"
+REGEX_MESH_PATH_AND_CHILDREN = rf"{REGEX_MESH_PATH_BASE}(/*[a-zA-Z0-9_\/]*)*$"
 REGEX_INSTANCE_PATH = f"^(.*)({INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
 REGEX_HASH = f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX}|{MATERIAL_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*(.*)$"  # noqa E501
 REGEX_HASH_GENERIC = f"^(.*)([A-Z0-9]{{16}})(_[a-zA-Z0-9]+)*(.*)$"  # noqa PLW1309
@@ -130,7 +131,13 @@ REGEX_MESH_TO_INSTANCE_SUB = (
     f"^((.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*)"  # noqa E501
 )
 REGEX_INSTANCE_TO_MESH_SUB = f"({LIGHT_PATH}|{INSTANCE_PATH}|{MESH_PATH})([A-Z0-9]{{16}})(_[0-9]+)"  # noqa E501
-REGEX_LIGHT_PATH = f"^(.*)({LIGHT_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
+REGEX_LIGHT_PATH_BASE = f"^(.*)({LIGHT_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*"
+REGEX_LIGHT_PATH = rf"{REGEX_LIGHT_PATH_BASE}$"
+# direct children of light group
+REGEX_IN_LIGHT_PATH = rf"{REGEX_LIGHT_PATH_BASE}/([a-zA-Z0-9_\/]+)*$"
+# all children of light group
+REGEX_IN_LIGHT_CHILDREN_PATH = rf"{REGEX_LIGHT_PATH_BASE}/*([a-zA-Z0-9_\/]+)*$"
+REGEX_LIGHT_PATH_AND_CHILDREN = rf"{REGEX_LIGHT_PATH_BASE}(/*[a-zA-Z0-9_\/]*)*$"
 REGEX_MESH_INST_LIGHT_PATH = (
     f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
 )
@@ -574,6 +581,7 @@ class WindowNames(str, Enum):
     TEXTURECRAFT = "AI Tools"
     PROJECT_SETUP = "Project Setup"
     CAPTURES = "Captures"
+    REMIX_LOGIC_GRAPH = "Remix Logic Graph Editor"
 
 
 class Layouts(Enum):
