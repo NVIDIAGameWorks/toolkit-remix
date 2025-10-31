@@ -312,7 +312,10 @@ class Setup:
         if not asset_prim:
             return textures
 
-        shader_prim = omni.usd.get_shader_from_material(asset_prim, get_prim=True)
+        if asset_prim.IsA(UsdShade.Shader):
+            shader_prim = asset_prim
+        else:
+            shader_prim = omni.usd.get_shader_from_material(asset_prim, get_prim=True)
         if not shader_prim:
             return textures
 

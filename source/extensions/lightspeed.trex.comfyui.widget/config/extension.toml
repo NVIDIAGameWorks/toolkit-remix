@@ -1,5 +1,5 @@
 [package]
-version = "1.0.0"
+version = "1.1.0"
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix ComfyUI Widget"
 description = "ComfyUI Widget for NVIDIA RTX Remix"
@@ -12,6 +12,7 @@ preview_image = "data/preview.png"
 
 [dependencies]
 "lightspeed.trex.comfyui.core" = {}
+"lightspeed.trex.contexts" = {}
 "lightspeed.trex.utils.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}

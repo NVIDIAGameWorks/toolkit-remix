@@ -63,6 +63,12 @@ _GREY_55 = 0xFF373737
 _GREY_60 = 0xFF3C3C3C
 _GREY_70 = 0xFF464646
 
+_GREEN_05 = 0x0D00FF00
+_GREEN_20 = 0x3300FF00
+_GREEN_60 = 0x9900FF00
+_GREEN_80 = 0xCC00FF00
+_GREEN_100 = 0xFF00FF00
+
 _RED_05 = 0x0D0000FF
 _RED_20 = 0x330000FF
 _RED_60 = 0x990000FF
@@ -474,6 +480,7 @@ current_dict.update(
         "Image::Preview:hovered": {"image_url": _get_icons("magnify-expand"), "color": _WHITE_80},
         "Image::Refresh": {"image_url": _get_icons("refresh"), "color": _WHITE_60},
         "Image::Refresh:hovered": {"image_url": _get_icons("refresh"), "color": _WHITE_80},
+        "Image::Refresh:disabled": {"image_url": _get_icons("refresh"), "color": _WHITE_30},
         "Image::Restore": {"image_url": _get_icons("restore"), "color": _WHITE_60},
         "Image::Restore:hovered": {"image_url": _get_icons("restore"), "color": _WHITE_80},
         "Image::Scope": {"image_url": _get_icons("scope"), "color": _WHITE_60},
@@ -540,6 +547,27 @@ current_dict.update(
         "Image::ArrowRight:hovered": {"image_url": _get_icons("arrow-right"), "color": _WHITE_80},
         "Image::WelcomePadDefault": {"color": 0x40000000, "border_radius": 12},
         "Image::WelcomePadImage": {"border_radius": 12},
+        "Image::Install": {"image_url": _get_icons("download"), "color": _WHITE_60},
+        "Image::Install:hovered": {"image_url": _get_icons("download"), "color": _WHITE_80},
+        "Image::Install:disabled": {"image_url": _get_icons("download"), "color": _WHITE_30},
+        "Image::Locate": {"image_url": _get_icons("folder_open"), "color": _WHITE_60},
+        "Image::Locate:hovered": {"image_url": _get_icons("folder_open"), "color": _WHITE_80},
+        "Image::Locate:disabled": {"image_url": _get_icons("folder_open"), "color": _WHITE_30},
+        "Image::Update": {"image_url": _get_icons("update"), "color": _WHITE_60},
+        "Image::Update:hovered": {"image_url": _get_icons("update"), "color": _WHITE_80},
+        "Image::Update:disabled": {"image_url": _get_icons("update"), "color": _WHITE_30},
+        "Image::Uninstall": {"image_url": _get_icons("trash-can"), "color": _WHITE_60},
+        "Image::Uninstall:hovered": {"image_url": _get_icons("trash-can"), "color": _WHITE_80},
+        "Image::Uninstall:disabled": {"image_url": _get_icons("trash-can"), "color": _WHITE_30},
+        "Image::Start": {"image_url": _get_icons("play"), "color": _GREEN_60},
+        "Image::Start:hovered": {"image_url": _get_icons("play"), "color": _GREEN_80},
+        "Image::Start:disabled": {"image_url": _get_icons("play"), "color": _GREEN_20},
+        "Image::Stop": {"image_url": _get_icons("stop"), "color": _RED_60},
+        "Image::Stop:hovered": {"image_url": _get_icons("stop"), "color": _RED_80},
+        "Image::Stop:disabled": {"image_url": _get_icons("stop"), "color": _RED_20},
+        "Image::Restart": {"image_url": _get_icons("restart"), "color": _WHITE_60},
+        "Image::Restart:hovered": {"image_url": _get_icons("restart"), "color": _WHITE_80},
+        "Image::Restart:disabled": {"image_url": _get_icons("restart"), "color": _WHITE_30},
         "ImageWithProvider::HeaderNvidiaTitle": {
             "color": _WHITE_60,
             "font_size": 32,
@@ -744,6 +772,7 @@ current_dict.update(
         "Label::TopBarTitle:selected": {"color": _WHITE_100, "font_size": 23, "font": ui.url.nvidia_md},
         "Label::Warning": {"color": _YELLOW, "font_size": 18},
         "Label::WelcomePadFooter": {"color": _WHITE_100, "font_size": 18},
+        "Label::Placeholder": {"color": _WHITE_40},
         "Line::PropertiesPaneSectionTitle": {"color": _WHITE_20, "border_width": 1},
         "Line::WelcomePadTop": {"color": _WHITE_20, "border_width": 1},
         "Line::TreeSpacer": {"color": _BLUE_SELECTED, "border_width": 2},

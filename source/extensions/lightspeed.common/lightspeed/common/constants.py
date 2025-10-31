@@ -582,6 +582,7 @@ class WindowNames(str, Enum):
     PROJECT_SETUP = "Project Setup"
     CAPTURES = "Captures"
     REMIX_LOGIC_GRAPH = "Remix Logic Graph Editor"
+    COMFYUI = "ComfyUI"
 
 
 class Layouts(Enum):

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.0]
+### Added
+- Added styles for the ComfyUI window
+
 ## [1.13.1]
 ### Fixed
 - Fixed module import to handle uninitialized Kit gracefully during docs build

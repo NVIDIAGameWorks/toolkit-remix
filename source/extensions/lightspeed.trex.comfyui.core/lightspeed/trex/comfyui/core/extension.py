@@ -17,29 +17,33 @@
 
 __all__ = ["get_comfyui_instance", "ComfyUICoreExtension"]
 
-from typing import Optional
-
 import carb
 import omni.ext
 
 from .core import ComfyUICore
 
-_instance: Optional[ComfyUICore] = None
+_instances: dict[str, ComfyUICore] = {}
 
 
-def get_comfyui_instance() -> ComfyUICore:
-    return _instance
+def get_comfyui_instance(context_name: str = "") -> ComfyUICore:
+    """
+    Get the ComfyUICore instance for the given context name. If no instance exists, create a new one.
+
+    Args:
+        context_name: The name of the context to get the ComfyUICore instance for.
+
+    Returns:
+        The ComfyUICore instance for the given context name.
+    """
+    if context_name not in _instances:
+        _instances[context_name] = ComfyUICore(context_name=context_name)
+    return _instances[context_name]
 
 
 class ComfyUICoreExtension(omni.ext.IExt):
     def on_startup(self, _ext_id):
         carb.log_info("[lightspeed.trex.comfyui.core] Startup")
 
-        global _instance
-        _instance = ComfyUICore()
-
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.comfyui.core] Shutdown")
-
-        global _instance
-        _instance = None
+        _instances.clear()
