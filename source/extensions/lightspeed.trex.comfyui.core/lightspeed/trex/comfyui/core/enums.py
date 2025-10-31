@@ -15,22 +15,27 @@
 * limitations under the License.
 """
 
-__all__ = ["ComfyUIState"]
+__all__ = ["ComfyUIState", "ComfyUIQueueType"]
 
 from enum import Enum
 
 
 class ComfyUIState(Enum):
-    NOT_FOUND = "No installation found"
-    FOUND = "Found existing installation"
-    DOWNLOADING = "Downloading ComfyUI..."
-    VENV = "Creating virtual environment..."
+    NOT_FOUND = "No ComfyUI installation found. Install ComfyUI to get started."
+    FOUND = "Starting the initialization process..."
+    DOWNLOADING = "Downloading the latest version of ComfyUI..."
+    VENV = "Creating a virtual environment..."
     DEPENDENCIES = "Installing dependencies... (This may take a while)"
     MODELS = "Downloading models... (This may take a while)"
-    READY = "Ready"
-    STARTING = "Starting..."
-    RUNNING = "Running"
-    STOPPING = "Stopping..."
-    UPDATING = "Updating..."
-    UNINSTALLING = "Uninstalling..."
-    ERROR = "An error occurred. See logs for details"
+    READY = "ComfyUI is ready to start"
+    STARTING = "Starting ComfyUI..."
+    RUNNING = "ComfyUI is running"
+    STOPPING = "Stopping ComfyUI..."
+    UPDATING = "Updating ComfyUI to the latest version..."
+    UNINSTALLING = "Deleting the ComfyUI installation..."
+    ERROR = "An error occurred. See logs for details. Refresh the installation state to try again."
+
+
+class ComfyUIQueueType(Enum):
+    TEXTURE = "texture"
+    MESH = "mesh"

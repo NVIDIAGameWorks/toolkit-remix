@@ -1,3 +1,4 @@
+# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -19,11 +20,14 @@ __all__ = ["ComfyUICore"]
 
 import asyncio
 import concurrent.futures
+import json
 import shutil
 import stat
 import subprocess
 import time
+import webbrowser
 from contextlib import suppress
+from copy import deepcopy
 from functools import partial
 from pathlib import Path
 from typing import Callable
@@ -33,7 +37,11 @@ import omni.usd
 import requests
 import toml
 from huggingface_hub import hf_hub_download
-from omni.flux.utils.common import Event, EventSubscription
+from lightspeed.trex.asset_replacements.core.shared import Setup as AssetReplacementCore
+from lightspeed.trex.asset_replacements.core.shared.data_models import AssetReplacementsValidators
+from lightspeed.trex.utils.common.prim_utils import get_extended_selection, is_a_prototype, is_shader_prototype
+from omni.flux.asset_importer.core.data_models import TextureTypes
+from omni.flux.utils.common import Event, EventSubscription, async_wrap
 from omni.flux.utils.common.git import (
     GitError,
     clone_repository,
@@ -44,7 +52,7 @@ from omni.flux.utils.common.git import (
 )
 from omni.services.transport.server.base import utils
 
-from .enums import ComfyUIState
+from .enums import ComfyUIQueueType, ComfyUIState
 
 
 class ComfyUICore:
@@ -60,9 +68,13 @@ class ComfyUICore:
 
     _GIT_URL_SETTING = "/exts/lightspeed.trex.comfyui.core/git/repository"
     _GIT_BRANCH_SETTING = "/exts/lightspeed.trex.comfyui.core/git/branch"
+
     _TORCH_INDEX_SETTING = "/exts/lightspeed.trex.comfyui.core/pip/torch_index"
+
     _MODELS_FILE_SETTING = "/exts/lightspeed.trex.comfyui.core/models/requirements_file"
     _MODELS_CACHE_SETTING = "/exts/lightspeed.trex.comfyui.core/models/cache_dir"
+
+    _WORKFLOWS_SETTINGS = "/exts/lightspeed.trex.comfyui.core/workflows"
 
     INSTANCE_ADDRESS_SETTING = "/exts/lightspeed.trex.comfyui.core/instance/address"
     INSTANCE_PORT_SETTING = "/exts/lightspeed.trex.comfyui.core/instance/port"
@@ -73,8 +85,12 @@ class ComfyUICore:
 
     _VENV_DIRECTORY = ".venv"
 
-    def __init__(self):
+    def __init__(self, context_name: str = ""):
         tokens = carb.tokens.get_tokens_interface()
+
+        self._context_name = context_name
+        self._context = omni.usd.get_context(self._context_name)
+        self._asset_replacement_core = AssetReplacementCore(self._context_name)
 
         self._platform = tokens.resolve("${platform}")
         self._exe_ext = tokens.resolve("${exe_ext}")
@@ -82,13 +98,22 @@ class ComfyUICore:
         self._settings = carb.settings.get_settings()
 
         self._state = ComfyUIState.NOT_FOUND
+        self._textures_selection = []
+        self._meshes_selection = []
+        self._workflows_cache = {}
         self._update_available = False
 
         self._run_process = None
         self._repo = None
         self._venv_python = None
 
-        self.__state_changed_event = Event()
+        self._stage_event_sub = self._context.get_stage_event_stream().create_subscription_to_pop(
+            self._on_stage_event, name="StageChanged"
+        )
+
+        self.__comfyui_state_changed_event = Event()
+        self.__texture_selection_changed_event = Event()
+        self.__mesh_selection_changed_event = Event()
 
     def __del__(self):
         # Stop the running ComfyUI process if active
@@ -106,11 +131,34 @@ class ComfyUICore:
         return self._state
 
     @property
-    def update_available(self) -> bool:
+    def installation_directory(self) -> str | None:
+        """
+        Get the directory where the ComfyUI Installation is located.
+        """
+        return self._repo.workdir if self._repo else None
+
+    @property
+    def update_available(self) -> bool | None:
         """
         Get whether the ComfyUI Installation has an update available.
+
+        The method will return None if the update check failed.
         """
         return self._update_available
+
+    @property
+    def textures_selection(self) -> list[str]:
+        """
+        Get the textures selection.
+        """
+        return self._textures_selection
+
+    @property
+    def meshes_selection(self) -> list[str]:
+        """
+        Get the meshes selection.
+        """
+        return self._meshes_selection
 
     @omni.usd.handle_exception
     async def initialize(self, repository_directory: str | Path | None = None, open_or_install: bool = True):
@@ -249,6 +297,9 @@ class ComfyUICore:
 
         await self.initialize()
 
+        if self._run_process is not None:
+            self._update_state(ComfyUIState.RUNNING)
+
     @omni.usd.handle_exception
     async def run(self, headless: bool = True):
         """
@@ -316,6 +367,76 @@ class ComfyUICore:
             self._update_state(ComfyUIState.ERROR)
             raise
 
+    @omni.usd.handle_exception
+    async def add_to_queue(self, queue_type: ComfyUIQueueType):
+        """
+        Add the selected textures or meshes to the ComfyUI processing queue.
+
+        Args:
+            queue_type: The queue type to add the selected textures or meshes to.
+
+        Raises:
+            requests.exceptions.HTTPError: If the request fails.
+        """
+        if self._repo is None:
+            carb.log_error("No ComfyUI Installation found. Cannot add to queue.")
+            self._update_state(ComfyUIState.ERROR)
+            return
+
+        address = self._settings.get_as_string(self.INSTANCE_ADDRESS_SETTING)
+        port = self._settings.get_as_int(self.INSTANCE_PORT_SETTING)
+
+        if not address or not port:
+            carb.log_error("No address or port found. Cannot add to queue.")
+            self._update_state(ComfyUIState.ERROR)
+            return
+
+        match queue_type:
+            case ComfyUIQueueType.TEXTURE:
+                selection = self._textures_selection
+            case ComfyUIQueueType.MESH:
+                selection = self._meshes_selection
+
+        if not selection:
+            carb.log_warn(f"No {queue_type.value} selection found. Cannot add to queue.")
+            return
+
+        for input_path in selection:
+            try:
+                response = await async_wrap(
+                    partial(
+                        requests.post,
+                        f"http://{address}:{port}/prompt",
+                        json={"prompt": self._get_prompt(queue_type, input_path)},
+                    )
+                )()
+                response.raise_for_status()
+                carb.log_info(f'Added "{input_path}" to the {queue_type.value} queue')
+            except Exception as e:  # noqa PLW0718
+                carb.log_error(f"An error occurred while adding the selection to the {queue_type.value} queue: {e}")
+                self._update_state(ComfyUIState.ERROR)
+                raise
+
+    def open_ui(self):
+        """
+        Open the ComfyUI UI in the default browser.
+        """
+        if self._repo is None:
+            carb.log_error("No ComfyUI Installation found. Cannot open UI.")
+            self._update_state(ComfyUIState.ERROR)
+            return
+
+        address = self._settings.get_as_string(self.INSTANCE_ADDRESS_SETTING)
+        port = self._settings.get_as_int(self.INSTANCE_PORT_SETTING)
+
+        if not address or not port:
+            carb.log_error("No address or port found. Cannot open UI.")
+            self._update_state(ComfyUIState.ERROR)
+            return
+
+        url = f"http://{address}:{port}"
+        webbrowser.open(url)
+
     def get_comfyui_directory(self, dirname: str, filename: str) -> str | None:
         """
         Get the ComfyUI directory from a given directory.
@@ -350,17 +471,41 @@ class ComfyUICore:
 
         return str(repository) if (project_config.get("project", {}).get("name") == "ComfyUI") else None
 
-    def subscribe_state_changed(self, callback: Callable[[ComfyUIState], None]) -> EventSubscription:
+    def subscribe_comfyui_state_changed(self, callback: Callable[[ComfyUIState], None]) -> EventSubscription:
         """
-        Subscribe to state changes.
+        Subscribe to ComfyUI instance state changes.
 
         Args:
-            callback: The callback to call when the state changes.
+            callback: The callback to call when the ComfyUI instance state changes.
 
         Returns:
             An object that will automatically unsubscribe when destroyed.
         """
-        return EventSubscription(self.__state_changed_event, callback)
+        return EventSubscription(self.__comfyui_state_changed_event, callback)
+
+    def subscribe_texture_selection_changed(self, callback: Callable[[list[str]], None]) -> EventSubscription:
+        """
+        Subscribe to texture selection changes.
+
+        Args:
+            callback: The callback to call when the texture selection changes.
+
+        Returns:
+            An object that will automatically unsubscribe when destroyed.
+        """
+        return EventSubscription(self.__texture_selection_changed_event, callback)
+
+    def subscribe_mesh_selection_changed(self, callback: Callable[[list[str]], None]) -> EventSubscription:
+        """
+        Subscribe to mesh selection changes.
+
+        Args:
+            callback: The callback to call when the mesh selection changes.
+
+        Returns:
+            An object that will automatically unsubscribe when destroyed.
+        """
+        return EventSubscription(self.__mesh_selection_changed_event, callback)
 
     def _update_state(self, value: ComfyUIState):
         """
@@ -372,7 +517,7 @@ class ComfyUICore:
             value: The new state of the ComfyUI Installation.
         """
         self._state = value
-        self.__state_changed_event(value)
+        self.__comfyui_state_changed_event(value)
 
     def _open_repository(self, repository_directory: str | Path):
         """
@@ -381,8 +526,6 @@ class ComfyUICore:
         Args:
             repository_directory: The directory where the ComfyUI Installation is located.
         """
-        self._update_state(ComfyUIState.NOT_FOUND)
-
         # Try to find an existing ComfyUI Installation
         comfyui_directory = self.get_comfyui_directory(str(repository_directory), "")
 
@@ -408,7 +551,7 @@ class ComfyUICore:
             _, behind = get_remote_ahead_behind(self._repo)
         except (ValueError, GitError) as e:
             carb.log_error(f"Error checking for update: {e}")
-            self._update_available = False
+            self._update_available = None
         else:
             self._update_available = behind > 0
 
@@ -524,15 +667,17 @@ class ComfyUICore:
                 carb.log_warn(f'Model "{model_path}" already exists. Skipping download.')
                 continue
 
-            hf_hub_download(
-                repo_id=model["repo_id"],
-                filename=model["filename"],
-                revision=model["revision"],
-                local_dir=str(cache_path),
-            )
+            cache_file = cache_path / model["filename"]
+            if not cache_file.exists():
+                hf_hub_download(
+                    repo_id=model["repo_id"],
+                    filename=model["filename"],
+                    revision=model["revision"],
+                    local_dir=str(cache_path),
+                )
 
             # Move the model to the correct location
-            (cache_path / model["filename"]).rename(model_path)
+            cache_file.rename(model_path)
 
     def _setup_venv(self) -> str | None:
         """
@@ -788,6 +933,98 @@ class ComfyUICore:
 
         self._run_process = None
 
+    def _get_prompt(self, queue_type: ComfyUIQueueType, input_path: str) -> dict:
+        """
+        Get the ComfyUI prompt for the given queue type.
+
+        Args:
+            queue_type: The queue type to get the prompt for.
+            input_path: The path to the input file to use in the workflow.
+
+        Raises:
+            ValueError: If the workflow settings are invalid.
+
+        Returns:
+            The ComfyUI prompt for the given queue type.
+        """
+        if self._repo is None:
+            raise ValueError("No ComfyUI Installation found")
+
+        root_dir = Path(self._repo.workdir)
+        workflow = self._settings.get(self._WORKFLOWS_SETTINGS).get(queue_type.value, {})
+
+        workflow_file_path = workflow.get("file_path", "")
+        workflow_input = workflow.get("input", "")
+
+        if not workflow_file_path:
+            raise ValueError(f"No workflow file path found for queue type: {queue_type}")
+
+        if not workflow_input:
+            raise ValueError(f"No workflow input found for queue type: {queue_type}")
+
+        workflow_path = root_dir / workflow_file_path
+        if not workflow_path.exists():
+            raise ValueError(f"The workflow file {workflow_file_path} does not exist")
+
+        if workflow_path.as_posix() not in self._workflows_cache:
+            with open(workflow_path, "r", encoding="utf-8") as workflow_file:
+                self._workflows_cache[workflow_path.as_posix()] = json.load(workflow_file)
+
+        parts = workflow_input.split(".")
+        if len(parts) != 2:
+            raise ValueError(f"Input name {workflow_input} is not supported")
+
+        workflow_value = deepcopy(self._workflows_cache[workflow_path.as_posix()])
+        if parts[0] in workflow_value:
+            workflow_value[parts[0]]["inputs"][parts[1]] = input_path
+
+        return workflow_value
+
+    def _on_stage_event(self, event: carb.events.IEvent):
+        """
+        Callback for stage events.
+        """
+        if event.type != int(omni.usd.StageEventType.SELECTION_CHANGED):
+            return
+
+        self._update_selections()
+
+    def _update_selections(self):
+        """
+        Get the textures selection.
+        """
+        meshes_selection = []
+        textures_selection = []
+
+        for prim_path in get_extended_selection(self._context_name):
+            prim = self._context.get_stage().GetPrimAtPath(prim_path)
+
+            if not prim:
+                continue
+
+            # If a mesh or instance is selected, add the meshe references to the selection
+            if is_a_prototype(prim):
+                _, references = AssetReplacementsValidators.get_prim_references(prim_path, self._context_name)
+                for ref, layer in references:
+                    meshes_selection.append(str(Path(layer.identifier).parent / ref.assetPath))
+
+            # If a material or shader is selected, add the diffuse texture of the material to the selection
+            elif is_shader_prototype(prim):
+                textures = self._asset_replacement_core.get_textures_from_material_path(
+                    prim_path, {TextureTypes.DIFFUSE}
+                )
+                textures_selection.extend([texture_path for _, texture_path in textures])
+
+        # If the meshes selection has changed, update the meshes selection and trigger the event
+        if meshes_selection != self._meshes_selection:
+            self._meshes_selection = meshes_selection
+            self.__mesh_selection_changed_event(meshes_selection)
+
+        # If the textures selection has changed, update the textures selection and trigger the event
+        if textures_selection != self._textures_selection:
+            self._textures_selection = textures_selection
+            self.__texture_selection_changed_event(textures_selection)
+
     def _validate_repo(self, repo_root: str) -> bool:
         """
         Validate the repository is a ComfyUI Installation.
@@ -831,10 +1068,9 @@ class ComfyUICore:
         )
 
         try:
-            if proc.stdout is not None:
+            if proc.stdout is not None and stream_output:
                 for line in proc.stdout:
-                    if stream_output:
-                        carb.log_info(line.rstrip())
+                    print(line.rstrip())
         except Exception:
             proc.kill()
             raise

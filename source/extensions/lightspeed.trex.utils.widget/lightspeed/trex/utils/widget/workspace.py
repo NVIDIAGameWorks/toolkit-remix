@@ -83,14 +83,21 @@ class WorkspaceWindowBase(abc.ABC):
         window = ui.Window(self.title, visible=False, flags=self.flags)
         return window
 
-    def create_window(self):
+    def create_window(self, width: int | None = None, height: int | None = None):
         """Creates the ui.Window instance and sets up the "Window" menu item."""
         if self._window:
             return
 
         self._window = self._create_window()
+
+        if width is not None:
+            self._window.width = width
+        if height is not None:
+            self._window.height = height
+
         self._window.padding_x = 0
         self._window.padding_y = 0
+
         self._window.set_visibility_changed_fn(self._on_visibility_changed)
         self._window.set_width_changed_fn(self._on_window_resized)
         self._window.set_height_changed_fn(self._on_window_resized)

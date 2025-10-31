@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4612: Added ComfyUI core & widget extensions for deeper ComfyUI integration
 - REMIX-4599: Added Kit UI Workspace support for flexible window based layouts.
 - REMIX-4242: Add Remix Logic Graph Editor as an experimental feature
+- REMIX-4610: Added the ability to add selected textures and meshes to the ComfyUI queue
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main

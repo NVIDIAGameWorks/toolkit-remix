@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.1]
+### Added
+- Added ability to set initial window size
+
 ## [1.4.0]
 ### Added
 - Added create_window method to WorkspaceWindowBase class to support custom windows

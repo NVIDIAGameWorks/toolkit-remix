@@ -15,7 +15,28 @@
 * limitations under the License.
 """
 
-__all__ = ["ComfyUIWidget", "TrexComfyUIWindowExtension"]
+__all__ = ["ComfyUIWindow"]
 
-from .extension import TrexComfyUIWindowExtension
+from lightspeed.common.constants import WindowNames
+from lightspeed.trex.utils.widget.workspace import WorkspaceWindowBase
+from omni import ui
+
 from .widget import ComfyUIWidget
+
+
+class ComfyUIWindow(WorkspaceWindowBase):
+    """Global "ComfyUI" pane window manager"""
+
+    @property
+    def title(self) -> str:
+        return WindowNames.COMFYUI
+
+    def menu_path(self) -> str | None:
+        return f"Modding/{self.title}"
+
+    @property
+    def flags(self) -> int:
+        return ui.WINDOW_FLAGS_NO_SCROLLBAR | ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
+
+    def _create_window_ui(self):
+        return ComfyUIWidget(context_name=self._usd_context_name or "")
