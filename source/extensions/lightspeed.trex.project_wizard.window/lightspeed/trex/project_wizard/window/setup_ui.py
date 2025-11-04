@@ -24,7 +24,6 @@ from typing import Dict, Optional
 import carb.settings
 import omni.kit.app
 import omni.kit.window.file
-from lightspeed.error_popup.window import ErrorPopup as _ErrorPopup
 from lightspeed.trex.project_wizard.core import SETTING_JUNCTION_NAME as _SETTING_JUNCTION_NAME
 from lightspeed.trex.project_wizard.core import ProjectWizardCore as _ProjectWizardCore
 from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys
@@ -36,6 +35,7 @@ from omni import ui, usd
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.dialog import ErrorPopup as _ErrorPopup
 from omni.flux.wizard.widget import WizardModel as _WizardModel
 from omni.flux.wizard.widget import WizardPage as _WizardPage
 from omni.flux.wizard.window import WizardWindow as _WizardWindow

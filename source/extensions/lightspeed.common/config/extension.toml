@@ -1,13 +1,13 @@
 [package]
-# Semantic Versionning is used: https://semver.org/
-version = "1.10.1"
+# Semantic Versioning is used: https://semver.org/
+version = "1.11.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alexander Jaus <ajaus@nvidia.com>"]
 
-# The title and description fields are primarly for displaying extension info in UI
-title = "Lightspeed Game Export Common Extension"
-description="Stores values to be shared across Lightspeed Extensions"
+# The title and description fields are primarily for displaying extension info in UI
+title = "Lightspeed Common Extension"
+description="Stores constant values to be shared across lightspeed extensions"
 
 # Path (relative to the root) or content of readme markdown file for UI.
 readme  = "docs/README.md"
@@ -33,8 +33,9 @@ preview_image = "data/preview.png"
 icon = "data/icon.png"
 
 [dependencies]
-"omni.usd" = {}
+# For this ext, keep dependencies minimal and only add dependencies that are required by constants
 "omni.ui" = {}
+"omni.usd" = {}
 "omni.flux.resources" = {}
 "lightspeed.trex.app.resources" = {}
 

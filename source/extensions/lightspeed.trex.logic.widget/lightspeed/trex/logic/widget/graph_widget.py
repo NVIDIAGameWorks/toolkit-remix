@@ -23,8 +23,8 @@ import omni.graph.core as og
 import omni.ui as ui
 import omni.usd
 from lightspeed.common.constants import QUICK_START_GUIDE_URL
-from lightspeed.error_popup.window import ErrorPopup
 from lightspeed.trex.utils.common.prim_utils import get_prototype, is_in_light_group, is_in_mesh_group
+from omni.flux.utils.dialog import ErrorPopup
 from omni.graph.window.core import OmniGraphWidget
 from omni.kit.window.popup_dialog import InputDialog
 from pxr import Sdf

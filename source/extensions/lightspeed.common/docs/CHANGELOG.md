@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.11.0]
+### Removed
+- Removed ReferenceEdit utility class
+
 ## [1.10.1]
 ### Added
 - Added constants for ComfyUI window name

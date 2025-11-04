@@ -1,11 +1,10 @@
 [package]
 version = "0.2.1"
 authors = ["ptrottier@nvidia.com"]
-repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
-keywords = ["window"]
-title = "Lightspeed Error Popup Window"
-description = "An Error Popup Window"
-category = "internal"
+keywords = ["kit", "flux", "window", "popup", "dialog"]
+title = "Omni Flux Dialogs"
+description = "Simple but useful dialog window implementations"
+category = "Widget"
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
 icon = "data/icon.png"
@@ -17,4 +16,4 @@ preview_image = "data/preview.png"
 "omni.flux.utils.common" = {}
 
 [[python.module]]
-name = "lightspeed.error_popup.window"
+name = "omni.flux.utils.dialog"

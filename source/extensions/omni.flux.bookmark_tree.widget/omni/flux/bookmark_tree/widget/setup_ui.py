@@ -22,8 +22,8 @@ from typing import Any, List, Optional
 import carb
 import omni.kit.undo
 from omni import kit, ui, usd
-from omni.flux.popup.window import show_popup as _show_popup
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.dialog import show_popup as _show_popup
 from omni.flux.utils.widget.hover import hover_helper as _hover_helper
 
 from .bookmark_tree.delegate import BookmarkDelegate
