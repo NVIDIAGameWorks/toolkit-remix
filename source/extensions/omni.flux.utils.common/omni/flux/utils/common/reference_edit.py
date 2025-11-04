@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from types import TracebackType
+
 import omni.usd
 from pxr import Usd
 
@@ -31,7 +33,7 @@ class ReferenceEdit:
         >>>     # edit prim, including any descendents of the prim.
     """
 
-    def __init__(self, prim):
+    def __init__(self, prim: Usd.Prim):
         self._prim = prim
         self._stage = omni.usd.get_context().get_stage()
         self._default_edit_target = self._stage.GetEditTarget()
@@ -48,7 +50,7 @@ class ReferenceEdit:
         else:
             self._stage.SetEditTarget(self._default_edit_target)
 
-    def __exit__(self, e_type, value, traceback):
+    def __exit__(self, exc_type: type | None, exc_val: Exception | None, exc_tb: TracebackType | None):
         if self._refNode:
             self._refNode.layerStack.layers[0].Save()
         self._stage.SetEditTarget(self._default_edit_target)

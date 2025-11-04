@@ -23,10 +23,8 @@ import omni.appwindow
 import omni.kit.window.file
 import omni.ui as ui
 import omni.usd
-from lightspeed.error_popup.window import ErrorPopup as _ErrorPopup
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
-from lightspeed.progress_popup.window import ProgressPopup as _ProgressPopup
 from lightspeed.trex.mod_packaging_details.widget import ModPackagingDetailsWidget as _ModPackagingDetailsWidget
 from lightspeed.trex.mod_packaging_layers.widget import ModPackagingLayersWidget as _ModPackagingLayersWidget
 from lightspeed.trex.mod_packaging_output.widget import ModPackagingOutputWidget as _ModPackagingOutputWidget
@@ -35,6 +33,8 @@ from lightspeed.trex.packaging.window import PackagingErrorWindow as _PackagingE
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
+from omni.flux.utils.dialog import ErrorPopup as _ErrorPopup
+from omni.flux.utils.dialog import ProgressPopup as _ProgressPopup
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )

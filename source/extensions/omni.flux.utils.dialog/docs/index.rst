@@ -1,4 +1,4 @@
-lightspeed.error_popup.window
+omni.flux.utils.dialog
 ##############################
 
 
@@ -8,4 +8,4 @@ lightspeed.error_popup.window
    README
    CHANGELOG
 
-.. automodule:: lightspeed.error_popup.window
+.. automodule:: omni.flux.utils.dialog

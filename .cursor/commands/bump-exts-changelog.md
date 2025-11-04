@@ -19,8 +19,8 @@ The commit messages might or might not have relevant info to the changelog.
 
 ## Step 3
 This info should be used to:
-1. Bump the version string using semver in the ext/config/extension.toml file to be the next available version, infering from the diff if it is a major, minor or patch bump.
-2. Write very concise, one-liner changelog entries to Added, Changed, Fixed, or Removed sections of the <ext-name>/docs/CHANGELOG.md file, following the history of writting style from previous entries or other exts changelog style.
+1. Bump the version string using semver in the ext/config/extension.toml file to be the next available version, inferring from the diff if it is a major, minor or patch bump.
+2. Write very concise, one-liner changelog entries to Added, Changed, Fixed, or Removed sections of the <ext-name>/docs/CHANGELOG.md file, following the history of writing style from previous entries or other exts changelog style.
 
 Remember: These changelogs might also be used by marketing to generate release notes, so the oneliners should target both end users and the developers as applicable.
 Go back to step 2 for the next extension pending bumps until all are done.

@@ -15,9 +15,19 @@
 * limitations under the License.
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 from omni import ui
+
+DEFAULT_POPUP_WINDOW_FLAGS: int = (
+    ui.WINDOW_FLAGS_MODAL
+    | ui.WINDOW_FLAGS_NO_DOCKING
+    | ui.WINDOW_FLAGS_NO_COLLAPSE
+    | ui.WINDOW_FLAGS_NO_SCROLLBAR
+    | ui.WINDOW_FLAGS_NO_CLOSE
+    | ui.WINDOW_FLAGS_NO_MOVE
+    | ui.WINDOW_FLAGS_NO_RESIZE
+)
 
 
 def show_popup(
@@ -29,8 +39,25 @@ def show_popup(
     negative_callback: Callable[[], bool] = lambda: True,
     width: int = 300,
     height: int = 200,
-    flags: tuple = None,
+    flags: int = DEFAULT_POPUP_WINDOW_FLAGS,
 ):
+    """
+    Display a modal popup window with customizable content and actions.
+
+    Args:
+        title: The title of the popup window.
+        positive_text: The label for the positive/confirmation button.
+        negative_text: The label for the negative/cancellation button.
+        build_fn: Callback to build the content inside the popup.
+        positive_callback (optional): Function called when confirming;
+            should return True to close the popup.
+        negative_callback (optional): Function called when cancelling;
+            should return True to close the popup.
+        width (optional): Popup width in pixels.
+        height (optional): Popup height in pixels.
+        flags (optional): Flags for the window.
+    """
+
     def on_positive_clicked():
         if positive_callback():
             popup_window.visible = False
@@ -43,17 +70,7 @@ def show_popup(
         title,
         width=width,
         height=height,
-        flags=flags
-        or (
-            ui.WINDOW_FLAGS_MODAL
-            | ui.WINDOW_FLAGS_NO_DOCKING
-            | ui.WINDOW_FLAGS_NO_COLLAPSE
-            | ui.WINDOW_FLAGS_NO_SCROLLBAR
-            | ui.WINDOW_FLAGS_NO_CLOSE
-            | ui.WINDOW_FLAGS_NO_MOVE
-            | ui.WINDOW_FLAGS_NO_RESIZE
-            | ui.WINDOW_FLAGS_NO_SCROLLBAR
-        ),
+        flags=flags,
     )
 
     with popup_window.frame:

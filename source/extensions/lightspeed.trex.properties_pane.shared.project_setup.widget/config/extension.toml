@@ -1,5 +1,5 @@
 [package]
-version = "1.7.2"
+version = "1.7.3"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -13,7 +13,7 @@ preview_image = "data/preview.png"
 
 [dependencies]
 "lightspeed.common" = {}
-"lightspeed.error_popup.window" = {}
+"omni.flux.utils.dialog" = {}
 "lightspeed.events_manager" = {}
 "lightspeed.event.events" = {}
 "lightspeed.layer_manager.core" = {}

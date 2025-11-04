@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.4]
+### Changed
+- Updated dependency from lightspeed.error_popup.window to omni.flux.utils.dialog
+
 ## [2.1.3]
 ### Changed
 - Refactored wizard window creation to initialize during construction

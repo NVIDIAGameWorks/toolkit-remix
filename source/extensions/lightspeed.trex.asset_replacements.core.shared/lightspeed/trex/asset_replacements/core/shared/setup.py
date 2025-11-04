@@ -28,7 +28,6 @@ import omni.kit.commands
 import omni.kit.undo
 import omni.usd
 from lightspeed.common import constants
-from lightspeed.error_popup.window import ErrorPopup
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core.data_models import LayerType as _LayerType
 from lightspeed.tool.material.core import ToolMaterialCore as _ToolMaterialCore
@@ -48,6 +47,7 @@ from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTy
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
+from omni.flux.utils.dialog import ErrorPopup
 from omni.usd.commands import remove_prim_spec as _remove_prim_spec
 from pxr import Sdf, Usd, UsdGeom, UsdShade, UsdSkel
 

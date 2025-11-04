@@ -27,7 +27,6 @@ import omni.kit.usd.layers as _layers
 import omni.ui as ui
 import omni.usd
 from lightspeed.common.constants import GlobalEventNames as _GlobalEventNames
-from lightspeed.error_popup.window import ErrorPopup as _ErrorPopup
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.layer_manager.core import LayerType
 from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
@@ -41,6 +40,7 @@ from omni.flux.property_widget_builder.model.file import get_file_listener_insta
 from omni.flux.property_widget_builder.widget import PropertyWidget as _PropertyWidget
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common.decorators import ignore_function_decorator_async as _ignore_function_decorator_async
+from omni.flux.utils.dialog import ErrorPopup as _ErrorPopup
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
