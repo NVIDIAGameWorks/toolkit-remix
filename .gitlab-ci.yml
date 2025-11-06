@@ -5,13 +5,11 @@ variables:
 
 stages:
   - check_mr
-  - check_format
-  - check_lint
   - flux_e2e_tests
   - flux_unit_tests
   - lss_e2e_tests
   - lss_unit_tests
-  - check_changelog
+  - checks_final
   - build_docs
   - publish_docs
   - build_package

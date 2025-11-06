@@ -1,12 +1,10 @@
 .unit_tests_linux:
   extends:
     - .defaults
-    - .linux_agent_gpu
+    - .linux_gpu_agent
     - .linux_vault
     - .soak_test_rules
-  needs:
-    - job: check-lint
-      optional: true
+  needs: []
   before_script:
     - !reference [ .linux_vault, before_script ]
     - ./build.sh --rebuild --release

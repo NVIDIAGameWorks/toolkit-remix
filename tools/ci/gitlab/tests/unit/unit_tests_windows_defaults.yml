@@ -2,11 +2,9 @@
   extends:
     - .defaults
     - .windows_vault
-    - .windows_agent_gpu
+    - .windows_gpu_agent
     - .soak_test_rules
-  needs:
-    - job: check-lint
-      optional: true
+  needs: []
   before_script:
     - !reference [ .windows_vault, before_script ]
     - .\build.bat --rebuild --release

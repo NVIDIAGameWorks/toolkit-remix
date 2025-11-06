@@ -1,21 +1,21 @@
 ####################
 # Agents definitions
 ####################
-.linux_agent:
+.linux_build_agent:
   tags:
-    - linux
+    - linux_build
 
-.linux_agent_gpu:
+.linux_gpu_agent:
   tags:
     - linux
     - ada_rtx6000
     - nv-driver-stable
 
-.windows_agent:
+.windows_build_agent:
   tags:
-    - windows
+    - win_build
 
-.windows_agent_gpu:
+.windows_gpu_agent:
   tags:
     - windows
     - ada_rtx6000

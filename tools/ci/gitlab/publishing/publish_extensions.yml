@@ -8,7 +8,7 @@ publish-extensions-windows:
   stage: publish_extensions
   extends:
     - .release_defaults
-    - .windows_agent
+    - .windows_build_agent
     - .windows_vault
   needs:
     - job: build-package-windows
@@ -33,7 +33,7 @@ publish-extensions-linux:
   stage: publish_extensions
   extends:
     - .release_defaults
-    - .linux_agent
+    - .linux_build_agent
     - .linux_vault
   needs:
     - job: build-package-linux

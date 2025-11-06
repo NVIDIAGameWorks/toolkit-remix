@@ -1,6 +1,6 @@
 build_and_measure:
   extends:
-    - .windows_agent_gpu
+    - .windows_gpu_agent
   stage: measure_startup_time
   before_script:
     - .\build.bat --rebuild --release
