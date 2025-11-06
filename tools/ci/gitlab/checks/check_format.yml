@@ -1,12 +1,10 @@
 check-format:
+  stage: checks_final
   extends:
     - .defaults
-    - .windows_agent
+    - .windows_build_agent
     - .soak_check_rules
-  stage: check_format
-  needs:
-    - check-forbidden-words
-    - check-test-location
+  needs: []
   script:
     - .\format_code.bat --verify
   timeout: 10m

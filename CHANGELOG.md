@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update hdremix and omni_core_materials to ext-07e0f43-main
 - REMIX-4599: Changed many widgets across the app to be standalone windows.
 - Cleaned up and consolidated popup extensions to use the new omni.flux.utils.dialog extension.
+- Optimized internal CI pipeline stages
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths

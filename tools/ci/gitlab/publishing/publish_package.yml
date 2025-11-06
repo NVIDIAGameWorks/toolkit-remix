@@ -3,7 +3,7 @@
 ###########################################################
 publish-package-gitlab:
   extends:
-    - .linux_agent
+    - .linux_build_agent
     - .linux_vault
     - .gitlab_release
   needs:
@@ -26,7 +26,7 @@ publish-package-gitlab:
 publish-gitlab-release:
   extends:
     - .gitlab_release
-    - .windows_agent
+    - .windows_build_agent
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   tags:
     - release-cli
@@ -72,7 +72,7 @@ publish-gitlab-release:
 publish-github-release:
   extends:
     - .github_release
-    - .windows_agent
+    - .windows_build_agent
   needs:
     - job: build-package-windows
       artifacts: true
@@ -94,7 +94,7 @@ publish-github-release:
 trigger-github-toolkit-download:
   extends:
     - .github_release
-    - .linux_agent
+    - .linux_build_agent
   needs:
     - job: publish-github-release
       artifacts: false

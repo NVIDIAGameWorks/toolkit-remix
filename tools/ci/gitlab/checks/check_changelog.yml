@@ -1,12 +1,10 @@
 check-changelog:
+  stage: checks_final
   extends:
     - .defaults
-    - .windows_agent
+    - .windows_build_agent
     - .soak_check_rules
-  needs:
-    - job: check-lint
-      optional: true
-  stage: check_changelog
+  needs: []
   script:
     - .\repo.bat check_changelog -s "$CI_COMMIT_SHA" -t "$CI_MERGE_REQUEST_DIFF_BASE_SHA"
   rules:

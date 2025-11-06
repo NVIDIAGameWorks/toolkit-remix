@@ -1,11 +1,10 @@
 check-lint:
+  stage: checks_final
   extends:
     - .defaults
-    - .windows_agent
+    - .windows_build_agent
     - .soak_check_rules
-  stage: check_lint
-  needs:
-    - check-format
+  needs: []
   script:
     - .\lint_code.bat all
   timeout: 10m

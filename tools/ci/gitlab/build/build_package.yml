@@ -5,7 +5,7 @@
 build-package-windows:
   extends:
     - .release_defaults
-    - .windows_agent
+    - .windows_build_agent
   stage: build_package
   before_script:
     - .\build.bat --rebuild --release
@@ -29,7 +29,7 @@ build-package-windows:
 build-package-linux:
   extends:
     - .release_defaults
-    - .linux_agent_gpu
+    - .linux_gpu_agent
   stage: build_package
   before_script:
     - ./build.sh --rebuild --release
