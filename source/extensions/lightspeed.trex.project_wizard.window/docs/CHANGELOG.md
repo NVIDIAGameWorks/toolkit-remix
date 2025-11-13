@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.5]
+### Changed
+- Simplified need_deps* methods to provide schema object directly
+
 ## [2.1.4]
 ### Changed
 - Updated dependency from lightspeed.error_popup.window to omni.flux.utils.dialog

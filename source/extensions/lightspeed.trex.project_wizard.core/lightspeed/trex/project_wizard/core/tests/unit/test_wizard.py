@@ -216,12 +216,6 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             [call(self.core.CONTEXT_NAME), call(self.core.CONTEXT_NAME)], mock.get_context_mock.call_args_list
         )
 
-    async def test_create_symlinks_no_deps_dir_should_quick_return(self):
-        await self.__run_test_create_symlinks_should_quick_return(True)
-
-    async def test_create_symlinks_no_remix_dir_should_quick_return(self):
-        await self.__run_test_create_symlinks_should_quick_return(False)
-
     async def test_create_symlinks_deps_symlink_exists_should_not_symlink(self):
         await self.__run_test_create_symlinks_exists_should_not_symlink(True)
 
@@ -241,7 +235,11 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         )
 
         with WizardMockContext() as mock:
-            mock.path_exists_mock.side_effect = [True, False, True]
+            # 1. remix_directory / _constants.REMIX_MODS_FOLDER
+            # 2. project_directory / _constants.REMIX_DEPENDENCIES_FOLDER
+            # 3. remix_project_directory = remix_mods_directory / model.project_file.parent.stem
+            # 4. link.exists() - check before creating symlink
+            mock.path_exists_mock.side_effect = [True, False, True, False]
 
             # Act
             value = await self.core._create_symlinks(  # noqa PLW0212
@@ -249,7 +247,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             )  # noqa PLW0212
 
         # Assert
-        self.assertEqual(3, mock.path_exists_mock.call_count)
+        self.assertEqual(4, mock.path_exists_mock.call_count)
         self.assertEqual(1, mock.check_call_mock.call_count)
 
         self.assertEqual(None, value)
@@ -600,33 +598,6 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
         self.assertEqual(0, mock.log_error_mock.call_count)
 
-    async def __run_test_create_symlinks_should_quick_return(self, deps_or_remix: bool):
-        # Arrange
-        project_file = self.base_dir / "My Project" / "project.usda"
-        remix_dir = self.base_dir / constants.REMIX_FOLDER
-        deps_dir = project_file.parent / constants.REMIX_DEPENDENCIES_FOLDER
-
-        schema = ProjectWizardSchemaMock(
-            existing_project=True,
-            project_file=project_file,
-            remix_directory=remix_dir,
-        )
-
-        with WizardMockContext() as mock:
-            # Act
-            value = await self.core._create_symlinks(  # noqa PLW0212
-                schema,
-                project_file.parent,
-                deps_dir if deps_or_remix else None,
-                None if deps_or_remix else remix_dir,
-                False,
-                create_junction=True,
-            )
-
-        # Assert
-        self.assertEqual(0, mock.path_exists_mock.call_count)
-        self.assertEqual(None if deps_or_remix else "Unable to find the path to the project dependencies", value)
-
     async def __run_test_create_symlinks_exists_should_not_symlink(self, deps_or_remix: bool):
         # Arrange
         project_file_base = Path("My Project") / "project.usda"
@@ -641,7 +612,14 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         )
 
         with WizardMockContext() as mock:
-            mock.path_exists_mock.side_effect = [True, True, False] if deps_or_remix else [True, False, True]
+            # 1. remix_directory / _constants.REMIX_MODS_FOLDER
+            # 2. project_directory / _constants.REMIX_DEPENDENCIES_FOLDER
+            # 3. remix_project_directory = remix_mods_directory / model.project_file.parent.stem
+            # 4. link.exists() - check before creating symlink
+            if deps_or_remix:
+                mock.path_exists_mock.side_effect = [True, True, False, False]
+            else:
+                mock.path_exists_mock.side_effect = [True, False, True, False]
 
             # Act
             value = await self.core._create_symlinks(  # noqa PLW0212
@@ -649,7 +627,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             )  # noqa PLW0212
 
         # Assert
-        self.assertEqual(3, mock.path_exists_mock.call_count)
+        self.assertEqual(4, mock.path_exists_mock.call_count)
         self.assertEqual(1, mock.check_call_mock.call_count)
 
         remix_project_dir = remix_dir / constants.REMIX_MODS_FOLDER / project_file_base

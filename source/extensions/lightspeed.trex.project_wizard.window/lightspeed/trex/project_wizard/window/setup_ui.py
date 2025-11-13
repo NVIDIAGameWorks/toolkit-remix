@@ -27,6 +27,7 @@ import omni.kit.window.file
 from lightspeed.trex.project_wizard.core import SETTING_JUNCTION_NAME as _SETTING_JUNCTION_NAME
 from lightspeed.trex.project_wizard.core import ProjectWizardCore as _ProjectWizardCore
 from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys
+from lightspeed.trex.project_wizard.core import ProjectWizardSchema as _ProjectWizardSchema
 from lightspeed.trex.project_wizard.open_project_page.widget import WizardOpenProjectPage as _WizardOpenProjectPage
 from lightspeed.trex.project_wizard.setup_page.widget import SetupPage as _SetupPage
 from lightspeed.trex.project_wizard.start_page.widget import WizardStartPage as _WizardStartPage
@@ -101,7 +102,7 @@ class ProjectWizardBase(abc.ABC):
         return self._context_name
 
     @usd.handle_exception
-    async def _on_wizard_completed(self, payload: Dict):
+    async def _on_wizard_completed(self, payload: dict):
         @usd.handle_exception
         async def _setup_project():
             success, error = await self._wizard_core.setup_project_async(payload)
@@ -110,11 +111,12 @@ class ProjectWizardBase(abc.ABC):
         settings = carb.settings.get_settings()
         force_junction = settings.get(_SETTING_JUNCTION_NAME)  # junction doesn't need admin right
 
+        model = _ProjectWizardSchema(**payload)
         if (
             any(
                 [
-                    self._wizard_core.need_project_directory_symlink(schema=payload),
-                    self._wizard_core.need_deps_directory_symlink(schema=payload),
+                    self._wizard_core.need_project_directory_symlink(model),
+                    self._wizard_core.need_deps_directory_symlink(model),
                 ]
             )
             and not force_junction

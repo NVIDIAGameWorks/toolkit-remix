@@ -17,7 +17,6 @@
 
 import subprocess
 import sys
-from contextlib import suppress
 from pathlib import Path
 from typing import Tuple
 
@@ -26,26 +25,35 @@ from .uac import is_admin as _is_admin
 from .uac import sudo as _sudo
 
 
-def get_resolved_symlink(path: str) -> Path | None:
-    """
-    Get the resolved original path for a symlink.
+def is_broken_symlink(path_obj: Path) -> bool:
+    """Check if a symlink is broken."""
+    if not path_obj.is_symlink():
+        raise ValueError(f"Path '{path_obj}' is not a symlink")
 
-    Args:
-        path: Symlink path to read and resolve
-
-    Returns:
-        The path to the original file that was symlinked, or None if the symlink is broken
-    """
-    path_obj = Path(path)
-    broken_symlink = False
     # Check if the symlink is broken by checking if the symlink exists and the target does not
-    with suppress(FileNotFoundError):
+    try:
         if path_obj.readlink() and not path_obj.exists():
-            broken_symlink = True
+            return True
+    except OSError:
+        # Some platforms may raise exceptions here if the symlink is invalid or if the filesystem does not
+        # support reading symlinks. For example, on Windows, reading a broken symlink or a file with
+        # insufficient permissions may throw OSError.
+        return True
 
-    if broken_symlink:
+    return False
+
+
+def get_path_or_symlink(path_obj: Path) -> Path | None:
+    """
+    Get a path object for path or symlink.
+
+    If the path does not exist or the symlink is broken, return None.
+    """
+    if path_obj.is_symlink() and is_broken_symlink(path_obj):
         return None
-    return path_obj
+    if path_obj.exists():
+        return path_obj
+    return None
 
 
 def create_folder_symlinks(links_targets: list[Tuple[str, str]], create_junction: bool = False):
@@ -60,8 +68,9 @@ def create_folder_symlinks(links_targets: list[Tuple[str, str]], create_junction
 
     # Unlink broken symlinks
     for link, _ in links_targets:
-        if not get_resolved_symlink(link):
-            Path(link).unlink()
+        link_obj = Path(link)
+        if link_obj.exists() and link_obj.is_symlink() and is_broken_symlink(link_obj):
+            link_obj.unlink()
 
     def _generate_cmd(symlink_cmd, symlink_type, reverse: bool = False):
         _cmd = []
