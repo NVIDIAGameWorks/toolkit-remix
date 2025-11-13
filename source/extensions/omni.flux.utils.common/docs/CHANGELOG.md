@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.5.1]
+### Changed
+- Refactored symlink utilities to `is_broken_symlink()` and `get_path_or_symlink()` for improved clarity
+
+### Fixed
+- Fixed Windows OSError when checking symlinks on non-reparse point directories and missing files.
+
 ## [3.5.0]
 ### Added
 - Event now returns list of callback results for two-way communication

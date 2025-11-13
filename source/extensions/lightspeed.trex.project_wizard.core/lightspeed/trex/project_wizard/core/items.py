@@ -30,6 +30,7 @@ from lightspeed.trex.capture.core.shared import Setup as _CaptureCore
 from lightspeed.trex.contexts import get_instance as _get_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
+from omni.flux.utils.common.symlink import get_path_or_symlink as _get_path_or_symlink
 from pydantic import BaseModel, field_validator
 from pydantic_core.core_schema import ValidationInfo
 
@@ -91,11 +92,11 @@ class ProjectWizardSchema(BaseModel):
         # TODO Feature OM-72437 - Should use omni.client when symlinks become supported
         # Invalid /deps directory means we need to select the 'rtx-remix' directory
         deps_symlink = project_path.parent / _constants.REMIX_DEPENDENCIES_FOLDER
-        if not deps_symlink.exists():
+        if not _get_path_or_symlink(deps_symlink):
             return False
         # Make sure the project is also symlinked in the 'rtx-remix/mods/' directory
         mod_symlink = deps_symlink / _constants.REMIX_MODS_FOLDER / project_path.parent.name
-        if not mod_symlink.exists():
+        if not _get_path_or_symlink(mod_symlink):
             return False
         return True
 

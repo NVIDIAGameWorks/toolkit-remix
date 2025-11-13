@@ -17,6 +17,7 @@
 
 import asyncio
 import stat
+from pathlib import Path
 from shutil import copytree
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
 
@@ -31,7 +32,7 @@ from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common.symlink import create_folder_symlinks as _create_folder_symlinks
-from omni.flux.utils.common.symlink import get_resolved_symlink as _get_resolved_symlink
+from omni.flux.utils.common.symlink import get_path_or_symlink as _get_path_or_symlink
 from omni.kit.usd.layers import LayerUtils as _LayerUtils
 
 from .items import ProjectWizardSchema as _ProjectWizardSchema
@@ -128,10 +129,10 @@ class ProjectWizardCore:
             model = _ProjectWizardSchema(**schema)
             self._on_run_progress(20)
 
-            project_directory = model.project_file.parent
-            deps_directory = project_directory / _constants.REMIX_DEPENDENCIES_FOLDER
-            mods_directory = deps_directory / _constants.REMIX_MODS_FOLDER
-            captures_directory = deps_directory / _constants.REMIX_CAPTURE_FOLDER
+            project_directory: Path = model.project_file.parent
+            deps_directory: Path = project_directory / _constants.REMIX_DEPENDENCIES_FOLDER
+            mods_directory: Path = deps_directory / _constants.REMIX_MODS_FOLDER
+            captures_directory: Path = deps_directory / _constants.REMIX_CAPTURE_FOLDER
 
             if not model.existing_project:
                 mods_error = self._create_mods_dir(model.remix_directory, dry_run)
@@ -142,10 +143,13 @@ class ProjectWizardCore:
                     self._on_run_finished(False, error=mods_error)
                     return False, mods_error
 
-            # Item validation should check that the symlinks are already valid if the remix_directory is None
-            symlink_error = await self._create_symlinks(
-                model, project_directory, deps_directory, model.remix_directory, dry_run
-            )
+            symlink_error: str | None = None
+            # If a remix_directory was provided, check for existing symlinks and create them if they don't exist.
+            if model.remix_directory:
+                symlink_error = await self._create_symlinks(
+                    model, project_directory, deps_directory, model.remix_directory, dry_run
+                )
+            # Confirm that the symlinks were created or existed already.
             try:
                 await asyncio.wait_for(
                     self._check_symlinks_exist(model, project_directory, deps_directory, dry_run), timeout=5.0
@@ -256,40 +260,29 @@ class ProjectWizardCore:
 
         return context, stage
 
-    def __symlink_need_get_model(self, model: _ProjectWizardSchema = None, schema: Dict = None):
-        if model is None and schema is None:
-            raise ValueError("Please specify a model or a schema")
-        if schema is not None:
-            model = _ProjectWizardSchema(**schema)
-        return model
-
-    def need_deps_directory_symlink(self, model: _ProjectWizardSchema = None, schema: Dict = None):
-        model = self.__symlink_need_get_model(model=model, schema=schema)
+    def need_deps_directory_symlink(self, model):
         project_directory = model.project_file.parent
         deps_directory = project_directory / _constants.REMIX_DEPENDENCIES_FOLDER
-        resolved_deps_symlink = bool(_get_resolved_symlink(str(deps_directory)))
-        return not deps_directory.exists() or not resolved_deps_symlink
+        return not _get_path_or_symlink(deps_directory)
 
-    def need_project_directory_symlink(self, model: _ProjectWizardSchema = None, schema: Dict = None):
-        model = self.__symlink_need_get_model(model=model, schema=schema)
+    def need_project_directory_symlink(self, model):
         remix_directory = model.remix_directory
         if not remix_directory:
             return False
         remix_mods_directory = remix_directory / _constants.REMIX_MODS_FOLDER
         remix_project_directory = remix_mods_directory / model.project_file.parent.stem
-        resolved_remix_project_symlink = bool(_get_resolved_symlink(str(remix_project_directory)))
-        return not remix_project_directory.exists() or not resolved_remix_project_symlink
+        return not _get_path_or_symlink(remix_project_directory)
 
     async def _create_symlinks(
-        self, model, project_directory, deps_directory, remix_directory, dry_run, create_junction: bool = False
-    ):
-        if not deps_directory:
-            return "Unable to find the path to the project dependencies"
-
-        # Item validation should check that the symlinks are already valid if the remix_directory is None
-        if not remix_directory:
-            return None
-
+        self,
+        model: _ProjectWizardSchema,
+        project_directory: Path,
+        deps_directory: Path,
+        remix_directory: Path,
+        dry_run: bool,
+        create_junction: bool = False,
+    ) -> str | None:
+        """Create symlinks for the project or return error message"""
         settings = carb.settings.get_settings()
         if settings.get(SETTING_JUNCTION_NAME):
             create_junction = True
@@ -305,14 +298,14 @@ class ProjectWizardCore:
 
         symlink_directories = []
 
-        if self.need_deps_directory_symlink(model=model):
+        if self.need_deps_directory_symlink(model):
             if not dry_run:
                 symlink_directories.append((deps_directory, remix_directory))
             else:
                 self._log_info(f"Symlink from '{remix_directory}' to '{deps_directory}'")
 
         # If the project doesn't already exists in the rtx-remix dir
-        if self.need_project_directory_symlink(model=model):
+        if self.need_project_directory_symlink(model):
             if not dry_run:
                 symlink_directories.append((remix_project_directory, project_directory))
             else:
@@ -426,11 +419,13 @@ class ProjectWizardCore:
         """
         if dry_run:
             return
+        timeout = 5  # seconds
+        start_time = asyncio.get_event_loop().time()
         while True:
-            resolved_deps_symlink = _get_resolved_symlink(str(deps_directory))
-            if not resolved_deps_symlink.resolve().exists():
-                continue
-            resolved_deps_exists = bool(resolved_deps_symlink)
-            if resolved_deps_exists:
+            validated_deps_symlink = _get_path_or_symlink(deps_directory)
+            if validated_deps_symlink:
                 return
+            if (asyncio.get_event_loop().time() - start_time) > timeout:
+                raise TimeoutError(f"Timed out waiting for symlink to appear for {deps_directory}")
+            # make sure just created symlinks have time to be created
             await asyncio.sleep(0.1)

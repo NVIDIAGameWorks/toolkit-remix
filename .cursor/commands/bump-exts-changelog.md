@@ -24,3 +24,6 @@ This info should be used to:
 
 Remember: These changelogs might also be used by marketing to generate release notes, so the oneliners should target both end users and the developers as applicable.
 Go back to step 2 for the next extension pending bumps until all are done.
+
+## Step 4
+Update the main project ./CHANGELOG.md file with a concise one line summary of all the changes made in this branch. Place it in the [Unreleased] section under the appropriate heading.

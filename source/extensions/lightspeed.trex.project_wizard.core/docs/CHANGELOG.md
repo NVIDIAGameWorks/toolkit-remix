@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.3]
+### Fixed
+- Fixed symlink validation for non-symlink directories by using `get_path_or_symlink()` utility function.
+
 ## [2.0.2]
 ## Fixed
 - Fixed broken symlinks detection and updated tests
