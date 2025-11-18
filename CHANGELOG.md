@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved Pyright configuration by generating a list of search paths
 - REMIX-4000: Added a check to use the project directory if no capture directory is found
 - REMIX-4749: Fix symlink validation and repair when no deps dir exists
+- Set build jobs to run against GPU agents
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension
