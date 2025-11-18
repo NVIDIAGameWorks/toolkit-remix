@@ -5,7 +5,7 @@
 build-package-windows:
   extends:
     - .release_defaults
-    - .windows_build_agent
+    - .windows_gpu_agent
   stage: build_package
   before_script:
     - .\build.bat --rebuild --release
