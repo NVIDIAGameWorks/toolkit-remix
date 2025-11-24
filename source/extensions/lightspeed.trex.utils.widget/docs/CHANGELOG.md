@@ -1,6 +1,22 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Added
+- Added quicklayout_wrapper with load_layout function to ensure windows are ready before docking
+- Added WorkspaceWidget interface for standardized widget lifecycle management
+- Added skip_when_widget_is_invisible decorator for performance optimization
+- Added ui.ToolBar support in WorkspaceWindowBase
+- Added comprehensive unit tests for decorator functionality
+
+### Changed
+- Enhanced WorkspaceWindowBase to call _update_ui in show_window_fn for proper initialization
+- Improved tab bar enforcement on window resize and dock changes
+
+### Fixed
+- Fixed workspace layout loading race condition causing windows to spawn undocked on first load
+- Fixed tab bars reappearing on window resize by enforcing settings after ImGui inheritance
+
 ## [1.4.1]
 ### Added
 - Added ability to set initial window size

@@ -23,6 +23,8 @@ import omni.ui as ui
 from lightspeed.trex.contexts import get_instance as trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as TrexContexts
 from lightspeed.trex.stage_view.shared.widget import SetupUI as _StageViewWidget
+from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
+from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
 from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
 from omni.flux.tabbed.widget import SetupUI as _TabbedFrame
 from omni.flux.validator.mass.queue.widget import Actions as _MassQueueTreeActions
@@ -37,7 +39,7 @@ class Pages(Enum):
     WORKSPACE_PAGE = "WorkspacePage"
 
 
-class SetupUI:
+class SetupUI(_WorkspaceWidget):
     WIDTH_TAB_LABEL_PROPERTY = 40
 
     _VALIDATION_TAB_NAME = "Validation"
@@ -61,13 +63,22 @@ class SetupUI:
     def context(self) -> TrexContexts:
         return self._trex_context
 
-    def show(self, value: bool):
+    def show(self, visible: bool):
+        """Implements WorkspaceWidget interface."""
         if self._mass_ingest_widget:
-            self._mass_ingest_widget.show(value)
+            self._mass_ingest_widget.show(visible)
+
+    def destroy(self):
+        """Clean up all resources."""
+        self._sub_mass_cores_started = None
+        self._sub_mass_cores_finished = None
+        self._mass_cores_are_running = None
+        self._mass_ingest_widget = None
+        self.root_widget = None
 
     def _create_layout(self):
-        self._frame_workspace = ui.Frame(name=Pages.WORKSPACE_PAGE.value, visible=True)
-        with self._frame_workspace:
+        self.root_widget = ui.Frame(name=Pages.WORKSPACE_PAGE.value, visible=True)
+        with self.root_widget:
             with ui.HStack():
                 self._mass_ingest_widget = _ValidatorMassWidget(
                     schema_paths=[schema["path"] for schema in self._schemas],
@@ -116,6 +127,7 @@ class SetupUI:
         # by default, we don't want to show the validation/stage view panel
         self._properties_panel.force_toggle(self._properties_panel.selection[0], False)
 
+    @skip_when_widget_is_invisible(widget="root_widget")
     def _on_mass_queue_action_pressed(self, item: "_MassCoreItem", action_name: str, **kwargs):
         if action_name == "show_in_viewport":
             if self.__last_show_viewport_item == item or self.__last_show_viewport_item is None:
@@ -137,12 +149,14 @@ class SetupUI:
             core.subscribe_run_finished(functools.partial(self._on_mass_cores_finished, core))
         )
 
+    @skip_when_widget_is_invisible(widget="root_widget")
     def _on_mass_cores_started(self, core: "_ManagerCore"):
         if self._viewport:
             self._viewport.set_active(False)
         self._stage_view_widget.enable_context_event(False)
         self._mass_cores_are_running[id(core)] = True
 
+    @skip_when_widget_is_invisible(widget="root_widget")
     def _on_mass_cores_finished(self, core: "_ManagerCore", _finished: bool, message: Optional[str] = None):
         self._mass_cores_are_running[id(core)] = False
         update_viewport = not any(self._mass_cores_are_running.values())

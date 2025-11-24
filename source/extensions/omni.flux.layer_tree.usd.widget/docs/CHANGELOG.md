@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.13.1]
+### Changed
+- Simplified tree column sizing using ui.Fraction for better responsiveness
+
 ## [1.13.0]
 ### Added
 - Added 'Reveal in File Explorer' context menu option for layers

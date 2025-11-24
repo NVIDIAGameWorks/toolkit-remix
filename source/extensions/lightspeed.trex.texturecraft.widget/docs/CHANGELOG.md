@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.2]
+### Fixed
+- Fixed workspace layout loading race condition on first load
+
 ## [2.1.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

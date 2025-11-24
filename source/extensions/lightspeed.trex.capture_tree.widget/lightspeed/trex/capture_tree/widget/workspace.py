@@ -30,20 +30,11 @@ class CaptureWindow(_WorkspaceWindowBase):
         return _WindowNames.CAPTURES
 
     def menu_path(self) -> str | None:
-        return f"Modding/{self.title}"
+        return f"Setup/{self.title}"
 
     @property
     def flags(self) -> int:
         return ui.WINDOW_FLAGS_NO_SCROLLBAR | ui.WINDOW_FLAGS_NO_COLLAPSE
 
-    def cleanup(self):
-        self._content.destroy()  # noqa: PLE0203
-        self._content = None
-        super().cleanup()
-
     def _create_window_ui(self):
         return _CaptureWidget(self._usd_context_name)
-
-    def _on_visibility_changed(self, visible: bool):
-        super()._on_visibility_changed(visible)
-        self._content.show(visible)

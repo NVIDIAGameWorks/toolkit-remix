@@ -48,6 +48,7 @@ class ItemDescriptor:
         mouse_released_fn: Callable | None = None,
         sort_index: int = 0,
         enabled: bool = True,
+        disabled_tooltip: str | None = None,
     ):
         """
         Description of a Sidebar Item (Button, Image, etc.)
@@ -59,6 +60,7 @@ class ItemDescriptor:
             mouse_released_fn: Callback function for when the button is clicked.
             sort_index: Allows a loose method for sorting the buttons, similar to OV extension load order.
             enabled: Whether the item starts enabled or not.
+            disabled_tooltip: Optional tooltip to show when the item is disabled.
         """
         self.name = name
         self.group = group
@@ -66,6 +68,7 @@ class ItemDescriptor:
         self.mouse_released_fn = mouse_released_fn
         self.sort_index = sort_index
         self.enabled = enabled
+        self.disabled_tooltip = disabled_tooltip
 
 
 class SidebarSubscription:
@@ -121,7 +124,7 @@ class Registry:
     @classmethod
     def refresh_deferred(cls):
         if not cls.__pending_refresh:
-            cls.__pending_refresh = asyncio.create_task(cls.__deferred_refresh_items())
+            cls.__pending_refresh = asyncio.ensure_future(cls.__deferred_refresh_items())
 
     @classmethod
     async def __deferred_refresh_items(cls):

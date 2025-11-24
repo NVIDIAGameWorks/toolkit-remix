@@ -26,13 +26,11 @@ import omni.kit.app
 import omni.usd as usd
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.common.constants import WindowNames as _WindowNames
-from lightspeed.trex.properties_pane.shared.asset_replacements.widget import (
-    AssetReplacementsPane as _AssetReplacementsPane,
-)
+from lightspeed.trex.properties_pane.widget import AssetReplacementsPane as _AssetReplacementsPane
+from lightspeed.trex.utils.widget.quicklayout import load_layout
 from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
-from omni.kit.quicklayout import QuickLayout as _QuickLayout
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage
 
@@ -60,9 +58,7 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
 
         # Open up the workspace, so we can test the stage manager
-        # TODO: There is a bug where windows won't spawn docked on first call.
-        _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
-        _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
+        load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
         await ui_test.human_delay(10)
 
         layers_panel = ui_test.find(f"{_WindowNames.PROPERTIES}//Frame/**/Label[*].text=='LAYERS'")

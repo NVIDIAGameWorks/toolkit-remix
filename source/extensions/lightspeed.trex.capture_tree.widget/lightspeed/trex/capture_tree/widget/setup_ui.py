@@ -32,7 +32,8 @@ from lightspeed.layer_manager.core import LayerType
 from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
 from lightspeed.trex.capture_tree.model import CaptureTreeDelegate, CaptureTreeModel
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCoreSetup
-from lightspeed.trex.utils.widget import TrexMessageDialog
+from lightspeed.trex.utils.widget import TrexMessageDialog, WorkspaceWidget
+from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
 from omni.flux.property_widget_builder.model.file import FileAttributeItem as _FileAttributeItem
 from omni.flux.property_widget_builder.model.file import FileDelegate as _FileDelegate
 from omni.flux.property_widget_builder.model.file import FileModel as _FileModel
@@ -48,7 +49,7 @@ from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as 
 from omni.flux.utils.widget.hover import hover_helper as _hover_helper
 
 
-class CaptureWidget:
+class CaptureWidget(WorkspaceWidget):
     DEFAULT_CAPTURE_TREE_FRAME_HEIGHT = 200
     SIZE_PERCENT_MANIPULATOR_WIDTH = 50
 
@@ -91,31 +92,35 @@ class CaptureWidget:
         )
         self.__create_ui()
 
-    def show(self, value):
-        self._capture_tree_model.enable_listeners(value)
-        self._root_frame.visible = value
-        if value:
+    def show(self, visible):
+        self._capture_tree_model.enable_listeners(visible)
+        self.root_widget.visible = visible
+        if visible:
             self.refresh_capture_detail_panel()
         else:
             self._capture_tree_model.cancel_tasks()
             self._destroy_capture_properties()
 
+    @skip_when_widget_is_invisible(widget="root_widget")
     def __on_layer_event(self, event):
+        """Layer event callback - automatically filtered when widget invisible."""
         payload = _layers.get_layer_event_payload(event)
         if not payload:
             return
         if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
             self.__on_event()
 
+    @skip_when_widget_is_invisible(widget="root_widget")
     def _refresh_trees(self, *_):
+        """Model progress callback - automatically filtered when widget invisible."""
         if self._capture_tree_view_window:
             self._capture_tree_view_window.dirty_widgets()
         if self._capture_tree_view:
             self._capture_tree_view.dirty_widgets()
 
     def __create_ui(self):
-        self._root_frame = ui.Frame()
-        with self._root_frame:
+        self.root_widget = ui.Frame()
+        with self.root_widget:
             with ui.ScrollingFrame(
                 name="WorkspaceBackground",
                 horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
@@ -357,6 +362,7 @@ class CaptureWidget:
         self._error_popup.show()
         carb.log_error(message)
 
+    @skip_when_widget_is_invisible(widget="root_widget")
     def __on_stage_event(self, event):
         if event.type in [
             int(omni.usd.StageEventType.CLOSED),
@@ -395,7 +401,7 @@ class CaptureWidget:
         Refresh the panel with the given paths
         """
 
-        if not self._root_frame.visible:
+        if not self.root_widget.visible:
             return
         if not self._capture_tree_view_window:
             self.__create_capture_tree_window()

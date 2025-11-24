@@ -27,6 +27,7 @@ import omni.usd
 from lightspeed.common.constants import GlobalEventNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.app.style import update_viewport_menu_style
+from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
 from lightspeed.trex.viewports.properties_pane.widget import EnumItems as _PropertiesPaneEnumItems
 from lightspeed.trex.viewports.properties_pane.widget import SetupUI as _PropertiesPaneSetupUI
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -40,7 +41,7 @@ if TYPE_CHECKING:
     from omni.kit.widget.viewport.api import ViewportAPI
 
 
-class SetupUI:
+class SetupUI(_WorkspaceWidget):
 
     viewport_counts = {}
 
@@ -339,6 +340,11 @@ class SetupUI:
             else 0
         )
         self._property_panel_frame.width = ui.Percent(result)
+
+    def show(self, visible: bool):
+        """Implements WorkspaceWidget interface. Viewport should always be active."""
+        # Viewport widgets are always considered active - they handle rendering
+        pass
 
     def destroy(self):
         _reset_default_attrs(self)

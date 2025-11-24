@@ -18,8 +18,8 @@
 from enum import Enum
 
 import omni.ui as ui
-from lightspeed.trex.properties_pane.shared.camera.widget import CameraPane as _CameraPane
-from lightspeed.trex.properties_pane.shared.render.widget import RenderPane as _RenderPane
+from lightspeed.trex.viewports.properties_pane.camera.widget import CameraPane as _CameraPane
+from lightspeed.trex.viewports.properties_pane.render.widget import RenderPane as _RenderPane
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 

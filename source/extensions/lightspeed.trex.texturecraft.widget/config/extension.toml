@@ -1,5 +1,5 @@
 [package]
-version = "2.1.1"
+version = "2.1.2"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Window for the TextureCraft"
 description = "Window for NVIDIA RTX Remix TextureCraft App"
@@ -17,7 +17,6 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/"
 "lightspeed.trex.layout.shared.mass_ingestion" = {}
 "lightspeed.trex.utils.widget" = {}
 "lightspeed.trex.sidebar" = {}
-"omni.kit.quicklayout" = {}
 
 [[python.module]]
 name = "lightspeed.trex.texturecraft.widget"

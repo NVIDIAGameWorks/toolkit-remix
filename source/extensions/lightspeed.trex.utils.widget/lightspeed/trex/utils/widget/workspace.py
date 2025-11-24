@@ -24,6 +24,31 @@ from omni.kit.menu import utils as _menu_utils
 from omni.kit.menu.utils import build_submenu_dict
 
 
+class WorkspaceWidget(abc.ABC):
+    """
+    Interface for workspace window content widgets.
+    All widgets used in WorkspaceWindowBase should implement this interface.
+    """
+
+    @abc.abstractmethod
+    def show(self, visible: bool):
+        """
+        Enable/disable the widget and its subscriptions.
+
+        Args:
+            visible: True to enable updates and subscriptions, False to pause them.
+        """
+        pass
+
+    @abc.abstractmethod
+    def destroy(self):
+        """
+        Clean up all resources, subscriptions, and references.
+        Called when the window is being permanently closed.
+        """
+        pass
+
+
 class WorkspaceWindowBase(abc.ABC):
     """Base class with common functionalities for all workspace windows."""
 
@@ -40,10 +65,10 @@ class WorkspaceWindowBase(abc.ABC):
             show_dock_tab_bars: Show the docking tab bars with window title, close button, etc.
         """
 
-        self._window: ui.Window | None = None
+        self._window: ui.Window | ui.ToolBar | None = None
 
         # The actual widget contained within the Window.frame
-        self._content = None
+        self._content: WorkspaceWidget | None = None
 
         # The "Window > Window Title" list of MenuItemDescription.
         self._menu_dict: dict[str, list[_menu_utils.MenuItemDescription]] | None = None
@@ -75,9 +100,9 @@ class WorkspaceWindowBase(abc.ABC):
         """
         return self.title
 
-    def _create_window(self) -> ui.Window:
+    def _create_window(self) -> ui.Window | ui.ToolBar:
         """
-        Overridable method to create a ui.Window instance.
+        Overridable method to create a ui.Window or ui.ToolBar instance.
         Default implementation configures a window with the title, flags, and padding.
         """
         window = ui.Window(self.title, visible=False, flags=self.flags)
@@ -114,7 +139,7 @@ class WorkspaceWindowBase(abc.ABC):
                 omni.kit.app.EVENT_APP_READY, add_window_menu_item, name="Window Menu Item - App Ready"
             )
 
-    def get_window(self) -> ui.Window:
+    def get_window(self) -> ui.Window | ui.ToolBar:
         if not self._window:
             raise RuntimeError("Window not created yet.")
         return self._window
@@ -125,10 +150,24 @@ class WorkspaceWindowBase(abc.ABC):
 
         self._window.visible = show
 
+        if show:
+            self._update_ui()
+        else:
+            if self._content:
+                self._content.show(False)
+
     def cleanup(self):
+        """
+        Clean up all window resources.
+        Properly destroys the content widget before cleanup.
+        """
         # Clean up app ready subscription
         if self.__sub_app_ready:
             self.__sub_app_ready = None
+
+        if self._content:
+            self._content.destroy()
+        self._content = None
 
         if self._window:
             self._window.destroy()
@@ -138,7 +177,6 @@ class WorkspaceWindowBase(abc.ABC):
             for group in self._menu_dict:
                 _menu_utils.remove_menu_items(self._menu_dict[group], group)
         self._menu_dict = None
-        self._content = None
 
     def update_menu_item(self, visible: bool):
         menu_path = self.menu_path()
@@ -166,12 +204,19 @@ class WorkspaceWindowBase(abc.ABC):
         _menu_utils.refresh_menu_items("Window")
 
     @abc.abstractmethod
-    def _create_window_ui(self):
+    def _create_window_ui(self) -> WorkspaceWidget:
         """
-        Populates the window.frame with this method.
-        self._content = self._create_window_ui()
+        Populates the window.frame with this method and returns the widget.
+
+        Returns:
+            A widget that implements the WorkspaceWidget interface.
         """
         pass
+
+    def _enforce_tab_bar_settings(self):
+        if self._window:
+            self._window.dock_tab_bar_enabled = self._show_dock_tab_bars
+            self._window.dock_tab_bar_visible = self._show_dock_tab_bars
 
     def _update_ui(self):
         """
@@ -182,19 +227,31 @@ class WorkspaceWindowBase(abc.ABC):
             with self._window.frame:
                 self._content = self._create_window_ui()
 
-    def _on_window_resized(self, value: float):  # noqa B027
-        pass
+        # Enable the widget when showing
+        if self._content:
+            self._content.show(True)
+
+    def _on_window_resized(self, value: float):
+        if self._window and self._window.docked:
+
+            async def _enforce_after_resize():
+                await omni.kit.app.get_app().next_update_async()
+                self._enforce_tab_bar_settings()
+
+            asyncio.ensure_future(_enforce_after_resize())
 
     def _on_visibility_changed(self, visible: bool):
         if visible:
             self._update_ui()
+        else:
+            if self._content:
+                self._content.show(False)
         self.update_menu_item(visible)
 
     def _on_dock_changed(self, docked: bool):
         async def _refresh_tab_bars():
-            # Kit windows inherit the dock tab bar state of another window they are docked in to.
             await omni.kit.app.get_app().next_update_async()
-            self._window.dock_tab_bar_enabled = self._show_dock_tab_bars
-            self._window.dock_tab_bar_visible = self._show_dock_tab_bars
+            await omni.kit.app.get_app().next_update_async()
+            self._enforce_tab_bar_settings()
 
         asyncio.ensure_future(_refresh_tab_bars())

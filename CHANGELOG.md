@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4599: Added Kit UI Workspace support for flexible window based layouts.
 - REMIX-4242: Add Remix Logic Graph Editor as an experimental feature
 - REMIX-4610: Added the ability to add selected textures and meshes to the ComfyUI queue
+- REMIX-4721: Added workspace layout system improvements for reliable window docking
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
@@ -26,9 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleaned up and consolidated popup extensions to use the new omni.flux.utils.dialog extension.
 - Optimized internal CI pipeline stages
 - Update hdremix and omni_core_materials to ext-2c10e95-main
+- REMIX-4721: Reimplemented Sidebar using ui.ToolBar for improved docking behavior
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths
+- REMIX-4721: Fixed workspace layout loading issues and tab bar persistence on window operations
 - REMIX-4000: Added a check to use the project directory if no capture directory is found
 - REMIX-4749: Fix symlink validation and repair when no deps dir exists
 - Set build jobs to run against GPU agents

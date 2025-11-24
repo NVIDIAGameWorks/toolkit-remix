@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.11.1]
+### Changed
+- Added omni.kit.quicklayout dependency for quicklayout_wrapper compatibility
+
 ## [1.11.0]
 ### Removed
 - Removed ReferenceEdit utility class

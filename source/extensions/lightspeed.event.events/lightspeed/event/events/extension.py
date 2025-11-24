@@ -32,7 +32,9 @@ class GlobalEventsExtension(omni.ext.IExt):
         for event in GlobalEventNames:
             event_manager.register_global_custom_event(event.value)
 
-        carb.log_info("[lightspeed.event.events] Global custom events registered successfully")
+        carb.log_info(
+            "[lightspeed.event.events] Global custom events registered successfully"
+        )
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.event.events] Unregistering global custom events")
@@ -42,4 +44,6 @@ class GlobalEventsExtension(omni.ext.IExt):
         for event in GlobalEventNames:
             event_manager.unregister_global_custom_event(event.value)
 
-        carb.log_info("[lightspeed.event.events] Global custom events unregistered successfully")
+        carb.log_info(
+            "[lightspeed.event.events] Global custom events unregistered successfully"
+        )

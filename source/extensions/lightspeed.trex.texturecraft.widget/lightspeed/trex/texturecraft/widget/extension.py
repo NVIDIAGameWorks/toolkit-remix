@@ -21,8 +21,8 @@ import omni.ext
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.trex.contexts import get_instance as trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as TrexContexts
+from lightspeed.trex.utils.widget.quicklayout import load_layout
 from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
-from omni.kit.quicklayout import QuickLayout as _QuickLayout
 
 from .workspace import TextureCraftWindow as _TextureCraftWindow
 
@@ -45,7 +45,7 @@ class TextureCraftLayoutExtension(omni.ext.IExt):
             settings = carb.settings.get_settings()
             default_layout = settings.get(_DEFAULT_LAYOUT) or ""
             if default_layout == "texturecraft":
-                _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.TEXTURECRAFT))
+                load_layout(_get_quicklayout_config(_LayoutFiles.TEXTURECRAFT))
 
             self.sub_app_ready = None
 

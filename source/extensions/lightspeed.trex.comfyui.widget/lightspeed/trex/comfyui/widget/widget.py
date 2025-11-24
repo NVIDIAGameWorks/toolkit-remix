@@ -23,6 +23,7 @@ from typing import Callable
 
 from lightspeed.trex.comfyui.core import ComfyUIQueueType, ComfyUIState, get_comfyui_instance
 from lightspeed.trex.utils.widget import TrexMessageDialog
+from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
 from omni import ui
 from omni.flux.utils.widget.file_pickers import open_file_picker
 
@@ -65,7 +66,8 @@ class ComfyUIWidget:
         """
         Build the UI for the ComfyUI Widget.
         """
-        with ui.ScrollingFrame(name="WorkspaceBackground"):
+        self.root_widget = ui.ScrollingFrame(name="WorkspaceBackground")
+        with self.root_widget:
             with ui.HStack(spacing=self._SPACING_MD):
                 ui.Spacer(width=0)
                 with ui.VStack(spacing=self._SPACING_MD):
@@ -174,6 +176,7 @@ class ComfyUIWidget:
                     ui.Spacer(height=0)
                 ui.Spacer(width=0)
 
+    @skip_when_widget_is_invisible(widget="root_widget")
     def _on_state_changed(self, state: ComfyUIState):
         """
         Update the UI when the ComfyUI state changes.
@@ -183,6 +186,7 @@ class ComfyUIWidget:
         self._state_label.text = state.value
         self._update_button_states()
 
+    @skip_when_widget_is_invisible(widget="root_widget")
     def _on_selection_changed(self, _: list[str]):
         """
         Update the UI when the selection changes.

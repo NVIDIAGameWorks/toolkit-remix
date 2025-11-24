@@ -23,9 +23,9 @@ import omni.usd
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
+from lightspeed.trex.utils.widget.quicklayout import load_layout
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
-from omni.kit.quicklayout import QuickLayout as _QuickLayout
 
 _DEFAULT_LAYOUT = "/app/trex/default_layout"
 
@@ -42,9 +42,7 @@ class Setup:
         settings = carb.settings.get_settings()
         default_layout = settings.get(_DEFAULT_LAYOUT) or ""
         if default_layout == "ingestcraft":
-            # TODO: There is a bug where windows won't spawn docked on first call.
-            _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.INGESTCRAFT))
-            _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.INGESTCRAFT))
+            load_layout(_get_quicklayout_config(_LayoutFiles.INGESTCRAFT))
 
     def _on_new_stage_created(self, result: bool, error: str):
         asyncio.ensure_future(self._deferred_startup(self._context))

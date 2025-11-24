@@ -16,9 +16,10 @@
 """
 
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
+from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
+from lightspeed.trex.utils.widget.quicklayout import load_layout
 from omni import ui
 from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
-from omni.kit.quicklayout import QuickLayout as _QuickLayout
 
 from .registry import Groups as _Groups
 from .registry import ItemDescriptor as _ItemDescriptor
@@ -26,7 +27,7 @@ from .registry import get_items as _get_sidebar_items
 from .registry import subscribe_items_change
 
 
-class SetupUI:
+class SetupUI(_WorkspaceWidget):
     __ICON_SIZE = 32
 
     def __init__(self, window_frame: ui.Frame):
@@ -84,12 +85,14 @@ class SetupUI:
             for widget in sorted(widgets, key=lambda w: w.sort_index):
                 image_name = widget.name if widget.enabled else f"{widget.name}Disabled"
                 mouse_fn = widget.mouse_released_fn if widget.enabled else None
+                # Use disabled_tooltip if the widget is disabled and a disabled_tooltip is provided
+                tooltip = widget.tooltip if widget.enabled else (widget.disabled_tooltip or widget.tooltip)
                 ui.Image(
                     "",
                     name=image_name,
                     width=ui.Fraction(1.0),
                     height=ui.Pixel(self.__ICON_SIZE),
-                    tooltip=widget.tooltip,
+                    tooltip=tooltip,
                     mouse_released_fn=mouse_fn,
                     pixel_aligned=True,
                 )
@@ -97,6 +100,13 @@ class SetupUI:
     def _return_to_home(self, x, y, b, m):
         if b != 0:
             return
-        # TODO: There is a bug where windows won't spawn docked on first call.
-        _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
-        _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
+        load_layout(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
+
+    def show(self, visible: bool):
+        """Implements WorkspaceWidget interface. Sidebar is always visible."""
+        pass
+
+    def destroy(self):
+        """Clean up resources."""
+        self.__sub_sidebar_items_changed = None  # noqa: PLW0238
+        self.__window_frame = None
