@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.0]
+### Added
+- Added WorkspaceWidget interface implementation for lifecycle management
+- Added skip_when_widget_is_invisible decorator support for performance optimization
+- Added unit tests for visibility filtering
+
+### Fixed
+- Fixed workspace layout loading race condition on first load
+
 ## [1.6.0]
 ### Added
 - Added workspace integration for dockable home page window

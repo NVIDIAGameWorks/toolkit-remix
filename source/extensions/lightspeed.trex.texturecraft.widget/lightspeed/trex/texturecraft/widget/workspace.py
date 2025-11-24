@@ -17,14 +17,18 @@
 
 import asyncio
 
+import lightspeed.trex.sidebar as sidebar
 import omni.kit
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.common.constants import WindowNames as _WindowNames
-from lightspeed.trex import sidebar
-from lightspeed.trex.utils.widget.workspace import WorkspaceWindowBase as _WorkspaceWindowBase
+from lightspeed.trex.utils.widget.workspace import (
+    WorkspaceWindowBase as _WorkspaceWindowBase,
+)
+from lightspeed.trex.utils.widget.quicklayout import load_layout
 from omni import ui
-from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
-from omni.kit.quicklayout import QuickLayout as _QuickLayout
+from omni.flux.utils.widget.resources import (
+    get_quicklayout_config as _get_quicklayout_config,
+)
 
 from .setup_ui import SetupUI as _TextureCraftUI
 
@@ -46,7 +50,11 @@ class TextureCraftWindow(_WorkspaceWindowBase):
 
     @property
     def flags(self) -> int:
-        return ui.WINDOW_FLAGS_NO_SCROLLBAR | ui.WINDOW_FLAGS_NO_COLLAPSE | ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
+        return (
+            ui.WINDOW_FLAGS_NO_SCROLLBAR
+            | ui.WINDOW_FLAGS_NO_COLLAPSE
+            | ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
+        )
 
     def _create_window_ui(self):
         return _TextureCraftUI()
@@ -80,4 +88,4 @@ class TextureCraftWindow(_WorkspaceWindowBase):
     def __open_layout(self, x, y, b, m):
         if b != 0:
             return
-        _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.TEXTURECRAFT))
+        load_layout(_get_quicklayout_config(_LayoutFiles.TEXTURECRAFT))

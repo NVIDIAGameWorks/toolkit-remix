@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.1]
+### Added
+- Added WorkspaceWidget interface implementation for lifecycle compatibility
+
 ## [1.3.0]
 ### Added
 - Added workspace integration for dockable Stage Manager window

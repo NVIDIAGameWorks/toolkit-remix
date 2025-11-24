@@ -113,24 +113,11 @@ class SelectionHistoryWidget:
                                 self._model,
                                 delegate=self._delegate,
                                 header_visible=False,
+                                column_widths=[ui.Fraction(1)],
                                 style_type_name_override="TreeView.Selection",
                                 identifier="main_tree",
                             )
                             self._tree_view_history.set_selection_changed_fn(self._on_selection_changed)
-                        self._tree_scroll_frame.set_build_fn(
-                            functools.partial(
-                                self._resize_tree_columns,
-                                self._tree_view_history,
-                                self._tree_scroll_frame,
-                            )
-                        )
-                        self._tree_scroll_frame.set_computed_content_size_changed_fn(
-                            functools.partial(
-                                self._resize_tree_columns,
-                                self._tree_view_history,
-                                self._tree_scroll_frame,
-                            )
-                        )
                     with ui.VStack():
                         ui.Spacer()
                         self._manip_frame = ui.Frame(height=size_manipulator_height)
@@ -151,9 +138,6 @@ class SelectionHistoryWidget:
                                     name="PropertiesPaneSectionTreeManipulator",
                                 )
                                 _hover_helper(self._slider_manip)
-
-    def _resize_tree_columns(self, tree_view, frame):
-        tree_view.column_widths = [ui.Pixel(self._tree_scroll_frame.computed_width - 12)]
 
     def _on_slide_x_changed(self, x):
         size_manip = self._manip_frame.computed_width / 100 * self._SIZE_PERCENT_MANIPULATOR_WIDTH

@@ -146,24 +146,11 @@ class LayerTreeWidget:
                                     header_visible=False,
                                     drop_between_items=True,
                                     columns_resizable=False,
+                                    column_widths=[ui.Fraction(1)],
                                     style_type_name_override="TreeView.Selection",
                                     key_pressed_fn=self._on_delete_pressed,
                                 )
                                 self._layer_tree_widget.set_selection_changed_fn(self.on_selection_changed)
-                            self._tree_scroll_frame.set_build_fn(
-                                functools.partial(
-                                    self._resize_tree_columns,
-                                    self._layer_tree_widget,
-                                    self._tree_scroll_frame,
-                                )
-                            )
-                            self._tree_scroll_frame.set_computed_content_size_changed_fn(
-                                functools.partial(
-                                    self._resize_tree_columns,
-                                    self._layer_tree_widget,
-                                    self._tree_scroll_frame,
-                                )
-                            )
 
                             self._loading_frame = ui.ZStack(content_clipping=True, visible=False)
                             with self._loading_frame:
@@ -213,9 +200,6 @@ class LayerTreeWidget:
                                     name="PropertiesPaneSectionTreeManipulator",
                                 )
                                 _hover_helper(self._slider_manip)
-
-    def _resize_tree_columns(self, tree_view, _):
-        tree_view.column_widths = [ui.Pixel(self._tree_scroll_frame.computed_width - 12)]
 
     def _on_slide_x_changed(self, x):
         size_manip = self._manip_frame.computed_width / 100 * self._SIZE_PERCENT_MANIPULATOR_WIDTH

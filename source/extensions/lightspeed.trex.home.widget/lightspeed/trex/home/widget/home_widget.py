@@ -34,6 +34,9 @@ from lightspeed.trex.project_wizard.window import get_instance as _get_wizard_in
 from lightspeed.trex.recent_projects.core import RecentProjectsCore as _RecentProjectsCore
 from lightspeed.trex.utils.common.dialog_utils import delete_dialogs as _delete_dialogs
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
+from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
+from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
+from lightspeed.trex.utils.widget.quicklayout import load_layout
 from omni import ui
 from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.utils.common import reset_default_attrs
@@ -44,14 +47,13 @@ from omni.flux.utils.widget.file_pickers import destroy_file_picker as _destroy_
 from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
 from omni.flux.utils.widget.tree_widget import TreeWidget
 from omni.kit.mainwindow import get_main_window
-from omni.kit.quicklayout import QuickLayout as _QuickLayout
 
 from .recent_tree import RecentProjectDelegate, RecentProjectModel
 
 _HIDE_MENU = "/exts/lightspeed.trex.app.setup/hide_menu"
 
 
-class HomePageWidget:
+class HomePageWidget(_WorkspaceWidget):
     _TINY_SPACING = ui.Pixel(8)
     _SMALL_SPACING = ui.Pixel(12)
     _MEDIUM_SPACING = ui.Pixel(16)
@@ -64,6 +66,7 @@ class HomePageWidget:
     def __init__(self, context_name: str = ""):
         self._default_attr = {
             "_context_name": None,
+            "root_widget": None,
             "_recent_model": None,
             "_recent_delegate": None,
             "_recent_saved_file": None,
@@ -148,7 +151,7 @@ class HomePageWidget:
 
         asyncio.ensure_future(self._refresh_recent_items_deferred())
 
-    def on_visibility_change(self, visible: bool):
+    def show(self, visible: bool):
         main_menu_bar = get_main_window().get_main_menu_bar()
         hide_menu = self.__settings.get(_HIDE_MENU)
         if not hide_menu:
@@ -156,9 +159,11 @@ class HomePageWidget:
             return
 
         main_menu_bar.visible = not visible
+        self.refresh()
 
     def _build_ui(self):
-        with ui.HStack():
+        self.root_widget = ui.HStack()
+        with self.root_widget:
             # Left Panel
             with ui.ZStack(width=self._ACTION_PANEL_WIDTH):
                 ui.Rectangle(name="TabBackground")
@@ -199,7 +204,7 @@ class HomePageWidget:
                                     self._resume_button = self._build_button(
                                         "Resume",
                                         "Resume editing the currently opened project",
-                                        lambda *_: _QuickLayout.load_file(workspace_layout_file),
+                                        lambda *_: load_layout(workspace_layout_file),
                                     )
                                     self.set_resume_enabled(project_opened)
 
@@ -414,6 +419,7 @@ class HomePageWidget:
             return
         webbrowser.open(url, new=0, autoraise=True)
 
+    @skip_when_widget_is_invisible(widget="root_widget")
     def _show_in_explorer(self):
         """
         A callback to show the current project in explorer when the event is triggered in the delegate.
@@ -457,11 +463,14 @@ class HomePageWidget:
 
         self._recent_model.refresh(items)
 
+    @skip_when_widget_is_invisible(widget="root_widget")
     def _remove_project_from_recent(self, paths: list[str]):
+        """Remove project from recent list."""
         for path in paths:
             self._recent_saved_file.remove_path_from_recent_file(path)
         asyncio.ensure_future(self._refresh_recent_items_deferred())
 
+    @skip_when_widget_is_invisible(widget="root_widget")
     def _load_work_file(self, path):
         """Triggers the "Load Project" event and loads the workspace window layout if there were no interruptions."""
         if not Path(path).exists():
@@ -477,11 +486,11 @@ class HomePageWidget:
             constants.GlobalEventNames.LOAD_PROJECT_PATH.value, path
         )
         if all(approvals):
-            _QuickLayout.load_file(_get_quicklayout_config(constants.LayoutFiles.WORKSPACE_PAGE))
+            load_layout(_get_quicklayout_config(constants.LayoutFiles.WORKSPACE_PAGE))
 
     def _invoke_mod_setup_wizard(self, wizard_type: _WizardTypes):
         def on_load_project():
-            _QuickLayout.load_file(_get_quicklayout_config(constants.LayoutFiles.WORKSPACE_PAGE))
+            load_layout(_get_quicklayout_config(constants.LayoutFiles.WORKSPACE_PAGE))
             self._sub_wizard_completed = None
 
         wizard = _get_wizard_instance(wizard_type, self._context_name)

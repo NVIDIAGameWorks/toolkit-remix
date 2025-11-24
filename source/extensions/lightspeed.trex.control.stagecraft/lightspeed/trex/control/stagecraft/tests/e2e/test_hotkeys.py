@@ -27,15 +27,10 @@ from omni.kit.test_suite.helpers import open_stage
 
 class TestHotkeys(AsyncTestCase):
 
-    # Before running each test
     async def setUp(self):
         trex_context_manager = get_context_manager()
         trex_context_manager.set_current_context(Contexts.TEXTURE_CRAFT)
         await open_stage(_get_test_data("usd/project_example/combined.usda"))
-
-    # After running each test
-    async def tearDown(self):
-        pass
 
     async def test_unselect_all_with_esc(self):
         # Setup

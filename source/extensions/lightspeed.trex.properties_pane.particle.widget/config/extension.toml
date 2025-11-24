@@ -1,0 +1,33 @@
+[package]
+version = "1.2.0"
+authors = ["Emanuel Kozerski <ekozerski@nvidia.com>"]
+title = "Remix Particle System Properties Widget"
+description = "Properties panel for RemixParticleSystem prim types"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/"
+category = "internal"
+keywords = ["kit", "lightspeed", "properties", "particle", "system", "widget"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/images/preview.png"
+icon = "data/images/icon.png"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.trex.commands" = {}  # For the CreateParticleSystemCommand
+"lightspeed.trex.schemas" = {}
+"lightspeed.trex.utils.common" = {}
+"omni.flux.property_widget_builder.model.usd" = {}
+"omni.flux.property_widget_builder.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.commands" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.properties_pane.particle.widget"
+
+[[test]]
+dependencies = [
+    "omni.flux.tests.dependencies",
+    "omni.kit.test",
+]

@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+     "usd-code-mcp": {
+     "type": "sse",
+     "url": "http://usd-code-mcp.nvidia.com/sse"
+    },
+     "kit-dev-mcp": {
+     "type": "sse",
+     "url": "http://kit-dev-mcp.nvidia.com/sse"
+    },
+     "omni-ui-mcp": {
+     "type": "sse",
+     "url": "http://omni-ui-mcp.nvidia.com/sse"
+    }
+  }
+}

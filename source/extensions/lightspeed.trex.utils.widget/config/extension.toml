@@ -1,5 +1,5 @@
 [package]
-version = "1.4.1"
+version = "1.5.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix widget utils"
 description = "Utils helper for Lightspeed widgets"
@@ -16,9 +16,16 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 "lightspeed.trex.asset_replacements.core.shared" = {}
 "lightspeed.trex.utils.common" = {}
 "omni.ui" = {}
+"omni.ui_query" = {}
 "omni.usd" = {}
 "omni.kit.widget.prompt" = {}
 "omni.kit.menu.utils" = {}
 
 [[python.module]]
 name = "lightspeed.trex.utils.widget"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+    "omni.kit.test_suite.helpers",
+]

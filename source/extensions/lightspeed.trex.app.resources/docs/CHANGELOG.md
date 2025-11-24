@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.23.1]
+### Changed
+- Hidden Edit/Preferences menu item for streamlined interface
+
 ## [1.23.0]
 ### Added
 - Added icons for the ComfyUI window

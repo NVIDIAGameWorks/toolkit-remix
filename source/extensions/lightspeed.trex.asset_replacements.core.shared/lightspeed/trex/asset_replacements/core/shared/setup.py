@@ -52,8 +52,8 @@ from omni.usd.commands import remove_prim_spec as _remove_prim_spec
 from pxr import Sdf, Usd, UsdGeom, UsdShade, UsdSkel
 
 if typing.TYPE_CHECKING:
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import ItemInstance as _ItemInstance
-    from lightspeed.trex.selection_tree.shared.widget.selection_tree.model import (
+    from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemInstance as _ItemInstance
+    from lightspeed.trex.selection_tree.widget.selection_tree.model import (
         ItemReferenceFile as _ItemReferenceFile,
     )
 

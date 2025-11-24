@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.2]
+### Changed
+- Updated dependency references for renamed properties pane extensions
+
+### Fixed
+- Fixed workspace layout loading race condition on first load
+
 ## [1.6.1]
 ### Added
 - Added Remix Logic Graph Editor widget

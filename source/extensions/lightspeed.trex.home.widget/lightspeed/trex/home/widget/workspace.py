@@ -41,7 +41,7 @@ class HomePageWindow(_WorkspaceWindowBase):
             | ui.WINDOW_FLAGS_NO_CLOSE
         )
 
-    def menu_path(self) -> str:
+    def menu_path(self) -> str | None:
         return None
 
     def _create_window_ui(self):
@@ -49,14 +49,9 @@ class HomePageWindow(_WorkspaceWindowBase):
 
     def _update_ui(self):
         super()._update_ui()
-        self._content.refresh()
 
         # TODO: There is a bug where windows won't spawn docked on first call.
         asyncio.ensure_future(self._refresh_docking())
-
-    def _on_visibility_changed(self, visible: bool):
-        super()._on_visibility_changed(visible)
-        self._content.on_visibility_change(visible)
 
     async def _refresh_docking(self):
         if not self._window.docked:

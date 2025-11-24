@@ -1,5 +1,5 @@
 [package]
-version = "1.3.2"
+version = "1.4.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix layout for the Mass Ingestion"
 description = "Layout for NVIDIA RTX Remix Mass Ingestion"
@@ -15,6 +15,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 "lightspeed.trex.contexts" = {}
 "lightspeed.trex.stage_view.shared.widget" = {}
 "lightspeed.trex.utils.common" = {}
+"lightspeed.trex.utils.widget" = {}
 "lightspeed.trex.viewports.shared.widget" = {}
 "omni.flux.tabbed.widget" = {}
 "omni.flux.validator.mass.queue.widget" = {}
@@ -28,6 +29,7 @@ name = "lightspeed.trex.layout.shared.mass_ingestion"
 [[test]]
 dependencies = [
     "lightspeed.trex.tests.dependencies",
+    "omni.kit.test_suite.helpers",
 ]
 
 stdoutFailPatterns.exclude = [

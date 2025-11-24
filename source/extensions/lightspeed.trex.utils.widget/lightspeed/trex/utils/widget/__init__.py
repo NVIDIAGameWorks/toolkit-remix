@@ -17,3 +17,11 @@
 
 from .categories_dialog.categories_dialog import RemixCategoriesDialog
 from .message_dialog import TrexMessageDialog
+from .workspace import WorkspaceWidget, WorkspaceWindowBase
+
+__all__ = [
+    "RemixCategoriesDialog",
+    "TrexMessageDialog",
+    "WorkspaceWidget",
+    "WorkspaceWindowBase",
+]

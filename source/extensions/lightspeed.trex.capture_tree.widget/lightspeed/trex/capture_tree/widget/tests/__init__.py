@@ -15,4 +15,5 @@
 * limitations under the License.
 """
 
-from .e2e.test_widget import *
+from .e2e.test_widget import *  # noqa: F401, F403
+from .unit.test_visibility_filtering import *  # noqa: F401, F403

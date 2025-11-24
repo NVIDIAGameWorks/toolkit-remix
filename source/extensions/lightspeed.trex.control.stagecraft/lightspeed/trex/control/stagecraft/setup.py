@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Callable
 
 import carb
+import lightspeed.trex.sidebar as sidebar
 import omni.kit.app
 import omni.ui
 import omni.usd
@@ -30,7 +31,6 @@ from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
-from lightspeed.trex import sidebar
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
 from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
@@ -44,9 +44,9 @@ from lightspeed.trex.project_wizard.window import get_instance as _get_wizard_in
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCoreSetup
 from lightspeed.trex.stage.core.shared import Setup as _StageCoreSetup
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
+from lightspeed.trex.utils.widget.quicklayout import load_layout
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
-from omni.kit.quicklayout import QuickLayout as _QuickLayout
 
 _TREX_IGNORE_UNSAVED_STAGE_ON_EXIT = "/app/file/trexIgnoreUnsavedOnExit"
 _DEFAULT_LAYOUT = "/app/trex/default_layout"
@@ -125,7 +125,7 @@ class Setup:
         settings = carb.settings.get_settings()
         default_layout = settings.get(_DEFAULT_LAYOUT) or ""
         if default_layout == "stagecraft":
-            _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
+            load_layout(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
 
     def prompt_if_unsaved_project(self, callback: Callable[[], None], action_text: str) -> bool:
         """
@@ -210,6 +210,7 @@ class Setup:
                 sidebar.ItemDescriptor(
                     name="Modding",
                     tooltip="Modding",
+                    disabled_tooltip="Modding (Only available if there are projects open).",
                     group=sidebar.Groups.LAYOUTS,
                     mouse_released_fn=self.__open_layout,
                     sort_index=0,
@@ -240,7 +241,7 @@ class Setup:
             wizard.show_project_wizard(reset_page=True)
             return
         self._previous_root_layer_identifier = self._layer_manager.open_stage(path)
-        _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
+        load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
 
     def _on_save_as(self, on_save_done: Callable[[bool, str], None] = None):
         self._stage_core_setup.save_as(on_save_done=on_save_done)
@@ -264,12 +265,12 @@ class Setup:
 
     def __create_stage_and_save_previous_identifier(self):
         ensure_future(self._context.close_stage_async())
-        _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
+        load_layout(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
 
     def __open_layout(self, x, y, b, m):
         if b != 0:
             return
-        _QuickLayout.load_file(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
+        load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
 
     def _on_stage_event(self, event):
         if event.type in [int(omni.usd.StageEventType.OPENED), int(omni.usd.StageEventType.CLOSING)]:

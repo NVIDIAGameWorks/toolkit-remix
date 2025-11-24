@@ -15,11 +15,19 @@
 * limitations under the License.
 """
 
+from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
 from omni.flux.stage_manager.widget import StageManagerWidget as _StageManagerWidget
 
 
-class StageManagerWidget(_StageManagerWidget):
+class StageManagerWidget(_StageManagerWidget, _WorkspaceWidget):
     # This extension is only used to:
     # - Pull all the plugins required for the Lightspeed StageManager Widget
     # - Define the schema path in the settings
-    pass
+
+    def show(self, visible: bool):
+        """Implements WorkspaceWidget interface."""
+        pass
+
+    def destroy(self):
+        """Implements WorkspaceWidget interface."""
+        pass

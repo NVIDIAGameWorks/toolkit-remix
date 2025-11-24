@@ -2,7 +2,7 @@
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix control for the StageCraft"
 description = "Control will connect back end and front end for NVIDIA RTX Remix StageCraft App"
-version = "1.6.1"
+version = "1.6.2"
 readme = "docs/README.md"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.control.stagecraft"
 category = "internal"
@@ -29,12 +29,11 @@ icon = "data/icon.png"
 "lightspeed.trex.home.widget" = {}
 "lightspeed.trex.logic.widget" = {}
 "lightspeed.trex.sidebar" = {}
-"lightspeed.trex.properties_pane.shared.project_setup.widget" = {}
+"lightspeed.trex.project_setup.widget" = {}
 "lightspeed.trex.viewports.shared.widget" = {}
-"lightspeed.trex.properties_pane.shared.asset_replacements.widget" = {}
-"lightspeed.trex.properties_pane.shared.mod_packaging.widget" = {}
+"lightspeed.trex.properties_pane.widget" = {}
+"lightspeed.trex.packaging.widget" = {}
 "omni.flux.utils.common" = {}
-"omni.kit.quicklayout" = {}
 "omni.ui" = {}
 
 [[python.module]]
