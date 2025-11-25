@@ -32,12 +32,15 @@ class AllCategoriesInteractionPlugin(_StageManagerUSDInteractionPlugin):
     compatible_trees: list[str] = Field(default=["CategoryGroupsTreePlugin", "PrimGroupsTreePlugin"], exclude=True)
     compatible_filters: list[str] = Field(
         default=[
+            "AdditionalFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "IsCaptureFilterPlugin",
+            "IsCategoryFilterPlugin",
             "LightPrimsFilterPlugin",
+            "MeshPrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
             "SearchFilterPlugin",
-            "IsCategoryFilterPlugin",
+            "SkeletonPrimsFilterPlugin",
         ],
         exclude=True,
     )

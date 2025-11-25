@@ -49,7 +49,8 @@ class IgnorePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
 
     def build_ui(self):  # noqa PLW0221
         with ui.HStack(spacing=ui.Pixel(8)):
-            ui.Label(self.display_name, width=0)
+            ui.Spacer(width=0)
+            ui.Label(self.display_name, width=ui.Pixel(self._LABEL_WIDTH), alignment=ui.Alignment.RIGHT)
             self._string_field = ui.StringField(width=ui.Pixel(300), height=ui.Pixel(24))
 
         self._string_field.model.set_value(",".join(self.ignore_prim_paths))

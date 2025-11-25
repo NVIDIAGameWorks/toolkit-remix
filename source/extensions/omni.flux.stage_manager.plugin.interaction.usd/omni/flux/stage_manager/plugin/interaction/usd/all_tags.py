@@ -33,6 +33,7 @@ class AllTagsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     )
     compatible_filters: list[str] = Field(
         default=[
+            "AdditionalFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "IsCaptureFilterPlugin",
             "OmniPrimsFilterPlugin",

@@ -36,8 +36,10 @@ class AllMeshesInteractionPlugin(_StageManagerUSDInteractionPlugin):
     compatible_trees: list[str] = Field(default=["MeshGroupsTreePlugin", "PrimGroupsTreePlugin"], exclude=True)
     compatible_filters: list[str] = Field(
         default=[
+            "AdditionalFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "IsCaptureFilterPlugin",
+            "IsCategoryFilterPlugin",
             "LightPrimsFilterPlugin",
             "MeshPrimsFilterPlugin",
             "OmniPrimsFilterPlugin",

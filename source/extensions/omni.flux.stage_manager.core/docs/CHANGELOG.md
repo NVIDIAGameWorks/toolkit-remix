@@ -1,16 +1,21 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.0]
+### Added
+- Added set_instance and get_instance functions
+- Added filters to additional_filters list on the interaction plugins
+
 ## [2.0.2]
-## Fixed
+### Fixed
 - Factory import changed
 
 ## [2.0.1]
-## Fixed
+### Fixed
 - Fixed Test assets to large to work without LFS
 
 ## [2.0.0]
-## Changed
+### Changed
 - Updated Pydantic to V2
 
 ## [1.2.2]

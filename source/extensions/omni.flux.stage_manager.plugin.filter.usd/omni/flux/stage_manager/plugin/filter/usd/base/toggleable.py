@@ -52,15 +52,15 @@ class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
         return result if self.include_results else not result
 
     def build_ui(self):  # noqa PLW0221
-        with ui.VStack(width=0):
+        with ui.VStack(width=0, spacing=ui.Pixel(4)):
             ui.Spacer(width=0)
             with ui.HStack(height=0, spacing=ui.Pixel(8)):
-                ui.Label(self.display_name, width=0)
+                ui.Label(self.display_name, width=ui.Pixel(self._LABEL_WIDTH), alignment=ui.Alignment.RIGHT_CENTER)
+                ui.Spacer(width=0)
                 self._checkbox = ui.CheckBox()
             ui.Spacer(width=0)
 
-        # Checked means we include, unchecked means we filter
-        self._checkbox.model.set_value(not self.filter_active)
+        self._checkbox.model.set_value(self.filter_active)
         self._value_changed_sub = self._checkbox.model.subscribe_value_changed_fn(self._on_checkbox_toggled)
 
     def _on_checkbox_toggled(self, model: ui.AbstractValueModel):
@@ -70,7 +70,7 @@ class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
         Args:
             model: The checkbox model.
         """
-        self.filter_active = not model.as_bool
+        self.filter_active = model.as_bool
         self._filter_items_changed()
 
     @abc.abstractmethod

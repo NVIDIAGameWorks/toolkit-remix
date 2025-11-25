@@ -9,10 +9,10 @@
             "percent_available_core_usage": 0.75,
             "filters": [
                 {
-                    "name": "IsCaptureFilterPlugin"
+                    "name": "SearchFilterPlugin"
                 },
                 {
-                    "name": "SearchFilterPlugin"
+                    "name": "AdditionalFilterPlugin"
                 }
             ],
             "filtering_rules": {
@@ -107,10 +107,10 @@
             "name": "AllMeshesInteractionPlugin",
             "filters": [
                 {
-                    "name": "IsCaptureFilterPlugin"
+                    "name": "SearchFilterPlugin"
                 },
                 {
-                    "name": "SearchFilterPlugin"
+                    "name": "AdditionalFilterPlugin"
                 }
             ],
             "filtering_rules": {
@@ -209,10 +209,10 @@
             "name": "AllMaterialsRemixInteractionPlugin",
             "filters": [
                 {
-                    "name": "IsCaptureFilterPlugin"
+                    "name": "SearchFilterPlugin"
                 },
                 {
-                    "name": "SearchFilterPlugin"
+                    "name": "AdditionalFilterPlugin"
                 }
             ],
             "filtering_rules": {
@@ -311,10 +311,10 @@
             "name": "AllLightsInteractionPlugin",
             "filters": [
                 {
-                    "name": "IsCaptureFilterPlugin"
+                    "name": "SearchFilterPlugin"
                 },
                 {
-                    "name": "SearchFilterPlugin"
+                    "name": "AdditionalFilterPlugin"
                 }
             ],
             "context_filters": [
@@ -402,10 +402,10 @@
             "include_invalid_parents": false,
             "filters": [
                 {
-                    "name": "IsCaptureFilterPlugin"
+                    "name": "SearchFilterPlugin"
                 },
                 {
-                    "name": "SearchFilterPlugin"
+                    "name": "AdditionalFilterPlugin"
                 }
             ],
             "context_filters": [
@@ -536,6 +536,9 @@
                 },
                 {
                     "name": "SearchFilterPlugin"
+                },
+                {
+                    "name": "AdditionalFilterPlugin"
                 }
             ],
             "context_filters": [
@@ -638,10 +641,10 @@
             },
             "filters": [
                 {
-                    "name": "IsCaptureFilterPlugin"
+                    "name": "SearchFilterPlugin"
                 },
                 {
-                    "name": "SearchFilterPlugin"
+                    "name": "AdditionalFilterPlugin"
                 }
             ],
             "context_filters": [

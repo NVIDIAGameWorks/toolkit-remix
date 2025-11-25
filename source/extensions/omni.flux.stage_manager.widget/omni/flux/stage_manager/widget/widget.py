@@ -21,6 +21,7 @@ from functools import partial
 import carb
 from omni import ui, usd
 from omni.flux.stage_manager.core import StageManagerCore as _StageManagerCore
+from omni.flux.stage_manager.core import set_instance as _set_stage_manager_core_instance
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit import app
 
@@ -51,6 +52,7 @@ class StageManagerWidget:
             setattr(self, attr, value)
 
         self._core = core or _StageManagerCore()
+        _set_stage_manager_core_instance(self._core)
         self._tab_height = tab_height
         self._tab_padding = tab_padding
         self._active_style = active_style

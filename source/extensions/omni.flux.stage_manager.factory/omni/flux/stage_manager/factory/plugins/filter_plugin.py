@@ -61,3 +61,9 @@ class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
         It will cause the TreeWidget model to refresh the items and re-filter the context items.
         """
         self._on_filter_items_changed()
+
+    def refresh_filter_items(self):
+        """
+        An external call to refresh the filter items.
+        """
+        self._on_filter_items_changed()

@@ -37,6 +37,7 @@ class AllSkeletonsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     compatible_trees: list[str] = Field(default=["PrimGroupsTreePlugin", "SkeletonGroupsTreePlugin"], exclude=True)
     compatible_filters: list[str] = Field(
         default=[
+            "AdditionalFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "IsCaptureFilterPlugin",
             "OmniPrimsFilterPlugin",

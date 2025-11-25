@@ -55,7 +55,7 @@ class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
         with ui.HStack(height=0):
             ui.Label("Search:", width=ui.Pixel(56))
             search_field = ui.StringField(
-                width=ui.Pixel(120),
+                width=ui.Pixel(160),
                 height=ui.Pixel(24),
                 identifier="search_field",
                 tooltip="Search using regex. Special characters like ., *, +, etc. will be treated as regex characters",

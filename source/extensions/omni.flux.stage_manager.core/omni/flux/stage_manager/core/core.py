@@ -22,6 +22,17 @@ from omni.flux.utils.common.path_utils import read_json_file as _read_json_file
 from .schema import StageManagerSchema as _StageManagerSchema
 
 _SCHEMA_PATH_SETTING = "/exts/omni.flux.stage_manager.core/schema"
+STAGE_MANAGER_CORE_INSTANCE: "StageManagerCore | None" = None
+
+
+def set_instance(instance: "StageManagerCore"):
+    global STAGE_MANAGER_CORE_INSTANCE
+    STAGE_MANAGER_CORE_INSTANCE = instance
+
+
+def get_instance():
+    global STAGE_MANAGER_CORE_INSTANCE
+    return STAGE_MANAGER_CORE_INSTANCE
 
 
 class StageManagerCore:
@@ -61,6 +72,15 @@ class StageManagerCore:
             interaction.setup(schema.context)
 
         self._schema = schema
+
+    def get_active_interaction(self):
+        if not self.schema or not self.schema.interactions:
+            return None
+
+        for interaction in self.schema.interactions:
+            if interaction.is_active:
+                return interaction
+        return None
 
     def destroy(self):
         _reset_default_attrs(self)
