@@ -72,23 +72,24 @@ class VirtualUsdListModelAttrValueModel(UsdListModelAttrValueModel):
         default_value: str,
         options: list[str],
         read_only: bool = False,
-        type_name: str = None,
-        metadata: dict = None,
+        value_type_name: Sdf.ValueTypeName | None = None,
+        metadata: dict | None = None,
         metadata_key: str | None = None,
         create_callback: Callable[[Usd.Attribute, Any], None] | None = None,
     ):
-        self._metadata = metadata
+        if metadata is None and value_type_name is not None:
+            metadata = {Sdf.PrimSpec.TypeNameKey: str(value_type_name)}
+
         super().__init__(
             context_name=context_name,
             attribute_paths=attribute_paths,
             default_value=default_value,
             options=options,
             read_only=read_only,
-            type_name=type_name,
+            value_type_name=value_type_name,
+            metadata=metadata,
             metadata_key=metadata_key,
         )
-        if not self._metadata:
-            self._metadata = {Sdf.ValueTypeNames: self._type_name}
         self._create_callback = create_callback
 
     def get_attributes_raw_value(self, element_current_idx: int) -> Any | None:
@@ -122,7 +123,7 @@ class VirtualUsdListModelAttrValueModel(UsdListModelAttrValueModel):
                 "CreateUsdAttributeCommand",
                 prim=prim,
                 attr_name=path.name,
-                attr_type=self._type_name,
+                attr_type=self._value_type_name,
                 attr_value=index,
             )
 

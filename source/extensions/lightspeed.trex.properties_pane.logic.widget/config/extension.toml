@@ -1,0 +1,33 @@
+[package]
+version = "1.0.0"
+authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
+title = "Remix Logic Properties Widget"
+description = "Properties panel for RemixLogic prim types"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.properties_pane.logic.widget"
+category = "internal"
+keywords = ["kit", "lightspeed", "properties", "logic", "widget"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/images/preview.png"
+icon = "data/images/icon.png"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.trex.utils.common" = {}
+"omni.flux.property_widget_builder.model.usd" = {}
+"omni.flux.property_widget_builder.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.commands" = {}
+"omni.graph" = {}
+"omni.graph.tools" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.properties_pane.logic.widget"
+
+[[test]]
+dependencies = [
+    "omni.flux.tests.dependencies",
+    "omni.kit.test",
+]

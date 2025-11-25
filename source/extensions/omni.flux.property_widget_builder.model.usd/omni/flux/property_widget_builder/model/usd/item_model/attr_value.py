@@ -44,7 +44,11 @@ class UsdAttributeBase(_Serializable, abc.ABC):
     _is_virtual = False
 
     def __init__(
-        self, context_name: str, attribute_paths: List[Sdf.Path], read_only: bool = False, type_name: str = None
+        self,
+        context_name: str,
+        attribute_paths: List[Sdf.Path],
+        read_only: bool = False,
+        value_type_name: Sdf.ValueTypeName | None = None,
     ):
         """
         Base model of a USD attribute value.
@@ -55,7 +59,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
             context_name: the context name
             attribute_paths:  the path(s) of the attribute
             read_only: if the attribute is read only or not
-            type_name: the type name of the attribute
+            value_type_name: the type name of the attribute
         """
         super().__init__()
         self._context_name = context_name
@@ -64,12 +68,10 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         self._read_only = read_only
         self._is_mixed = False
 
-        if type_name:
-            type_name = Sdf.ValueTypeNames.Find(type_name)
-        else:
-            type_name = self._get_type_name(self.metadata)
-        self._type_name: Sdf.ValueTypeName = type_name
-        self._convert_type = GF_TO_PYTHON_TYPE.get(self._type_name)
+        if not value_type_name:
+            value_type_name = self._get_type_name(self.metadata)
+        self._value_type_name: Sdf.ValueTypeName = value_type_name
+        self._convert_type = GF_TO_PYTHON_TYPE.get(self._value_type_name)
 
         self._value = None  # The value that will be represented by the widget
         self._values = []  # The values of all the attribute paths
@@ -196,7 +198,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         if value is None:
             return ""
         # isinstance check for metadata that may have different value than type
-        if self._type_name == Sdf.ValueTypeNames.Asset or isinstance(value, Sdf.AssetPath):
+        if self._value_type_name == Sdf.ValueTypeNames.Asset or isinstance(value, Sdf.AssetPath):
             # get path string to remove @...@ for display
             return str(value.path)
         return str(value)
@@ -291,7 +293,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
             or (
                 isinstance(value, str)
                 and value.strip() == ""
-                and self._type_name not in [Sdf.ValueTypeNames.String, Sdf.ValueTypeNames.Asset]
+                and self._value_type_name not in [Sdf.ValueTypeNames.String, Sdf.ValueTypeNames.Asset]
             )
         ):
             return True
@@ -350,7 +352,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         attribute_paths: List[Sdf.Path],
         channel_index: int,
         read_only: bool = False,
-        type_name: str = None,
+        value_type_name: Sdf.ValueTypeName | None = None,
     ):
         """
         Value model of an attribute value
@@ -362,10 +364,15 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             read_only: if the attribute is read only or not
             type_name: the type name of the attribute
         """
-        super().__init__(context_name, attribute_paths, read_only=read_only, type_name=type_name)
+        super().__init__(
+            context_name,
+            attribute_paths,
+            read_only=read_only,
+            value_type_name=value_type_name,
+        )
         self._channel_index = channel_index
         # should we treat value as a "multi" value or by channel.
-        self._is_multichannel = MULTICHANNEL_BUILDER_TABLE.get(self._type_name, False)
+        self._is_multichannel = MULTICHANNEL_BUILDER_TABLE.get(self._value_type_name, False)
         self._has_wrong_value = False
         self.init_attributes()
 
@@ -374,7 +381,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         if self._value is None:
             return None  # not set yet...
         # TODO: Store path object in self._value instead.
-        if self._type_name == Sdf.ValueTypeNames.Asset:
+        if self._value_type_name == Sdf.ValueTypeNames.Asset:
             # NOTE: Sdf.AssetPath are supported in the serializer
             return self.get_attributes_raw_value(self._channel_index)
         if self._is_multichannel:
@@ -417,7 +424,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             if self._is_multichannel:
                 self.set_value(default_value[index])
             else:
-                if self._type_name == Sdf.ValueTypeNames.Asset:
+                if self._value_type_name == Sdf.ValueTypeNames.Asset:
                     default_value = default_value.path
                 self.set_value(default_value)
 
@@ -447,13 +454,13 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
 
     def _get_attribute_value(self, attr):
         value = attr.Get()
-        if value is not None and self._type_name == Sdf.ValueTypeNames.Asset:
+        if value is not None and self._value_type_name == Sdf.ValueTypeNames.Asset:
             return value.path
         return value
 
     def _set_attribute_value(self, attr, new_value):
         attribute_path = str(attr.GetPath())
-        if self._type_name == Sdf.ValueTypeNames.Asset:  # noqa SIM102
+        if self._value_type_name == Sdf.ValueTypeNames.Asset:  # noqa SIM102
             if isinstance(new_value, str):
                 # Force textures to always use forward slashes, and check that the path is valid
                 new_value = new_value.strip()
@@ -513,24 +520,29 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         context_name: str,
         attribute_paths: list[Sdf.Path],
         channel_index: int,
+        value_type_name: Sdf.ValueTypeName,
         read_only: bool = False,
-        type_name: str = None,
         default_value: Any = None,
-        metadata: dict = None,
+        metadata: dict | None = None,
         create_callback: Callable[[Usd.Attribute, Any], None] | None = None,
     ):
         self._create_callback = create_callback
 
-        if not type_name:
+        if not value_type_name:
             raise ValueError("type_name is required for virtual attribute value models")
-        type_name_obj = Sdf.ValueTypeNames.Find(type_name)
-        self._metadata = metadata or {Sdf.PrimSpec.TypeNameKey: str(type_name_obj)}
-        is_multichannel = MULTICHANNEL_BUILDER_TABLE.get(type_name_obj, False)
+        self._metadata = metadata or {Sdf.PrimSpec.TypeNameKey: str(value_type_name)}
+        is_multichannel = MULTICHANNEL_BUILDER_TABLE.get(value_type_name, False)
         if is_multichannel and default_value is not None:
             default_value = default_value[channel_index]
         self._default_value = default_value
 
-        super().__init__(context_name, attribute_paths, channel_index, read_only=read_only, type_name=type_name)
+        super().__init__(
+            context_name,
+            attribute_paths,
+            channel_index,
+            read_only=read_only,
+            value_type_name=value_type_name,
+        )
 
     def _get_default_value(self, attr):
         # Since the attribute does not exist, we need to retrieve the stored value.
@@ -573,7 +585,7 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
                 "CreateUsdAttributeCommand",
                 prim=prim,
                 attr_name=path.name,
-                attr_type=self._type_name,
+                attr_type=self._value_type_name,
                 attr_value=new_value,
             )
 

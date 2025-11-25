@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0]
+### Added
+- Added is_mesh_asset and is_light_asset utility functions for asset type validation
+
 ## [2.1.0]
 ### Added
 - Added is_in_mesh_group and is_in_light_group utility functions for prim path validation

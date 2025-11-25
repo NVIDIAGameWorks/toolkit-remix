@@ -1,5 +1,5 @@
 [package]
-version = "1.13.0"
+version = "1.14.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Properties Pane Asset Replacements widget for the StageCraft"
 description = "Asset Replacements Properties Pane widget for NVIDIA RTX Remix StageCraft App"
@@ -17,6 +17,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 "lightspeed.trex.properties_pane.material.widget" = {}
 "lightspeed.trex.properties_pane.mesh.widget" = {}
 "lightspeed.trex.properties_pane.particle.widget" = {}
+"lightspeed.trex.properties_pane.logic.widget" = {}
 "lightspeed.trex.replacement.core.shared" = {}
 "lightspeed.trex.selection_tree.widget" = {}
 "lightspeed.trex.utils.common" = {}

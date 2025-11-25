@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.20.0]
+### Added
+- Added OGN field builders for OmniGraph node property widgets
+
+### Changed
+- Improved type handling for value type names throughout property widget models
+
 ## [2.19.5]
 ### Changed
 - Use Flux Pip Archive instead of Kit Pip Archive

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.0]
+### Added
+- Added logic graph properties panel for OmniGraph node editing
+
 ## [1.13.0]
 ### Changed
 - Renamed the extension to lightspeed.trex.properties_pane.widget
