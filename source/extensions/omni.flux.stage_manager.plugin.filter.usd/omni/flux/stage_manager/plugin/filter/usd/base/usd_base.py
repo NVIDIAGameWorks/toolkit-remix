@@ -22,6 +22,9 @@ from pydantic import PrivateAttr
 
 
 class StageManagerUSDFilterPlugin(_StageManagerFilterPlugin, abc.ABC):
+    # Shared UI constants for consistent alignment across all filter plugins
+    _LABEL_WIDTH: int = PrivateAttr(default=140)  # Width in pixels for filter labels
+
     _context_name: str = PrivateAttr(default="")
 
     def set_context_name(self, name: str):

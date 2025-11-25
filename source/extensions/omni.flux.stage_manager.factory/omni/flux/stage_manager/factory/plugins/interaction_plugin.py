@@ -84,6 +84,11 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     compatible_widgets: list[str] = Field(
         default=[], description="The list of widget plugins compatible with this interaction plugin", exclude=True
     )
+    additional_filters: list[_StageManagerFilterPlugin] = Field(
+        default=[],
+        description="The list of filter plugins that will be added to an 'Additional Filters' menu",
+        exclude=True,
+    )
 
     columns: list[_StageManagerColumnPlugin] = Field(default=[], description="Columns to display in the TreeWidget")
     filters: list[_StageManagerFilterPlugin] = Field(
@@ -251,6 +256,14 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         super().__init__(**kwargs)
 
         self._context_items_changed_sub = self.subscribe_context_items_changed(self._refresh_tree_model)
+
+    @property
+    def is_active(self) -> bool:
+        """
+        Whether the interaction plugin is active or not. Only 1 interaction plugin should be active at a time.
+        Active status should be managed by the widget
+        """
+        return self._is_active
 
     @property
     def _max_workers(self) -> int | None:
@@ -520,6 +533,25 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             )
             # Some models might need to filter children items so pass the filter functions down
             self.tree.model.add_user_filter_predicates([filter_plugin.filter_predicate])
+
+        # Remove duplicate additional filters
+        existing_filter_names = {
+            *[f.name for f in self.filters],
+            *[f.name for f in self.context_filters],
+            *[f.name for f in self.internal_context_filters],
+        }
+        unique_additional_filters = [f for f in self.additional_filters if f.name not in existing_filter_names]
+        self.additional_filters = unique_additional_filters
+        for additional_filter_plugin in unique_additional_filters:
+
+            additional_filter_plugin.enabled = False
+            # Ensure toggleable filters start inactive
+            if hasattr(additional_filter_plugin, "filter_active"):
+                additional_filter_plugin.filter_active = False
+            self._filter_items_changed_subs.append(
+                additional_filter_plugin.subscribe_filter_items_changed(self._refresh_tree_model)
+            )
+            self.tree.model.add_user_filter_predicates([additional_filter_plugin.filter_predicate])
 
     def _setup_columns(self):
         """

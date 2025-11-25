@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.0]
+## Added
+- Added styles for the new filter icons
+
 ## [1.14.0]
 ### Added
 - Added styles for the ComfyUI window
@@ -18,83 +22,83 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Updated window shadow opacity for improved visual consistency
 
 ## [1.12.1]
-## Added
+### Added
 - Added styles for top bar title in modding tabs
 
 ## [1.12.0]
-## Added
+### Added
 - Added styles for the new particle system action icon
 
 ## [1.11.0]
-## Added
+### Added
 - Added particle icon
 
 ## [1.10.2]
-## Added
+### Added
 - Added hovered styles for the version labels
 
 ## [1.10.1]
-## Fixed
+### Fixed
 - Fixed Test assets to large to work without LFS
 
 ## [1.10.0]
-## Added
+### Added
 - Added missing automodule directives for documentation
 
 ## [1.9.1]
-## Added
+### Added
 - Added white Remix Categories icon
 
 ## [1.9.0]
-## Added
+### Added
 - Added styles for the updated properties panels ghost icons
 
 ## [1.8.5]
-## Changed
+### Changed
 - Update to Kit 106.5
 
 ## [1.8.4]
-## Added
+### Added
 - Added missing `EyeOffDisabled` style
 
 ## [1.8.3]
-## Added
+### Added
 - Added `Material` icon for the Stage Manager
 
 ## [1.8.2]
-## Fixed
+### Fixed
 - Fixed styling for the layers panel
 
 ## [1.8.1]
-## Fixed
+### Fixed
 - Fixed remix categories icon color
 
 ## [1.8.0]
-## Added
+### Added
 - Added styles for the updated home page
 
 ## [1.7.1]
-## Added
+### Added
 - Added hidden and shown icons for remix categories
 
 ## [1.7.0]
-## Added
+### Added
 - Added Custom Tags styles for the Stage Manager virtual items
 
 ## [1.6.0]
-## Added
+### Added
 - Added Custom Tags styles for the Stage Manager
 
 ## [1.5.1]
-## Added
+### Added
 - Added remap skeleton button icon styles
 
 ## [1.5.0]
-## Added
+### Added
 - Added CategoriesFrame ScrollingFrame style
 
 ## [1.4.2]
-## Fixed
+### Fixed
 - conform disclosure icon meaning so down arrow means expanded
 
 ## [1.4.1]

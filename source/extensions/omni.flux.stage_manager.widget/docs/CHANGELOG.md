@@ -1,28 +1,32 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.0]
+### Added
+- Setting Stage Manager Core instance
+
 ## [1.6.1]
-## Fixed
+### Fixed
 - Fixed Test assets to large to work without LFS
 
 ## [1.6.0]
-## Changed
+### Changed
 - Update the documentation for Pydantic V2 compatbility
 
 ## [1.5.2]
-## Changed
+### Changed
 - Removed a function to set a refresh callback
 
 ## [1.5.1]
-## Added
+### Added
 - Added a function to set a refresh callback
 
 ## [1.5.0]
-## Changed
+### Changed
 - Removed Experimental Feature label
 
 ## [1.4.7]
-## Changed
+### Changed
 - Update to Kit 106.5
 
 ## [1.4.6]

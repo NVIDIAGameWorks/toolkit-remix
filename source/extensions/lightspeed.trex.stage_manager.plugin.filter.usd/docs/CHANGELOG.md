@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.3]
+### Changed
+- Updated filter plugin UI to be more consistent
+
 ## [2.0.2]
 ### Changed
 - rename "Remix Category" to "Render Category"

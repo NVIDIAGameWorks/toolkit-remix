@@ -34,10 +34,9 @@ class AllMaterialsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     compatible_trees: list[str] = Field(default=["MaterialGroupsTreePlugin", "PrimGroupsTreePlugin"], exclude=True)
     compatible_filters: list[str] = Field(
         default=[
+            "AdditionalFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "IsCaptureFilterPlugin",
-            "LightPrimsFilterPlugin",
-            "MeshPrimsFilterPlugin",
             "MaterialPrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
             "SearchFilterPlugin",

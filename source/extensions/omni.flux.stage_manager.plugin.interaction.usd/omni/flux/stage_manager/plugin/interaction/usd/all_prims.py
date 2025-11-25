@@ -33,12 +33,16 @@ class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     )
     compatible_filters: list[str] = Field(
         default=[
+            "AdditionalFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "IsCaptureFilterPlugin",
+            "IsCategoryFilterPlugin",
+            "MaterialPrimsFilterPlugin",
             "MeshPrimsFilterPlugin",
+            "LightPrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
             "SearchFilterPlugin",
-            "IsCategoryFilterPlugin",
+            "SkeletonPrimsFilterPlugin",
         ],
         exclude=True,
     )

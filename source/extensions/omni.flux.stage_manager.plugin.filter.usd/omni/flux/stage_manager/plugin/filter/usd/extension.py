@@ -20,6 +20,7 @@ import carb.settings
 import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
+from .additional_filters import AdditionalFilterPlugin as _AdditionalFilterPlugin
 from .ignore_prims import IgnorePrimsFilterPlugin as _IgnorePrimsFilterPlugin
 from .light_prims import LightPrimsFilterPlugin as _LightPrimsFilterPlugin
 from .material_prims import MaterialPrimsFilterPlugin as _MaterialPrimsFilterPlugin
@@ -31,6 +32,7 @@ from .skeleton_prims import SkeletonPrimsFilterPlugin as _SkeletonPrimsFilterPlu
 class StageManagerUSDFilterPluginsExtension(omni.ext.IExt):
 
     _PLUGINS = [
+        _AdditionalFilterPlugin,
         _IgnorePrimsFilterPlugin,
         _LightPrimsFilterPlugin,
         _MaterialPrimsFilterPlugin,

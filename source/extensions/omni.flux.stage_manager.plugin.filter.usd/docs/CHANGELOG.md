@@ -1,28 +1,34 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.0]
+### Added
+- Added `AdditionalFilterPlugin`
+### Changed
+- Updated `ToggleableUSDFilterPlugin` to not reverse value for checkbox
+
 ## [2.2.0]
-## Changed
+### Changed
 - Updating SearchFilterPlugin with regex matching for Stage Manager filtering
 
 ## [2.1.1]
-## Fixed
+### Fixed
 - Fixed Test assets to large to work without LFS
 
 ## [2.1.0]
-## Changed
+### Changed
 - Update the documentation for Pydantic V2 compatbility
 
 ## [2.0.0]
-## Changed
+### Changed
 - Updated Pydantic to V2
 
 ## [1.6.0]
-## Added
+### Added
 - Added `MaterialPrimsFilterPlugin` filter plugin
 
 ## [1.5.0]
-## Added
+### Added
 - Added a filter for skeleton interaction tab
 
 ## [1.4.1]

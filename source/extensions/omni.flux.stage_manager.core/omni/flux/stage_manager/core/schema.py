@@ -62,8 +62,21 @@ class StageManagerSchema(BaseModel):
                     raise ValueError(f"An unregistered plugin was detected -> {data['name']}")
                 # Resolve the plugin's attributes recursively
                 resolved_data = {k: self._resolve_plugins_recursive(factory, v) for k, v in data.items()}
-                # Create the plugin instance with resolved data
-                return self.__resolve_plugin_attributes(factory, plugin_class(**resolved_data))
+                # Create the plugin instance with resolved data first
+                plugin_instance = plugin_class(**resolved_data)
+
+                # Now populate additional_filters on the instance based on compatible_filters
+                if hasattr(plugin_instance, "compatible_filters") and hasattr(plugin_instance, "additional_filters"):
+                    additional_filter_types = set()
+                    for filter_name in plugin_instance.compatible_filters:
+                        filter_plugin_class = factory.get_plugin_from_name(filter_name)
+                        if not filter_plugin_class:
+                            continue
+                        filter_plugin_obj = filter_plugin_class()
+                        if filter_plugin_obj and type(filter_plugin_obj) not in additional_filter_types:
+                            plugin_instance.additional_filters.append(filter_plugin_obj)
+                            additional_filter_types.add(type(filter_plugin_obj))
+                return self.__resolve_plugin_attributes(factory, plugin_instance)
             # Recursively resolve each item in the dict
             return {k: self._resolve_plugins_recursive(factory, v) for k, v in data.items()}
 
