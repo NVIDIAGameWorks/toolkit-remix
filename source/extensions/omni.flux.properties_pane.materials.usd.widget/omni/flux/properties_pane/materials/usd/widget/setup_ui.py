@@ -16,10 +16,9 @@
 """
 
 import asyncio
-from typing import Dict, List, Optional, Union
+from typing import TYPE_CHECKING
 
 import omni.kit
-import omni.kit.material.library
 import omni.ui as ui
 import omni.usd
 from omni.flux.material_api import ShaderInfoAPI
@@ -40,6 +39,10 @@ from pxr import Sdf, Usd, UsdShade, Vt
 
 from .lookup_table import LOOKUP_TABLE
 
+if TYPE_CHECKING:
+    from omni.flux.material_api import UsdShadePropertyPlaceholder
+
+
 SHADER_ATTR_IGNORE_LIST = [
     "outputs:out",
     "info:id",
@@ -55,20 +58,20 @@ class MaterialPropertyWidget:
     def __init__(
         self,
         context_name: str,
-        tree_column_widths: Optional[List[ui.Length]] = None,
+        tree_column_widths: list[ui.Length] | None = None,
         columns_resizable: bool = False,
         right_aligned_labels: bool = True,
-        lookup_table: Optional[Dict[str, Dict[str, str]]] = None,
+        lookup_table: dict[str, dict[str, str]] | None = None,
         create_color_space_attributes: bool = True,
         field_builders: list[_FieldBuilder] | None = None,
     ):
         """
         Args:
             context_name (str)
-            tree_column_widths (Optional[List[ui.Length]])
+            tree_column_widths (list[ui.Length] | None)
             columns_resizable (bool): Whether the columns are resizable
             right_aligned_labels (bool): Whether the labels are right aligned or left aligned
-            lookup_table (Optional[Dict[str, Dict[str, str]]]): Table used to override display name or group for
+            lookup_table (dict[str, dict[str, str]] | None): Table used to override display name or group for
                 attributes.
             create_color_space_attributes (bool)
             field_builders (List[_FieldBuilder])
@@ -138,7 +141,7 @@ class MaterialPropertyWidget:
                 refresh_callback=self.refresh,
             )
 
-    def refresh(self, paths: Optional[List[Union[str, "Sdf.Path"]]] = None):
+    def refresh(self, paths: list[str | Sdf.Path] | None = None):
         """
         Refresh the panel with the given prim paths
 
@@ -148,7 +151,7 @@ class MaterialPropertyWidget:
         asyncio.ensure_future(self._deferred_refresh(paths))
 
     @omni.usd.handle_exception
-    async def _deferred_refresh(self, paths: Optional[List[Union[str, "Sdf.Path"]]] = None):
+    async def _deferred_refresh(self, paths: list[str | Sdf.Path] | None = None):
         """
         Deferred because we need to handle attribute(s) generated on fly by the mdl
 
@@ -167,16 +170,16 @@ class MaterialPropertyWidget:
         if self.__usd_listener_instance and self._property_model:  # noqa PLE0203
             self.__usd_listener_instance.remove_model(self._property_model)  # noqa PLE0203
 
-        stage = self._context.get_stage()
-        items = []
-        valid_paths = []
+        stage: Usd.Stage = self._context.get_stage()
+        items: list[_ItemGroup | _VirtualUSDAttributeItem | _VirtualUSDAttrListItem] = []
+        valid_paths: list[Sdf.Path] = []
 
         if stage is not None:  # noqa PLR1702
             prims = [stage.GetPrimAtPath(path) for path in self._paths]
 
             shader_paths = []
             # relative attr name to item
-            attr_added: dict[str, list[tuple[Usd.Prim, Usd.Attribute]]] = {}
+            attr_added: dict[str, list[tuple[Usd.Prim, UsdShadePropertyPlaceholder]]] = {}
 
             with _USDDisableAllListenersBlock(self.__usd_listener_instance):
                 for prim in prims:
@@ -258,6 +261,11 @@ class MaterialPropertyWidget:
                     if attr_name in self._lookup_table:
                         display_attr_names = [self._lookup_table[attr_name]["name"]]
 
+                    value_type_name: Sdf.ValueTypeName | None = None
+                    type_name: str | None = placeholder.GetTypeName()
+                    if type_name:
+                        value_type_name = Sdf.ValueTypeNames.Find(type_name)
+
                     # description
                     description = "No description"
                     metadata = placeholder.GetAllMetadata()
@@ -267,7 +275,7 @@ class MaterialPropertyWidget:
 
                     sdr_metadata = placeholder.GetMetadata("sdrMetadata")
                     if sdr_metadata and sdr_metadata.get("options"):
-                        options: list[tuple[str, int]] = sdr_metadata.get("options")
+                        options: list[tuple[str, int]] | str = sdr_metadata.get("options")
                         if isinstance(options, list):
                             # ex: [('wrap_clamp', 0), ('wrap_repeat', 1), ('wrap_mirrored_repeat', 2), ('wrap_clip', 3)]
                             str_options = [name for name, _index in options]
@@ -276,14 +284,14 @@ class MaterialPropertyWidget:
                             str_options = [name_and_index.split(":")[0] for name_and_index in options.split("|")]
                         else:
                             raise ValueError(f"Invalid sdrMetadata options type: {type(options)}")
-                        default_value = placeholder.GetDefaultValue()
+                        default_value: int = placeholder.GetDefaultValue()
                         str_default = str_options[default_value]
                         attr_item = _VirtualUSDAttrListItem(
                             self._context_name,
                             attribute_paths,
                             str_default,
                             str_options,
-                            value_type_name=placeholder.GetTypeName(),
+                            value_type_name=value_type_name,
                             metadata=placeholder.GetAllMetadata(),
                             display_attr_names=display_attr_names,
                             display_attr_names_tooltip=descriptions,
@@ -292,7 +300,7 @@ class MaterialPropertyWidget:
                         attr_item = _VirtualUSDAttributeItem(
                             self._context_name,
                             attribute_paths,
-                            value_type_name=placeholder.GetTypeName(),
+                            value_type_name=value_type_name,
                             default_value=placeholder.GetDefaultValue(),
                             metadata=placeholder.GetAllMetadata(),
                             display_attr_names=display_attr_names,

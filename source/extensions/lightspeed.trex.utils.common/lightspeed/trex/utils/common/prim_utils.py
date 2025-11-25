@@ -19,8 +19,10 @@ __all__ = [
     "PrimTypes",
     "get_prim_paths",
     "filter_prims_paths",
+    "is_light_asset",
     "is_light_prototype",
     "is_material_prototype",
+    "is_mesh_asset",
     "is_shader_prototype",
     "is_mesh_prototype",
     "is_instance",
@@ -250,6 +252,26 @@ def is_instance(prim: Usd.Prim) -> bool:
     if not prim:
         return False
     return bool(re.match(constants.REGEX_IN_INSTANCE_PATH, str(prim.GetPath())))
+
+
+def is_mesh_asset(prim: Usd.Prim) -> bool:
+    """
+    Returns:
+        Whether the prim is a mesh asset
+    """
+    if not prim:
+        return False
+    return bool(re.match(constants.REGEX_MESH_PATH, str(prim.GetPath())))
+
+
+def is_light_asset(prim: Usd.Prim) -> bool:
+    """
+    Returns:
+        Whether the prim is a light asset
+    """
+    if not prim:
+        return False
+    return bool(re.match(constants.REGEX_LIGHT_PATH, str(prim.GetPath())))
 
 
 def is_in_mesh_group(prim: Usd.Prim) -> bool:

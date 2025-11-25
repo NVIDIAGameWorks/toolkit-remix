@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4242: Add Remix Logic Graph Editor as an experimental feature
 - REMIX-4610: Added the ability to add selected textures and meshes to the ComfyUI queue
 - REMIX-4721: Added workspace layout system improvements for reliable window docking
+- REMIX-4635: Added support for editing omni graph node properties in properties panel for Remix Logic
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main

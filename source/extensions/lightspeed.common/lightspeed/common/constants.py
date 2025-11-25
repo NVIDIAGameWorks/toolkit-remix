@@ -554,6 +554,11 @@ class GlobalEventNames(Enum):
     IMPORT_LAYER = "Import Layer (LayerType, path, use_existing_file)"
 
 
+# Remix Logic
+OMNI_GRAPH_TYPE = "OmniGraph"
+OMNI_GRAPH_NODE_TYPE = "OmniGraphNode"
+OMNI_GRAPH_NODE_TYPES = ("OmniGraph", "OmniGraphNode")
+
 # Particle System
 PARTICLE_SCHEMA_NAME = "RemixParticleSystemAPI"
 PARTICLE_CPP_SCHEMA_NAME = "ParticleSystemAPI"  # Use this with USDRT or low level code.

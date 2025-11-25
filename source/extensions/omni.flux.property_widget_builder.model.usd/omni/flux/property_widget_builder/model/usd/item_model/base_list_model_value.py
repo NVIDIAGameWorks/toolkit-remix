@@ -46,17 +46,22 @@ class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
         default_value: str,
         options: List[str],
         read_only: bool = False,
-        type_name: str = None,
-        metadata: dict = None,
+        value_type_name: Sdf.ValueTypeName | None = None,
+        metadata: dict | None = None,
         metadata_key: Optional[str] = None,
     ):
-        super().__init__(context_name, attribute_paths, read_only=read_only, type_name=type_name)
+        super().__init__(
+            context_name,
+            attribute_paths,
+            read_only=read_only,
+            value_type_name=value_type_name,
+        )
         # Clear out guessed value type, we leave it as str and handle it ourselves for better serialization.
         self._override_value_type = None
         # Guard to avoid inf loop and skip _current_index_changed when updating value in code
         self.__block_set_value = False
         # Whether to save the value in USD as the integer index of options or as the value itself
-        self._use_index_in_usd = self._type_name == Sdf.ValueTypeNames.Int
+        self._use_index_in_usd = self._value_type_name == Sdf.ValueTypeNames.Int
 
         self._default_value = default_value
         self._item_options = []

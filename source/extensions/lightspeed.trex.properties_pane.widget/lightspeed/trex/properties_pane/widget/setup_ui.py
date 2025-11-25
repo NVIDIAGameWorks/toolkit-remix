@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+__all__ = ["CollapsiblePanels", "AssetReplacementsPane"]
+
 import functools
 from enum import Enum
 from pathlib import Path
@@ -25,6 +27,7 @@ import omni.usd
 from lightspeed.common.constants import (
     GAME_READY_ASSETS_FOLDER as _GAME_READY_ASSETS_FOLDER,
 )
+from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE
 from lightspeed.common.constants import PARTICLE_SCHEMA_NAME as _PARTICLE_SCHEMA_NAME
 from lightspeed.common.constants import (
     PROPERTIES_NAMES_COLUMN_WIDTH as _PROPERTIES_NAMES_COLUMN_WIDTH,
@@ -33,6 +36,7 @@ from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_F
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.material.core.shared import Setup as _MaterialCore
+from lightspeed.trex.properties_pane.logic.widget import LogicPropertyWidget as _LogicPropertyWidget
 from lightspeed.trex.properties_pane.material.widget import (
     SetupUI as _MaterialPropertiesWidget,
 )
@@ -48,9 +52,11 @@ from lightspeed.trex.replacement.core.shared.layers import (
 from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
 from lightspeed.trex.utils.common.prim_utils import is_a_prototype as _is_a_prototype
 from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
+from lightspeed.trex.utils.common.prim_utils import is_light_asset as _is_light_asset
 from lightspeed.trex.utils.common.prim_utils import (
     is_material_prototype as _is_material_prototype,
 )
+from lightspeed.trex.utils.common.prim_utils import is_mesh_asset as _is_mesh_asset
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
 from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
@@ -67,7 +73,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
-from pxr import Sdf, Tf, UsdGeom
+from pxr import Sdf, Tf, Usd, UsdGeom
 
 
 class CollapsiblePanels(Enum):
@@ -78,6 +84,7 @@ class CollapsiblePanels(Enum):
     MESH_PROPERTIES = 4
     SELECTION = 5
     PARTICLE_PROPERTIES = 6
+    LOGIC_PROPERTIES = 7
 
 
 class AssetReplacementsPane(_WorkspaceWidget):
@@ -96,6 +103,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
             "_material_converted_sub": None,
             "_material_properties_widget": None,
             "_particle_properties_widget": None,
+            "_logic_properties_widget": None,
             "_layer_collapsable_frame": None,
             "_bookmarks_collapsable_frame": None,
             "_selection_history_collapsable_frame": None,
@@ -103,6 +111,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
             "_mesh_properties_collapsable_frame": None,
             "_material_properties_collapsable_frame": None,
             "_particle_properties_collapsable_frame": None,
+            "_logic_graph_properties_collapsable_frame": None,
             "_sub_tree_selection_changed": None,
             "_sub_go_to_ingest_tab1": None,
             "_sub_go_to_ingest_tab2": None,
@@ -391,6 +400,40 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 )
                             )
 
+                            ui.Spacer(height=ui.Pixel(16))
+
+                            self._logic_properties_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
+                                "LOGIC PROPERTIES",
+                                info_text="Property editor for Remix Logic Graphs and Nodes.\n\n"
+                                "- Lists logic graphs on selected asset(s).\n"
+                                "- Shows logic node attributes if a node is selected.\n"
+                                "- Shows a create button if a graph can be created on selected asset\n",
+                                collapsed=False,
+                                pinnable=True,
+                                pinned_text_fn=self._get_logic_selection_pin_name,
+                                unpinned_fn=self._refresh_logic_properties_widget,
+                            )
+                            self._collapsible_frame_states[CollapsiblePanels.LOGIC_PROPERTIES] = True
+                            with self._logic_properties_collapsable_frame:
+                                self._logic_properties_widget = _LogicPropertyWidget(
+                                    self._context_name,
+                                    tree_column_widths=[
+                                        _PROPERTIES_NAMES_COLUMN_WIDTH,
+                                        ui.Fraction(1),
+                                    ],
+                                    right_aligned_labels=False,
+                                    columns_resizable=True,
+                                )
+
+                            self._logic_properties_collapsable_frame.root.set_collapsed_changed_fn(
+                                functools.partial(
+                                    self.__on_collapsable_frame_changed,
+                                    CollapsiblePanels.LOGIC_PROPERTIES,
+                                    self._logic_properties_widget,
+                                    refresh_fn=self._refresh_logic_properties_widget,
+                                )
+                            )
+
                             ui.Spacer(height=ui.Pixel(5))
                     ui.Spacer(height=ui.Pixel(5))
 
@@ -515,6 +558,20 @@ class AssetReplacementsPane(_WorkspaceWidget):
             f"{self._format_prim_names_for_pin(particle_prims)}"
         )
 
+    def _get_logic_selection_pin_name(self) -> str:
+        """
+        Get a formatted name of the current USD logic graph selection for the pin label.
+        """
+        prims = self._get_prims_from_selection(resolve_to_prototypes=True)
+        logic_graph_prims = [prim for prim in prims if prim.GetTypeName() == OMNI_GRAPH_NODE_TYPE]
+        logic_graph_count = len(logic_graph_prims)
+        if logic_graph_count == 0:
+            return "No Logic Graphs"
+        return (
+            f"{logic_graph_count} Logic Node{'s' if logic_graph_count > 1 else ''} "
+            f"{self._format_prim_names_for_pin(logic_graph_prims)}"
+        )
+
     def __validate_existing_layer(self, path):
         try:
             sublayer = Sdf.Layer.FindOrOpen(str(path))
@@ -580,10 +637,13 @@ class AssetReplacementsPane(_WorkspaceWidget):
             self._refresh_material_properties_widget()
         if not self._particle_properties_collapsable_frame.root.collapsed:
             self._refresh_particle_properties_widget()
+        if not self._logic_properties_collapsable_frame.root.collapsed:
+            self._refresh_logic_properties_widget()
         # Rebuild all collapsible frames to update pin labels
         self._mesh_properties_collapsable_frame.root.rebuild()
         self._material_properties_collapsable_frame.root.rebuild()
         self._particle_properties_collapsable_frame.root.rebuild()
+        self._logic_properties_collapsable_frame.root.rebuild()
 
     def _refresh_mesh_properties_widget(self):
         if self._mesh_properties_collapsable_frame.pinned:
@@ -638,6 +698,37 @@ class AssetReplacementsPane(_WorkspaceWidget):
             particle_system_paths, valid_target_paths
         )
 
+    def _refresh_logic_properties_widget(self):
+        """Refresh the logic properties widget based on current selection"""
+        if self._logic_properties_collapsable_frame.pinned:
+            return
+
+        if not self._logic_properties_widget:
+            return
+
+        stage = self._usd_context.get_stage()
+        selected_paths = list(set(self._usd_context.get_selection().get_selected_prim_paths()))
+        items: list[Usd.Prim] = []
+        valid_target_prims: list[Usd.Prim] = []
+        for path in selected_paths:
+            prim = stage.GetPrimAtPath(path)
+            if not prim.IsValid():
+                continue
+            prototype_prim = _get_prototype(prim)
+            if not prototype_prim:
+                continue
+            if prototype_prim.GetTypeName() == OMNI_GRAPH_NODE_TYPE:
+                items.append(prototype_prim)
+            # Get asset path from prim
+            parent = prototype_prim
+            while parent:
+                if _is_mesh_asset(parent) or _is_light_asset(parent):
+                    valid_target_prims.append(parent)
+                    break
+                parent = parent.GetParent()
+
+        self._logic_properties_widget.refresh(items, valid_target_prims=valid_target_prims)
+
     def refresh(self):
         if not self.root_widget.visible:
             return
@@ -646,6 +737,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
         self._refresh_mesh_properties_widget()
         self._refresh_material_properties_widget()
         self._refresh_particle_properties_widget()
+        self._refresh_logic_properties_widget()
 
     def show(self, visible: bool):
         # Update the widget visibility
@@ -672,7 +764,10 @@ class AssetReplacementsPane(_WorkspaceWidget):
             self._collapsible_frame_states[CollapsiblePanels.PARTICLE_PROPERTIES]
             and visible
         )
-
+        self._logic_properties_widget.show(
+            self._collapsible_frame_states[CollapsiblePanels.LOGIC_PROPERTIES]
+            and visible
+        )
         if visible:
             self.refresh()
 

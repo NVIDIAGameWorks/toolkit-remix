@@ -156,7 +156,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         display_attr_names: Optional[List[str]] = None,
         display_attr_names_tooltip: Optional[List[str]] = None,
         read_only: bool = False,
-        value_type_name: Sdf.ValueTypeNames = None,
+        value_type_name: Sdf.ValueTypeName | None = None,
     ):
         """
         Item that represent a USD attribute on the tree
@@ -210,10 +210,17 @@ class USDAttributeItem(_BaseUSDAttributeItem):
             for i in range(self._element_count)
         ]
 
-    def _init_value_models(self, context_name, attribute_paths, read_only, value_type_name=None):
-        type_name = str(value_type_name) if value_type_name is not None else value_type_name
+    def _init_value_models(
+        self, context_name, attribute_paths, read_only, value_type_name: Sdf.ValueTypeName | None = None
+    ):
         self._value_models = [
-            _UsdAttributeValueModel(context_name, attribute_paths, i, read_only=read_only, type_name=type_name)
+            _UsdAttributeValueModel(
+                context_name,
+                attribute_paths,
+                i,
+                read_only=read_only,
+                value_type_name=value_type_name,
+            )
             for i in range(self._element_count)
         ]
 
@@ -231,7 +238,7 @@ class USDAttributeXformItem(USDAttributeItem):
         display_attr_names: Optional[List[str]] = None,
         display_attr_names_tooltip: Optional[List[str]] = None,
         read_only: bool = False,
-        value_type_name: Sdf.ValueTypeNames = None,
+        value_type_name: Sdf.ValueTypeName | None = None,
     ):
         super().__init__(
             context_name,
@@ -317,12 +324,12 @@ class VirtualUSDAttributeItem(USDAttributeItem):
         self,
         context_name: str,
         attribute_paths: List[Sdf.Path],
-        value_type_name: Sdf.ValueTypeNames,
-        default_value: List[Any],
+        value_type_name: Sdf.ValueTypeName,
+        default_value: Any,
         display_attr_names: Optional[List[str]] = None,
         display_attr_names_tooltip: Optional[List[str]] = None,
         read_only: bool = False,
-        metadata: dict = None,
+        metadata: dict | None = None,
         create_callback: Optional[Callable[[Any], None]] = None,
     ):
         """
@@ -369,15 +376,18 @@ class VirtualUSDAttributeItem(USDAttributeItem):
             for i in range(self._element_count)
         ]
 
-    def _init_value_models(self, context_name, attribute_paths, read_only, value_type_name=None):
-        type_name = str(value_type_name) if value_type_name is not None else value_type_name
+    def _init_value_models(
+        self, context_name, attribute_paths, read_only, value_type_name: Sdf.ValueTypeName | None = None
+    ):
+        if not value_type_name:
+            raise ValueError("value_type_name is required for virtual attribute value models")
         self._value_models = [
             _VirtualUsdAttributeValueModel(
                 context_name,
                 attribute_paths,
                 i,
+                value_type_name,
                 read_only=read_only,
-                type_name=type_name,
                 default_value=self._default_value,
                 metadata=self._metadata,
                 create_callback=self._create_callback,
@@ -400,7 +410,7 @@ class _BaseListModelItem(_BaseUSDAttributeItem):
         default_value: str,
         options: List[str],
         read_only: bool = False,
-        value_type_name: str = None,
+        value_type_name: Sdf.ValueTypeName | None = None,
         metadata: dict = None,
         display_attr_names: Optional[List[str]] = None,
         display_attr_names_tooltip: Optional[List[str]] = None,
@@ -460,9 +470,14 @@ class _BaseListModelItem(_BaseUSDAttributeItem):
         ]
 
     def _init_value_models(
-        self, context_name, attribute_paths, default_value, options, read_only, value_type_name=None
+        self,
+        context_name,
+        attribute_paths,
+        default_value,
+        options,
+        read_only,
+        value_type_name: Sdf.ValueTypeName | None = None,
     ):
-        type_name = str(value_type_name) if value_type_name is not None else value_type_name
         self._value_models = [
             self.value_model_class(
                 context_name,
@@ -470,7 +485,7 @@ class _BaseListModelItem(_BaseUSDAttributeItem):
                 default_value,
                 options,
                 read_only=read_only,
-                type_name=type_name,
+                value_type_name=value_type_name,
                 metadata=self._metadata,
                 metadata_key=self._metadata_key,
             )
@@ -575,7 +590,9 @@ class USDAttributeItemStub(USDAttributeItem):
     def _init_name_models(self, context_name, attribute_paths, display_attr_names, display_attr_names_tooltip):
         self._name_models = []
 
-    def _init_value_models(self, context_name, attribute_paths, read_only, value_type_name=None):
+    def _init_value_models(
+        self, context_name, attribute_paths, read_only, value_type_name: Sdf.ValueTypeName | None = None
+    ):
         self._value_models = []
 
     @omni.usd.handle_exception

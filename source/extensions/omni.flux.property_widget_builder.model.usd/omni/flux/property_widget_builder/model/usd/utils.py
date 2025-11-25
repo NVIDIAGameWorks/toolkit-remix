@@ -16,9 +16,10 @@
 """
 
 import asyncio
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
-from omni import kit, usd
+import omni.kit
+import omni.usd
 from omni.kit.usd.layers import LayerUtils as _LayerUtils
 from omni.usd.commands import remove_prim_spec as _remove_prim_spec
 from pxr import Sdf, Usd
@@ -26,7 +27,7 @@ from pxr import Sdf, Usd
 from .mapping import DEFAULT_VALUE_TABLE
 
 
-def get_type_name(metadata: Dict[Any, Any]) -> Sdf.ValueTypeName:
+def get_type_name(metadata: dict[Any, Any]) -> Sdf.ValueTypeName:
     """
     Get the type name of an attribute
 
@@ -40,7 +41,7 @@ def get_type_name(metadata: Dict[Any, Any]) -> Sdf.ValueTypeName:
     return Sdf.ValueTypeNames.Find(type_name)
 
 
-def get_metadata(context_name: str, attribute_paths: List[Union[str, Sdf.Path]]) -> Dict[Any, Any]:
+def get_metadata(context_name: str, attribute_paths: list[Sdf.Path]) -> dict[Any, Any]:
     """
     Get the metadata of a list of attributes
 
@@ -51,7 +52,7 @@ def get_metadata(context_name: str, attribute_paths: List[Union[str, Sdf.Path]])
     Returns:
 
     """
-    stage = usd.get_context(context_name).get_stage()
+    stage = omni.usd.get_context(context_name).get_stage()
     if stage is None:
         return {}
 
@@ -120,10 +121,10 @@ def delete_layer_override(layer, attribute, context_name=""):
     asyncio.ensure_future(delete_layer_override_async(layer, attribute, context_name=context_name))
 
 
-@usd.handle_exception
+@omni.usd.handle_exception
 async def delete_layer_override_async(layer, attribute, context_name=""):
     # Only delete properties on unlocked layers
-    if usd.is_layer_locked(usd.get_context(context_name), layer.identifier):
+    if omni.usd.is_layer_locked(omni.usd.get_context(context_name), layer.identifier):
         return
 
     # TODO Feature OM-67061 - Replace with a command
@@ -136,7 +137,7 @@ async def delete_layer_override_async(layer, attribute, context_name=""):
     prim_spec.RemoveProperty(prop_spec)
 
     # Wait 1 frame before cleaning up the prims
-    await kit.app.get_app().next_update_async()
+    await omni.kit.app.get_app().next_update_async()
 
     # Cleanup empty prims
     def cleanup_prims_recursive(spec):
@@ -150,7 +151,7 @@ async def delete_layer_override_async(layer, attribute, context_name=""):
     cleanup_prims_recursive(prim_spec)
 
 
-def filter_virtual_attributes(virtual_attrs: List[List[Tuple[List[Any], List[Any]]]], existing_attrs: List[Any]):
+def filter_virtual_attributes(virtual_attrs: list[list[tuple[list[Any], list[Any]]]], existing_attrs: list[Any]):
     """
     Figure out the virtual attributes to create and which ones already exist
 

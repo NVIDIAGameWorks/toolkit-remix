@@ -15,24 +15,17 @@
 * limitations under the License.
 """
 
-__all__ = (
-    "USDBuilderList",
-    "ALL_FIELD_BUILDERS",
-    "MATERIAL_FIELD_BUILDERS",
-    "DEFAULT_FIELD_BUILDERS",
-    "LIGHT_FIELD_BUILDERS",
-    "OGN_FIELD_BUILDERS",
+__all__ = ("OGN_FIELD_BUILDERS",)
+
+
+from omni.flux.property_widget_builder.delegates.string_value.file_picker import FilePicker
+
+from .base import USDBuilderList
+
+OGN_FIELD_BUILDERS = USDBuilderList()
+
+OGN_FIELD_BUILDERS.append_builder_by_attr_name(
+    "inputs:configPath", FilePicker(file_extension_options=[("*.conf", "Remix Config Files")])
 )
-
-
-from .aperture_pbr import MATERIAL_FIELD_BUILDERS
-from .base import DEFAULT_FIELD_BUILDERS, USDBuilderList
-from .lights import LIGHT_FIELD_BUILDERS
-from .ogn import OGN_FIELD_BUILDERS
-
-# Note these are added in a specific order.
-ALL_FIELD_BUILDERS = []
-ALL_FIELD_BUILDERS.extend(DEFAULT_FIELD_BUILDERS)
-ALL_FIELD_BUILDERS.extend(LIGHT_FIELD_BUILDERS)
-ALL_FIELD_BUILDERS.extend(MATERIAL_FIELD_BUILDERS)
-ALL_FIELD_BUILDERS.extend(OGN_FIELD_BUILDERS)
+# FIXME: Requires a prim picker field
+# OGN_FIELD_BUILDERS.append_builder_by_attr_name("inputs:target", PrimPickerField())
