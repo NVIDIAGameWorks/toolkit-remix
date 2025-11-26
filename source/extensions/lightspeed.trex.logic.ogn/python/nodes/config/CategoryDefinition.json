@@ -12,6 +12,7 @@
         ],
         "Sense": "Nodes that read information about the game state into the graph",
         "Transform": "Nodes that transform data already in the graph into a different form",
-        "Act": "Nodes that alter the rendering state based on graph state"
+        "Act": "Nodes that alter the rendering state based on graph state",
+        "Constants": "Nodes that output a constant typed value"
     }
 }

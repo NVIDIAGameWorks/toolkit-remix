@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4635: Added support for editing omni graph node properties in properties panel for Remix Logic
 - REMIX-4582 + REMIX-4583: Added a new Additional Filters menu to the Stage Manager
 - REMIX-3539: Added "Delete Graph" Action Plugin Widget for the Stage Manager
+- REMIX-4757: Added the 1.3 Remix Logic component library.
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main

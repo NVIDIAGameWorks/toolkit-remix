@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import omni.graph.core as og
+
 if TYPE_CHECKING:
     from lightspeed.trex.logic.ogn.ogn.SphereLightOverrideDatabase import SphereLightOverrideDatabase
 
@@ -12,3 +14,9 @@ class SphereLightOverride:
     @staticmethod
     def compute(_db: SphereLightOverrideDatabase):
         return True
+
+    @staticmethod
+    def on_connection_type_resolve(node) -> None:
+        """Resolve flexible types based on connected attribute types."""
+        # Valid type combinations for this component:
+        # Combination 1: enabled=bool, radius=float, target=target

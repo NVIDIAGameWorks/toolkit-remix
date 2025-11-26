@@ -9,3 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com). The proje
 ## [0.0.1]
 ### Initial Version
 - Created based on omni.graph.template.python-1.40.0
+
+## [0.0.2]
+### Changed
+- Updated node schema to match current runtime.
