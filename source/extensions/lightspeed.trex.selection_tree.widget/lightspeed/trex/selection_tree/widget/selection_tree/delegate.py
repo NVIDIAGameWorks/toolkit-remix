@@ -19,14 +19,13 @@ import asyncio
 import os
 import re
 import typing
-from functools import partial
 from typing import Callable
 
 import omni.kit.clipboard
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
-from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
+from lightspeed.trex.utils.widget.dialogs import confirm_remove_prim_overrides as _confirm_remove_prim_overrides
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import deferred_destroy_tasks as _deferred_destroy_tasks
@@ -46,7 +45,7 @@ from .model import ItemPrim as _ItemPrim
 from .model import ItemReferenceFile as _ItemReferenceFile
 
 if typing.TYPE_CHECKING:
-    from pxr import Usd
+    from pxr import Sdf, Usd
 
 
 class Delegate(ui.AbstractItemDelegate):
@@ -141,7 +140,6 @@ class Delegate(ui.AbstractItemDelegate):
         self.__on_duplicate_reference = _Event()
         self.__on_duplicate_prim = _Event()
         self.__on_frame_prim = _Event()
-        self.__on_reset_released = _Event()
 
     def _duplicate_reference(self, item: _ItemReferenceFile):
         """Call the event object that has the list of functions"""
@@ -192,30 +190,6 @@ class Delegate(ui.AbstractItemDelegate):
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__on_frame_prim, function)
-
-    def _reset_released(self, prim: "Usd.Prim"):
-        """Call the event object that has the list of functions"""
-        message = (  # noqa PLW0101
-            "Are you sure that you want to reset this asset?\n\n"
-            "Doing this will delete all your override(s):\n"
-            "    -  Reference override(s)\n"
-            "    -  Material override(s)\n"
-            "    -  Transform\n"
-            "    -  etc."
-        )
-        _TrexMessageDialog(
-            title="##restore",
-            message=message,
-            ok_handler=partial(self.__on_reset_released, prim.GetPath()),
-            ok_label="Reset",
-            cancel_label="Cancel",
-        )
-
-    def subscribe_reset_released(self, function: Callable[["Usd.Prim"], None]):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        """
-        return _EventSubscription(self.__on_reset_released, function)
 
     def reset(self):
         self._primary_selection = []
@@ -532,7 +506,7 @@ class Delegate(ui.AbstractItemDelegate):
     def _on_reset_mouse_released(self, button, item):
         if button != 0:
             return
-        self._reset_released(item.prim)
+        _confirm_remove_prim_overrides([item.prim.GetPath()])
 
     def _on_delete_ref_mouse_released(self, button, item):
         if button != 0:

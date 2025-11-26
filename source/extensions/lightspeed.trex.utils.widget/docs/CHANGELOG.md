@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0]
+### Added
+- Added new common_dialog module, which hosts a new restore_confirmation_dialog method to centralize the reusable messagebox
+
 ## [1.5.0]
 ### Added
 - Added quicklayout_wrapper with load_layout function to ensure windows are ready before docking

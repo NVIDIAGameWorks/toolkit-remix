@@ -56,6 +56,7 @@ class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "IsCategoryHiddenStateWidgetPlugin",
             "IsVisibleActionWidgetPlugin",
             "ParticleSystemsActionWidgetPlugin",
+            "DeleteRestoreActionWidgetPlugin",
             "PrimTreeWidgetPlugin",
         ],
         exclude=True,
