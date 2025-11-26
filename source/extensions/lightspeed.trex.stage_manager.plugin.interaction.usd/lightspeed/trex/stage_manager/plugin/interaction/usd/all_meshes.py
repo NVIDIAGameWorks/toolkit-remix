@@ -52,6 +52,7 @@ class AllMeshesInteractionPlugin(_StageManagerUSDInteractionPlugin):
         default=[
             "AssignCategoryActionWidgetPlugin",
             "CustomTagsWidgetPlugin",
+            "DeleteRestoreActionWidgetPlugin",
             "FocusInViewportActionWidgetPlugin",
             "IsCaptureStateWidgetPlugin",
             "IsCategoryHiddenStateWidgetPlugin",

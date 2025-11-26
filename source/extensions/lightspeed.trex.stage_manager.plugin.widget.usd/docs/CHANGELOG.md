@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.0]
+### Added
+- Added new Delete Restore Action Plugin to Stage Manager, which allows users to delete Omni Graph primitives and Restore (in mesh group XForm primitives) primitives to their original capture state
+
 ## [2.2.3]
 ### Changed
 - Updated test configuration to exclude render product warnings

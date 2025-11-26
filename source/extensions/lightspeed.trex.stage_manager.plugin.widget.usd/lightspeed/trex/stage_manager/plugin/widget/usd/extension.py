@@ -20,6 +20,7 @@ import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
 from .action_assign_category import AssignCategoryActionWidgetPlugin as _AssignCategoryActionWidgetPlugin
+from .action_delete_restore import DeleteRestoreActionWidgetPlugin as _DeleteRestoreActionWidgetPlugin
 from .action_particle_systems import ParticleSystemsActionWidgetPlugin as _ParticleSystemsActionWidgetPlugin
 from .action_remap_skeleton import RemapSkeletonActionWidgetPlugin as _RemapSkeletonActionWidgetPlugin
 from .focus_in_viewport import FocusInViewportActionWidgetPlugin as _FocusInViewportActionWidgetPlugin
@@ -36,6 +37,7 @@ class LightspeedStageManagerUSDWidgetPluginsExtension(omni.ext.IExt):
         _IsCaptureStateWidgetPlugin,
         _IsCategoryHiddenStateWidgetPlugin,
         _ParticleSystemsActionWidgetPlugin,
+        _DeleteRestoreActionWidgetPlugin,
         _RemapSkeletonActionWidgetPlugin,
         _RemapSkeletonInfoWidgetPlugin,
     ]

@@ -15,4 +15,5 @@
 * limitations under the License.
 """
 
+from .e2e.test_action_delete_restore import TestDeleteRestoreActionWidgetPlugin
 from .e2e.test_widget import TestStageManagerPluginWidget

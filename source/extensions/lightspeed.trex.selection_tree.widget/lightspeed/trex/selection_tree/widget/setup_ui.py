@@ -116,7 +116,6 @@ class SetupUI:
             self._on_duplicate_reference
         )
         self._sub_tree_delegate_duplicate_prim = self._tree_delegate.subscribe_duplicate_prim(self._on_duplicate_prim)
-        self._sub_tree_delegate_reset_ref = self._tree_delegate.subscribe_reset_released(self._on_reset_asset)
 
         self.__on_tree_model_emptied = _Event()
         self.__create_ui()
@@ -243,9 +242,6 @@ class SetupUI:
 
     def refresh(self):
         self._tree_model.refresh()
-
-    def _on_reset_asset(self, prim_path: "Sdf.Path"):
-        self._core.remove_prim_overrides(prim_path)
 
     def _on_duplicate_reference(self, item: _ItemReferenceFile):
         abs_path = omni.client.normalize_url(item.layer.ComputeAbsolutePath(item.path))

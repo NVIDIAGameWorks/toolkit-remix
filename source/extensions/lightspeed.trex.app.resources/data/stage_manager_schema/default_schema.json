@@ -84,7 +84,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 120
+                        "value": 145
                     },
                     "widgets": [
                         {
@@ -98,6 +98,9 @@
                         },
                         {
                             "name": "ParticleSystemsActionWidgetPlugin"
+                        },
+                        {
+                            "name": "DeleteRestoreActionWidgetPlugin"
                         }
                     ]
                 }
@@ -186,7 +189,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 120
+                        "value": 145
                     },
                     "widgets": [
                         {
@@ -200,6 +203,9 @@
                         },
                         {
                             "name": "ParticleSystemsActionWidgetPlugin"
+                        },
+                        {
+                            "name": "DeleteRestoreActionWidgetPlugin"
                         }
                     ]
                 }
@@ -605,7 +611,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 120
+                        "value": 145
                     },
                     "widgets": [
                         {
@@ -619,6 +625,9 @@
                         },
                         {
                             "name": "ParticleSystemsActionWidgetPlugin"
+                        }, 
+                        {
+                            "name": "DeleteRestoreActionWidgetPlugin"
                         }
                     ]
                 }
@@ -710,7 +719,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 120
+                        "value": 145
                     },
                     "widgets": [
                         {
@@ -724,6 +733,9 @@
                         },
                         {
                             "name": "ParticleSystemsActionWidgetPlugin"
+                        },
+                        {
+                            "name": "DeleteRestoreActionWidgetPlugin"
                         }
                     ]
                 }

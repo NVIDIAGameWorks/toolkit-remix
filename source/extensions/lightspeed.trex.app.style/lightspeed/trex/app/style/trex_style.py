@@ -486,6 +486,7 @@ current_dict.update(
         "Image::Scope": {"image_url": _get_icons("scope"), "color": _WHITE_60},
         "Image::Xform": {"image_url": _get_icons("xform"), "color": _WHITE_80},
         "Image::TrashCan": {"image_url": _get_icons("trash-can"), "color": _WHITE_60},
+        "Image::TrashCan:disabled": {"image_url": _get_icons("trash-can"), "color": _WHITE_30},
         "Image::TrashCan:hovered": {"image_url": _get_icons("trash-can"), "color": _WHITE_80},
         "Image::ModCreate": {"image_url": _get_icons("mod_create"), "color": _WHITE_80},
         "Image::ModEdit": {"image_url": _get_icons("mod_edit"), "color": _WHITE_80},

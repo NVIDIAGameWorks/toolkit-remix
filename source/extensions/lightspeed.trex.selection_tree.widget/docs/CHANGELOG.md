@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0]
+### Changed
+- Changed the restore button mouse release so that it uses new shared messagebox
+
 ## [1.7.0]
 ### Changed
 - Renamed the extension to lightspeed.trex.selection_tree.widget
