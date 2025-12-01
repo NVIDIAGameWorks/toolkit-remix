@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.1]
+### Changed
+- Removed unused global declaration
+
 ## [2.1.0]
 ### Added
 - Added set_instance and get_instance functions

@@ -28,47 +28,25 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.common.constants import PROPERTIES_NAMES_COLUMN_WIDTH
-from lightspeed.trex.asset_replacements.core.shared import (
-    Setup as _AssetReplacementsCore,
-)
-from lightspeed.trex.asset_replacements.core.shared.usd_copier import (
-    copy_usd_asset as _copy_usd_asset,
-)
-from lightspeed.trex.selection_tree.widget.selection_tree.model import (
-    ItemAsset as _ItemAsset,
-)
-from lightspeed.trex.selection_tree.widget.selection_tree.model import (
-    ItemInstance as _ItemInstance,
-)
-from lightspeed.trex.selection_tree.widget.selection_tree.model import (
-    ItemInstancesGroup as _ItemInstancesGroup,
-)
-from lightspeed.trex.selection_tree.widget.selection_tree.model import (
-    ItemPrim as _ItemPrim,
-)
-from lightspeed.trex.selection_tree.widget.selection_tree.model import (
-    ItemReferenceFile as _ItemReferenceFile,
-)
+from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
+from lightspeed.trex.asset_replacements.core.shared.usd_copier import copy_usd_asset as _copy_usd_asset
+from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemAsset as _ItemAsset
+from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemInstance as _ItemInstance
+from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemInstancesGroup as _ItemInstancesGroup
+from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemPrim as _ItemPrim
+from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemReferenceFile as _ItemReferenceFile
 from lightspeed.trex.utils.common.file_utils import (
     is_usd_file_path_valid_for_filepicker as _is_usd_file_path_valid_for_filepicker,
 )
 from lightspeed.trex.utils.widget import RemixCategoriesDialog as _RemixCategoriesDialog
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
-from omni.flux.properties_pane.properties.usd.widget import (
-    PropertyWidget as _PropertyWidget,
-)
-from omni.flux.properties_pane.transformation.usd.widget import (
-    TransformPropertyWidget as _TransformPropertyWidget,
-)
+from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
+from omni.flux.properties_pane.transformation.usd.widget import TransformPropertyWidget as _TransformPropertyWidget
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from omni.flux.utils.common.decorators import (
-    ignore_function_decorator as _ignore_function_decorator,
-)
-from omni.flux.utils.widget.file_pickers.file_picker import (
-    open_file_picker as _open_file_picker,
-)
+from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
+from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from pxr import Sdf, UsdGeom, UsdLux
 
 if typing.TYPE_CHECKING:
@@ -174,26 +152,22 @@ class SetupUI:
                                 )
                                 with ui.HStack():
                                     ui.Spacer(width=ui.Pixel(8))
-                                    with ui.Frame(
-                                        width=ui.Pixel(134), horizontal_clipping=True
-                                    ):
+                                    with ui.Frame(width=ui.Pixel(134), horizontal_clipping=True):
                                         self._overlay_mesh_ref_label = ui.Label(
                                             "USD Reference path...",
                                             name="USDPropertiesWidgetValueOverlay",
                                             width=0,
                                         )
                                 self._sub_mesh_ref_field_begin_edit = (
-                                    self._mesh_ref_field.model.subscribe_begin_edit_fn(
-                                        self._on_mesh_ref_field_begin
-                                    )
+                                    self._mesh_ref_field.model.subscribe_begin_edit_fn(self._on_mesh_ref_field_begin)
                                 )
-                                self._sub_mesh_ref_field_end_edit = (
-                                    self._mesh_ref_field.model.subscribe_end_edit_fn(
-                                        self._on_mesh_ref_field_end
-                                    )
+                                self._sub_mesh_ref_field_end_edit = self._mesh_ref_field.model.subscribe_end_edit_fn(
+                                    self._on_mesh_ref_field_end
                                 )
-                                self._sub_mesh_ref_field_changed = self._mesh_ref_field.model.subscribe_value_changed_fn(
-                                    self._on_mesh_ref_field_changed
+                                self._sub_mesh_ref_field_changed = (
+                                    self._mesh_ref_field.model.subscribe_value_changed_fn(
+                                        self._on_mesh_ref_field_changed
+                                    )
                                 )
                             ui.Spacer(width=ui.Pixel(8))
                             with ui.VStack(width=ui.Pixel(20)):
@@ -202,9 +176,7 @@ class SetupUI:
                                     "",
                                     name="OpenFolder",
                                     height=ui.Pixel(20),
-                                    mouse_pressed_fn=lambda x, y, b, m: self._on_ref_mesh_dir_pressed(
-                                        b
-                                    ),
+                                    mouse_pressed_fn=lambda x, y, b, m: self._on_ref_mesh_dir_pressed(b),
                                     identifier="replace_ref_open_folder",
                                 )
                                 ui.Spacer()
@@ -228,14 +200,18 @@ class SetupUI:
                                     style_type_name_override="Field",
                                     identifier="mesh_ref_prim_field",
                                 )
-                                self._sub_mesh_ref_prim_field_begin_edit = self._mesh_ref_prim_field.model.subscribe_begin_edit_fn(
-                                    self._on_mesh_ref_field_begin
+                                self._sub_mesh_ref_prim_field_begin_edit = (
+                                    self._mesh_ref_prim_field.model.subscribe_begin_edit_fn(
+                                        self._on_mesh_ref_field_begin
+                                    )
                                 )
-                                self._sub_mesh_ref_prim_field_end_edit = self._mesh_ref_prim_field.model.subscribe_end_edit_fn(
-                                    self._on_mesh_ref_field_end
+                                self._sub_mesh_ref_prim_field_end_edit = (
+                                    self._mesh_ref_prim_field.model.subscribe_end_edit_fn(self._on_mesh_ref_field_end)
                                 )
-                                self._sub_mesh_ref_prim_field_changed = self._mesh_ref_prim_field.model.subscribe_value_changed_fn(
-                                    self._on_mesh_ref_field_changed
+                                self._sub_mesh_ref_prim_field_changed = (
+                                    self._mesh_ref_prim_field.model.subscribe_value_changed_fn(
+                                        self._on_mesh_ref_field_changed
+                                    )
                                 )
                                 ui.Spacer(height=ui.Pixel(8))
                                 with ui.HStack(height=ui.Pixel(18)):
@@ -243,17 +219,15 @@ class SetupUI:
                                         width=0,
                                         identifier="mesh_ref_default_prim_checkbox",
                                     )
-                                    self._sub_mesh_ref_default_prim_checkbox_changed = self._mesh_ref_default_prim_checkbox.model.subscribe_value_changed_fn(
-                                        self._on_mesh_ref_default_prim_checkbox_changed
+                                    self._sub_mesh_ref_default_prim_checkbox_changed = (
+                                        self._mesh_ref_default_prim_checkbox.model.subscribe_value_changed_fn(
+                                            self._on_mesh_ref_default_prim_checkbox_changed
+                                        )
                                     )
                                     ui.Spacer(width=ui.Pixel(8))
-                                    self._mesh_ref_default_prim_label = ui.Label(
-                                        "Use default prim instead", width=0
-                                    )
+                                    self._mesh_ref_default_prim_label = ui.Label("Use default prim instead", width=0)
 
-            self._frame_mesh_prim = ui.Frame(
-                visible=False, identifier="frame_mesh_prim"
-            )
+            self._frame_mesh_prim = ui.Frame(visible=False, identifier="frame_mesh_prim")
             self._mesh_properties_frames[_ItemPrim] = self._frame_mesh_prim
             with self._frame_mesh_prim:
                 with ui.VStack():
@@ -269,24 +243,17 @@ class SetupUI:
 
                     self._object_property_spacer = ui.Spacer(height=ui.Pixel(8))
 
-                    self._object_property_line = ui.Line(
-                        name="PropertiesPaneSectionTitle"
-                    )
+                    self._object_property_line = ui.Line(name="PropertiesPaneSectionTitle")
 
                     ui.Spacer(height=ui.Pixel(8))
 
                     def should_show_light_attr(prim):
-                        return (
-                            prim.HasAPI(UsdLux.LightAPI)
-                            if hasattr(UsdLux, "LightAPI")
-                            else prim.IsA(UsdLux.Light)
-                        )
+                        return prim.HasAPI(UsdLux.LightAPI) if hasattr(UsdLux, "LightAPI") else prim.IsA(UsdLux.Light)
 
                     self._property_widget = _PropertyWidget(
                         self._context_name,
                         optional_attributes=[
-                            (should_show_light_attr, attr)
-                            for attr in constants.REMIX_OPTIONAL_LIGHT_ATTRIBUTES
+                            (should_show_light_attr, attr) for attr in constants.REMIX_OPTIONAL_LIGHT_ATTRIBUTES
                         ],
                         tree_column_widths=[
                             PROPERTIES_NAMES_COLUMN_WIDTH,
@@ -298,15 +265,11 @@ class SetupUI:
 
                     ui.Spacer(height=ui.Pixel(8))
 
-                    self._object_category_line = ui.Line(
-                        name="PropertiesPaneSectionTitle"
-                    )
+                    self._object_category_line = ui.Line(name="PropertiesPaneSectionTitle")
 
                     ui.Spacer(height=ui.Pixel(8))
 
-                    self._remix_categories_vstack = ui.VStack(
-                        height=0, spacing=ui.Pixel(8)
-                    )
+                    self._remix_categories_vstack = ui.VStack(height=0, spacing=ui.Pixel(8))
                     with self._remix_categories_vstack:
                         with ui.HStack(height=0):
                             with ui.HStack(width=PROPERTIES_NAMES_COLUMN_WIDTH):
@@ -323,9 +286,7 @@ class SetupUI:
                                 width=ui.Pixel(24),
                                 name="Categories",
                                 tooltip="Please note that not all categories are available in the Toolkit Viewport.",
-                                mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(
-                                    b
-                                ),
+                                mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(b),
                             )
                         with ui.HStack(height=0):
                             ui.Spacer(height=0, width=PROPERTIES_NAMES_COLUMN_WIDTH)
@@ -333,9 +294,7 @@ class SetupUI:
                                 visible=False,
                                 vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_AS_NEEDED,
                                 tooltip="To set categories, use the Render Categories window.",
-                                mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(
-                                    b
-                                ),
+                                mouse_pressed_fn=lambda x, y, b, m: self._add_remix_category(b),
                                 name="CategoriesFrame",
                             )
 
@@ -357,9 +316,7 @@ class SetupUI:
             if item_type is None:
                 self._mesh_properties_frames[None].visible = False
                 continue
-            value = (
-                any(isinstance(item, item_type) for item in items) if items else False
-            )
+            value = any(isinstance(item, item_type) for item in items) if items else False
             frame.visible = value
             if value:
                 found = True
@@ -367,14 +324,10 @@ class SetupUI:
             self._mesh_properties_frames[None].visible = True
 
         self._current_reference_file_items = [
-            item
-            for item in items
-            if isinstance(item, _ItemReferenceFile) and item.prim.IsValid()
+            item for item in items if isinstance(item, _ItemReferenceFile) and item.prim.IsValid()
         ]
         self._current_instance_items = [
-            item
-            for item in items
-            if isinstance(item, _ItemInstance) and item.prim.IsValid()
+            item for item in items if isinstance(item, _ItemInstance) and item.prim.IsValid()
         ]
         item_prims = [
             item
@@ -393,9 +346,7 @@ class SetupUI:
         ]
         regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
         item_light_assets = [
-            item
-            for item in items
-            if isinstance(item, _ItemAsset) and regex_light_pattern.match(item.path)
+            item for item in items if isinstance(item, _ItemAsset) and regex_light_pattern.match(item.path)
         ]
         if self._current_reference_file_items:
             self._transformation_widget.show(False)
@@ -419,9 +370,7 @@ class SetupUI:
             )
             transformable_prim_paths = self._core.filter_transformable_prims(instances)
             transformable_prim_paths = list(dict.fromkeys(transformable_prim_paths))
-            mesh_prims = self._core.filter_imageable_prims(
-                [item.prim for item in item_prims]
-            )
+            mesh_prims = self._core.filter_imageable_prims([item.prim for item in item_prims])
             # Refresh of the transform
             self._transformation_widget.show(bool(transformable_prim_paths))
             if transformable_prim_paths:
@@ -442,8 +391,7 @@ class SetupUI:
 
                 # set lookup table for meshes
                 lookup_table = {
-                    attr: {"name": attr.capitalize(), "group": None, "read_only": False}
-                    for attr in specific_attrs
+                    attr: {"name": attr.capitalize(), "group": None, "read_only": False} for attr in specific_attrs
                 }
                 lookup_table.update(
                     {
@@ -451,8 +399,7 @@ class SetupUI:
                             "name": "Double Sided",
                             "group": None,
                             "read_only": any(
-                                self._core.prim_is_from_a_capture_reference(mesh_prim)
-                                for mesh_prim in mesh_prims
+                                self._core.prim_is_from_a_capture_reference(mesh_prim) for mesh_prim in mesh_prims
                             ),
                         },
                     }
@@ -460,9 +407,7 @@ class SetupUI:
 
                 self._refresh_remix_categories(mesh_prims)
                 self._property_widget.set_lookup_table(lookup_table)
-                self._property_widget.refresh(
-                    [mesh_prim.GetPath() for mesh_prim in mesh_prims]
-                )
+                self._property_widget.refresh([mesh_prim.GetPath() for mesh_prim in mesh_prims])
                 self._remix_categories_vstack.visible = True
                 self._remix_categories_frame.visible = True
             else:
@@ -512,8 +457,7 @@ class SetupUI:
 
             # set lookup table for lights
             lookup_table = {
-                attr: {"name": attr.capitalize(), "group": None, "read_only": False}
-                for attr in specific_attrs
+                attr: {"name": attr.capitalize(), "group": None, "read_only": False} for attr in specific_attrs
             }
             lookup_table.update(
                 {
@@ -639,9 +583,7 @@ class SetupUI:
     def _on_mesh_ref_field_changed(self, _model):
         self._do_mesh_ref_field_changed()
 
-    def set_ref_mesh_field(
-        self, path, change_prim_field=True, layer: "Sdf.Layer" = None
-    ):
+    def set_ref_mesh_field(self, path, change_prim_field=True, layer: "Sdf.Layer" = None):
         self.__will_change_prim_field = change_prim_field
         if self._only_read_mesh_ref:
             value = path
@@ -650,9 +592,7 @@ class SetupUI:
             if not self.__ignore_ingest_check and not self.__was_asset_ingested(value):
                 return
 
-            if layer is not None and not self._core.asset_is_in_project_dir(
-                value, layer
-            ):
+            if layer is not None and not self._core.asset_is_in_project_dir(value, layer):
                 self.__prompt_user_to_copy_usd_asset(path=value, layer=layer)
                 return
 
@@ -675,9 +615,7 @@ class SetupUI:
                 _copy_usd_asset,
                 context=self._context,
                 asset_path=path,
-                callback_func=lambda x: self.set_ref_mesh_field(
-                    path=x, change_prim_field=True, layer=layer
-                ),
+                callback_func=lambda x: self.set_ref_mesh_field(path=x, change_prim_field=True, layer=layer),
             ),
             disable_middle_button=True,
             disable_cancel_button=False,
@@ -691,8 +629,7 @@ class SetupUI:
         layer = self._current_reference_file_items[-1].layer
         if self._only_read_mesh_ref:
             ref_prim_path = (
-                str(self._current_reference_file_items[-1].ref.primPath)
-                or self._core.get_ref_default_prim_tag()
+                str(self._current_reference_file_items[-1].ref.primPath) or self._core.get_ref_default_prim_tag()
             )
         else:
             edit_target_layer = self._context.get_stage().GetEditTarget().GetLayer()
@@ -714,9 +651,7 @@ class SetupUI:
         self._mesh_ref_prim_field.read_only = value
         self._from_mesh_ref_checkbox = True
         if value:
-            self._mesh_ref_prim_field.model.set_value(
-                self._core.get_ref_default_prim_tag()
-            )
+            self._mesh_ref_prim_field.model.set_value(self._core.get_ref_default_prim_tag())
         else:
             asset_path = self._mesh_ref_field.model.get_value_as_string()
             layer = self._current_reference_file_items[-1].layer
@@ -750,23 +685,15 @@ class SetupUI:
         self.set_ref_mesh_field(path)
         self._do_mesh_ref_field_changed()
         # add it back
-        self._sub_mesh_ref_field_changed = (
-            self._mesh_ref_field.model.subscribe_value_changed_fn(
-                self._on_mesh_ref_field_changed
-            )
+        self._sub_mesh_ref_field_changed = self._mesh_ref_field.model.subscribe_value_changed_fn(
+            self._on_mesh_ref_field_changed
         )
         self.__ignore_ingest_check = False
 
     def __was_asset_ingested(self, path) -> bool:
-        if (
-            not self._only_read_mesh_ref
-            and not self.__ref_mesh_field_is_editing
-            and not self._from_mesh_ref_checkbox
-        ):
+        if not self._only_read_mesh_ref and not self.__ref_mesh_field_is_editing and not self._from_mesh_ref_checkbox:
             layer = self._context.get_stage().GetEditTarget().GetLayer()
-            abs_new_asset_path = omni.client.normalize_url(
-                layer.ComputeAbsolutePath(path)
-            )
+            abs_new_asset_path = omni.client.normalize_url(layer.ComputeAbsolutePath(path))
 
             # Check if asset ingested
             if not self._core.was_the_asset_ingested(abs_new_asset_path):
@@ -779,21 +706,15 @@ class SetupUI:
                 _TrexMessageDialog(
                     title=constants.ASSET_NEED_INGEST_WINDOW_TITLE,
                     message=constants.ASSET_NEED_INGEST_MESSAGE,
-                    ok_handler=functools.partial(
-                        self.__ignore_warning_ingest_asset, path=path
-                    ),
+                    ok_handler=functools.partial(self.__ignore_warning_ingest_asset, path=path),
                     ok_label=constants.ASSET_NEED_INGEST_WINDOW_OK_LABEL,
                     cancel_handler=self.__reset_ingest_asset,
                     on_window_closed_fn=self.__reset_ingest_asset,
-                    disable_ok_button=not self._core.asset_is_in_project_dir(
-                        path=abs_new_asset_path, layer=layer
-                    ),
+                    disable_ok_button=not self._core.asset_is_in_project_dir(path=abs_new_asset_path, layer=layer),
                     disable_cancel_button=False,
                     disable_middle_button=not ingest_enabled,
                     middle_label=constants.ASSET_NEED_INGEST_WINDOW_MIDDLE_LABEL,
-                    middle_handler=functools.partial(
-                        self.__reset_ingest_asset, go_to_ingest=True
-                    ),
+                    middle_handler=functools.partial(self.__reset_ingest_asset, go_to_ingest=True),
                 )
                 return False
         return True
@@ -813,18 +734,14 @@ class SetupUI:
         # we regenerate the relative path from the edit layer
         if not self._only_read_mesh_ref:
             if is_abs:  # if it is absolute, generate relative path.
-                path = self._core.switch_ref_abs_to_rel_path(
-                    self._context.get_stage(), path
-                )
+                path = self._core.switch_ref_abs_to_rel_path(self._context.get_stage(), path)
             else:  # If the path is relative, we regenerate it relative to the edit layer
                 if self._from_mesh_ref_checkbox and self._mesh_ref_field_valid:
                     layer = self._current_reference_file_items[0].layer
                 else:
                     layer = self._context.get_stage().GetEditTarget().GetLayer()
                 abs_path = omni.client.normalize_url(layer.ComputeAbsolutePath(path))
-                path = self._core.switch_ref_abs_to_rel_path(
-                    self._context.get_stage(), abs_path
-                )
+                path = self._core.switch_ref_abs_to_rel_path(self._context.get_stage(), abs_path)
         if not self.__is_ref_field_path_valid(path):
             set_new_ref = False
 
@@ -834,11 +751,7 @@ class SetupUI:
         self._mesh_ref_default_prim_checkbox.enabled = not ref_from_capture
 
         # check if the asset was ingested
-        if (
-            set_new_ref
-            and not self.__ignore_ingest_check
-            and not self.__was_asset_ingested(path)
-        ):
+        if set_new_ref and not self.__ignore_ingest_check and not self.__was_asset_ingested(path):
             return
 
         if self.__ref_mesh_field_is_editing:
@@ -853,16 +766,10 @@ class SetupUI:
         # if the path is a valid asset and outside of project hierarchy, prompt the user to copy or cancel
         if self._core.is_file_path_valid(
             path=abs_path, layer=layer, log_error=False
-        ) and not self._core.asset_is_in_project_dir(
-            path=abs_path, layer=layer, include_deps_dir=True
-        ):
+        ) and not self._core.asset_is_in_project_dir(path=abs_path, layer=layer, include_deps_dir=True):
             self.__prompt_user_to_copy_usd_asset(path=abs_path, layer=layer)
 
-        if (
-            set_new_ref
-            and not self._only_read_mesh_ref
-            and self._core.asset_is_in_project_dir(abs_path, layer)
-        ):
+        if set_new_ref and not self._only_read_mesh_ref and self._core.asset_is_in_project_dir(abs_path, layer):
             self.set_new_usd_reference()
         elif not self._from_mesh_ref_checkbox:
             only_read_mesh_ref_was_true = self._only_read_mesh_ref
@@ -895,9 +802,7 @@ class SetupUI:
             layer = self._current_reference_file_items[0].layer
         else:
             layer = self._context.get_stage().GetEditTarget().GetLayer()
-        if not self._core.is_ref_prim_path_valid(
-            path, prim_path, layer, log_error=False
-        ):
+        if not self._core.is_ref_prim_path_valid(path, prim_path, layer, log_error=False):
             self._mesh_ref_prim_field.style_type_name_override = "FieldError"
             return False
         self._mesh_ref_prim_field.style_type_name_override = "Field"
@@ -911,9 +816,7 @@ class SetupUI:
             current_layer = self._current_reference_file_items[-1].layer
 
             # first we delete the ref
-            self._core.remove_reference(
-                stage, prim_path, current_ref, current_layer, remove_if_remix_ref=False
-            )
+            self._core.remove_reference(stage, prim_path, current_ref, current_layer, remove_if_remix_ref=False)
 
             # second we add the new one
             edit_target_layer = stage.GetEditTarget().GetLayer()
@@ -993,17 +896,13 @@ class SetupUI:
                     with ui.HStack(height=ui.Pixel(20)):
                         ui.CheckBox(enabled=False, width=24).model.set_value(value)
                         ui.Spacer(width=8)
-                        ui.Label(
-                            key, name="RemixAttrLabel", alignment=ui.Alignment.LEFT
-                        )
+                        ui.Label(key, name="RemixAttrLabel", alignment=ui.Alignment.LEFT)
                         ui.Spacer()
             self._remix_categories_frame.height = ui.Pixel(100)
 
     def _add_remix_category(self, b):
         """Provide dialog to set render categories."""
-        dialog = _RemixCategoriesDialog(
-            context_name=self._context_name, refresh_func=self._refresh_remix_categories
-        )
+        dialog = _RemixCategoriesDialog(context_name=self._context_name, refresh_func=self._refresh_remix_categories)
         dialog.show()
 
     def show(self, value):

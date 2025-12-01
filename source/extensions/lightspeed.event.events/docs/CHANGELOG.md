@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.2]
+### Changed
+- Run auto format code tool to fix errors
+
 ## [1.0.1]
 
 ### Changed

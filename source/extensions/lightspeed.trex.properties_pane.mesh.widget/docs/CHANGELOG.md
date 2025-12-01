@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.1]
+### Changed
+- Code formatting improvements
+
 ## [1.4.0]
 ### Changed
 - Renamed the extension to lightspeed.trex.properties_pane.mesh.widget

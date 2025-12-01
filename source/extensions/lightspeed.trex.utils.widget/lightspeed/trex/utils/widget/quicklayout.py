@@ -82,8 +82,10 @@ def _reapply_tab_bar_settings(layout_data: dict[str, Any] | list[Any]):
         if isinstance(node, list):
             stack.extend(node)
         elif isinstance(node, dict):
-            if "title" in node and node.get("selected_in_dock", False) and (
-                window := ui.Workspace.get_window(node["title"])
+            if (
+                "title" in node
+                and node.get("selected_in_dock", False)
+                and (window := ui.Workspace.get_window(node["title"]))
             ):
                 for attr in ["dock_tab_bar_visible", "dock_tab_bar_enabled"]:
                     if (value := node.get(attr)) is not None:

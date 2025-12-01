@@ -21,14 +21,10 @@ import lightspeed.trex.sidebar as sidebar
 import omni.kit
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.common.constants import WindowNames as _WindowNames
-from lightspeed.trex.utils.widget.workspace import (
-    WorkspaceWindowBase as _WorkspaceWindowBase,
-)
 from lightspeed.trex.utils.widget.quicklayout import load_layout
+from lightspeed.trex.utils.widget.workspace import WorkspaceWindowBase as _WorkspaceWindowBase
 from omni import ui
-from omni.flux.utils.widget.resources import (
-    get_quicklayout_config as _get_quicklayout_config,
-)
+from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
 
 from .setup_ui import SetupUI as _TextureCraftUI
 
@@ -50,11 +46,7 @@ class TextureCraftWindow(_WorkspaceWindowBase):
 
     @property
     def flags(self) -> int:
-        return (
-            ui.WINDOW_FLAGS_NO_SCROLLBAR
-            | ui.WINDOW_FLAGS_NO_COLLAPSE
-            | ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
-        )
+        return ui.WINDOW_FLAGS_NO_SCROLLBAR | ui.WINDOW_FLAGS_NO_COLLAPSE | ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
 
     def _create_window_ui(self):
         return _TextureCraftUI()

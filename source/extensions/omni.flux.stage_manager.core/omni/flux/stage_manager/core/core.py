@@ -31,7 +31,6 @@ def set_instance(instance: "StageManagerCore"):
 
 
 def get_instance():
-    global STAGE_MANAGER_CORE_INSTANCE
     return STAGE_MANAGER_CORE_INSTANCE
 
 
