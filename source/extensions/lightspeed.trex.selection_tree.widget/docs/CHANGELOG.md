@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.1]
+### Changed
+- Removed unused import
+
 ## [1.8.0]
 ### Changed
 - Changed the restore button mouse release so that it uses new shared messagebox

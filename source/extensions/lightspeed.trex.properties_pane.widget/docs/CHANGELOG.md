@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.1]
+### Changed
+- Code formatting improvements
+
 ## [1.14.0]
 ### Added
 - Added logic graph properties panel for OmniGraph node editing

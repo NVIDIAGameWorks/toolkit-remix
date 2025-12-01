@@ -45,7 +45,7 @@ from .model import ItemPrim as _ItemPrim
 from .model import ItemReferenceFile as _ItemReferenceFile
 
 if typing.TYPE_CHECKING:
-    from pxr import Sdf, Usd
+    from pxr import Usd
 
 
 class Delegate(ui.AbstractItemDelegate):

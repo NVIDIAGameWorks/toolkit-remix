@@ -26,4 +26,4 @@ Remember: These changelogs might also be used by marketing to generate release n
 Go back to step 2 for the next extension pending bumps until all are done.
 
 ## Step 4
-Update the main project ./CHANGELOG.md file with a concise one line summary of all the changes made in this branch. Place it in the [Unreleased] section under the appropriate heading.
+Update the main project ./CHANGELOG.md file with a concise one line summary of all the changes made in this branch. Place it at the end of the [Unreleased] section under the appropriate heading.

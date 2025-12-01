@@ -55,7 +55,7 @@ from .selection_tree.model import ItemReferenceFile as _ItemReferenceFile
 from .selection_tree.model import ListModel as _ListModel
 
 if typing.TYPE_CHECKING:
-    from pxr import Sdf, Usd
+    from pxr import Usd
 
 
 class SetupUI:

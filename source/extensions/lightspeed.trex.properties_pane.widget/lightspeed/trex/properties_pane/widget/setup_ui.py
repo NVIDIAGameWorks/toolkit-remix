@@ -24,46 +24,34 @@ from typing import Any, Callable
 
 import omni.client
 import omni.usd
-from lightspeed.common.constants import (
-    GAME_READY_ASSETS_FOLDER as _GAME_READY_ASSETS_FOLDER,
-)
+from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER as _GAME_READY_ASSETS_FOLDER
 from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE
 from lightspeed.common.constants import PARTICLE_SCHEMA_NAME as _PARTICLE_SCHEMA_NAME
-from lightspeed.common.constants import (
-    PROPERTIES_NAMES_COLUMN_WIDTH as _PROPERTIES_NAMES_COLUMN_WIDTH,
-)
+from lightspeed.common.constants import PROPERTIES_NAMES_COLUMN_WIDTH as _PROPERTIES_NAMES_COLUMN_WIDTH
 from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.material.core.shared import Setup as _MaterialCore
 from lightspeed.trex.properties_pane.logic.widget import LogicPropertyWidget as _LogicPropertyWidget
-from lightspeed.trex.properties_pane.material.widget import (
-    SetupUI as _MaterialPropertiesWidget,
-)
+from lightspeed.trex.properties_pane.material.widget import SetupUI as _MaterialPropertiesWidget
 from lightspeed.trex.properties_pane.mesh.widget import SetupUI as _MeshPropertiesWidget
 from lightspeed.trex.properties_pane.particle.widget import (
     ParticleSystemPropertyWidget as _ParticleSystemPropertyWidget,
 )
-from lightspeed.trex.selection_tree.widget import SetupUI as _SelectionTreeWidget
 from lightspeed.trex.replacement.core.shared import Setup as _AssetReplacementCore
-from lightspeed.trex.replacement.core.shared.layers import (
-    AssetReplacementLayersCore as _AssetReplacementLayersCore,
-)
+from lightspeed.trex.replacement.core.shared.layers import AssetReplacementLayersCore as _AssetReplacementLayersCore
+from lightspeed.trex.selection_tree.widget import SetupUI as _SelectionTreeWidget
 from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
 from lightspeed.trex.utils.common.prim_utils import is_a_prototype as _is_a_prototype
 from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
 from lightspeed.trex.utils.common.prim_utils import is_light_asset as _is_light_asset
-from lightspeed.trex.utils.common.prim_utils import (
-    is_material_prototype as _is_material_prototype,
-)
+from lightspeed.trex.utils.common.prim_utils import is_material_prototype as _is_material_prototype
 from lightspeed.trex.utils.common.prim_utils import is_mesh_asset as _is_mesh_asset
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
 from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
 from omni import ui
-from omni.flux.bookmark_tree.model.usd import (
-    UsdBookmarkCollectionModel as _UsdBookmarkCollectionModel,
-)
+from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as _UsdBookmarkCollectionModel
 from omni.flux.bookmark_tree.widget import BookmarkTreeWidget as _BookmarkTreeWidget
 from omni.flux.layer_tree.usd.widget import LayerModel as _LayerModel
 from omni.flux.layer_tree.usd.widget import LayerTreeWidget as _LayerTreeWidget
@@ -182,21 +170,15 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 "bottom of the widget",
                                 collapsed=False,
                             )
-                            self._collapsible_frame_states[CollapsiblePanels.LAYERS] = (
-                                True
-                            )
+                            self._collapsible_frame_states[CollapsiblePanels.LAYERS] = True
                             with self._layer_collapsable_frame:
                                 model = _LayerModel(
                                     self._context_name,
-                                    layer_creation_validation_fn=functools.partial(
-                                        self.__validate_file_path, False
-                                    ),
+                                    layer_creation_validation_fn=functools.partial(self.__validate_file_path, False),
                                     layer_creation_validation_failed_callback=functools.partial(
                                         self.__validation_error_callback, False
                                     ),
-                                    layer_import_validation_fn=functools.partial(
-                                        self.__validate_file_path, True
-                                    ),
+                                    layer_import_validation_fn=functools.partial(self.__validate_file_path, True),
                                     layer_import_validation_failed_callback=functools.partial(
                                         self.__validation_error_callback, True
                                     ),
@@ -234,14 +216,10 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 "viewport.\n",
                                 collapsed=True,
                             )
-                            self._collapsible_frame_states[
-                                CollapsiblePanels.BOOKMARKS
-                            ] = False
+                            self._collapsible_frame_states[CollapsiblePanels.BOOKMARKS] = False
                             with self._bookmarks_collapsable_frame:
                                 model = _UsdBookmarkCollectionModel(self._context_name)
-                                self._bookmark_tree_widget = _BookmarkTreeWidget(
-                                    model=model
-                                )
+                                self._bookmark_tree_widget = _BookmarkTreeWidget(model=model)
                             self._bookmarks_collapsable_frame.root.set_collapsed_changed_fn(
                                 functools.partial(
                                     self.__on_collapsable_frame_changed,
@@ -287,13 +265,9 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 "it in the viewport.\n",
                                 collapsed=False,
                             )
-                            self._collapsible_frame_states[
-                                CollapsiblePanels.SELECTION
-                            ] = True
+                            self._collapsible_frame_states[CollapsiblePanels.SELECTION] = True
                             with self._selection_collapsable_frame:
-                                self._selection_tree_widget = _SelectionTreeWidget(
-                                    self._context_name
-                                )
+                                self._selection_tree_widget = _SelectionTreeWidget(self._context_name)
 
                             ui.Spacer(height=ui.Pixel(16))
 
@@ -311,13 +285,9 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 pinned_text_fn=self._get_default_selection_pin_name,
                                 unpinned_fn=self._refresh_mesh_properties_widget,
                             )
-                            self._collapsible_frame_states[
-                                CollapsiblePanels.MESH_PROPERTIES
-                            ] = True
+                            self._collapsible_frame_states[CollapsiblePanels.MESH_PROPERTIES] = True
                             with self._mesh_properties_collapsable_frame:
-                                self._mesh_properties_widget = _MeshPropertiesWidget(
-                                    self._context_name
-                                )
+                                self._mesh_properties_widget = _MeshPropertiesWidget(self._context_name)
                             self._mesh_properties_collapsable_frame.root.set_collapsed_changed_fn(
                                 functools.partial(
                                     self.__on_collapsable_frame_changed,
@@ -343,15 +313,13 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 pinned_text_fn=self._get_material_selection_pin_name,
                                 unpinned_fn=self._refresh_material_properties_widget,
                             )
-                            self._collapsible_frame_states[
-                                CollapsiblePanels.MATERIAL_PROPERTIES
-                            ] = True
+                            self._collapsible_frame_states[CollapsiblePanels.MATERIAL_PROPERTIES] = True
                             with self._material_properties_collapsable_frame:
-                                self._material_properties_widget = (
-                                    _MaterialPropertiesWidget(self._context_name)
-                                )
-                                self._material_converted_sub = self._material_properties_widget.subscribe_on_material_changed(
-                                    self._refresh_material_properties_widget
+                                self._material_properties_widget = _MaterialPropertiesWidget(self._context_name)
+                                self._material_converted_sub = (
+                                    self._material_properties_widget.subscribe_on_material_changed(
+                                        self._refresh_material_properties_widget
+                                    )
                                 )
                             self._material_properties_collapsable_frame.root.set_collapsed_changed_fn(
                                 functools.partial(
@@ -375,20 +343,16 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 pinned_text_fn=self._get_particle_selection_pin_name,
                                 unpinned_fn=self._refresh_particle_properties_widget,
                             )
-                            self._collapsible_frame_states[
-                                CollapsiblePanels.PARTICLE_PROPERTIES
-                            ] = True
+                            self._collapsible_frame_states[CollapsiblePanels.PARTICLE_PROPERTIES] = True
                             with self._particle_properties_collapsable_frame:
-                                self._particle_properties_widget = (
-                                    _ParticleSystemPropertyWidget(
-                                        self._context_name,
-                                        tree_column_widths=[
-                                            _PROPERTIES_NAMES_COLUMN_WIDTH,
-                                            ui.Fraction(1),
-                                        ],
-                                        right_aligned_labels=False,
-                                        columns_resizable=True,
-                                    )
+                                self._particle_properties_widget = _ParticleSystemPropertyWidget(
+                                    self._context_name,
+                                    tree_column_widths=[
+                                        _PROPERTIES_NAMES_COLUMN_WIDTH,
+                                        ui.Fraction(1),
+                                    ],
+                                    right_aligned_labels=False,
+                                    columns_resizable=True,
                                 )
 
                             self._particle_properties_collapsable_frame.root.set_collapsed_changed_fn(
@@ -437,26 +401,14 @@ class AssetReplacementsPane(_WorkspaceWidget):
                             ui.Spacer(height=ui.Pixel(5))
                     ui.Spacer(height=ui.Pixel(5))
 
-        self._sub_tree_selection_changed = (
-            self._selection_tree_widget.subscribe_tree_selection_changed(
-                self._on_tree_selection_changed
-            )
+        self._sub_tree_selection_changed = self._selection_tree_widget.subscribe_tree_selection_changed(
+            self._on_tree_selection_changed
         )
 
-        self._sub_go_to_ingest_tab1 = (
-            self._mesh_properties_widget.subscribe_go_to_ingest_tab(
-                self._go_to_ingest_tab
-            )
-        )
-        self._sub_go_to_ingest_tab2 = (
-            self._selection_tree_widget.subscribe_go_to_ingest_tab(
-                self._go_to_ingest_tab
-            )
-        )
-        self._sub_go_to_ingest_tab3 = (
-            self._material_properties_widget.subscribe_go_to_ingest_tab(
-                self._go_to_ingest_tab
-            )
+        self._sub_go_to_ingest_tab1 = self._mesh_properties_widget.subscribe_go_to_ingest_tab(self._go_to_ingest_tab)
+        self._sub_go_to_ingest_tab2 = self._selection_tree_widget.subscribe_go_to_ingest_tab(self._go_to_ingest_tab)
+        self._sub_go_to_ingest_tab3 = self._material_properties_widget.subscribe_go_to_ingest_tab(
+            self._go_to_ingest_tab
         )
 
         self._refresh_mesh_properties_widget()
@@ -485,9 +437,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
         Helper to get prims from current selection, optionally resolving instances to meshes.
         """
         prims = []
-        prim_paths = list(
-            set(self._usd_context.get_selection().get_selected_prim_paths())
-        )
+        prim_paths = list(set(self._usd_context.get_selection().get_selected_prim_paths()))
         stage = self._usd_context.get_stage()
         for prim_path in prim_paths:
             prim = stage.GetPrimAtPath(prim_path)
@@ -511,11 +461,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
         if len(prims) == 1:
             path = prims[0].GetPath()
             formatted_name = f"{path.GetParentPath().name}/{path.name}"  # parent/child
-            return (
-                formatted_name
-                if len(formatted_name) < 50
-                else "..." + formatted_name[-50:]
-            )  # 50 char limit
+            return formatted_name if len(formatted_name) < 50 else "..." + formatted_name[-50:]  # 50 char limit
         return "Multiple Selected"
 
     def _get_default_selection_pin_name(self) -> str:
@@ -532,9 +478,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
         prims = self._get_prims_from_selection(resolve_to_prototypes=True)
         # Use materials relevant to USD selection for material pinning
         stage = self._usd_context.get_stage()
-        material_paths = self._material_properties_widget.get_materials_from_prims(
-            prims
-        )
+        material_paths = self._material_properties_widget.get_materials_from_prims(prims)
         material_prims = [stage.GetPrimAtPath(path) for path in material_paths]
         if not material_prims:
             return "No Material Assigned"
@@ -545,11 +489,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
         Get a formatted name of the current USD particle selection for the pin label.
         """
         prims = self._get_prims_from_selection(resolve_to_prototypes=True)
-        particle_prims = [
-            prim
-            for prim in prims
-            if (prim.IsValid() and prim.HasAPI(_PARTICLE_SCHEMA_NAME))
-        ]
+        particle_prims = [prim for prim in prims if (prim.IsValid() and prim.HasAPI(_PARTICLE_SCHEMA_NAME))]
         particle_count = len(particle_prims)
         if particle_count == 0:
             return "No Particle Systems"
@@ -589,7 +529,9 @@ class AssetReplacementsPane(_WorkspaceWidget):
             _LayerType.capture_baker.value,
             _LayerType.workfile.value,
         ]:
-            self._layer_validation_error_msg = f"Layer {path.name}'s layer type ({layer_type}) is reserved by Remix, and cannot be loaded."
+            self._layer_validation_error_msg = (
+                f"Layer {path.name}'s layer type ({layer_type}) is reserved by Remix, and cannot be loaded."
+            )
             return False
 
         # Check if the layer is already used
@@ -605,11 +547,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
             omni.client.normalize_url(omni.client.combine_urls(dirname, filename)),
             existing_file=existing_file,
         )
-        if (
-            result
-            and existing_file
-            and not self.__validate_existing_layer(Path(dirname, filename))
-        ):
+        if result and existing_file and not self.__validate_existing_layer(Path(dirname, filename)):
             return False
         return result
 
@@ -659,9 +597,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
 
         # Grab the selection prims and refresh the properties
         stage = self._usd_context.get_stage()
-        prim_paths = list(
-            set(self._usd_context.get_selection().get_selected_prim_paths())
-        )
+        prim_paths = list(set(self._usd_context.get_selection().get_selected_prim_paths()))
         items = [stage.GetPrimAtPath(prim_path) for prim_path in prim_paths]
         self._material_properties_widget.refresh(items)
 
@@ -694,9 +630,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
                 valid_target_paths.append(prototype.GetPath())
 
         # Refresh the widget
-        self._particle_properties_widget.refresh(
-            particle_system_paths, valid_target_paths
-        )
+        self._particle_properties_widget.refresh(particle_system_paths, valid_target_paths)
 
     def _refresh_logic_properties_widget(self):
         """Refresh the logic properties widget based on current selection"""
@@ -742,31 +676,19 @@ class AssetReplacementsPane(_WorkspaceWidget):
     def show(self, visible: bool):
         # Update the widget visibility
         self.root_widget.visible = visible
-        self._layer_tree_widget.show(
-            self._collapsible_frame_states[CollapsiblePanels.LAYERS] and visible
-        )
-        self._bookmark_tree_widget.show(
-            self._collapsible_frame_states[CollapsiblePanels.BOOKMARKS] and visible
-        )
+        self._layer_tree_widget.show(self._collapsible_frame_states[CollapsiblePanels.LAYERS] and visible)
+        self._bookmark_tree_widget.show(self._collapsible_frame_states[CollapsiblePanels.BOOKMARKS] and visible)
         # self._selection_history_widget.show(self._collapsible_frame_states[CollapsiblePanels.HISTORY] and visible)
-        self._selection_tree_widget.show(
-            self._collapsible_frame_states[CollapsiblePanels.SELECTION] and visible
-        )
-        self._mesh_properties_widget.show(
-            self._collapsible_frame_states[CollapsiblePanels.MESH_PROPERTIES]
-            and visible
-        )
+        self._selection_tree_widget.show(self._collapsible_frame_states[CollapsiblePanels.SELECTION] and visible)
+        self._mesh_properties_widget.show(self._collapsible_frame_states[CollapsiblePanels.MESH_PROPERTIES] and visible)
         self._material_properties_widget.show(
-            self._collapsible_frame_states[CollapsiblePanels.MATERIAL_PROPERTIES]
-            and visible
+            self._collapsible_frame_states[CollapsiblePanels.MATERIAL_PROPERTIES] and visible
         )
         self._particle_properties_widget.show(
-            self._collapsible_frame_states[CollapsiblePanels.PARTICLE_PROPERTIES]
-            and visible
+            self._collapsible_frame_states[CollapsiblePanels.PARTICLE_PROPERTIES] and visible
         )
         self._logic_properties_widget.show(
-            self._collapsible_frame_states[CollapsiblePanels.LOGIC_PROPERTIES]
-            and visible
+            self._collapsible_frame_states[CollapsiblePanels.LOGIC_PROPERTIES] and visible
         )
         if visible:
             self.refresh()

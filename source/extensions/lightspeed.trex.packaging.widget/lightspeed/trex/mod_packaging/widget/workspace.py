@@ -22,14 +22,10 @@ import omni.kit.app
 import omni.usd
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.common.constants import WindowNames as _WindowNames
-from lightspeed.trex.utils.widget.workspace import (
-    WorkspaceWindowBase as _WorkspaceWindowBase,
-)
 from lightspeed.trex.utils.widget.quicklayout import load_layout
+from lightspeed.trex.utils.widget.workspace import WorkspaceWindowBase as _WorkspaceWindowBase
 from omni import ui
-from omni.flux.utils.widget.resources import (
-    get_quicklayout_config as _get_quicklayout_config,
-)
+from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
 
 from .setup_ui import PackagingPane as _PackagingPane
 

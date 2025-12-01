@@ -31,7 +31,7 @@ from lightspeed.trex.utils.widget.dialogs import confirm_remove_prim_overrides
 from omni import ui
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem, StageManagerTreeModel
 from omni.flux.stage_manager.plugin.widget.usd.base import StageManagerStateWidgetPlugin
-from pxr import Sdf, Usd
+from pxr import Usd
 
 
 class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):

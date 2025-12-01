@@ -29,12 +29,9 @@ from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem, USDAttrListItem
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
 from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
-from omni.flux.property_widget_builder.model.usd import USDPropertyWidget
-from omni.flux.property_widget_builder.model.usd import get_usd_listener_instance
-from omni.flux.property_widget_builder.widget import FieldBuilder
-from omni.flux.property_widget_builder.widget import ItemGroup
-from omni.flux.utils.common import Event
-from omni.flux.utils.common import EventSubscription
+from omni.flux.property_widget_builder.model.usd import USDPropertyWidget, get_usd_listener_instance
+from omni.flux.property_widget_builder.widget import FieldBuilder, ItemGroup
+from omni.flux.utils.common import Event, EventSubscription
 from pxr import Sdf, Usd
 
 LOGIC_ATTR_GROUP_ORDER = ("Inputs", "Outputs", "State", "Node", "Other")
