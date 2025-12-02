@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [1.14.2]
+### Changed
+- Integrated LogicGraphCore for consistent graph root prim detection
+
 ## [1.14.1]
 ### Changed
 - Code formatting improvements

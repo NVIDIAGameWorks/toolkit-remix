@@ -247,6 +247,7 @@ current_dict.update(
             "border_radius": 4,
             "margin": 2,
         },
+        "Button.Label::SdfPathButton": {"alignment": ui.Alignment.LEFT_CENTER},
         "Button::LightCylinder": {
             "background_color": 0x0,
             "border_radius": 4,

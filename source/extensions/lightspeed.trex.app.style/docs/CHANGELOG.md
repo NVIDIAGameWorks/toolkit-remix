@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.0]
+### Added
+- Added left-aligned label style for SdfPathButton
+
 ## [1.16.0]
 ### Added
 - Added styles for disabled state trashcan

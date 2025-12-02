@@ -33,7 +33,7 @@ class RemixLogicGraphWorkspaceWindow(_WorkspaceWindowBase):
         return _WindowNames.REMIX_LOGIC_GRAPH
 
     def menu_path(self) -> str:
-        return f"Editor/Experimental/{self.title}"
+        return f"Editor/{self.title}"
 
     @property
     def flags(self) -> int:

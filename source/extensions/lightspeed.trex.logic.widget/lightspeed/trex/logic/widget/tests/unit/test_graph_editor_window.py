@@ -20,6 +20,7 @@ import unittest
 from functools import partial
 from pathlib import Path
 from typing import List
+from unittest.mock import patch
 
 import carb
 import omni.graph.core as og
@@ -82,7 +83,18 @@ class TestOgWindowComponentUI(OmniUiTest):
         self._graph_window = None
         self._window = None
 
+        # Patch is_graph_editable to always return True so test graphs pass remix specific check
+        # This affects header display for editable graphs.
+        self._is_graph_editable_patcher = patch(
+            "lightspeed.trex.logic.widget.graph_widget.RemixLogicGraphWidget.is_graph_editable",
+            return_value=True,
+        )
+        self._is_graph_editable_patcher.start()
+
     async def tearDown(self):
+        if self._is_graph_editable_patcher:
+            self._is_graph_editable_patcher.stop()
+            self._is_graph_editable_patcher = None
 
         if self._graph_window:
             self._graph_window.destroy()

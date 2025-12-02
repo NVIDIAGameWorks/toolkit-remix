@@ -18,6 +18,7 @@
 __all__ = ["LogicPropertyWidget"]
 
 import asyncio
+from functools import partial
 from typing import Any
 
 import omni.graph.core as og
@@ -25,7 +26,9 @@ import omni.graph.tools.ogn as ogn
 import omni.kit
 import omni.ui as ui
 import omni.usd
-from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE
+from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE, GlobalEventNames
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
+from lightspeed.trex.logic.core.graphs import LogicGraphCore
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem, USDAttrListItem
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
 from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
@@ -58,6 +61,7 @@ class LogicPropertyWidget:
         right_aligned_labels: bool = True,
         lookup_table: dict[str, dict[str, str]] | None = None,
         field_builders: list[FieldBuilder] | None = None,
+        show_node_properties: bool = True,
     ):
         """
         Args:
@@ -67,8 +71,10 @@ class LogicPropertyWidget:
             right_aligned_labels: Whether labels are right aligned
             lookup_table: Table for custom display names and groups
             field_builders: Custom field builders for specific attribute types
+            show_node_properties: Whether to show node properties widget
         """
 
+        self._event_manager = _get_event_manager_instance()
         self._property_delegate = None
         self._property_model = None
         self._property_widget = None
@@ -87,6 +93,7 @@ class LogicPropertyWidget:
         self._tree_column_widths = tree_column_widths
         self._columns_resizable = columns_resizable
         self._right_aligned_labels = right_aligned_labels
+        self._show_node_properties = show_node_properties
 
         self.__usd_listener_instance = get_usd_listener_instance()
 
@@ -123,10 +130,48 @@ class LogicPropertyWidget:
         )
         self._root_frame = ui.Frame(build_fn=self._build_root_frame)
 
+    def _get_relative_path(self, path: Sdf.Path, valid_target_paths: list[Sdf.Path]) -> str:
+        """Get the relative path of the given path"""
+        for target_path in valid_target_paths:
+            if path.HasPrefix(target_path):
+                return str(path.MakeRelativePath(target_path))
+        return path.GetName()
+
     def _build_root_frame(self) -> None:
         with ui.ZStack():
-            with ui.VStack(height=0, spacing=ui.Pixel(8)):
-                if self._paths:
+            with ui.VStack(height=ui.Pixel(24)):
+                # Check if a logic graph can be created from the selected prims
+                if len(self._valid_target_paths) == 1:
+                    tooltip = "Create a new logic graph for the selected asset"
+                else:
+                    tooltip = (
+                        "Select a prim inside of a mesh or light asset replacement root to create a logic graph.\n\n"
+                        "NOTE: The logic graph will be created on the associated root not the instance prim."
+                    )
+                ui.Button(
+                    "Create a New Logic Graph",
+                    clicked_fn=lambda: self._create_logic_graphs(self._valid_target_paths),
+                    tooltip=tooltip,
+                    enabled=len(self._valid_target_paths) == 1,
+                )
+                # Check if there are any existing logic graphs
+                existing_graphs = LogicGraphCore.get_existing_logic_graphs(
+                    self._context.get_stage(), self._valid_target_paths
+                )
+                for graph in existing_graphs:
+                    with ui.HStack(height=ui.Pixel(24), spacing=0):
+                        relative_path = self._get_relative_path(graph.GetPath(), self._valid_target_paths)
+                        ui.Label(f"Existing Graph: {relative_path}", elided_text=True, name="PropertiesWidgetLabel")
+                        ui.Spacer(width=0)
+                        ui.Button(
+                            "Edit",
+                            clicked_fn=partial(self._edit_logic_graph, graph),
+                            tooltip=f"Edit the logic graph: {graph.GetPath()}",
+                            enabled=True,
+                            width=ui.Pixel(80),
+                        )
+
+                if self._paths and self._show_node_properties:
                     # A logic node is selected, so show node info and the property widget
                     ui.Spacer(height=ui.Pixel(8))
                     ui.Line(name="PropertiesPaneSectionTitle")
@@ -148,14 +193,7 @@ class LogicPropertyWidget:
                         columns_resizable=self._columns_resizable,
                         refresh_callback=self.refresh,
                     )
-                else:
-                    with ui.HStack(height=ui.Pixel(24), spacing=ui.Pixel(8)):
-                        ui.Spacer(height=0)
-                        with ui.VStack(width=0):
-                            ui.Spacer()
-                            ui.Label("None", name="PropertiesWidgetLabel")
-                            ui.Spacer()
-                        ui.Spacer(height=0)
+                ui.Spacer(height=0)
 
     def refresh(
         self,
@@ -393,6 +431,19 @@ class LogicPropertyWidget:
         # Combine: inputs, outputs, state, then other
         return inputs + outputs + state + node + other
 
+    def _create_logic_graphs(self, prim_paths: list[Sdf.Path]) -> None:
+        """Create logic graphs on the specified prims."""
+        if len(prim_paths) != 1:
+            raise ValueError(f"Expected 1 prim path, got {len(prim_paths)}")
+        prim = self._context.get_stage().GetPrimAtPath(prim_paths[0])
+        if not prim:
+            raise ValueError(f"Received invalid prim at path {prim_paths[0]}")
+        self._event_manager.call_global_custom_event(GlobalEventNames.LOGIC_GRAPH_CREATE_REQUEST.value, prim)
+
+    def _edit_logic_graph(self, graph: Usd.Prim) -> None:
+        """Edit the given logic graph."""
+        self._event_manager.call_global_custom_event(GlobalEventNames.LOGIC_GRAPH_EDIT_REQUEST.value, graph)
+
     @property
     def property_model(self):
         return self._property_model
@@ -424,6 +475,7 @@ class LogicPropertyWidget:
         self.__refresh_done = None
         self._refresh_task = None
         self._context = None
+        self._event_manager = None
         self._property_delegate = None
         self._property_model = None
         self._property_widget = None

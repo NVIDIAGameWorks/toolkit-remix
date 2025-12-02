@@ -15,19 +15,22 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
+__all__ = ["RemixLogicGraphWidget"]
+
 import webbrowser
 from functools import partial
 from pathlib import Path
 
 import omni.graph.core as og
 import omni.ui as ui
-import omni.usd
 from lightspeed.common.constants import QUICK_START_GUIDE_URL
-from lightspeed.trex.utils.common.prim_utils import get_prototype, is_in_light_group, is_in_mesh_group
+from lightspeed.trex.logic.core.graphs import LogicGraphCore
 from omni.flux.utils.dialog import ErrorPopup
 from omni.graph.window.core import OmniGraphWidget
 from omni.kit.window.popup_dialog import InputDialog
-from pxr import Sdf
+from pxr import Sdf, Usd
 
 EXT_PATH = Path(__file__).parent.parent.parent.parent.parent
 ICON_PATH = EXT_PATH.joinpath("icons")
@@ -39,9 +42,12 @@ DEFAULT_GRAPH_EVALUATOR = "component"
 
 class RemixLogicGraphWidget(OmniGraphWidget):
 
+    # Overridden Omni Graph methods
+
     # re-implemented create_graph method from omni.graph.window.core
     def create_graph(self, evaluator_type: str, name_prefix: str, menu_arg=None, value=None, use_dialog=False):
-        """Create a new component graph below the selected prim
+        """
+        Override: Create a new component graph below the selected prim
 
         Note: USE_IMPLICIT_GLOBAL_GRAPH forces creation of subgraphs only
 
@@ -54,7 +60,6 @@ class RemixLogicGraphWidget(OmniGraphWidget):
         stage = self._usd_context.get_stage()
 
         # Create the graph at the selected prim
-        self._selection = self._usd_context.get_selection()
         selected_prim_paths = self._selection.get_selected_prim_paths()
         if len(selected_prim_paths) != 1:
             error_message = f"Please select exactly 1 prim, got {len(selected_prim_paths)}"
@@ -63,8 +68,9 @@ class RemixLogicGraphWidget(OmniGraphWidget):
                 return
             raise ValueError(f"Please select exactly 1 prim, got {len(selected_prim_paths)}")
 
-        prim = get_prototype(self._usd_context.get_stage().GetPrimAtPath(selected_prim_paths[0]))
-        if not prim or not (is_in_mesh_group(prim) or is_in_light_group(prim)):
+        prim = self._usd_context.get_stage().GetPrimAtPath(selected_prim_paths[0])
+        graph_root_prim = LogicGraphCore.get_graph_root_prim(prim)
+        if not graph_root_prim:
             error_message = (
                 f"Please select a prim under a mesh or light asset replacement root, " f"got {selected_prim_paths[0]}"
             )
@@ -75,53 +81,39 @@ class RemixLogicGraphWidget(OmniGraphWidget):
 
         graph_root_path = prim.GetPath()
 
-        def create_graph_at_path(path: Sdf.Path):
-            # FIXME: Just use the first one? We may want a clearer API here.
-            graph = og.get_global_orchestration_graphs()[0]
-
-            # Create the global compute graph
-            og.cmds.CreateGraphAsNode(
-                graph=graph,
-                node_name=Sdf.Path(path).name,
-                graph_path=path,
-                evaluator_name=evaluator_type,
-                is_global_graph=True,
-                backed_by_usd=True,
-                fc_backing_type=og.GraphBackingType.GRAPH_BACKING_TYPE_FLATCACHE_SHARED,
-                pipeline_stage=og.GraphPipelineStage.GRAPH_PIPELINE_STAGE_SIMULATION,
-            )
-
+        def create_and_load_graph_at_path(graph_root_path: Sdf.Path, name_prefix: str):
+            graph_path = LogicGraphCore.create_graph_at_path(stage, graph_root_path, name_prefix, evaluator_type)
             # select the new prim
-            self._selection.set_prim_path_selected(path, True, True, True, True)
+            self._selection.set_prim_path_selected(str(graph_path), True, True, True, True)
             # Import it to the GraphView
             self._import_selection()
 
-        def on_okay(dialog: omni.kit.window.popup_dialog.dialog.PopupDialog):
+        def on_okay(dialog: InputDialog):
             input_prefix = dialog.get_value()
-            graph_path = Sdf.Path(input_prefix).MakeAbsolutePath(graph_root_path)
-            graph_path = omni.usd.get_stage_next_free_path(stage, graph_path, True)
-            create_graph_at_path(graph_path)
+            create_and_load_graph_at_path(graph_root_path, input_prefix)
             dialog.hide()
 
-        def on_cancel(dialog: omni.kit.window.popup_dialog.dialog.PopupDialog):
+        def on_cancel(dialog: InputDialog):
             dialog.hide()
 
         if use_dialog:
             dialog = InputDialog(
                 title=f"Create {evaluator_type} Graph",
-                message=f"Creating under {graph_root_path} Enter desired prim name for graph:",
+                message=f'Creating under "{graph_root_path}"\n Enter desired prim name for graph:',
                 default_value=name_prefix,
                 ok_handler=on_okay,
                 cancel_handler=on_cancel,
             )
             dialog.show()
         else:
-            graph_path = Sdf.Path(name_prefix).MakeAbsolutePath(graph_root_path)
-            graph_path = omni.usd.get_stage_next_free_path(stage, graph_path, True)
-            create_graph_at_path(graph_path)
+            create_and_load_graph_at_path(graph_root_path, name_prefix)
 
     def is_graph_editable(self, graph: og.Graph) -> bool:
         """Override: Returns True if the given graph is editable by this widget"""
+        stage: Usd.Stage = self._usd_context.get_stage()
+        graph_prim = stage.GetPrimAtPath(graph.get_path_to_graph())
+        if not LogicGraphCore.is_graph_prim_editable(graph_prim):
+            return False
         try:
             settings = og.get_graph_settings(graph)
             return settings.evaluator_type != "execution" or (settings.are_compounds_enabled() and graph.is_compound())
@@ -167,6 +159,54 @@ class RemixLogicGraphWidget(OmniGraphWidget):
                         ui.Spacer()
                     ui.Spacer()
 
+    def _select_graph_dialog(self):
+        """
+        Overridden to make the dialog more readable by adding a scrolling frame left centering.
+
+        Present a window for the user to select a graph to open
+        """
+        window = ui.Window("Select Graph To Open", width=800, height=500, flags=ui.WINDOW_FLAGS_MODAL)
+
+        def close():
+            if window:
+                window.visible = False
+
+        def select_graph(graph: og.Graph):
+            if not graph:
+                return
+            self._open_graph(graph.get_path_to_graph())
+            close()
+
+        graphs = [g for g in og.get_all_graphs() if self.is_graph_editable(g)]
+        graphs.sort(key=lambda g: g.get_path_to_graph())
+
+        with window.frame:
+            with ui.ScrollingFrame(
+                name="WorkspaceBackground",
+            ):
+                with ui.VStack(
+                    height=0,
+                    spacing=8,
+                    # copy styling override from OmniGraphWidget
+                    style={"VStack::top_level_stack": {"margin": 5}, "Button": {"margin": 0}},
+                ):
+                    for graph in graphs:
+                        with ui.HStack():
+                            ui.Button(
+                                graph.get_path_to_graph(),
+                                name="SdfPathButton",
+                                clicked_fn=partial(select_graph, graph),
+                            )
+                            ui.Spacer(width=0)
+                    if not graphs:
+                        ui.Button("No Graphs Found", clicked_fn=close)
+
+    def _on_edit_graph_action(self):
+        """Override: Always prompt for selection"""
+        # TODO: Once we have a Stage Manager filter (REMIX-4719), rely on that for selection and just pop up an
+        # error dialog here if the selection is not a graph. Until then, show the default dialog.
+        self._select_graph_dialog()
+
     def on_toolbar_create_graph_clicked(self):
         """Override to change type of graph created"""
         self.create_graph(DEFAULT_GRAPH_EVALUATOR, DEFAULT_GRAPH_PREFIX, use_dialog=True)
@@ -175,3 +215,15 @@ class RemixLogicGraphWidget(OmniGraphWidget):
     def on_toolbar_help_clicked(self):
         """Override to guide users to a Remix Specific docs page"""
         webbrowser.open(QUICK_START_GUIDE_URL)
+
+    # New methods
+
+    def on_create_graph_under_parent_action(self, parent: Usd.Prim):
+        """Create a new graph at the given parent"""
+        self._selection.set_prim_path_selected(str(parent.GetPath()), True, True, True, True)
+        self.create_graph(DEFAULT_GRAPH_EVALUATOR, DEFAULT_GRAPH_PREFIX, use_dialog=True)
+
+    def on_load_existing_graph_action(self, graph: Usd.Prim):
+        """Edit the given graph"""
+        self._selection.set_prim_path_selected(str(graph.GetPath()), True, True, True, True)
+        self._import_selection()

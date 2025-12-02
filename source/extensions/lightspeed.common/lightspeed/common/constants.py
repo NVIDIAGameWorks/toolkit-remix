@@ -553,6 +553,9 @@ class GlobalEventNames(Enum):
     LOAD_PROJECT_PATH = "Load Toolkit Project Path"
     IMPORT_LAYER = "Import Layer (LayerType, path, use_existing_file)"
 
+    LOGIC_GRAPH_CREATE_REQUEST = "Logic graph create request"  # Emitted with (parent: Usd.Prim)
+    LOGIC_GRAPH_EDIT_REQUEST = "Logic graph edit request"  # Emitted with (graph: Usd.Prim)
+
 
 # Remix Logic
 OMNI_GRAPH_TYPE = "OmniGraph"
