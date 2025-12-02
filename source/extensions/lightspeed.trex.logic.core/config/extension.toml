@@ -1,0 +1,57 @@
+[package]
+# Semantic Versioning is used: https://semver.org/
+version = "1.0.0"
+
+# Lists people or organizations that are considered the "authors" of the package.
+authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
+
+# The title and description fields are primarly for displaying extension info in UI
+title = "Lightspeed Logic Core"
+description="Core api and utilities for managing Remix Logic graphs in the Remix Toolkit App."
+
+# Path (relative to the root) or content of readme markdown file for UI.
+readme  = "docs/README.md"
+
+# URL of the extension source repository.
+repository="https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.logic.core"
+
+# One of categories for UI.
+category = "internal"
+
+# Keywords for the extension
+keywords = ["kit", "logic", "graphs", "ogn", "remix", "core"]
+
+# Location of change log file in target (final) folder of extension, relative to the root.
+# More info on writing changelog: https://keepachangelog.com/en/1.0.0/
+changelog="docs/CHANGELOG.md"
+
+icon = "data/icon.png"
+preview_image = "data/preview.png"
+
+[dependencies]
+"omni.usd" = {}
+"omni.kit.commands" = {}
+"omni.graph.core" = {}
+"omni.flux.utils.common" = {}
+"lightspeed.common" = {}
+"lightspeed.trex.utils.common" = {}
+"lightspeed.trex.logic.ogn" = {}
+
+# Main python module this extension provides, it will be publicly available as "import lightspeed.trex.logic.core".
+[[python.module]]
+name = "lightspeed.trex.logic.core"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

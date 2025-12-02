@@ -31,3 +31,7 @@ class RemixLogicGraphWindow(OmniGraphWindow):
             catalog_model=ComponentNodeTypeCatalogModel(),
             filter_fn=self._filter_fn,
         )
+
+    def get_graph_widget(self) -> RemixLogicGraphWidget:
+        """Get the graph widget"""
+        return self._main_widget

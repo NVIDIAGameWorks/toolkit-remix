@@ -31,7 +31,8 @@ import omni.graph.core as og
 import omni.kit.app
 import omni.kit.notification_manager as nm
 import omni.ui as ui
-from lightspeed.common.constants import WindowNames
+from lightspeed.common.constants import GlobalEventNames, WindowNames
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from omni.graph.window.core import (
     OmniGraphActions,
     OmniGraphCatalogTreeDelegate,
@@ -42,6 +43,8 @@ from omni.graph.window.core import (
 from pxr import Sdf, Usd
 
 from .catalog_model import OmniGraphNodeQuickSearchModel
+from .graph_widget import RemixLogicGraphWidget
+from .graph_window import RemixLogicGraphWindow
 from .workspace import RemixLogicGraphWorkspaceWindow
 
 _extension_instance = None
@@ -75,6 +78,9 @@ class RemixLogicGraphExtension(omni.ext.IExt):
         # Stage Opener subscription
         self._stage_opener_sub = None
 
+        self._create_graph_sub = None
+        self._edit_graph_sub = None
+
     def on_startup(self, ext_id: str):
         global _extension_instance
         _extension_instance = self
@@ -105,6 +111,17 @@ class RemixLogicGraphExtension(omni.ext.IExt):
 
         self._stage_opener_sub = self._register_for_stage_open()
 
+        self._event_manager = _get_event_manager_instance()
+
+        self._create_graph_sub = self._event_manager.subscribe_global_custom_event(
+            GlobalEventNames.LOGIC_GRAPH_CREATE_REQUEST.value,
+            self.on_create_graph_under_parent_action,
+        )
+        self._edit_graph_sub = self._event_manager.subscribe_global_custom_event(
+            GlobalEventNames.LOGIC_GRAPH_EDIT_REQUEST.value,
+            self.on_load_existing_graph_action,
+        )
+
     def on_shutdown(self):
         global _extension_instance
         _extension_instance = None
@@ -130,6 +147,8 @@ class RemixLogicGraphExtension(omni.ext.IExt):
             self._quicksearch_sub = None
         self._stage_opener_sub = None
         self._quicksearch_pos = None
+        self._create_graph_sub = None
+        self._edit_graph_sub = None
 
     def show_window(self, value: bool):
         """Show/hide the window"""
@@ -233,7 +252,7 @@ class RemixLogicGraphExtension(omni.ext.IExt):
                     duration=5,
                 )
 
-        catalog = self._workspace.get_window()._main_widget._catalog_model  # noqa: protected-access
+        catalog = self._workspace.get_window().get_graph_widget()._catalog_model  # noqa: protected-access
         node_type = prim_spec.properties["node:type"].default
         if catalog.allow_node_type(node_type):
             return True
@@ -283,8 +302,9 @@ class RemixLogicGraphExtension(omni.ext.IExt):
                     self.x = _extension_instance._quicksearch_pos[0]
                     self.y = _extension_instance._quicksearch_pos[1]
 
-        if self._workspace.get_window()._main_widget:  # noqa: protected-access
-            self._workspace.get_window()._main_widget.on_drop(CustomEvent(mime_data))  # noqa: protected-access
+        graph_widget: RemixLogicGraphWidget = self._workspace.get_window().get_graph_widget()  # noqa: protected-access
+        if graph_widget:
+            graph_widget.on_drop(CustomEvent(mime_data))
 
     @staticmethod
     def _register_for_stage_open():
@@ -298,3 +318,33 @@ class RemixLogicGraphExtension(omni.ext.IExt):
             return False
 
         return register_stage_graph_opener(can_open, RemixLogicGraphExtension.show_graph, 1000)
+
+    def _get_graph_widget(self) -> RemixLogicGraphWidget:
+        window: RemixLogicGraphWindow = self._workspace.get_window()
+        if window:
+            return window.get_graph_widget()
+        return None
+
+    async def _show_and_get_graph_widget(self):
+        self.show_window(True)
+        # wait for the window to be fully built to receive next call
+        for _ in range(10):
+            graph_widget = self._get_graph_widget()
+            if graph_widget:
+                break
+            await omni.kit.app.get_app().next_update_async()
+        return self._get_graph_widget()
+
+    async def _on_create_graph_under_parent_action(self, parent: Usd.Prim):
+        graph_widget = await self._show_and_get_graph_widget()
+        graph_widget.on_create_graph_under_parent_action(parent)
+
+    def on_create_graph_under_parent_action(self, parent: Usd.Prim):
+        asyncio.ensure_future(self._on_create_graph_under_parent_action(parent))
+
+    async def _on_load_existing_graph_action(self, graph: Usd.Prim):
+        graph_widget = await self._show_and_get_graph_widget()
+        graph_widget.on_load_existing_graph_action(graph)
+
+    def on_load_existing_graph_action(self, graph: Usd.Prim):
+        asyncio.ensure_future(self._on_load_existing_graph_action(graph))

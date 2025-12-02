@@ -31,6 +31,7 @@ from lightspeed.common.constants import PROPERTIES_NAMES_COLUMN_WIDTH as _PROPER
 from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
+from lightspeed.trex.logic.core.graphs import LogicGraphCore
 from lightspeed.trex.material.core.shared import Setup as _MaterialCore
 from lightspeed.trex.properties_pane.logic.widget import LogicPropertyWidget as _LogicPropertyWidget
 from lightspeed.trex.properties_pane.material.widget import SetupUI as _MaterialPropertiesWidget
@@ -44,9 +45,7 @@ from lightspeed.trex.selection_tree.widget import SetupUI as _SelectionTreeWidge
 from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
 from lightspeed.trex.utils.common.prim_utils import is_a_prototype as _is_a_prototype
 from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
-from lightspeed.trex.utils.common.prim_utils import is_light_asset as _is_light_asset
 from lightspeed.trex.utils.common.prim_utils import is_material_prototype as _is_material_prototype
-from lightspeed.trex.utils.common.prim_utils import is_mesh_asset as _is_mesh_asset
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
 from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
@@ -654,12 +653,9 @@ class AssetReplacementsPane(_WorkspaceWidget):
             if prototype_prim.GetTypeName() == OMNI_GRAPH_NODE_TYPE:
                 items.append(prototype_prim)
             # Get asset path from prim
-            parent = prototype_prim
-            while parent:
-                if _is_mesh_asset(parent) or _is_light_asset(parent):
-                    valid_target_prims.append(parent)
-                    break
-                parent = parent.GetParent()
+            parent = LogicGraphCore.get_graph_root_prim(prototype_prim)
+            if parent:
+                valid_target_prims.append(parent)
 
         self._logic_properties_widget.refresh(items, valid_target_prims=valid_target_prims)
 

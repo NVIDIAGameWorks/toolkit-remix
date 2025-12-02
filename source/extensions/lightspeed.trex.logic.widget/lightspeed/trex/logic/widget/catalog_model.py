@@ -15,9 +15,40 @@
 * limitations under the License.
 """
 
+__all__ = ["ComponentNodeTypeCatalogModel", "OmniGraphNodeQuickSearchModel"]
+
+
 import omni.graph.core as og
 import omni.graph.tools.ogn as ogn
 from omni.graph.window.core import OmniGraphNodeTypeCatalogModel
+from omni.graph.window.core.graph_config import CategoryStyles
+from omni.graph.window.core.graph_config import Paths as CoreGraphConfigExtPaths
+from omni.graph.window.core.graph_config import lerp_color_to_secondary, rgb_to_abgr
+
+# Hack: Add Remix Logic categories to the hardcoded node catalog
+CategoryStyles.STYLE_BY_CATEGORY.update(
+    {
+        k: (rgb_to_abgr(v[0]), v[1], rgb_to_abgr(lerp_color_to_secondary(v[0])))
+        for k, v in {
+            "Act": (
+                0x53B5EC,
+                f"{CoreGraphConfigExtPaths.ICON_PATH}/node/type_function_noBorder_dark.svg",
+            ),  # Override light blue
+            "Constants": (
+                0xD2D4D3,
+                f"{CoreGraphConfigExtPaths.ICON_PATH}/node/type_constant_noBorder_dark.svg",
+            ),  # Slightly dimmed off-white, less bright than Transform
+            "Sense": (
+                0x00FF8A,
+                f"{CoreGraphConfigExtPaths.ICON_PATH}/node/type_event_noBorder_dark.svg",
+            ),  # Bright green (minimal yellow)
+            "Transform": (
+                0xF2F4F3,
+                f"{CoreGraphConfigExtPaths.ICON_PATH}/node/type_math_noBorder_dark.svg",
+            ),  # Bright silvery off-white
+        }.items()
+    }
+)
 
 
 class ComponentNodeTypeCatalogModel(OmniGraphNodeTypeCatalogModel):

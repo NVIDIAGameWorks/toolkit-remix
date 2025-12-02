@@ -1,5 +1,5 @@
 [package]
-version = "1.0.1"
+version = "1.1.0"
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Remix Logic Properties Widget"
 description = "Properties panel for RemixLogic prim types"
@@ -13,7 +13,10 @@ icon = "data/images/icon.png"
 
 [dependencies]
 "lightspeed.common" = {}
+"lightspeed.event.events" = {}
+"lightspeed.events_manager" = {}
 "lightspeed.trex.utils.common" = {}
+"lightspeed.trex.logic.core" = {}
 "omni.flux.property_widget_builder.model.usd" = {}
 "omni.flux.property_widget_builder.widget" = {}
 "omni.flux.utils.common" = {}
