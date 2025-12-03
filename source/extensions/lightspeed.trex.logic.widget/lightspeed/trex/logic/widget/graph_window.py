@@ -32,6 +32,13 @@ class RemixLogicGraphWindow(OmniGraphWindow):
             filter_fn=self._filter_fn,
         )
 
+        # Hack: Remove the Edit Graph button from the toolbar
+        # (reasons: confusing with edit graph option, exposes omnigraph specific preference settings and
+        # cleanup variables menu option)
+        toolbar_items = self._main_widget._GraphEditorCoreWidget__toolbar_items  # noqa: protected-access
+        toolbar_items = [i for i in toolbar_items if i["name"] != "Edit"]
+        self._main_widget.set_toolbar_items(toolbar_items)
+
     def get_graph_widget(self) -> RemixLogicGraphWidget:
         """Get the graph widget"""
         return self._main_widget

@@ -4,6 +4,10 @@ This document records all notable changes to the **lightspeed.trex.logic.widget*
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.1.1]
+### Removed
+- Removed Variables panel and Edit toolbar button from Logic Graph widget
+
 ## [1.1.0]
 ### Added
 - Added create and edit logic graph functionality with dialog support

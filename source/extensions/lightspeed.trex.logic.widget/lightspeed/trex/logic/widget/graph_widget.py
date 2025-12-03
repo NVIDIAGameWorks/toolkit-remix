@@ -121,6 +121,14 @@ class RemixLogicGraphWidget(OmniGraphWidget):
             # Temporary fix for 2022.1 build
             return True
 
+    def on_build_catalog(self):
+        """Override: Build only the catalog for the graph widget, without the variables widget or any tabs."""
+        with ui.VStack(spacing=4):
+            self._catalog_frame = ui.Frame()
+            with self._catalog_frame:
+                # Skip OmniGraphWidget's on_build_catalog to avoid building the variables widget
+                super(OmniGraphWidget, self).on_build_catalog()  # noqa: PLE1003
+
     def on_build_startup(self):
         """Overridden from base to customize startup panel UI"""
         with ui.ZStack():

@@ -24,6 +24,7 @@ from typing import Any
 import omni.graph.core as og
 import omni.graph.tools.ogn as ogn
 import omni.kit
+import omni.kit.commands
 import omni.ui as ui
 import omni.usd
 from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE, GlobalEventNames
@@ -161,12 +162,20 @@ class LogicPropertyWidget:
                 for graph in existing_graphs:
                     with ui.HStack(height=ui.Pixel(24), spacing=0):
                         relative_path = self._get_relative_path(graph.GetPath(), self._valid_target_paths)
-                        ui.Label(f"Existing Graph: {relative_path}", elided_text=True, name="PropertiesWidgetLabel")
+                        ui.Label(f"{relative_path}", elided_text=True, name="PropertiesWidgetLabel")
                         ui.Spacer(width=0)
                         ui.Button(
                             "Edit",
                             clicked_fn=partial(self._edit_logic_graph, graph),
                             tooltip=f"Edit the logic graph: {graph.GetPath()}",
+                            enabled=True,
+                            width=ui.Pixel(80),
+                        )
+                        ui.Spacer(width=0)
+                        ui.Button(
+                            "Delete",
+                            clicked_fn=partial(self._delete_logic_graph, graph),
+                            tooltip=f"Delete the logic graph: {graph.GetPath()}",
                             enabled=True,
                             width=ui.Pixel(80),
                         )
@@ -443,6 +452,13 @@ class LogicPropertyWidget:
     def _edit_logic_graph(self, graph: Usd.Prim) -> None:
         """Edit the given logic graph."""
         self._event_manager.call_global_custom_event(GlobalEventNames.LOGIC_GRAPH_EDIT_REQUEST.value, graph)
+
+    def _delete_logic_graph(self, graph: Usd.Prim) -> None:
+        """Delete the given logic graph."""
+        omni.kit.commands.execute("DeletePrimsCommand", paths=[str(graph.GetPath())])
+        # Rebuild the UI to reflect the changes in the existing logic graphs
+        if self._root_frame:
+            self._root_frame.rebuild()
 
     @property
     def property_model(self):
