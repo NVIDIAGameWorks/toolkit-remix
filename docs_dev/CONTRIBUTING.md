@@ -8,9 +8,9 @@ SDK, Pixar USD, and development workflow.
 The RTX Remix Toolkit is built upon the
 [Omniverse Kit SDK](https://docs.omniverse.nvidia.com/kit/docs/kit-manual/latest/guide/kit_overview.html). Familiarize
 yourself with the Omniverse Kit SDK, which serves as the foundation for extension development. See the following video
-for a brief overview on extension development with the Omniverse Kit SDK.
+for a brief overview on extension development with the Omniverse Kit SDK:
 
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/4RkR8YH6AaE/0.jpg)](https://www.youtube.com/watch?v=4RkR8YH6AaE)
+[![Build Your First Omniverse Extension With OpenUSD](https://img.youtube.com/vi/4RkR8YH6AaE/mqdefault.jpg)](https://www.youtube.com/watch?v=4RkR8YH6AaE)
 
 Additionally, acquaint yourself with Pixar USD, a robust tool for creating and modifying digital assets. Resources for
 learning USD are available on the following websites:
