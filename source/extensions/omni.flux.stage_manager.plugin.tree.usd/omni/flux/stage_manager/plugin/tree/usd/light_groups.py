@@ -19,8 +19,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Iterable
 
+import carb.settings
+import carb.tokens
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
+from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common.lights import LightTypes as _LightTypes
 from omni.flux.utils.common.lights import get_light_type as _get_light_type
 from pydantic import Field
@@ -32,6 +35,9 @@ from .virtual_groups import VirtualGroupsTreePlugin as _VirtualGroupsTreePlugin
 
 if TYPE_CHECKING:
     from pxr import Usd
+
+
+SCHEMA_PATH_SETTING = "/exts/omni.flux.stage_manager.core/schema"
 
 
 class LightGroupsItem(_VirtualGroupsItem):
@@ -56,6 +62,12 @@ class LightGroupsItem(_VirtualGroupsItem):
         super().__init__(display_name, data, tooltip=tooltip, display_name_ancestor=display_name_ancestor)
 
         self._light_type = light_type
+        default_schema = carb.settings.get_settings().get(SCHEMA_PATH_SETTING)
+        self.available_icons = None
+        if default_schema:
+            schema_path = carb.tokens.get_tokens_interface().resolve(str(default_schema))
+            data = _path_utils.read_json_file(str(schema_path))
+            self.available_icons = data.get("icons", {})
 
     @property
     def default_attr(self) -> dict[str, None]:
@@ -69,21 +81,11 @@ class LightGroupsItem(_VirtualGroupsItem):
 
     @property
     def icon(self):
-        match self._light_type:
-            case _LightTypes.CylinderLight:
-                return "CylinderLightStatic"
-            case _LightTypes.DiskLight:
-                return "DiskLightStatic"
-            case _LightTypes.DistantLight:
-                return "DistantLightStatic"
-            case _LightTypes.DomeLight:
-                return "DomeLightStatic"
-            case _LightTypes.PortalLight:
-                return "PortalLightStatic"
-            case _LightTypes.RectLight:
-                return "RectLightStatic"
-            case _LightTypes.SphereLight:
-                return "SphereLightStatic"
+        if not self.available_icons:
+            raise AttributeError("No icons available. Please check the default_schema.json file.")
+        if self._light_type:
+            return self.available_icons.get(str(self._light_type.value).replace(" ", ""), None)
+
         return None
 
 

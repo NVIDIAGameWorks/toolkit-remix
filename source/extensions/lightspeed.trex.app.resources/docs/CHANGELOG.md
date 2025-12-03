@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [1.25.0]
+### Added
+- Added a central icon dictionary for the Stage Manager
+
 ## [1.24.0]
 ### Added
 - Added DeleteRestoreAction Widget to the action column of the Stage Manager's Prims Page via schema configuration

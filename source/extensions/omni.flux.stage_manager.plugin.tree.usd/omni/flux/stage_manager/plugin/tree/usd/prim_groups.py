@@ -15,7 +15,10 @@
 * limitations under the License.
 """
 
+import carb.settings
+import carb.tokens
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
+from omni.flux.utils.common import path_utils as _path_utils
 from pydantic import Field
 
 from .base import StageManagerUSDTreeDelegate as _StageManagerUSDTreeDelegate
@@ -23,12 +26,33 @@ from .base import StageManagerUSDTreeItem as _StageManagerUSDTreeItem
 from .base import StageManagerUSDTreeModel as _StageManagerUSDTreeModel
 from .base import StageManagerUSDTreePlugin as _StageManagerUSDTreePlugin
 
+SCHEMA_PATH_SETTING = "/exts/omni.flux.stage_manager.core/schema"
+
 
 class PrimGroupsItem(_StageManagerUSDTreeItem):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.available_icons = None
+        default_schema = carb.settings.get_settings().get(SCHEMA_PATH_SETTING)
+        if default_schema:
+            schema_path = carb.tokens.get_tokens_interface().resolve(str(default_schema))
+            data = _path_utils.read_json_file(str(schema_path))
+            self.available_icons = data.get("icons", {})
 
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
+
+    @property
+    def icon(self):
+        if not self.available_icons:
+            raise AttributeError("No icons available. Please check the default_schema.json file.")
+        type_name = self.data.GetTypeName()
+        if type_name:
+            return self.available_icons.get(type_name, "Xform")
+
+        return "Xform"
 
 
 class PrimGroupsModel(_StageManagerUSDTreeModel):

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4757: Added the 1.3 Remix Logic component library.
 - REMIX-4778: Added logic graph create/edit functionality to properties panels and graph editor
 - REMIX-4739: Add support for specific icons for the different logic node categories
+- REMIX-4576: Added icon support for prims tab
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
