@@ -5,14 +5,16 @@ SDK, Pixar USD, and development workflow.
 
 ## Getting Started
 
-The RTX Remix Toolkit utilizes
-the [Kit SDK](https://docs.omniverse.nvidia.com/kit/docs/kit-manual/latest/guide/kit_overview.html). Familiarize
-yourself with the Kit SDK, which serves as the foundation for extension development.
+The RTX Remix Toolkit is built upon the
+[Omniverse Kit SDK](https://docs.omniverse.nvidia.com/kit/docs/kit-manual/latest/guide/kit_overview.html). Familiarize
+yourself with the Omniverse Kit SDK, which serves as the foundation for extension development. See the following video
+for a brief overview on extension development with the Omniverse Kit SDK.
+
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/4RkR8YH6AaE/0.jpg)](https://www.youtube.com/watch?v=4RkR8YH6AaE)
 
 Additionally, acquaint yourself with Pixar USD, a robust tool for creating and modifying digital assets. Resources for
 learning USD are available on the following websites:
 
-- [Learn USD](https://learnusd.github.io/index.html)
 - [VFX UsdSurvivalGuide](https://lucascheller.github.io/VFX-UsdSurvivalGuide/index.html)
 - [USDBook by Remedy Entertainment](https://remedy-entertainment.github.io/USDBook/index.html)
 
@@ -20,8 +22,8 @@ learning USD are available on the following websites:
 
 The RTX Remix Toolkit primarily consists of two repositories within this monorepo:
 
-- **Lightspeed**
-- **Flux**
+- **Lightspeed (lightspeed.trex.*)**
+- **Flux (omni.flux.*)**
 
 Both repositories are located in the [`extensions` directory](../source/extensions). Extensions can be identified by
 their naming conventions.
@@ -68,7 +70,8 @@ use flags to modify the Toolkit's behavior.
 
 ## Additional Documentation
 
-- **[Using Pycharm IDE + debug](./PYCHARM_GUIDE.md)**: Learn about developing with Pycharm and debugging.
+- **[Using Pycharm IDE](./PYCHARM_GUIDE.md)**: Learn about developing with Pycharm.
+- **[Debugging Guide](./DEBUGGING_GUIDE.md)**: Info on how to attach debuggers to the toolkit.
 - **[How to profile](./PROFILE_GUIDE.md)**: Introduction to profiling.
 - **[Review Checklist](./REVIEW_CHECKLIST.md)**: Guidelines for engineers submitting merge requests.
 - **[Automated Testing](./TESTING_GUIDELINES.md)**: Process for writing and deploying tests in lightspeed for kit
