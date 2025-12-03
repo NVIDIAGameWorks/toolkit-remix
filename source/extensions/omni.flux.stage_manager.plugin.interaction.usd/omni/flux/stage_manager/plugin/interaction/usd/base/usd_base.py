@@ -41,6 +41,9 @@ class USDEventFilteringRules(BaseModel):
     ignore_properties_events: list[str] = Field(
         default=["xformOpOrder"], description="List of property names to ignore"
     )
+    ignore_property_prefix_events: list[str] = Field(
+        default=["ui:"], description="List of property name prefixes to ignore"
+    )
     ignore_paths_events: list[str] = Field(
         default=["/RootNode/Camera"],
         description="List of prim paths to ignore (Only exact matches for the Prim Path will be ignored)",
@@ -217,6 +220,11 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
                 if path.IsPropertyPath():
                     # Don't refresh if the update comes from ignored properties
                     if path.name in self.filtering_rules.ignore_properties_events:
+                        continue
+                    # Don't refresh if the update comes from ignored property prefixes
+                    if any(
+                        path.name.startswith(prefix) for prefix in self.filtering_rules.ignore_property_prefix_events
+                    ):
                         continue
                     # # Don't refresh if the update comes from Xform properties
                     if self.filtering_rules.ignore_xform_events and path.name.startswith("xformOp:"):
