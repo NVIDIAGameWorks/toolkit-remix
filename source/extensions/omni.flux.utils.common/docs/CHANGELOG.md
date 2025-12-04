@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.6.0]
+### Added
+- Added MenuItem enums for Assign, Edit, Remove Remix Logic Graphs
+
 ## [3.5.1]
 ### Changed
 - Refactored symlink utilities to `is_broken_symlink()` and `get_path_or_symlink()` for improved clarity

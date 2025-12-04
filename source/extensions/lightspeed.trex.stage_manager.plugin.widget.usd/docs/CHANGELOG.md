@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.4.0]
+### Added
+- Added new Logic Graph Action Plugin to Stage Manager, which provides OmniGraph integration with right-click menus for Add Graphs, Delete Graphs, and Open Graphs for editing, plus remix logic type filtering
+
 ## [2.3.1]
 ### Changed
 - Removed unused import

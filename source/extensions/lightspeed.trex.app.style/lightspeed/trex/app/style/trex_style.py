@@ -559,6 +559,8 @@ current_dict.update(
         "Image::Locate": {"image_url": _get_icons("folder_open"), "color": _WHITE_60},
         "Image::Locate:hovered": {"image_url": _get_icons("folder_open"), "color": _WHITE_80},
         "Image::Locate:disabled": {"image_url": _get_icons("folder_open"), "color": _WHITE_30},
+        "Image::LogicGraphStatic": {"image_url": _get_icons("LogicGraphIconThin"), "color": _WHITE_80},
+        "Image::LogicGraphNodeStatic": {"image_url": _get_icons("LogicGraphNodeIconThin"), "color": _WHITE_80},
         "Image::Update": {"image_url": _get_icons("update"), "color": _WHITE_60},
         "Image::Update:hovered": {"image_url": _get_icons("update"), "color": _WHITE_80},
         "Image::Update:disabled": {"image_url": _get_icons("update"), "color": _WHITE_30},
