@@ -52,6 +52,9 @@ To contribute to the RTX Remix Toolkit:
 1. Fork this repository.
 2. Create a development branch in your fork.
 3. Submit a Pull Request to merge your changes from your fork's branch into this repository.
+    - Before your Pull Request can be accepted, an automated bot will prompt you to sign the
+    [Contributor License Agreement](https://github.com/NVIDIAGameWorks/toolkit-remix/blob/main/.github/workflows/cla/NVIDIA_CLA_v1.0.1.md),
+    via your Pull Request's comment page.
 
 ## Common Flags
 
