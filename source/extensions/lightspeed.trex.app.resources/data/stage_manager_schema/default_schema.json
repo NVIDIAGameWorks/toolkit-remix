@@ -4,16 +4,18 @@
         "context_name": ""
     },
     "icons": {
-        "SkelRoot": "SkeletonRoot",
-        "Skeleton": "Skeleton",
-        "Mesh": "Mesh",
-        "Material": "Material",
         "CylinderLight": "CylinderLightStatic",
         "DiskLight": "DiskLightStatic",
         "DistantLight": "DistantLightStatic",
         "DomeLight": "DomeLightStatic",
+        "Material": "Material",
+        "Mesh": "Mesh",
+        "OmniGraph": "LogicGraphStatic",
+        "OmniGraphNode": "LogicGraphNodeStatic",
         "PortalLight": "PortalLightStatic",
         "RectLight": "RectLightStatic",
+        "Skeleton": "Skeleton",
+        "SkelRoot": "SkeletonRoot",
         "SphereLight": "SphereLightStatic"
     },
     "interactions": [
@@ -114,6 +116,9 @@
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"
+                        },
+                        {
+                            "name": "LogicGraphWidgetPlugin"
                         }
                     ]
                 }
@@ -638,7 +643,7 @@
                         },
                         {
                             "name": "ParticleSystemsActionWidgetPlugin"
-                        }, 
+                        },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"
                         }

@@ -54,7 +54,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         if not prim_utils.is_a_prototype(prim):
             return cls.ActionType.DISABLED
 
-        if prim.IsA(OmniGraphSchema.OmniGraph):
+        if prim.IsA(OmniGraphSchema.OmniGraph) or prim.IsA(OmniGraphSchema.OmniGraphNode):
             return cls.ActionType.DELETE
 
         # NOTE: early simple implementation this will get more complex

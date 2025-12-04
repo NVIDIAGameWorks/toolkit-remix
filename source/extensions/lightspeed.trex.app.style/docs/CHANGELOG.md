@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.18.0]
+### Added
+- Added Logic Graph Icon to style so they can be used in the Stage Manager
+
 ## [1.17.0]
 ### Added
 - Added left-aligned label style for SdfPathButton

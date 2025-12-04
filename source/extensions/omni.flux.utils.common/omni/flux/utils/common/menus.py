@@ -50,3 +50,7 @@ class MenuItem(Enum):
     PARTICLE_SYSTEM = "Particle System..."  # ... is used to indicate that the menu item is a submenu
     PARTICLE_SYSTEM_ADD = "Add"
     PARTICLE_SYSTEM_REMOVE = "Remove"
+    LOGIC_GRAPH = "Remix Logic"
+    LOGIC_GRAPH_ADD = "Create Remix Logic Graph"
+    LOGIC_GRAPH_EDIT = "Edit Remix Logic Graph"
+    LOGIC_GRAPH_REMOVE = "Remove Remix Logic Graph"
