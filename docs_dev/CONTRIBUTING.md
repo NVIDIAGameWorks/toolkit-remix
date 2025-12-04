@@ -15,6 +15,7 @@ for a brief overview on extension development with the Omniverse Kit SDK:
 Additionally, acquaint yourself with Pixar USD, a robust tool for creating and modifying digital assets. Resources for
 learning USD are available on the following websites:
 
+- [OpenUSD Intro to USD](https://openusd.org/dev/intro.html)
 - [VFX UsdSurvivalGuide](https://lucascheller.github.io/VFX-UsdSurvivalGuide/index.html)
 - [USDBook by Remedy Entertainment](https://remedy-entertainment.github.io/USDBook/index.html)
 
