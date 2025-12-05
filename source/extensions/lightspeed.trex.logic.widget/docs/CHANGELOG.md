@@ -4,6 +4,16 @@ This document records all notable changes to the **lightspeed.trex.logic.widget*
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.3.0]
+### Added
+- Added node type descriptions in tooltips when hovering over nodes
+- Added port type info for union/any attributes showing valid connection types
+- Added custom documentation routing for Remix nodes to dxvk-remix docs
+
+### Changed
+- Improved graph name input with validation for valid USD prim identifiers
+- Help button now links to Remix logic documentation
+
 ## [1.2.0]
 ### Added
 - Added missing (select all, select none, and delete selection) actions & hotkeys to the Logic Graph widget

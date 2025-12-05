@@ -16,10 +16,37 @@
 """
 
 import carb.settings
+import omni.graph.core as og
 from omni.graph.window.core import OmniGraphModel
+from pxr import Sdf
 
 
 class RemixLogicGraphModel(OmniGraphModel):
+
     def cull_legacy_prims(self):
         """Return True if the OgnPrim nodes should not be created in the graph"""
         return not carb.settings.get_settings().get("/persistent/omnigraph/createPrimNodes")
+
+    def get_port_type(self, path: Sdf.Path) -> str | None:
+        """Returns the description of the port's attribute type, or None if there is a problem"""
+        # Get the parent's result first
+        result = super().get_port_type(path)
+
+        # If it's an unresolved union, provide more details
+        attr: og.Attribute | None = self.get_attribute_from_path(path)
+        if attr is not None:
+            extended_type = attr.get_extended_type()
+            if extended_type == og.ExtendedAttributeType.EXTENDED_ATTR_TYPE_UNION:
+                union_types: list[str] = attr.get_union_types()  # type: ignore
+                # A little bit sneaky here but we use the opening/closing parenthesis from port_tooltip_text
+                if union_types:
+                    return (
+                        f"Flexible type)\n\t"
+                        f"Connect a port to specify type.\n\t(Valid types: {', '.join(union_types)}"
+                    )
+                return "Flexible type)\n\tConnect a port to specify type. \n\t(Could not determine valid types."
+
+            if extended_type == og.ExtendedAttributeType.EXTENDED_ATTR_TYPE_ANY:
+                return "Flexible type)\n\tConnect a port to specify type.\n\t(Valid types: Any"
+
+        return result
