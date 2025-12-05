@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4715: Make "Edit Graph" dialog a bit easier to use
 - Centralized prim type icon mappings in omni.flux.utils.common for reuse across extensions
 - Update hdremix and omni_core_materials to ext-a9cbe4d-main
+- REMIX-4798: Logic Graph Editor: Improved node + port tooltips and added documentation links
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths
@@ -52,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed code formatting and lint errors across multiple extensions
 - REMIX-4593: Fixed logic graph and particle properties panel not preserving expansion state across refreshes
 - Improved a few UX issues with the Logic Properties pane
+- REMIX-4766: Added input validation to ensure a valid graph prim name is provided for new graphs
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension

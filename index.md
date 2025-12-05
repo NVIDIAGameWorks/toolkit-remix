@@ -46,6 +46,7 @@ docs/howto/learning-assets
 docs/howto/learning-materials
 docs/howto/learning-lighting
 docs/howto/learning-particles
+docs/howto/learning-logic
 docs/howto/learning-packaging
 docs/howto/learning-aitexturetools
 docs/howto/learning-restapi

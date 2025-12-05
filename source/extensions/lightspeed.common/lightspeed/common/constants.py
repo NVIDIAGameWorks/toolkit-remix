@@ -282,6 +282,7 @@ LICENSE_AGREEMENT_URL = (
 DOCUMENTATION_URL = "https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/"
 DOCUMENTATION_ROOT_URL = f"{DOCUMENTATION_URL}docs/"
 QUICK_START_GUIDE_URL = f"{DOCUMENTATION_ROOT_URL}gettingstarted/learning-toolkitsetup.html"
+LOGIC_DOCUMENTATION_URL = f"{DOCUMENTATION_ROOT_URL}howto/learning-logic.html"
 RELEASE_NOTES_URL = f"{DOCUMENTATION_ROOT_URL}remix-releasenotes.html"
 
 TUTORIALS_URL = f"{DOCUMENTATION_ROOT_URL}tutorials/tutorial-videos.html"
@@ -290,6 +291,8 @@ COMMUNITY_SUPPORT_URL = (
 )
 GITHUB_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/"
 REPORT_ISSUE_URL = "https://github.com/NVIDIAGameWorks/rtx-remix/issues"
+DXVK_REMIX_GITHUB_URL = "https://github.com/NVIDIAGameWorks/dxvk-remix/"
+DXVK_REMIX_DOCUMENTATION_URL = f"{DXVK_REMIX_GITHUB_URL}blob/main/documentation"
 
 REMIX_CATEGORIES = {
     "World UI": {

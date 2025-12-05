@@ -20,6 +20,7 @@ from __future__ import annotations
 __all__ = ["RemixLogicGraphExtension"]
 
 import asyncio
+import webbrowser
 from contextlib import suppress
 from functools import lru_cache, partial
 from typing import List
@@ -28,10 +29,12 @@ import carb.windowing
 import omni.appwindow
 import omni.ext
 import omni.graph.core as og
+import omni.graph.window.core.graph_delegate as graph_delegate
+import omni.graph.window.core.graph_operations as graph_operations
 import omni.kit.app
 import omni.kit.notification_manager as nm
 import omni.ui as ui
-from lightspeed.common.constants import GlobalEventNames, WindowNames
+from lightspeed.common.constants import DXVK_REMIX_DOCUMENTATION_URL, GlobalEventNames, WindowNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from omni.graph.window.core import OmniGraphCatalogTreeDelegate, graph_config, register_stage_graph_opener
 from pxr import Sdf, Usd
@@ -43,6 +46,7 @@ from .graph_window import RemixLogicGraphWindow
 from .workspace import RemixLogicGraphWorkspaceWindow
 
 _extension_instance = None
+_original_show_help_for_node_type = None
 
 
 @lru_cache
@@ -54,6 +58,31 @@ def get_instance() -> RemixLogicGraphExtension:
     if _extension_instance is None:
         raise ValueError("RemixLogicGraphExtension is not initialized")
     return _extension_instance
+
+
+def _remix_show_help_for_node_type(node_type: str | og.NodeType):
+    """Custom help function that handles Remix nodes with custom documentation."""
+
+    if isinstance(node_type, str):
+        node_type_name = node_type
+    elif isinstance(node_type, og.NodeType):
+        node_type_name = node_type.get_node_type()
+    else:
+        return
+
+    # Check if it's a Remix/lightspeed node
+    if node_type_name.startswith("lightspeed."):
+        # Construct docs URL based on the node type for Remix nodes
+        if node_type_name.startswith("lightspeed.trex.logic."):
+            component_name = node_type_name.split(".")[-1]
+            doc_url = f"{DXVK_REMIX_DOCUMENTATION_URL}/components/{component_name}.md"
+        else:
+            doc_url = f"{DXVK_REMIX_DOCUMENTATION_URL}/components"
+        webbrowser.open(doc_url)
+    else:
+        # Fall back to original behavior for non-Remix nodes
+        if _original_show_help_for_node_type:
+            _original_show_help_for_node_type(node_type)
 
 
 class RemixLogicGraphExtension(omni.ext.IExt):
@@ -117,6 +146,12 @@ class RemixLogicGraphExtension(omni.ext.IExt):
             self.on_load_existing_graph_action,
         )
 
+        # Monkey patch show_help_for_node_type to handle Remix nodes
+        global _original_show_help_for_node_type
+        _original_show_help_for_node_type = graph_operations.show_help_for_node_type
+        graph_operations.show_help_for_node_type = _remix_show_help_for_node_type
+        graph_delegate.show_help_for_node_type = _remix_show_help_for_node_type
+
     def on_shutdown(self):
         global _extension_instance
         _extension_instance = None
@@ -144,6 +179,13 @@ class RemixLogicGraphExtension(omni.ext.IExt):
         self._quicksearch_pos = None
         self._create_graph_sub = None
         self._edit_graph_sub = None
+
+        # Restore original show_help_for_node_type
+        global _original_show_help_for_node_type
+        if _original_show_help_for_node_type is not None:
+            graph_operations.show_help_for_node_type = _original_show_help_for_node_type
+            graph_delegate.show_help_for_node_type = _original_show_help_for_node_type
+            _original_show_help_for_node_type = None
 
     def show_window(self, value: bool):
         """Show/hide the window"""

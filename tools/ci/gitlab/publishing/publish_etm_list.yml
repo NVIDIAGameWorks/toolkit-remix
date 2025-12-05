@@ -5,7 +5,7 @@ publish-etm-list:
   stage: publish_etm_list
   extends:
     - .defaults
-    - .windows_build_agent
+    - .windows_gpu_agent
     - .windows_vault
   needs:
     - job: publish-extensions-windows

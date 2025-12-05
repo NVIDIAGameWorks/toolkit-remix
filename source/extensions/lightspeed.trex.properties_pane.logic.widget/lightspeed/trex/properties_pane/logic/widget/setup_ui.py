@@ -334,6 +334,14 @@ class LogicPropertyWidget:
                         enabled=True,
                         width=ui.Pixel(_BUTTON_WIDTH_SM),
                     )
+                    ui.Spacer(width=0)
+                    ui.Button(
+                        "Delete",
+                        clicked_fn=partial(self._delete_logic_graph, graph),
+                        tooltip=f"Delete the logic graph: {graph.GetPath()}",
+                        enabled=True,
+                        width=ui.Pixel(_BUTTON_WIDTH_SM),
+                    )
 
             if self._paths and self._show_node_properties:
                 # A logic node is selected, so show node info

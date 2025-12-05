@@ -25,12 +25,14 @@ from pathlib import Path
 
 import omni.graph.core as og
 import omni.ui as ui
-from lightspeed.common.constants import QUICK_START_GUIDE_URL
+from lightspeed.common.constants import LOGIC_DOCUMENTATION_URL
 from lightspeed.trex.logic.core.graphs import LogicGraphCore
 from omni.flux.utils.dialog import ErrorPopup
 from omni.graph.window.core import OmniGraphWidget
 from omni.kit.window.popup_dialog import InputDialog
 from pxr import Sdf, Usd
+
+from .graph_node_delegate import RemixLogicNodeDelegate
 
 EXT_PATH = Path(__file__).parent.parent.parent.parent.parent
 ICON_PATH = EXT_PATH.joinpath("icons")
@@ -41,6 +43,9 @@ DEFAULT_GRAPH_EVALUATOR = "component"
 
 
 class RemixLogicGraphWidget(OmniGraphWidget):
+    def __init__(self, **kwargs):
+        graph_delegate = RemixLogicNodeDelegate(self)
+        super().__init__(graph_delegate=graph_delegate, **kwargs)
 
     # Overridden Omni Graph methods
 
@@ -88,23 +93,41 @@ class RemixLogicGraphWidget(OmniGraphWidget):
             # Import it to the GraphView
             self._import_selection()
 
-        def on_okay(dialog: InputDialog):
-            input_prefix = dialog.get_value()
-            create_and_load_graph_at_path(graph_root_path, input_prefix)
-            dialog.hide()
+        def show_graph_name_input_dialog(default_value: str, warning: str | None = None):
+            """Show an input dialog, optionally with a validation warning."""
 
-        def on_cancel(dialog: InputDialog):
-            dialog.hide()
+            def on_okay(dialog: InputDialog):
+                input_prefix = dialog.get_value()
+                if not Sdf.Path.IsValidIdentifier(input_prefix):
+                    dialog.hide()
+                    # Re-show dialog with warning and preserve user's input
+                    show_graph_name_input_dialog(
+                        default_value=input_prefix,
+                        warning=(
+                            f'"{input_prefix}" is not a valid prim name.\n'
+                            "Names must start with a letter or underscore, and contain only "
+                            "letters, numbers, and underscores (no spaces or special characters)."
+                        ),
+                    )
+                    return
+                create_and_load_graph_at_path(graph_root_path, input_prefix)
+                dialog.hide()
 
-        if use_dialog:
+            def on_cancel(dialog: InputDialog):
+                dialog.hide()
+
             dialog = InputDialog(
-                title=f"Create {evaluator_type} Graph",
-                message=f'Creating under "{graph_root_path}"\n Enter desired prim name for graph:',
-                default_value=name_prefix,
+                title="Create New Logic Graph",
+                message=f'Creating new graph under:\n\t"{graph_root_path}"\n\nEnter desired graph prim name:',
+                default_value=default_value,
                 ok_handler=on_okay,
                 cancel_handler=on_cancel,
+                warning_message=warning,
             )
             dialog.show()
+
+        if use_dialog:
+            show_graph_name_input_dialog(default_value=name_prefix)
         else:
             create_and_load_graph_at_path(graph_root_path, name_prefix)
 
@@ -222,7 +245,7 @@ class RemixLogicGraphWidget(OmniGraphWidget):
     # TODO: Update once we have docs. Remix docs should probably link to ogn for background info.
     def on_toolbar_help_clicked(self):
         """Override to guide users to a Remix Specific docs page"""
-        webbrowser.open(QUICK_START_GUIDE_URL)
+        webbrowser.open(LOGIC_DOCUMENTATION_URL)
 
     # New methods
 
