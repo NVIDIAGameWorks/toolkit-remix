@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4721: Reimplemented Sidebar using ui.ToolBar for improved docking behavior
 - REMIX-4715: Make "Edit Graph" dialog a bit easier to use
 - Centralized prim type icon mappings in omni.flux.utils.common for reuse across extensions
+- Update hdremix and omni_core_materials to ext-a9cbe4d-main
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths
