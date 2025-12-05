@@ -144,7 +144,6 @@ class TestLogicWidgetUIComplete(omni.kit.test.AsyncTestCase):
         # Arrange
         context = omni.usd.get_context()
         stage = context.get_stage()
-
         controller = og.Controller(undoable=False)
         _, (node,), _, _ = controller.edit(
             "/World/LogicGraph",
@@ -155,7 +154,6 @@ class TestLogicWidgetUIComplete(omni.kit.test.AsyncTestCase):
             },
         )
         await controller.evaluate()
-
         window = ui.Window("TestUI", height=600, width=400)
         with window.frame:
             with ui.Frame(width=400, height=600):
@@ -194,7 +192,6 @@ class TestLogicWidgetUIComplete(omni.kit.test.AsyncTestCase):
         # Arrange
         context = omni.usd.get_context()
         stage = context.get_stage()
-
         controller = og.Controller(undoable=False)
         _, (node1, node2), _, _ = controller.edit(
             "/World/LogicGraph",
@@ -218,7 +215,6 @@ class TestLogicWidgetUIComplete(omni.kit.test.AsyncTestCase):
             with ui.Frame(width=400, height=600):
                 widget = LogicPropertyWidget("")
                 widget.show(True)
-
         # Act
         widget.refresh([node1_prim, node2_prim])
         await omni.kit.app.get_app().next_update_async()
@@ -250,7 +246,6 @@ class TestLogicWidgetUIComplete(omni.kit.test.AsyncTestCase):
         context = omni.usd.get_context()
         stage = context.get_stage()
         stage.DefinePrim("/World/CommonMesh", "Mesh")
-
         controller = og.Controller(undoable=False)
         _, (node1, node2), _, _ = controller.edit(
             "/World/LogicGraph",
@@ -262,7 +257,6 @@ class TestLogicWidgetUIComplete(omni.kit.test.AsyncTestCase):
             },
         )
         await controller.evaluate()
-
         window = ui.Window("TestUI", height=600, width=400)
         with window.frame:
             with ui.Frame(width=400, height=600):
@@ -304,7 +298,6 @@ class TestLogicWidgetUIComplete(omni.kit.test.AsyncTestCase):
         context = omni.usd.get_context()
         stage = context.get_stage()
         stage.DefinePrim("/World/TestMesh", "Mesh")
-
         controller = og.Controller(undoable=False)
         _, (node,), _, _ = controller.edit(
             "/World/LogicGraph",
@@ -315,13 +308,11 @@ class TestLogicWidgetUIComplete(omni.kit.test.AsyncTestCase):
             },
         )
         await controller.evaluate()
-
         window = ui.Window("TestUI", height=600, width=400)
         with window.frame:
             with ui.Frame(width=400, height=600):
                 widget = LogicPropertyWidget("")
                 widget.show(True)
-
         node_prim = stage.GetPrimAtPath(node.get_prim_path())
         widget.refresh([node_prim])
         await omni.kit.app.get_app().next_update_async()

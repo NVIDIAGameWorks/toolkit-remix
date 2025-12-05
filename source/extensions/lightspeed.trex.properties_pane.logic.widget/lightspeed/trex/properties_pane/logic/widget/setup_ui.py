@@ -31,6 +31,8 @@ import omni.usd
 from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE, REGEX_MESH_TO_INSTANCE_SUB, GlobalEventNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.logic.core.graphs import LogicGraphCore
+from omni.flux.info_icon.widget import InfoIconWidget
+from omni.flux.property_widget_builder.delegates.string_value.file_picker import FilePicker
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem, USDAttrListItem
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
 from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
@@ -39,13 +41,14 @@ from omni.flux.property_widget_builder.model.usd import (
     USDRelationshipItem,
     get_usd_listener_instance,
 )
+from omni.flux.property_widget_builder.model.usd.field_builders.ogn import is_ogn_node_attr
 from omni.flux.property_widget_builder.model.usd.utils import is_property_relationship
 from omni.flux.property_widget_builder.widget import FieldBuilder, ItemGroup
 from omni.flux.utils.common import Event, EventSubscription
 from omni.flux.utils.common.icons import get_prim_type_icons as _get_prim_type_icons
 from pxr import Sdf, Usd
 
-LOGIC_ATTR_GROUP_ORDER = ("Inputs", "Outputs", "State", "Node", "Other")
+LOGIC_ATTR_GROUP_ORDER = ("Inputs", "Outputs", "State", "Other")
 LOGIC_ATTR_GROUP_FALLBACK = "Other"
 
 # Attribute name prefixes
@@ -54,6 +57,18 @@ OGN_ATTR_PREFIX_OUTPUTS = "outputs:"
 OGN_ATTR_PREFIX_NODE = "node:"
 OGN_ATTR_PREFIX_STATE = "state:"
 OGN_ATTR_PREFIX_UI = "ui:"
+
+
+def _is_const_asset_path_value(item) -> bool:
+    """Check if item is ConstAssetPath.value attribute."""
+    return is_ogn_node_attr(item, "lightspeed.trex.logic.ConstAssetPath", "inputs:value")
+
+
+# Field builder for ConstAssetPath.value - uses FilePicker instead of string field
+CONST_ASSET_PATH_FIELD_BUILDER = FieldBuilder(
+    claim_func=_is_const_asset_path_value,
+    build_func=FilePicker().build_ui,
+)
 
 _SPACING_SM = 4
 _SPACING_MD = 8
@@ -142,6 +157,7 @@ class LogicPropertyWidget:
 
         self._node_type_label_text: str = ""
         self._node_type_label_description_text: str = ""
+        self._node_type_tooltip_text: str = ""
 
         self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
@@ -159,7 +175,12 @@ class LogicPropertyWidget:
 
         self._lookup_table = lookup_table or {}
 
-        self.__create_ui(field_builders=field_builders)
+        # Add ConstAssetPath file picker to field builders
+        all_field_builders = [CONST_ASSET_PATH_FIELD_BUILDER]
+        if field_builders:
+            all_field_builders.extend(field_builders)
+
+        self.__create_ui(field_builders=all_field_builders)
 
     def _refresh_done(self) -> None:
         """Call the event object that has the list of functions."""
@@ -320,13 +341,12 @@ class LogicPropertyWidget:
                 ui.Line(name="PropertiesPaneSectionTitle")
                 ui.Spacer(height=ui.Pixel(_SPACING_MD))
 
-                with ui.VStack(height=0, spacing=ui.Pixel(_SPACING_MD)):
-                    ui.Label(f"Node Type: {self._node_type_label_text}", name="PropertiesWidgetLabel")
-                    if self._node_type_label_description_text:
-                        ui.Label(
-                            self._node_type_label_description_text,
-                            word_wrap=True,
-                        )
+                with ui.HStack(height=0, spacing=ui.Pixel(_SPACING_SM)):
+                    ui.Label("Node Type: ", name="PropertiesWidgetLabel", width=0)
+                    ui.Label(self._node_type_label_text, name="PropertiesWidgetLabel", width=0)
+                    if self._node_type_tooltip_text:
+                        InfoIconWidget(self._node_type_tooltip_text, max_width=500)
+                    ui.Spacer()
                 ui.Spacer(height=ui.Pixel(_SPACING_MD))
 
     def refresh(
@@ -380,6 +400,7 @@ class LogicPropertyWidget:
 
         self._node_type_label_text = "No valid node type selected"
         self._node_type_label_description_text = ""
+        self._node_type_tooltip_text = ""
 
         node_types: list[og.NodeType] = []
 
@@ -410,16 +431,33 @@ class LogicPropertyWidget:
                     # Filter for logic graph relevant attributes
                     if attr_name.startswith(OGN_ATTR_PREFIX_UI):
                         continue
+                    # Skip node: attributes (type, version info shown in tooltip instead)
+                    if attr_name.startswith(OGN_ATTR_PREFIX_NODE):
+                        continue
 
                     # Group attributes by name across all prims
                     attr_added.setdefault(attr_name, []).append((prim, attr))
 
-            # Get text for the node type description
+            # Get text for the node type info
             # Dedupe with a set of node type names because node type is not hashable
             node_type_names = {node_type.get_node_type() for node_type in node_types}
             if len(node_type_names) == 1:
-                self._node_type_label_text = node_types[0].get_metadata(ogn.MetadataKeys.UI_NAME)
-                self._node_type_label_description_text = node_types[0].get_metadata(ogn.MetadataKeys.DESCRIPTION)
+                node_type = node_types[0]
+                self._node_type_label_text = node_type.get_metadata(ogn.MetadataKeys.UI_NAME)
+                # Build tooltip with description and node type info
+                description = node_type.get_metadata(ogn.MetadataKeys.DESCRIPTION) or ""
+                self._node_type_label_description_text = description
+                full_type_name = node_type.get_node_type()
+                # Get version from node:typeVersion attribute on the prim
+                version = stage.GetPrimAtPath(valid_paths[0]).GetAttribute("node:typeVersion").Get(0)
+                # Build tooltip text
+                tooltip_parts = []
+                if description:
+                    tooltip_parts.append(description)
+                    tooltip_parts.append("\n---\n")
+                tooltip_parts.append(f"Node Internal Name: {full_type_name}")
+                tooltip_parts.append(f"Node Version: {version}")
+                self._node_type_tooltip_text = "\n".join(tooltip_parts)
             elif len(node_type_names) > 1:
                 self._node_type_label_text = "Multiple node types selected"
 
@@ -461,8 +499,6 @@ class LogicPropertyWidget:
                         group_name = "Outputs"
                     elif attr_name.startswith(OGN_ATTR_PREFIX_STATE):
                         group_name = "State"
-                    elif attr_name.startswith(OGN_ATTR_PREFIX_NODE):
-                        group_name = "Node"
                     else:
                         group_name = LOGIC_ATTR_GROUP_FALLBACK
                 if not tooltip:

@@ -15,13 +15,41 @@
 * limitations under the License.
 """
 
-__all__ = ("OGN_FIELD_BUILDERS",)
+__all__ = ("OGN_FIELD_BUILDERS", "is_ogn_node_attr")
 
+import omni.graph.core as og
 from omni.flux.property_widget_builder.delegates.string_value.file_picker import FilePicker
+from omni.flux.property_widget_builder.widget import Item
 from omni.flux.stage_prim_picker.widget import StagePrimPickerField
 
-from ..items import USDRelationshipItem
+from ..items import USDAttributeItem, USDRelationshipItem
 from .base import USDBuilderList
+
+
+def is_ogn_node_attr(item: Item, node_type: str, attr_name: str) -> bool:
+    """
+    Check if item is for a specific OmniGraph node type and attribute name.
+
+    Args:
+        item: The USD attribute item to check.
+        node_type: The OmniGraph node type name (e.g., "my.ext.node.ConstAssetPath").
+        attr_name: The attribute name to match (e.g., "inputs:value").
+
+    Returns:
+        True if item matches the node type and attribute name.
+    """
+    if not isinstance(item, USDAttributeItem):
+        return False
+    if not item.attribute_paths:
+        return False
+    # Check attribute name matches
+    if not any(path.name == attr_name for path in item.attribute_paths):
+        return False
+    # Check node type via OmniGraph (NodeType.get_node_type() returns the type name string)
+    prim_path = str(item.attribute_paths[0].GetPrimPath())
+    node = og.get_node_by_path(prim_path)
+    return node is not None and node.get_node_type().get_node_type() == node_type
+
 
 OGN_FIELD_BUILDERS = USDBuilderList()
 

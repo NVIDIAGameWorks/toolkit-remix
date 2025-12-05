@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Added
+- Added optional `max_width` parameter for tooltip width constraint with word wrap
+
 ## [1.3.2]
 ### Changed
 - Updated tooltip window styling with explicit padding values
