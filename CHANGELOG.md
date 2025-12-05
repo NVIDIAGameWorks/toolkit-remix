@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.3.0 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.3.0]
+
+### Added
 - Created 1.2.4 build
 - Added release notes for 1.2
 - REMIX-4260: Added search field to the Stage Manager
