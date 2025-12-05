@@ -26,13 +26,14 @@ To enable the `omni.kit.debug.python` extension, you must run the app with a `--
 ```
 The app will boot up as usual and a debugpy server will be listening on port `3000`.
 
-If you prefer, enable the `omni.kit.debug.vscode` extension instead and it will do the same but with a VS Code Link window like this on startup:
+If you prefer, enable the `omni.kit.debug.vscode` extension by running the `lightspeed.app.trex_dev.bat` and enabling it
+via the Window -> Extensions option in the toolbar. This will do the same but with a VS Code Link window like this on startup:
 
 ![VSCode Debug Window](./data/omni_kit_debug_vscode_window.png)
 
 Now just attach your IDE on `127.0.0.1:3000` and happy debugging!
 
-For example for VSCode or Cursor, we already have setup `.vscode/launch.json`, otherwise you can create your own with a`
+For example for VSCode or Cursor, we already have setup `.vscode/launch.json`, otherwise you can create your own with a
 `Python: Remote Attach` config like this and run it to attach to the server:
 
 ```json
