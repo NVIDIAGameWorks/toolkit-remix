@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1]
+### Added
+- Added StagePrimPicker integration for OmniGraph target relationship inputs
+
+### Fixed
+- Fixed ItemGroup expansion state not being preserved across refreshes
+
 ## [1.2.0]
 ### Added
 - Added Delete button for logic graphs in properties panel

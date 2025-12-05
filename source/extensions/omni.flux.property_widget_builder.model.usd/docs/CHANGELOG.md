@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.21.0]
+### Added
+- Added USD relationship support with USDRelationshipItem and UsdRelationshipValueModel classes
+- Added utils for relationship detection and access (is_property_relationship, get_item_relationships)
+
 ## [2.20.0]
 ### Added
 - Added OGN field builders for OmniGraph node property widgets

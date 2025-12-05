@@ -20,7 +20,8 @@ __all__ = (
     "TestFieldBuilder",
     "TestPropertyWidget",
     "TestClipboard",
+    "TestItemGroupExpansion",
 )
 
 from .e2e import TestContextMenu, TestFieldBuilder, TestPropertyWidget
-from .unit import TestClipboard
+from .unit import TestClipboard, TestItemGroupExpansion

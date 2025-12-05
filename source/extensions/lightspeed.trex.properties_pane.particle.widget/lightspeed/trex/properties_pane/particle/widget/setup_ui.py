@@ -73,10 +73,13 @@ class ParticleSystemPropertyWidget:
             "_columns_resizable": None,
             "_context": None,
             "_context_name": None,
+            "_create_button": None,
+            "_create_frame": None,
             "_lookup_table": None,
             "_paths": None,
             "_valid_target_paths": None,
             "_property_delegate": None,
+            "_property_frame": None,
             "_property_model": None,
             "_property_widget": None,
             "_right_aligned_labels": None,
@@ -123,47 +126,54 @@ class ParticleSystemPropertyWidget:
         return self._property_delegate.field_builders
 
     def __create_ui(self, field_builders: list[_FieldBuilder] | None = None):
-        """Create the UI components"""
+        """Create the UI components once - PropertyWidget is reused across refreshes to preserve expansion state."""
         self._property_model = _USDPropertyModel(self._context_name)
         self._property_delegate = _USDPropertyDelegate(
             field_builders=field_builders, right_aligned_labels=self._right_aligned_labels
         )
-        self._root_frame = ui.Frame(build_fn=self._build_root_frame)
-
-    def _build_root_frame(self):
-        with ui.ZStack():
-            # A particle system exists
-            if self._paths:
-                self._property_widget = _PropertyWidget(
-                    self._context_name,
-                    model=self._property_model,
-                    delegate=self._property_delegate,
-                    tree_column_widths=self._tree_column_widths,
-                    columns_resizable=self._columns_resizable,
-                    refresh_callback=self.refresh,
-                )
-            # No particle system exists
-            else:
-                # Check if a particle system can be created from the selected prims
-                if self._valid_target_paths:
-                    tooltip = "Create a particle system on the selected prim"
-                else:
-                    tooltip = (
-                        "Select a material prim or mesh prim to create a particle system.\n\n"
-                        "NOTE: Instance prims are also supported but the particle system will be created on the "
-                        "associated mesh prim."
+        self._root_frame = ui.Frame()
+        with self._root_frame:
+            with ui.ZStack():
+                # Frame for when particle system exists - always created, visibility toggled
+                self._property_frame = ui.Frame(visible=False)
+                with self._property_frame:
+                    self._property_widget = _PropertyWidget(
+                        self._context_name,
+                        model=self._property_model,
+                        delegate=self._property_delegate,
+                        tree_column_widths=self._tree_column_widths,
+                        columns_resizable=self._columns_resizable,
+                        refresh_callback=self.refresh,
                     )
-                with ui.VStack(height=0):
-                    with ui.VStack(height=ui.Pixel(24)):
-                        ui.Spacer()
-                        ui.Button(
-                            "Create a Particle System",
-                            clicked_fn=lambda: self._create_particle_systems(self._valid_target_paths),
-                            tooltip=tooltip,
-                            enabled=bool(self._valid_target_paths),
-                        )
-                        ui.Spacer()
-                    ui.Spacer(height=ui.Pixel(8))
+
+                # Frame for when no particle system exists - always created, visibility toggled
+                self._create_frame = ui.Frame(visible=True)
+                with self._create_frame:
+                    with ui.VStack(height=0):
+                        with ui.VStack(height=ui.Pixel(24)):
+                            ui.Spacer()
+                            self._create_button = ui.Button(
+                                "Create a Particle System",
+                                clicked_fn=lambda: self._create_particle_systems(self._valid_target_paths),
+                                tooltip="Select a material prim or mesh prim to create a particle system.",
+                                enabled=False,
+                            )
+                            ui.Spacer()
+                        ui.Spacer(height=ui.Pixel(8))
+
+    def _update_create_button_state(self):
+        """Update the create button tooltip and enabled state based on valid_target_paths."""
+        if self._create_button:
+            if self._valid_target_paths:
+                self._create_button.tooltip = "Create a particle system on the selected prim"
+                self._create_button.enabled = True
+            else:
+                self._create_button.tooltip = (
+                    "Select a material prim or mesh prim to create a particle system.\n\n"
+                    "NOTE: Instance prims are also supported but the particle system will be created on the "
+                    "associated mesh prim."
+                )
+                self._create_button.enabled = False
 
     def refresh(
         self,
@@ -314,7 +324,11 @@ class ParticleSystemPropertyWidget:
         self._property_model.set_items(items)
         self.__usd_listener_instance.add_model(self._property_model)
 
-        self._root_frame.rebuild()
+        # Toggle visibility between property widget and create button
+        has_particles = bool(self._paths and valid_paths)
+        self._property_frame.visible = has_particles
+        self._create_frame.visible = not has_particles
+        self._update_create_button_state()
 
         self._refresh_done()
 

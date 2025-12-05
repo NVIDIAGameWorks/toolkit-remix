@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "3.6.0"
+version = "3.7.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Lewis Weaver <lweaver@nvidia.com>", "Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -49,3 +49,22 @@ dependencies = [
 stdoutFailPatterns.exclude = [
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
 ]
+
+# Prim type to icon name mappings. Other extensions can add to this by defining
+# the same setting path in their extension.toml.
+[settings.exts."omni.flux.utils.common".icons]
+CylinderLight = "CylinderLightStatic"
+DiskLight = "DiskLightStatic"
+DistantLight = "DistantLightStatic"
+DomeLight = "DomeLightStatic"
+Material = "Material"
+Mesh = "Mesh"
+OmniGraph = "LogicGraphStatic"
+OmniGraphNode = "LogicGraphNodeStatic"
+PortalLight = "PortalLightStatic"
+RectLight = "RectLightStatic"
+Skeleton = "Skeleton"
+SkelRoot = "SkeletonRoot"
+SphereLight = "SphereLightStatic"
+Xform = "Xform"
+Scope = "Folder"

@@ -25,7 +25,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.tree_widget import TreeWidget as _TreeWidget
 
 from .tree.delegate import Delegate
-from .tree.model import Model
+from .tree.model import ItemGroup, Model
 
 
 class PropertyWidget:
@@ -72,6 +72,9 @@ class PropertyWidget:
 
         self._build_ui()
 
+        if self._model.get_all_items():
+            self._update_expansion_state_deferred()
+
     @property
     def tree_view(self) -> _TreeWidget:
         """Treeview of the widget"""
@@ -100,17 +103,26 @@ class PropertyWidget:
     async def _update_expansion_state_async(self):
         # Wait for items to be created by the widget
         await kit.app.get_app().next_update_async()
-        # Update expansion state
         items = self._model.get_all_items()
-        for name, value in self._expansion_state.items():
-            try:
-                item = next(item for item in items if item.name_models[0].get_value_as_string() == name)
-            except StopIteration:
+        for item in items:
+            if not item.name_models:
                 continue
+            name = item.name_models[0].get_value_as_string()
+
+            # Check if user has manually set expansion state for this item
+            if name in self._expansion_state:
+                desired_state = self._expansion_state[name]
+            elif isinstance(item, ItemGroup) and item.expanded:
+                desired_state = True
             else:
-                self._tree_view.set_expanded(item, value, False)
+                continue
+
+            if self._tree_view.is_expanded(item) != desired_state:
+                self._tree_view.set_expanded(item, desired_state, False)
 
     def _on_item_expanded(self, item, value):
+        if not item.name_models:
+            return
         self._expansion_state[item.name_models[0].get_value_as_string()] = value
 
     def _on_item_changed(self, model, item):

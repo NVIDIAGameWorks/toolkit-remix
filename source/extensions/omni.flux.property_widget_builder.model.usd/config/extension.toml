@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "2.20.0"
+version = "2.21.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -35,6 +35,7 @@ icon = "data/images/icon.png"
 "omni.flux.property_widget_builder.delegates" = {}
 "omni.flux.property_widget_builder.model.file" = {}
 "omni.flux.property_widget_builder.widget" = {}
+"omni.flux.stage_prim_picker.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
 # omni.flux.pip_archive has Pillow and numpy. Adding Pillow in requirements will not work, because Pillow needs to
