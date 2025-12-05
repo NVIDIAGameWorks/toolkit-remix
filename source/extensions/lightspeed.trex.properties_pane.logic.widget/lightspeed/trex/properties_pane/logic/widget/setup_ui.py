@@ -18,8 +18,9 @@
 __all__ = ["LogicPropertyWidget"]
 
 import asyncio
+import re
 from functools import partial
-from typing import Any
+from typing import Any, Callable
 
 import omni.graph.core as og
 import omni.graph.tools.ogn as ogn
@@ -27,15 +28,21 @@ import omni.kit
 import omni.kit.commands
 import omni.ui as ui
 import omni.usd
-from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE, GlobalEventNames
+from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE, REGEX_MESH_TO_INSTANCE_SUB, GlobalEventNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.logic.core.graphs import LogicGraphCore
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem, USDAttrListItem
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
 from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
-from omni.flux.property_widget_builder.model.usd import USDPropertyWidget, get_usd_listener_instance
+from omni.flux.property_widget_builder.model.usd import (
+    USDPropertyWidget,
+    USDRelationshipItem,
+    get_usd_listener_instance,
+)
+from omni.flux.property_widget_builder.model.usd.utils import is_property_relationship
 from omni.flux.property_widget_builder.widget import FieldBuilder, ItemGroup
 from omni.flux.utils.common import Event, EventSubscription
+from omni.flux.utils.common.icons import get_prim_type_icons as _get_prim_type_icons
 from pxr import Sdf, Usd
 
 LOGIC_ATTR_GROUP_ORDER = ("Inputs", "Outputs", "State", "Node", "Other")
@@ -47,6 +54,53 @@ OGN_ATTR_PREFIX_OUTPUTS = "outputs:"
 OGN_ATTR_PREFIX_NODE = "node:"
 OGN_ATTR_PREFIX_STATE = "state:"
 OGN_ATTR_PREFIX_UI = "ui:"
+
+_SPACING_SM = 4
+_SPACING_MD = 8
+_ICON_SIZE = 16
+_ROW_HEIGHT = 24
+_BUTTON_WIDTH_SM = 80
+_LABEL_WIDTH_MD = 120
+_TREE_COLUMN_WIDTH = 270
+
+
+def _build_prim_row_with_icon(
+    icon_map: dict[str, str],
+    prim_path: str,
+    prim_type: str,
+    clicked_fn: Callable | None,
+    row_height: int,
+) -> None:
+    """
+    Custom row builder that displays prim type icon.
+
+    Args:
+        icon_map: Mapping of prim type names to icon style names.
+        prim_path: The prim path to display.
+        prim_type: The prim type name.
+        clicked_fn: Callback when the row is clicked.
+        row_height: Height of the row in pixels.
+    """
+    icon_name = icon_map.get(prim_type, "Xform")
+    tooltip = f"({prim_type}) {prim_path}" if prim_type else prim_path
+    display_path = re.sub(r".*/mesh_[^/]+/", "", prim_path)
+
+    with ui.HStack(height=ui.Pixel(row_height)):
+        ui.Spacer(width=ui.Pixel(_SPACING_MD))
+        with ui.VStack(width=ui.Pixel(_ICON_SIZE)):
+            ui.Spacer()
+            ui.Image("", name=icon_name, width=_ICON_SIZE, height=_ICON_SIZE)
+            ui.Spacer()
+        ui.Spacer(width=ui.Pixel(_SPACING_SM))
+        ui.Button(
+            display_path,
+            height=ui.Pixel(row_height),
+            name="StagePrimPickerItem",
+            clicked_fn=clicked_fn,
+            alignment=ui.Alignment.LEFT_CENTER,
+            tooltip=tooltip,
+        )
+        ui.Spacer(width=ui.Pixel(_SPACING_MD))
 
 
 class LogicPropertyWidget:
@@ -79,6 +133,8 @@ class LogicPropertyWidget:
         self._property_delegate = None
         self._property_model = None
         self._property_widget = None
+        self._property_frame = None
+        self._dynamic_content_frame = None
         self._root_frame = None
 
         self.__refresh_done = Event()
@@ -90,7 +146,7 @@ class LogicPropertyWidget:
         self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
         if tree_column_widths is None:
-            tree_column_widths = [ui.Pixel(270), ui.Fraction(1)]
+            tree_column_widths = [ui.Pixel(_TREE_COLUMN_WIDTH), ui.Fraction(1)]
         self._tree_column_widths = tree_column_widths
         self._columns_resizable = columns_resizable
         self._right_aligned_labels = right_aligned_labels
@@ -122,78 +178,91 @@ class LogicPropertyWidget:
             raise AttributeError("Need to run __create_ui first.")
         return self._property_delegate.field_builders
 
+    def _compute_path_patterns_for_node(self, node_path: str) -> tuple[list[str], str] | None:
+        """
+        Compute path patterns for target picker based on mesh_HASH ancestor.
+
+        Extracts mesh_HASH path using regex, then shows all its children.
+
+        Returns:
+            Tuple of (path_patterns, mesh_hash_path) or None if no match.
+        """
+        match = re.match(REGEX_MESH_TO_INSTANCE_SUB, node_path)
+        if match:
+            mesh_hash_path = match.group(1)
+            return [f"{mesh_hash_path}/**"], mesh_hash_path
+        return None
+
+    def _build_relationship_ui_metadata(
+        self,
+        node_path: str,
+        attr_name: str,
+    ) -> dict:
+        """
+        Build ui_metadata for a relationship item's picker widget.
+
+        Args:
+            node_path: Path to the OmniGraph node
+            attr_name: Name of the relationship attribute
+
+        Returns:
+            Dict with picker configuration (path_patterns, prim_filter, etc.)
+        """
+        ui_metadata: dict[str, Any] = {
+            "initial_items": 20,
+        }
+
+        # Compute path patterns from node location
+        path_info = self._compute_path_patterns_for_node(node_path)
+        if path_info:
+            path_patterns, mesh_hash_path = path_info
+            ui_metadata["path_patterns"] = path_patterns
+            mesh_hash_name = mesh_hash_path.rsplit("/", 1)[-1]
+
+            def build_header():
+                ui.Label("Selected Prim: ", name="StagePrimPickerHeaderText", width=_LABEL_WIDTH_MD)
+                ui.Label(mesh_hash_name, name="StagePrimPickerHeaderTextBold", width=0)
+
+            ui_metadata["header_text"] = build_header
+            ui_metadata["header_tooltip"] = "Only children of the selected prims can be selected"
+
+        # Get filter types from OmniGraph metadata
+        node = og.get_node_by_path(node_path)
+        if node:
+            target_attr = node.get_attribute(attr_name)
+            if target_attr:
+                filter_prim_types = target_attr.get_metadata("filterPrimTypes") or []
+                if filter_prim_types:
+
+                    def prim_filter(prim):
+                        prim_full_type = prim.GetPrimTypeInfo().GetSchemaType().typeName
+                        return prim_full_type in filter_prim_types
+
+                    ui_metadata["prim_filter"] = prim_filter
+
+        # Add custom row builder with prim type icons
+        icon_map = _get_prim_type_icons()
+        if icon_map:
+            ui_metadata["row_build_fn"] = partial(_build_prim_row_with_icon, icon_map)
+
+        return ui_metadata
+
     def __create_ui(self, field_builders: list[FieldBuilder] | None = None) -> None:
-        """Create the UI components."""
+        """Create the UI components once - PropertyWidget is reused across refreshes to preserve expansion state."""
         self._property_model = _USDPropertyModel(self._context_name)
         self._property_delegate = _USDPropertyDelegate(
             field_builders=field_builders,
             right_aligned_labels=self._right_aligned_labels,
         )
-        self._root_frame = ui.Frame(build_fn=self._build_root_frame)
+        self._root_frame = ui.Frame()
+        with self._root_frame:
+            with ui.VStack():
+                # Dynamic content frame - rebuilt for buttons and existing graphs list
+                self._dynamic_content_frame = ui.Frame(build_fn=self._build_dynamic_content)
 
-    def _get_relative_path(self, path: Sdf.Path, valid_target_paths: list[Sdf.Path]) -> str:
-        """Get the relative path of the given path"""
-        for target_path in valid_target_paths:
-            if path.HasPrefix(target_path):
-                return str(path.MakeRelativePath(target_path))
-        return path.GetName()
-
-    def _build_root_frame(self) -> None:
-        with ui.ZStack():
-            with ui.VStack(height=ui.Pixel(24)):
-                # Check if a logic graph can be created from the selected prims
-                if len(self._valid_target_paths) == 1:
-                    tooltip = "Create a new logic graph for the selected asset"
-                else:
-                    tooltip = (
-                        "Select a prim inside of a mesh or light asset replacement root to create a logic graph.\n\n"
-                        "NOTE: The logic graph will be created on the associated root not the instance prim."
-                    )
-                ui.Button(
-                    "Create a New Logic Graph",
-                    clicked_fn=lambda: self._create_logic_graphs(self._valid_target_paths),
-                    tooltip=tooltip,
-                    enabled=len(self._valid_target_paths) == 1,
-                )
-                # Check if there are any existing logic graphs
-                existing_graphs = LogicGraphCore.get_existing_logic_graphs(
-                    self._context.get_stage(), self._valid_target_paths
-                )
-                for graph in existing_graphs:
-                    with ui.HStack(height=ui.Pixel(24), spacing=0):
-                        relative_path = self._get_relative_path(graph.GetPath(), self._valid_target_paths)
-                        ui.Label(f"{relative_path}", elided_text=True, name="PropertiesWidgetLabel")
-                        ui.Spacer(width=0)
-                        ui.Button(
-                            "Edit",
-                            clicked_fn=partial(self._edit_logic_graph, graph),
-                            tooltip=f"Edit the logic graph: {graph.GetPath()}",
-                            enabled=True,
-                            width=ui.Pixel(80),
-                        )
-                        ui.Spacer(width=0)
-                        ui.Button(
-                            "Delete",
-                            clicked_fn=partial(self._delete_logic_graph, graph),
-                            tooltip=f"Delete the logic graph: {graph.GetPath()}",
-                            enabled=True,
-                            width=ui.Pixel(80),
-                        )
-
-                if self._paths and self._show_node_properties:
-                    # A logic node is selected, so show node info and the property widget
-                    ui.Spacer(height=ui.Pixel(8))
-                    ui.Line(name="PropertiesPaneSectionTitle")
-                    ui.Spacer(height=ui.Pixel(8))
-
-                    with ui.VStack(height=0, spacing=ui.Pixel(8)):
-                        ui.Label(f"Node Type: {self._node_type_label_text}", name="PropertiesWidgetLabel")
-                        if self._node_type_label_description_text:
-                            ui.Label(
-                                self._node_type_label_description_text,
-                                word_wrap=True,
-                            )
-                    ui.Spacer(height=ui.Pixel(8))
+                # Property widget frame - created once, visibility toggled to preserve expansion state
+                self._property_frame = ui.Frame(visible=False)
+                with self._property_frame:
                     self._property_widget = USDPropertyWidget(
                         self._context_name,
                         model=self._property_model,
@@ -202,7 +271,63 @@ class LogicPropertyWidget:
                         columns_resizable=self._columns_resizable,
                         refresh_callback=self.refresh,
                     )
-                ui.Spacer(height=0)
+
+    def _get_relative_path(self, path: Sdf.Path, valid_target_paths: list[Sdf.Path]) -> str:
+        """Get the relative path of the given path"""
+        for target_path in valid_target_paths:
+            if path.HasPrefix(target_path):
+                return str(path.MakeRelativePath(target_path))
+        return path.GetName()
+
+    def _build_dynamic_content(self) -> None:
+        """Build the dynamic content (buttons, existing graphs list, node info labels)."""
+        with ui.VStack(height=0):
+            # Check if a logic graph can be created from the selected prims
+            if len(self._valid_target_paths) == 1:
+                tooltip = "Create a new logic graph for the selected asset"
+            else:
+                tooltip = (
+                    "Select a prim inside of a mesh or light asset replacement root to create a logic graph.\n\n"
+                    "NOTE: The logic graph will be created on the associated root not the instance prim."
+                )
+            ui.Button(
+                "Create a New Logic Graph",
+                clicked_fn=lambda: self._create_logic_graphs(self._valid_target_paths),
+                tooltip=tooltip,
+                enabled=len(self._valid_target_paths) == 1,
+                height=ui.Pixel(_ROW_HEIGHT),
+            )
+            # Check if there are any existing logic graphs
+            existing_graphs = LogicGraphCore.get_existing_logic_graphs(
+                self._context.get_stage(), self._valid_target_paths
+            )
+            for graph in existing_graphs:
+                with ui.HStack(height=ui.Pixel(_ROW_HEIGHT), spacing=0):
+                    relative_path = self._get_relative_path(graph.GetPath(), self._valid_target_paths)
+                    ui.Label(f"Existing Graph: {relative_path}", elided_text=True, name="PropertiesWidgetLabel")
+                    ui.Spacer(width=0)
+                    ui.Button(
+                        "Edit",
+                        clicked_fn=partial(self._edit_logic_graph, graph),
+                        tooltip=f"Edit the logic graph: {graph.GetPath()}",
+                        enabled=True,
+                        width=ui.Pixel(_BUTTON_WIDTH_SM),
+                    )
+
+            if self._paths and self._show_node_properties:
+                # A logic node is selected, so show node info
+                ui.Spacer(height=ui.Pixel(_SPACING_MD))
+                ui.Line(name="PropertiesPaneSectionTitle")
+                ui.Spacer(height=ui.Pixel(_SPACING_MD))
+
+                with ui.VStack(height=0, spacing=ui.Pixel(_SPACING_MD)):
+                    ui.Label(f"Node Type: {self._node_type_label_text}", name="PropertiesWidgetLabel")
+                    if self._node_type_label_description_text:
+                        ui.Label(
+                            self._node_type_label_description_text,
+                            word_wrap=True,
+                        )
+                ui.Spacer(height=ui.Pixel(_SPACING_MD))
 
     def refresh(
         self,
@@ -242,11 +367,15 @@ class LogicPropertyWidget:
         # Wait 1 frame to make sure the USD is up-to-date
         await omni.kit.app.get_app().next_update_async()
 
+        # Check if widget is being destroyed
+        if not self._context:
+            return
+
         if self.__usd_listener_instance and self._property_model:  # noqa PLE0203
             self.__usd_listener_instance.remove_model(self._property_model)  # noqa PLE0203
 
         stage: Usd.Stage = self._context.get_stage()
-        items: list[ItemGroup | USDAttributeItem | USDAttrListItem] = []
+        items: list[ItemGroup | USDAttributeItem | USDAttrListItem | USDRelationshipItem] = []
         valid_paths: list[Sdf.Path] = []
 
         self._node_type_label_text = "No valid node type selected"
@@ -260,7 +389,7 @@ class LogicPropertyWidget:
             attr_added: dict[str, list[tuple[Usd.Prim, og.Attribute]]] = {}
 
             if prims is None:
-                prims = []
+                prims = [stage.GetPrimAtPath(path) for path in self._paths]
 
             for prim in prims:
                 if not prim.IsValid():
@@ -350,20 +479,30 @@ class LogicPropertyWidget:
                 if attr_name.startswith(OGN_ATTR_PREFIX_INPUTS):
                     read_only = False
 
-                # TODO: Add support for target relationships (REMIX-4245)
-                if attr.get_type_name() == "target":
-                    continue  # skip for now
+                is_relationship = is_property_relationship(stage, attribute_paths[0])
 
-                value_type_name = None
-                ogn_type: og.AttributeType = attr.get_attribute_data().get_type()
-                value_type_name_str: str = og.AttributeType.sdf_type_name_from_type(ogn_type)
-                if value_type_name_str:
-                    value_type_name = Sdf.ValueTypeNames.Find(value_type_name_str)
-                if not value_type_name:
-                    value_type_name = Sdf.ValueTypeNames.String
+                if is_relationship:
+                    # Build prim picker configuration (filters, path patterns, pagination, etc.)
+                    node_path = str(prim.GetPath())
+                    ui_metadata = self._build_relationship_ui_metadata(node_path, attr_name)
 
-                # Create an attribute item to manage all attribute paths
-                if options:
+                    attr_item = USDRelationshipItem(
+                        self._context_name,
+                        attribute_paths,
+                        display_attr_names=[display_name],
+                        display_attr_names_tooltip=[tooltip],
+                        read_only=read_only,
+                        ui_metadata=ui_metadata,
+                    )
+                elif options:
+                    value_type_name = None
+                    ogn_type: og.AttributeType = attr.get_attribute_data().get_type()
+                    value_type_name_str: str = og.AttributeType.sdf_type_name_from_type(ogn_type)
+                    if value_type_name_str:
+                        value_type_name = Sdf.ValueTypeNames.Find(value_type_name_str)
+                    if not value_type_name:
+                        value_type_name = Sdf.ValueTypeNames.String
+
                     attr_item = USDAttrListItem(
                         self._context_name,
                         attribute_paths,
@@ -375,6 +514,14 @@ class LogicPropertyWidget:
                         display_attr_names_tooltip=[tooltip],
                     )
                 else:
+                    value_type_name = None
+                    ogn_type: og.AttributeType = attr.get_attribute_data().get_type()
+                    value_type_name_str: str = og.AttributeType.sdf_type_name_from_type(ogn_type)
+                    if value_type_name_str:
+                        value_type_name = Sdf.ValueTypeNames.Find(value_type_name_str)
+                    if not value_type_name:
+                        value_type_name = Sdf.ValueTypeNames.String
+
                     attr_item = USDAttributeItem(
                         self._context_name,
                         attribute_paths,
@@ -386,7 +533,7 @@ class LogicPropertyWidget:
 
                 # Collect items by group (but don't add to items list yet)
                 if group_name not in group_items:
-                    group_items[group_name] = ItemGroup(group_name)
+                    group_items[group_name] = ItemGroup(group_name, expanded=True)
                 group_items[group_name].children.append(attr_item)
 
             # Add groups to items in the specified order
@@ -404,7 +551,12 @@ class LogicPropertyWidget:
         if self.__usd_listener_instance:
             self.__usd_listener_instance.add_model(self._property_model)
 
-        self._root_frame.rebuild()
+        # Rebuild only the dynamic content (buttons, graphs list, labels)
+        self._dynamic_content_frame.rebuild()
+
+        # Toggle property widget visibility - PropertyWidget instance is preserved to retain expansion state
+        show_properties = bool(self._paths and self._show_node_properties)
+        self._property_frame.visible = show_properties
 
         self._refresh_done()
 
@@ -495,4 +647,6 @@ class LogicPropertyWidget:
         self._property_delegate = None
         self._property_model = None
         self._property_widget = None
+        self._property_frame = None
+        self._dynamic_content_frame = None
         self._root_frame = None

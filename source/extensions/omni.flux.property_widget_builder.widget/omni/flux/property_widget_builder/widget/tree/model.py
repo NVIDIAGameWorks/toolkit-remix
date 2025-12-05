@@ -121,18 +121,33 @@ class Item(_TreeItemBase):
 class ItemGroup(Item):
     """Item Group of the model"""
 
-    def __init__(self, name):
+    def __init__(self, name: str, expanded: bool = False):
+        """
+        Create an item group.
+
+        Args:
+            name: Display name for the group
+            expanded: Whether the group should be expanded by default
+        """
         super().__init__()
         self._name_models = [_ItemGroupNameModel(name)]
+        self._expanded = expanded
 
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
-        return super().default_attr
+        default = super().default_attr
+        default.update({"_expanded": None})
+        return default
 
     @property
     def can_have_children(self) -> bool:
         return True
+
+    @property
+    def expanded(self) -> bool:
+        """Whether this group should be expanded by default."""
+        return self._expanded
 
 
 class Model(_TreeModelBase[_TreeItemBase]):

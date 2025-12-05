@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.26.1]
+### Changed
+- Added styling for StagePrimPicker UI components
+
 ## [1.26.0]
 ### Added
 - Added LogicGraphWidgetPlugin Widget to the Stage Manager via schema configuration

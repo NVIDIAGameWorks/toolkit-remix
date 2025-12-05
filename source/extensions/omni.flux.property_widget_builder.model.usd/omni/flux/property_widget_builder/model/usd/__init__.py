@@ -31,6 +31,7 @@ __all__ = [
     "USDAttributeXformItem",
     "USDAttrListItem",
     "VirtualUSDAttrListItem",
+    "USDRelationshipItem",
     "USDDelegate",
     "USDBuilderList",
     "USDMetadataListItem",
@@ -54,6 +55,7 @@ from .items import (
     USDAttributeXformItemStub,
     USDAttrListItem,
     USDMetadataListItem,
+    USDRelationshipItem,
     VirtualUSDAttributeItem,
     VirtualUSDAttrListItem,
 )

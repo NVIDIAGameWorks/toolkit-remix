@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.1]
+### Changed
+- Updated to use centralized `get_prim_type_icons()` from `omni.flux.utils.common`
+
 ## [2.3.0]
 ## Added
 - Added icon support for prims tab

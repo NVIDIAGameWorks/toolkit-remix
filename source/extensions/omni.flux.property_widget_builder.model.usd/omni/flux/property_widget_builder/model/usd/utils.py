@@ -151,6 +151,79 @@ async def delete_layer_override_async(layer, attribute, context_name=""):
     cleanup_prims_recursive(prim_spec)
 
 
+def is_property_relationship(stage: Usd.Stage, property_path: Sdf.Path) -> bool:
+    """
+    Check if a property path refers to a relationship vs attribute.
+
+    Args:
+        stage: USD stage
+        property_path: Path to property (e.g., '/Prim.propName')
+
+    Returns:
+        True if property is a relationship, False if attribute or invalid
+    """
+    prim = stage.GetPrimAtPath(property_path.GetPrimPath())
+    if not prim.IsValid():
+        return False
+
+    rel = prim.GetRelationship(property_path.name)
+    return rel is not None and rel.IsValid()
+
+
+def get_item_relationships(stage: Usd.Stage, relationship_paths: list[Sdf.Path]) -> list[Usd.Relationship]:
+    """
+    Get USD Relationships from paths (parallel to get_item_attributes).
+
+    Args:
+        stage: USD stage
+        relationship_paths: Paths to relationships
+
+    Returns:
+        List of Usd.Relationship objects
+    """
+    relationships = []
+    for rel_path in relationship_paths:
+        prim = stage.GetPrimAtPath(rel_path.GetPrimPath())
+        if prim.IsValid():
+            rel = prim.GetRelationship(rel_path.name)
+            if rel and rel.IsValid():
+                relationships.append(rel)
+    return relationships
+
+
+def is_relationship_overridden(stage: Usd.Stage, relationships: list[Usd.Relationship]) -> bool:
+    """
+    Check if any relationship has overrides in sublayers (parallel to is_item_overriden).
+
+    Args:
+        stage: USD stage
+        relationships: List of relationships to check
+
+    Returns:
+        True if any relationship has sublayer overrides
+    """
+    if not stage or not relationships:
+        return False
+
+    sub_layers = _LayerUtils.get_all_sublayers(stage, include_session_layers=True, include_anonymous_layers=False)
+
+    for relationship in relationships:
+        if not relationship or not relationship.IsValid():
+            continue
+
+        root_layer = stage.GetRootLayer()
+        for layer_id in sub_layers:
+            if layer_id == root_layer.identifier:
+                continue
+            layer = Sdf.Layer.Find(layer_id)
+            if layer:
+                rel_spec = layer.GetRelationshipAtPath(relationship.GetPath())
+                if rel_spec:
+                    return True
+
+    return False
+
+
 def filter_virtual_attributes(virtual_attrs: list[list[tuple[list[Any], list[Any]]]], existing_attrs: list[Any]):
     """
     Figure out the virtual attributes to create and which ones already exist

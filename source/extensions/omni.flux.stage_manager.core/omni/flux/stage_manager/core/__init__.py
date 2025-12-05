@@ -15,7 +15,12 @@
 * limitations under the License.
 """
 
-__all__ = ["StageManagerCore", "StageManagerSchema", "get_instance", "set_instance"]
+__all__ = [
+    "StageManagerCore",
+    "StageManagerSchema",
+    "get_instance",
+    "set_instance",
+]
 
 from .core import StageManagerCore, get_instance, set_instance
 from .schema import StageManagerSchema

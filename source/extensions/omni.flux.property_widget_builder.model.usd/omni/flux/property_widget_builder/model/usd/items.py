@@ -89,6 +89,26 @@ class _BaseUSDAttributeItem(_Item):
         )
         return default_attr
 
+    @property
+    def attribute_paths(self) -> List[Sdf.Path]:
+        """
+        Get the attribute/property paths this item represents.
+
+        Returns:
+            List of USD property paths
+        """
+        return self._attribute_paths
+
+    @property
+    def context_name(self) -> str:
+        """
+        Get the USD context name for this item.
+
+        Returns:
+            USD context name string
+        """
+        return self._context_name
+
     def set_display_attr_names(self, display_attr_names: List[str]):
         """
         Set the display name of the attributes
@@ -726,3 +746,94 @@ class USDAttributeXformItemStub(USDAttributeItemStub):
                     context_name=self._context_name,
                     stage=self._stage,
                 )
+
+
+class USDRelationshipItem(_BaseUSDAttributeItem):
+    """
+    Item representing USD relationship properties.
+
+    Parallel to USDAttributeItem but uses UsdRelationshipValueModel.
+    Relationships are always single-target (element_count = 1).
+    """
+
+    def __init__(
+        self,
+        context_name: str,
+        relationship_paths: List[Sdf.Path],
+        display_attr_names: Optional[List[str]] = None,
+        display_attr_names_tooltip: Optional[List[str]] = None,
+        read_only: bool = False,
+        ui_metadata: Optional[dict[str, Any]] = None,
+    ):
+        """
+        Create relationship item.
+
+        Args:
+            context_name: USD context name
+            relationship_paths: Paths to relationship properties
+            display_attr_names: Display names for property
+            display_attr_names_tooltip: Tooltips for property
+            read_only: Whether relationship can be edited
+            ui_metadata: Optional dict of UI hints for field builders (e.g., picker config).
+                        Framework stores this opaquely; consumers interpret it.
+        """
+        super().__init__(context_name, relationship_paths)
+
+        self._element_count = 1
+        self._ui_metadata = ui_metadata or {}
+
+        self._init_name_models(context_name, relationship_paths, display_attr_names, display_attr_names_tooltip)
+        self._init_value_models(context_name, relationship_paths, read_only)
+
+    @property
+    @abc.abstractmethod
+    def default_attr(self) -> dict[str, None]:
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "_element_count": 1,
+                "_name_models": None,
+                "_value_models": None,
+                "_ui_metadata": None,
+            }
+        )
+        return default_attr
+
+    @property
+    def ui_metadata(self) -> dict[str, Any]:
+        """
+        Get UI metadata hints for field builders.
+
+        Returns:
+            Dict of UI hints (e.g., picker configuration). Framework stores
+            this opaquely; consumers interpret the contents.
+        """
+        return self._ui_metadata
+
+    def _init_name_models(self, context_name, relationship_paths, display_attr_names, display_attr_names_tooltip):
+        """Create name models for relationship display."""
+        self._name_models = [
+            _UsdAttributeNameModel(
+                context_name,
+                relationship_paths[0],
+                0,
+                display_attr_name=display_attr_names[0] if display_attr_names else None,
+                display_attr_name_tooltip=display_attr_names_tooltip[0] if display_attr_names_tooltip else None,
+            )
+        ]
+
+    def _init_value_models(self, context_name, relationship_paths, read_only):
+        """Create relationship value model."""
+        from .item_model.relationship_value import UsdRelationshipValueModel
+
+        self._value_models = [
+            UsdRelationshipValueModel(
+                context_name,
+                relationship_paths,
+                read_only=read_only,
+            )
+        ]
+
+    @property
+    def element_count(self) -> int:
+        return 1

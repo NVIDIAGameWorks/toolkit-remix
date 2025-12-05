@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4576: Added icon support for prims tab
 - Small improvements for Remix Logic: added delete button, hid unused ui, stage manager refresh filtering
 - REMIX-4719: Added Stage Manager Remix Logic Graph Interaction Action Plugin, And Logic Graph Filter
+- REMIX-4245: Added a generic Stage Prim Picker widget and implemented it in the Remix Logic Properties Panel.
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
@@ -38,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update hdremix and omni_core_materials to ext-2c10e95-main
 - REMIX-4721: Reimplemented Sidebar using ui.ToolBar for improved docking behavior
 - REMIX-4715: Make "Edit Graph" dialog a bit easier to use
+- Centralized prim type icon mappings in omni.flux.utils.common for reuse across extensions
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths
@@ -46,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4749: Fix symlink validation and repair when no deps dir exists
 - Set build jobs to run against GPU agents
 - Fixed code formatting and lint errors across multiple extensions
+- REMIX-4593: Fixed logic graph and particle properties panel not preserving expansion state across refreshes
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension
