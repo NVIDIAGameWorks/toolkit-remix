@@ -33,15 +33,10 @@ import omni.kit.notification_manager as nm
 import omni.ui as ui
 from lightspeed.common.constants import GlobalEventNames, WindowNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
-from omni.graph.window.core import (
-    OmniGraphActions,
-    OmniGraphCatalogTreeDelegate,
-    OmniGraphHotkeys,
-    graph_config,
-    register_stage_graph_opener,
-)
+from omni.graph.window.core import OmniGraphCatalogTreeDelegate, graph_config, register_stage_graph_opener
 from pxr import Sdf, Usd
 
+from .actions import RemixLogicGraphActions, RemixLogicGraphHotkeys
 from .catalog_model import OmniGraphNodeQuickSearchModel
 from .graph_widget import RemixLogicGraphWidget
 from .graph_window import RemixLogicGraphWindow
@@ -88,9 +83,9 @@ class RemixLogicGraphExtension(omni.ext.IExt):
         self._quicksearch_pos = (None, None)
         self._stage_opener_sub = None
 
-        # Use the default OG actions and hotkeys, unmodified.
-        self._actions = OmniGraphActions(ext_id, filter_fn=self._make_paste_filter())
-        self._hotkeys = OmniGraphHotkeys(ext_id, WindowNames.REMIX_LOGIC_GRAPH)
+        # Use extended actions and hotkeys that include select all, select none, and delete selection.
+        self._actions = RemixLogicGraphActions(ext_id, filter_fn=self._make_paste_filter())
+        self._hotkeys = RemixLogicGraphHotkeys(ext_id, WindowNames.REMIX_LOGIC_GRAPH)
 
         self._workspace = RemixLogicGraphWorkspaceWindow()
         self._workspace.create_window()
