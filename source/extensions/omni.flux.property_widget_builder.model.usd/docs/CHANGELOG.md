@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.21.1]
+### Changed
+- Code formatting improvements
+
 ## [2.21.0]
 ### Added
 - Added USD relationship support with USDRelationshipItem and UsdRelationshipValueModel classes

@@ -122,7 +122,7 @@ class FilePicker(AbstractField):
         """
         # Open the file picker to current asset location
         fallback = False
-        if not _path_utils.is_file_path_valid(path):
+        if not _path_utils.is_file_path_valid(path, log_error=False):
             fallback = True
             path = None
         return fallback, path

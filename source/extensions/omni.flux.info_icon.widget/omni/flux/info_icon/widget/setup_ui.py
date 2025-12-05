@@ -33,23 +33,37 @@ class InfoIconWidget:
 
     __DEFAULT_UI_ICON_SIZE_PIXEL = 16
 
-    def __init__(self, message: str, icon_size: int = __DEFAULT_UI_ICON_SIZE_PIXEL):
+    def __init__(
+        self,
+        message: str,
+        icon_size: int = __DEFAULT_UI_ICON_SIZE_PIXEL,
+        max_width: int | None = None,
+    ):
         """
         Create an info icon widget
 
         Args:
             message: what to show in a tooltip when hovering the i icon
+            icon_size: size of the info icon in pixels
+            max_width: optional max width for the tooltip (enables word wrap)
 
         Returns:
             The info icon object
         """
 
-        self._default_attr = {"_message": None, "_icon_size": None, "_info_image": None, "_tooltip": None}
+        self._default_attr = {
+            "_message": None,
+            "_icon_size": None,
+            "_max_width": None,
+            "_info_image": None,
+            "_tooltip": None,
+        }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
         self._message = message
         self._icon_size = icon_size
+        self._max_width = max_width
         self.__create_ui()
 
     def __create_ui(self):
@@ -60,7 +74,7 @@ class InfoIconWidget:
             tooltip="",
             identifier="info_icon_image_id",
         )
-        self._tooltip = TooltipWidget(self._info_image, self._message)
+        self._tooltip = TooltipWidget(self._info_image, self._message, max_width=self._max_width)
 
     def destroy(self):
         _reset_default_attrs(self)
@@ -69,14 +83,19 @@ class InfoIconWidget:
 class TooltipWidget:
     """Add a nice tooltip to any widget"""
 
-    def __init__(self, widget: ui.Widget, message: str):
+    def __init__(self, widget: ui.Widget, message: str, max_width: int | None = None):
 
-        self._default_attr = {"_message": None, "_tooltip_window": None}
+        self._default_attr = {
+            "_message": None,
+            "_max_width": None,
+            "_tooltip_window": None,
+        }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
         self._widget = widget
         self._message = message
+        self._max_width = max_width
 
         self._tooltip_window = None
 
@@ -111,9 +130,13 @@ class TooltipWidget:
         flags |= ui.WINDOW_FLAGS_NO_COLLAPSE
         flags |= ui.WINDOW_FLAGS_NO_CLOSE
         flags |= ui.WINDOW_FLAGS_NO_SCROLLBAR
+
+        # Use max_width if specified, otherwise default to 600
+        initial_width = self._max_width if self._max_width else 600
+
         self._tooltip_window = ui.Window(
             "Context Info",
-            width=600,
+            width=initial_width,
             height=100,
             visible=True,
             flags=flags,
@@ -129,13 +152,26 @@ class TooltipWidget:
                     ui.Spacer(width=ui.Pixel(8))
                     with ui.VStack():
                         ui.Spacer(height=ui.Pixel(8))
-                        label = ui.Label(tooltip, height=0, width=0, identifier="context_tooltip")
+                        # Enable word_wrap if max_width is set to constrain text
+                        if self._max_width:
+                            label = ui.Label(
+                                tooltip,
+                                height=0,
+                                word_wrap=True,
+                                identifier="context_tooltip",
+                            )
+                        else:
+                            label = ui.Label(tooltip, height=0, width=0, identifier="context_tooltip")
                         ui.Spacer(height=ui.Pixel(8))
                     ui.Spacer(width=ui.Pixel(8))
 
         await omni.kit.app.get_app().next_update_async()
 
-        self._tooltip_window.width = label.computed_width + 24
+        # With max_width, keep the window at that width; otherwise size to content
+        if self._max_width:
+            self._tooltip_window.width = self._max_width
+        else:
+            self._tooltip_window.width = label.computed_width + 24
         self._tooltip_window.height = label.computed_height + 24
 
         app_window = omni.appwindow.get_default_app_window()
@@ -195,7 +231,10 @@ class SelectableToolTipWidget:
             # self._mouse_sub = self._carb_input.subscribe_to_mouse_events(self._mouse, self._on_mouse_input)
             self._mouse = omni.appwindow.get_default_app_window().get_mouse()
             self._input_sub_id = self._carb_input.subscribe_to_input_events(
-                self._on_input_event, carb.input.MouseEventType.MOVE, self._mouse, order=0
+                self._on_input_event,
+                carb.input.MouseEventType.MOVE,
+                self._mouse,
+                order=0,
             )
 
         self._default_style = _style

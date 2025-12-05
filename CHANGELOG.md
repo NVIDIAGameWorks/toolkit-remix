@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Set build jobs to run against GPU agents
 - Fixed code formatting and lint errors across multiple extensions
 - REMIX-4593: Fixed logic graph and particle properties panel not preserving expansion state across refreshes
+- Improved a few UX issues with the Logic Properties pane
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension

@@ -143,7 +143,6 @@ class AssetReplacementsPane(_WorkspaceWidget):
         with self.root_widget:
             with ui.ScrollingFrame(
                 name="WorkspaceBackground",
-                horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
             ):
                 with ui.VStack():
                     ui.Spacer(height=ui.Pixel(5))
