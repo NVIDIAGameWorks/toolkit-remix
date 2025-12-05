@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Small improvements for Remix Logic: added delete button, hid unused ui, stage manager refresh filtering
 - REMIX-4719: Added Stage Manager Remix Logic Graph Interaction Action Plugin, And Logic Graph Filter
 - REMIX-4245: Added a generic Stage Prim Picker widget and implemented it in the Remix Logic Properties Panel.
+- REMIX-4774: Added select all, select none, and delete selection actions & hotkeys to the Remix Logic Graph Editor
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
