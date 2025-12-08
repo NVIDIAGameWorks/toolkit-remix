@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "2.4.0"
+version = "2.4.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -53,6 +53,7 @@ dependencies = [
     "lightspeed.trex.tests.dependencies",
     "lightspeed.trex.stage_manager.plugin.tree.usd",
     "omni.flux.stage_manager.factory",
+    "lightspeed.trex.logic.core",
 ]
 
 stdoutFailPatterns.exclude = [
@@ -64,4 +65,5 @@ stdoutFailPatterns.exclude = [
 name = "startup"
 dependencies = [
     "lightspeed.trex.tests.dependencies",
+    "lightspeed.trex.logic.core",
 ]
