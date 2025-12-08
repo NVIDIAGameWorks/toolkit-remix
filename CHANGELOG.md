@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4593: Fixed logic graph and particle properties panel not preserving expansion state across refreshes
 - Improved a few UX issues with the Logic Properties pane
 - REMIX-4766: Added input validation to ensure a valid graph prim name is provided for new graphs
+- REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension
