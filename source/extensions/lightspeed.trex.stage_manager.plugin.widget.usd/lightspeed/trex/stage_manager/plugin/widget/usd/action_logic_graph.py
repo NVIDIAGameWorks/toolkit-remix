@@ -18,8 +18,9 @@
 __all__ = ["LogicGraphWidgetPlugin"]
 
 import omni.kit.commands
-from lightspeed.common.constants import GlobalEventNames
+from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE, OMNI_GRAPH_TYPE, GlobalEventNames
 from lightspeed.events_manager import get_instance
+from lightspeed.trex.logic.core.graphs import LogicGraphCore
 from lightspeed.trex.utils.common import prim_utils
 from omni import ui
 from omni.flux.stage_manager.factory.plugins import StageManagerMenuMixin
@@ -27,8 +28,6 @@ from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTree
 from omni.flux.stage_manager.plugin.widget.usd.base import StageManagerStateWidgetPlugin
 from omni.flux.utils.common.menus import MenuGroup, MenuItem
 from omni.flux.utils.widget.resources import get_icons
-from OmniGraphSchema import OmniGraph
-from pxr import UsdGeom
 
 
 class LogicGraphWidgetPlugin(StageManagerStateWidgetPlugin, StageManagerMenuMixin):
@@ -49,9 +48,7 @@ class LogicGraphWidgetPlugin(StageManagerStateWidgetPlugin, StageManagerMenuMixi
     @classmethod
     def _create_logic_graph(cls, payload: dict) -> None:
         prim = payload["right_clicked_item"].data
-        if prim_utils.is_instance(prim):
-            prim = prim_utils.get_prototype(prim)
-
+        prim = LogicGraphCore.get_graph_root_prim(prim)
         event_man = get_instance()
         event_man.call_global_custom_event(GlobalEventNames.LOGIC_GRAPH_CREATE_REQUEST.value, prim)
 
@@ -75,14 +72,14 @@ class LogicGraphWidgetPlugin(StageManagerStateWidgetPlugin, StageManagerMenuMixi
     @classmethod
     def _is_a_valid_graph_parent(cls, payload: dict) -> bool:
         prim = payload["right_clicked_item"].data
+        if prim.GetTypeName() in {OMNI_GRAPH_TYPE, OMNI_GRAPH_NODE_TYPE}:
+            return False
+        prim = LogicGraphCore.get_graph_root_prim(prim)
 
-        if prim_utils.is_instance(prim):
-            prim = prim_utils.get_prototype(prim)
+        if not prim:
+            return False
 
-        if prim.IsA(UsdGeom.Mesh) and prim_utils.is_in_mesh_group(prim):
-            return True
-
-        return False
+        return True
 
     @classmethod
     def _is_an_omnigraph_prim(cls, payload: dict) -> bool:
@@ -90,7 +87,7 @@ class LogicGraphWidgetPlugin(StageManagerStateWidgetPlugin, StageManagerMenuMixi
         if prim_utils.is_instance(prim):
             prim = prim_utils.get_prototype(prim)
 
-        if prim.IsA(OmniGraph):
+        if prim.GetTypeName() == OMNI_GRAPH_TYPE:
             return True
 
         return False

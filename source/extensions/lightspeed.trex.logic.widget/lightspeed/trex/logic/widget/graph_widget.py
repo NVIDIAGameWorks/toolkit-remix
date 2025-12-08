@@ -84,7 +84,7 @@ class RemixLogicGraphWidget(OmniGraphWidget):
                 return
             raise ValueError(error_message)
 
-        graph_root_path = prim.GetPath()
+        graph_root_path = graph_root_prim.GetPath()
 
         def create_and_load_graph_at_path(graph_root_path: Sdf.Path, name_prefix: str):
             graph_path = LogicGraphCore.create_graph_at_path(stage, graph_root_path, name_prefix, evaluator_type)
