@@ -23,26 +23,6 @@
             "children": [
               {
                 "dock_id": 3,
-                "height": 874.4000244140625,
-                "position_x": 795.2000122070312,
-                "position_y": 436.8000183105469,
-                "selected_in_dock": false,
-                "title": "Captures",
-                "visible": true,
-                "width": 492.8000183105469
-              },
-              {
-                "dock_id": 3,
-                "height": 874.4000244140625,
-                "position_x": 795.2000122070312,
-                "position_y": 436.8000183105469,
-                "selected_in_dock": false,
-                "title": "Project Setup",
-                "visible": true,
-                "width": 492.8000183105469
-              },
-              {
-                "dock_id": 3,
                 "dock_tab_bar_enabled": true,
                 "dock_tab_bar_visible": true,
                 "height": 874.4000244140625,
@@ -65,20 +45,10 @@
                     "dock_id": 5,
                     "dock_tab_bar_enabled": true,
                     "dock_tab_bar_visible": true,
-                    "height": 488.8000183105469,
+                    "height": 874.4000244140625,
                     "position_x": 555.2000122070312,
                     "position_y": 24.80000114440918,
                     "selected_in_dock": true,
-                    "title": "Viewport",
-                    "visible": true,
-                    "width": 1060.800048828125
-                  },
-                  {
-                    "dock_id": 5,
-                    "height": 488.8000183105469,
-                    "position_x": 555.2000122070312,
-                    "position_y": 24.80000114440918,
-                    "selected_in_dock": false,
                     "title": "Remix Logic Graph Editor",
                     "visible": true,
                     "width": 1060.800048828125
@@ -88,20 +58,7 @@
                 "position": "TOP"
               },
               {
-                "children": [
-                  {
-                    "dock_id": 6,
-                    "dock_tab_bar_enabled": true,
-                    "dock_tab_bar_visible": true,
-                    "height": 382.3999938964844,
-                    "position_x": 555.2000122070312,
-                    "position_y": 516.7999877929688,
-                    "selected_in_dock": true,
-                    "title": "Stage Manager",
-                    "visible": true,
-                    "width": 1060.800048828125
-                  }
-                ],
+                "children": [],
                 "dock_id": 6,
                 "position": "BOTTOM"
               }
@@ -118,11 +75,63 @@
   },
   {
     "dock_id": 0,
+    "dock_tab_bar_enabled": true,
+    "dock_tab_bar_visible": true,
+    "height": 326.3999938964844,
+    "position_x": 555.2000122070312,
+    "position_y": 572.7999877929688,
+    "selected_in_dock": true,
+    "title": "Stage Manager",
+    "visible": false,
+    "width": 1060.800048828125
+  },
+  {
+    "dock_id": 0,
+    "height": 874.4000244140625,
+    "position_x": 59.20000076293945,
+    "position_y": 24.80000114440918,
+    "selected_in_dock": false,
+    "title": "Captures",
+    "visible": false,
+    "width": 492.8000183105469
+  },
+  {
+    "dock_id": 0,
+    "height": 874.4000244140625,
+    "position_x": 59.20000076293945,
+    "position_y": 24.80000114440918,
+    "selected_in_dock": false,
+    "title": "Project Setup",
+    "visible": false,
+    "width": 492.8000183105469
+  },
+  {
+    "dock_id": 0,
+    "height": 488.0,
+    "position_x": 555.2000122070312,
+    "position_y": 24.80000114440918,
+    "selected_in_dock": false,
+    "title": "Viewport",
+    "visible": false,
+    "width": 1060.800048828125
+  },
+  {
+    "dock_id": 0,
     "height": 896.7999877929688,
     "position_x": 59.20000076293945,
     "position_y": 3.200000047683716,
     "selected_in_dock": false,
     "title": "Home Page",
+    "visible": false,
+    "width": 1556.800048828125
+  },
+  {
+    "dock_id": 0,
+    "height": 874.4000244140625,
+    "position_x": 59.20000076293945,
+    "position_y": 24.80000114440918,
+    "selected_in_dock": false,
+    "title": "Ingestion",
     "visible": false,
     "width": 1556.800048828125
   },
@@ -165,16 +174,6 @@
     "title": "Optional Features",
     "visible": false,
     "width": 500.0
-  },
-  {
-    "dock_id": 0,
-    "height": 600.0,
-    "position_x": 3.4028234663852886e+38,
-    "position_y": 3.4028234663852886e+38,
-    "selected_in_dock": false,
-    "title": "Ingestion",
-    "visible": false,
-    "width": 400.0
   },
   {
     "dock_id": 0,
@@ -245,6 +244,26 @@
     "title": "Select Graph To Open",
     "visible": false,
     "width": 800.0
+  },
+  {
+    "dock_id": 0,
+    "height": 575.0,
+    "position_x": 3.4028234663852886e+38,
+    "position_y": 3.4028234663852886e+38,
+    "selected_in_dock": false,
+    "title": "Scan Directory for Input Files",
+    "visible": false,
+    "width": 550.0
+  },
+  {
+    "dock_id": 0,
+    "height": 102.4000015258789,
+    "position_x": 508.0,
+    "position_y": 398.3999938964844,
+    "selected_in_dock": false,
+    "title": "Save Project?",
+    "visible": false,
+    "width": 600.0
   },
   {
     "dock_id": 0,
