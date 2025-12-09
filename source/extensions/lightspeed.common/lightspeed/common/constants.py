@@ -609,3 +609,4 @@ class LayoutFiles(str, Enum):
     INGESTCRAFT = "ingestcraft_default_layout"
     TEXTURECRAFT = "texturecraft_default_layout"
     PACKAGING = "packaging_default_layout"
+    LOGIC_GRAPH = "logic_default_layout"

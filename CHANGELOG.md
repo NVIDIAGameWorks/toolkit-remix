@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4245: Added a generic Stage Prim Picker widget and implemented it in the Remix Logic Properties Panel.
 - REMIX-4774: Added select all, select none, and delete selection actions & hotkeys to the Remix Logic Graph Editor
 - REMIX-4792: Added a badge to the Additional Filters button to show the number of modified filters
+- REMIX-4813: Added Logic Graph sidebar button for quick layout switching with dedicated Logic Graph layout
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main

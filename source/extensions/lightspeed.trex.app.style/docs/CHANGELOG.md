@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.19.1]
+### Added
+- Added sidebar icons with hover, selected, and disabled states for Logic Graph button
+
 ## [1.19.0]
 ### Added
 - Added styling for StagePrimPicker dropdown and field components
