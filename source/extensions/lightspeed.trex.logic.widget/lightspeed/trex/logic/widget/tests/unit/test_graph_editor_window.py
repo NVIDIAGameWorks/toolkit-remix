@@ -178,6 +178,7 @@ class TestOgWindowComponentUI(OmniUiTest):
             golden_img_name="lightspeed.trex.logic.widget.test_simple_graph.png",
         )
 
+    @unittest.skip("Skipping test_compound_nodes. Compound subgraphs are disabled via monkey patch for now.")
     @unittest.skipIf(os.name == "posix" and os.getenv("ETM_ACTIVE"), "OM-79384: Skip test in Linux ETM")
     @unittest.skipIf(not _is_kit_version_or_greater((105, 1)), "105.1 required for compound subgraphs")
     async def test_compound_nodes(self):
@@ -204,6 +205,7 @@ class TestOgWindowComponentUI(OmniUiTest):
             golden_img_name="lightspeed.trex.logic.widget.test_compound_nodes.png",
         )
 
+    @unittest.skip("Skipping test_enter_compound. Compound subgraphs are disabled via monkey patch for now.")
     @unittest.skipIf(os.name == "posix" and os.getenv("ETM_ACTIVE"), "OM-79384: Skip test in Linux ETM")
     @unittest.skipIf(not _is_kit_version_or_greater((105, 1)), "105.1 required for compound subgraphs")
     async def test_enter_compound(self):
@@ -278,6 +280,7 @@ class TestOgWindowComponentUI(OmniUiTest):
             golden_img_name=f"lightspeed.trex.logic.widget.{test_name}.png",
         )
 
+    @unittest.skip("Skipping test_compound_no_connections. Compound subgraphs are disabled via monkey patch for now.")
     @unittest.skipIf(os.name == "posix" and os.getenv("ETM_ACTIVE"), "OM-79384: Skip test in Linux ETM")
     @unittest.skipIf(not _is_kit_version_or_greater((105, 1)), "105.1 required for compound subgraphs")
     async def test_compound_no_connections(self):
@@ -308,6 +311,7 @@ class TestOgWindowComponentUI(OmniUiTest):
             create_graph, [f"{self.TEST_GRAPH_PATH}/compound"], "compound_no_connections"
         )
 
+    @unittest.skip("Skipping test_enter_nested_compound. Compound subgraphs are disabled via monkey patch for now.")
     @unittest.skipIf(os.name == "posix" and os.getenv("ETM_ACTIVE"), "OM-79384: Skip test in Linux ETM")
     @unittest.skipIf(not _is_kit_version_or_greater((105, 1)), "105.1 required for compound subgraphs")
     async def test_enter_nested_compound(self):
