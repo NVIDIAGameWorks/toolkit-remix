@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Centralized prim type icon mappings in omni.flux.utils.common for reuse across extensions
 - Update hdremix and omni_core_materials to ext-a9cbe4d-main
 - REMIX-4798: Logic Graph Editor: Improved node + port tooltips and added documentation links
+- REMIX-4812: OV Property Window is no longer accessible via the Windows/Property sub menu button
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths
