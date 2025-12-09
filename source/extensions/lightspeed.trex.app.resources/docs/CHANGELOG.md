@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.26.2]
+### Changed
+- Updated menubar_ignore so the Ov Property Window options is no longer visible
+
 ## [1.26.1]
 ### Changed
 - Added styling for StagePrimPicker UI components
