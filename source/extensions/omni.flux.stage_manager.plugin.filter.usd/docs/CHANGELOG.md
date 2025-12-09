@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.4.0]
+### Added
+- Added a badge to the Additional Filters button to show the number of modified filters
+
 ## [2.3.0]
 ### Added
 - Added `AdditionalFilterPlugin`
