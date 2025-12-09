@@ -28,10 +28,12 @@ import omni.ui as ui
 from lightspeed.common.constants import LOGIC_DOCUMENTATION_URL
 from lightspeed.trex.logic.core.graphs import LogicGraphCore
 from omni.flux.utils.dialog import ErrorPopup
+from omni.flux.utils.widget.tree_widget import AlternatingRowWidget, TreeWidget
 from omni.graph.window.core import OmniGraphWidget
 from omni.kit.window.popup_dialog import InputDialog
 from pxr import Sdf, Usd
 
+from .graph_edit_tree import GraphEditTreeDelegate, GraphEditTreeModel
 from .graph_node_delegate import RemixLogicNodeDelegate
 
 EXT_PATH = Path(__file__).parent.parent.parent.parent.parent
@@ -46,6 +48,9 @@ class RemixLogicGraphWidget(OmniGraphWidget):
     def __init__(self, **kwargs):
         graph_delegate = RemixLogicNodeDelegate(self)
         super().__init__(graph_delegate=graph_delegate, **kwargs)
+
+        self._edit_model = GraphEditTreeModel()
+        self._edit_delegate = GraphEditTreeDelegate()
 
     # Overridden Omni Graph methods
 
@@ -196,41 +201,83 @@ class RemixLogicGraphWidget(OmniGraphWidget):
 
         Present a window for the user to select a graph to open
         """
-        window = ui.Window("Select Graph To Open", width=800, height=500, flags=ui.WINDOW_FLAGS_MODAL)
+        window = ui.Window(
+            "Select Graph To Edit",
+            width=800,
+            height=500,
+            flags=ui.WINDOW_FLAGS_MODAL
+            | ui.WINDOW_FLAGS_NO_SCROLLBAR
+            | ui.WINDOW_FLAGS_NO_RESIZE
+            | ui.WINDOW_FLAGS_NO_COLLAPSE,
+        )
 
         def close():
             if window:
                 window.visible = False
 
-        def select_graph(graph: og.Graph):
-            if not graph:
+        def select_graph():
+            if not self._edit_tree.selection:
                 return
-            self._open_graph(graph.get_path_to_graph())
+            self._open_graph(self._edit_tree.selection[-1].prim_path)
             close()
+
+        def selection_changed(items: list):
+            if self._select_button:
+                enabled = len(items) > 0
+                self._select_button.enabled = enabled
+                self._select_button.tooltip = (
+                    "Edit the selected graph" if enabled else "Select a graph to edit in the list above"
+                )
+            if not items:
+                return
+            # Always select the last item in the selection (disable multi-select)
+            self._edit_tree.selection = [items[-1]]
 
         graphs = [g for g in og.get_all_graphs() if self.is_graph_editable(g)]
         graphs.sort(key=lambda g: g.get_path_to_graph())
 
+        self._edit_model.set_items(graphs)
+
         with window.frame:
-            with ui.ScrollingFrame(
-                name="WorkspaceBackground",
-            ):
-                with ui.VStack(
-                    height=0,
-                    spacing=8,
-                    # copy styling override from OmniGraphWidget
-                    style={"VStack::top_level_stack": {"margin": 5}, "Button": {"margin": 0}},
-                ):
-                    for graph in graphs:
-                        with ui.HStack():
-                            ui.Button(
-                                graph.get_path_to_graph(),
-                                name="SdfPathButton",
-                                clicked_fn=partial(select_graph, graph),
-                            )
-                            ui.Spacer(width=0)
-                    if not graphs:
-                        ui.Button("No Graphs Found", clicked_fn=close)
+            with ui.VStack():
+                with ui.ZStack():
+                    alternating_rows = AlternatingRowWidget(
+                        self._edit_delegate.ROW_HEIGHT, self._edit_delegate.ROW_HEIGHT
+                    )
+                    scrolling_frame = ui.ScrollingFrame(
+                        name="TreePanelBackground",
+                        scroll_y_changed_fn=alternating_rows.sync_scrolling_frame,
+                        vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_ON,
+                        horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                    )
+                    with scrolling_frame:
+                        self._edit_tree = TreeWidget(
+                            self._edit_model,
+                            delegate=self._edit_delegate,
+                            root_visible=False,
+                            header_visible=True,
+                            column_widths=[ui.Fraction(1), ui.Fraction(3)],
+                        )
+
+                ui.Spacer(height=ui.Pixel(8))
+
+                button_width = ui.Pixel(100)
+                with ui.HStack(spacing=8, height=0):
+                    ui.Spacer()
+                    self._select_button = ui.Button("Select", clicked_fn=select_graph, width=button_width)
+                    ui.Button("Cancel", clicked_fn=close, width=button_width, tooltip="Close the dialog")
+                ui.Spacer(height=ui.Pixel(4))
+
+            # Force update the select button state
+            selection_changed(self._edit_tree.selection)
+
+            # Sync the frame height when the content size changes
+            scrolling_frame.set_computed_content_size_changed_fn(
+                lambda: alternating_rows.sync_frame_height(self._edit_tree.computed_height)
+            )
+
+            # Subscribe to selection changes to update the select button state
+            self._selection_changed_sub = self._edit_tree.subscribe_selection_changed(selection_changed)
 
     def _on_edit_graph_action(self):
         """Override: Always prompt for selection"""

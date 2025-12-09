@@ -47,6 +47,7 @@ from .workspace import RemixLogicGraphWorkspaceWindow
 
 _extension_instance = None
 _original_show_help_for_node_type = None
+_original_are_compounds_enabled = None
 
 
 @lru_cache
@@ -152,6 +153,11 @@ class RemixLogicGraphExtension(omni.ext.IExt):
         graph_operations.show_help_for_node_type = _remix_show_help_for_node_type
         graph_delegate.show_help_for_node_type = _remix_show_help_for_node_type
 
+        # Monkey patch Settings.are_compounds_enabled to disable compound graphs in Lightspeed
+        global _original_are_compounds_enabled
+        _original_are_compounds_enabled = graph_config.Settings.are_compounds_enabled
+        graph_config.Settings.are_compounds_enabled = staticmethod(lambda *args: False)
+
     def on_shutdown(self):
         global _extension_instance
         _extension_instance = None
@@ -186,6 +192,12 @@ class RemixLogicGraphExtension(omni.ext.IExt):
             graph_operations.show_help_for_node_type = _original_show_help_for_node_type
             graph_delegate.show_help_for_node_type = _original_show_help_for_node_type
             _original_show_help_for_node_type = None
+
+        # Restore original are_compounds_enabled
+        global _original_are_compounds_enabled
+        if _original_are_compounds_enabled is not None:
+            graph_config.Settings.are_compounds_enabled = _original_are_compounds_enabled
+            _original_are_compounds_enabled = None
 
     def show_window(self, value: bool):
         """Show/hide the window"""
