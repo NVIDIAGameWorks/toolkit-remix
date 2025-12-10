@@ -72,20 +72,18 @@ class RemixLogicGraphWidget(OmniGraphWidget):
         # Create the graph at the selected prim
         selected_prim_paths = self._selection.get_selected_prim_paths()
         if len(selected_prim_paths) != 1:
-            error_message = f"Please select exactly 1 prim, got {len(selected_prim_paths)}"
+            error_message = f"Select exactly 1 prim.\n{len(selected_prim_paths)} are currently selected."
             if use_dialog:
-                ErrorPopup("Select a single Prim", error_message).show()
+                ErrorPopup("Select Exactly 1 Prim", error_message, window_size=(400, 110)).show()
                 return
-            raise ValueError(f"Please select exactly 1 prim, got {len(selected_prim_paths)}")
+            raise ValueError(f"Select exactly 1 prim. {len(selected_prim_paths)} are currently selected.")
 
         prim = self._usd_context.get_stage().GetPrimAtPath(selected_prim_paths[0])
         graph_root_prim = LogicGraphCore.get_graph_root_prim(prim)
         if not graph_root_prim:
-            error_message = (
-                f"Please select a prim under a mesh or light asset replacement root, " f"got {selected_prim_paths[0]}"
-            )
+            error_message = "The selected prim is not a valid graph root.\nSelect a child of a mesh or light prim."
             if use_dialog:
-                ErrorPopup("Select an asset replacement root", error_message).show()
+                ErrorPopup("Invalid Selection", error_message, window_size=(400, 110)).show()
                 return
             raise ValueError(error_message)
 
@@ -123,8 +121,9 @@ class RemixLogicGraphWidget(OmniGraphWidget):
 
             dialog = InputDialog(
                 title="Create New Logic Graph",
-                message=f'Creating new graph under:\n\t"{graph_root_path}"\n\nEnter desired graph prim name:',
+                message=f"Creating a new graph under:\n{graph_root_path}\n\nEnter the desired graph name:",
                 default_value=default_value,
+                ok_label="Create",
                 ok_handler=on_okay,
                 cancel_handler=on_cancel,
                 warning_message=warning,

@@ -104,7 +104,7 @@ def _build_prim_row_with_icon(
         ui.Spacer(width=ui.Pixel(_SPACING_MD))
         with ui.VStack(width=ui.Pixel(_ICON_SIZE)):
             ui.Spacer()
-            ui.Image("", name=icon_name, width=_ICON_SIZE, height=_ICON_SIZE)
+            ui.Image("", name=icon_name, width=ui.Pixel(_ICON_SIZE), height=ui.Pixel(_ICON_SIZE))
             ui.Spacer()
         ui.Spacer(width=ui.Pixel(_SPACING_SM))
         ui.Button(
@@ -311,38 +311,49 @@ class LogicPropertyWidget:
                     "Select a prim inside of a mesh or light asset replacement root to create a logic graph.\n\n"
                     "NOTE: The logic graph will be created on the associated root not the instance prim."
                 )
-            ui.Button(
-                "Create a New Logic Graph",
-                clicked_fn=lambda: self._create_logic_graphs(self._valid_target_paths),
-                tooltip=tooltip,
-                enabled=len(self._valid_target_paths) == 1,
-                height=ui.Pixel(_ROW_HEIGHT),
-            )
-            # Check if there are any existing logic graphs
+            with ui.VStack(spacing=ui.Pixel(8)):
+                ui.Spacer(height=0)
+                ui.Button(
+                    "Create a New Logic Graph",
+                    clicked_fn=lambda: self._create_logic_graphs(self._valid_target_paths),
+                    tooltip=tooltip,
+                    enabled=len(self._valid_target_paths) == 1,
+                    height=ui.Pixel(_ROW_HEIGHT),
+                )
+                # Check if there are any existing logic graphs
+                ui.Spacer(height=0)
             existing_graphs = LogicGraphCore.get_existing_logic_graphs(
                 self._context.get_stage(), self._valid_target_paths
             )
-            for graph in existing_graphs:
-                with ui.HStack(height=ui.Pixel(_ROW_HEIGHT), spacing=0):
-                    relative_path = self._get_relative_path(graph.GetPath(), self._valid_target_paths)
-                    ui.Label(f"Existing Graph: {relative_path}", elided_text=True, name="PropertiesWidgetLabel")
-                    ui.Spacer(width=0)
-                    ui.Button(
-                        "Edit",
-                        clicked_fn=partial(self._edit_logic_graph, graph),
-                        tooltip=f"Edit the logic graph: {graph.GetPath()}",
-                        enabled=True,
-                        width=ui.Pixel(_BUTTON_WIDTH_SM),
-                    )
-                    ui.Spacer(width=0)
-                    ui.Button(
-                        "Delete",
-                        clicked_fn=partial(self._delete_logic_graph, graph),
-                        tooltip=f"Delete the logic graph: {graph.GetPath()}",
-                        enabled=True,
-                        width=ui.Pixel(_BUTTON_WIDTH_SM),
-                    )
+            if existing_graphs:
+                ui.Label("Existing Graphs", name="PropertiesWidgetLabel", height=0)
+                ui.Spacer(height=ui.Pixel(_SPACING_SM))
 
+            for graph in set(existing_graphs):
+                with ui.HStack(height=ui.Pixel(_ROW_HEIGHT), spacing=ui.Pixel(_SPACING_SM)):
+                    relative_path = self._get_relative_path(graph.GetPath(), self._valid_target_paths)
+                    ui.Label(
+                        graph.GetPath().name, tooltip=relative_path, elided_text=True, name="PropertiesWidgetValue"
+                    )
+                    ui.Spacer(width=0)
+                    ui.Image(
+                        "",
+                        name="Edit",
+                        width=ui.Pixel(_ICON_SIZE),
+                        height=ui.Pixel(_ICON_SIZE),
+                        tooltip="Edit the logic graph",
+                        mouse_released_fn=partial(self._edit_logic_graph, graph),
+                    )
+                    ui.Spacer(width=0)
+                    ui.Image(
+                        "",
+                        name="TrashCan",
+                        width=ui.Pixel(_ICON_SIZE),
+                        height=ui.Pixel(_ICON_SIZE),
+                        tooltip="Delete the logic graph",
+                        mouse_released_fn=partial(self._delete_logic_graph, graph),
+                    )
+                    ui.Spacer(width=0)
             if self._paths and self._show_node_properties:
                 # A logic node is selected, so show node info
                 ui.Spacer(height=ui.Pixel(_SPACING_MD))
@@ -350,11 +361,14 @@ class LogicPropertyWidget:
                 ui.Spacer(height=ui.Pixel(_SPACING_MD))
 
                 with ui.HStack(height=0, spacing=ui.Pixel(_SPACING_SM)):
-                    ui.Label("Node Type: ", name="PropertiesWidgetLabel", width=0)
-                    ui.Label(self._node_type_label_text, name="PropertiesWidgetLabel", width=0)
+                    ui.Label("Node Type", name="PropertiesWidgetLabel", height=0, width=0)
+                    ui.Spacer(width=0)
                     if self._node_type_tooltip_text:
-                        InfoIconWidget(self._node_type_tooltip_text, max_width=500)
-                    ui.Spacer()
+                        InfoIconWidget(self._node_type_tooltip_text)
+                        ui.Spacer(width=0)
+                ui.Spacer(height=ui.Pixel(_SPACING_SM))
+
+                ui.Label(self._node_type_label_text, name="PropertiesWidgetValue", width=0)
                 ui.Spacer(height=ui.Pixel(_SPACING_MD))
 
     def refresh(
@@ -645,12 +659,16 @@ class LogicPropertyWidget:
             raise ValueError(f"Received invalid prim at path {prim_paths[0]}")
         self._event_manager.call_global_custom_event(GlobalEventNames.LOGIC_GRAPH_CREATE_REQUEST.value, prim)
 
-    def _edit_logic_graph(self, graph: Usd.Prim) -> None:
+    def _edit_logic_graph(self, graph: Usd.Prim, x, y, b, m) -> None:
         """Edit the given logic graph."""
+        if b != 0:
+            return
         self._event_manager.call_global_custom_event(GlobalEventNames.LOGIC_GRAPH_EDIT_REQUEST.value, graph)
 
-    def _delete_logic_graph(self, graph: Usd.Prim) -> None:
+    def _delete_logic_graph(self, graph: Usd.Prim, x, y, b, m) -> None:
         """Delete the given logic graph."""
+        if b != 0:
+            return
         omni.kit.commands.execute("DeletePrimsCommand", paths=[str(graph.GetPath())])
         # Rebuild the UI to reflect the changes in the existing logic graphs
         if self._root_frame:

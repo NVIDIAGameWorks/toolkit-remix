@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4812: OV Property Window is no longer accessible via the Windows/Property sub menu button
 - REMIX-4715, REMIX-4826: Improved Edit Graph dialog with tree-based selection UI and disabled compound graphs
 - REMIX-4818: FilePicker now supports automatic conversion to relative paths for USD edit target compliance
+- REMIX-4816: Improved logic graph properties panel UI with icon buttons and clearer dialog messages
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths

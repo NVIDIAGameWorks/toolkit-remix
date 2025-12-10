@@ -1,5 +1,5 @@
 [package]
-version = "1.2.4"
+version = "1.2.5"
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Remix Logic Properties Widget"
 description = "Properties panel for RemixLogic prim types"
