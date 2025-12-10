@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.1]
+### Added
+- Added `LOGIC_GRAPH` layout file constant for Logic Graph window layout
+
 ## [1.14.0]
 ### Added
 - Added documentation URL constants for logic graphs and dxvk-remix
