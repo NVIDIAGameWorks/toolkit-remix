@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created 1.3.0 build
 
 ### Changed
+- REMIX-4715, REMIX-4826: Improved Edit Graph dialog with tree-based selection UI and disabled compound graphs
 
 ### Fixed
 - REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus

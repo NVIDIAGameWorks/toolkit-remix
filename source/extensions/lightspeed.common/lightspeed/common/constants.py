@@ -592,7 +592,7 @@ class WindowNames(str, Enum):
     TEXTURECRAFT = "AI Tools"
     PROJECT_SETUP = "Project Setup"
     CAPTURES = "Captures"
-    REMIX_LOGIC_GRAPH = "Remix Logic Graph Editor"
+    REMIX_LOGIC_GRAPH = "Logic Graph"
     COMFYUI = "ComfyUI"
 
 
