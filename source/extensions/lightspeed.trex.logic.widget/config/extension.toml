@@ -1,7 +1,7 @@
 [package]
 title = "Remix Logic Graph Editor"
 description = "Component editor window for Remix Component Graphs"
-version = "1.3.1"
+version = "1.4.0"
 authors = ["Chris Grebeldinger <cgrebeldinge@nvidia.com>", "Dean Edmonds <dedmonds@nvidia.com>", "Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.logic.widget"
 keywords = ["graph", "logic", "component", "remix", "ui"]
@@ -13,18 +13,20 @@ icon = "data/icon.svg"
 
 [dependencies]
 "lightspeed.common" = {}
-"omni.flux.utils.dialog" = {}
 "lightspeed.event.events" = {}
 "lightspeed.events_manager" = {}
-"lightspeed.trex.logic.ogn" = {}  # to load remix ogn nodes
 "lightspeed.trex.logic.core" = {}
+"lightspeed.trex.logic.ogn" = {}  # to load remix ogn nodes
+"lightspeed.trex.sidebar" = {}
 "lightspeed.trex.utils.common" = {}
 "lightspeed.trex.utils.widget" = {}
-"omni.graph.core" = { version = ">=2.177.1" }
+"omni.flux.utils.dialog" = {}
+"omni.flux.utils.widget" = {}
 "omni.graph" = { version = ">=1.139.0" }
+"omni.graph.core" = { version = ">=2.177.1" }
 "omni.graph.tools" = { version = ">=1.77.0" }
-"omni.graph.window.core" = {version=">=1.80.0"}
 "omni.graph.ui" = {version=">=1.5.0"}
+"omni.graph.window.core" = {version=">=1.80.0"}
 "omni.kit.stage.copypaste" = {}  # for "omni.graph.window.core"
 "omni.ui" = {}
 "omni.usd" = {}

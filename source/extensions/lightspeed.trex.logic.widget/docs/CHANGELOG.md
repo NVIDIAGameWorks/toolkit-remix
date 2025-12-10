@@ -4,6 +4,10 @@ This document records all notable changes to the **lightspeed.trex.logic.widget*
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.4.0]
+### Added
+- Added sidebar button for quick access to Logic Graph layout
+
 ## [1.3.1]
 ### Fixed
 - Fixed small bug that would allow logic graph creation on mesh prims, instead of rerouting to the mesh_hash

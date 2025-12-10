@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.0]
+### Added
+- Added Logic Graph dedicated layout configuration file
+- Added Logic Graph Editor window to the default stagecraft layout
+
 ## [1.26.2]
 ### Changed
 - Updated menubar_ignore so the Ov Property Window options is no longer visible
