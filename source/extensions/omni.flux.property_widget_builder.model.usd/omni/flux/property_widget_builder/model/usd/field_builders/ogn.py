@@ -54,7 +54,8 @@ def is_ogn_node_attr(item: Item, node_type: str, attr_name: str) -> bool:
 OGN_FIELD_BUILDERS = USDBuilderList()
 
 OGN_FIELD_BUILDERS.append_builder_by_attr_name(
-    "inputs:configPath", FilePicker(file_extension_options=[("*.conf", "Remix Config Files")])
+    "inputs:configPath",
+    FilePicker(file_extension_options=[("*.conf", "Remix Config Files")], use_relative_paths=True),
 )
 
 
