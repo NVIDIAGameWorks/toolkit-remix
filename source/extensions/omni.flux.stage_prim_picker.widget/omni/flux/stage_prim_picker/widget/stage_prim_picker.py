@@ -23,6 +23,7 @@ import asyncio
 import typing
 from typing import Callable
 
+import carb.input
 import omni.appwindow
 import omni.kit.app
 import omni.ui as ui
@@ -267,7 +268,9 @@ class _SinglePrimPicker:
             name="StagePrimPickerDropdown",
             padding_x=0,
             padding_y=0,
+            exclusive_keyboard=True,
         )
+        self._dropdown_window.set_key_pressed_fn(self._on_key_pressed)
 
         # Position dropdown - open upwards if it would clip below screen bottom
         button_x = self._dropdown_button_label.screen_position_x
@@ -406,6 +409,11 @@ class _SinglePrimPicker:
 
         self._search_model.add_value_changed_fn(self._handle_search_input)
         self._populate_prim_list("")
+
+    def _on_key_pressed(self, key: int, modifiers: int, is_down: bool):
+        """Handle key press events. Close dropdown on Escape."""
+        if key == int(carb.input.KeyboardInput.ESCAPE) and is_down:
+            self._dropdown_window.visible = False
 
     def _on_content_size_changed(self):
         """Sync alternating row widget with TreeView content size."""

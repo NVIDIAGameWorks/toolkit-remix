@@ -19,9 +19,10 @@ __all__ = ("FilePicker",)
 
 import functools
 import typing
-from typing import List, Tuple
 
+import omni.client
 import omni.ui as ui
+import omni.usd
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 
@@ -33,7 +34,10 @@ if typing.TYPE_CHECKING:
 
 class FilePicker(AbstractField):
     def __init__(
-        self, file_extension_options: List[Tuple[str, str]] | None = None, style_name: str = "PropertiesWidgetField"
+        self,
+        file_extension_options: list[tuple[str, str]] | None = None,
+        style_name: str = "PropertiesWidgetField",
+        use_relative_paths: bool = False,
     ):
         """
         A delegate that will show a stringField with a file picker
@@ -42,10 +46,13 @@ class FilePicker(AbstractField):
             file_extension_options: A list of filename extension options. Each list element is an (extension name,
                   description) pair.
 
-                  Examples: ``(“*.usdc”, “Binary format”) or (“.usd*”, “USD format”) or (“*.png, *.jpg, *.exr”, “Image format”)``  # noqa
+                  Examples: ``("*.usdc", "Binary format") or (".usd*", "USD format") or ("*.png, *.jpg, *.exr", "Image format")``  # noqa
+            use_relative_paths: If True, convert selected file paths to be relative to the current USD edit target.
+                  Requires the value_model to have a `stage` attribute.
         """
         super().__init__(style_name=style_name)
         self._file_extension_options = file_extension_options
+        self._use_relative_paths = use_relative_paths
         self._sub_field_begin_edit = []
         self._sub_field_end_edit = []
         self._sub_field_changed = []
@@ -110,7 +117,7 @@ class FilePicker(AbstractField):
     ):
         pass
 
-    def _on_navigate_to(self, path, value_model: "ItemModelBase", element_current_idx: int) -> Tuple[bool, str]:
+    def _on_navigate_to(self, path, value_model: "ItemModelBase", element_current_idx: int) -> tuple[bool, str]:
         """
         Function that defines the path to navigate to by default when we open the file picker
 
@@ -147,4 +154,8 @@ class FilePicker(AbstractField):
         )
 
     def _set_field(self, widget: ui.AbstractField, value_model: "ItemModelBase", element_current_idx: int, path: str):
+        if self._use_relative_paths and hasattr(value_model, "stage") and value_model.stage:
+            path = omni.client.normalize_url(
+                omni.usd.make_path_relative_to_current_edit_target(path, stage=value_model.stage)
+            ).replace("\\", "/")
         widget.model.set_value(path)

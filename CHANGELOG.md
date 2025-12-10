@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4774: Added select all, select none, and delete selection actions & hotkeys to the Remix Logic Graph Editor
 - REMIX-4792: Added a badge to the Additional Filters button to show the number of modified filters
 - REMIX-4813: Added Logic Graph sidebar button for quick layout switching with dedicated Logic Graph layout
+- REMIX-4807: Added Escape key support to close Stage Prim Picker dropdown
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
@@ -48,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4798: Logic Graph Editor: Improved node + port tooltips and added documentation links
 - REMIX-4812: OV Property Window is no longer accessible via the Windows/Property sub menu button
 - REMIX-4715, REMIX-4826: Improved Edit Graph dialog with tree-based selection UI and disabled compound graphs
+- REMIX-4818: FilePicker now supports automatic conversion to relative paths for USD edit target compliance
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths
