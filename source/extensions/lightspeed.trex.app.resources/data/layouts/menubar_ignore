@@ -5,8 +5,9 @@ Edit/*
 Rendering/*
 
 Window/Browsers/
-Window/Profiler
 Window/Extensions
+Window/Profiler
+Window/Property
 
 Create/
 
