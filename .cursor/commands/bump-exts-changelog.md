@@ -21,9 +21,11 @@ The commit messages might or might not have relevant info to the changelog.
 This info should be used to:
 1. Bump the version string using semver in the ext/config/extension.toml file to be the next available version, inferring from the diff if it is a major, minor or patch bump.
 2. Write very concise, one-liner changelog entries to Added, Changed, Fixed, or Removed sections of the <ext-name>/docs/CHANGELOG.md file, following the history of writing style from previous entries or other exts changelog style.
+3. Ensure there is an empty line below the added section (there should always be an empty line between version sections).
 
 Remember: These changelogs might also be used by marketing to generate release notes, so the oneliners should target both end users and the developers as applicable.
 Go back to step 2 for the next extension pending bumps until all are done.
 
 ## Step 4
-Update the main project ./CHANGELOG.md file with a concise one line summary of all the changes made in this branch. Place it at the end of the [Unreleased] section under the appropriate heading.
+Update the main project ./CHANGELOG.md file with a concise one line summary of all the changes made in this branch. Place it at the END of the [Unreleased] section under the appropriate heading. (it should be the last item in the Added, Changed, Fixed, or Removed section of the Unreleased section)
+You should always add the Jira ticket number at the start of the line, using the following format: `REMIX-1234: <one-liner summary>`. If you don't know the Jira ticket number, ask the user to provide it.

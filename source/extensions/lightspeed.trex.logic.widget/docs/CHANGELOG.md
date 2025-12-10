@@ -4,6 +4,13 @@ This document records all notable changes to the **lightspeed.trex.logic.widget*
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.5.0]
+### Added
+- Added tree-based graph selection UI with improved UX for Edit Graph dialog
+
+### Changed
+- Disabled compound graphs feature in Remix Logic Graph
+
 ## [1.4.0]
 ### Added
 - Added sidebar button for quick access to Logic Graph layout
