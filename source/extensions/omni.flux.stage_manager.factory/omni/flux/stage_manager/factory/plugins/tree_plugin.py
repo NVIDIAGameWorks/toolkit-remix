@@ -20,6 +20,7 @@ from __future__ import annotations
 __all__ = ["StageManagerTreeItem", "StageManagerTreeModel", "StageManagerTreeDelegate", "StageManagerTreePlugin"]
 
 import abc
+import asyncio
 from typing import TYPE_CHECKING, Any, Callable, Iterable
 
 import omni.kit.context_menu
@@ -270,13 +271,37 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
 
     def find_items(self, predicate: Callable[[StageManagerTreeItem], bool]) -> list[StageManagerTreeItem]:
         """
-        Get a tree item from its data
+        Find all items matching a predicate.
+
+        Args:
+            predicate: Function that returns True for items that should be included
+
+        Returns:
+            List of items matching the predicate
         """
         results = []
         for item in self.iter_items_children():
             if predicate(item):
                 results.append(item)
         return results
+
+    @usd.handle_exception
+    async def find_items_async(
+        self,
+        predicate: Callable[[StageManagerTreeItem], bool],
+    ) -> list[StageManagerTreeItem]:
+        """
+        Find all items matching a predicate without blocking the UI.
+
+        Runs the search in a background thread and returns the results asynchronously.
+
+        Args:
+            predicate: Function that returns True for items that should be included
+
+        Returns:
+            List of items matching the predicate
+        """
+        return await asyncio.to_thread(self.find_items, predicate)
 
     def get_item_children(self, item: StageManagerTreeItem | None):
         """
