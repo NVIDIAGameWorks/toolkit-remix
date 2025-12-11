@@ -2,6 +2,10 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.14.4]
+### Changed
+- Replaced decorator-based visibility filtering with window_visible early-return checks
+
 ## [1.14.3]
 ### Changed
 - Enabled horizontal scrollbar in the Properties pane

@@ -33,7 +33,6 @@ from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.packaging.core import ModPackagingSchema as _ModPackagingSchema
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCoreSetup
 from lightspeed.trex.utils.widget import TrexMessageDialog, WorkspaceWidget
-from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
 from omni.flux.property_widget_builder.model.file import FileAttributeItem as _FileAttributeItem
 from omni.flux.property_widget_builder.model.file import FileDelegate as _FileDelegate
 from omni.flux.property_widget_builder.model.file import FileModel as _FileModel
@@ -57,6 +56,7 @@ class ProjectSetupPane(WorkspaceWidget):
 
     def __init__(self, context_name: str):
         """Nvidia StageCraft Components Pane"""
+        super().__init__()
 
         self._default_attr = {
             "_context_name": None,
@@ -93,14 +93,11 @@ class ProjectSetupPane(WorkspaceWidget):
         self._ignore_mod_detail_refresh = False
         self._core_replacement = ReplacementCoreSetup(context_name)
 
-        self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
-            self.__on_stage_event, name="StageChanged"
-        )
-
         self._layers = _layers.get_layers()
-        self._sub_layer_event = self._layers.get_event_stream().create_subscription_to_pop(
-            self.__on_layer_event, name="LayerChange"
-        )
+
+        # Subscriptions created/destroyed in show() based on visibility
+        self._sub_stage_event = None
+        self._sub_layer_event = None
 
         self.__file_listener_instance = _get_file_listener_instance()
 
@@ -108,16 +105,16 @@ class ProjectSetupPane(WorkspaceWidget):
 
         self.__create_ui()
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def __on_layer_event(self, event):
+        """Layer event callback - subscription destroyed when window invisible."""
         payload = _layers.get_layer_event_payload(event)
         if not payload:
             return
         if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
             self.__on_event()
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def __on_stage_event(self, event):
+        """Stage event callback - subscription destroyed when window invisible."""
         if event.type in [
             int(omni.usd.StageEventType.CLOSED),
             int(omni.usd.StageEventType.OPENED),
@@ -380,12 +377,26 @@ class ProjectSetupPane(WorkspaceWidget):
             self.__file_listener_instance.remove_model(self._mod_details_model)
 
     def show(self, visible: bool):
+        super().show(visible)
         self.root_widget.visible = visible
         self._enable_panels(visible)
+
         if visible:
+            # Create subscriptions when window becomes visible
+            if not self._sub_stage_event:
+                self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
+                    self.__on_stage_event, name="StageChanged"
+                )
+            if not self._sub_layer_event:
+                self._sub_layer_event = self._layers.get_event_stream().create_subscription_to_pop(
+                    self.__on_layer_event, name="LayerChange"
+                )
             self._update_mod_name_field()
             self.refresh_mod_detail_panel()
         else:
+            # Destroy subscriptions when window becomes invisible
+            self._sub_stage_event = None
+            self._sub_layer_event = None
             self._destroy_mod_properties()
 
     def destroy(self):

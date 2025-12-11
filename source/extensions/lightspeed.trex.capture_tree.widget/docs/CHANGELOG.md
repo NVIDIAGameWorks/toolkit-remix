@@ -1,6 +1,11 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.1]
+### Changed
+- Refactored to use model's semantic events instead of direct stage/layer subscriptions
+- Subscriptions now created in __init__ and controlled by model.enable_listeners()
+
 ## [1.1.0]
 ### Added
 - Added WorkspaceWidget interface implementation

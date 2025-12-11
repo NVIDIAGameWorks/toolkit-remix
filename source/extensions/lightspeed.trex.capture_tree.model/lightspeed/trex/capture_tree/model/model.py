@@ -24,6 +24,7 @@ from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import deferred_destroy_tasks as _deferred_destroy_tasks
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.kit.usd import layers as _layers
 
 from .items import CaptureTreeItem
 
@@ -44,6 +45,7 @@ class CaptureTreeModel(ui.AbstractItemModel):
             "_core_capture": None,
             "_core_replacement": None,
             "_stage_event_sub": None,
+            "_layer_event_sub": None,
             "_fetch_task": None,
             "_progress_cache": None,
         }
@@ -57,12 +59,17 @@ class CaptureTreeModel(ui.AbstractItemModel):
         self._core_replacement = _ReplacementCoreSetup(context_name)
 
         self._stage_event_sub = None
+        self._layer_event_sub = None
         self._fetch_task = None
 
         self.__children = []
         # Cache for progress data accessible by path
         self._progress_cache: dict[str, tuple[int, int]] = {}
+
+        # Events
         self.__on_progress_updated = _Event()
+        self.__on_stage_opened_or_closed = _Event()
+        self.__on_sublayers_changed = _Event()
 
     def refresh(self, paths: list[tuple[str, str]]):
         """Refresh the list"""
@@ -104,17 +111,31 @@ class CaptureTreeModel(ui.AbstractItemModel):
                 .get_stage_event_stream()
                 .create_subscription_to_pop(self.__on_stage_event, name="STAGE_CHANGED_SUB")
             )
+            self._layer_event_sub = (
+                _layers.get_layers()
+                .get_event_stream()
+                .create_subscription_to_pop(self.__on_layer_event, name="LAYER_CHANGED_SUB")
+            )
         else:
             self._stage_event_sub = None
+            self._layer_event_sub = None
 
     def fetch_progress(self, items: list[CaptureTreeItem] | None = None):
         self.cancel_tasks()
         self._fetch_task = asyncio.ensure_future(self.__fetch_progress(items))
 
     def __on_stage_event(self, event):
-        if event.type not in [int(usd.StageEventType.CLOSING), int(usd.StageEventType.CLOSED)]:
+        if event.type in [int(usd.StageEventType.CLOSING), int(usd.StageEventType.CLOSED)]:
+            self.cancel_tasks()
+        if event.type in [int(usd.StageEventType.OPENED), int(usd.StageEventType.CLOSED)]:
+            self.__on_stage_opened_or_closed()
+
+    def __on_layer_event(self, event):
+        payload = _layers.get_layer_event_payload(event)
+        if not payload:
             return
-        self.cancel_tasks()
+        if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
+            self.__on_sublayers_changed()
 
     def __task_completed(self):
         if self._fetch_task is not None:
@@ -161,6 +182,20 @@ class CaptureTreeModel(ui.AbstractItemModel):
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__on_progress_updated, func)
+
+    def subscribe_stage_opened_or_closed(self, func):
+        """
+        Subscribe to stage opened/closed events.
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_stage_opened_or_closed, func)
+
+    def subscribe_sublayers_changed(self, func):
+        """
+        Subscribe to sublayers changed events.
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_sublayers_changed, func)
 
     def destroy(self):
         asyncio.ensure_future(self._deferred_destroy())

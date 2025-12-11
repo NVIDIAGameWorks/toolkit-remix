@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - REMIX-4715, REMIX-4826: Improved Edit Graph dialog with tree-based selection UI and disabled compound graphs
 - REMIX-4818: FilePicker now supports automatic conversion to relative paths for USD edit target compliance
+- REMIX-4801: Replaced decorator-based widget visibility filtering with subscription lifecycle management
 
 ### Fixed
 - REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus
@@ -61,6 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Centralized prim type icon mappings in omni.flux.utils.common for reuse across extensions
 - Update hdremix and omni_core_materials to ext-a9cbe4d-main
 - REMIX-4798: Logic Graph Editor: Improved node + port tooltips and added documentation links
+- REMIX-4816: Improved logic graph properties panel UI with icon buttons and clearer dialog messages
+- Update hdremix and omni_core_materials to ext-83e59c6-main
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths

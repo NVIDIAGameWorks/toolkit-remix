@@ -47,6 +47,7 @@ class SetupUI(_WorkspaceWidget):
 
     def __init__(self, context_name):
         """Nvidia StageCraft Viewport UI"""
+        super().__init__()
 
         self._default_attr = {
             "_registered": None,
@@ -340,11 +341,6 @@ class SetupUI(_WorkspaceWidget):
             else 0
         )
         self._property_panel_frame.width = ui.Percent(result)
-
-    def show(self, visible: bool):
-        """Implements WorkspaceWidget interface. Viewport should always be active."""
-        # Viewport widgets are always considered active - they handle rendering
-        pass
 
     def destroy(self):
         _reset_default_attrs(self)

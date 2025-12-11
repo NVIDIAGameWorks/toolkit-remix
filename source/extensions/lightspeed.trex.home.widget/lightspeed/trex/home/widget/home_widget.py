@@ -35,7 +35,6 @@ from lightspeed.trex.recent_projects.core import RecentProjectsCore as _RecentPr
 from lightspeed.trex.utils.common.dialog_utils import delete_dialogs as _delete_dialogs
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
-from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
 from lightspeed.trex.utils.widget.quicklayout import load_layout
 from omni import ui
 from omni.flux.info_icon.widget import InfoIconWidget
@@ -64,6 +63,7 @@ class HomePageWidget(_WorkspaceWidget):
     _ACTION_PANEL_WIDTH = ui.Pixel(500)
 
     def __init__(self, context_name: str = ""):
+        super().__init__()
         self._default_attr = {
             "_context_name": None,
             "root_widget": None,
@@ -152,6 +152,7 @@ class HomePageWidget(_WorkspaceWidget):
         asyncio.ensure_future(self._refresh_recent_items_deferred())
 
     def show(self, visible: bool):
+        super().show(visible)
         main_menu_bar = get_main_window().get_main_menu_bar()
         hide_menu = self.__settings.get(_HIDE_MENU)
         if not hide_menu:
@@ -419,11 +420,12 @@ class HomePageWidget(_WorkspaceWidget):
             return
         webbrowser.open(url, new=0, autoraise=True)
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def _show_in_explorer(self):
         """
         A callback to show the current project in explorer when the event is triggered in the delegate.
         """
+        if not self._window_visible:
+            return
         for item in self._recent_tree.selection:
             open_file_using_os_default(item.path)
 
@@ -463,16 +465,18 @@ class HomePageWidget(_WorkspaceWidget):
 
         self._recent_model.refresh(items)
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def _remove_project_from_recent(self, paths: list[str]):
-        """Remove project from recent list."""
+        """Remove project from recent list - skipped when window invisible."""
+        if not self._window_visible:
+            return
         for path in paths:
             self._recent_saved_file.remove_path_from_recent_file(path)
         asyncio.ensure_future(self._refresh_recent_items_deferred())
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def _load_work_file(self, path):
         """Triggers the "Load Project" event and loads the workspace window layout if there were no interruptions."""
+        if not self._window_visible:
+            return
         if not Path(path).exists():
             _TrexMessageDialog(
                 "The selected project does not exist at the given location.",

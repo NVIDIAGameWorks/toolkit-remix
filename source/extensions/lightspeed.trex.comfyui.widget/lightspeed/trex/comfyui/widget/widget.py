@@ -22,13 +22,12 @@ from functools import partial
 from typing import Callable
 
 from lightspeed.trex.comfyui.core import ComfyUIQueueType, ComfyUIState, get_comfyui_instance
-from lightspeed.trex.utils.widget import TrexMessageDialog
-from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
+from lightspeed.trex.utils.widget import TrexMessageDialog, WorkspaceWidget
 from omni import ui
 from omni.flux.utils.widget.file_pickers import open_file_picker
 
 
-class ComfyUIWidget:
+class ComfyUIWidget(WorkspaceWidget):
     _ICON_SIZE_MD = ui.Pixel(24)
     _ICON_SIZE_LG = ui.Pixel(32)
 
@@ -40,17 +39,14 @@ class ComfyUIWidget:
     _SEPARATOR_HEIGHT = ui.Pixel(1)
 
     def __init__(self, context_name: str = ""):
+        super().__init__()
         self._core = get_comfyui_instance(context_name=context_name)
         self._async_tasks = {}
 
-        # Subscribe to the ComfyUI state and selection changed events
-        self._state_changed_subscription = self._core.subscribe_comfyui_state_changed(self._on_state_changed)
-        self._texture_selection_changed_subscription = self._core.subscribe_texture_selection_changed(
-            self._on_selection_changed
-        )
-        self._mesh_selection_changed_subscription = self._core.subscribe_mesh_selection_changed(
-            self._on_selection_changed
-        )
+        # Subscriptions - created/destroyed in show() based on visibility
+        self._state_changed_subscription = None
+        self._texture_selection_changed_subscription = None
+        self._mesh_selection_changed_subscription = None
 
         # Build the UI and update the button states
         self._build_ui()
@@ -61,6 +57,41 @@ class ComfyUIWidget:
         # Cancel all async tasks
         for task in self._async_tasks.values():
             task.cancel()
+
+    def show(self, visible: bool):
+        """Enable/disable the widget and its subscriptions."""
+        super().show(visible)
+        if self.root_widget:
+            self.root_widget.visible = visible
+
+        if visible:
+            # Create subscriptions when window becomes visible
+            if not self._state_changed_subscription:
+                self._state_changed_subscription = self._core.subscribe_comfyui_state_changed(self._on_state_changed)
+            if not self._texture_selection_changed_subscription:
+                self._texture_selection_changed_subscription = self._core.subscribe_texture_selection_changed(
+                    self._on_selection_changed
+                )
+            if not self._mesh_selection_changed_subscription:
+                self._mesh_selection_changed_subscription = self._core.subscribe_mesh_selection_changed(
+                    self._on_selection_changed
+                )
+            self._update_button_states()
+        else:
+            # Destroy subscriptions when window becomes invisible
+            self._state_changed_subscription = None
+            self._texture_selection_changed_subscription = None
+            self._mesh_selection_changed_subscription = None
+
+    def destroy(self):
+        """Clean up all resources, subscriptions, and references."""
+        for task in self._async_tasks.values():
+            task.cancel()
+        self._async_tasks = {}
+        self._state_changed_subscription = None
+        self._texture_selection_changed_subscription = None
+        self._mesh_selection_changed_subscription = None
+        self.root_widget = None
 
     def _build_ui(self):
         """
@@ -176,20 +207,20 @@ class ComfyUIWidget:
                     ui.Spacer(height=0)
                 ui.Spacer(width=0)
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def _on_state_changed(self, state: ComfyUIState):
         """
         Update the UI when the ComfyUI state changes.
+        Subscription destroyed when window invisible.
         """
         if not self._state_label:
             return
         self._state_label.text = state.value
         self._update_button_states()
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def _on_selection_changed(self, _: list[str]):
         """
         Update the UI when the selection changes.
+        Subscription destroyed when window invisible.
         """
         self._update_queue_button_states()
 
