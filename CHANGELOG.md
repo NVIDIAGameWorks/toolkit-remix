@@ -6,7 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Cleanup Github runners before packaging Toolkit
 
 ### Added
 - Created 1.2.4 build
@@ -51,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4715, REMIX-4826: Improved Edit Graph dialog with tree-based selection UI and disabled compound graphs
 - REMIX-4818: FilePicker now supports automatic conversion to relative paths for USD edit target compliance
 - REMIX-4816: Improved logic graph properties panel UI with icon buttons and clearer dialog messages
+- Update hdremix and omni_core_materials to ext-83e59c6-main
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths
@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved a few UX issues with the Logic Properties pane
 - REMIX-4766: Added input validation to ensure a valid graph prim name is provided for new graphs
 - REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus
+- Cleanup Github runners before packaging Toolkit
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension
