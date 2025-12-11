@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4818: FilePicker now supports automatic conversion to relative paths for USD edit target compliance
 - REMIX-4816: Improved logic graph properties panel UI with icon buttons and clearer dialog messages
 - Update hdremix and omni_core_materials to ext-83e59c6-main
+- REMIX-4801: Replaced decorator-based widget visibility filtering with subscription lifecycle management
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths

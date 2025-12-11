@@ -30,15 +30,24 @@ class WorkspaceWidget(abc.ABC):
     All widgets used in WorkspaceWindowBase should implement this interface.
     """
 
-    @abc.abstractmethod
+    def __init__(self):
+        self._window_visible: bool = False
+
+    @property
+    def window_visible(self) -> bool:
+        """
+        Whether the containing window is currently visible.
+        """
+        return self._window_visible
+
     def show(self, visible: bool):
         """
-        Enable/disable the widget and its subscriptions.
+        Triggered by the WorkspaceWindowBase when the window is shown or hidden.
 
         Args:
-            visible: True to enable updates and subscriptions, False to pause them.
+            visible: True if visible, False if hidden.
         """
-        pass
+        self._window_visible = visible
 
     @abc.abstractmethod
     def destroy(self):

@@ -48,7 +48,6 @@ from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
 from lightspeed.trex.utils.common.prim_utils import is_material_prototype as _is_material_prototype
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
-from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
 from omni import ui
 from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as _UsdBookmarkCollectionModel
 from omni.flux.bookmark_tree.widget import BookmarkTreeWidget as _BookmarkTreeWidget
@@ -77,6 +76,7 @@ class CollapsiblePanels(Enum):
 class AssetReplacementsPane(_WorkspaceWidget):
     def __init__(self, context_name: str):
         """Nvidia StageCraft Properties Pane"""
+        super().__init__()
 
         self._default_attr = {
             "_replacement_core": None,
@@ -127,9 +127,10 @@ class AssetReplacementsPane(_WorkspaceWidget):
 
         self.__on_go_to_ingest_tab = _Event()
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def _go_to_ingest_tab(self):
         """Call the event object that has the list of functions"""
+        if not self._window_visible:
+            return
         self.__on_go_to_ingest_tab()
 
     def subscribe_go_to_ingest_tab(self, func):
@@ -564,9 +565,10 @@ class AssetReplacementsPane(_WorkspaceWidget):
             disable_cancel_button=True,
         )
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def _on_tree_selection_changed(self, items):
-        """Tree selection changed callback."""
+        """Tree selection changed callback - skipped when window invisible."""
+        if not self._window_visible:
+            return
         if not self._mesh_properties_collapsable_frame.root.collapsed:
             self._refresh_mesh_properties_widget()
         if not self._material_properties_collapsable_frame.root.collapsed:
@@ -587,9 +589,10 @@ class AssetReplacementsPane(_WorkspaceWidget):
         items = self._selection_tree_widget.get_selection()
         self._mesh_properties_widget.refresh(items)
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def _refresh_material_properties_widget(self):
-        """Refresh material properties widget."""
+        """Refresh material properties widget - skipped when window invisible."""
+        if not self._window_visible:
+            return
         if self._material_properties_collapsable_frame.pinned:
             return
 
@@ -669,6 +672,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
         self._refresh_logic_properties_widget()
 
     def show(self, visible: bool):
+        super().show(visible)
         # Update the widget visibility
         self.root_widget.visible = visible
         self._layer_tree_widget.show(self._collapsible_frame_states[CollapsiblePanels.LAYERS] and visible)
