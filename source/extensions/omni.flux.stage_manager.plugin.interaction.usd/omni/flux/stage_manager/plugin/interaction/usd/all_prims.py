@@ -38,6 +38,7 @@ class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "IsCaptureFilterPlugin",
             "IsCategoryFilterPlugin",
             "RemixLogicPrimsFilterPlugin",
+            "VisiblePrimsFilterPlugin",
             "LightPrimsFilterPlugin",
             "MaterialPrimsFilterPlugin",
             "MeshPrimsFilterPlugin",

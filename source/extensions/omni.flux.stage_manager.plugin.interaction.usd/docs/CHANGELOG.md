@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.8.0]
+### Added
+- Added `VisiblePrimsFilterPlugin` to the interactions plugins
+
 ## [2.7.0]
 ### Added
 - Added a function to check if tree items need to be expanded

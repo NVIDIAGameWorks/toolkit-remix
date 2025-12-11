@@ -40,6 +40,7 @@ class AllMeshesInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "IgnorePrimsFilterPlugin",
             "IsCaptureFilterPlugin",
             "IsCategoryFilterPlugin",
+            "VisiblePrimsFilterPlugin",
             "LightPrimsFilterPlugin",
             "MeshPrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
