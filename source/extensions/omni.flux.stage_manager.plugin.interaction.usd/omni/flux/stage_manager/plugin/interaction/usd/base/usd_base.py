@@ -285,6 +285,57 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
                     return True
         return False
 
+    def _expand_filtered_items(self):
+        """
+        Expand all items that are currently visible after filtering.
+        """
+        # Only expand if filters are active
+        if not any(f.enabled for f in self.filters):
+            return
+
+        def is_filter_modified(filter_obj):
+            """Check if any field in the filter has been modified from its default value."""
+            for field_name, field_info in filter_obj.model_fields.items():
+                # Skip standard or excluded fields
+                if (
+                    field_name in ["display_name", "tooltip", "enabled"]
+                    or field_name.startswith("_")
+                    or field_info.exclude is True
+                ):
+                    continue
+
+                current_value = getattr(filter_obj, field_name, None)
+                default_value = (
+                    field_info.default_factory() if field_info.default_factory is not None else field_info.default
+                )
+
+                # Skip filter_active if it's False, since that is the default state
+                if field_name == "filter_active" and current_value is False:
+                    continue
+
+                if (field_name == "filter_active" and current_value is True) or (current_value != default_value):
+                    return True
+            return False
+
+        if not any(is_filter_modified(f) for f in self.filters) and not any(
+            is_filter_modified(f) for f in self.additional_filters
+        ):
+            return
+
+        def expand_items(items):
+            for item in items:
+                if not item or not item.data:
+                    continue
+                self._item_expansion_states[hash(item)] = True
+
+                # Directly expand in the widget
+                if self._tree_widget:
+                    self._tree_widget.set_expanded(item, True, False)
+
+                expand_items(self.tree.model.get_item_children(item))
+
+        expand_items(self.tree.model.get_item_children(None))
+
     def _on_item_changed(self, model, item):
         # Convert `_on_item_changed` to an async method since `_update_context_items` is also async
         if self._items_changed_task:
@@ -302,3 +353,4 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         # Wait for the updated items to be rendered
         await omni.kit.app.get_app().next_update_async()
         self._update_tree_selection()
+        self._expand_filtered_items()

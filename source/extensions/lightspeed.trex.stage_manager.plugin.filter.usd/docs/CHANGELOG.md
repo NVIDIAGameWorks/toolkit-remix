@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.1]
+### Changed
+- Updated is_logic_graph filter plugin to have a public field for the current filter type
+
 ## [2.1.0]
 ### Added
 - Added filter plugin remix logic graphs

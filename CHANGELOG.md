@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4792: Added a badge to the Additional Filters button to show the number of modified filters
 - REMIX-4813: Added Logic Graph sidebar button for quick layout switching with dedicated Logic Graph layout
 - REMIX-4807: Added Escape key support to close Stage Prim Picker dropdown
+- REMIX-4793: Added a function to check if tree items need to be expanded in the Stage Manager
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
