@@ -32,7 +32,6 @@ from lightspeed.trex.packaging.core import PackagingCore as _PackagingCore
 from lightspeed.trex.packaging.window import PackagingErrorWindow as _PackagingErrorWindow
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
-from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.flux.utils.dialog import ErrorPopup as _ErrorPopup
@@ -47,6 +46,7 @@ class PackagingPane(_WorkspaceWidget):
 
     def __init__(self, context_name: str = ""):
         """Nvidia StageCraft Mod Packaging Pane"""
+        super().__init__()
 
         self._default_attr = {
             "_context_name": None,
@@ -79,11 +79,9 @@ class PackagingPane(_WorkspaceWidget):
         self._packaging_core = _PackagingCore()
         self._layer_manager = _LayerManagerCore(self._context_name)
 
-        self._packaging_progress_sub = self._packaging_core.subscribe_packaging_progress(self._on_packaging_progress)
-        self._packaging_completed_sub = self._packaging_core.subscribe_packaging_completed(
-            lambda e, f, c: ensure_future(self._on_packaging_completed(e, f, c))
-        )
-
+        # Subscriptions created/destroyed in show() based on visibility
+        self._packaging_progress_sub = None
+        self._packaging_completed_sub = None
         self._packaging_errors_resolved_sub = None
 
         self._output_valid = False
@@ -194,10 +192,26 @@ class PackagingPane(_WorkspaceWidget):
                     ui.Spacer(height=ui.Pixel(5))
 
     def show(self, visible: bool):
+        super().show(visible)
         self.root_widget.visible = visible
         self._package_details_widget.show(visible)
         self._package_output_widget.show(visible)
         self._package_layers_widget.show(visible)
+
+        if visible:
+            # Create subscriptions when window becomes visible
+            if not self._packaging_progress_sub:
+                self._packaging_progress_sub = self._packaging_core.subscribe_packaging_progress(
+                    self._on_packaging_progress
+                )
+            if not self._packaging_completed_sub:
+                self._packaging_completed_sub = self._packaging_core.subscribe_packaging_completed(
+                    lambda e, f, c: ensure_future(self._on_packaging_completed(e, f, c))
+                )
+        else:
+            # Destroy subscriptions when window becomes invisible
+            self._packaging_progress_sub = None
+            self._packaging_completed_sub = None
 
     def _update_output_valid(self, is_valid: bool):
         self._output_valid = is_valid
@@ -275,8 +289,8 @@ class PackagingPane(_WorkspaceWidget):
         else:
             ensure_future(validate_pending_edits())
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def _on_packaging_progress(self, current: int, total: int, status: str):
+        """Packaging progress callback - subscription destroyed when window invisible."""
         if not self._progress_popup:
             self._progress_popup = _ProgressPopup(title="Packaging Mod")
             self._progress_popup.set_cancel_fn(self._packaging_core.cancel)
@@ -289,7 +303,6 @@ class PackagingPane(_WorkspaceWidget):
 
         self._progress_popup.set_progress(current / total if total > 0 else 0)
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     @omni.usd.handle_exception
     async def _on_packaging_completed(
         self, errors: List[str], failed_assets: List[Tuple[str, str, str]], was_cancelled: bool

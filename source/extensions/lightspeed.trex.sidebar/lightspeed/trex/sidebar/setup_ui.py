@@ -32,6 +32,7 @@ class SetupUI(_WorkspaceWidget):
 
     def __init__(self, window_frame: ui.Frame):
         """Nvidia StageCraft Components Pane"""
+        super().__init__()
         self.__window_frame = window_frame
         self.__sub_sidebar_items_changed = subscribe_items_change(self._create_ui)  # noqa PLW0238
         self._create_ui()
@@ -101,10 +102,6 @@ class SetupUI(_WorkspaceWidget):
         if b != 0:
             return
         load_layout(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
-
-    def show(self, visible: bool):
-        """Implements WorkspaceWidget interface. Sidebar is always visible."""
-        pass
 
     def destroy(self):
         """Clean up resources."""

@@ -24,9 +24,9 @@ class StageManagerWidget(_StageManagerWidget, _WorkspaceWidget):
     # - Pull all the plugins required for the Lightspeed StageManager Widget
     # - Define the schema path in the settings
 
-    def show(self, visible: bool):
-        """Implements WorkspaceWidget interface."""
-        pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _WorkspaceWidget.__init__(self)
 
     def destroy(self):
         """Implements WorkspaceWidget interface."""

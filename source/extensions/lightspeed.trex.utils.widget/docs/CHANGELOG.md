@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.2]
+### Changed
+- Replaced skip_when_widget_is_invisible decorator with visibility-based subscription management
+- Updated WorkspaceWidget to track window visibility via show() method
+
 ## [1.6.1]
 ### Changed
 - Code formatting improvements
