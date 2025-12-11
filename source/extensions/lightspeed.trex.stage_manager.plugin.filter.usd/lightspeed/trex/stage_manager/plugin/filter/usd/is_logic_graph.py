@@ -38,6 +38,7 @@ class RemixLogicPrimsFilterPlugin(StageManagerUSDFilterPlugin):
     _COMBO_BOX_WIDTH: int = PrivateAttr(default=130)
     _filter_combobox: ui.ComboBox | None = PrivateAttr(default=None)
     _current_index: int = PrivateAttr(default=0)
+    current_filter_type: str = Field(default="No Filter", description="The type of logic to filter by")
 
     def filter_predicate(self, item: StageManagerItem) -> bool:
         match self._current_index:
@@ -65,4 +66,5 @@ class RemixLogicPrimsFilterPlugin(StageManagerUSDFilterPlugin):
     def _on_filter_changed(self, model: "StageManagerTreeModel", _: "StageManagerTreeItem") -> None:
         selected_index = model.get_item_value_model().get_value_as_int()
         self._current_index = selected_index
+        self.current_filter_type = _filter_types[selected_index]
         self._filter_items_changed()
