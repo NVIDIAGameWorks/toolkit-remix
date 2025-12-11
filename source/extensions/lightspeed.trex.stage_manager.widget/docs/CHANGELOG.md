@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.3]
+### Changed
+- Updated WorkspaceWidget interface to call super().show() for proper visibility tracking
+
 ## [1.3.2]
 ### Added
 - Added lightspeed.trex.logic.core

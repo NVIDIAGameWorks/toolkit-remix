@@ -15,5 +15,5 @@
 * limitations under the License.
 """
 
-from .e2e.test_widget import *  # noqa: F401, F403
-from .unit.test_visibility_filtering import *  # noqa: F401, F403
+from .e2e.test_widget import TestCaptureTreeWidget
+from .unit.test_subscription_lifecycle import TestCaptureWidgetSubscriptionLifecycle

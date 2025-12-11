@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1]
+### Changed
+- Replaced decorator-based visibility filtering with subscription lifecycle management
+
 ## [1.2.0]
 ### Added
 - Added WorkspaceWidget interface implementation

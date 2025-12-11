@@ -24,7 +24,6 @@ from lightspeed.trex.contexts import get_instance as trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as TrexContexts
 from lightspeed.trex.stage_view.shared.widget import SetupUI as _StageViewWidget
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
-from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
 from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
 from omni.flux.tabbed.widget import SetupUI as _TabbedFrame
 from omni.flux.validator.mass.queue.widget import Actions as _MassQueueTreeActions
@@ -46,6 +45,7 @@ class SetupUI(_WorkspaceWidget):
     _STAGE_VIEW_TAB_NAME = "Stage View"
 
     def __init__(self, schemas: List[dict[str, str]], context: TrexContexts = ""):
+        super().__init__()
         self._schemas = schemas
         self._trex_context = context
         self._context_name = context.value
@@ -65,6 +65,7 @@ class SetupUI(_WorkspaceWidget):
 
     def show(self, visible: bool):
         """Implements WorkspaceWidget interface."""
+        super().show(visible)
         if self._mass_ingest_widget:
             self._mass_ingest_widget.show(visible)
 
@@ -127,8 +128,10 @@ class SetupUI(_WorkspaceWidget):
         # by default, we don't want to show the validation/stage view panel
         self._properties_panel.force_toggle(self._properties_panel.selection[0], False)
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def _on_mass_queue_action_pressed(self, item: "_MassCoreItem", action_name: str, **kwargs):
+        """Mass queue action callback - skipped when window invisible."""
+        if not self._window_visible:
+            return
         if action_name == "show_in_viewport":
             if self.__last_show_viewport_item == item or self.__last_show_viewport_item is None:
                 value = not self._frame_viewport.visible
@@ -149,15 +152,19 @@ class SetupUI(_WorkspaceWidget):
             core.subscribe_run_finished(functools.partial(self._on_mass_cores_finished, core))
         )
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def _on_mass_cores_started(self, core: "_ManagerCore"):
+        """Mass cores started callback - skipped when window invisible."""
+        if not self._window_visible:
+            return
         if self._viewport:
             self._viewport.set_active(False)
         self._stage_view_widget.enable_context_event(False)
         self._mass_cores_are_running[id(core)] = True
 
-    @skip_when_widget_is_invisible(widget="root_widget")
     def _on_mass_cores_finished(self, core: "_ManagerCore", _finished: bool, message: Optional[str] = None):
+        """Mass cores finished callback - skipped when window invisible."""
+        if not self._window_visible:
+            return
         self._mass_cores_are_running[id(core)] = False
         update_viewport = not any(self._mass_cores_are_running.values())
         if update_viewport:

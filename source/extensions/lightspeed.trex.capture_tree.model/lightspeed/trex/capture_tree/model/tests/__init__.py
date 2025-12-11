@@ -15,4 +15,5 @@
 * limitations under the License.
 """
 
-from .e2e.test_tree import *
+from .e2e.test_tree import TestTreeWidget
+from .unit.test_enable_listeners import TestCaptureTreeModelEnableListeners

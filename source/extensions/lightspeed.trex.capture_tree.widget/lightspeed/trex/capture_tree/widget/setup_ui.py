@@ -23,7 +23,6 @@ import carb
 import omni.appwindow
 import omni.client
 import omni.kit
-import omni.kit.usd.layers as _layers
 import omni.ui as ui
 import omni.usd
 from lightspeed.common.constants import GlobalEventNames as _GlobalEventNames
@@ -33,7 +32,6 @@ from lightspeed.trex.capture.core.shared import Setup as CaptureCoreSetup
 from lightspeed.trex.capture_tree.model import CaptureTreeDelegate, CaptureTreeModel
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCoreSetup
 from lightspeed.trex.utils.widget import TrexMessageDialog, WorkspaceWidget
-from lightspeed.trex.utils.widget.decorators import skip_when_widget_is_invisible
 from omni.flux.property_widget_builder.model.file import FileAttributeItem as _FileAttributeItem
 from omni.flux.property_widget_builder.model.file import FileDelegate as _FileDelegate
 from omni.flux.property_widget_builder.model.file import FileModel as _FileModel
@@ -59,6 +57,7 @@ class CaptureWidget(WorkspaceWidget):
     PROPERTY_NAME_COLUMN_WIDTH = ui.Pixel(150)
 
     def __init__(self, context_name):
+        super().__init__()
         self._context = omni.usd.get_context(context_name)
         self.__file_listener_instance = _get_file_listener_instance()
         self._last_capture_tree_view_window_selection = None
@@ -81,38 +80,26 @@ class CaptureWidget(WorkspaceWidget):
         self._core_replacement = ReplacementCoreSetup(context_name)
         self._game_icon_hovered_task = None
 
+        # Subscribe to model events (always active - model controls when events fire via enable_listeners)
         self._sub_model_changed = self._capture_tree_model.subscribe_progress_updated(self._refresh_trees)
-        self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
-            self.__on_stage_event, name="StageChanged"
-        )
+        self._sub_stage_event = self._capture_tree_model.subscribe_stage_opened_or_closed(self.__on_event)
+        self._sub_layer_event = self._capture_tree_model.subscribe_sublayers_changed(self.__on_event)
 
-        self._layers = _layers.get_layers()
-        self._sub_layer_event = self._layers.get_event_stream().create_subscription_to_pop(
-            self.__on_layer_event, name="LayerChange"
-        )
         self.__create_ui()
 
-    def show(self, visible):
+    def show(self, visible: bool):
+        super().show(visible)
         self._capture_tree_model.enable_listeners(visible)
         self.root_widget.visible = visible
+
         if visible:
             self.refresh_capture_detail_panel()
         else:
             self._capture_tree_model.cancel_tasks()
             self._destroy_capture_properties()
 
-    @skip_when_widget_is_invisible(widget="root_widget")
-    def __on_layer_event(self, event):
-        """Layer event callback - automatically filtered when widget invisible."""
-        payload = _layers.get_layer_event_payload(event)
-        if not payload:
-            return
-        if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
-            self.__on_event()
-
-    @skip_when_widget_is_invisible(widget="root_widget")
     def _refresh_trees(self, *_):
-        """Model progress callback - automatically filtered when widget invisible."""
+        """Model progress callback - subscription destroyed when window invisible."""
         if self._capture_tree_view_window:
             self._capture_tree_view_window.dirty_widgets()
         if self._capture_tree_view:
@@ -361,14 +348,6 @@ class CaptureWidget(WorkspaceWidget):
         self._error_popup = _ErrorPopup(title, message, window_size=(400, 120))
         self._error_popup.show()
         carb.log_error(message)
-
-    @skip_when_widget_is_invisible(widget="root_widget")
-    def __on_stage_event(self, event):
-        if event.type in [
-            int(omni.usd.StageEventType.CLOSED),
-            int(omni.usd.StageEventType.OPENED),
-        ]:
-            self.__on_event()
 
     def __on_event(self):
         self.refresh_capture_detail_panel()

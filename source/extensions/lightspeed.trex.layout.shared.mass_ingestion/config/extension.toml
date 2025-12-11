@@ -1,5 +1,5 @@
 [package]
-version = "1.4.0"
+version = "1.4.1"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix layout for the Mass Ingestion"
 description = "Layout for NVIDIA RTX Remix Mass Ingestion"

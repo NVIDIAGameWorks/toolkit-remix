@@ -15,4 +15,4 @@
 * limitations under the License.
 """
 
-from .unit.test_visibility_filtering import TestComfyUIWidgetVisibilityFiltering
+from .unit.test_subscription_lifecycle import TestComfyUIWidgetSubscriptionLifecycle

@@ -1,6 +1,14 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Added
+- Added semantic event subscriptions: subscribe_stage_opened_or_closed(), subscribe_sublayers_changed()
+- Added layer event handling in enable_listeners() for sublayer changes
+
+### Changed
+- Model now owns all data-related event subscriptions, widgets subscribe to model events
+
 ## [1.4.0]
 ### Added
 - Added progress data caching for improved performance
