@@ -67,7 +67,7 @@ def _is_const_asset_path_value(item) -> bool:
 # Field builder for ConstAssetPath.value - uses FilePicker instead of string field
 CONST_ASSET_PATH_FIELD_BUILDER = FieldBuilder(
     claim_func=_is_const_asset_path_value,
-    build_func=FilePicker().build_ui,
+    build_func=FilePicker(use_relative_paths=True).build_ui,
 )
 
 _SPACING_SM = 4
