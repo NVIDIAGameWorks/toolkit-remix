@@ -77,6 +77,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
     _ignore_selection_update: bool = PrivateAttr(default=False)
     _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr(default=[])
     _items_changed_task: Future | None = PrivateAttr(default=None)
+    _tree_selection_task: Future | None = PrivateAttr(default=None)
 
     @omni.usd.handle_exception
     async def _update_context_items(self):
@@ -133,6 +134,18 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
 
     @_ignore_function_decorator(attrs=["_selection_update_lock"])
     def _update_tree_selection(self):
+        """
+        Queue an async task to update the tree selection without blocking the UI.
+        """
+        if self._tree_selection_task:
+            self._tree_selection_task.cancel()
+        self._tree_selection_task = ensure_future(self._update_tree_selection_async())
+
+    @omni.usd.handle_exception
+    async def _update_tree_selection_async(self):
+        """
+        Async implementation of tree selection update.
+        """
         # Cache the value to be used in `_update_expansion_states_deferred`
         scroll_to_selection = not self._ignore_selection_update
         # Make sure to reset the value so next time we update the tree selection we have the right value
@@ -144,8 +157,10 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         # Get USD selection
         selection = self._get_selection()
 
-        if selection:
-            self._item_expansion_states.clear()
+        if not selection:
+            return
+
+        self._item_expansion_states.clear()
 
         def is_selected_item(selected_prim_paths, item) -> bool:
             should_select = item.data and item.data.GetPath() in selected_prim_paths
@@ -160,13 +175,32 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
 
             return should_select
 
-        self._tree_widget.selection = self.tree.model.find_items(lambda item: is_selected_item(selection, item))
+        # Use async find_items to avoid blocking the UI
+        matching_items = await self.tree.model.find_items_async(lambda item: is_selected_item(selection, item))
 
+        # Check if the selection task has been cancelled or superseded
+        task_cancelled = (
+            self._tree_selection_task is None or self._tree_selection_task.cancelled() or not self._is_active
+        )
+        if task_cancelled or matching_items is None:
+            return
+
+        # Lock to prevent _on_selection_changed from setting _ignore_selection_update
+        self._selection_update_lock = True
+        try:
+            self._tree_widget.selection = matching_items
+        finally:
+            self._selection_update_lock = False
+
+        # Cancel any previous expansion task before starting a new one
         if self._update_expansion_task:  # noqa PLE0203
             self._update_expansion_task.cancel()  # noqa PLE0203
+
+        # Track and await expansion - assign to task so cancellation checks work in base class
         self._update_expansion_task = ensure_future(
             self._update_expansion_states_deferred(scroll_to_selection_override=scroll_to_selection)
         )
+        await self._update_expansion_task
 
     def _get_selection(self):
         return omni.usd.get_context(self._context_name).get_selection().get_selected_prim_paths()

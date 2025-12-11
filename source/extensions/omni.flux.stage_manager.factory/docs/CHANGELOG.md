@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.5.0]
+### Added
+- Added `find_items_async` method to `StageManagerTreeModel` for non-blocking item searches
+- Added `_is_expansion_task_cancelled` property for expansion task cancellation checks
+
+### Changed
+- Improved `_update_expansion_states_deferred` to run `items_dict` building in a background thread
+
 ## [4.4.0]
 ### Added
 - Added `additional_filters` to the interaction plugins
