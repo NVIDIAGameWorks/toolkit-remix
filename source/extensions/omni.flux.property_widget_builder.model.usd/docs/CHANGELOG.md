@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.21.2]
+### Changed
+- Configured `inputs:configPath` OGN field builder to use relative paths
+
 ## [2.21.1]
 ### Changed
 - Code formatting improvements

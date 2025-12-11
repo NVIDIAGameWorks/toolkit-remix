@@ -6,15 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus
-- REMIX-4792: Added a badge to the Additional Filters button to show the number of modified filters
-- REMIX-4813: Added Logic Graph sidebar button for quick layout switching with dedicated Logic Graph layout
 
 ### Added
 - Created 1.3.0 build
+- REMIX-4792: Added a badge to the Additional Filters button to show the number of modified filters
+- REMIX-4813: Added Logic Graph sidebar button for quick layout switching with dedicated Logic Graph layout
+- REMIX-4807: Added Escape key support to close Stage Prim Picker dropdown
 
 ### Changed
 - REMIX-4715, REMIX-4826: Improved Edit Graph dialog with tree-based selection UI and disabled compound graphs
+- REMIX-4818: FilePicker now supports automatic conversion to relative paths for USD edit target compliance
 
 ### Fixed
 - REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus
