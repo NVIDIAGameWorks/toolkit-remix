@@ -40,6 +40,7 @@ class AllSkeletonsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "AdditionalFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "IsCaptureFilterPlugin",
+            "VisiblePrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
             "SearchFilterPlugin",
             "SkeletonPrimsFilterPlugin",

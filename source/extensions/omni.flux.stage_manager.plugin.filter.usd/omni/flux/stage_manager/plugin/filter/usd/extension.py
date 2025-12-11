@@ -27,6 +27,7 @@ from .material_prims import MaterialPrimsFilterPlugin as _MaterialPrimsFilterPlu
 from .omni_prims import OmniPrimsFilterPlugin as _OmniPrimsFilterPlugin
 from .search import SearchFilterPlugin as _SearchFilterPlugin
 from .skeleton_prims import SkeletonPrimsFilterPlugin as _SkeletonPrimsFilterPlugin
+from .visible_prims import VisiblePrimsFilterPlugin as _VisiblePrimsFilterPlugin
 
 
 class StageManagerUSDFilterPluginsExtension(omni.ext.IExt):
@@ -39,6 +40,7 @@ class StageManagerUSDFilterPluginsExtension(omni.ext.IExt):
         _OmniPrimsFilterPlugin,
         _SearchFilterPlugin,
         _SkeletonPrimsFilterPlugin,
+        _VisiblePrimsFilterPlugin,
     ]
 
     def on_startup(self, _):

@@ -60,7 +60,10 @@ class AdditionalFiltersPopupMenuItemDelegate(PopupMenuItemDelegate):
 
         with self._container:
             ui.Spacer(width=0)
-            self.filter_obj.build_ui()
+            with ui.VStack(width=0, spacing=ui.Pixel(4)):
+                self.filter_obj.build_ui()
+                if not isinstance(self.filter_obj, _ToggleableUSDFilterPlugin):
+                    ui.Spacer(width=0)
             ui.Spacer(width=0)
 
     def destroy(self):
@@ -75,8 +78,10 @@ class AdditionalFiltersPopupMenu(AbstractPopupMenu):
         self.filters = filters
 
     def build_menu_items(self):
-        for item in self._delegate.items:
-            item.build_item()
+        with ui.VStack(width=0, spacing=ui.Pixel(4)):
+            ui.Spacer(width=0)
+            for item in self._delegate.items:
+                item.build_item()
 
 
 class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):

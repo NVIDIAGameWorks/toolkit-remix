@@ -45,6 +45,7 @@ class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "AdditionalFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "IsCaptureFilterPlugin",
+            "VisiblePrimsFilterPlugin",
             "LightPrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
             "SearchFilterPlugin",

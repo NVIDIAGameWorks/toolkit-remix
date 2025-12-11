@@ -37,6 +37,7 @@ class AllMaterialsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "AdditionalFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "IsCaptureFilterPlugin",
+            "VisiblePrimsFilterPlugin",
             "MaterialPrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
             "SearchFilterPlugin",
