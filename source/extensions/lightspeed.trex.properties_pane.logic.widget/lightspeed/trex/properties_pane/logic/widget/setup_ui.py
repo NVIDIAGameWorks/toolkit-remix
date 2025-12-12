@@ -30,6 +30,7 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE, REGEX_MESH_TO_INSTANCE_SUB, GlobalEventNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
+from lightspeed.trex.logic.core.attributes import get_ogn_default_value
 from lightspeed.trex.logic.core.graphs import LogicGraphCore
 from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.property_widget_builder.delegates.string_value.file_picker import FilePicker
@@ -329,7 +330,7 @@ class LogicPropertyWidget:
                 ui.Label("Existing Graphs", name="PropertiesWidgetLabel", height=0)
                 ui.Spacer(height=ui.Pixel(_SPACING_SM))
 
-            for graph in set(existing_graphs):
+            for graph in existing_graphs:
                 with ui.HStack(height=ui.Pixel(_ROW_HEIGHT), spacing=ui.Pixel(_SPACING_SM)):
                     relative_path = self._get_relative_path(graph.GetPath(), self._valid_target_paths)
                     ui.Label(
@@ -526,19 +527,19 @@ class LogicPropertyWidget:
                 if not tooltip:
                     tooltip = attr.get_metadata(ogn.MetadataKeys.DESCRIPTION) or ""
 
-                default_value: Any = attr.get_metadata(ogn.MetadataKeys.DEFAULT)
+                default_value: Any = get_ogn_default_value(attr)
 
                 options: list[str] | None = None
                 allowed_tokens = attr.get_metadata(ogn.MetadataKeys.ALLOWED_TOKENS)
                 if allowed_tokens:
                     options = allowed_tokens.split(",")
 
+                is_input = attr_name.startswith(OGN_ATTR_PREFIX_INPUTS)
                 read_only = True
-                if attr_name.startswith(OGN_ATTR_PREFIX_INPUTS):
+                if is_input:
                     read_only = False
 
                 is_relationship = is_property_relationship(stage, attribute_paths[0])
-
                 if is_relationship:
                     # Build prim picker configuration (filters, path patterns, pagination, etc.)
                     node_path = str(prim.GetPath())
@@ -552,42 +553,63 @@ class LogicPropertyWidget:
                         read_only=read_only,
                         ui_metadata=ui_metadata,
                     )
-                elif options:
-                    value_type_name = None
-                    ogn_type: og.AttributeType = attr.get_attribute_data().get_type()
-                    value_type_name_str: str = og.AttributeType.sdf_type_name_from_type(ogn_type)
-                    if value_type_name_str:
-                        value_type_name = Sdf.ValueTypeNames.Find(value_type_name_str)
-                    if not value_type_name:
-                        value_type_name = Sdf.ValueTypeNames.String
-
-                    attr_item = USDAttrListItem(
-                        self._context_name,
-                        attribute_paths,
-                        default_value,
-                        options,
-                        read_only=read_only,
-                        value_type_name=value_type_name,
-                        display_attr_names=[display_name],
-                        display_attr_names_tooltip=[tooltip],
-                    )
                 else:
                     value_type_name = None
-                    ogn_type: og.AttributeType = attr.get_attribute_data().get_type()
+                    ogn_type: og.AttributeType = attr.get_resolved_type()
+                    if ogn_type.base_type == og.BaseDataType.UNKNOWN:
+                        # Fall back to attribute data type for unresolved flexible types
+                        ogn_type = attr.get_attribute_data().get_type()
                     value_type_name_str: str = og.AttributeType.sdf_type_name_from_type(ogn_type)
                     if value_type_name_str:
                         value_type_name = Sdf.ValueTypeNames.Find(value_type_name_str)
                     if not value_type_name:
                         value_type_name = Sdf.ValueTypeNames.String
+                        default_value = str(default_value)
 
-                    attr_item = USDAttributeItem(
-                        self._context_name,
-                        attribute_paths,
-                        read_only=read_only,
-                        value_type_name=value_type_name,
-                        display_attr_names=[display_name],
-                        display_attr_names_tooltip=[tooltip],
+                    extended_type = attr.get_extended_type()
+                    is_flexible_type = extended_type in (
+                        og.ExtendedAttributeType.EXTENDED_ATTR_TYPE_UNION,
+                        og.ExtendedAttributeType.EXTENDED_ATTR_TYPE_ANY,
                     )
+                    if is_flexible_type:
+                        read_only = True
+                        if is_input:
+                            tooltip += "(Flexible Input - Set value and resolve type by connecting to a node's output)"
+                        else:
+                            tooltip += "(Flexible Output Type - Determined by connected input types)"
+                        if ogn_type.base_type == og.BaseDataType.UNKNOWN:
+                            if is_input:
+                                default_value = "Connect to a node output."
+                            else:
+                                default_value = "Unresolved: Connect flexible inputs"
+                        else:
+                            # If type is resolved, get the value from the connected port
+                            upstream_connections = attr.get_upstream_connections()
+                            if upstream_connections:
+                                default_value = upstream_connections[0].get()
+                            else:
+                                default_value = None
+                    if options:
+                        attr_item = USDAttrListItem(
+                            self._context_name,
+                            attribute_paths,
+                            default_value,
+                            options,
+                            read_only=read_only,
+                            value_type_name=value_type_name,
+                            display_attr_names=[display_name],
+                            display_attr_names_tooltip=[tooltip],
+                        )
+                    else:
+                        attr_item = USDAttributeItem(
+                            self._context_name,
+                            attribute_paths,
+                            default_value=default_value,
+                            read_only=read_only,
+                            value_type_name=value_type_name,
+                            display_attr_names=[display_name],
+                            display_attr_names_tooltip=[tooltip],
+                        )
 
                 # Collect items by group (but don't add to items list yet)
                 if group_name not in group_items:
@@ -671,8 +693,8 @@ class LogicPropertyWidget:
             return
         omni.kit.commands.execute("DeletePrimsCommand", paths=[str(graph.GetPath())])
         # Rebuild the UI to reflect the changes in the existing logic graphs
-        if self._root_frame:
-            self._root_frame.rebuild()
+        if self._dynamic_content_frame:
+            self._dynamic_content_frame.rebuild()
 
     @property
     def property_model(self):

@@ -26,6 +26,9 @@ from pxr import Sdf, Usd
 
 from .mapping import DEFAULT_VALUE_TABLE
 
+# Sdf field key for time samples (not exposed as a constant in pxr.Sdf)
+_SDF_TIME_SAMPLES_KEY = "timeSamples"
+
 
 def get_type_name(metadata: dict[Any, Any]) -> Sdf.ValueTypeName:
     """
@@ -65,18 +68,27 @@ def get_metadata(context_name: str, attribute_paths: list[Sdf.Path]) -> dict[Any
     return {}
 
 
-def is_item_overriden(stage, attributes):
+def is_item_overriden(stage: Usd.Stage, attributes: list[Usd.Attribute]) -> bool:
     if not stage or not attributes:
         return False
-    sub_layers = _LayerUtils.get_all_sublayers(stage, include_session_layers=True, include_anonymous_layers=False)
+    sub_layers: list[str] = _LayerUtils.get_all_sublayers(
+        stage, include_session_layers=True, include_anonymous_layers=False
+    )
+    root_layer: Sdf.Layer = stage.GetRootLayer()
     for attribute in attributes:
-        root_layer = stage.GetRootLayer()
         if not attribute.IsValid():
             continue
-        stack = attribute.GetPropertyStack(Usd.TimeCode.Default())
+        stack: list[Sdf.PropertySpec] = attribute.GetPropertyStack(Usd.TimeCode.Default())
         for stack_item in stack:
-            if stack_item.layer.identifier in sub_layers and stack_item.layer.identifier != root_layer.identifier:
-                return True
+            is_sublayer = stack_item.layer.identifier in sub_layers
+            is_root_layer = stack_item.layer.identifier == root_layer.identifier
+            # Check if value is on a non-root sublayer and has any authored value
+            # (either as a default value or as time samples)
+            if is_sublayer and not is_root_layer:
+                has_default = stack_item.HasDefaultValue()
+                has_time_samples = stack_item.HasInfo(_SDF_TIME_SAMPLES_KEY)
+                if has_default or has_time_samples:
+                    return True
     return False
 
 

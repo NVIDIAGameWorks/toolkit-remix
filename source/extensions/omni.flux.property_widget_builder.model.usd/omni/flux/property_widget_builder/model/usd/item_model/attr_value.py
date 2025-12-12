@@ -16,6 +16,7 @@
 """
 
 import abc
+import copy
 from typing import Any, Callable, List, Optional
 
 import carb
@@ -34,6 +35,29 @@ from ..utils import get_item_attributes as _get_item_attributes
 from ..utils import get_metadata as _get_metadata
 from ..utils import get_type_name as _get_type_name
 from ..utils import is_item_overriden as _is_item_overriden
+
+
+def _safe_deepcopy(value):
+    """
+    Deepcopy that handles USD types (like Vt arrays) that don't support pickling.
+
+    Args:
+        value: The value to copy
+
+    Returns:
+        A deep copy of the value, or a type-constructed copy for non-picklable USD types
+    """
+    try:
+        return copy.deepcopy(value)
+    except (TypeError, RuntimeError):
+        # Vt arrays and some other USD types don't support pickling.
+        # Try to create a copy using the type constructor.
+        try:
+            return type(value)(value)
+        except Exception:  # noqa
+            # If all else fails, return the original value.
+            # Caller should be aware this may not be a true copy.
+            return value
 
 
 class UsdAttributeBase(_Serializable, abc.ABC):
@@ -351,6 +375,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         context_name: str,
         attribute_paths: List[Sdf.Path],
         channel_index: int,
+        default_value: Any = None,
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
     ):
@@ -363,6 +388,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             channel_index: the channel index of the attribute
             read_only: if the attribute is read only or not
             type_name: the type name of the attribute
+            default_value: optional override for the default value
         """
         super().__init__(
             context_name,
@@ -374,6 +400,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         # should we treat value as a "multi" value or by channel.
         self._is_multichannel = MULTICHANNEL_BUILDER_TABLE.get(self._value_type_name, False)
         self._has_wrong_value = False
+        self._default_value = default_value
         self.init_attributes()
 
     def get_value(self):
@@ -397,8 +424,10 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             self._value = new_value
 
     def _get_default_value(self, attr):
-        """Get the USD default value"""
-        return _get_default_attribute_value(attr)
+        """Get the USD default value, or the override if provided"""
+        if self._default_value is not None:
+            return _safe_deepcopy(self._default_value)
+        return _safe_deepcopy(_get_default_attribute_value(attr))
 
     @property
     def is_default(self):
@@ -407,7 +436,10 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             if not attribute:
                 continue
             default_value = self._get_default_value(attribute)
-            if default_value != self.get_attributes_raw_value(index):
+            attribute_value = self.get_attributes_raw_value(index)
+            if attribute_value is None:
+                continue
+            if default_value != attribute_value:
                 return False
         return True
 
@@ -456,6 +488,9 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         value = attr.Get()
         if value is not None and self._value_type_name == Sdf.ValueTypeNames.Asset:
             return value.path
+        # If we have an override default and no value was authored, use the override default
+        if self._default_value is not None and not attr.HasAuthoredValue():
+            return _safe_deepcopy(self._default_value)
         return value
 
     def _set_attribute_value(self, attr, new_value):
@@ -521,8 +556,8 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         attribute_paths: list[Sdf.Path],
         channel_index: int,
         value_type_name: Sdf.ValueTypeName,
-        read_only: bool = False,
         default_value: Any = None,
+        read_only: bool = False,
         metadata: dict | None = None,
         create_callback: Callable[[Usd.Attribute, Any], None] | None = None,
     ):

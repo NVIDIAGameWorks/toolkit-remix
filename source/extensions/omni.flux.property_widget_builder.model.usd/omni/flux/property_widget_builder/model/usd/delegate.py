@@ -320,9 +320,21 @@ class USDDelegate(_Delegate):
             for value_model in item.value_models:
                 value_model.reset_default_value()
 
+    def _is_ogn_item(self, item: "_Item") -> bool:
+        """Check if the item belongs to an OmniGraph node."""
+        for value_model in item.value_models:
+            for attribute in value_model.attributes:
+                prim = attribute.GetPrim()
+                if prim.IsValid() and prim.GetTypeName() == "OmniGraphNode":
+                    return True
+        return False
+
     def _show_override_menu(self, model, item, button):
         if button != 0 or not any(v.is_overriden for v in item.value_models):
             return
+        # TODO: This is a temporary fix. We need to find a better way to handle this.
+        # OGN node properties don't support layer-based override deletion because it will remove the attr type.
+        enabled = not self._is_ogn_item(item)
         self._context_menu_widgets[id(item)] = ui.Menu("Override menu", direction=ui.Direction.LEFT_TO_RIGHT)
         with self._context_menu_widgets[id(item)]:
             # Ensure there are no repeated entries in the menu
@@ -337,10 +349,14 @@ class USDDelegate(_Delegate):
                             value_model.stage, include_session_layers=True, include_anonymous_layers=False
                         )
                     )
-            ui.MenuItem(
-                "Delete all overrides",
+            delete_all_overrides_label = "Delete all overrides"
+            if not enabled:
+                delete_all_overrides_label += " [DISABLED FOR THIS ATTR]"
+            top_menu_item = ui.MenuItem(
+                delete_all_overrides_label,
                 triggered_fn=functools.partial(self._delete_overrides, item),
             )
+            top_menu_item.enabled = enabled
             with ui.MenuItemCollection("Delete override from"):
                 for stack_item in property_stack:
                     if stack_item.layer.identifier in sub_layers:
@@ -351,11 +367,13 @@ class USDDelegate(_Delegate):
                         layer_name = _LayerUtils.get_custom_layer_name(stack_item.layer)
                         if is_locked:
                             layer_name += " [LOCKED]"
+                        if not enabled:
+                            layer_name += " [DISABLED FOR THIS ATTR]"
                         # Disable locked layers items
                         menu_item = ui.MenuItem(
                             layer_name,
                             triggered_fn=functools.partial(self._delete_overrides, item, layer=stack_item.layer),
                             tooltip=stack_item.layer.identifier,
                         )
-                        menu_item.enabled = not is_locked
+                        menu_item.enabled = not is_locked and enabled
         self._context_menu_widgets[id(item)].show()
