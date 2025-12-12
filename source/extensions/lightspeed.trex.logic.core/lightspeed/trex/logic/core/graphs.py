@@ -81,10 +81,10 @@ class LogicGraphCore:
     @staticmethod
     def get_existing_logic_graphs(stage: Usd.Stage, paths: list[Sdf.Path]) -> list[Usd.Prim]:
         """Get the names of the existing logic graphs under provided paths"""
-        existing_graphs: list[Usd.Prim] = []
+        existing_graphs: set[Usd.Prim] = set()
         for path in paths:
             root_prim = stage.GetPrimAtPath(path)
             for prim in Usd.PrimRange(root_prim):
                 if prim.GetTypeName() == OMNI_GRAPH_TYPE:
-                    existing_graphs.append(prim)
+                    existing_graphs.add(prim)
         return sorted(existing_graphs, key=lambda x: x.GetPath())

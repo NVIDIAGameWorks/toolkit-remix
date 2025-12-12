@@ -1,0 +1,76 @@
+"""
+* SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-License-Identifier: Apache-2.0
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* https://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+"""
+
+import json
+from typing import Any
+
+import omni.graph.core as og
+import omni.graph.tools.ogn as ogn
+
+
+def _get_type_default(og_type: og.AttributeType) -> Any:
+    """Get the default value for an OGN type when no explicit default is defined."""
+    # Arrays default to empty list (except string/path which are uchar[])
+    if og_type.array_depth > 0:
+        if og_type.base_type == og.BaseDataType.UCHAR and og_type.role in (
+            og.AttributeRole.TEXT,
+            og.AttributeRole.PATH,
+        ):
+            return ""
+        return []
+
+    # Determine base value for the type
+    if og_type.base_type == og.BaseDataType.BOOL:
+        val_base = False
+    elif og_type.base_type == og.BaseDataType.TOKEN:
+        val_base = ""
+    else:
+        val_base = 0
+
+    # Vectors/matrices: expand base value
+    if og_type.tuple_count > 1:
+        if og_type.role in (
+            og.AttributeRole.FRAME,
+            og.AttributeRole.MATRIX,
+            og.AttributeRole.TRANSFORM,
+        ):
+            # Identity matrix
+            dim = 2 if og_type.tuple_count == 4 else 3 if og_type.tuple_count == 9 else 4
+            return [[1 if i == j else 0 for j in range(dim)] for i in range(dim)]
+        return [val_base] * og_type.tuple_count
+
+    return val_base
+
+
+def get_ogn_default_value(attr: og.Attribute) -> Any:
+    """Get an OGN attribute's default value as a USD-compatible Python type.
+
+    Uses og.python_value_as_usd() for proper type conversion (Gf.Vec3f, etc.)
+    """
+    og_type = attr.get_resolved_type()
+    default_str = attr.get_metadata(ogn.MetadataKeys.DEFAULT)
+
+    if default_str is not None:
+        try:
+            py_val = json.loads(default_str)
+            return og.python_value_as_usd(og_type, py_val)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return default_str
+
+    # No explicit default - use type's default value
+    py_val = _get_type_default(og_type)
+    return og.python_value_as_usd(og_type, py_val)

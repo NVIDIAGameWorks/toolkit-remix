@@ -4,6 +4,11 @@ This document records all notable changes to the **lightspeed.trex.logic.widget*
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.5.1]
+### Changed
+- Improved error dialog texts and messaging for prim selection errors
+- Improved graph creation dialog wording and button label
+
 ## [1.5.0]
 ### Added
 - Added tree-based graph selection UI with improved UX for Edit Graph dialog

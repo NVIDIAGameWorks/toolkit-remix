@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.3.3-0 build
 
 ### Changed
 
@@ -22,16 +23,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4792: Added a badge to the Additional Filters button to show the number of modified filters
 - REMIX-4813: Added Logic Graph sidebar button for quick layout switching with dedicated Logic Graph layout
 - REMIX-4807: Added Escape key support to close Stage Prim Picker dropdown
+- REMIX-4793: Added a function to check if tree items need to be expanded in the Stage Manager
+- REMIX-4552: Added Visibility Filter to the Stage Manager
 
 ### Changed
+- REMIX-4812: OV Property Window is no longer accessible via the Windows/Property sub menu button
 - REMIX-4715, REMIX-4826: Improved Edit Graph dialog with tree-based selection UI and disabled compound graphs
 - REMIX-4818: FilePicker now supports automatic conversion to relative paths for USD edit target compliance
+- REMIX-4816: Improved logic graph properties panel UI with icon buttons and clearer dialog messages
+- Update hdremix and omni_core_materials to ext-83e59c6-main
 - REMIX-4801: Replaced decorator-based widget visibility filtering with subscription lifecycle management
+- REMIX-4801: Improved Stage Manager selection and expansion performance with async operations
 - Update hdremix and omni_core_materials to ext-f6fe773-release-v1-3
 
 ### Fixed
 - REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus
-- REMIX-4812: OV Property Window is no longer accessible via the Windows/Property sub menu button
+- Cleanup Github runners before packaging Toolkit
+- REMIX-4815: Fixed default values, tooltips, and flexible type handling in the Remix Logic properties panel
 
 ### Removed
 

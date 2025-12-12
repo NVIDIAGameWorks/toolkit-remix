@@ -276,6 +276,16 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             else None
         )
 
+    @property
+    def _is_expansion_task_cancelled(self) -> bool:
+        """
+        Check if the current expansion task has been cancelled or superseded.
+
+        Returns:
+            True if the task should abort, False if it should continue.
+        """
+        return self._update_expansion_task is None or self._update_expansion_task.cancelled() or not self._is_active
+
     @abc.abstractmethod
     def _setup_listeners(self):
         """
@@ -735,11 +745,23 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     @omni.usd.handle_exception
     async def _update_expansion_states_deferred(self, scroll_to_selection_override: bool = True):
         """
-        Wait 1 frame, then update the expansion state of the Tree items based on their cached state
+        Wait 1 frame, then update the expansion state of the Tree items based on their cached state.
+
+        Args:
+            scroll_to_selection_override: Whether to scroll to the selection or not
         """
         await omni.kit.app.get_app().next_update_async()
 
-        items_dict = self.tree.model.items_dict
+        # Early exit if cancelled
+        if self._is_expansion_task_cancelled:
+            return
+
+        # Build items dict in a background thread using the model's property
+        items_dict = await asyncio.to_thread(lambda: self.tree.model.items_dict)
+
+        # Early exit if cancelled or no items
+        if self._is_expansion_task_cancelled or items_dict is None:
+            return
 
         # Expand the items that were previously expanded
         for item_hash, expanded in reversed(self._item_expansion_states.items()):
@@ -749,7 +771,10 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             self._tree_widget.set_expanded(item, expanded, False)
 
         if scroll_to_selection_override and self.scroll_to_selection and self._tree_scroll_frame:
+            # Wait for expanded items to render before scrolling
             await omni.kit.app.get_app().next_update_async()
+            if self._is_expansion_task_cancelled:
+                return
             self._scroll_to_items(self._tree_widget.selection)
 
     def _scroll_to_items(self, items: Iterable[_StageManagerTreeItem], center_ratio: float = 0.2):
@@ -757,19 +782,20 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         Scroll to reveal the first item in `items`.
 
         Args:
+            items: The items to scroll to
             center_ratio: where to frame first item (0.0: top, 0.5: center, 1.0: bottom)
         """
-        items = set(items)
+        items_set = set(items)
         for i, child in enumerate(self._tree_widget.iter_visible_children()):
-            if child in items:
+            if child in items_set:
                 idx_item = i
                 break
         else:
             return
 
-        # find out how far down the first item's center is
+        # Find out how far down the first item's center is
         scroll_y = (idx_item + 0.5) * self.tree.delegate.row_height
-        # since that would scroll to the item, subtract some height to center the item
+        # Since that would scroll to the item, subtract some height to center the item
         target_from_top = self._tree_scroll_frame.computed_content_height * center_ratio
         self._tree_scroll_frame.scroll_y = scroll_y - target_from_top
 

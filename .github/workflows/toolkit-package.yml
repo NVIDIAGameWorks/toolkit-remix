@@ -11,6 +11,29 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+
+    # Remove unnecessary files and programs to avoid running out of disk space in the runner
+    - name: Free disk space
+      run: |
+        sudo rm -rf \
+          /usr/local/aws-cli \
+          /usr/local/aws-sam-cli \
+          /usr/local/julia1.12.2 \
+          /usr/local/lib/android \
+          /usr/local/lib/heroku \
+          /usr/local/lib/node_modules \
+          /opt/hostedtoolcache/CodeQL \
+          /opt/hostedtoolcache/go \
+          /opt/hostedtoolcache/PyPy \
+          /opt/hostedtoolcache/node \
+          /usr/local/bin/oc \
+          /usr/local/share/chromium \
+          /usr/local/share/powershell \
+          /opt/az \
+          /opt/microsoft/msedge \
+          /opt/microsoft/powershell
+        sudo apt purge -y firefox google-chrome-stable microsoft-edge-stable
+
     - name: Checkout repository
       uses: actions/checkout@v4
       with:

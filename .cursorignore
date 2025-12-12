@@ -1,2 +1,9 @@
-_*/
-!_build/*/*/exts/*
+# Ignore underscore-prefixed build folders
+_compiler/**
+_repo/**
+_testoutput/**
+
+# Ignore _build contents except exts folders
+# Pattern allows: _build/{platform}/{config}/exts/**
+_build/*/*/**
+!_build/*/*/exts/**

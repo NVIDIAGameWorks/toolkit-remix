@@ -36,6 +36,7 @@ class AllTagsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "AdditionalFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "IsCaptureFilterPlugin",
+            "VisiblePrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
             "SearchFilterPlugin",
         ],

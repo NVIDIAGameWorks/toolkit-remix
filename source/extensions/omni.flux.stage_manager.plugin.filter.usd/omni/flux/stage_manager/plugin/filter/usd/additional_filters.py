@@ -60,7 +60,10 @@ class AdditionalFiltersPopupMenuItemDelegate(PopupMenuItemDelegate):
 
         with self._container:
             ui.Spacer(width=0)
-            self.filter_obj.build_ui()
+            with ui.VStack(width=0, spacing=ui.Pixel(4)):
+                self.filter_obj.build_ui()
+                if not isinstance(self.filter_obj, _ToggleableUSDFilterPlugin):
+                    ui.Spacer(width=0)
             ui.Spacer(width=0)
 
     def destroy(self):
@@ -75,8 +78,10 @@ class AdditionalFiltersPopupMenu(AbstractPopupMenu):
         self.filters = filters
 
     def build_menu_items(self):
-        for item in self._delegate.items:
-            item.build_item()
+        with ui.VStack(width=0, spacing=ui.Pixel(4)):
+            ui.Spacer(width=0)
+            for item in self._delegate.items:
+                item.build_item()
 
 
 class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
@@ -130,6 +135,8 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
     _modified_filters: list[_StageManagerUSDFilterPlugin] = PrivateAttr(default=[])
 
     _icon: ui.Image | None = PrivateAttr(default=None)
+    _counter_circle: ui.Circle | None = PrivateAttr(default=None)
+    _counter_label: ui.Label | None = PrivateAttr(default=None)
 
     def filter_predicate(self, item: _StageManagerItem) -> bool:
         # This filter is not used, it is only here to satisfy the interface
@@ -228,6 +235,15 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
         self._update_active_filters()
         if self._icon:
             self._icon.name = "FilterActive" if self._modified_filters else "Filter"
+        if self._counter_circle is None or self._counter_label is None:
+            return
+        if self._modified_filters:
+            self._counter_circle.visible = True
+            self._counter_label.visible = True
+            self._counter_label.text = str(len(self._modified_filters))
+        else:
+            self._counter_circle.visible = False
+            self._counter_label.visible = False
 
     def _on_button_clicked(self):
         self._update_active_filters()
@@ -238,15 +254,39 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
         # Gather available filters and update active filters
         if not self._active_filters:
             self._active_filters = self._get_available_filters()
-        else:
-            self._update_active_filters()
+
+        self._update_active_filters()
+
+        # Clean up existing UI elements if they exist
+        if self._icon:
+            self._icon.destroy()
+        if self._counter_circle:
+            self._counter_circle.destroy()
+        if self._counter_label:
+            self._counter_label.destroy()
 
         with ui.HStack(height=0):
-            self._icon = ui.Image(
-                "",
-                name="FilterActive" if self._modified_filters else "Filter",
-                tooltip="Additional Filters",
-                mouse_pressed_fn=lambda x, y, b, m: self._on_button_clicked(),
-                width=ui.Pixel(24),
-                height=ui.Pixel(24),
-            )
+            with ui.ZStack(width=ui.Pixel(24), height=ui.Pixel(24)):
+                self._icon = ui.Image(
+                    "",
+                    name="FilterActive" if self._modified_filters else "Filter",
+                    tooltip="Additional Filters",
+                    mouse_pressed_fn=lambda x, y, b, m: self._on_button_clicked(),
+                    width=ui.Pixel(24),
+                    height=ui.Pixel(24),
+                )
+
+                # A counter badge to show the number of modified filters.
+                # It is hidden by default and shown when there are modified filters.
+                count = len(self._modified_filters)
+                with ui.VStack(padding=8):
+                    with ui.HStack(padding=8):
+                        with ui.ZStack(width=ui.Pixel(14), height=ui.Pixel(14)):
+                            self._counter_circle = ui.Circle(radius=12, style={"background_color": 0xFF646464})
+                            self._counter_circle.visible = bool(self._modified_filters)
+                            self._counter_label = ui.Label(
+                                str(count), alignment=ui.Alignment.CENTER, style={"font_size": 10, "color": 0xFFFFFFFF}
+                            )
+                            self._counter_label.visible = bool(self._modified_filters)
+                        ui.Spacer()
+                    ui.Spacer()

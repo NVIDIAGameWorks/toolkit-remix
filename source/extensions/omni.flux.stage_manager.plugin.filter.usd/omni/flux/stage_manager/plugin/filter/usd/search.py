@@ -30,7 +30,7 @@ class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
 
     display_name: str = Field(default="Search", exclude=True)
     tooltip: str = Field(default="Search through the list of prims", exclude=True)
-    search_term: str = Field(default="", exclude=True)
+    search_term: str = Field(default="", exclude=False)
 
     _end_edit_sub: _EventSubscription | None = PrivateAttr(default=None)
 
