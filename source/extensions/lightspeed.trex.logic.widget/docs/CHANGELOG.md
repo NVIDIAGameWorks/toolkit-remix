@@ -4,6 +4,11 @@ This document records all notable changes to the **lightspeed.trex.logic.widget*
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.6.0]
+### Added
+- Added backdrop rename functionality via F2 hotkey and right-click context menu
+- Backdrops can now be renamed directly (changes the prim name)
+
 ## [1.5.1]
 ### Changed
 - Improved error dialog texts and messaging for prim selection errors

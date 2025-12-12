@@ -19,7 +19,6 @@ import os
 import unittest
 from functools import partial
 from pathlib import Path
-from typing import List
 from unittest.mock import patch
 
 import carb
@@ -258,7 +257,7 @@ class TestOgWindowComponentUI(OmniUiTest):
             golden_img_name="lightspeed.trex.logic.widget.test_enter_compounds.png",
         )
 
-    async def _validate_enter_compound(self, graph_create_fn, compounds: List[str], test_name: str):
+    async def _validate_enter_compound(self, graph_create_fn, compounds: list[str], test_name: str):
         # requires kit support for compounds
         if not Supports.compound_subgraphs():
             return

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.20.0]
+### Added
+- Added BackdropRenamePopup window and background styles
+
 ## [1.19.2]
 ### Added
 - Added Edit icon styles for properties panel actions
@@ -198,4 +202,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.0.0] - 2024-02-28
 ### Added
 - Created
-

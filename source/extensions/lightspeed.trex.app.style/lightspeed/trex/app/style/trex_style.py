@@ -1124,6 +1124,15 @@ current_dict.update(
             "border_radius": 4,
         },
         "Rectangle::StagePrimPickerDropdownBackground": {"background_color": _GREY_50},
+        # Backdrop Rename Popup
+        "Window::BackdropRenamePopup": {
+            "background_color": 0x0,
+            "border_radius": 4,
+        },
+        "Rectangle::BackdropRenamePopupBackground": {
+            "background_color": _GREY_50,
+            "border_radius": 4,
+        },
         "TreeView.ScrollingFrame::WelcomePad": {"background_color": 0x0},
         "ViewportStats::FloatField": {
             "background_color": 0,
