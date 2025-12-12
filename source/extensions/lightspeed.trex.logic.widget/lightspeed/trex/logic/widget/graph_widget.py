@@ -33,6 +33,7 @@ from omni.graph.window.core import OmniGraphWidget
 from omni.kit.window.popup_dialog import InputDialog
 from pxr import Sdf, Usd
 
+from .backdrop_delegate import RemixBackdropDelegate, trigger_backdrop_rename
 from .graph_edit_tree import GraphEditTreeDelegate, GraphEditTreeModel
 from .graph_node_delegate import RemixLogicNodeDelegate
 
@@ -47,7 +48,13 @@ DEFAULT_GRAPH_EVALUATOR = "component"
 class RemixLogicGraphWidget(OmniGraphWidget):
     def __init__(self, **kwargs):
         graph_delegate = RemixLogicNodeDelegate(self)
-        super().__init__(graph_delegate=graph_delegate, **kwargs)
+        super().__init__(
+            graph_delegate=graph_delegate,
+            **kwargs,
+        )
+
+        # Replace default BackdropDelegate with styled version for inline rename
+        self._router.add_route(RemixBackdropDelegate(), type="Backdrop")
 
         self._edit_model = GraphEditTreeModel()
         self._edit_delegate = GraphEditTreeDelegate()
@@ -304,3 +311,11 @@ class RemixLogicGraphWidget(OmniGraphWidget):
         """Edit the given graph"""
         self._selection.set_prim_path_selected(str(graph.GetPath()), True, True, True, True)
         self._import_selection()
+
+    def rename_selected_backdrop(self):
+        """Rename the selected backdrop using inline editing."""
+        if not self._graph_view or not self._graph_view.selection:
+            return
+        selection = self._graph_view.selection
+        if len(selection) == 1 and hasattr(selection[0], "GetTypeName") and selection[0].GetTypeName() == "Backdrop":
+            trigger_backdrop_rename(selection[0].GetPath())

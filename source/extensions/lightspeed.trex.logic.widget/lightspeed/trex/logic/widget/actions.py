@@ -19,7 +19,7 @@ from __future__ import annotations
 
 __all__ = ["RemixLogicGraphActions", "RemixLogicGraphHotkeys"]
 
-from typing import Callable, Optional
+from typing import Callable
 
 import carb.input
 import omni.kit.actions.core
@@ -30,6 +30,8 @@ from omni.graph.window.core.hotkeys import _HOTKEYS_EXT
 from omni.graph.window.core.virtual_node_helper import VirtualNodeHelper
 from omni.kit.hotkeys.core import KeyCombination
 from pxr import Sdf
+
+from .backdrop_delegate import trigger_backdrop_rename
 
 
 class RemixLogicGraphActions(OmniGraphActions):
@@ -44,8 +46,9 @@ class RemixLogicGraphActions(OmniGraphActions):
     SELECT_ALL = "og_select_all"
     SELECT_NONE = "og_select_none"
     DELETE_SELECTION = "og_delete_selection"
+    RENAME_BACKDROP = "og_rename_backdrop"
 
-    def __init__(self, extension_id: str, filter_fn: Optional[Callable[[Sdf.Path, Sdf.PrimSpec], bool]] = None):
+    def __init__(self, extension_id: str, filter_fn: Callable[[Sdf.Path, Sdf.PrimSpec], bool] | None = None):
         super().__init__(extension_id, filter_fn)
 
         action_registry = omni.kit.actions.core.get_action_registry()
@@ -78,6 +81,15 @@ class RemixLogicGraphActions(OmniGraphActions):
             tag=actions_tag,
         )
 
+        action_registry.register_action(
+            self._extension_id,
+            RemixLogicGraphActions.RENAME_BACKDROP,
+            self.rename_backdrop,
+            display_name="Rename Backdrop",
+            description="Rename the selected backdrop.",
+            tag=actions_tag,
+        )
+
     def select_all(self):
         """Select all the nodes in the graph."""
         widget = self._get_widget()
@@ -105,6 +117,18 @@ class RemixLogicGraphActions(OmniGraphActions):
                 paths = [n.GetPath() for n in selected_non_graph_items]
                 omni.kit.commands.execute("DeletePrims", paths=paths)
 
+    def rename_backdrop(self):
+        """Rename the selected backdrop using inline editing."""
+        widget = self._get_widget()
+        if not widget:
+            return
+
+        view = widget._graph_view  # noqa: SLF001, PLW0212
+        if view and view.selection and len(view.selection) == 1:
+            prim = view.selection[0]
+            if hasattr(prim, "GetTypeName") and prim.GetTypeName() == "Backdrop":
+                trigger_backdrop_rename(prim.GetPath())
+
 
 class RemixLogicGraphHotkeys(OmniGraphHotkeys):
     """
@@ -119,6 +143,7 @@ class RemixLogicGraphHotkeys(OmniGraphHotkeys):
         ),
         RemixLogicGraphActions.SELECT_NONE: KeyCombination(carb.input.KeyboardInput.ESCAPE),
         RemixLogicGraphActions.DELETE_SELECTION: KeyCombination(carb.input.KeyboardInput.DEL),
+        RemixLogicGraphActions.RENAME_BACKDROP: KeyCombination(carb.input.KeyboardInput.F2),
     }
 
     def _register(self):

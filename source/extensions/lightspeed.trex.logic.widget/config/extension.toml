@@ -1,7 +1,7 @@
 [package]
 title = "Remix Logic Graph Editor"
 description = "Component editor window for Remix Component Graphs"
-version = "1.5.1"
+version = "1.6.0"
 authors = ["Chris Grebeldinger <cgrebeldinge@nvidia.com>", "Dean Edmonds <dedmonds@nvidia.com>", "Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.logic.widget"
 keywords = ["graph", "logic", "component", "remix", "ui"]
@@ -27,6 +27,7 @@ icon = "data/icon.svg"
 "omni.graph.ui" = {version=">=1.5.0"}
 "omni.graph.window.core" = {version=">=1.80.0"}
 "omni.graph" = { version = ">=1.139.0" }
+"omni.kit.context_menu" = {}
 "omni.kit.stage.copypaste" = {}  # for "omni.graph.window.core"
 "omni.ui" = {}
 "omni.usd" = {}
