@@ -175,6 +175,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         attribute_paths: List[Sdf.Path],
         display_attr_names: Optional[List[str]] = None,
         display_attr_names_tooltip: Optional[List[str]] = None,
+        default_value: Any = None,
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
     ):
@@ -186,6 +187,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
             attribute_paths: the list of USD attribute(s) the item will represent
             display_attr_names: override the name(s) of the attribute(s) to show by those one
             display_attr_names_tooltip: tooltip to show on the attribute name
+            default_value: optional override for the default value
             read_only: show the attribute(s) as read only
             value_type_name: if None, the type name will be inferred
         """
@@ -203,7 +205,13 @@ class USDAttributeItem(_BaseUSDAttributeItem):
                 display_attr_names_tooltip.extend([""] * (self._element_count - len(display_attr_names_tooltip)))
 
         self._init_name_models(context_name, attribute_paths, display_attr_names, display_attr_names_tooltip)
-        self._init_value_models(context_name, attribute_paths, read_only=read_only, value_type_name=value_type_name)
+        self._init_value_models(
+            context_name,
+            attribute_paths,
+            default_value=default_value,
+            read_only=read_only,
+            value_type_name=value_type_name,
+        )
 
     @property
     @abc.abstractmethod
@@ -231,13 +239,19 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         ]
 
     def _init_value_models(
-        self, context_name, attribute_paths, read_only, value_type_name: Sdf.ValueTypeName | None = None
+        self,
+        context_name,
+        attribute_paths,
+        default_value: Any = None,
+        read_only: bool = False,
+        value_type_name: Sdf.ValueTypeName | None = None,
     ):
         self._value_models = [
             _UsdAttributeValueModel(
                 context_name,
                 attribute_paths,
                 i,
+                default_value=default_value,
                 read_only=read_only,
                 value_type_name=value_type_name,
             )
@@ -397,8 +411,14 @@ class VirtualUSDAttributeItem(USDAttributeItem):
         ]
 
     def _init_value_models(
-        self, context_name, attribute_paths, read_only, value_type_name: Sdf.ValueTypeName | None = None
+        self,
+        context_name,
+        attribute_paths,
+        default_value: Any = None,
+        read_only: bool = False,
+        value_type_name: Sdf.ValueTypeName | None = None,
     ):
+        # Note: VirtualUSDAttributeItem uses self._default_value from __init__, ignoring passed default_value
         if not value_type_name:
             raise ValueError("value_type_name is required for virtual attribute value models")
         self._value_models = [
@@ -407,8 +427,8 @@ class VirtualUSDAttributeItem(USDAttributeItem):
                 attribute_paths,
                 i,
                 value_type_name,
-                read_only=read_only,
                 default_value=self._default_value,
+                read_only=read_only,
                 metadata=self._metadata,
                 create_callback=self._create_callback,
             )
@@ -611,7 +631,12 @@ class USDAttributeItemStub(USDAttributeItem):
         self._name_models = []
 
     def _init_value_models(
-        self, context_name, attribute_paths, read_only, value_type_name: Sdf.ValueTypeName | None = None
+        self,
+        context_name,
+        attribute_paths,
+        default_value: Any = None,
+        read_only: bool = False,
+        value_type_name: Sdf.ValueTypeName | None = None,
     ):
         self._value_models = []
 

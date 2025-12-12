@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4766: Added input validation to ensure a valid graph prim name is provided for new graphs
 - REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus
 - Cleanup Github runners before packaging Toolkit
+- REMIX-4815: Fixed default values, tooltips, and flexible type handling in the Remix Logic properties panel
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension

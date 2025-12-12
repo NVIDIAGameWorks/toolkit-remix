@@ -2,6 +2,17 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.22.0]
+### Added
+- Added `default_value` parameter to `USDAttributeItem` for external default value override
+
+### Changed
+- Disabled override deletion menu for OmniGraph node attributes
+
+### Fixed
+- Fixed `is_default` check to handle None attribute values
+- Fixed override detection to check for authored time samples
+
 ## [2.21.2]
 ### Changed
 - Configured `inputs:configPath` OGN field builder to use relative paths

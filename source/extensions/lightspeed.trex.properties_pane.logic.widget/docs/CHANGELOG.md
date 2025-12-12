@@ -1,6 +1,17 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+### Added
+- Added better support for flexible OGN types (union/any) with read-only display and guidance text
+
+### Changed
+- Improved OGN attribute default value handling with proper USD type conversion
+- Disabled override deletion for OGN node attributes to prevent type removal
+
+### Fixed
+- Fixed panel rebuild targeting correct dynamic content frame
+
 ## [1.2.5]
 ### Changed
 - Replaced text buttons with icon buttons for edit and delete actions
@@ -44,4 +55,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.0.0]
 ### Added
 - Created
-
