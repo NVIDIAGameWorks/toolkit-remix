@@ -15,6 +15,6 @@
 * limitations under the License.
 """
 
-from .extension import RemixLogicGraphExtension, get_instance
+from .extension import LOGIC_GRAPH_MENU_GROUP, RemixLogicGraphExtension, get_instance
 
-__all__ = ["RemixLogicGraphExtension", "get_instance"]
+__all__ = ["LOGIC_GRAPH_MENU_GROUP", "RemixLogicGraphExtension", "get_instance"]

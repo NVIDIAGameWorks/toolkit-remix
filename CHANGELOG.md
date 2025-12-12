@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4807: Added Escape key support to close Stage Prim Picker dropdown
 - REMIX-4793: Added a function to check if tree items need to be expanded in the Stage Manager
 - REMIX-4552: Added Visibility Filter to the Stage Manager
+- REMIX-4824: Added a backdrop rename popup to the Remix Logic Graph Editor
 
 ### Changed
 - REMIX-4812: OV Property Window is no longer accessible via the Windows/Property sub menu button
@@ -83,6 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4798: Logic Graph Editor: Improved node + port tooltips and added documentation links
 - REMIX-4816: Improved logic graph properties panel UI with icon buttons and clearer dialog messages
 - Update hdremix and omni_core_materials to ext-83e59c6-main
+- REMIX-4824: Patched OmniGraph context menu to use omni.kit.context_menu instead of hardcoded ui.Menu/ui.MenuItem
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths
