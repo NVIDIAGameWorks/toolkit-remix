@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.3.3-0]
+
+### Added
 - Created 1.3.0 build
 - REMIX-4792: Added a badge to the Additional Filters button to show the number of modified filters
 - REMIX-4813: Added Logic Graph sidebar button for quick layout switching with dedicated Logic Graph layout
@@ -17,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4715, REMIX-4826: Improved Edit Graph dialog with tree-based selection UI and disabled compound graphs
 - REMIX-4818: FilePicker now supports automatic conversion to relative paths for USD edit target compliance
 - REMIX-4801: Replaced decorator-based widget visibility filtering with subscription lifecycle management
+- Update hdremix and omni_core_materials to ext-f6fe773-release-v1-3
 
 ### Fixed
 - REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus
