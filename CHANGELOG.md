@@ -71,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus
 - Cleanup Github runners before packaging Toolkit
 - REMIX-4815: Fixed default values, tooltips, and flexible type handling in the Remix Logic properties panel
+- REMIX-4774: Fixed logic graph editor hotkeys not working on some machines
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension
