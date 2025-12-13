@@ -140,6 +140,7 @@ class RemixLogicGraphExtension(omni.ext.IExt):
 
         self._workspace = RemixLogicGraphWorkspaceWindow()
         self._workspace.create_window()
+        self._actions.set_window(self._workspace.get_window())
         ui.Workspace.set_show_window_fn(self._workspace.title, self.show_window)
 
         app = omni.kit.app.get_app_interface()
