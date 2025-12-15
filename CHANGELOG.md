@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4801: Replaced decorator-based widget visibility filtering with subscription lifecycle management
 - REMIX-4801: Improved Stage Manager selection and expansion performance with async operations
 - REMIX-4824: Patched OmniGraph context menu to use omni.kit.context_menu instead of hardcoded ui.Menu/ui.MenuItem
+- REMIX-4855: Replaced StagePrimPickerItem Button with Label to use TreeView's built-in hover/selection styling
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths
@@ -74,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4774: Fixed logic graph editor hotkeys not working on some machines
 - REMIX-4844: Fixed layer tree widget not expanding layer by default
 - Fixed virtual attribute default values being overwritten during initialization
+- REMIX-4855: Fixed target picker path filtering to include mesh_HASH and light_HASH prims, not just their children
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension
