@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.22.1]
+### Fixed
+- Fixed virtual attribute default values being overwritten during initialization
+
 ## [2.22.0]
 ### Added
 - Added `default_value` parameter to `USDAttributeItem` for external default value override
