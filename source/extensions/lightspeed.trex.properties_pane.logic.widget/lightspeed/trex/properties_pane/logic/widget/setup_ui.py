@@ -20,7 +20,7 @@ __all__ = ["LogicPropertyWidget"]
 import asyncio
 import re
 from functools import partial
-from typing import Any, Callable
+from typing import Any
 
 import omni.graph.core as og
 import omni.graph.tools.ogn as ogn
@@ -84,17 +84,17 @@ def _build_prim_row_with_icon(
     icon_map: dict[str, str],
     prim_path: str,
     prim_type: str,
-    clicked_fn: Callable | None,
     row_height: int,
 ) -> None:
     """
     Custom row builder that displays prim type icon.
 
+    TreeView handles hover/selection styling automatically for the full row.
+
     Args:
         icon_map: Mapping of prim type names to icon style names.
         prim_path: The prim path to display.
         prim_type: The prim type name.
-        clicked_fn: Callback when the row is clicked.
         row_height: Height of the row in pixels.
     """
     icon_name = icon_map.get(prim_type, "Xform")
@@ -108,11 +108,8 @@ def _build_prim_row_with_icon(
             ui.Image("", name=icon_name, width=ui.Pixel(_ICON_SIZE), height=ui.Pixel(_ICON_SIZE))
             ui.Spacer()
         ui.Spacer(width=ui.Pixel(_SPACING_SM))
-        ui.Button(
+        ui.Label(
             display_path,
-            height=ui.Pixel(row_height),
-            name="StagePrimPickerItem",
-            clicked_fn=clicked_fn,
             alignment=ui.Alignment.LEFT_CENTER,
             tooltip=tooltip,
         )
@@ -202,17 +199,17 @@ class LogicPropertyWidget:
 
     def _compute_path_patterns_for_node(self, node_path: str) -> tuple[list[str], str] | None:
         """
-        Compute path patterns for target picker based on mesh_HASH ancestor.
+        Compute path patterns for target picker based on mesh_HASH or light_HASH ancestor.
 
-        Extracts mesh_HASH path using regex, then shows all its children.
+        Extracts the hash prim path using regex, then includes it and all its children.
 
         Returns:
-            Tuple of (path_patterns, mesh_hash_path) or None if no match.
+            Tuple of (path_patterns, hash_path) or None if no match.
         """
         match = re.match(REGEX_MESH_TO_INSTANCE_SUB, node_path)
         if match:
-            mesh_hash_path = match.group(1)
-            return [f"{mesh_hash_path}/**"], mesh_hash_path
+            hash_path = match.group(1)
+            return [hash_path, f"{hash_path}/**"], hash_path
         return None
 
     def _build_relationship_ui_metadata(

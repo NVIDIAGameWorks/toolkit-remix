@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.20.1]
+### Changed
+- Replaced StagePrimPickerItem Button styles with Label style (TreeView now handles hover/selection)
+
 ## [1.20.0]
 ### Added
 - Added BackdropRenamePopup window and background styles
