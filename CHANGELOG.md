@@ -72,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleanup Github runners before packaging Toolkit
 - REMIX-4815: Fixed default values, tooltips, and flexible type handling in the Remix Logic properties panel
 - REMIX-4774: Fixed logic graph editor hotkeys not working on some machines
+- REMIX-4844: Fixed layer tree widget not expanding layer by default
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension

@@ -543,10 +543,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         await property_pane_items[1].click()
         await ui_test.human_delay(50)
 
-        expansion_stack = ui_test.find(f"{_window.title}//Frame/**/HStack[*].identifier=='expansion_stack'")
-        await expansion_stack.click()
-        await ui_test.human_delay(50)
-
+        # Layers are expanded by default, select the sublayer
         layer_items = ui_test.find_all(f"{_window.title}//Frame/**/ZStack[*].identifier=='layer_item_root'")
         await layer_items[1].click()
         await ui_test.human_delay(50)
@@ -602,10 +599,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         await property_pane_items[1].click()
         await ui_test.human_delay(50)
 
-        expansion_stack = ui_test.find(f"{_window.title}//Frame/**/HStack[*].identifier=='expansion_stack'")
-        await expansion_stack.click()
-        await ui_test.human_delay(50)
-
+        # Layers are expanded by default, select the sublayer
         layer_items = ui_test.find_all(f"{_window.title}//Frame/**/ZStack[*].identifier=='layer_item_root'")
         await layer_items[1].click()
         await ui_test.human_delay(50)
@@ -659,10 +653,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         await property_pane_items[1].click()
         await ui_test.human_delay(50)
 
-        expansion_stack = ui_test.find(f"{_window.title}//Frame/**/HStack[*].identifier=='expansion_stack'")
-        await expansion_stack.click()
-        await ui_test.human_delay(50)
-
+        # Layers are expanded by default, select the sublayer
         layer_items = ui_test.find_all(f"{_window.title}//Frame/**/ZStack[*].identifier=='layer_item_root'")
         await layer_items[1].click()
         await ui_test.human_delay(50)
@@ -715,5 +706,23 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         file_browser = ui_test.find(file_picker_window_title)
         file_browser.widget.destroy()
+
+        await self.__destroy(_window, _wid)
+
+    async def test_layers_panel_expanded_by_default(self):
+        """Test that the LAYERS panel expands root by default to show sublayers (regression test)."""
+        # setup widget
+        _window, _wid = await self.__setup_widget("test_layers_panel_expanded_by_default")
+
+        await ui_test.human_delay(50)
+
+        # Find all layer item labels in the layers panel
+        layer_labels = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].name=='PropertiesPaneSectionTreeItem'")
+
+        # Should have more than 1 layer visible (root layer should be expanded to show sublayers)
+        layer_names = [label.widget.text for label in layer_labels]
+        self.assertGreater(
+            len(layer_labels), 1, f"Root layer should be expanded to show sublayers. Found only: {layer_names}"
+        )
 
         await self.__destroy(_window, _wid)
