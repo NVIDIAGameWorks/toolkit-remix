@@ -27,7 +27,7 @@ from omni.flux.layer_tree.usd.widget import LayerDelegate, LayerModel, LayerTree
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows
-from pxr import Sdf
+from pxr import Sdf, Usd
 
 
 class TestWidget(AsyncTestCase):
@@ -36,7 +36,7 @@ class TestWidget(AsyncTestCase):
         await omni.usd.get_context().new_stage_async()
         self.context = omni.usd.get_context()
         self.stage = self.context.get_stage()
-        self.temp_dir = tempfile.TemporaryDirectory()
+        self.temp_dir = tempfile.TemporaryDirectory()  # noqa: PLR1732
 
     # After running each test
     async def tearDown(self):
@@ -151,6 +151,9 @@ class TestWidget(AsyncTestCase):
         root.subLayerPaths.append(layer0.identifier)
         root.subLayerPaths.append(layer1.identifier)
 
+        # Set layer0 as edit target so the tree expands to show it
+        self.stage.SetEditTarget(Usd.EditTarget(layer0))
+
         layers_state = layers.get_layers(self.context).get_layers_state()
 
         # Setup layer1 to be excluded from locks
@@ -164,16 +167,10 @@ class TestWidget(AsyncTestCase):
         self.assertFalse(layers_state.is_layer_locked(layer0.identifier))
         self.assertFalse(layers_state.is_layer_locked(layer1.identifier))
 
-        # Root layer should not be lock-able or unlock-able & children layers are hidden
-        self.assertEqual(0, len(ui_test.find_all(f"{window.title}//Frame/**/Image[*].name=='Unlock'")))
-        self.assertEqual(0, len(ui_test.find_all(f"{window.title}//Frame/**/Image[*].name=='Lock'")))
-
-        # Find the expansion button for the root and show the layer items
-        expand_button = ui_test.find(f"{window.title}//Frame/**/HStack[*].identifier=='expansion_stack'")
-        await expand_button.click(human_delay_speed=10)
-
-        # There should only be 1 unlock button, because layer1 is excluded
+        # Root is expanded by default, so layer0's unlock button should be visible
+        # (layer1 is excluded from locks so has no button)
         self.assertEqual(1, len(ui_test.find_all(f"{window.title}//Frame/**/Image[*].name=='Unlock'")))
+        self.assertEqual(0, len(ui_test.find_all(f"{window.title}//Frame/**/Image[*].name=='Lock'")))
 
         lock_button = ui_test.find(f"{window.title}//Frame/**/Image[*].name=='Unlock'")
         unlock_button = ui_test.find(f"{window.title}//Frame/**/Image[*].name=='Lock'")
@@ -208,3 +205,80 @@ class TestWidget(AsyncTestCase):
         # The UI should also have toggled again
         self.assertIsNotNone(lock_button)
         self.assertIsNone(unlock_button)
+
+    async def test_initial_expansion_with_deep_edit_target(self):
+        """Test that layers expand to show a deeply nested edit target."""
+        # Create a nested layer structure: root -> layer0 -> layer1 (edit target)
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        layer1_path = Path(self.temp_dir.name) / "layer1.usda"
+
+        layer0 = Sdf.Layer.CreateNew(str(layer0_path))
+        layer1 = Sdf.Layer.CreateNew(str(layer1_path))
+
+        # Nest layer1 inside layer0
+        layer0.subLayerPaths.append(layer1.identifier)
+
+        root = self.stage.GetRootLayer()
+        root.subLayerPaths.append(layer0.identifier)
+
+        # Set deep layer as edit target
+        self.stage.SetEditTarget(layer1)
+
+        window = await self.__setup_widget()
+
+        await ui_test.human_delay(20)
+
+        # All layers should be visible (root expanded, layer0 expanded to show layer1)
+        item_labels = ui_test.find_all(f"{window.title}//Frame/**/Label[*].name=='PropertiesPaneSectionTreeItem'")
+        self.assertEqual(3, len(item_labels))
+        self.assertEqual("Root Layer", item_labels[0].widget.text)
+        self.assertEqual("layer0.usda", item_labels[1].widget.text)
+        self.assertEqual("layer1.usda", item_labels[2].widget.text)
+
+    async def test_initial_expansion_with_first_level_edit_target(self):
+        """Test that first-level sublayer is visible when it's the edit target."""
+        # Create layer0 as a sublayer of root
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        layer0 = Sdf.Layer.CreateNew(str(layer0_path))
+
+        root = self.stage.GetRootLayer()
+        root.subLayerPaths.append(layer0.identifier)
+
+        # Set layer0 as edit target
+        self.stage.SetEditTarget(layer0)
+
+        window = await self.__setup_widget()
+
+        await ui_test.human_delay(20)
+
+        # Root should be expanded to show the edit target (layer0)
+        item_labels = ui_test.find_all(f"{window.title}//Frame/**/Label[*].name=='PropertiesPaneSectionTreeItem'")
+        self.assertEqual(2, len(item_labels))
+        self.assertEqual("Root Layer", item_labels[0].widget.text)
+        self.assertEqual("layer0.usda", item_labels[1].widget.text)
+
+    async def test_initial_expansion_with_second_sublayer_as_edit_target(self):
+        """Test that root expands when second sublayer is set as edit target."""
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        layer1_path = Path(self.temp_dir.name) / "layer1.usda"
+
+        layer0 = Sdf.Layer.CreateNew(str(layer0_path))
+        layer1 = Sdf.Layer.CreateNew(str(layer1_path))
+
+        root = self.stage.GetRootLayer()
+        root.subLayerPaths.append(layer0.identifier)
+        root.subLayerPaths.append(layer1.identifier)
+
+        # Set layer1 as edit target
+        self.stage.SetEditTarget(Usd.EditTarget(layer1))
+
+        window = await self.__setup_widget()
+
+        await ui_test.human_delay(20)
+
+        # Root should be expanded showing both sublayers, with layer1 selected
+        item_labels = ui_test.find_all(f"{window.title}//Frame/**/Label[*].name=='PropertiesPaneSectionTreeItem'")
+        self.assertEqual(3, len(item_labels))
+        self.assertEqual("Root Layer", item_labels[0].widget.text)
+        self.assertEqual("layer0.usda", item_labels[1].widget.text)
+        self.assertEqual("layer1.usda", item_labels[2].widget.text)

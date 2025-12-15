@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.0]
+### Added
+- Added automatic initial expansion of root layer and path to edit target
+- Increased default tree frame height from 100 to 130
+
 ## [1.13.1]
 ### Changed
 - Simplified tree column sizing using ui.Fraction for better responsiveness

@@ -33,7 +33,7 @@ from .layer_tree.model import LayerModel as _LayerModel
 
 
 class LayerTreeWidget:
-    _DEFAULT_TREE_FRAME_HEIGHT = 100
+    _DEFAULT_TREE_FRAME_HEIGHT = 130
     _SIZE_PERCENT_MANIPULATOR_WIDTH = 50
 
     def __init__(
@@ -61,6 +61,7 @@ class LayerTreeWidget:
             "_layer_tree_widget": None,
             "_sub_on_refresh_started": None,
             "_sub_on_refresh_completed": None,
+            "_sub_on_stage_opened": None,
             "_sub_on_item_changed": None,
             "_sub_on_item_expanded": None,
             "_sub_on_set_authoring_layer": None,
@@ -96,6 +97,7 @@ class LayerTreeWidget:
         self._sub_on_refresh_completed = self._model.subscribe_refresh_completed(
             functools.partial(self._on_model_refresh, False)
         )
+        self._sub_on_stage_opened = self._model.subscribe_stage_opened(self._on_stage_opened)
         self._sub_on_item_changed = self._model.subscribe_item_changed_fn(self._on_item_changed)
 
         # Delegate events
@@ -220,6 +222,11 @@ class LayerTreeWidget:
             self._slide_placer.offset_y = 0
         self._tree_scroll_frame.height = ui.Pixel(self._height + y.value)
 
+    def _on_stage_opened(self):
+        """Reset expansion state when a new stage is opened."""
+        self._tree_expanded.clear()
+        self._selection.clear()
+
     @usd.handle_exception
     async def __refresh_async(self):
         # Refresh the expansion states
@@ -228,12 +235,13 @@ class LayerTreeWidget:
 
         items = self._model.get_item_children(recursive=True)
 
-        # If there is no selection and there is an edit target
+        # If there is no selection and there is an edit target (Pierre's original logic)
         if self._model.edit_target_layer and not self._selection and not any(self._tree_expanded.values()):
+            edit_target = self._model.edit_target_layer
             # Select the edit target item
-            self._selection.add(self._model.edit_target_layer.data["layer"].identifier)
+            self._selection.add(edit_target.data["layer"].identifier)
             # Expand the edit target item's parents
-            parent = self._model.edit_target_layer.parent
+            parent = edit_target.parent
             while parent:
                 self._tree_expanded[parent.data["layer"].identifier] = True
                 parent = parent.parent
