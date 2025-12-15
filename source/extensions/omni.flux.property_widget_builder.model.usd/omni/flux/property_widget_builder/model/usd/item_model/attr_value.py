@@ -569,7 +569,6 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         is_multichannel = MULTICHANNEL_BUILDER_TABLE.get(value_type_name, False)
         if is_multichannel and default_value is not None:
             default_value = default_value[channel_index]
-        self._default_value = default_value
 
         super().__init__(
             context_name,
@@ -578,6 +577,9 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
             read_only=read_only,
             value_type_name=value_type_name,
         )
+
+        # Set _default_value AFTER super().__init__() to avoid being overwritten by the parent class
+        self._default_value = default_value
 
     def _get_default_value(self, attr):
         # Since the attribute does not exist, we need to retrieve the stored value.
