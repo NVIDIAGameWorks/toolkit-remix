@@ -108,6 +108,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
 
         self.__on_refresh_started = _Event()
         self.__on_refresh_completed = _Event()
+        self.__on_stage_opened = _Event()
 
         self.__refresh_task = None
 
@@ -869,6 +870,8 @@ class LayerModel(_TreeModelBase[ItemBase]):
             return
         self._context = usd.get_context(self._context_name)
         self.stage = self._context.get_stage()
+        if usd.StageEventType(event.type) == usd.StageEventType.OPENED:
+            self.__on_stage_opened()
         self.refresh()
 
     def subscribe_refresh_started(self, function):
@@ -882,6 +885,13 @@ class LayerModel(_TreeModelBase[ItemBase]):
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__on_refresh_completed, function)
+
+    def subscribe_stage_opened(self, function):
+        """
+        Subscribe to stage opened events. Useful for resetting UI state when a new project is loaded.
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_stage_opened, function)
 
     def destroy(self):
         if self.__refresh_task:
