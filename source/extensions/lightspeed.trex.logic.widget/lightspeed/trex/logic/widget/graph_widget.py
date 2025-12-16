@@ -81,7 +81,7 @@ class RemixLogicGraphWidget(OmniGraphWidget):
         if len(selected_prim_paths) != 1:
             error_message = f"Select exactly 1 prim.\n{len(selected_prim_paths)} are currently selected."
             if use_dialog:
-                ErrorPopup("Select Exactly 1 Prim", error_message, window_size=(400, 110)).show()
+                ErrorPopup("Select Exactly 1 Prim", error_message, window_size=(400, 120)).show()
                 return
             raise ValueError(f"Select exactly 1 prim. {len(selected_prim_paths)} are currently selected.")
 
@@ -90,7 +90,7 @@ class RemixLogicGraphWidget(OmniGraphWidget):
         if not graph_root_prim:
             error_message = "The selected prim is not a valid graph root.\nSelect a child of a mesh or light prim."
             if use_dialog:
-                ErrorPopup("Invalid Selection", error_message, window_size=(400, 110)).show()
+                ErrorPopup("Invalid Selection", error_message, window_size=(400, 120)).show()
                 return
             raise ValueError(error_message)
 
@@ -273,6 +273,9 @@ class RemixLogicGraphWidget(OmniGraphWidget):
                     self._select_button = ui.Button("Select", clicked_fn=select_graph, width=button_width)
                     ui.Button("Cancel", clicked_fn=close, width=button_width, tooltip="Close the dialog")
                 ui.Spacer(height=ui.Pixel(4))
+
+            # Subscribe to item double clicked events
+            self._item_double_clicked_sub = self._edit_delegate.subscribe_item_double_clicked(lambda _: select_graph())
 
             # Force update the select button state
             selection_changed(self._edit_tree.selection)
