@@ -17,7 +17,6 @@
 
 __all__ = ("PrimListDelegate",)
 
-import functools
 from typing import Callable
 
 import omni.ui as ui
@@ -27,26 +26,27 @@ _SPACING_MD = 8
 
 
 class PrimListDelegate(ui.AbstractItemDelegate):
-    """Delegate for rendering prim items in the TreeView."""
+    """
+    Delegate for rendering prim items in the TreeView.
+
+    Uses TreeView's built-in hover and selection styling for full-row highlighting.
+    """
 
     ROW_HEIGHT = _ROW_HEIGHT
 
     def __init__(
         self,
-        on_item_clicked: Callable[[str], None],
-        row_build_fn: Callable[[str, str, Callable | None, int], None] | None = None,
+        row_build_fn: Callable[[str, str, int], None] | None = None,
     ):
         """
         Initialize the delegate.
 
         Args:
-            on_item_clicked: Callback when a prim item is clicked.
             row_build_fn: Optional custom row builder function. Signature:
-                          (prim_path: str, prim_type: str, clicked_fn: Callable | None, row_height: int) -> None
+                          (prim_path: str, prim_type: str, row_height: int) -> None
                           If not provided, a default row layout is used.
         """
         super().__init__()
-        self._on_item_clicked = on_item_clicked
         self._row_build_fn = row_build_fn
 
     def build_branch(self, model, item, column_id, level, expanded):
@@ -56,20 +56,16 @@ class PrimListDelegate(ui.AbstractItemDelegate):
         if item is None:
             return
 
-        clicked_fn = functools.partial(self._on_item_clicked, item.prim_path) if self._on_item_clicked else None
-
         if self._row_build_fn:
             # Use custom row builder
-            self._row_build_fn(item.prim_path, item.prim_type, clicked_fn, self.ROW_HEIGHT)
+            self._row_build_fn(item.prim_path, item.prim_type, self.ROW_HEIGHT)
         else:
-            # Default row layout
+            # Default row layout - TreeView handles hover/selection styling
             with ui.HStack(height=ui.Pixel(self.ROW_HEIGHT)):
                 ui.Spacer(width=ui.Pixel(_SPACING_MD))
-                ui.Button(
+                ui.Label(
                     item.prim_path,
-                    height=ui.Pixel(self.ROW_HEIGHT),
                     name="StagePrimPickerItem",
-                    clicked_fn=clicked_fn,
                     alignment=ui.Alignment.LEFT_CENTER,
                     tooltip=item.tooltip,
                 )
@@ -79,5 +75,4 @@ class PrimListDelegate(ui.AbstractItemDelegate):
         pass
 
     def destroy(self):
-        self._on_item_clicked = None
         self._row_build_fn = None

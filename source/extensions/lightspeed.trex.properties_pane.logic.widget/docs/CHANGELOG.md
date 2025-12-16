@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.1]
+### Fixed
+- Fixed target picker path filtering to include mesh_HASH and light_HASH prims, not just their children
+
 ## [1.3.0]
 ### Added
 - Added better support for flexible OGN types (union/any) with read-only display and guidance text

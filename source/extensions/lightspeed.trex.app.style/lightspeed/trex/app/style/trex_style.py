@@ -1091,15 +1091,7 @@ current_dict.update(
         "Button::StagePrimPickerFieldShowMore:hovered": {"background_color": _GREY_60},
         "Button::StagePrimPickerFieldShowMore:disabled": {"background_color": _GREY_40},
         "Button.Label::StagePrimPickerFieldShowMore:disabled": {"color": _WHITE_30},
-        "Button::StagePrimPickerItem": {
-            "background_color": 0x0,
-            "padding": 0,
-            "margin": 0,
-            "border_width": 0,
-            "border_radius": 0,
-        },
-        "Button::StagePrimPickerItem:hovered": {"background_color": _BLUE_HOVERED},
-        "Button.Label::StagePrimPickerItem": {"alignment": ui.Alignment.LEFT_CENTER, "margin_width": 4},
+        "Label::StagePrimPickerItem": {"alignment": ui.Alignment.LEFT_CENTER},
         "Field::StagePrimPickerSearch": {
             "background_color": _GREY_50,
             "border_width": 1,

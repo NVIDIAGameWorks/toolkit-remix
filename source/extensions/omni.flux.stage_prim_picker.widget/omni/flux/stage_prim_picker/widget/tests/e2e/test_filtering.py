@@ -114,7 +114,7 @@ class TestFiltering(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Only Mesh prims appear (in dropdown window)
         prim_buttons = ui_test.find_all(
-            "StagePrimPickerDropdown_test_picker_0//Frame/**/Button[*].name=='StagePrimPickerItem'"
+            "StagePrimPickerDropdown_test_picker_0//Frame/**/Label[*].name=='StagePrimPickerItem'"
         )
         prim_paths = [b.widget.text for b in prim_buttons]
 
@@ -152,7 +152,7 @@ class TestFiltering(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Only active prims appear (in dropdown window)
         prim_buttons = ui_test.find_all(
-            "StagePrimPickerDropdown_test_picker_0//Frame/**/Button[*].name=='StagePrimPickerItem'"
+            "StagePrimPickerDropdown_test_picker_0//Frame/**/Label[*].name=='StagePrimPickerItem'"
         )
         prim_paths = [b.widget.text for b in prim_buttons]
 
@@ -193,7 +193,7 @@ class TestFiltering(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Only active Meshes (in dropdown window)
         prim_buttons = ui_test.find_all(
-            "StagePrimPickerDropdown_test_picker_0//Frame/**/Button[*].name=='StagePrimPickerItem'"
+            "StagePrimPickerDropdown_test_picker_0//Frame/**/Label[*].name=='StagePrimPickerItem'"
         )
         self.assertEqual(len(prim_buttons), 1, "Should have exactly 1 prim (active Mesh)")
         self.assertIn("/World/ActiveMesh", prim_buttons[0].widget.text)
@@ -223,7 +223,7 @@ class TestFiltering(omni.kit.test.AsyncTestCase):
 
         # ASSERT - No prims shown (in dropdown window)
         prim_buttons = ui_test.find_all(
-            "StagePrimPickerDropdown_test_picker_0//Frame/**/Button[*].name=='StagePrimPickerItem'"
+            "StagePrimPickerDropdown_test_picker_0//Frame/**/Label[*].name=='StagePrimPickerItem'"
         )
         self.assertEqual(len(prim_buttons), 0, "Empty type list should show no prims")
 

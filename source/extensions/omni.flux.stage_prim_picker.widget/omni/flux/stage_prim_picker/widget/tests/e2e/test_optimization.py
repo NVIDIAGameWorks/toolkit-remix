@@ -110,7 +110,7 @@ class TestOptimization(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Exactly 25 prims loaded, not 500 (in dropdown window)
         prim_buttons = ui_test.find_all(
-            "StagePrimPickerDropdown_test_picker_0//Frame/**/Button[*].name=='StagePrimPickerItem'"
+            "StagePrimPickerDropdown_test_picker_0//Frame/**/Label[*].name=='StagePrimPickerItem'"
         )
         self.assertEqual(
             len(prim_buttons),
@@ -156,7 +156,7 @@ class TestOptimization(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Only 30 prims loaded despite 200+ available (in dropdown window)
         prim_buttons = ui_test.find_all(
-            "StagePrimPickerDropdown_test_picker_0//Frame/**/Button[*].name=='StagePrimPickerItem'"
+            "StagePrimPickerDropdown_test_picker_0//Frame/**/Label[*].name=='StagePrimPickerItem'"
         )
         self.assertEqual(
             len(prim_buttons),
@@ -195,7 +195,7 @@ class TestOptimization(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Still limited to 20, not all 500 Meshes (in dropdown window)
         prim_buttons = ui_test.find_all(
-            "StagePrimPickerDropdown_test_picker_0//Frame/**/Button[*].name=='StagePrimPickerItem'"
+            "StagePrimPickerDropdown_test_picker_0//Frame/**/Label[*].name=='StagePrimPickerItem'"
         )
         self.assertEqual(
             len(prim_buttons),
@@ -242,7 +242,7 @@ class TestOptimization(omni.kit.test.AsyncTestCase):
 
         # Now should have 25 items (in dropdown window)
         prim_buttons = ui_test.find_all(
-            "StagePrimPickerDropdown_test_picker_0//Frame/**/Button[*].name=='StagePrimPickerItem'"
+            "StagePrimPickerDropdown_test_picker_0//Frame/**/Label[*].name=='StagePrimPickerItem'"
         )
         self.assertEqual(len(prim_buttons), 25, "After 'Show more': 15 + 10 = 25")
 
@@ -256,6 +256,6 @@ class TestOptimization(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Reset to 15 items (in dropdown window)
         prim_buttons = ui_test.find_all(
-            "StagePrimPickerDropdown_test_picker_0//Frame/**/Button[*].name=='StagePrimPickerItem'"
+            "StagePrimPickerDropdown_test_picker_0//Frame/**/Label[*].name=='StagePrimPickerItem'"
         )
         self.assertEqual(len(prim_buttons), 15, "Should reset to initial 15 items on reopen")

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed virtual attribute default values being overwritten during initialization
+- REMIX-4855: Fixed target picker path filtering to include mesh_HASH and light_HASH prims, not just their children
 
 ### Removed
 
@@ -86,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4816: Improved logic graph properties panel UI with icon buttons and clearer dialog messages
 - Update hdremix and omni_core_materials to ext-83e59c6-main
 - REMIX-4824: Patched OmniGraph context menu to use omni.kit.context_menu instead of hardcoded ui.Menu/ui.MenuItem
+- REMIX-4855: Replaced StagePrimPickerItem Button with Label to use TreeView's built-in hover/selection styling
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths
