@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed virtual attribute default values being overwritten during initialization
 - REMIX-4855: Fixed target picker path filtering to include mesh_HASH and light_HASH prims, not just their children
+- REMIX-4844: Fixed layer tree widget not expanding layer by default
 
 ### Removed
 
