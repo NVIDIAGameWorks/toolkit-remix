@@ -34,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4793: Added a function to check if tree items need to be expanded in the Stage Manager
 - REMIX-4552: Added Visibility Filter to the Stage Manager
 - REMIX-4824: Added a backdrop rename popup to the Remix Logic Graph Editor
+- REMIX-4848: Added the ability to double click on a graph in the edit graph dialog to open the graph
+- REMIX-4848: Added missing hotkey for the help menu item to the Remix Logic Graph Editor
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
