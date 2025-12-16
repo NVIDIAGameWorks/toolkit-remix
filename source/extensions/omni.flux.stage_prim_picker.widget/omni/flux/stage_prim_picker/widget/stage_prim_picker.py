@@ -135,6 +135,7 @@ class _SinglePrimPicker:
         self._search_placeholder: ui.Label | None = None
         self._debounce_task: asyncio.Task | None = None
         self._has_more: bool = False
+        self._ignore_selection_change: bool = False
 
     def build_ui(self) -> ui.Widget:
         selected_value = self._value_model.get_value_as_string()
@@ -295,7 +296,7 @@ class _SinglePrimPicker:
 
         # Create model and delegate for TreeView
         self._prim_model = PrimListModel()
-        self._prim_delegate = PrimListDelegate(self._select_prim, self._row_build_fn)
+        self._prim_delegate = PrimListDelegate(self._row_build_fn)
 
         with self._dropdown_window.frame:
             with ui.ZStack():
@@ -379,6 +380,7 @@ class _SinglePrimPicker:
                                         root_visible=False,
                                         header_visible=False,
                                     )
+                                    self._prim_tree.set_selection_changed_fn(self._on_selection_changed)
 
                         # "No prims found" message
                         self._no_prims_container = ui.Frame(visible=False)
@@ -462,6 +464,17 @@ class _SinglePrimPicker:
         if self._show_more_container:
             self._show_more_container.visible = self._has_more
 
+        # Set initial selection to match current value (without triggering close)
+        if self._prim_tree and self._prim_model:
+            current_value = self._value_model.get_value_as_string()
+            if current_value:
+                for item in self._prim_model.get_item_children(None):
+                    if item.prim_path == current_value:
+                        self._ignore_selection_change = True
+                        self._prim_tree.selection = [item]
+                        self._ignore_selection_change = False
+                        break
+
     def _load_more_prims(self):
         async def load_more_async():
             await omni.kit.app.get_app().next_update_async()
@@ -471,10 +484,16 @@ class _SinglePrimPicker:
 
         asyncio.ensure_future(load_more_async())
 
-    def _select_prim(self, prim_path: str):
-        self._value_model.set_value(prim_path)
-        if self._dropdown_window:
-            self._dropdown_window.visible = False
+    def _on_selection_changed(self, items: list):
+        """Handle TreeView selection changes."""
+        if self._ignore_selection_change:
+            return
+        if items and len(items) > 0:
+            selected_item = items[0]
+            if hasattr(selected_item, "prim_path"):
+                self._value_model.set_value(selected_item.prim_path)
+                if self._dropdown_window:
+                    self._dropdown_window.visible = False
 
     def destroy(self):
         """Clean up all resources."""

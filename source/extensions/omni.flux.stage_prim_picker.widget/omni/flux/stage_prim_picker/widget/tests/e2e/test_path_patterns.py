@@ -115,7 +115,7 @@ class TestPathPatterns(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Only Geometry children appear
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         prim_paths = [b.widget.text for b in prim_buttons]
 
         self.assertEqual(len(prim_buttons), 2, "Should show 2 prims under Geometry")
@@ -153,7 +153,7 @@ class TestPathPatterns(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Finds all prims whose name starts with "Light"
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         prim_paths = [b.widget.text for b in prim_buttons]
 
         self.assertIn("/World/Lights", prim_paths, "Should match 'Lights' folder")
@@ -198,7 +198,7 @@ class TestPathPatterns(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Shows Geometry and Lights, not Cameras or Props
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         prim_paths = [b.widget.text for b in prim_buttons]
 
         self.assertIn("/World/Geometry/Cube", prim_paths)
@@ -239,7 +239,7 @@ class TestPathPatterns(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Only Meshes under Geometry
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         prim_paths = [b.widget.text for b in prim_buttons]
 
         self.assertEqual(len(prim_buttons), 2, "Should have 2 Meshes under Geometry")
@@ -273,7 +273,7 @@ class TestPathPatterns(omni.kit.test.AsyncTestCase):
 
         # ASSERT - No prims shown
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         self.assertEqual(len(prim_buttons), 0, "Empty pattern list should show nothing")
 
         no_prims_label = ui_test.find(f"{dropdown_id}//Frame/**/Label[*].text=='No prims found'")
@@ -308,7 +308,7 @@ class TestPathPatterns(omni.kit.test.AsyncTestCase):
 
         # ASSERT
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         prim_paths = [b.widget.text for b in prim_buttons]
 
         self.assertEqual(len(prim_buttons), 1, "Should match only Table_01")
@@ -346,7 +346,7 @@ class TestPathPatterns(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Finds direct children of any "Props" folder
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         prim_paths = [b.widget.text for b in prim_buttons]
 
         self.assertIn("/World/Set1/Geometry/Props/Table", prim_paths)
@@ -381,7 +381,7 @@ class TestPathPatterns(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Geometry itself NOT included
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         prim_paths = [b.widget.text for b in prim_buttons]
 
         self.assertNotIn("/World/Geometry", prim_paths, "Root itself should be excluded with /*")
@@ -419,7 +419,7 @@ class TestPathPatterns(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Geometry AND its children included
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         prim_paths = [b.widget.text for b in prim_buttons]
 
         self.assertIn("/World/Geometry", prim_paths, "Root should be included")
@@ -465,7 +465,7 @@ class TestPathPatterns(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Only 5 prims from Target, Ignored subtree was skipped
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         prim_paths = [b.widget.text for b in prim_buttons]
 
         self.assertEqual(len(prim_buttons), 5, "Should find exactly 5 Target prims")

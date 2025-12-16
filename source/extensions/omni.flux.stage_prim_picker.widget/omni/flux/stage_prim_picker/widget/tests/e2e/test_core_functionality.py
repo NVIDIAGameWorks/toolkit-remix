@@ -120,7 +120,7 @@ class TestCoreFunctionality(omni.kit.test.AsyncTestCase):
 
         # ACT - Click a prim (search in dropdown window using unique ID)
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         self.assertGreater(len(prim_buttons), 0, "Should have prim buttons")
 
         cube_button = next((b for b in prim_buttons if "/World/Cube" in b.widget.text), None)
@@ -157,7 +157,7 @@ class TestCoreFunctionality(omni.kit.test.AsyncTestCase):
         self.assertIsNotNone(no_prims_label, "Should show 'No prims found' message")
 
         # ASSERT - No prim buttons exist
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         self.assertEqual(len(prim_buttons), 0, "Should have no prim buttons")
 
     async def test_search_filters_results_after_debounce(self):
@@ -196,7 +196,7 @@ class TestCoreFunctionality(omni.kit.test.AsyncTestCase):
         await omni.kit.app.get_app().next_update_async()
 
         # ASSERT - Only matching prim appears (in unique dropdown window)
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         self.assertEqual(len(prim_buttons), 1, "Should filter to 1 matching prim")
         self.assertIn("UniqueCube", prim_buttons[0].widget.text)
 
@@ -226,7 +226,7 @@ class TestCoreFunctionality(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Only 20 prims loaded (in unique dropdown window)
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         self.assertEqual(len(prim_buttons), 20, "Should load exactly 20 prims, not all 100")
 
         # ASSERT - "Show more" button exists
@@ -258,7 +258,7 @@ class TestCoreFunctionality(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Initially 20 items (use unique dropdown ID to avoid conflicts)
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons_before = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons_before = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         self.assertEqual(len(prim_buttons_before), 20, "Should have 20 items initially")
 
         # ACT - Scroll to bottom so "Show more" button is clickable
@@ -276,7 +276,7 @@ class TestCoreFunctionality(omni.kit.test.AsyncTestCase):
         await omni.kit.app.get_app().next_update_async()
 
         # ASSERT - Re-query after rebuild to get fresh widget references
-        prim_buttons_after = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons_after = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         self.assertEqual(
             len(prim_buttons_after),
             35,
@@ -342,7 +342,7 @@ class TestCoreFunctionality(omni.kit.test.AsyncTestCase):
         await omni.kit.app.get_app().next_update_async()
 
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         self.assertGreater(len(prim_buttons), 0, "Should have prim buttons")
         await prim_buttons[0].click()
         await omni.kit.app.get_app().next_update_async()
@@ -393,7 +393,7 @@ class TestCoreFunctionality(omni.kit.test.AsyncTestCase):
 
         # ASSERT - One prim appears (in unique dropdown window)
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         self.assertEqual(len(prim_buttons), 1, "Should show exactly 1 prim")
         self.assertIn("/OnlyPrim", prim_buttons[0].widget.text)
 
@@ -431,7 +431,7 @@ class TestCoreFunctionality(omni.kit.test.AsyncTestCase):
 
         # ASSERT - Shows prim from correct context (in unique dropdown window)
         dropdown_id = f"StagePrimPickerDropdown_{self._test_id}_0"
-        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Button[*].name=='StagePrimPickerItem'")
+        prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*].name=='StagePrimPickerItem'")
         prim_texts = [b.widget.text for b in prim_buttons]
         self.assertIn("/DefaultPrim", prim_texts, "Should show prim from default context")
 
