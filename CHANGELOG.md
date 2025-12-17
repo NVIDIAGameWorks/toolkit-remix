@@ -78,6 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4844: Fixed layer tree widget not expanding layer by default
 - Fixed virtual attribute default values being overwritten during initialization
 - REMIX-4855: Fixed target picker path filtering to include mesh_HASH and light_HASH prims, not just their children
+- REMIX-4732: Fixed crash when creating new project via Project Wizard
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension
