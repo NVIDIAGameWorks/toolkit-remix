@@ -891,3 +891,32 @@ class TestLayerManagerCore(AsyncTestCase):
             self.assertEqual(1 if set_layer_type and not create_will_fail else 0, set_custom_data_mock.call_count)
             if set_layer_type and not create_will_fail:
                 self.assertEqual(call(resolved_path, layer_type), set_custom_data_mock.call_args)
+
+    async def test_get_replacement_layers_should_return_all_sublayers_in_hierarchy(
+        self,
+    ):
+        # Arrange
+        async with open_test_project("usd/full_project/full_project.usda", __name__) as project_url:
+            base_path = OmniUrl(project_url.parent_url)
+
+            # Get expected layers from the replacement hierarchy
+            mod_layer = Sdf.Layer.FindOrOpen((base_path / "mod.usda").path)
+            sublayer_layer = Sdf.Layer.FindOrOpen((base_path / "sublayer.usda").path)
+            sublayer_child_01_layer = Sdf.Layer.FindOrOpen((base_path / "sublayer_child_01.usda").path)
+            sublayer_child_02_layer = Sdf.Layer.FindOrOpen((base_path / "sublayer_child_02.usda").path)
+            mod_capture_baker_layer = Sdf.Layer.FindOrOpen((base_path / "mod_capture_baker.usda").path)
+
+            expected_layers = {
+                mod_layer,
+                sublayer_layer,
+                sublayer_child_01_layer,
+                sublayer_child_02_layer,
+                mod_capture_baker_layer,
+            }
+
+            # Act
+            result = self.layer_manager.get_replacement_layers()
+
+            # Assert
+            self.assertEqual(result, expected_layers)
+            self.assertEqual(len(result), 5)

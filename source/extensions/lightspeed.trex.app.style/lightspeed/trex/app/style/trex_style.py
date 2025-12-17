@@ -484,6 +484,7 @@ current_dict.update(
         "Image::Refresh:disabled": {"image_url": _get_icons("refresh"), "color": _WHITE_30},
         "Image::Restore": {"image_url": _get_icons("restore"), "color": _WHITE_60},
         "Image::Restore:hovered": {"image_url": _get_icons("restore"), "color": _WHITE_80},
+        "Image::Restore:disabled": {"image_url": _get_icons("restore"), "color": _WHITE_30},
         "Image::Scope": {"image_url": _get_icons("scope"), "color": _WHITE_60},
         "Image::Xform": {"image_url": _get_icons("xform"), "color": _WHITE_80},
         "Image::TrashCan": {"image_url": _get_icons("trash-can"), "color": _WHITE_60},
