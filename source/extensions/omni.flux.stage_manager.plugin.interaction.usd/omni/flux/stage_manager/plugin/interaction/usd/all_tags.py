@@ -38,6 +38,7 @@ class AllTagsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "IsCaptureFilterPlugin",
             "VisiblePrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
+            "ParticleSystemsFilterPlugin",
             "SearchFilterPlugin",
         ],
         exclude=True,

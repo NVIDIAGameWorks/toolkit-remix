@@ -43,6 +43,7 @@ class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "MaterialPrimsFilterPlugin",
             "MeshPrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
+            "ParticleSystemsFilterPlugin",
             "SearchFilterPlugin",
             "SkeletonPrimsFilterPlugin",
         ],

@@ -24,6 +24,7 @@ from .is_capture import IsCaptureFilterPlugin as _IsCaptureFilterPlugin
 from .is_category import IsCategoryFilterPlugin as _IsCategoryFilterPlugin
 from .is_logic_graph import RemixLogicPrimsFilterPlugin as _RemixLogicPrimsFilterPlugin
 from .mesh_prims import MeshPrimsFilterPlugin as _MeshPrimsFilterPlugin
+from .particle_prims import ParticleSystemsFilterPlugin as _ParticleSystemsFilterPlugin
 
 
 class LightspeedStageManagerUSDFilterPluginsExtension(omni.ext.IExt):
@@ -31,6 +32,7 @@ class LightspeedStageManagerUSDFilterPluginsExtension(omni.ext.IExt):
         _IsCaptureFilterPlugin,
         _IsCategoryFilterPlugin,
         _MeshPrimsFilterPlugin,
+        _ParticleSystemsFilterPlugin,
         _RemixLogicPrimsFilterPlugin,
     ]
 
