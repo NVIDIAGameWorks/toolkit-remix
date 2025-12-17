@@ -47,7 +47,7 @@ from .actions import RemixLogicGraphActions, RemixLogicGraphHotkeys
 from .backdrop_delegate import clear_edit_triggers
 from .catalog_model import OmniGraphNodeQuickSearchModel
 from .context_menu import MENU_GROUP as LOGIC_GRAPH_MENU_GROUP
-from .context_menu import LogicGraphContextMenu, show_context_menu
+from .context_menu import register_context_menu, show_context_menu
 from .graph_widget import RemixLogicGraphWidget
 from .graph_window import RemixLogicGraphWindow
 from .workspace import RemixLogicGraphWorkspaceWindow
@@ -127,7 +127,7 @@ class RemixLogicGraphExtension(omni.ext.IExt):
         self._stage_opener_sub = None
         self._create_graph_sub = None
         self._edit_graph_sub = None
-        self._context_menu = LogicGraphContextMenu()
+        self._context_menu_subs = []
         self._extensions_subscription = None
 
     def on_startup(self, ext_id: str):
@@ -140,6 +140,7 @@ class RemixLogicGraphExtension(omni.ext.IExt):
 
         self._workspace = RemixLogicGraphWorkspaceWindow()
         self._workspace.create_window()
+        self._actions.set_window(self._workspace.get_window())
         ui.Workspace.set_show_window_fn(self._workspace.title, self.show_window)
 
         app = omni.kit.app.get_app_interface()
@@ -165,7 +166,7 @@ class RemixLogicGraphExtension(omni.ext.IExt):
         )
 
         self._apply_monkey_patches()
-        self._context_menu.register()
+        self._context_menu_subs = register_context_menu(ext_id)
 
     def on_shutdown(self):
         global _extension_instance
@@ -192,7 +193,7 @@ class RemixLogicGraphExtension(omni.ext.IExt):
         self._create_graph_sub = None
         self._edit_graph_sub = None
 
-        self._context_menu.unregister()
+        self._context_menu_subs.clear()
         self._restore_monkey_patches()
         clear_edit_triggers()
 

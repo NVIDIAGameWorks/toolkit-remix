@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Created 1.3.3-0 build
+- REMIX-4848: Added the ability to double click on a graph in the edit graph dialog to open the graph
+- REMIX-4848: Added missing hotkey for the help menu item to the Remix Logic Graph Editor
 
 ### Changed
 
@@ -16,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed virtual attribute default values being overwritten during initialization
 - REMIX-4855: Fixed target picker path filtering to include mesh_HASH and light_HASH prims, not just their children
 - REMIX-4844: Fixed layer tree widget not expanding layer by default
+- REMIX-4774: Fixed logic graph editor hotkeys not working on some machines
+- REMIX-4732: Fixed crash when creating new project via Project Wizard
 
 ### Removed
 
