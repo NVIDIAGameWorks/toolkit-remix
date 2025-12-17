@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4848: Added the ability to double click on a graph in the edit graph dialog to open the graph
 - REMIX-4848: Added missing hotkey for the help menu item to the Remix Logic Graph Editor
 - REMIX-4553: Added Particle Systems Filter to the Stage Manager
+- REMIX-4865: Prevent components with flexible types from allowing incorrect connections
+- REMIX-4839: Prevent components with token types from allowing incorrect connections
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
