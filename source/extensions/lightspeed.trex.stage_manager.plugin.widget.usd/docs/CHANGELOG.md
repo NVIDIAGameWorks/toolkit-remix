@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.0]
+### Changed
+- Updated the Stage Manager Action Widget's logic (for Restore/Delete) to correctly handle the Restore, Disable, and Delete states for a wider range of objects ("prims"). The updated logic now properly assesses the object's definition parent layer type and override state, ensuring comprehensive coverage.
+
 ## [2.4.1]
 ### Fixed
 - Fixed logic inconstancy around what objects are valid Remix Logic Graph hosts to match logic in the attribute pannel

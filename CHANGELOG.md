@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4801: Improved Stage Manager selection and expansion performance with async operations
 - REMIX-4824: Patched OmniGraph context menu to use omni.kit.context_menu instead of hardcoded ui.Menu/ui.MenuItem
 - REMIX-4855: Replaced StagePrimPickerItem Button with Label to use TreeView's built-in hover/selection styling
+- REMIX-4786: Changed the "Delete/Restore" StageManager action to use layer-based logic driven by the EditTarget State
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths

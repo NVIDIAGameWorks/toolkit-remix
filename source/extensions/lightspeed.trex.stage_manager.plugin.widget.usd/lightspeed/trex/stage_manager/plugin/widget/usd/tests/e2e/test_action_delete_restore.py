@@ -34,13 +34,10 @@ from pxr import Sdf
 
 class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
     _restore_identifier = "delete_restore_widget_restore"
-    _disabled_identifier = "delete_restore_widget_none"
     _delete_identifier = "delete_restore_widget_delete"
 
     async def setUp(self):
         await arrange_windows()
-        await usd.get_context().new_stage_async()
-        self.stage = usd.get_context().get_stage()
         self.temp_dir = TemporaryDirectory()
 
         await self._open_test_project()
@@ -49,6 +46,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
     async def tearDown(self):
         if usd.get_context().get_stage():
             await usd.get_context().close_stage_async()
+
         self.temp_dir.cleanup()
         self.temp_dir = None
         self.stage = None
@@ -71,8 +69,22 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
         return window, widget
 
-    async def test_restore_widget_action(self):
-        test_prim = "/RootNode/meshes/mesh_BAC90CAA733B0859"
+    async def _create_graph_at_prim(self, graph_path: Sdf.Path) -> bool:
+        graph = og.get_global_orchestration_graphs()[0]
+        success, _ = og.cmds.CreateGraphAsNode(
+            graph=graph,
+            node_name=graph_path.name,
+            graph_path=graph_path.pathString,
+            evaluator_name="component",
+            is_global_graph=True,
+            backed_by_usd=True,
+            fc_backing_type=og.GraphBackingType.GRAPH_BACKING_TYPE_FLATCACHE_SHARED,
+            pipeline_stage=og.GraphPipelineStage.GRAPH_PIPELINE_STAGE_SIMULATION,
+        )
+        return success
+
+    async def test_restore_disabled_widget_action(self):
+        test_prim = Sdf.Path("/RootNode/meshes/mesh_0AB745B8BEE1F16B")
 
         prim = self.stage.GetPrimAtPath(test_prim)
         self.assertTrue(prim.IsValid())
@@ -86,51 +98,44 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._restore_identifier}'")
 
         self.assertIsNotNone(id_check)
+        self.assertFalse(id_check.widget.enabled)
         self.assertEqual(id_check.widget.name, "Restore")
-        self.assertEqual(id_check.widget.tooltip, "Restore To Capture State")
+        self.assertEqual(id_check.widget.tooltip, "The Prim may not be restored")
 
         widget = None
         window.destroy()
 
-    async def test_disabled_widget_action(self):
-        test_prim = "/RootNode/meshes/mesh_CED45075A077A49A/mesh"
+    async def test_restore_widget_action(self):
+        test_prim = Sdf.Path("/RootNode/meshes/mesh_BAC90CAA733B0859")
         prim = self.stage.GetPrimAtPath(test_prim)
         self.assertTrue(prim.IsValid())
 
-        window, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
+        graph_path = test_prim.AppendChild("RemixLogicGraph")
+        success = await self._create_graph_at_prim(graph_path)
+        self.assertTrue(success)
 
+        window, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
         item = StageManagerTreeItem(display_name=prim.GetName(), tooltip="foobar", data=prim)
 
         with window.frame:
             widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
 
-        id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._disabled_identifier}'")
+        id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._restore_identifier}'")
 
         self.assertIsNotNone(id_check)
-        self.assertEqual(id_check.widget.name, "TrashCan")
-        self.assertFalse(id_check.widget.enabled)
-        self.assertEqual(id_check.widget.tooltip, "The Primitive may not be deleted")
+        self.assertEqual(id_check.widget.name, "Restore")
+        self.assertEqual(id_check.widget.tooltip, "Restore Prim To Capture State")
 
         widget = None
         window.destroy()
 
     async def test_delete_widget_action(self):
-        test_prim = Sdf.Path("/RootNode/meshes/mesh_CED45075A077A49A/mesh")
+        test_prim = Sdf.Path("/RootNode/meshes/mesh_CED45075A077A49A")
         graph_path = test_prim.AppendChild("RemixLogicGraph")
         prim = self.stage.GetPrimAtPath(test_prim)
         self.assertTrue(prim.IsValid())
 
-        graph = og.get_global_orchestration_graphs()[0]
-        success, _ = og.cmds.CreateGraphAsNode(
-            graph=graph,
-            node_name=graph_path.name,
-            graph_path=graph_path.pathString,
-            evaluator_name="component",
-            is_global_graph=True,
-            backed_by_usd=True,
-            fc_backing_type=og.GraphBackingType.GRAPH_BACKING_TYPE_FLATCACHE_SHARED,
-            pipeline_stage=og.GraphPipelineStage.GRAPH_PIPELINE_STAGE_SIMULATION,
-        )
+        success = await self._create_graph_at_prim(graph_path)
 
         self.assertTrue(success)
         graph_prim = self.stage.GetPrimAtPath(graph_path)
@@ -148,7 +153,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self.assertIsNotNone(id_check)
         self.assertEqual(id_check.widget.name, "TrashCan")
         self.assertTrue(id_check.widget.enabled)
-        self.assertEqual(id_check.widget.tooltip, "Delete Primitive")
+        self.assertEqual(id_check.widget.tooltip, "Delete Prim")
 
         widget = None
         window.destroy()
