@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.10.0]
+### Added
+- Added `ParticleSystemsFilterPlugin` to the interactions plugins
+
 ## [2.9.0]
 ### Changed
 - Made tree selection update async to avoid blocking UI during large selections
