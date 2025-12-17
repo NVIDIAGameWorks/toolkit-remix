@@ -275,7 +275,4 @@ class Setup:
         return Setup.get_hashes_from_capture_layer(layer)
 
     def destroy(self):
-        _get_event_manager_instance().unregister_global_custom_event(
-            constants.GlobalEventNames.CAPTURE_LAYER_IMPORTED.value
-        )
         _reset_default_attrs(self)

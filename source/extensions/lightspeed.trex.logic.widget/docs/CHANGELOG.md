@@ -4,6 +4,18 @@ This document records all notable changes to the **lightspeed.trex.logic.widget*
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.7.0]
+### Added
+- Missing hotkey for the help menu item
+- Ability to double click on a graph in the edit graph dialog to open the graph
+
+### Changed
+- Refactored code to have single source of truth for context menu items and hotkeys
+
+## [1.6.1]
+### Fixed
+- Fixed issue with hotkeys not working on some machines
+
 ## [1.6.0]
 ### Added
 - Added backdrop rename functionality via F2 hotkey and right-click context menu
