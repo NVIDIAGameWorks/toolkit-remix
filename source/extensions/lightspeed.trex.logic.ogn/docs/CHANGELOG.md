@@ -6,6 +6,12 @@ This document records all notable changes to the **lightspeed.trex.logic.ogn** e
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.0.4]
+### Changed
+- Moves type resolution logic to a util file that is called from each node.
+- Refactors type resolution logic to prevent invalid connections from being made.
+- Adds token category validation to prevent invalid connections from being made.
+
 ## [0.0.3]
 ### Changed
 - Update node schema to match omni_core_materials ext-83e59c6-main
