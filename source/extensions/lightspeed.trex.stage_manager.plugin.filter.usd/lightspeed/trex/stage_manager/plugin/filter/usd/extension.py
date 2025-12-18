@@ -20,9 +20,11 @@ import carb.settings
 import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
+from .instance_group import InstanceGroupFilterPlugin as _InstanceGroupFilterPlugin
 from .is_capture import IsCaptureFilterPlugin as _IsCaptureFilterPlugin
 from .is_category import IsCategoryFilterPlugin as _IsCategoryFilterPlugin
 from .is_logic_graph import RemixLogicPrimsFilterPlugin as _RemixLogicPrimsFilterPlugin
+from .mesh_group import MeshGroupFilterPlugin as _MeshGroupFilterPlugin
 from .mesh_prims import MeshPrimsFilterPlugin as _MeshPrimsFilterPlugin
 from .particle_prims import ParticleSystemsFilterPlugin as _ParticleSystemsFilterPlugin
 
@@ -31,6 +33,8 @@ class LightspeedStageManagerUSDFilterPluginsExtension(omni.ext.IExt):
     _PLUGINS = [
         _IsCaptureFilterPlugin,
         _IsCategoryFilterPlugin,
+        _InstanceGroupFilterPlugin,
+        _MeshGroupFilterPlugin,
         _MeshPrimsFilterPlugin,
         _ParticleSystemsFilterPlugin,
         _RemixLogicPrimsFilterPlugin,

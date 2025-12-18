@@ -17,8 +17,7 @@
 
 from typing import TYPE_CHECKING
 
-from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
-from lightspeed.trex.utils.common.prim_utils import is_mesh_prototype as _is_mesh_prototype
+from lightspeed.common.constants import ROOTNODE_INSTANCES as _ROOTNODE_INSTANCES
 from omni.flux.stage_manager.plugin.filter.usd.base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
 from pydantic import Field
 
@@ -26,13 +25,15 @@ if TYPE_CHECKING:
     from pxr import Usd
 
 
-class MeshPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
-    display_name: str = Field(default="Geometry Prims", exclude=True)
-    tooltip: str = Field(default="Filter out mesh prims", exclude=True)
+class InstanceGroupFilterPlugin(_ToggleableUSDFilterPlugin):
+    """
+    Filter plugin for USD instance prims.
 
-    include_instances: bool = Field(
-        default=True, description="Whether the filter should also include instances with the meshes or not."
-    )
+    Filters prims based on whether they are instances.
+    """
+
+    display_name: str = Field(default="Instance Group", exclude=True)
+    tooltip: str = Field(default="Filter out instance group", exclude=True)
 
     def _filter_predicate(self, prim: "Usd.Prim") -> bool:
-        return _is_mesh_prototype(prim) or (self.include_instances and _is_instance(prim))
+        return str(prim.GetPath()).startswith(_ROOTNODE_INSTANCES)

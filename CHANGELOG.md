@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4553: Added Particle Systems Filter to the Stage Manager
 - REMIX-4865: Prevent components with flexible types from allowing incorrect connections
 - REMIX-4839: Prevent components with token types from allowing incorrect connections
+- REMIX-4838: Added Instance Group and Mesh Group filter plugins to the Stage Manager and added headers to the Additional Filters menu
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
