@@ -164,19 +164,8 @@ class SetupUI:
         self._sub_app_ready = None
 
         menu_items = [
-            _menu_utils.MenuItemDescription(
-                name="File/Save",
-                onclick_fn=self._save,
-                hotkey=(carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL, carb.input.KeyboardInput.S),
-            ),
-            _menu_utils.MenuItemDescription(
-                name="File/Save As...",
-                onclick_fn=self._save_as,
-                hotkey=(
-                    carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL | carb.input.KEYBOARD_MODIFIER_FLAG_SHIFT,
-                    carb.input.KeyboardInput.S,
-                ),
-            ),
+            _menu_utils.MenuItemDescription(name="File/Save", onclick_fn=self._save),
+            _menu_utils.MenuItemDescription(name="File/Save As...", onclick_fn=self._save_as),
             _menu_utils.MenuItemDescription(name="File/Close Project", onclick_fn=self._create_new_workfile),
             _menu_utils.MenuItemDescription(
                 name="Edit/Undo",
