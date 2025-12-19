@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "2.4.1"
+version = "2.5.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -31,8 +31,10 @@ icon = "data/images/icon.png"
 
 [dependencies]
 "lightspeed.common" = {}
+"lightspeed.layer_manager.core" = {}
 "lightspeed.trex.asset_replacements.core.shared" = {}
 "lightspeed.trex.commands" = {}  # Required for the Particle commands
+"lightspeed.trex.logic.core" = {}
 "lightspeed.trex.skeleton_replacements.widget" = {}
 "lightspeed.trex.utils.common" = {}
 "lightspeed.trex.viewports.shared.widget" = {}
@@ -53,7 +55,6 @@ dependencies = [
     "lightspeed.trex.tests.dependencies",
     "lightspeed.trex.stage_manager.plugin.tree.usd",
     "omni.flux.stage_manager.factory",
-    "lightspeed.trex.logic.core",
 ]
 
 stdoutFailPatterns.exclude = [
@@ -65,5 +66,4 @@ stdoutFailPatterns.exclude = [
 name = "startup"
 dependencies = [
     "lightspeed.trex.tests.dependencies",
-    "lightspeed.trex.logic.core",
 ]

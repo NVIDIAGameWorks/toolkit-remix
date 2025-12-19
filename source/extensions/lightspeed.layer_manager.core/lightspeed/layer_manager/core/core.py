@@ -692,6 +692,42 @@ class LayerManagerCore:
             return None
         return layers[0]
 
+    def get_replacement_layers(self) -> set[Sdf.Layer]:
+        """
+        Get all layers in the replacement layer tree.
+
+        This method traverses the sublayer hierarchy starting from the replacement layer
+        and returns all layers found. This is a workaround for sublayers created in the UI
+        that do not receive the "replacement" layer type metadata.
+
+        Note:
+            This method may be removed in the future once sublayers properly inherit
+            or receive the replacement layer type.
+
+        Returns:
+            A set containing the replacement layer and all its sublayers,
+            or an empty set if no replacement layer exists.
+        """
+        layer = self.get_layer(LayerType.replacement)
+        if not layer:
+            return set()
+
+        sub_layers = {layer}
+        pending = [layer]
+
+        while pending:
+            new_layers = []
+            for current_layer in pending:
+                for child in current_layer.subLayerPaths:
+                    child_layer = Sdf.Layer.FindRelativeToLayer(current_layer, child)
+                    if child_layer is not None and child_layer not in sub_layers:
+                        sub_layers.add(child_layer)
+                        new_layers.append(child_layer)
+
+            pending = new_layers
+
+        return sub_layers
+
     @staticmethod
     def get_custom_data(layer: Sdf.Layer) -> Dict[str, str]:
         return layer.customLayerData

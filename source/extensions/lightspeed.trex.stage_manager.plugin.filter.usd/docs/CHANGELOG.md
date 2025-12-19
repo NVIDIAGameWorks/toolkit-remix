@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.1]
+### Changed
+- Updated is_logic_graph filter plugin to be more inline with current style guide and practices
+
+## [2.2.0]
+### Added
+- Added `ParticleSystemFilterPlugin` filter plugin
+
 ## [2.1.1]
 ### Changed
 - Updated is_logic_graph filter plugin to have a public field for the current filter type

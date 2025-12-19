@@ -11,8 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created 1.3.3-0 build
 - REMIX-4848: Added the ability to double click on a graph in the edit graph dialog to open the graph
 - REMIX-4848: Added missing hotkey for the help menu item to the Remix Logic Graph Editor
+- REMIX-4553: Added Particle Systems Filter to the Stage Manager
+- REMIX-4865: Prevent components with flexible types from allowing incorrect connections
+- REMIX-4839: Prevent components with token types from allowing incorrect connections
 
 ### Changed
+- REMIX-4786: Changed the "Delete/Restore" StageManager action to use layer-based logic driven by the EditTarget State
 
 ### Fixed
 - Fixed virtual attribute default values being overwritten during initialization
@@ -20,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4844: Fixed layer tree widget not expanding layer by default
 - REMIX-4774: Fixed logic graph editor hotkeys not working on some machines
 - REMIX-4732: Fixed crash when creating new project via Project Wizard
+- REMIX-4847: Fixed save dialog error
 
 ### Removed
 
