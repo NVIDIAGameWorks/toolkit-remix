@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4774: Fixed logic graph editor hotkeys not working on some machines
 - REMIX-4732: Fixed crash when creating new project via Project Wizard
 - REMIX-4847: Fixed save dialog error
+- Hotfixes for prim=None terminal errors
 
 ### Removed
 
