@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.3.4-0 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.3.4-0]
+
+### Added
 - Created 1.3.3-0 build
 - REMIX-4848: Added the ability to double click on a graph in the edit graph dialog to open the graph
 - REMIX-4848: Added missing hotkey for the help menu item to the Remix Logic Graph Editor
