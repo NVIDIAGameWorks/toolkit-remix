@@ -86,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4855: Fixed target picker path filtering to include mesh_HASH and light_HASH prims, not just their children
 - REMIX-4732: Fixed crash when creating new project via Project Wizard
 - REMIX-4847: Fixed save dialog error
+- Added a frame wait for Stage Manager refresh to ensure all items are properly populated and updated Additional Filters menu sorting
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension
