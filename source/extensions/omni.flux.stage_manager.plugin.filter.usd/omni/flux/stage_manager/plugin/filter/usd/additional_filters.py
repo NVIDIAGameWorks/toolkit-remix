@@ -239,7 +239,7 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
                         value = {"filter_active": filter_plugin.filter_active}
                     if "Group" in filter_plugin.display_name:
                         value["filter_type"] = "group"
-                    elif "Prims" in filter_plugin.display_name:
+                    elif "Prims" in filter_plugin.display_name or filter_plugin.name.endswith("Systems"):
                         value["filter_type"] = "prims"
                     else:
                         value["filter_type"] = "other"
