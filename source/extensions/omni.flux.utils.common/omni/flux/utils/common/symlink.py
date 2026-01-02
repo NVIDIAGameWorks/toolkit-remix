@@ -69,7 +69,9 @@ def create_folder_symlinks(links_targets: list[Tuple[str, str]], create_junction
     # Unlink broken symlinks
     for link, _ in links_targets:
         link_obj = Path(link)
-        if link_obj.exists() and link_obj.is_symlink() and is_broken_symlink(link_obj):
+        if not link_obj.exists() and not link_obj.is_symlink():
+            continue
+        if is_broken_symlink(link_obj):
             link_obj.unlink()
 
     def _generate_cmd(symlink_cmd, symlink_type, reverse: bool = False):

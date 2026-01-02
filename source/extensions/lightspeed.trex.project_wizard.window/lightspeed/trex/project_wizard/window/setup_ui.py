@@ -59,25 +59,7 @@ class ProjectWizardBase(abc.ABC):
         self._height = height
 
         self._wizard_completed_sub = None
-        self._wizard_window = _WizardWindow(
-            _WizardModel(self._start_page),
-            title="RTX Remix Project Wizard",
-            width=width,
-            height=height,
-            flags=(
-                ui.WINDOW_FLAGS_MODAL
-                | ui.WINDOW_FLAGS_NO_DOCKING
-                | ui.WINDOW_FLAGS_NO_COLLAPSE
-                | ui.WINDOW_FLAGS_NO_SCROLLBAR
-                | ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
-                | ui.WINDOW_FLAGS_NO_MOVE
-                | ui.WINDOW_FLAGS_NO_RESIZE
-            ),
-        )
-
-        self._wizard_completed_sub = self._wizard_window.widget.subscribe_wizard_completed(
-            lambda payload: asyncio.ensure_future(self._on_wizard_completed(payload))
-        )
+        self._wizard_window = None
 
         self.__on_wizard_completed = _Event()
 

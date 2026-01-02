@@ -29,6 +29,8 @@ import carb
 import omni.kit.app
 from lightspeed.common import constants
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
+from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys
+from lightspeed.trex.project_wizard.core import ProjectWizardSchema as _ProjectWizardSchema
 from lightspeed.trex.project_wizard.window import WizardTypes as _WizardTypes
 from lightspeed.trex.project_wizard.window import get_instance as _get_wizard_instance
 from lightspeed.trex.recent_projects.core import RecentProjectsCore as _RecentProjectsCore
@@ -473,16 +475,24 @@ class HomePageWidget(_WorkspaceWidget):
             self._recent_saved_file.remove_path_from_recent_file(path)
         asyncio.ensure_future(self._refresh_recent_items_deferred())
 
-    def _load_work_file(self, path):
+    def _load_work_file(self, path: str):
         """Triggers the "Load Project" event and loads the workspace window layout if there were no interruptions."""
         if not self._window_visible:
             return
-        if not Path(path).exists():
+
+        path_obj = Path(path)
+        if not path_obj.exists():
             _TrexMessageDialog(
                 "The selected project does not exist at the given location.",
                 title="Invalid Selected Project",
                 disable_cancel_button=True,
             )
+            return
+
+        if not _ProjectWizardSchema.is_project_file_valid(
+            path_obj, {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
+        ) or not _ProjectWizardSchema.are_project_symlinks_valid(path_obj):
+            self._invoke_mod_setup_wizard(_WizardTypes.OPEN, path)
             return
 
         event_manager = _get_event_manager_instance()
@@ -492,12 +502,14 @@ class HomePageWidget(_WorkspaceWidget):
         if all(approvals):
             load_layout(_get_quicklayout_config(constants.LayoutFiles.WORKSPACE_PAGE))
 
-    def _invoke_mod_setup_wizard(self, wizard_type: _WizardTypes):
+    def _invoke_mod_setup_wizard(self, wizard_type: _WizardTypes, project_path: str | None = None):
         def on_load_project():
             load_layout(_get_quicklayout_config(constants.LayoutFiles.WORKSPACE_PAGE))
             self._sub_wizard_completed = None
 
         wizard = _get_wizard_instance(wizard_type, self._context_name)
+        if project_path:
+            wizard.set_payload({_ProjectWizardKeys.PROJECT_FILE.value: Path(project_path)})
         self._sub_wizard_completed = wizard.subscribe_wizard_completed(on_load_project)
         wizard.show_project_wizard(reset_page=True)
 
