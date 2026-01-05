@@ -23,6 +23,7 @@ import abc
 import asyncio
 from typing import TYPE_CHECKING, Any, Callable, Iterable
 
+import omni.kit.app
 import omni.kit.context_menu
 from omni import ui, usd
 from omni.flux.telemetry.core import get_telemetry_instance
@@ -218,6 +219,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         Items are filtered before they are returned
         """
 
+        await omni.kit.app.get_app().next_update_async()
         with get_telemetry_instance().sentry_sdk.start_transaction(
             op="stage_manager", name="Refresh Stage Manager", custom_sampling_context={"sample_rate_override": 0.25}
         ) as transaction:
@@ -261,6 +263,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
         Method called when the `self._items` attribute should be refreshed
         """
+        await omni.kit.app.get_app().next_update_async()
         filtered_items = await self.get_context_items()
 
         for item in filtered_items:

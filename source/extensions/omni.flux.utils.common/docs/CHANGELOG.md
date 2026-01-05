@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.7.1]
+### Changed
+- Updated `is_broken_symlink()` to check for missing files when verifying broken symlinks
+
 ## [3.7.0]
 ### Added
 - Added `get_prim_type_icons()` and `ICONS_SETTING_PATH` for centralized prim type icon mappings via extension.toml settings

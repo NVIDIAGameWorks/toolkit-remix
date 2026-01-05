@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [4.5.1]
+### Added
+- Added a delay to the refresh function to ensure the items are rendered before the refresh is called
+
 ## [4.5.0]
 ### Added
 - Added `find_items_async` method to `StageManagerTreeModel` for non-blocking item searches

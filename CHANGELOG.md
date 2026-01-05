@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- Fixed broken symlinks detection and updated symlink check
+- Added a frame wait for Stage Manager refresh to ensure all items are properly populated
 
 ### Removed
 

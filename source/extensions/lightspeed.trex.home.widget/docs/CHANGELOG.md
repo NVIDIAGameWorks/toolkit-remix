@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0]
+### Added
+- Added broken symlink check and updated wizard call to use payload when opening existing project
+
 ## [1.7.1]
 ### Changed
 - Replaced decorator-based visibility filtering with window_visible early-return checks
