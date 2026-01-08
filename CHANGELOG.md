@@ -89,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a frame wait for Stage Manager refresh to ensure all items are properly populated and updated Additional Filters menu sorting
 - Fixed MeshPrimsFilterPlugin to exclude lights in the filter
 - Fixed broken symlinks detection and updated symlink check
+- REMIX-4722: Fixed stage manager issue where viewport selection was not being framed in the Skeleton Treeview
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension

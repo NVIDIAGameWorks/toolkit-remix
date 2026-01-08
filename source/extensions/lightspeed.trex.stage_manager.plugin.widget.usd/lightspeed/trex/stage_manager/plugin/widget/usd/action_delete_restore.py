@@ -76,7 +76,10 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         if prim.GetPath() in PROTECTED_PATHS:
             return self.ActionType.RESTOREDISABLED
 
-        prim = prim_utils.get_prototype(prim)
+        proto = prim_utils.get_prototype(prim)
+        if proto:
+            prim = proto
+
         stack = prim.GetPrimStack()
 
         # NOTE: all objects that are not defined in the capture layer are deletable
