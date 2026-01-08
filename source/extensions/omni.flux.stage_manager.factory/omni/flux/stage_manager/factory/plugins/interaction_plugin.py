@@ -775,9 +775,48 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             await omni.kit.app.get_app().next_update_async()
             if self._is_expansion_task_cancelled:
                 return
-            self._scroll_to_items(self._tree_widget.selection)
+            await self._scroll_to_items_async(self._tree_widget.selection)
 
-    def _scroll_to_items(self, items: Iterable[_StageManagerTreeItem], center_ratio: float = 0.2):
+    def _count_items_before(self, target_item: _StageManagerTreeItem) -> int:
+        """
+        Count the number of visible items that appear before the target item in the tree view.
+
+        This method walks up the tree hierarchy from the target item to the root. At each level,
+        it counts all siblings that appear before the current item, plus all their expanded
+        descendants. This gives the exact position of the target item in the visual tree order.
+
+        Args:
+            target_item: The item whose position to calculate
+
+        Returns:
+            The number of visible items that appear before the target item
+
+        """
+        count = 0
+        current = target_item
+
+        while current is not None:
+            # NOTE: Get siblings at this level
+            parent = current.parent
+            if parent is None:
+                siblings = list(self.tree.model.get_item_children(None))
+            else:
+                siblings = parent.children
+
+            # NOTE: Count siblings before current item and their visible descendants
+            for sibling in siblings:
+                if sibling is current:
+                    break
+                count += 1
+                # NOTE: Add expanded descendants of preceding siblings
+                count += self._tree_widget.visible_descendant_count(sibling)
+
+            # NOTE: Move up to parent
+            current = parent
+
+        return count
+
+    async def _scroll_to_items_async(self, items: Iterable[_StageManagerTreeItem], center_ratio: float = 0.2):
         """
         Scroll to reveal the first item in `items`.
 
@@ -786,18 +825,42 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             center_ratio: where to frame first item (0.0: top, 0.5: center, 1.0: bottom)
         """
         items_set = set(items)
-        for i, child in enumerate(self._tree_widget.iter_visible_children()):
-            if child in items_set:
-                idx_item = i
-                break
-        else:
+        target_item = None
+        _total_visible_items = 0
+        for _total_visible_items, child in enumerate(self._tree_widget.iter_visible_children(), start=1):
+            if not target_item and child in items_set:
+                target_item = child
+            # allow counting to continue
+
+        if target_item is None:
             return
 
-        # Find out how far down the first item's center is
-        scroll_y = (idx_item + 0.5) * self.tree.delegate.row_height
-        # Since that would scroll to the item, subtract some height to center the item
-        target_from_top = self._tree_scroll_frame.computed_content_height * center_ratio
-        self._tree_scroll_frame.scroll_y = scroll_y - target_from_top
+        # NOTE: Calculate position by counting only ancestors and their preceding siblings
+        # This avoids counting expanded children of ancestors that appear after the ancestor
+        # Fix for skeleton page and other deeply nested hierarchies where items
+        # may be beyond the initially rendered viewport
+
+        # NOTE: force layout update
+        self._tree_widget.dirty_widgets()
+        await omni.kit.app.get_app().next_update_async()
+        await omni.kit.app.get_app().next_update_async()
+
+        # NOTE: let's do our math
+        visible_row_int = self._count_items_before(target_item)
+        item_position = (visible_row_int * self.tree.delegate.row_height) + self.header_height
+        viewport_height = self._tree_scroll_frame.computed_height
+        viewport_offset = viewport_height * center_ratio
+
+        # Calculate true content height
+        true_content_height = (_total_visible_items * self.tree.delegate.row_height) + self.header_height
+
+        # Calculate true scroll max
+        true_scroll_max = max(0, true_content_height - viewport_height)
+
+        # Final scroll position
+        scroll_y = item_position - viewport_offset
+        target_scroll = max(0.0, min(scroll_y, true_scroll_max))
+        self._tree_scroll_frame.scroll_y = target_scroll
 
     def subscribe_context_items_changed(self, callback: Callable[[], None]) -> _EventSubscription:
         """
