@@ -143,6 +143,24 @@ class TreeWidget(ui.TreeView):
                     if recursive:
                         yield from self.iter_visible_children(items=[child], recursive=recursive)
 
+    def visible_descendant_count(self, item: _TreeItemBase) -> int:
+        """Count all visible (expanded) descendants of an item."""
+        if not self.is_expanded(item) or not item.children:
+            return 0
+
+        count = 0
+        stack = list(item.children)  # Start with direct children
+
+        while stack:
+            child = stack.pop()
+            count += 1  # NOTE: This child is visible (parent was expanded)
+
+            # NOTE: If this child is also expanded, add its children to process
+            if self.is_expanded(child) and child.children:
+                stack.extend(child.children)
+
+        return count
+
     def destroy(self):
         _reset_default_attrs(self)
 

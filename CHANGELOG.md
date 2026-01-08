@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed broken symlinks detection and updated symlink check
 - Added a frame wait for Stage Manager refresh to ensure all items are properly populated
+- REMIX-4722: Fixed stage manager issue where viewport selection was not being framed in the Skeleton Treeview
 
 ### Removed
 
