@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created 1.3.4-0 build
 
 ### Changed
+- Update hdremix and omni_core_materials to ext-eb34ad8-release-v1-3
+- Update remix_runtime to remix-1.3.6
 
 ### Fixed
 - Fixed broken symlinks detection and updated symlink check
