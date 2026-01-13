@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.3.6-0 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.3.6-0]
+
+### Added
 - Created 1.3.4-0 build
 
 ### Changed
@@ -18,8 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed broken symlinks detection and updated symlink check
 - Added a frame wait for Stage Manager refresh to ensure all items are properly populated
 - REMIX-4722: Fixed stage manager issue where viewport selection was not being framed in the Skeleton Treeview
-
-### Removed
 
 ## [1.3.4-0]
 
@@ -42,8 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4732: Fixed crash when creating new project via Project Wizard
 - REMIX-4847: Fixed save dialog error
 - Hotfixes for prim=None terminal errors
-
-### Removed
 
 ## [1.3.3-0]
 
@@ -70,8 +77,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus
 - Cleanup Github runners before packaging Toolkit
 - REMIX-4815: Fixed default values, tooltips, and flexible type handling in the Remix Logic properties panel
-
-### Removed
 
 ## [1.3.0]
 
