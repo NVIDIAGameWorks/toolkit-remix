@@ -1,10 +1,15 @@
 -- --------------------------------------------------------------------------------------------------------------------
--- Build file for the build tools used by the OmniGraph Python template extension. These are tools required in order to
--- Build file for the build tools used by the lightspeed.trex.logic.ogn extension. These are tools required in order to
--- run the build on that extension, and all extensions dependent on it.
+-- Build file for the lightspeed.trex.logic.ogn extension.
+--
+-- Node implementations (.ogn and .py files) come from target-deps/omni_core_materials/lightspeed.trex.logic
+-- Local config (CategoryDefinition.json) is kept in python/nodes/config/
+--
+-- IMPORTANT: We COPY (not link) the external node files because:
+--   1. The nodes directory needs to contain both external .ogn/.py files AND local config/
+--   2. You cannot create a symlink inside another symlink's target (config inside nodes)
+--   3. Copying allows us to have a unified nodes/ directory with our local config override
 
 -- --------------------------------------------------------------------------------------------------------------------
--- This sets up a shared extension configuration, used by most Kit extensions.
 local ext = get_current_extension_info()
 
 -- --------------------------------------------------------------------------------------------------------------------
@@ -12,64 +17,58 @@ local ext = get_current_extension_info()
 -- The string corresponds to the Python module name, in this case lightspeed.trex.logic.ogn.
 local ogn = get_ogn_project_information(ext, "lightspeed/trex/logic/ogn")
 
--- --------------------------------------------------------------------------------------------------------------------
--- Put this project into the "omnigraph" IDE group. You might choose a different name for convenience.
+-- Path to external nodes in target-deps (absolute path for os.matchfiles)
+local external_nodes_src = target_deps.."/omni_core_materials/lightspeed.trex.logic"
+
 ext.group = "remix"
 
 -- --------------------------------------------------------------------------------------------------------------------
--- Define a build project to process the ogn files to create the generated code that will be used by the node
--- implementations. The (optional) "toc" value points to the directory where the table of contents with the OmniGraph
--- nodes in this extension will be generated. Omit it if you will be generating your own table of contents.
-project_ext_ogn( ext, ogn, { toc="docs/Overview.md" } )
+-- Custom OGN project setup: Process .ogn files from target-deps instead of source tree.
+-- We can't use project_ext_ogn() because it uses os.matchfiles("**.ogn") which only searches source.
+project_with_location(ogn.ogn_project)
+kind "Utility"
+dependson { "omni.graph.tools" }
+
+-- Find .ogn files in external location (target-deps)
+local ogn_files = os.matchfiles(external_nodes_src.."/*.ogn")
+
+-- Generate node interfaces from .ogn files
+make_node_generator_command(ogn, ext.name, ogn_files, { toc="docs/Overview.md" })
 
 -- --------------------------------------------------------------------------------------------------------------------
--- Build project responsible for generating the Python nodes and installing them and any scripts into the build tree.
+-- Build project responsible for installing files into the build tree.
 project_ext( ext, { generate_ext_project=true })
 
-    -- These lines add the files in the project to the IDE where the first argument is the group and the second
-    -- is the set of files in the source tree that are populated into that group.
+    -- Add files to the IDE project (local files only)
     add_files("python", "*.py")
     add_files("python/_impl", "python/_impl/**.py")
-    add_files("python/nodes", "python/nodes")
+    add_files("python/nodes/config", "python/nodes/config")
     add_files("python/tests", "python/tests")
     add_files("docs", "docs")
     add_files("data", "data")
 
-    -- Add the standard dependencies all OGN projects have. The second parameter is a table of all directories
-    -- containing Python nodes. Here there is only one.
-    add_ogn_dependencies(ogn, {"python/nodes"})
+    -- Set up OGN build dependencies (C++ flags, includes, etc.) but NOT the python directory linking
+    set_up_ogn_dependencies(ogn)
 
-    -- Copy the init script directly into the build tree. This is required because the build will create an ogn/
-    -- subdirectory in the Python module so only the subdirectories can be linked.
+    -- Copy the init script directly into the build tree.
     repo_build.prebuild_copy {
         { "python/__init__.py", ogn.python_target_path },
     }
 
-    -- Linking directories allows them to hot reload when files are modified in the source tree.
-	-- Docs are linked to get the README into the extension window.
-    -- Data contains the images used by the extension configuration preview.
-    -- The "nodes/" directory does not have to be mentioned here as it will be handled by add_ogn_dependencies() above.
+    -- Link standard directories to the build tree.
     repo_build.prebuild_link {
         { "docs", ext.target_dir.."/docs" },
         { "data", ext.target_dir.."/data" },
         { "python/tests", ogn.python_tests_target_path },
         { "python/_impl", ogn.python_target_path.."/_impl" },
+        -- Local config linked to ogn/nodes/config (must come BEFORE the copies below)
+        { "python/nodes/config", ogn.python_target_path.."/ogn/nodes/config" },
     }
 
--- With the above copy/link operations this is what the source and build trees will look like
---
--- SOURCE                             BUILD
--- omni.graph.template.python/        omni.graph.template.python/
---   config/                            config@ -> SOURCE/config
---   data/                              data@ -> SOURCE/data
---   docs/                              docs@ -> SOURCE/docs
---   python/                            ogn/  (generated by the build)
---     __init__.py                      omni/
---     _impl/                             graph/
---     nodes/                               template/
---                                            python/
---                                              __init__.py  (copied from SOURCE/python)
---                                              _impl@ -> SOURCE/python/_impl
---                                              nodes@ -> SOURCE/python/nodes
---                                              tests@ -> SOURCE/python/tests
---                                              ogn/  (Generated by the build)
+    -- COPY external node files (.ogn and .py) into the nodes directory.
+    -- We use copy instead of link because we need to merge external files with local config.
+    -- Glob patterns copy each matching file individually.
+    repo_build.prebuild_copy {
+        { "${target_deps}/omni_core_materials/lightspeed.trex.logic/*.ogn", ogn.python_target_path.."/ogn/nodes" },
+        { "${target_deps}/omni_core_materials/lightspeed.trex.logic/*.py", ogn.python_target_path.."/ogn/nodes" },
+    }
