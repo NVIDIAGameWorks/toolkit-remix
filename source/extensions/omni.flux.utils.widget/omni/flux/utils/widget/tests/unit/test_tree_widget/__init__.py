@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +15,7 @@
 * limitations under the License.
 """
 
-from .e2e.test_file_picker import TestFilePicker
-from .e2e.test_hover_helper import TestHoverHelper
-from .unit.test_scrolling_tree_widget import TestScrollingTreeWidget
-from .unit.test_search import TestSearch
-from .unit.test_tree_widget.test_model import TestTreeWidgetModel
-from .unit.test_tree_widget.test_widget import TestTreeWidget
+from .test_model import TestTreeWidgetModel
+from .test_widget import TestTreeWidget
+
+__all__ = ["TestTreeWidgetModel", "TestTreeWidget"]

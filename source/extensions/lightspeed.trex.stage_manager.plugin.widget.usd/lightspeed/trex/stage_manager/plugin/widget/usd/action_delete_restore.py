@@ -75,11 +75,9 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
 
         if prim.GetPath() in PROTECTED_PATHS:
             return self.ActionType.RESTOREDISABLED
-
         proto = prim_utils.get_prototype(prim)
         if proto:
             prim = proto
-
         stack = prim.GetPrimStack()
 
         # NOTE: all objects that are not defined in the capture layer are deletable
@@ -161,10 +159,11 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         context = omni.usd.get_context(self._context_name)
         sel_paths = context.get_selection().get_selected_prim_paths()
         stage = context.get_stage()
+
         return [
             str(prim.GetPath())
             for path in sel_paths
-            if (prim := prim_utils.get_prototype(stage.GetPrimAtPath(path)))
+            if (prim := stage.GetPrimAtPath(path))
             and prim.IsValid()
             and self._get_prim_action_type(prim) == action_type
         ]

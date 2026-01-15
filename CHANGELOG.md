@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4865: Prevent components with flexible types from allowing incorrect connections
 - REMIX-4839: Prevent components with token types from allowing incorrect connections
 - REMIX-4838: Added Instance Group and Mesh Group filter plugins to the Stage Manager and added headers to the Additional Filters menu
+- REMIX-4722: Added `ScrollingTreeWidget` - a reusable widget for scrollable tree views with correct item iteration order
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
@@ -67,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4855: Replaced StagePrimPickerItem Button with Label to use TreeView's built-in hover/selection styling
 - REMIX-4786: Changed the "Delete/Restore" StageManager action to use layer-based logic driven by the EditTarget State
 - REMIX-4241: Rewrote the lightspeed.trex.logic.ogn extension to source node files from target-deps/omni_core_materials.
+- REMIX-4722: Refactored Stage Manager to use the new `ScrollingTreeWidget` component, decoupling scroll-frame logic for reuse
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths

@@ -1,10 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.7.0]
+### Changed
+- Refactored `StageManagerInteractionPlugin` to use the new `ScrollingTreeWidget` component
+- Decoupled scroll-frame and tree-view coordination logic into a reusable widget
+
 ## [4.6.0]
 ### Fixed
 - Fixed stage manager not properly framing viewport selected items in the Skeleton Window
-
 
 ## [4.5.1]
 ### Added
