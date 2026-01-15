@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.23.0]
+### Added
+- Added `ScrollingTreeWidget` - a reusable widget that encapsulates `TreeWidget` with `ScrollingFrame` and optional alternating row backgrounds
+- Added `iter_visible_items()` method to `ScrollingTreeWidget` using iterative BFS to yield items in correct visual display order
+- Added `scroll_to_items()` async method to `ScrollingTreeWidget` for scrolling to specific items with proper frame synchronization
+- Added `get_children_count()` method to `TreeModelBase` for efficient item counting without creating intermediate lists
+
 ## [1.22.0]
 ### Added
 - Added 'visible_descendant_count' to TreeWidget

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.2]
+### Fixed
+- Fixed `scroll_to_item` to handle None values for `all_visible_items`
+
 ## [1.8.1]
 ### Changed
 - Removed unused import

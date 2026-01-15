@@ -47,6 +47,33 @@ class TreeModelBase(ui.AbstractItemModel, Generic[T]):
     def can_item_have_children(self, item: T) -> bool:
         return item and item.can_have_children
 
+    def get_children_count(self, items: Iterable[T] | None = None, recursive=True) -> int:
+        """
+        Count the number of items in the tree.
+
+        More efficient than len(list(iter_items_children())) as it avoids
+        creating intermediate objects.
+
+        Args:
+            items: The items to count from. If None, counts from root items.
+            recursive: If True, includes all descendants. If False, counts
+                only the provided items (or root items if items is None).
+
+        Returns:
+            The total number of items.
+        """
+        if items is None:
+            items = self._items
+
+        stack = list(items)
+        count = 0
+        while stack:
+            child = stack.pop()
+            count += 1
+            if recursive:
+                stack.extend(child.children)
+        return count
+
     def iter_items_children(self, items: Iterable[T] | None = None, recursive=True) -> Iterable[T]:
         """
         Iterate through a collection of items' children

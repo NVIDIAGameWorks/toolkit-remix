@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.2]
+### Fixed
+- Fixed removed redundant get_prototype call in get_selected_by_action
+
 ## [2.5.1]
 ### Fixed
 - Fixed console error that printed for object that do not return a prototype

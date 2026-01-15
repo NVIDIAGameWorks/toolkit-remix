@@ -471,7 +471,13 @@ class SetupUI:
 
     @omni.usd.handle_exception
     async def scroll_to_item(self, item, all_visible_items):
-        idx_item = all_visible_items.index(item)
+        all_visible_items = all_visible_items or []  # NOTE: handle NONE values
+
+        try:  # NOTE: handle item not being in list
+            idx_item = all_visible_items.index(item)
+        except ValueError:
+            return
+
         self._fake_frame_for_scroll.clear()
         with self._fake_frame_for_scroll:
             with ui.VStack():
