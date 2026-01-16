@@ -10,3 +10,4 @@
   stage: github_release
   rules: ## Automatically run publish job only on merge commit to main
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_COMMIT_REF_NAME =~ /^release\/\d+\.\d+\.x$/ && $CI_PIPELINE_SOURCE == "push"
