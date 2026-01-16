@@ -24,6 +24,8 @@ build-package-windows:
       when: always
     - if: $CI_COMMIT_REF_NAME =~  "/^feature\/.+/" && $CI_PIPELINE_SOURCE == "push"
       when: always
+    - if: $CI_COMMIT_REF_NAME =~ /^release\/\d+\.\d+\.x$/ && $CI_PIPELINE_SOURCE == "push"
+      when: always
 
 
 build-package-linux:

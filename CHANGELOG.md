@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - Updated github documentation to better inform open-source contributions
+- Update github releases to match main and release branches
 
 ### Added
 - Created 1.2.4 build
