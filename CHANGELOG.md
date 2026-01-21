@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - Updated github documentation to better inform open-source contributions
 - Update github releases to match main and release branches
+- Fix branch names to fit repoman syntax in Github Actions
 
 ### Added
 - Created 1.2.4 build
