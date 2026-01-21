@@ -49,6 +49,9 @@ jobs:
         COMMIT_SHA="${{ github.event.client_payload.commit_sha || github.sha }}"
         SHORT_SHA="${COMMIT_SHA:0:8}"
         
+        # Normalize branch name: release/* -> release
+        [[ "$BRANCH_NAME" == release/* ]] && BRANCH_NAME="release"
+        
         # Construct the filename
         FILENAME="rtx_remix@${VERSION}+${BRANCH_NAME}.${SHORT_SHA}.gl.windows-x86_64.release"
         
