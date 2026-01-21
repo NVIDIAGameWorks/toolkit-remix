@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created 1.3.6-0 build
 
 ### Changed
+- Excluded the python scripts from the package to avoid distributing binary files.
 
 ### Fixed
 
