@@ -8,16 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.3.6-2 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.3.6-2]
+
+### Added
 - Created 1.3.6-0 build
 
 ### Changed
 - Update github releases to match main and release branches
 - Excluded the python scripts from the package to avoid distributing binary files.
 - Updated remix_runtime to remix-1.3.6-2 to include sample app with logic examples.
-
-### Fixed
-
-### Removed
 
 ## [1.3.6-0]
 
