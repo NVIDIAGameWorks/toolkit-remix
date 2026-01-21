@@ -70,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4786: Changed the "Delete/Restore" StageManager action to use layer-based logic driven by the EditTarget State
 - REMIX-4241: Rewrote the lightspeed.trex.logic.ogn extension to source node files from target-deps/omni_core_materials.
 - REMIX-4722: Refactored Stage Manager to use the new `ScrollingTreeWidget` component, decoupling scroll-frame logic for reuse
+- Excluded the python scripts from the package to avoid distributing binary files.
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths

@@ -330,6 +330,7 @@ release.files_exclude = [
     ["**/*.exp"],
     # ["kit/**"],
     ["apps/kit.portable"],
+    ["kit/python/Scripts/**"],
 ]
 "linux-x86_64".files_strip = [
     ["**/*.so"],
