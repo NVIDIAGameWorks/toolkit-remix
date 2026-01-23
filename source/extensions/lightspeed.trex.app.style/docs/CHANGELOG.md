@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.21.1]
+### Added
+- Added PropertiesPaneSelectionTreeFieldItem
+
 ## [1.21.0]
 ### Added
 - Added Restore:disabled icon style

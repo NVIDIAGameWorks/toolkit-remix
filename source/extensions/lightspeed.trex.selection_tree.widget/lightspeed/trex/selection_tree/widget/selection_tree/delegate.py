@@ -19,12 +19,15 @@ import asyncio
 import os
 import re
 import typing
+from functools import partial
 from typing import Callable
 
 import omni.kit.clipboard
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
+from lightspeed.trex.app.style.trex_style import DEFAULT_FIELD_EDITABLE_STYLE, DEFAULT_FIELD_READ_ONLY_STYLE
+from lightspeed.trex.asset_replacements.core.shared.setup import Setup as _AssetReplacementsCoreSetup
 from lightspeed.trex.utils.widget.dialogs import confirm_remove_prim_overrides as _confirm_remove_prim_overrides
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
@@ -32,6 +35,7 @@ from omni.flux.utils.common import deferred_destroy_tasks as _deferred_destroy_t
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.color import hex_to_color as _hex_to_color
 from omni.flux.utils.widget.gradient import create_gradient as _create_gradient
+from pxr import Sdf
 
 from .model import HEADER_DICT
 from .model import AnyItemType as _AnyItemType
@@ -68,6 +72,8 @@ class Delegate(ui.AbstractItemDelegate):
             "_secondary_selection": None,
             "_hovered_items": None,
             "_background_rectangle": None,
+            "_item_fields": None,
+            "_nickname_toggle_show": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -82,6 +88,7 @@ class Delegate(ui.AbstractItemDelegate):
         self._zstack_scroll = {}
         self._gradient_image_provider = {}
         self._gradient_image_with_provider = {}
+        self._item_fields = {}
 
         self.__item_is_pressed = False  # noqa PLW0238
 
@@ -140,6 +147,10 @@ class Delegate(ui.AbstractItemDelegate):
         self.__on_duplicate_reference = _Event()
         self.__on_duplicate_prim = _Event()
         self.__on_frame_prim = _Event()
+
+        self._asset_core = _AssetReplacementsCoreSetup(omni.usd.get_context().get_name())
+
+        self._nickname_toggle_show = True
 
     def _duplicate_reference(self, item: _ItemReferenceFile):
         """Call the event object that has the list of functions"""
@@ -201,6 +212,7 @@ class Delegate(ui.AbstractItemDelegate):
         self._gradient_image_provider = {}
         self._gradient_image_with_provider = {}
         self._background_rectangle = {}
+        self._item_fields = {}
 
         self._context_menu = None
 
@@ -322,6 +334,9 @@ class Delegate(ui.AbstractItemDelegate):
                             with ui.HStack(
                                 mouse_pressed_fn=lambda x, y, b, m: self._on_item_mouse_pressed(b, item),
                                 mouse_released_fn=lambda x, y, b, m: self._on_item_mouse_released(b, item),
+                                mouse_double_clicked_fn=lambda x, y, b, m, item=item: self._nickname_action(
+                                    item, x, y, b, m
+                                ),
                                 tooltip=tooltip,
                             ):
                                 with ui.Frame(
@@ -341,25 +356,67 @@ class Delegate(ui.AbstractItemDelegate):
                                         with self._path_scroll_frames[id(item)]:
                                             with ui.HStack():
                                                 if isinstance(item, _ItemAsset):
-                                                    ui.Label(
-                                                        item.prim.GetName(),
-                                                        name="PropertiesPaneSectionTreeItem",
+                                                    label_text = item.nickname if item.nickname else item.prim.GetName()
+                                                    if item.nickname:
+                                                        ui.Image(
+                                                            "",
+                                                            width=ui.Pixel(24),
+                                                            height=ui.Pixel(24),
+                                                            name="AsteriskBlue",
+                                                            tooltip=("The asset has a nickname"),
+                                                            identifier="has_nickname_state_widget_image",
+                                                        )
+                                                    else:
+                                                        ui.Spacer(width=ui.Pixel(24))
+                                                    field = ui.StringField(
+                                                        read_only=True,
+                                                        name="PropertiesPaneSectionTreeFieldItem",
                                                         tooltip=item.path,
                                                         identifier="item_asset",
+                                                        style=DEFAULT_FIELD_READ_ONLY_STYLE,
                                                     )
+                                                    field.model.set_value(label_text)
+                                                    self._item_fields[id(item)] = {
+                                                        "field": field,
+                                                        "end_edit_fn": False,
+                                                        "item": item,
+                                                        "display_name": item.prim.GetName(),
+                                                    }
                                                 elif isinstance(item, (_ItemReferenceFile, _ItemPrim)):
-                                                    ui.Label(
-                                                        os.path.basename(item.path),
-                                                        name="PropertiesPaneSectionTreeItem",
+                                                    label_text = (
+                                                        item.nickname if item.nickname else os.path.basename(item.path)
+                                                    )
+                                                    if item.nickname:
+                                                        ui.Image(
+                                                            "",
+                                                            width=ui.Pixel(24),
+                                                            height=ui.Pixel(24),
+                                                            name="AsteriskBlue",
+                                                            tooltip=("The prim has a nickname"),
+                                                            identifier="has_nickname_state_widget_image",
+                                                        )
+                                                    else:
+                                                        ui.Spacer(width=ui.Pixel(24))
+                                                    field = ui.StringField(
+                                                        read_only=True,
+                                                        name="PropertiesPaneSelectionTreeFieldItem",
                                                         tooltip=item.path,
                                                         identifier="item_prim",
+                                                        style=DEFAULT_FIELD_READ_ONLY_STYLE,
                                                     )
+                                                    field.model.set_value(label_text)
+                                                    self._item_fields[id(item)] = {
+                                                        "field": field,
+                                                        "end_edit_fn": False,
+                                                        "item": item,
+                                                        "display_name": os.path.basename(item.path),
+                                                    }
                                                 elif isinstance(
                                                     item, (_ItemAddNewReferenceFileMesh, _ItemAddNewLiveLight)
                                                 ):
                                                     ui.Label(
                                                         item.display,
-                                                        name="PropertiesPaneSectionTreeItem60",
+                                                        name="PropertiesPaneSelectionTreeItem60",
                                                         identifier="item_add_button",
                                                     )
                                                 elif isinstance(item, (_ItemInstancesGroup, _ItemLiveLightGroup)):
@@ -395,20 +452,36 @@ class Delegate(ui.AbstractItemDelegate):
                                                 self.__do_refresh_gradient_color(item)
                             if isinstance(item, _ItemAsset):
                                 ui.Spacer(height=0, width=ui.Pixel(8))
-                                with ui.VStack(
-                                    width=ui.Pixel(16),
-                                    content_clipping=True,
-                                ):
+                                with ui.HStack(width=0, spacing=ui.Pixel(4)):
+                                    with ui.VStack(
+                                        width=ui.Pixel(16),
+                                        content_clipping=True,
+                                    ):
+                                        ui.Spacer(width=0)
+                                        ui.Image(
+                                            "",
+                                            height=ui.Pixel(16),
+                                            name="Restore",
+                                            tooltip="Restore the original asset",
+                                            mouse_released_fn=lambda x, y, b, m: self._on_reset_mouse_released(b, item),
+                                            identifier="restore",
+                                        )
+                                        ui.Spacer(width=0)
                                     ui.Spacer(width=0)
-                                    ui.Image(
-                                        "",
-                                        height=ui.Pixel(16),
-                                        name="Restore",
-                                        tooltip="Restore the original asset",
-                                        mouse_released_fn=lambda x, y, b, m: self._on_reset_mouse_released(b, item),
-                                        identifier="restore",
-                                    )
-                                    ui.Spacer(width=0)
+                                    with ui.VStack(
+                                        width=ui.Pixel(16),
+                                        content_clipping=True,
+                                    ):
+                                        ui.Spacer(width=0)
+                                        ui.Image(
+                                            "",
+                                            height=ui.Pixel(16),
+                                            name="Nickname",
+                                            tooltip="Toggle the nickname of the asset",
+                                            mouse_released_fn=lambda x, y, b, m: self._on_name_toggle_mouse_released(b),
+                                            identifier="nickname_toggle",
+                                        )
+                                        ui.Spacer(width=0)
                             elif isinstance(item, _ItemReferenceFile):
                                 ui.Spacer(height=0, width=ui.Pixel(8))
                                 with ui.VStack(
@@ -507,6 +580,67 @@ class Delegate(ui.AbstractItemDelegate):
         if button != 0:
             return
         _confirm_remove_prim_overrides([item.prim.GetPath()])
+
+    def _on_name_toggle_mouse_released(self, button):
+        if button != 0:
+            return
+        self._nickname_toggle_show = not self._nickname_toggle_show
+        for item_id in self._item_fields:
+            field = self._item_fields.get(item_id)["field"]
+            if field is None:
+                continue
+            display_name = self._item_fields.get(item_id)["display_name"]
+            item = self._item_fields.get(item_id)["item"]
+            if not self._nickname_toggle_show:
+                field.model.set_value(display_name)
+            else:
+                field.model.set_value(item.nickname if item.nickname else display_name)
+
+    def _nickname_action(self, item, x, y, button, modifiers):
+        """
+        Enable editing mode on double-click
+        """
+        if button != 0:
+            return
+
+        # Only allow renaming for items that have editable fields
+        if not isinstance(item, (_ItemAsset, _ItemReferenceFile, _ItemPrim)):
+            return
+        field = self._item_fields.get(id(item))["field"]
+        if field is None:
+            return
+
+        # Enable editing
+        field.read_only = False
+        field.focus_keyboard()
+        field.set_style(DEFAULT_FIELD_EDITABLE_STYLE)
+
+        # Subscribe to end edit (Enter key or focus lost)
+        def on_end_edit(item, model):
+            new_value = model.get_value_as_string()
+            field.read_only = True
+            field.set_style(DEFAULT_FIELD_READ_ONLY_STYLE)
+            self._on_edit_complete(new_value, item)
+
+        if not self._item_fields[id(item)]["end_edit_fn"]:
+            self._item_fields[id(item)]["end_edit_fn"] = True
+            field.model.add_end_edit_fn(partial(on_end_edit, item))
+
+    def _on_edit_complete(self, new_value: str, item: _AnyItemType):
+        """
+        Called when editing is complete. Override this to handle the new value.
+        """
+        display_name = self._item_fields.get(id(item))["display_name"]
+        if display_name == new_value:
+            return
+
+        if not item.prim or not item.prim.IsValid():
+            return
+        attr = item.prim.GetAttribute(constants.LSS_NICKNAME)
+        prev_value = attr.Get() if attr else None
+        self._asset_core.add_attribute(
+            [item.prim.GetPath()], constants.LSS_NICKNAME, new_value, prev_value, Sdf.ValueTypeNames.String
+        )
 
     def _on_delete_ref_mouse_released(self, button, item):
         if button != 0:

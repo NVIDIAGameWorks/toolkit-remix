@@ -39,6 +39,7 @@ from omni.flux.validator.factory import BASE_HASH_KEY
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage
+from pxr import Sdf
 
 
 class TestSelectionTreeWidget(AsyncTestCase):
@@ -84,15 +85,15 @@ class TestSelectionTreeWidget(AsyncTestCase):
         _window, _wid = await self.__setup_widget()  # Keep in memory during test
         usd_context = omni.usd.get_context()
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
 
         self.assertFalse(item_prims)
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
 
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_asset'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_asset'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
@@ -110,15 +111,15 @@ class TestSelectionTreeWidget(AsyncTestCase):
         _window, _wid = await self.__setup_widget()  # Keep in memory during test
         usd_context = omni.usd.get_context()
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
 
         self.assertFalse(item_prims)
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/lights/light_9907D0B07D040077"], False)
 
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_asset'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_asset'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
@@ -136,15 +137,15 @@ class TestSelectionTreeWidget(AsyncTestCase):
         _window, _wid = await self.__setup_widget()  # Keep in memory during test
         usd_context = omni.usd.get_context()
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
 
         self.assertFalse(item_prims)
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
 
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_asset'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_asset'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
@@ -162,7 +163,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         _window, _wid = await self.__setup_widget()  # Keep in memory during test
         usd_context = omni.usd.get_context()
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
 
         self.assertFalse(item_prims)
 
@@ -176,8 +177,8 @@ class TestSelectionTreeWidget(AsyncTestCase):
         )
 
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_asset'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_asset'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
@@ -195,7 +196,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         _window, _wid = await self.__setup_widget()  # Keep in memory during test
         usd_context = omni.usd.get_context()
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
 
         self.assertFalse(item_prims)
 
@@ -204,8 +205,8 @@ class TestSelectionTreeWidget(AsyncTestCase):
         )
 
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_asset'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_asset'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
@@ -248,7 +249,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
         delete_ref_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
@@ -258,7 +259,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
@@ -278,7 +279,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=10)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # ref item + prim
 
         duplicate_ref_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
@@ -288,7 +289,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
@@ -304,19 +305,19 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await expand_icon[1].click()
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 4)  # 2 ref items + 2 prims
 
         # undo
         omni.kit.undo.undo()
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # ref item + 1 prim
 
         # redo
         omni.kit.undo.redo()
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 3)  # 2 ref items + 1 prim
 
         await self.__destroy(_window, _wid)
@@ -328,7 +329,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
         delete_ref_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
@@ -338,7 +339,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
@@ -357,7 +358,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
@@ -405,7 +406,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
@@ -417,7 +418,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         omni.kit.undo.undo()
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
 
         self.assertEqual(len(item_prims), 6)
 
@@ -425,7 +426,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         omni.kit.undo.redo()
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
 
         self.assertEqual(len(item_prims), 2)
 
@@ -438,7 +439,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
@@ -486,7 +487,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
@@ -508,7 +509,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         omni.kit.undo.undo()
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
 
         self.assertEqual(len(item_prims), 6)
 
@@ -516,7 +517,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         omni.kit.undo.redo()
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
 
         self.assertEqual(len(item_prims), 5)
 
@@ -540,7 +541,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
         await ui_test.human_delay(human_delay_speed=10)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
@@ -591,7 +592,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         )
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
@@ -611,7 +612,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(current_selection, ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"])
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
@@ -624,7 +625,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
@@ -653,7 +654,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
         tree_view = ui_test.find(f"{_window.title}//Frame/**/TreeView[*].identifier=='LiveSelectionTreeView'")
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
@@ -677,12 +678,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
         self.assertEqual(len(item_prims), 2)
-        self.assertEqual(item_prims[1].widget.text, "DiskLight")
+        self.assertEqual(item_prims[1].widget.model.get_value_as_string(), "DiskLight")
         self.assertEqual(len(item_add_buttons), 2)
         self.assertEqual(len(item_groups), 2)  # instance group + live light group
 
@@ -704,7 +705,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         self.assertEqual(len(item_prims), 3)
         self.assertEqual(len(item_groups), 2)  # instance group + live light group
@@ -725,12 +726,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
         self.assertEqual(len(item_prims), 2)
-        self.assertEqual(item_prims[1].widget.text, "DiskLight")
+        self.assertEqual(item_prims[1].widget.model.get_value_as_string(), "DiskLight")
         self.assertEqual(len(item_add_buttons), 2)
         self.assertEqual(len(item_groups), 2)  # instance group + live light group
 
@@ -749,7 +750,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         self.assertEqual(len(item_prims), 3)
         self.assertEqual(len(item_groups), 2)  # instance group + live light group
@@ -773,7 +774,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
         # undo
@@ -781,7 +782,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 3)
 
         # redo
@@ -797,7 +798,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 1)
 
         await self.__destroy(_window, _wid)
@@ -920,7 +921,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # 1 replacement light should be visible now as an item_prim
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 1)
 
         with self.subTest(msg="select-replacement-light-item"):
@@ -1051,7 +1052,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/lights/light_9907D0B07D040077"], False)
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
 
         self.assertEqual(len(item_prims), 0)
 
@@ -1076,12 +1077,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
 
         self.assertEqual(len(item_prims), 1)
-        self.assertEqual(item_prims[0].widget.text, "DiskLight")
+        self.assertEqual(item_prims[0].widget.model.get_value_as_string(), "DiskLight")
         self.assertEqual(len(item_add_buttons), 1)
         self.assertEqual(len(item_groups), 2)  # instance group + live light group
 
@@ -1093,7 +1094,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         self.assertEqual(len(item_prims), 2)
         self.assertEqual(len(item_groups), 2)  # instance group + live light group
@@ -1107,7 +1108,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
 
         self.assertEqual(len(item_prims), 1)
 
@@ -1120,7 +1121,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 0)
 
         await self.__destroy(_window, _wid)
@@ -1147,7 +1148,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
@@ -1188,7 +1189,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay()
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 3)  # we have 3 prims: reference file + the regular mesh + new cube
         await self.__destroy(_window, _wid)
 
@@ -1214,7 +1215,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
@@ -1255,7 +1256,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay()
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we still have 2 prims: reference file + the regular mesh
         await self.__destroy(_window, _wid)
 
@@ -1266,7 +1267,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
@@ -1305,13 +1306,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNone(cancel_ingestion_button)
 
         await ui_test.human_delay(3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         # the new added ref (with 4 sub prims) will be selected.
         self.assertEqual(len(item_prims), 6)
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False)
         await ui_test.human_delay(3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 3)  # we have 3 prims: reference file + the regular mesh + new ref
 
         # select a reference before reverting to make sure selection afterward is correct
@@ -1334,7 +1335,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await confirm_button.click()
         await ui_test.human_delay(3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
         await self.__destroy(_window, _wid)
@@ -1346,7 +1347,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
@@ -1412,7 +1413,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
@@ -1469,12 +1470,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(50)
 
             # Make sure that new ref exists
-            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
             self.assertEqual(len(item_prims), 6)
 
             # Check that the reference is from a new internal copy and not the original external asset
             item_ref = item_prims[1].widget
-            self.assertEqual(item_ref.text, "cube.usda")
+            self.assertEqual(item_ref.model.get_value_as_string(), "cube.usda")
             self.assertEqual(item_ref.tooltip, "./assets/ingested/cube.usda")
 
             # Make sure the metadata matches
@@ -1485,7 +1486,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
                 ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False
             )
             await ui_test.human_delay(3)
-            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
             self.assertEqual(len(item_prims), 3)  # we have 3 prims: reference file + the regular mesh + new ref
             await ui_test.human_delay(50)
 
@@ -1495,7 +1496,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(human_delay_speed=3)
 
             # Test deletion
-            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
             item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
             item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
             self.assertEqual(len(item_prims), 2)
@@ -1514,7 +1515,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
@@ -1602,7 +1603,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         tree_selection_scroll_frame = ui_test.find(
             f"{_window.title}//Frame/**/ScrollingFrame[*].identifier=='TreeSelectionScrollFrame'"
         )
-        items = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        items = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertIsNotNone(tree_selection_scroll_frame)
         self.assertEqual(len(items), number_items + 5)  # ref has 4 prims + previous original mesh
 
@@ -1625,7 +1626,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         usd_context.get_selection().set_selected_prim_paths([f"{MESH_ROOT_PATH}mesh_{MESH_HASH}/mesh"], False)
         await ui_test.human_delay(human_delay_speed=10)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)  # we have 2 prims: reference file + the regular mesh
 
         # test name copy
@@ -1735,7 +1736,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # ensure we have the desired items
         # grab the ref items (ref items also use "item_prim" as identifier)
-        item_refs_and_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_refs_and_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_refs_and_prims), 5)
 
         # select first (top) ref and then shift + click the ref below
@@ -1760,7 +1761,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(human_delay_speed=1)
 
         # select the bottom item and shift + click the item two above
-        item_refs_and_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_refs_and_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         await item_refs_and_prims[5].click()
         await ui_test.human_delay(human_delay_speed=1)
 
@@ -1790,7 +1791,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         _window, _wid = await self.__setup_widget()  # Keep in memory during test
         usd_context = omni.usd.get_context()
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertFalse(item_prims)
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/lights/light_9907D0B07D040077"], False)
         await ui_test.human_delay(human_delay_speed=10)
@@ -1824,7 +1825,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(os.path.dirname(selected_prim_paths[0]), _wid.get_instance_selection()[0].path)
 
         # select second light and then shift + click the fourth light
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         await item_prims[1].click()
         await ui_test.human_delay(human_delay_speed=1)
 
@@ -1930,6 +1931,206 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # ensure all three instances and the group are selected and the original prim is still selected
         self.assertEqual(len(_wid.get_instance_selection(include_instance_group=True)), 4)
         self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: PLW0212
+
+        await self.__destroy(_window, _wid)
+
+    async def test_nickname_double_click_edit(self):
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/instances/inst_BAC90CAA733B0859_1/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
+        )
+        await ui_test.human_delay(human_delay_speed=3)
+        fields = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        field = fields[-1]
+        self.assertEqual(field.model.get_value_as_string(), "Cube_01")
+
+        await field.double_click()
+        await ui_test.human_delay(human_delay_speed=3)
+        await field.input("New Nickname", end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(human_delay_speed=3)
+        fields = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        field = fields[-1]
+        self.assertEqual(field.model.get_value_as_string(), "New Nickname")
+
+        await self.__destroy(_window, _wid)
+
+    async def test_nickname_attribute_change(self):
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+
+        prim_path = "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01"
+        usd_context.get_selection().set_selected_prim_paths([prim_path], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        fields = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        field = fields[-1]
+        self.assertEqual(field.model.get_value_as_string(), "Cube_01")
+
+        # Get the prim directly from USD and change its nickname attribute
+        stage = usd_context.get_stage()
+        prim = stage.GetPrimAtPath(prim_path)
+        self.assertTrue(prim.IsValid())
+
+        # Create or get the nickname attribute and set its value
+        nickname_attr = prim.GetAttribute(_constants.LSS_NICKNAME)
+        if not nickname_attr.IsValid():
+            nickname_attr = prim.CreateAttribute(_constants.LSS_NICKNAME, Sdf.ValueTypeNames.String)
+        nickname_attr.Set("New Nickname")
+
+        await ui_test.human_delay(human_delay_speed=3)
+        fields = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        field = fields[-1]
+        self.assertEqual(field.model.get_value_as_string(), "New Nickname")
+
+        await self.__destroy(_window, _wid)
+
+    async def test_has_nickname_state_widget_image_visibility(self):
+        """Test that the has_nickname_state_widget_image is visible when ItemAsset, ItemReferenceFile, or ItemPrim have a nickname."""
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+        stage = usd_context.get_stage()
+
+        # Select a mesh prim to populate the tree
+        prim_path = "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01"
+        usd_context.get_selection().set_selected_prim_paths([prim_path], False)
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # Verify no nickname images are visible initially
+        nickname_images = ui_test.find_all(
+            f"{_window.title}//Frame/**/Image[*].identifier=='has_nickname_state_widget_image'"
+        )
+        self.assertEqual(len(nickname_images), 0)
+
+        # Test ItemPrim nickname visibility
+        with self.subTest(msg="ItemPrim nickname image visibility"):
+            prim = stage.GetPrimAtPath(prim_path)
+            self.assertTrue(prim.IsValid())
+
+            # Set nickname on the prim
+            nickname_attr = prim.GetAttribute(_constants.LSS_NICKNAME)
+            if not nickname_attr.IsValid():
+                nickname_attr = prim.CreateAttribute(_constants.LSS_NICKNAME, Sdf.ValueTypeNames.String)
+            nickname_attr.Set("Prim Nickname")
+
+            await ui_test.human_delay(human_delay_speed=3)
+
+            # Verify the nickname image is now visible
+            nickname_images = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='has_nickname_state_widget_image'"
+            )
+            self.assertGreaterEqual(len(nickname_images), 1)
+
+            # Clear the nickname for next test
+            nickname_attr.Clear()
+            await ui_test.human_delay(human_delay_speed=3)
+
+        # Test ItemReferenceFile nickname visibility
+        with self.subTest(msg="ItemReferenceFile nickname image visibility"):
+            ref_prim_path = "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da"
+            ref_prim = stage.GetPrimAtPath(ref_prim_path)
+            self.assertTrue(ref_prim.IsValid())
+
+            # Set nickname on the reference prim
+            ref_nickname_attr = ref_prim.GetAttribute(_constants.LSS_NICKNAME)
+            if not ref_nickname_attr.IsValid():
+                ref_nickname_attr = ref_prim.CreateAttribute(_constants.LSS_NICKNAME, Sdf.ValueTypeNames.String)
+            ref_nickname_attr.Set("Reference Nickname")
+
+            await ui_test.human_delay(human_delay_speed=3)
+
+            # Verify the nickname image is now visible
+            nickname_images = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='has_nickname_state_widget_image'"
+            )
+            self.assertGreaterEqual(len(nickname_images), 1)
+
+            # Clear the nickname for next test
+            ref_nickname_attr.Clear()
+            await ui_test.human_delay(human_delay_speed=3)
+
+        # Test ItemAsset nickname visibility (using a light asset)
+        with self.subTest(msg="ItemAsset nickname image visibility"):
+            # Select a light to get an ItemAsset
+            light_path = "/RootNode/lights/light_9907D0B07D040077"
+            usd_context.get_selection().set_selected_prim_paths([light_path], False)
+            await ui_test.human_delay(human_delay_speed=3)
+
+            # Verify no nickname images initially for the light
+            nickname_images = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='has_nickname_state_widget_image'"
+            )
+            self.assertEqual(len(nickname_images), 0)
+
+            # Set nickname on the light asset
+            light_prim = stage.GetPrimAtPath(light_path)
+            self.assertTrue(light_prim.IsValid())
+
+            light_nickname_attr = light_prim.GetAttribute(_constants.LSS_NICKNAME)
+            if not light_nickname_attr.IsValid():
+                light_nickname_attr = light_prim.CreateAttribute(_constants.LSS_NICKNAME, Sdf.ValueTypeNames.String)
+            light_nickname_attr.Set("Light Asset Nickname")
+
+            await ui_test.human_delay(human_delay_speed=3)
+
+            # Verify the nickname image is now visible
+            nickname_images = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='has_nickname_state_widget_image'"
+            )
+            self.assertGreaterEqual(len(nickname_images), 1)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_nickname_toggle(self):
+        """Test that the nickname_toggle button toggles between showing nicknames and original names."""
+        # setup
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+        stage = usd_context.get_stage()
+
+        # Select a mesh prim to populate the tree
+        prim_path = "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01"
+        usd_context.get_selection().set_selected_prim_paths([prim_path], False)
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # Get the prim and set a nickname
+        prim = stage.GetPrimAtPath(prim_path)
+        self.assertTrue(prim.IsValid())
+
+        nickname_attr = prim.GetAttribute(_constants.LSS_NICKNAME)
+        if not nickname_attr.IsValid():
+            nickname_attr = prim.CreateAttribute(_constants.LSS_NICKNAME, Sdf.ValueTypeNames.String)
+        nickname_attr.Set("Test Nickname")
+
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # Verify the nickname is displayed initially (nickname toggle defaults to showing nicknames)
+        fields = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        field = fields[-1]
+        self.assertEqual(field.model.get_value_as_string(), "Test Nickname")
+
+        # Find the nickname toggle button
+        nickname_toggle = ui_test.find(f"{_window.title}//Frame/**/Image[*].identifier=='nickname_toggle'")
+        self.assertIsNotNone(nickname_toggle)
+
+        # Click the toggle to hide nicknames - should show original prim name
+        await nickname_toggle.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        fields = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        field = fields[-1]
+        self.assertEqual(field.model.get_value_as_string(), "Cube_01")
+
+        # Click the toggle again to show nicknames
+        await nickname_toggle.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        fields = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        field = fields[-1]
+        self.assertEqual(field.model.get_value_as_string(), "Test Nickname")
 
         await self.__destroy(_window, _wid)
 

@@ -2,6 +2,10 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.15.1]
+### Changed
+- Updated tests to use new StringField identifier for item_prim
+
 ## [1.15.0]
 ### Added
 - Added automatic expansion of mod.usda layer in LAYERS panel

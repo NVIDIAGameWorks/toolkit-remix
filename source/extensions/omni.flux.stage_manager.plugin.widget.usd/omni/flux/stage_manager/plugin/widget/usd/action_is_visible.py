@@ -57,9 +57,6 @@ class IsVisibleActionWidgetPlugin(_StageManagerStateWidgetPlugin):
             mouse_released_fn=lambda x, y, b, m: self._on_icon_clicked(b, enabled, model, item),
         )
 
-    def build_overview_ui(self, model: "_StageManagerTreeModel"):
-        pass
-
     def _on_icon_clicked(
         self, button: int, enabled: bool, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem"
     ):

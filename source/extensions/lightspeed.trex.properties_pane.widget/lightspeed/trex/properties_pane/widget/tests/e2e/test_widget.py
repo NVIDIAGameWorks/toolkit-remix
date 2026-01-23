@@ -97,7 +97,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         self.assertTrue(frame_mesh_prim.widget.visible)
         self.assertFalse(frame_mesh_ref.widget.visible)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
         # we close the object property frame
@@ -146,7 +146,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         # no we should see the material property
         self.assertTrue(frame_material.widget.visible)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
         # we close the material property frame
@@ -182,7 +182,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=10)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         await item_prims[0].click()
 
         # ensure the none frame is no longer visible
@@ -365,7 +365,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=10)
 
         # select the mesh reference and ensure only the reference properties are visible
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         await item_prims[0].click()
         self.assertTrue(frame_mesh_ref.widget.visible)
         self.assertFalse(frame_mesh_prim.widget.visible)
@@ -430,7 +430,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         self.assertEqual(pin_labels[0].widget.text, "Looks/mat_BC868CE5A075ABB1")
 
         # change selection to the mesh reference
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         await item_prims[0].click()
         await ui_test.human_delay()
 
@@ -482,7 +482,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         # change selection to the mesh reference in USD context and selection tree
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=10)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
         await item_prims[0].click()
         await ui_test.human_delay()
 

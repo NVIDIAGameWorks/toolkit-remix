@@ -17,9 +17,9 @@
 
 import re
 import typing
-from typing import Dict, List
+from typing import List
 
-from lightspeed.common.constants import REGEX_HASH
+from lightspeed.common.constants import LSS_NICKNAME, REGEX_HASH
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from pxr import Tf, Usd
 
@@ -30,42 +30,60 @@ if typing.TYPE_CHECKING:
 class USDListener:
     def __init__(self):
         """USD listener for the property widget"""
-        self._default_attr = {"_listeners": {}}
+        self._default_attr = {"_listener": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
         self.__models: List["ListModel"] = []
-        self._listeners: Dict[Usd.Stage, Tf.Listener] = {}
+        self._listener: Tf.Listener | None = None
         self.__regex_hash = re.compile(REGEX_HASH)
 
-    def _enable_listener(self, stage: Usd.Stage):
+    def _enable_listener(self):
         """Enable the USD listener to see if an attribute is changed"""
-        assert stage not in self._listeners
-        self._listeners[stage] = Tf.Notice.Register(Usd.Notice.ObjectsChanged, self._on_usd_changed, stage)
+        if self._listener is not None:
+            return
+        # Register globally without stage filter - we'll filter in the callback
+        self._listener = Tf.Notice.Register(Usd.Notice.ObjectsChanged, self._on_usd_changed, None)
 
-    def _disable_listener(self, stage: Usd.Stage):
+    def _disable_listener(self):
         """Disable the USD listener"""
-        if stage in self._listeners:
-            self._listeners[stage].Revoke()
-            self._listeners.pop(stage)
+        if self._listener is not None:
+            self._listener.Revoke()
+            self._listener = None
 
-    def _on_usd_changed(self, notice, stage):
+    def _on_usd_changed(self, notice, sender):
         for model in self.__models:
-            if stage != model.stage:
+            # Compare by root layer identifier to handle stage object differences
+            model_stage = model.stage
+            if not model_stage or sender != model_stage:
                 continue
 
             should_refresh = False
-            for resynced_path in notice.GetResyncedPaths():
-                if "." in str(resynced_path):  # an attribute
-                    continue
-                match = self.__regex_hash.match(str(resynced_path))
-                if not match:
-                    continue
-                prim = stage.GetPrimAtPath(resynced_path)
-                if not prim.IsValid():
-                    continue
 
-                should_refresh = True
-                break
+            # Check for nickname attribute changes
+            for changed_path in notice.GetChangedInfoOnlyPaths():
+                if str(changed_path).endswith(LSS_NICKNAME):
+                    should_refresh = True
+                    break
+
+            # Check resynced paths for nickname or prim changes
+            if not should_refresh:
+                for resynced_path in notice.GetResyncedPaths():
+                    path_str = str(resynced_path)
+                    # Check for nickname attribute creation
+                    if path_str.endswith(LSS_NICKNAME):
+                        should_refresh = True
+                        break
+                    # Original hash-based prim check
+                    if "." in path_str:  # skip other attributes
+                        continue
+                    match = self.__regex_hash.match(path_str)
+                    if not match:
+                        continue
+                    prim = model_stage.GetPrimAtPath(resynced_path)
+                    if not prim.IsValid():
+                        continue
+                    should_refresh = True
+                    break
 
             if should_refresh:
                 model.refresh()
@@ -82,10 +100,11 @@ class USDListener:
         Args:
             model: the model to listen
         """
-        if not any(f for f in self.__models if f.stage == model.stage):
-            self._enable_listener(model.stage)
-
-        self.__models.append(model)
+        if model not in self.__models:
+            self.__models.append(model)
+        # Enable global listener if we have any models
+        if self.__models:
+            self._enable_listener()
 
     def remove_model(self, model: "ListModel"):
         """
@@ -96,12 +115,12 @@ class USDListener:
         """
         if model in self.__models:
             self.__models.remove(model)
-        if not any(f for f in self.__models if f.stage == model.stage):
-            self._disable_listener(model.stage)
+        # Disable listener if no more models
+        if not self.__models:
+            self._disable_listener()
 
     def destroy(self):
         self.__models = None
-        for listener in self._listeners.values():
-            listener.Revoke()
+        self._disable_listener()
 
         _reset_default_attrs(self)

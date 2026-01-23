@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.3]
+### Added
+- Added nickname attribute to refresh rules for the Stage Manager
+- Added italic font
+
 ## [1.27.2]
 ### Added
 - Added pencil icon for edit actions
@@ -283,4 +288,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.0.0] - 2023-05-18
 ### Added
 - Created
-

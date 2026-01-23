@@ -52,6 +52,14 @@ class ItemInstance(ui.AbstractItem):
         self._prim = prim
         self._path = str(prim.GetPath())
         self._value_model = ui.SimpleStringModel(self._path)
+        if prim:
+            self._nickname = (
+                prim.GetAttribute(constants.LSS_NICKNAME).Get()
+                if prim.GetAttribute(constants.LSS_NICKNAME).IsValid()
+                else None
+            )
+        else:
+            self._nickname = None
 
     @property
     def parent(self):
@@ -68,6 +76,14 @@ class ItemInstance(ui.AbstractItem):
     @property
     def value_model(self):
         return self._value_model
+
+    @property
+    def nickname(self):
+        return self._nickname
+
+    @nickname.setter
+    def nickname(self, value):
+        self._nickname = value
 
     def __repr__(self):
         return f"{self.__class__.__name__}('{self.path}')"
@@ -234,6 +250,14 @@ class ItemPrim(ui.AbstractItem):
             for child in children
             if child not in scope_without
         ]
+        if self._prim:
+            self._nickname = (
+                prim.GetAttribute(constants.LSS_NICKNAME).Get()
+                if prim.GetAttribute(constants.LSS_NICKNAME).IsValid()
+                else None
+            )
+        else:
+            self._nickname = None
 
     @property
     def from_live_light_group(self):
@@ -265,6 +289,14 @@ class ItemPrim(ui.AbstractItem):
     @property
     def child_prim_items(self):
         return self._child_prim_items
+
+    @property
+    def nickname(self):
+        return self._nickname
+
+    @nickname.setter
+    def nickname(self, value):
+        self._nickname = value
 
     def is_mesh(self) -> bool:
         return bool(self.prim.IsA(UsdGeom.Mesh))
@@ -314,6 +346,14 @@ class ItemReferenceFile(ui.AbstractItem):
             for child in children
             if child not in scope_without and not child.GetAttribute(constants.IS_REMIX_REF_ATTR).IsValid()
         ]
+        if prim:
+            self._nickname = (
+                prim.GetAttribute(constants.LSS_NICKNAME).Get()
+                if prim.GetAttribute(constants.LSS_NICKNAME).IsValid()
+                else None
+            )
+        else:
+            self._nickname = None
 
     @property
     def parent(self):
@@ -355,6 +395,14 @@ class ItemReferenceFile(ui.AbstractItem):
     def child_prim_items(self):
         return self._child_prim_items
 
+    @property
+    def nickname(self):
+        return self._nickname
+
+    @nickname.setter
+    def nickname(self, value):
+        self._nickname = value
+
     def __repr__(self):
         return f"{self.__class__.__name__}('{self.path}')"
 
@@ -379,6 +427,14 @@ class ItemAsset(ui.AbstractItem):
             ItemReferenceFile(_prim, ref, layer, i, total_ref, self, context_name)
             for _prim, ref, layer, i in prim_paths
         ]
+        if prim:
+            self._nickname = (
+                prim.GetAttribute(constants.LSS_NICKNAME).Get()
+                if prim.GetAttribute(constants.LSS_NICKNAME).IsValid()
+                else None
+            )
+        else:
+            self._nickname = None
 
     def is_light(self) -> bool:
         regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
@@ -419,6 +475,14 @@ class ItemAsset(ui.AbstractItem):
     @property
     def reference_items(self):
         return self._reference_items
+
+    @property
+    def nickname(self):
+        return self._nickname
+
+    @nickname.setter
+    def nickname(self, value):
+        self._nickname = value
 
     def __repr__(self):
         return f"{self.__class__.__name__}('{self.path}')"
@@ -521,6 +585,12 @@ class ListModel(ui.AbstractItemModel):
                 self._ignore_refresh = False
 
     def _on_stage_event(self, event):
+        # Re-register USD listener when a new stage is opened
+        if event.type == int(omni.usd.StageEventType.OPENED):
+            self._usd_listener.remove_model(self)
+            if self.stage:
+                self._usd_listener.add_model(self)
+
         if event.type == int(omni.usd.StageEventType.SELECTION_CHANGED):
             self.refresh()
             if self._ignore_refresh:
