@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.0]
+### Changed
+- Changed the listener to refresh the selection tree items when the nickname attribute changes
+- Changed the listener to not be bound to a specific stage
+- Added nickname display and toggle functionality
+
 ## [1.8.2]
 ### Fixed
 - Fixed `scroll_to_item` to handle None values for `all_visible_items`

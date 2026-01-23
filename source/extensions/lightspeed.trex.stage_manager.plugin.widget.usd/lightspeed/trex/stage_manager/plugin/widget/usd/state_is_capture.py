@@ -42,6 +42,3 @@ class IsCaptureStateWidgetPlugin(_StageManagerStateWidgetPlugin):
             )
         else:
             ui.Spacer(width=self._icon_size, height=self._icon_size)
-
-    def build_overview_ui(self, model: "_StageManagerTreeModel"):
-        pass

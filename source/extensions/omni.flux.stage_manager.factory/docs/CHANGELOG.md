@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.8.0]
+### Added
+- Added a nickname attribute to the tree items
+
 ## [4.7.0]
 ### Changed
 - Refactored `StageManagerInteractionPlugin` to use the new `ScrollingTreeWidget` component

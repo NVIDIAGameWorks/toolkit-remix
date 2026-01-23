@@ -35,6 +35,10 @@
                     {
                         "use_name": true,
                         "start": "remix_category:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "nickname"
                     }
                 ]
             },
@@ -99,7 +103,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 145
+                        "value": 175
                     },
                     "widgets": [
                         {
@@ -118,7 +122,13 @@
                             "name": "DeleteRestoreActionWidgetPlugin"
                         },
                         {
+                            "name": "NicknameToggleActionWidgetPlugin"
+                        },
+                        {
                             "name": "LogicGraphWidgetPlugin"
+                        },
+                        {
+                            "name": "PrimRenameNameActionWidgetPlugin"
                         }
                     ]
                 }
@@ -139,6 +149,10 @@
                     {
                         "use_name": true,
                         "start": "remix_category:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "nickname"
                     }
                 ]
             },
@@ -207,7 +221,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 145
+                        "value": 175
                     },
                     "widgets": [
                         {
@@ -224,6 +238,12 @@
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"
+                        },
+                        {
+                            "name": "NicknameToggleActionWidgetPlugin"
+                        },
+                        {
+                            "name": "PrimRenameNameActionWidgetPlugin"
                         }
                     ]
                 }
@@ -244,6 +264,10 @@
                     {
                         "use_name": true,
                         "start": "remix_category:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "nickname"
                     }
                 ]
             },
@@ -312,7 +336,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 120
+                        "value": 150
                     },
                     "widgets": [
                         {
@@ -326,6 +350,12 @@
                         },
                         {
                             "name": "ParticleSystemsActionWidgetPlugin"
+                        },
+                        {
+                            "name": "NicknameToggleActionWidgetPlugin"
+                        },
+                        {
+                            "name": "PrimRenameNameActionWidgetPlugin"
                         }
                     ]
                 }
@@ -416,6 +446,12 @@
                         },
                         {
                             "name": "AssignCategoryActionWidgetPlugin"
+                        },
+                        {
+                            "name": "NicknameToggleActionWidgetPlugin"
+                        },
+                        {
+                            "name": "PrimRenameNameActionWidgetPlugin"
                         }
                     ]
                 }
@@ -522,7 +558,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 120
+                        "value": 150
                     },
                     "widgets": [
                         {
@@ -536,6 +572,12 @@
                         },
                         {
                             "name": "ParticleSystemsActionWidgetPlugin"
+                        },
+                        {
+                            "name": "NicknameToggleActionWidgetPlugin"
+                        },
+                        {
+                            "name": "PrimRenameNameActionWidgetPlugin"
                         }
                     ]
                 }
@@ -548,6 +590,10 @@
                     {
                         "use_name": true,
                         "start": "remix_category:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "nickname"
                     }
                 ]
             },
@@ -629,7 +675,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 145
+                        "value": 175
                     },
                     "widgets": [
                         {
@@ -646,6 +692,12 @@
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"
+                        },
+                        {
+                            "name": "NicknameToggleActionWidgetPlugin"
+                        },
+                        {
+                            "name": "PrimRenameNameActionWidgetPlugin"
                         }
                     ]
                 }
@@ -663,6 +715,10 @@
                     {
                         "use_name": true,
                         "start": "remix_category:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "nickname"
                     }
                 ]
             },
@@ -737,7 +793,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 145
+                        "value": 175
                     },
                     "widgets": [
                         {
@@ -754,6 +810,12 @@
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"
+                        },
+                        {
+                            "name": "NicknameToggleActionWidgetPlugin"
+                        },
+                        {
+                            "name": "PrimRenameNameActionWidgetPlugin"
                         }
                     ]
                 }

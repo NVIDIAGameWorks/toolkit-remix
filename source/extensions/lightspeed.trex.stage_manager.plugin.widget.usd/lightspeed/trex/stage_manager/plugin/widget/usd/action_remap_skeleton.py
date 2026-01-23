@@ -55,9 +55,6 @@ class RemapSkeletonActionWidgetPlugin(StageManagerStateWidgetPlugin):
             self._remap_window = SkeletonRemappingWindow()
         super().build_ui(model, item, level, expanded)
 
-    def build_overview_ui(self, model: StageManagerTreeModel):
-        pass
-
     def build_icon_ui(self, model: StageManagerTreeModel, item: StageManagerTreeItem, level: int, expanded: bool):
         if not isinstance(item, SkeletonBoundMeshItem):
             return

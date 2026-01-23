@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.3]
+## Changed
+- Implemented `build_overview_ui` method in `StageManagerUIPluginBase`
+
 ## [2.1.2]
 ## Changed
 - Exposing the custom tags list widget to work with the new context menu

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.0]
+### Added
+- Added a nickname attribute to the stage manager action widget
+
 ## [2.5.2]
 ### Fixed
 - Fixed removed redundant get_prototype call in get_selected_by_action

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.8.0]
+### Added
+- Added `PRIM_NICENAME` and `RENAME_PRIM_NICENAME` and `REMOVE_PRIM_NICENAME` menu items for renaming prim nicknames
+
 ## [3.7.1]
 ### Changed
 - Updated `is_broken_symlink()` to check for missing files when verifying broken symlinks

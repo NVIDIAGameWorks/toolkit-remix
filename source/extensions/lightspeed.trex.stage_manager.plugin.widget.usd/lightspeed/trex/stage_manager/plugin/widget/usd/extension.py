@@ -22,8 +22,10 @@ from omni.flux.stage_manager.factory import get_instance as _get_factory_instanc
 from .action_assign_category import AssignCategoryActionWidgetPlugin as _AssignCategoryActionWidgetPlugin
 from .action_delete_restore import DeleteRestoreActionWidgetPlugin as _DeleteRestoreActionWidgetPlugin
 from .action_logic_graph import LogicGraphWidgetPlugin as _LogicGraphWidgetPlugin
+from .action_nickname_toggle import NicknameToggleActionWidgetPlugin as _NicknameToggleActionWidgetPlugin
 from .action_particle_systems import ParticleSystemsActionWidgetPlugin as _ParticleSystemsActionWidgetPlugin
 from .action_remap_skeleton import RemapSkeletonActionWidgetPlugin as _RemapSkeletonActionWidgetPlugin
+from .action_rename_prim import PrimRenameNameActionWidgetPlugin as _PrimRenameNameActionWidgetPlugin
 from .focus_in_viewport import FocusInViewportActionWidgetPlugin as _FocusInViewportActionWidgetPlugin
 from .info_remap_skeleton import RemapSkeletonInfoWidgetPlugin as _RemapSkeletonInfoWidgetPlugin
 from .state_hidden_category import IsCategoryHiddenStateWidgetPlugin as _IsCategoryHiddenStateWidgetPlugin
@@ -39,7 +41,9 @@ class LightspeedStageManagerUSDWidgetPluginsExtension(omni.ext.IExt):
         _IsCaptureStateWidgetPlugin,
         _IsCategoryHiddenStateWidgetPlugin,
         _LogicGraphWidgetPlugin,
+        _NicknameToggleActionWidgetPlugin,
         _ParticleSystemsActionWidgetPlugin,
+        _PrimRenameNameActionWidgetPlugin,
         _RemapSkeletonActionWidgetPlugin,
         _RemapSkeletonInfoWidgetPlugin,
     ]
