@@ -81,11 +81,3 @@ class StageManagerColumnPlugin(_StageManagerUIPluginBase, abc.ABC):
         the UI for a single element.
         """
         pass
-
-    @abc.abstractmethod
-    def build_overview_ui(self, model: "_StageManagerTreeModel"):
-        """
-        Build the footer UI for the given column. It should be used to display additional information about all the
-        items in the column.
-        """
-        pass

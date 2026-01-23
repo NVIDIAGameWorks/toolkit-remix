@@ -23,14 +23,40 @@ from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _S
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeDelegate as _StageManagerTreeDelegate
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
+from pxr import Sdf
 from pydantic import Field, PrivateAttr
 
 
 class StageManagerUSDTreeItem(_StageManagerTreeItem):
+    NICKNAME_ATTR = "nickname"
+
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
+
+    def _load_nickname(self):
+        """Load nickname from USD prim attribute."""
+        if self.data is None or not self.data.IsValid() or not self.data.HasAttribute(self.NICKNAME_ATTR):
+            return
+        attr = self.data.GetAttribute(self.NICKNAME_ATTR)
+        if attr and attr.HasValue():
+            self._nickname = attr.Get()
+
+    def _on_edit_complete(self, new_value: str):
+        """Save nickname to USD prim attribute."""
+        if new_value == self._display_name:
+            return
+
+        if not self.data or not self.data.IsValid():
+            return
+        attr = self.data.GetAttribute(self.NICKNAME_ATTR)
+        if not attr:
+            attr = self.data.CreateAttribute(self.NICKNAME_ATTR, Sdf.ValueTypeNames.String)
+
+        if attr:
+            attr.Set(new_value)
+            self._nickname = new_value if new_value != self._display_name else None
 
 
 class StageManagerUSDTreeModel(_StageManagerTreeModel):
@@ -56,6 +82,7 @@ class StageManagerUSDTreeModel(_StageManagerTreeModel):
             {
                 "context_name": self._context_name,
                 "selected_paths": usd.get_context(self._context_name).get_selection().get_selected_prim_paths(),
+                "item": item,
             }
         )
         return payload

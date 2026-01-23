@@ -70,11 +70,40 @@ class VirtualGroupsItem(_StageManagerUSDTreeItem):
         return self._is_virtual
 
     def build_widget(self):
-        with ui.HStack(spacing=ui.Pixel(2)):
+        with ui.HStack(spacing=ui.Pixel(2), height=0):
+            if not self.children:
+                with ui.VStack(width=ui.Pixel(16)):
+                    ui.Spacer()
+                    ui.Image(
+                        "",
+                        name="Rename" if self._nickname else "RenameOutline",
+                        width=ui.Pixel(16),
+                        height=ui.Pixel(16),
+                    )
+                    ui.Spacer()
             if self._display_name_ancestor:
                 ui.Label(self._display_name_ancestor, name="FadedLabel", width=0)
                 ui.Label("/", name="FadedLabel", width=0)
-            ui.Label(self.display_name, name="VirtualItemLabel" if self.is_virtual else "")
+            field = ui.StringField(
+                read_only=True,
+                style=(
+                    self.FIELD_READ_ONLY_STYLE_NO_NICKNAME
+                    if not self._nickname
+                    else self.FIELD_READ_ONLY_STYLE_NICKNAME
+                ),
+            )
+            ui.Spacer()
+            if not self.children:
+                field.set_mouse_double_clicked_fn(lambda x, y, b, m: self._nickname_action(field, x, y, b, m))
+                self._setup_edit_mode(field)
+            if not self.show_nickname:
+                field.model.set_value(self._display_name)
+                self._set_label_width(int(len(self._display_name)))
+                self.tooltip = self._nickname if self._nickname else self._display_name
+            else:
+                field.model.set_value(self.display_name)
+                self._set_label_width(int(len(self.display_name)))
+                self.tooltip = self._display_name
 
 
 class VirtualGroupsModel(_StageManagerUSDTreeModel):

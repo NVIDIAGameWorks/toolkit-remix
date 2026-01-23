@@ -572,6 +572,12 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             self._update_expansion_task.cancel()
         self._update_expansion_task = ensure_future(self._update_expansion_states_deferred())
 
+        # Update the show nickname state of the items
+        for item in self.tree.model.iter_items_children():
+            if self.tree.model.get_show_nickname_override(item):
+                continue
+            item.show_nickname = self.tree.model.show_nickname
+
         # Update the number of alternating rows to draw
         self._tree_widget.refresh()  # TODO: in next MR will handle model refresh as well.
 
