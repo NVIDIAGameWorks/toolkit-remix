@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [1.4.2]
+### Changed
+- Updated tests to use new StringField identifier for item_prim
+
 ## [1.4.1]
 ### Changed
 - Code formatting improvements

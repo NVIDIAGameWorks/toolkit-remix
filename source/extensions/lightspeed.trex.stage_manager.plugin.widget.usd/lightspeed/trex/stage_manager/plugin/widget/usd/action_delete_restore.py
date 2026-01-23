@@ -177,6 +177,3 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
     def _restore_prim_cb(self) -> None:
         sel_paths = self._get_selected_by_action(self.ActionType.RESTORE)
         confirm_remove_prim_overrides(sel_paths, self._context_name)
-
-    def build_overview_ui(self, *args, **kwargs):
-        pass

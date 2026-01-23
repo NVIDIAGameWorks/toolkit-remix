@@ -80,9 +80,6 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
             mouse_released_fn=callback,
         )
 
-    def build_overview_ui(self, model: StageManagerTreeModel):
-        pass
-
     def _build_callback(self, payload: dict, callback: Callable, x: int, y: int, button: int, modifiers: int):
         if button != 0 or not self._modify_particle_system_show_fn(payload):
             return

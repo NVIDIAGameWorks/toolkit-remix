@@ -71,9 +71,6 @@ class AssignCategoryActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
                 ),
             )
 
-    def build_overview_ui(self, model: StageManagerTreeModel):
-        pass
-
     @classmethod
     def _get_menu_items(cls):
         categories_icon = _get_icons("categories_white")

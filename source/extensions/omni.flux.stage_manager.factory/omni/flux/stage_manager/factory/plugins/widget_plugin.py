@@ -18,6 +18,7 @@
 import abc
 from typing import TYPE_CHECKING, Callable
 
+from omni import ui
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import PrivateAttr
@@ -35,6 +36,7 @@ class StageManagerWidgetPlugin(_StageManagerUIPluginBase, abc.ABC):
     """
 
     _on_item_clicked: _Event = PrivateAttr(default=_Event())
+    _icon_size: ui.Length = PrivateAttr(default=0)
 
     @abc.abstractmethod
     def build_ui(  # noqa PLW0221
@@ -42,9 +44,10 @@ class StageManagerWidgetPlugin(_StageManagerUIPluginBase, abc.ABC):
     ):
         pass
 
-    @abc.abstractmethod
     def build_overview_ui(self, model: "_StageManagerTreeModel"):
-        pass
+        """Default implementation creates a spacer matching the icon size for alignment."""
+        with ui.HStack(width=self._icon_size):
+            ui.Spacer()
 
     def subscribe_item_clicked(
         self, callback: Callable[[int, bool, "_StageManagerTreeModel", "_StageManagerTreeItem"], None]
