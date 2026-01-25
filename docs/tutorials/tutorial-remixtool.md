@@ -1,19 +1,15 @@
 # Building Your First Mod for the RTX Remix Sample
 
-To begin creating your first mod, it is recommended to follow the steps outlined in the documentation.
+This tutorial provides a practical approach to building a mod for the RTX Remix Sample Application.
 
-The recommended steps are:
+To create any mod you'll want to follow these recommended steps. We'll go through each of them specifically for the Sample Application, but for reference, they are each thoroughly documented here:
 
 1. [Install the RTX Remix Runtime](../installation/install-runtime.md)
 2. [Install the RTX Remix Toolkit](../installation/install-toolkit.md)
-3. [Setup the RTX Remix Runtime for the Sample Application](../gettingstarted/learning-runtimesetup.md)
-4. [Create a Project for the Sample Application mod](../gettingstarted/learning-toolkitsetup.md)
+3. [Setup the RTX Remix Runtime for your game](../gettingstarted/learning-runtimesetup.md)
+4. [Create a Project](../gettingstarted/learning-toolkitsetup.md)
 5. [Ingest and Replace Assets](../howto/learning-assets.md)
 
-This tutorial provides a practical approach to building a mod for the RTX Remix Sample Application, following the
-documented steps.
-
-For detailed information on each step, please refer to the corresponding documentation sections.
 
 ## 1. Install the RTX Remix Runtime
 
@@ -54,16 +50,17 @@ Sample Application.
 
    ![RemixTool Tutorial 3](../data/images/remix_907.png)
 
-3. Install the RTX Remix Runtime by copying the contents of the `runtime` directory into the `sample` directory.
+3. Move both directories out of the toolkit installation directory to a location of your choice. (In these screenshots, we use E:/Sample)
+4. Install the RTX Remix Runtime by copying the contents of the `runtime` directory into the `sample` directory.
 
    ![RemixTool Tutorial 3](../data/images/remix_908.png)
 
-4. The RTX Remix Sample Application can now be launched by double-clicking the `RemixSample.exe` file. The following
+5. The RTX Remix Sample Application can now be launched by double-clicking the `RemixSample.exe` file. The following
    window should appear:
 
    ![RemixTool Tutorial 3](../data/images/remix_909.png)
 
-5. Since the Sample Application is simple and
+6. Since the Sample Application is simple and
    lacks [UI Textures](../gettingstarted/learning-runtimesetup.md#setting-up-ui-textures), texture tagging can be
    skipped.
 
@@ -74,12 +71,12 @@ Sample Application.
 
    ![RemixTool Tutorial 4](../data/images/remix_910.png)
 
-6. In the "Developer Settings Menu," click the `Enhancements Tab` to display the "Enhancements" settings, which include
+7. In the "Developer Settings Menu," click the `Enhancements Tab` to display the "Enhancements" settings, which include
    capture settings.
 
    ![RemixTool Tutorial 5](../data/images/remix_911.png)
 
-7. **After disabling enhancements**, a name can be specified for the capture. Then, click the `Capture Scene` button.
+8. **After disabling enhancements**, a name can be specified for the capture. Then, click the `Capture Scene` button.
 
    This action captures the current frame and saves a USD file containing all data to disk. The progress bar indicates
    the capture progress. Once it reaches 100%, setting up the RTX Remix Toolkit project can begin.
@@ -99,9 +96,7 @@ With the Sample Application captured, a project for the Sample Application mod c
 
    ![RemixTool Tutorial 2](../data/images/remix_914.png)
 
-3. Click the
-   ![Browse](../../source/extensions/lightspeed.trex.app.resources/data/icons/folder_open.svg){.svg-icon} button for the
-   `Project File Location` field to select a file path for the mod.
+3. Click the **Browse** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/folder_open.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> button for the `Project File Location` field to select a file path for the mod.
 
    ![RemixTool Tutorial 3](../data/images/remix_915.png)
 
@@ -122,8 +117,7 @@ With the Sample Application captured, a project for the Sample Application mod c
 
    ![RemixTool Tutorial 4](../data/images/remix_916.png)
 
-5. Next, click the ![Browse](../../source/extensions/lightspeed.trex.app.resources/data/icons/folder_open.svg)
-   {.svg-icon} button for the `Remix Directory` field.
+5. Next, click the **Browse** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/folder_open.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> button for the `Remix Directory` field.
 
    Select the `rtx-remix` directory created earlier during the Sample Application capture.
 
@@ -150,8 +144,7 @@ With the Sample Application captured, a project for the Sample Application mod c
 
 With a project created, asset replacement in the mod can begin.
 
-Let's replace the ![RTX Remix](../../source/extensions/lightspeed.trex.app.resources/data/icons/categories.svg){.svg-icon}
-mesh with an updated asset.
+Let's replace the **RTX Remix** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/categories.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;">  mesh with an updated asset.
 
 The following disco ball asset can be used for testing:
 [SM_Prop_Discoball](https://d4i3qtqj3r0z5.cloudfront.net/SM_Prop_DiscoBall%402.zip)
@@ -174,14 +167,9 @@ The following disco ball asset can be used for testing:
 
 4. With the asset ingested, it's time to replace the captured asset. Return to the `Modding` tab.
 
-5. Select the asset to be replaced. In this case, select
-   the ![RTX Remix](../../source/extensions/lightspeed.trex.app.resources/data/icons/categories.svg){.svg-icon} mesh in
-   the viewport.
+5. Select the asset to be replaced. In this case, select the **RTX Remix** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/categories.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> mesh in the viewport.
 
-   After selecting the asset, ensure that the reference is selected in
-   the ["Selection" panel](../howto/learning-toolkit.md#selection-panel). Then, click
-   the ![Browse](../../source/extensions/lightspeed.trex.app.resources/data/icons/folder_open.svg){.svg-icon} button in
-   the `Object Properties` panel to select the newly ingested asset.
+   After selecting the asset, ensure that the reference is selected in the ["Selection" panel](../howto/learning-toolkit.md#selection-panel). Then, click the **Browse** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/folder_open.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> button in the `Object Properties` panel to select the newly ingested asset.
 
    ![Remix Asset Replacement](../data/images/remix-remixtutorial-004.png)
 

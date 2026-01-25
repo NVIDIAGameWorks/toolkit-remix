@@ -53,15 +53,9 @@ The Layers panel offers the following functionalities:
 * **Layer Actions**: A range of actions can be performed on layers. Certain actions may be restricted on specific
   layers; hovering over the icons will display a tooltip explaining any such restrictions.
 * **Setting the Edit Target**: The edit target, indicated by a teal hashed background, is the layer that will be
-  modified when scene changes are made. To set the edit target, click the
-  ![Edit Target](../../source/extensions/lightspeed.trex.app.resources/data/icons/layers.svg){.svg-icon}
-  icon associated with the desired layer.
+  modified when scene changes are made. To set the edit target, click the **Edit Target** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/layers.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> icon associated with the desired layer.
 * **Creating/Importing Sublayers**: Sublayers can be created or imported by first selecting a valid layer and then
-  clicking the
-  ![Create Layer](../../source/extensions/lightspeed.trex.app.resources/data/icons/create-layer.svg){.svg-icon} or
-  ![Import Layer](../../source/extensions/lightspeed.trex.app.resources/data/icons/import-layer.svg){.svg-icon}
-  icons located at the bottom of the panel. These buttons are enabled only when a valid layer for the respective action
-  is selected.
+  clicking the **Create Layer** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/create-layer.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> or **Import Layer** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/import-layer.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> icons located at the bottom of the panel. These buttons are enabled only when a valid layer for the respective action is selected.
 * **Context Menu**: The Layers panel context menu (accessed by right-clicking) provides additional actions that can be
   performed on layers, such as transferring the contents of a layer.
 
@@ -83,16 +77,11 @@ assets are easily tracked.
 ![Bookmarks Panel](../data/images/remix-properties-bookmarks.png)
 
 Creating a bookmark involves selecting the "Create a new bookmark..." entry and adding items to it. By default, all
-currently selected items are added to the new bookmark. Additional items can be added by selecting the desired objects
-and clicking the ![Add Item](../../source/extensions/lightspeed.trex.app.resources/data/icons/add.svg){.svg-icon}
-icon.
+currently selected items are added to the new bookmark. Additional items can be added by selecting the desired objects and clicking the **Add Item** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/add.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> icon.
 
-Removing items from a bookmark is straightforward: select the bookmark and click
-the ![Remove Item](../../source/extensions/lightspeed.trex.app.resources/data/icons/subtract.svg){.svg-icon} icon.
+Removing items from a bookmark is straightforward: select the bookmark and click the **Remove Item** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/subtract.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> icon.
 
-Bookmarks can be deleted entirely by clicking
-the ![Delete Bookmark](../../source/extensions/lightspeed.trex.app.resources/data/icons/trash-can.svg){.svg-icon}
-icon.
+Bookmarks can be deleted entirely by clicking the **Delete Bookmark** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/trash-can.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> icon.
 
 Nesting bookmarks is also supported. To nest a bookmark, simply drag and drop the bookmark into the target bookmark.
 
@@ -116,16 +105,10 @@ displays content based on the current selection.
 The most crucial aspect of the Selection panel is the type of the currently selected item. Icons preceding the item
 names indicate their type:
 
-* ![Mesh Icon](../../source/extensions/lightspeed.trex.app.resources/data/icons/hexagon-outline.svg){.svg-icon}:
-  **Mesh**. Meshes are transformable and should have an associated material.
-* ![Transform Icon](../../source/extensions/lightspeed.trex.app.resources/data/icons/xform.svg){.svg-icon}:
-  **Transform** (_Xform_). Transforms can be manipulated (moved, rotated, scaled) but do not possess associated
-  materials.
-* ![Light Icon](../../source/extensions/lightspeed.trex.app.resources/data/icons/light_point.svg){.svg-icon}:
-  **Light**. Lights are transformable and have adjustable light properties.
-* ![Reference Icon](../../source/extensions/lightspeed.trex.app.resources/data/icons/link.svg){.svg-icon}:
-  **Reference**. References can be replaced with other assets, duplicated, or removed from the scene. They are not
-  directly transformable and do not have material properties.
+* <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/hexagon-outline.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> **Mesh**: Meshes are transformable and should have an associated material.
+* <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/xform.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> **Transform** (_Xform_): Transforms can be manipulated (moved, rotated, scaled) but do not possess associated materials.
+* <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/light_point.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> **Light**: Lights are transformable and have adjustable light properties.
+* <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/link.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> **Reference**: References can be replaced with other assets, duplicated, or removed from the scene. They are not directly transformable and do not have material properties.
 
 ```{seealso}
 Refer to the [Setting Up Asset Replacements](learning-assets.md) section for detailed information on references and
@@ -206,22 +189,9 @@ regarding the current state of the selection.
 
 ![Properties Attribute States](../data/images/remix-properties-attributes-states.png)
 
-* The ![Mixed Value](../../source/extensions/lightspeed.trex.app.resources/data/icons/mixed_checkbox.svg){.svg-icon}
-  icon indicates
-  whether the attribute exhibits varying values across the selected objects. If the
-  attribute holds the same value for all selected objects, this icon appears disabled. If the selected items possess
-  differing attribute values, the icon becomes brighter and colored. Hovering over this icon displays a tooltip
-  containing details about the selection.
-* The circle icon indicates whether the attribute value matches the default value. If the attribute value is the
-  default, this icon appears disabled. If the attribute value deviates from the default, the icon becomes brighter and
-  colored. Clicking the icon resets the value to its default. Hovering over this icon displays a tooltip providing
-  information on the selection.
-* The ![Overrides Menu](../../source/extensions/lightspeed.trex.app.resources/data/icons/ellipsis.svg){.svg-icon} icon
-  and the
-  darker background signify whether the attribute has been overridden. If the attribute has
-  been overridden, this icon becomes brighter and colored, and the background darkens. If the attribute is not
-  overridden, the icon appears disabled, and the background retains its default color. Clicking the icon reveals a menu
-  enabling the removal of all overrides or overrides from specific layers.
+* The **Mixed Value** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/mixed_checkbox.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> icon indicates whether the attribute exhibits varying values across the selected objects. If the attribute holds the same value for all selected objects, this icon appears disabled. If the selected items possess differing attribute values, the icon becomes brighter and colored. Hovering over this icon displays a tooltip containing details about the selection.
+* The circle icon indicates whether the attribute value matches the default value. If the attribute value is the default, this icon appears disabled. If the attribute value deviates from the default, the icon becomes brighter and colored. Clicking the icon resets the value to its default. Hovering over this icon displays a tooltip providing information on the selection.
+* The **Overrides Menu** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/ellipsis.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> icon and the darker background signify whether the attribute has been overridden. If the attribute has been overridden, this icon becomes brighter and colored, and the background darkens. If the attribute is not overridden, the icon appears disabled, and the background retains its default color. Clicking the icon reveals a menu enabling the removal of all overrides or overrides from specific layers.
 
 #### Copy / Paste Values
 

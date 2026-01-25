@@ -103,10 +103,11 @@ docs/toolkitinterface/remix-toolkitinterface-shortcuts
 ```{toctree}
 ---
 maxdepth: 1
-caption: Glossary and Terms
+caption: Reference
 hidden: true
 ---
 docs/remix-glossary
+docs/components/index
 ```
 
 ```{toctree}
