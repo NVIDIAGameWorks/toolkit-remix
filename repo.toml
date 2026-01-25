@@ -506,6 +506,21 @@ for lib_type in ("purelib", "platlib"):
     if lib_paths and lib_paths not in sys.path:
         sys.path.insert(0, lib_paths)
 
+# Copy SVG icons from source to docs build output
+def copy_icons_to_build(app, exception):
+    if exception is not None:
+        return  # Don't copy if build failed
+    source_icons = pathlib.Path.cwd() / "source" / "extensions" / "lightspeed.trex.app.resources" / "data" / "icons"
+    output_icons = pathlib.Path(app.builder.outdir) / "source" / "extensions" / "lightspeed.trex.app.resources" / "data" / "icons"
+
+    if source_icons.exists():
+        output_icons.mkdir(parents=True, exist_ok=True)
+        for icon in source_icons.glob("*.svg"):
+            shutil.copy2(icon, output_icons / icon.name)
+        print(f"Copied icons from {source_icons} to {output_icons}")
+    else:
+        print(f"Warning: Icons source directory not found: {source_icons}")
+
 # Generate micro-service documentation
 def build_service_docs(app):
     output_dir = pathlib.Path(app.builder.outdir)
@@ -540,9 +555,10 @@ def build_service_docs(app):
     output_file.parent.mkdir(parents=True)
     shutil.copy2(source_file, output_file)
 
-# Build micro-service documentation before building the rest of the documentation
+# Build micro-service documentation and copy icons before building the rest of the documentation
 sphinx_event_handlers = [
     ("builder-inited", build_service_docs),
+    ("build-finished", copy_icons_to_build),
 ]
 """
 

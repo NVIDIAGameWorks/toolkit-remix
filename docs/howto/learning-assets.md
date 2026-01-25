@@ -85,10 +85,7 @@ collisions, remain based on the original asset.
 
    ![Duplicate Assets](../data/images/remix-assets-duplicate.png)
 
-5. **Reset Asset Reference:** To revert the asset reference to its original state, click
-   the
-   ![Restore all Properties](../../source/extensions/lightspeed.trex.app.resources/data/icons/restore.svg){.svg-icon}
-   icon located on the topmost item within the [Selection Panel](learning-toolkit.md#selection-panel).
+5. **Reset Asset Reference:** To revert the asset reference to its original state, click the **Restore all Properties** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/restore.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> icon located on the topmost item within the [Selection Panel](learning-toolkit.md#selection-panel).
 
    ```{warning}
    The "Restore all properties" function will reset all properties of the selected asset to their original values. This

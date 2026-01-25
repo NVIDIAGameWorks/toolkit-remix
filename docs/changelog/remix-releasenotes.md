@@ -1,5 +1,152 @@
 # Release Notes
 
+## RTX Remix Release 1.3 Notes (1/27/2026)
+
+We are excited to announce the official release of **RTX Remix 1.3**. RTX Remix now features a system called **RTX Remix Logic**, which allows Remix to detect game logic and make mods more immersive and dynamic. Remix Logic exposes real time game events that modders can use to trigger visual changes in their mods, all without needing source code or programming knowledge. Remix Logic is powerful–modders can read many aspects of the game state and player behavior, and sculpt visual changes in response with all 900+ settings offered in the RTX Remix Runtime menu.
+
+![Remix 1.3 Hero](../data/images/remix-1.3-hero.png)
+
+This control over cause and effect unlocks new possibilities. Modders can–
+
+* Localize visual effects to when the player is in a part of a level
+* Animate options in the Remix Runtime menu to create new VFX
+* Create new gameplay systems like night vision or an enemy warning system
+* Create visual spectacles by timing a set of changes in sequence
+
+Remix Logic is available for every RTX Remix mod to leverage.
+
+### RTX Remix Toolkit
+
+#### Remix Logic
+
+Added support for **RTX Remix Logic** system, which allows modders to dynamically alter Remix settings based on detected game state.
+
+Modders add Remix Logic into their mods by opening the "**Logic Graph**" tab, selecting a **Light** or **Mesh** **Prim,** and creating a "New Graph" in either the "Logic Properties" pane, the top left of the "Logic Graph" tab, or the center of the "Logic Graph" tab (see image below).
+
+![Remix Logic Create Graph](../data/images/remix-logic-create-graph.png)
+
+Logic graphs are a node-based workflow where modders can connect nodes that define which game events are detected, and how visuals should change in reaction. Logic graphs do not require any programming knowledge or source code to use.
+
+![Remix Logic Graph Editor](../data/images/remix-logic-graph-editor.png)
+
+Remix Logic supports four types of nodes:
+
+* **Sense:** used to detect the in-game event (Ex: Camera, Mesh Proximity, Time, Keyboard Input, etc.)
+* **Transform:** used to change an input to different types, or introduce conditionality/rules (Ex: Add, Between, Bool AND, Bool OR, Greater Than, etc.)
+* **Act:** used to execute the visual change. At launch, we support loading and blending between different RTX.conf files to change Remix Runtime options. In the future, we will look to expand the number of available Act nodes.
+* **Constants**: used for sharing a value between multiple components, and for setting a property with a flexible type (ex: Constant String, Constant Hash, Constant Bool, etc.)
+
+You can view a full list of available nodes in the [Component Reference](../components/index.md), and check out our [documentation on Remix Logic](../howto/learning-logic.md) for more details on how to get started.
+
+Remix Logic was made possible using the [Omnigraph](https://docs.omniverse.nvidia.com/extensions/latest/ext_omnigraph.html) framework to define node types and store graphs as USD, as well as harnessing Omnigraph's graph editor to offer a no code framework to modders.
+
+#### UX Improvements
+
+* Added **Dockable and Customizable Layouts**
+    * All panels are now window based and can be repositioned for your ideal workflow
+    * Left bar now possesses various layouts, pre-arranging windows and tabs in useful configurations, leaving more room for the viewport
+    * Under "Window" drop down, modders can now hide and unhide specific panels
+    * Under "Window" drop down, modders can save and load custom layouts
+
+* Stage Manager now comes with a search bar and customizable filters
+
+#### Bugfixes/Minor Changes
+
+* Added a check to use the project directory if no capture directory is found
+* Fixed symlink validation and repair when no deps dir exists
+* Fixed particle properties panel not preserving expansion state across refreshes
+* Fixed auto scrolling logic on some Stage Manager Tabs
+* Removed waypoint support
+
+
+#### Code Contributions
+* Changed modding tabs to vertical layout from @Simon-Lajoie [PR 7](https://github.com/NVIDIAGameWorks/toolkit-remix/pull/7)
+
+***
+
+### RTX Remix Runtime
+
+#### Remix Logic & New Conf Files
+
+Added support for **RTX Remix Logic** system, including developing a layering system for juggling and transitioning between multiple ".conf" files, each loaded with a unique set of RTX Remix Runtime options. Modders can define the relative "blend strength" of each layer, allowing smooth interpolation between values for fine-grain control.
+
+Read more about the new changes to .conf files in our [documentation](../howto/learning-logic.md#remix-logic--new-conf-files).
+
+#### Quality of Life Improvements
+
+* Implemented a new overlay-based GUI input system independent of the original game, ensuring consistent and reliable Remix UI interactions. Resolved issues where certain games would swallow keyboard or mouse inputs, previously causing the Remix GUI to become unresponsive. Introduced an always-on-top, transparent overlay window for advanced and seamless in-game UI input handling (enabled by default, configurable at launch).
+* Improved RTX Remix Pathtracer. Fixed math errors and infinities in material calculations, sanitized invalid normals and texture coordinates. Improved miss ray motion vector accuracy and added safeguards against division by zero.
+* Improved DLSS Multi Frame Generation stability with resizing game windows, and changing display settings. DLSS Frame Generation now synchronizes the compute shader thread when switching presenters and checks output window extents on dispatch, resetting the FG context if needed.
+* Improved compatibility by fixing precision issues in vertex shader based games. The precision issues would previously manifest as vertex wobbling or explosions.
+* Extended particle system to include constant particle mode and support for multiple billboard geometry generation modes. Increased supported ranges for a few particle system values in the GUI.
+* Implemented vertex color as baked lighting as a per surface property. Added a heuristic for legacy materials based on FF state. Disabled this feature for particles (where we know the vertex color is not baked lighting).
+* RTX Option change callbacks (including cascading changes) are now applied in the same frame on the resolved value for consistent behavior.
+
+#### Code Contributions
+
+
+* Remade entire Remix Runtime UI thanks to xoxor4d [PR 105](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/105). Added a UI theme selector with three themes, compact/spacious modes, large GUI toggle, and background alpha slider. Made multiple changes to improve menu look and feel:
+  ![Remix Runtime UI xoxor4d](../data/images/remix-runtime-ui-xoxor4d.png)
+* Added XeSS 2.1 SR Upscaler thanks to sambow23 [PR 100](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/100)
+
+#### Bugfixes/Minor Changes
+
+* Fixed clamping of ev option's min max values in Debug View options.
+* Fixed a rare artificial tint being applied to secondary bounces / indirect lighting.
+* Fixed virtual key binding issue to require ',' as delimiter instead of '+'.
+* Fixed graphics preset dropdown to apply the correct preset. There was a bug where the preset would update to the previously selected one rather than the active one on a change.
+* Fixed errors when overriding DLSS profile to Full Resolution (DLAA) via the Nvidia App.
+* Fixed slightly incorrect DLSS input resolution and PerfQuality determination for a given DLSS profile (addresses Github issue #900).
+* Fixed an issue where particles sometimes rendered without texture color due to legacy material inheritance, now allowing explicit legacy setup for particle rendering.
+* Fixed fallback directional light to detect and respond to changed settings.
+* Fixed clamping when evMin/evMaxValues are set for Debug Views using onChange callbacks.
+* Fixed Acceleration Structure resource tracking to prevent resources getting destroyed while still being bound by dxvk.
+* Fixed serialization of missing volumetricRadianceScale in Bridge.
+
+#### Known Issues
+
+* When saving your mod, avoid leaving the "Save Changed Settings Only" unchecked, and keep the "Override configs" option unchecked. It can lead to problematic behavior with our revamped multiple config file system, causing unintentional settings to be saved to rtx/user/new config files. By default, we recommend modders always have "Save Changed Settings Only" checked, and ensure their personal graphics settings are saved to the user.conf file by saving on the main Graphics Menu at least once.
+
+  ```{image} ../data/images/remix-config-save-settings-1.png
+  :width: 400px
+  ```
+
+  ```{image} ../data/images/remix-config-save-settings-2.png
+  :width: 400px
+  ```
+
+  If you have this setting checked off, please check it on, delete any user.conf file in your file structure, and save your personal graphics settings in the "Graphics Menu". Then, delete any new.conf files you may have created for Remix Logic and remake them.
+
+* Migrating Texture Tagging:
+    * Users who have been using Github Action builds may have saved non-user settings into user.conf. This causes problems, particularly when it comes to adding and removing textures from texture categories.
+    * To resolve this, we've added a migration flow, which will move all texture hashsets in user.conf to rtx.conf.
+
+  ![Remix Texture Migration](../data/images/remix-texture-migration.png)
+
+  ![Remix 1.3 Image 8](../data/images/remix-1.3-image-8.png)
+
+  ![Remix 1.3 Image 9](../data/images/remix-1.3-image-9.png)
+
+  * If you have texture categories in your user.conf, the runtime menus will offer you "Migrate" buttons before allowing you to save rtx.conf or user.conf. Clicking these buttons will move the texture categories into rtx.conf (merging with any that are already there), and save both files.
+  * After migration, you should be able to add or remove textures as normal
+  * NOTE: textures added in dxvk.conf, the hardcoded config.cpp, or in Logic .conf files won't be removable in the UI for 1.3. You'll need to edit the files by hand.
+
+* Graph Editor Node Validation
+    * After deleting a node in graph editor, some node port inputs do not get correctly validated. Restarting the Remix App will restore correct validation.
+
+* Graph Editor Connection Validation
+    * After deleting a connection between nodes in the graph editor, some connections will incorrectly display as connected. Re-opening the graph will update the visual connection.
+
+
+```{seealso}
+Changelogs
+
+- For runtime release notes, please click [here](https://github.com/NVIDIAGameWorks/rtx-remix/releases/tag/remix-1.3.6)
+- For a full toolkit changelog, please click [here](remix-full-changelog.md)
+```
+
+***
+
 ## RTX Remix Release 1.2 Notes (9/9/2025)
 
 We are excited to announce the official 1.2 release of RTX Remix. RTX Remix now features a path-traced particle system,
