@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4838: Added Instance Group and Mesh Group filter plugins to the Stage Manager and added headers to the Additional Filters menu
 - REMIX-4722: Added `ScrollingTreeWidget` - a reusable widget for scrollable tree views with correct item iteration order
 - REMIX-4418: Added a nickname attribute to the selection tree widget and the Stage Manager
+- REMIX-4795: Added a new documentation page for Remix Logic
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
