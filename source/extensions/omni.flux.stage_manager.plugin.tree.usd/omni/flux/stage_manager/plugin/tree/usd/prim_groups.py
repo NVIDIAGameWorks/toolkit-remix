@@ -43,7 +43,7 @@ class PrimGroupsItem(_StageManagerUSDTreeItem):
         if type_name:
             return self.available_icons.get(type_name, "Xform")
 
-        return None
+        return "Xform"
 
 
 class PrimGroupsModel(_StageManagerUSDTreeModel):
