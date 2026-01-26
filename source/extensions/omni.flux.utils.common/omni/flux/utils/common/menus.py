@@ -54,3 +54,7 @@ class MenuItem(Enum):
     LOGIC_GRAPH_ADD = "Create Remix Logic Graph"
     LOGIC_GRAPH_EDIT = "Edit Remix Logic Graph"
     LOGIC_GRAPH_REMOVE = "Remove Remix Logic Graph"
+    PRIM_NICENAME = "Nickname"
+    RENAME_PRIM_NICENAME = "Add Nickname"
+    REMOVE_PRIM_NICENAME = "Restore Name"
+    TOGGLE_NICKNAME = "Toggle Nickname"

@@ -56,6 +56,3 @@ class IsCategoryHiddenStateWidgetPlugin(_StageManagerStateWidgetPlugin):
             ),
             identifier="category_state_widget_image",
         )
-
-    def build_overview_ui(self, model: "_StageManagerTreeModel"):
-        pass

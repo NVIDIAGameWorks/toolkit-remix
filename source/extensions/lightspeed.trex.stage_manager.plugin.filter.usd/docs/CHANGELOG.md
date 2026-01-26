@@ -1,6 +1,21 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.2]
+### Changed
+- Updated filter plugin comboboxes to use the correct index for combobox creation
+
+## [2.3.1]
+### Changed
+- Updated MeshPrimsFilterPlugin to exclude lights in the filter
+
+## [2.3.0]
+### Added
+- Added `InstanceGroupFilterPlugin` filter plugin
+- Added `MeshGroupFilterPlugin` filter plugin
+### Changed
+- Renamed MeshPrimsFilterPlugin's label to "Geometry Prims"
+
 ## [2.2.1]
 ### Changed
 - Updated is_logic_graph filter plugin to be more inline with current style guide and practices

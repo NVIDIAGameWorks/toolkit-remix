@@ -63,6 +63,8 @@ class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "IsCaptureStateWidgetPlugin",
             "IsCategoryHiddenStateWidgetPlugin",
             "IsVisibleActionWidgetPlugin",
+            "NicknameToggleActionWidgetPlugin",
+            "PrimRenameNameActionWidgetPlugin",
             "PrimTreeWidgetPlugin",
         ],
         exclude=True,

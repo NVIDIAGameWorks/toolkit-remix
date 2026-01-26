@@ -29,6 +29,7 @@ from omni import ui, usd
 from omni.flux.telemetry.core import get_telemetry_instance
 from omni.flux.utils.common.menus import Menu as _Menu
 from omni.flux.utils.common.menus import MenuGroup as _MenuGroup
+from omni.flux.utils.widget.resources import get_fonts as _get_fonts
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
@@ -53,6 +54,37 @@ class StageManagerTreeItem(_TreeItemBase):
         display_name_ancestor: A string to prepend to the display name with
     """
 
+    FIELD_READ_ONLY_STYLE_NO_NICKNAME = {
+        "background_color": 0x00000000,
+        "border_width": 0,
+        "border_color": 0x00000000,
+        "font": _get_fonts("NVIDIASans_A_Rg"),
+        "font_size": 16,
+        ":hovered": {
+            "color": 0xFFFFFFFF,
+        },
+    }
+
+    FIELD_READ_ONLY_STYLE_NICKNAME = {
+        "background_color": 0x00000000,
+        "border_width": 0,
+        "border_color": 0x00000000,
+        "font": _get_fonts("NVIDIASans_A_It"),
+        "font_size": 16,
+        ":hovered": {
+            "color": 0xFFFFFFFF,
+        },
+    }
+
+    FIELD_EDITABLE_STYLE = {
+        "background_color": 0xFF303030,
+        "border_width": 1,
+        "border_color": 0x66FFC700,
+    }
+
+    CHARACTER_WIDTH = 8.25
+    CHARACTER_PADDING = 8
+
     def __init__(
         self,
         display_name: str,
@@ -68,6 +100,11 @@ class StageManagerTreeItem(_TreeItemBase):
         self._display_name_ancestor = display_name_ancestor
 
         self._parent = None
+        self._label_width = 0
+        self._nickname = None
+        self._load_nickname()
+        self._pending_edit = False
+        self._show_nickname = True
 
     @property
     @abc.abstractmethod
@@ -80,6 +117,10 @@ class StageManagerTreeItem(_TreeItemBase):
                 "_parent": None,
                 "_data": None,
                 "_parent_name": None,
+                "_nickname": None,
+                "_label_width": None,
+                "_pending_edit": None,
+                "_show_nickname": None,
             }
         )
         return default_attr
@@ -89,7 +130,7 @@ class StageManagerTreeItem(_TreeItemBase):
         """
         The display name for the item. Can be used by the widgets
         """
-        return self._display_name
+        return self._nickname if self._nickname else self._display_name
 
     @property
     def display_name_ancestor(self) -> str:
@@ -104,6 +145,17 @@ class StageManagerTreeItem(_TreeItemBase):
         The tooltip displayed when hovering the item. Can be used by the widgets
         """
         return self._tooltip
+
+    @tooltip.setter
+    def tooltip(self, value: str):
+        """
+        Set the tooltip displayed when hovering the item. Can be used by the widgets
+        """
+        if not self._tooltip:
+            self._tooltip = value
+            return
+        parts = self._tooltip.split("/")
+        self._tooltip = "/".join(parts[:-1]) + "/" + value
 
     @property
     def parent(self) -> "StageManagerTreeItem":
@@ -143,15 +195,138 @@ class StageManagerTreeItem(_TreeItemBase):
         """
         return bool(self._children)
 
+    @property
+    def label_width(self) -> int:
+        """
+        The width of the label
+        """
+        if self._label_width == 0:
+            self._set_label_width(int(len(self.display_name)))
+        return self._label_width
+
+    @property
+    def pending_edit(self) -> bool:
+        """
+        Whether the item is pending edit
+        """
+        return self._pending_edit
+
+    @pending_edit.setter
+    def pending_edit(self, value: bool):
+        """
+        Set the pending edit state
+        """
+        self._pending_edit = value
+
+    @property
+    def show_nickname(self) -> bool:
+        """
+        Whether the nickname is shown or not
+        """
+        return self._show_nickname
+
+    @show_nickname.setter
+    def show_nickname(self, value: bool):
+        """
+        Set the show nickname state
+        """
+        self._show_nickname = value
+
+    def _set_label_width(self, value: int):
+        """
+        Set the width of the label
+        """
+        # Calculate the width of the label based on the display name length
+        # 8.5 is the average width of a character in pixels and 8 is the padding
+        self._label_width = int(value * self.CHARACTER_WIDTH) + self.CHARACTER_PADDING
+
     def build_widget(self):
         """
         Method that can be used to build the widgets to build a widget displaying the items
         """
-        with ui.HStack(spacing=ui.Pixel(2)):
+        with ui.HStack(spacing=0, height=0):
+            if self._nickname:
+                with ui.VStack(height=ui.Pixel(24), width=ui.Pixel(16), spacing=ui.Pixel(4)):
+                    ui.Spacer(height=ui.Pixel(2))
+                    ui.Image(
+                        "",
+                        width=ui.Pixel(16),
+                        height=ui.Pixel(16),
+                        name="AsteriskBlue",
+                        tooltip="The prim has a nickname",
+                    )
+                    ui.Spacer()
+            elif not self._nickname and not self.children:
+                ui.Spacer(width=ui.Pixel(16))
+
             if self._display_name_ancestor:
                 ui.Label(self._display_name_ancestor, name="FadedLabel", width=0)
                 ui.Label("/", name="FadedLabel", width=0)
-            ui.Label(self.display_name)
+            field = ui.StringField(
+                read_only=True,
+                style=(
+                    self.FIELD_READ_ONLY_STYLE_NO_NICKNAME
+                    if not self._nickname
+                    else self.FIELD_READ_ONLY_STYLE_NICKNAME
+                ),
+                width=ui.Pixel(self.label_width),
+            )
+            if not self.children:
+                field.set_mouse_double_clicked_fn(lambda x, y, b, m: self._nickname_action(field, x, y, b, m))
+                self._setup_edit_mode(field)
+            if not self.show_nickname:
+                field.model.set_value(self._display_name)
+                self._set_label_width(int(len(self._display_name)))
+                self.tooltip = self._nickname if self._nickname else self._display_name
+            else:
+                field.model.set_value(self.display_name)
+                self._set_label_width(int(len(self.display_name)))
+                self.tooltip = self._display_name
+
+    def _setup_edit_mode(self, field: ui.StringField):
+        """
+        Setup the edit mode if pending_edit is True
+        """
+        if not self.pending_edit:
+            return
+
+        field.read_only = False
+        field.width = ui.Fraction(1)
+        field.set_style(self.FIELD_EDITABLE_STYLE)
+
+        # Subscribe to end edit (Enter key or focus lost)
+        def on_end_edit(model):
+            new_value = model.get_value_as_string()
+            field.read_only = True
+            field.set_style(
+                self.FIELD_READ_ONLY_STYLE_NO_NICKNAME if not self._nickname else self.FIELD_READ_ONLY_STYLE_NICKNAME
+            )
+            self._set_label_width(int(len(new_value)))
+            field.width = ui.Pixel(self.label_width)
+            self.pending_edit = False
+            self._on_edit_complete(new_value)
+
+        field.model.add_end_edit_fn(on_end_edit)
+
+    def _nickname_action(self, field: ui.StringField, x: float, y: float, b: int, m: int):
+        """
+        Enable editing mode on double-click
+        """
+        if b != 0:  # Only left-click
+            return
+
+        self.pending_edit = True
+        self._setup_edit_mode(field)
+
+    @abc.abstractmethod
+    def _on_edit_complete(self, new_value: str):
+        """
+        Called when editing is complete. Override this to handle the new value.
+
+        Args:
+            new_value: The new string value from the field
+        """
+        pass
 
     def add_child(self, item: "StageManagerTreeItem"):
         """
@@ -162,6 +337,11 @@ class StageManagerTreeItem(_TreeItemBase):
         """
         item.parent = self
         self._children.append(item)
+
+    @abc.abstractmethod
+    def _load_nickname(self):
+        """Load nickname from USD prim attribute."""
+        pass
 
     def __eq__(self, other):
         if isinstance(other, StageManagerTreeItem):
@@ -187,6 +367,8 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         self._context_predicates: list[Callable[[_StageManagerItem], bool]] = []
         self._column_count = 0
         self._max_workers = None
+        self._show_nickname = True
+        self._show_nickname_overrides = []
 
     @property
     @abc.abstractmethod
@@ -200,6 +382,8 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
                 "_context_predicates": None,
                 "_column_count": None,
                 "_max_workers": None,
+                "_show_nickname": None,
+                "_show_nickname_overrides": None,
             }
         )
         return default_attr
@@ -258,6 +442,40 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
         self._column_count = value
 
+    @property
+    def show_nickname(self) -> bool:
+        """
+        Whether the nickname is shown or not
+        """
+        return self._show_nickname
+
+    @show_nickname.setter
+    def show_nickname(self, value: bool):
+        """
+        Set the show nickname state
+        """
+        self._show_nickname = value
+
+    def toggle_nickname(self):
+        """
+        Toggle the show nickname state
+        """
+        self.show_nickname = not self.show_nickname
+        self._show_nickname_overrides = []
+        self.notify_item_changed()
+
+    def set_show_nickname_override(self, item: StageManagerTreeItem):
+        """
+        Set the show nickname override for an item
+        """
+        self._show_nickname_overrides.append(item)
+
+    def get_show_nickname_override(self, item: StageManagerTreeItem) -> bool | None:
+        """
+        Get the show nickname override for an item
+        """
+        return item in self._show_nickname_overrides if self._show_nickname_overrides else None
+
     @usd.handle_exception
     async def refresh(self):
         """
@@ -270,7 +488,20 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
             item.tree_item = None
 
         self._items = self._build_items(filtered_items)
+        for item in self.iter_items_children():
+            item.show_nickname = self.show_nickname
+        current_hashes = set(self.items_dict.keys())
+        self._show_nickname_overrides = [item for item in self._show_nickname_overrides if hash(item) in current_hashes]
         self._item_changed(None)
+
+    def notify_item_changed(self, item: StageManagerTreeItem | None = None):
+        """
+        Notify the TreeView that an item has changed and needs to be rebuilt.
+
+        Args:
+            item: The item that changed, or None to rebuild all visible widgets
+        """
+        self._item_changed(item)
 
     def find_items(self, predicate: Callable[[StageManagerTreeItem], bool]) -> list[StageManagerTreeItem]:
         """

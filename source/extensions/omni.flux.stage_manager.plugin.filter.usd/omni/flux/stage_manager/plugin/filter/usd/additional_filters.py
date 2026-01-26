@@ -34,6 +34,7 @@ class AdditionalFiltersPopupMenuItemDelegate(PopupMenuItemDelegate):
         self.filter_obj = filter_obj
         self.text = filter_obj.display_name
         self.filter_active = value.get("filter_active", False)
+        self.filter_type = value.get("filter_type", "other")
         self._on_filter_changed_fn = on_filter_changed_fn
         self._filter_changed_sub = None
         self._container = None
@@ -80,8 +81,24 @@ class AdditionalFiltersPopupMenu(AbstractPopupMenu):
     def build_menu_items(self):
         with ui.VStack(width=0, spacing=ui.Pixel(4)):
             ui.Spacer(width=0)
+            with ui.HStack():
+                ui.Spacer(width=4)
+                ui.Label("Multi-Option Filters", name="PropertiesPaneSectionTitle")
             for item in self._delegate.items:
-                item.build_item()
+                if item.filter_type == "other":
+                    item.build_item()
+            with ui.HStack():
+                ui.Spacer(width=4)
+                ui.Label("Prim Filters", name="PropertiesPaneSectionTitle")
+            for item in self._delegate.items:
+                if item.filter_type == "prims":
+                    item.build_item()
+            with ui.HStack():
+                ui.Spacer(width=4)
+                ui.Label("Group Filters", name="PropertiesPaneSectionTitle")
+            for item in self._delegate.items:
+                if item.filter_type == "group":
+                    item.build_item()
 
 
 class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
@@ -220,6 +237,12 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
                     value = {}
                     if isinstance(filter_plugin, _ToggleableUSDFilterPlugin):
                         value = {"filter_active": filter_plugin.filter_active}
+                    if "Group" in filter_plugin.display_name:
+                        value["filter_type"] = "group"
+                    elif "Prims" in filter_plugin.display_name or filter_plugin.name.endswith("Systems"):
+                        value["filter_type"] = "prims"
+                    else:
+                        value["filter_type"] = "other"
                     additional_filters.append([filter_plugin, value])
                 elif not isinstance(filter_plugin, _StageManagerUSDFilterPlugin):
                     carb.log_error(

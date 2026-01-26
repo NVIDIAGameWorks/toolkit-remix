@@ -134,6 +134,3 @@ class LogicGraphWidgetPlugin(StageManagerStateWidgetPlugin, StageManagerMenuMixi
                 "",
             )
         ]
-
-    def build_overview_ui(self, model: StageManagerTreeModel) -> None:
-        pass

@@ -20,17 +20,15 @@ import asyncio
 import os
 from asyncio import Future, Queue, ensure_future
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, Iterable
+from typing import TYPE_CHECKING, Any, Callable
 
 import omni.appwindow
 import omni.kit.app
 import omni.usd
-from carb.events import IEvent, ISubscription
 from omni import ui
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from omni.flux.utils.widget.tree_widget import AlternatingRowWidget as _AlternatingRowWidget
-from omni.flux.utils.widget.tree_widget import TreeWidget as _TreeWidget
+from omni.flux.utils.widget.scrolling_tree_view import ScrollingTreeWidget as _ScrollingTreeWidget
 from pydantic import Field, PrivateAttr, field_validator, model_validator
 
 from ..enums import StageManagerDataTypes as _StageManagerDataTypes
@@ -144,10 +142,8 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         description="The number of frames that should be used to debounce the item update requests",
         exclude=True,
     )
-    _alternating_row_widget: _AlternatingRowWidget | None = PrivateAttr(default=None)
-    _tree_frame: ui.Frame | None = PrivateAttr(default=None)
-    _tree_widget: _TreeWidget | None = PrivateAttr(default=None)
-    _tree_scroll_frame: ui.Frame | None = PrivateAttr(default=None)
+
+    _tree_widget: _ScrollingTreeWidget | None = PrivateAttr(default=None)
     _loading_frame: ui.ZStack | None = PrivateAttr(default=None)
 
     _context: _StageManagerContextPlugin | None = PrivateAttr(default=None)
@@ -158,8 +154,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     _context_items_changed: _Event = PrivateAttr(default=_Event())
 
-    _app_window_size_changed_sub: ISubscription = PrivateAttr(default=None)
-
     _context_items_changed_sub: _EventSubscription | None = PrivateAttr(default=None)
     _item_changed_sub: _EventSubscription | None = PrivateAttr(default=None)
     _item_expanded_sub: _EventSubscription | None = PrivateAttr(default=None)
@@ -169,7 +163,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     _filter_items_changed_subs: list[_EventSubscription] = PrivateAttr(default=[])
     _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr(default=[])
 
-    _update_content_size_task: Future | None = PrivateAttr(default=None)
     _update_expansion_task: Future | None = PrivateAttr(default=None)
     _model_refresh_task: Future | None = PrivateAttr(default=None)
     _update_items_task: Future | None = PrivateAttr(default=None)
@@ -178,8 +171,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     _is_initialized: bool = PrivateAttr(default=False)
     _is_active: bool = PrivateAttr(default=False)
-
-    _previous_frame_height: float = PrivateAttr(default=-1.0)
 
     _FILTERS_HORIZONTAL_PADDING: int = 24
     _FILTERS_VERTICAL_PADDING: int = 8
@@ -332,12 +323,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._context = value
 
-        self._app_window_size_changed_sub = (
-            omni.appwindow.get_default_app_window()
-            .get_window_resize_event_stream()
-            .create_subscription_to_pop(self._on_window_resized, name="AppWindowResized")
-        )
-
         self._validate_data_type()
 
         self._setup_tree()
@@ -390,31 +375,23 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 with ui.ZStack():
                     with ui.VStack():
                         # Tree UI
-                        with ui.ZStack():
-                            self._alternating_row_widget = _AlternatingRowWidget(self.header_height, self.row_height)
-                            self._tree_scroll_frame = ui.ScrollingFrame(
-                                name="TreePanelBackground",
-                                scroll_y_changed_fn=self._alternating_row_widget.sync_scrolling_frame,
-                            )
-                            with self._tree_scroll_frame:
-                                self._tree_frame = ui.ZStack(
-                                    content_clipping=True,  # Add on top of the background
-                                    computed_content_size_changed_fn=self._on_content_size_changed,
-                                )
-                                with self._tree_frame:
-                                    self._tree_widget = _TreeWidget(
-                                        self.tree.model,
-                                        delegate=self.tree.delegate,
-                                        select_all_children=self.select_all_children,
-                                        validate_action_selection=self.validate_action_selection,
-                                        root_visible=False,
-                                        header_visible=True,
-                                        columns_resizable=False,  # Can't resize the results after resizing a column
-                                        column_widths=column_widths,
-                                    )
-                                    self._selection_changed_sub = self._tree_widget.subscribe_selection_changed(
-                                        self._on_selection_changed
-                                    )
+                        self._tree_widget = _ScrollingTreeWidget(
+                            self.tree.model,
+                            delegate=self.tree.delegate,
+                            header_height=self.header_height,
+                            row_height=self.row_height,
+                            select_all_children=self.select_all_children,
+                            validate_action_selection=self.validate_action_selection,
+                            alternating_rows=self.alternate_row_colors,
+                            root_visible=False,
+                            header_visible=True,
+                            columns_resizable=False,  # Can't resize the results after resizing a column
+                            column_widths=column_widths,
+                        )
+
+                        self._selection_changed_sub = self._tree_widget.subscribe_selection_changed(
+                            self._on_selection_changed
+                        )
 
                         # Results UI
                         with ui.ZStack(height=self.row_height):
@@ -501,11 +478,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         if self._loading_frame:
             self._loading_frame.visible = show
 
-    def _on_window_resized(self, _: "IEvent"):
-        if not self._tree_widget:
-            return
-        self._tree_widget.dirty_widgets()
-
     def _setup_tree(self):
         """
         Subscribe to the `_item_changed` event triggered by the tree model to rebuild the result UI frames
@@ -578,6 +550,9 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         """
         Callback to execute when context items are updated
         """
+        # TODO: on the next MR this and self._tree_model.refresh
+        # will be centralized to make sure we have a better way to
+        # tie model refresh and item refresh together in our one ScrollingTreeWidget Class
         self._show_loading_overlay(True)
 
         if self._model_refresh_task:
@@ -597,8 +572,14 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             self._update_expansion_task.cancel()
         self._update_expansion_task = ensure_future(self._update_expansion_states_deferred())
 
+        # Update the show nickname state of the items
+        for item in self.tree.model.iter_items_children():
+            if self.tree.model.get_show_nickname_override(item):
+                continue
+            item.show_nickname = self.tree.model.show_nickname
+
         # Update the number of alternating rows to draw
-        self._alternating_row_widget.refresh(item_count=len(list(self.tree.model.iter_items_children())))
+        self._tree_widget.refresh()  # TODO: in next MR will handle model refresh as well.
 
         # Hide the loading overlay
         self._show_loading_overlay(False)
@@ -612,11 +593,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             expanded: The expansion state
         """
         self._item_expansion_states[hash(item)] = expanded
-
-    def _on_content_size_changed(self):
-        if self._update_content_size_task:
-            self._update_content_size_task.cancel()
-        self._update_content_size_task = ensure_future(self._update_content_size_deferred())
 
     def _on_selection_changed(self, items: list[_StageManagerTreeItem]):
         """
@@ -722,27 +698,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         self._context_items_changed()
 
     @omni.usd.handle_exception
-    async def _update_content_size_deferred(self):
-        """
-        Update the scroll position when the content size changes to force the ScrollFrame to resize.
-        """
-        # Sync the alternating row widget frame height with the tree frame
-        self._alternating_row_widget.sync_frame_height(self._tree_frame.computed_height)
-
-        # Only update the scroll position when shrinking the frame
-        if self._tree_widget.computed_height < self._previous_frame_height:
-            # Cache the current scroll position
-            previous_scroll_y = self._tree_scroll_frame.scroll_y
-            # Scroll to the top of the tree
-            self._tree_scroll_frame.scroll_y = 0
-            # Wait for the updated widget to be drawn
-            await omni.kit.app.get_app().next_update_async()
-            # Scroll to the bottom of the tree or the previous scroll position if still valid
-            self._tree_scroll_frame.scroll_y = min(previous_scroll_y, self._tree_scroll_frame.scroll_y_max)
-        # Cache the current frame height for the next update
-        self._previous_frame_height = self._tree_widget.computed_height
-
-    @omni.usd.handle_exception
     async def _update_expansion_states_deferred(self, scroll_to_selection_override: bool = True):
         """
         Wait 1 frame, then update the expansion state of the Tree items based on their cached state.
@@ -770,97 +725,13 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 continue
             self._tree_widget.set_expanded(item, expanded, False)
 
-        if scroll_to_selection_override and self.scroll_to_selection and self._tree_scroll_frame:
+        if scroll_to_selection_override and self.scroll_to_selection:
             # Wait for expanded items to render before scrolling
             await omni.kit.app.get_app().next_update_async()
             if self._is_expansion_task_cancelled:
                 return
-            await self._scroll_to_items_async(self._tree_widget.selection)
 
-    def _count_items_before(self, target_item: _StageManagerTreeItem) -> int:
-        """
-        Count the number of visible items that appear before the target item in the tree view.
-
-        This method walks up the tree hierarchy from the target item to the root. At each level,
-        it counts all siblings that appear before the current item, plus all their expanded
-        descendants. This gives the exact position of the target item in the visual tree order.
-
-        Args:
-            target_item: The item whose position to calculate
-
-        Returns:
-            The number of visible items that appear before the target item
-
-        """
-        count = 0
-        current = target_item
-
-        while current is not None:
-            # NOTE: Get siblings at this level
-            parent = current.parent
-            if parent is None:
-                siblings = list(self.tree.model.get_item_children(None))
-            else:
-                siblings = parent.children
-
-            # NOTE: Count siblings before current item and their visible descendants
-            for sibling in siblings:
-                if sibling is current:
-                    break
-                count += 1
-                # NOTE: Add expanded descendants of preceding siblings
-                count += self._tree_widget.visible_descendant_count(sibling)
-
-            # NOTE: Move up to parent
-            current = parent
-
-        return count
-
-    async def _scroll_to_items_async(self, items: Iterable[_StageManagerTreeItem], center_ratio: float = 0.2):
-        """
-        Scroll to reveal the first item in `items`.
-
-        Args:
-            items: The items to scroll to
-            center_ratio: where to frame first item (0.0: top, 0.5: center, 1.0: bottom)
-        """
-        items_set = set(items)
-        target_item = None
-        _total_visible_items = 0
-        for _total_visible_items, child in enumerate(self._tree_widget.iter_visible_children(), start=1):
-            if not target_item and child in items_set:
-                target_item = child
-            # allow counting to continue
-
-        if target_item is None:
-            return
-
-        # NOTE: Calculate position by counting only ancestors and their preceding siblings
-        # This avoids counting expanded children of ancestors that appear after the ancestor
-        # Fix for skeleton page and other deeply nested hierarchies where items
-        # may be beyond the initially rendered viewport
-
-        # NOTE: force layout update
-        self._tree_widget.dirty_widgets()
-        await omni.kit.app.get_app().next_update_async()
-        await omni.kit.app.get_app().next_update_async()
-
-        # NOTE: let's do our math
-        visible_row_int = self._count_items_before(target_item)
-        item_position = (visible_row_int * self.tree.delegate.row_height) + self.header_height
-        viewport_height = self._tree_scroll_frame.computed_height
-        viewport_offset = viewport_height * center_ratio
-
-        # Calculate true content height
-        true_content_height = (_total_visible_items * self.tree.delegate.row_height) + self.header_height
-
-        # Calculate true scroll max
-        true_scroll_max = max(0, true_content_height - viewport_height)
-
-        # Final scroll position
-        scroll_y = item_position - viewport_offset
-        target_scroll = max(0.0, min(scroll_y, true_scroll_max))
-        self._tree_scroll_frame.scroll_y = target_scroll
+            await self._tree_widget.scroll_to_items(self._tree_widget.selection)
 
     def subscribe_context_items_changed(self, callback: Callable[[], None]) -> _EventSubscription:
         """
@@ -875,8 +746,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         return _EventSubscription(self._context_items_changed, callback)
 
     def destroy(self):
-        if self._update_content_size_task:
-            self._update_content_size_task.cancel()
         if self._update_expansion_task:
             self._update_expansion_task.cancel()
         if self._model_refresh_task:

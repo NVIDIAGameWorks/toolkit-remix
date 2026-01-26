@@ -17,6 +17,7 @@
 
 from typing import TYPE_CHECKING
 
+from lightspeed.trex.utils.common.prim_utils import is_in_light_group as _is_in_light_group
 from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
 from lightspeed.trex.utils.common.prim_utils import is_mesh_prototype as _is_mesh_prototype
 from omni.flux.stage_manager.plugin.filter.usd.base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
 
 
 class MeshPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
-    display_name: str = Field(default="Mesh Prims", exclude=True)
+    display_name: str = Field(default="Geometry Prims", exclude=True)
     tooltip: str = Field(default="Filter out mesh prims", exclude=True)
 
     include_instances: bool = Field(
@@ -35,4 +36,6 @@ class MeshPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
     )
 
     def _filter_predicate(self, prim: "Usd.Prim") -> bool:
-        return _is_mesh_prototype(prim) or (self.include_instances and _is_instance(prim))
+        return _is_mesh_prototype(prim) or (
+            self.include_instances and _is_instance(prim) and not _is_in_light_group(prim)
+        )

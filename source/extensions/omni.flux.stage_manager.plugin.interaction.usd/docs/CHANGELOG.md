@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.0]
+### Added
+- Added `PrimRenameNameActionWidgetPlugin`
+
+## [2.11.0]
+### Added
+- Added `InstanceGroupInteractionPlugin` to the interactions plugins
+- Added `MeshGroupInteractionPlugin` to the interactions plugins
+
 ## [2.10.0]
 ### Added
 - Added `ParticleSystemsFilterPlugin` to the interactions plugins

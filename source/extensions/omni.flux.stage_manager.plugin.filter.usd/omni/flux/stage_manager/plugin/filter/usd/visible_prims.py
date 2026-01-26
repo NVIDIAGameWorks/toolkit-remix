@@ -39,7 +39,6 @@ class VisiblePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
     )
     _COMBO_BOX_WIDTH: int = PrivateAttr(default=130)
     _visible_prims_combobox: ui.ComboBox | None = PrivateAttr(default=None)
-    _current_index: int | None = PrivateAttr(default=None)
     _current_attr: str | None = PrivateAttr(default=None)
 
     def filter_predicate(self, item: _StageManagerItem) -> bool:
@@ -62,7 +61,7 @@ class VisiblePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
             ui.Spacer(width=0)
             ui.Label(self.display_name, width=ui.Pixel(self._LABEL_WIDTH), alignment=ui.Alignment.RIGHT)
             self._visible_prims_combobox = ui.ComboBox(
-                self._current_index or 0,
+                list(self._VISIBLE_PRIMS_DISPLAY_LABELS.values()).index(self.visible_prims_type),
                 *self._VISIBLE_PRIMS_DISPLAY_LABELS.values(),
                 width=ui.Pixel(self._COMBO_BOX_WIDTH),
             )
@@ -71,7 +70,6 @@ class VisiblePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
     def _on_visible_prims_type_changed(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem"):
         selected_index = model.get_item_value_model().get_value_as_int()
         self.visible_prims_type = list(self._VISIBLE_PRIMS_DISPLAY_LABELS.values())[selected_index]
-        self._current_index = selected_index
         self._current_attr = list(self._VISIBLE_PRIMS_DISPLAY_LABELS.keys())[selected_index]
 
         self._filter_items_changed()

@@ -159,6 +159,8 @@ ui.url.nvidia_md = _get_fonts("NVIDIASans_A_Md")
 ui.url.nvidia_rg = _get_fonts("NVIDIASans_A_Rg")
 ui.url.nvidia_bd = _get_fonts("NVIDIASans_A_Bd")
 ui.url.nvidia_lt = _get_fonts("NVIDIASans_A_Lt")
+ui.url.nvidia_it = _get_fonts("NVIDIASans_A_It")
+ui.url.nvidia_bd_it = _get_fonts("NVIDIASans_A_BdIt")
 
 
 # validation colors
@@ -202,6 +204,18 @@ def override_dialog_get_style(style_value):  # noqa PLW0621
     )
     return style_value
 
+
+DEFAULT_FIELD_READ_ONLY_STYLE = {
+    "background_color": 0x00000000,
+    "border_width": 0,
+    "border_color": 0x00000000,
+}
+
+DEFAULT_FIELD_EDITABLE_STYLE = {
+    "background_color": _GREY_50,
+    "border_width": 1,
+    "border_color": _BLUE_SELECTED,
+}
 
 try:
     style_value = message_dialog.get_style()
@@ -377,6 +391,8 @@ current_dict.update(
         "Image::Add": {"image_url": _get_icons("add"), "color": _WHITE_60},
         "Image::Add:hovered": {"image_url": _get_icons("add"), "color": _WHITE_100},
         "Image::ArrowsLeftRight": {"image_url": _get_icons("arrows-left-right"), "color": _WHITE_80},
+        "Image::Asterisk": {"image_url": _get_icons("asterisk"), "color": _WHITE_60},
+        "Image::AsteriskBlue": {"image_url": _get_icons("asterisk"), "color": _BLUE_SELECTED},
         "Image::Eye": {"image_url": _get_icons("eye"), "color": _WHITE_60},
         "Image::Eye:hovered": {"image_url": _get_icons("eye"), "color": _WHITE_100},
         "Image::EyeDisabled": {"image_url": _get_icons("eye"), "color": _WHITE_30},
@@ -400,6 +416,8 @@ current_dict.update(
         "Image::Mixed": {"image_url": _get_icons("mixed_checkbox"), "color": _MIXED},
         "Image::Nickname": {"image_url": _get_icons("nickname"), "color": _WHITE_60},
         "Image::Nickname:hovered": {"image_url": _get_icons("nickname"), "color": _WHITE_100},
+        "Image::NicknameDisabled": {"image_url": _get_icons("nickname"), "color": _WHITE_30},
+        "Image::NicknameDisabled:hovered": {"image_url": _get_icons("nickname"), "color": _WHITE_100},
         "Image::RemapSkeleton": {"image_url": _get_icons("remap"), "color": _WHITE_80},
         "Image::RemapSkeleton:hovered": {"image_url": _get_icons("remap"), "color": _WHITE_100},
         "Image::RemapSkeletonDisabled": {"image_url": _get_icons("remap"), "color": _WHITE_30},
@@ -796,6 +814,7 @@ current_dict.update(
         "Line::PropertiesPaneSectionTitle": {"color": _WHITE_20, "border_width": 1},
         "Line::WelcomePadTop": {"color": _WHITE_20, "border_width": 1},
         "Line::TreeSpacer": {"color": _BLUE_SELECTED, "border_width": 2},
+        "StringField::PropertiesPaneSelectionTreeFieldItem": {"color": _WHITE_80, "font_size": 14},
         "Menu.Separator": {
             "color": _WHITE_20,
             "margin_height": 3,

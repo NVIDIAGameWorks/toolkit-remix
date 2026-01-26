@@ -6,6 +6,14 @@ This document records all notable changes to the **lightspeed.trex.logic.ogn** e
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.0.0]
+### Changed
+- REMIX-4241: Rewriting premake5.lua to source node files from target-deps/omni_core_materials/lightspeed.trex.logic.
+- REMIX-4241: Bumped runtime version.
+
+### Removed
+- REMIX-4241: All local node files in python/nodes directory since they come from target-deps/omni_core_materials now.
+
 ## [0.0.4]
 ### Changed
 - Moves type resolution logic to a util file that is called from each node.
