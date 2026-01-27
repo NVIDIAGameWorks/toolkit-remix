@@ -6,9 +6,103 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Updated github documentation to better inform open-source contributions
+
+### Added
+- Created 1.3.6-2 build
+- REMIX-4838: Added Instance Group and Mesh Group filter plugins to the Stage Manager and added headers to the Additional Filters menu
+- REMIX-4722: Added `ScrollingTreeWidget` - a reusable widget for scrollable tree views with correct item iteration order
+- REMIX-4418: Added a nickname attribute to the selection tree widget and the Stage Manager
+- REMIX-4795: Added a new documentation page for Remix Logic
+
+### Changed
+- REMIX-4786: Changed the "Delete/Restore" StageManager action to use layer-based logic driven by the EditTarget State
+- REMIX-4241: Rewrote the lightspeed.trex.logic.ogn extension to source node files from target-deps/omni_core_materials.
+- REMIX-4722: Refactored Stage Manager to use the new `ScrollingTreeWidget` component, decoupling scroll-frame logic for reuse
+- Excluded the python scripts from the package to avoid distributing binary files.
+
+### Fixed
+- Added a frame wait for Stage Manager refresh to ensure all items are properly populated and updated Additional Filters menu sorting
+- Fixed MeshPrimsFilterPlugin to exclude lights in the filter
+- Fixed broken symlinks detection and updated symlink check
+- REMIX-4722: Fixed stage manager issue where viewport selection was not being framed in the Skeleton Treeview
+- Fixed the combobox index for the filter plugins to correctly reset to the first item when the filter is reset
+
+### Removed
+
+## [1.3.6-2]
+
+### Added
+- Created 1.3.6-0 build
+
+### Changed
 - Update github releases to match main and release branches
 - Fix branch names to fit repoman syntax in Github Actions
+- Excluded the python scripts from the package to avoid distributing binary files.
+- Updated remix_runtime to remix-1.3.6-2 to include sample app with logic examples.
+
+## [1.3.6-0]
+
+### Added
+- Created 1.3.4-0 build
+
+### Changed
+- Update hdremix and omni_core_materials to ext-eb34ad8-release-v1-3
+- Update remix_runtime to remix-1.3.6
+
+### Fixed
+- Fixed broken symlinks detection and updated symlink check
+- Added a frame wait for Stage Manager refresh to ensure all items are properly populated
+- REMIX-4722: Fixed stage manager issue where viewport selection was not being framed in the Skeleton Treeview
+
+## [1.3.4-0]
+
+### Added
+- Created 1.3.3-0 build
+- REMIX-4848: Added the ability to double click on a graph in the edit graph dialog to open the graph
+- REMIX-4848: Added missing hotkey for the help menu item to the Remix Logic Graph Editor
+- REMIX-4553: Added Particle Systems Filter to the Stage Manager
+- REMIX-4865: Prevent components with flexible types from allowing incorrect connections
+- REMIX-4839: Prevent components with token types from allowing incorrect connections
+
+### Changed
+- REMIX-4786: Changed the "Delete/Restore" StageManager action to use layer-based logic driven by the EditTarget State
+
+### Fixed
+- Fixed virtual attribute default values being overwritten during initialization
+- REMIX-4855: Fixed target picker path filtering to include mesh_HASH and light_HASH prims, not just their children
+- REMIX-4844: Fixed layer tree widget not expanding layer by default
+- REMIX-4774: Fixed logic graph editor hotkeys not working on some machines
+- REMIX-4732: Fixed crash when creating new project via Project Wizard
+- REMIX-4847: Fixed save dialog error
+- Hotfixes for prim=None terminal errors
+
+## [1.3.3-0]
+
+### Added
+- Created 1.3.0 build
+- REMIX-4792: Added a badge to the Additional Filters button to show the number of modified filters
+- REMIX-4813: Added Logic Graph sidebar button for quick layout switching with dedicated Logic Graph layout
+- REMIX-4807: Added Escape key support to close Stage Prim Picker dropdown
+- REMIX-4793: Added a function to check if tree items need to be expanded in the Stage Manager
+- REMIX-4552: Added Visibility Filter to the Stage Manager
+- REMIX-4824: Added a backdrop rename popup to the Remix Logic Graph Editor
+
+### Changed
+- REMIX-4812: OV Property Window is no longer accessible via the Windows/Property sub menu button
+- REMIX-4715, REMIX-4826: Improved Edit Graph dialog with tree-based selection UI and disabled compound graphs
+- REMIX-4818: FilePicker now supports automatic conversion to relative paths for USD edit target compliance
+- REMIX-4816: Improved logic graph properties panel UI with icon buttons and clearer dialog messages
+- Update hdremix and omni_core_materials to ext-83e59c6-main
+- REMIX-4801: Replaced decorator-based widget visibility filtering with subscription lifecycle management
+- REMIX-4801: Improved Stage Manager selection and expansion performance with async operations
+- Update hdremix and omni_core_materials to ext-f6fe773-release-v1-3
+
+### Fixed
+- REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus
+- Cleanup Github runners before packaging Toolkit
+- REMIX-4815: Fixed default values, tooltips, and flexible type handling in the Remix Logic properties panel
+
+## [1.3.0]
 
 ### Added
 - Created 1.2.4 build
@@ -31,21 +125,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4719: Added Stage Manager Remix Logic Graph Interaction Action Plugin, And Logic Graph Filter
 - REMIX-4245: Added a generic Stage Prim Picker widget and implemented it in the Remix Logic Properties Panel.
 - REMIX-4774: Added select all, select none, and delete selection actions & hotkeys to the Remix Logic Graph Editor
-- REMIX-4792: Added a badge to the Additional Filters button to show the number of modified filters
-- REMIX-4813: Added Logic Graph sidebar button for quick layout switching with dedicated Logic Graph layout
-- REMIX-4807: Added Escape key support to close Stage Prim Picker dropdown
-- REMIX-4793: Added a function to check if tree items need to be expanded in the Stage Manager
-- REMIX-4552: Added Visibility Filter to the Stage Manager
-- REMIX-4824: Added a backdrop rename popup to the Remix Logic Graph Editor
-- REMIX-4848: Added the ability to double click on a graph in the edit graph dialog to open the graph
-- REMIX-4848: Added missing hotkey for the help menu item to the Remix Logic Graph Editor
-- REMIX-4553: Added Particle Systems Filter to the Stage Manager
-- REMIX-4865: Prevent components with flexible types from allowing incorrect connections
-- REMIX-4839: Prevent components with token types from allowing incorrect connections
-- REMIX-4838: Added Instance Group and Mesh Group filter plugins to the Stage Manager and added headers to the Additional Filters menu
-- REMIX-4722: Added `ScrollingTreeWidget` - a reusable widget for scrollable tree views with correct item iteration order
-- REMIX-4418: Added a nickname attribute to the selection tree widget and the Stage Manager
-- REMIX-4795: Added a new documentation page for Remix Logic
 
 ### Changed
 - Update hdremix and omni_core_materials to ext-822f7b6-main
@@ -61,19 +140,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Centralized prim type icon mappings in omni.flux.utils.common for reuse across extensions
 - Update hdremix and omni_core_materials to ext-a9cbe4d-main
 - REMIX-4798: Logic Graph Editor: Improved node + port tooltips and added documentation links
-- REMIX-4812: OV Property Window is no longer accessible via the Windows/Property sub menu button
-- REMIX-4715, REMIX-4826: Improved Edit Graph dialog with tree-based selection UI and disabled compound graphs
-- REMIX-4818: FilePicker now supports automatic conversion to relative paths for USD edit target compliance
 - REMIX-4816: Improved logic graph properties panel UI with icon buttons and clearer dialog messages
 - Update hdremix and omni_core_materials to ext-83e59c6-main
-- REMIX-4801: Replaced decorator-based widget visibility filtering with subscription lifecycle management
-- REMIX-4801: Improved Stage Manager selection and expansion performance with async operations
 - REMIX-4824: Patched OmniGraph context menu to use omni.kit.context_menu instead of hardcoded ui.Menu/ui.MenuItem
 - REMIX-4855: Replaced StagePrimPickerItem Button with Label to use TreeView's built-in hover/selection styling
-- REMIX-4786: Changed the "Delete/Restore" StageManager action to use layer-based logic driven by the EditTarget State
-- REMIX-4241: Rewrote the lightspeed.trex.logic.ogn extension to source node files from target-deps/omni_core_materials.
-- REMIX-4722: Refactored Stage Manager to use the new `ScrollingTreeWidget` component, decoupling scroll-frame logic for reuse
-- Excluded the python scripts from the package to avoid distributing binary files.
 
 ### Fixed
 - Improved Pyright configuration by generating a list of search paths
@@ -85,20 +155,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4593: Fixed logic graph and particle properties panel not preserving expansion state across refreshes
 - Improved a few UX issues with the Logic Properties pane
 - REMIX-4766: Added input validation to ensure a valid graph prim name is provided for new graphs
-- REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus
-- Cleanup Github runners before packaging Toolkit
-- REMIX-4815: Fixed default values, tooltips, and flexible type handling in the Remix Logic properties panel
-- REMIX-4774: Fixed logic graph editor hotkeys not working on some machines
-- REMIX-4844: Fixed layer tree widget not expanding layer by default
-- Fixed virtual attribute default values being overwritten during initialization
-- REMIX-4855: Fixed target picker path filtering to include mesh_HASH and light_HASH prims, not just their children
-- REMIX-4732: Fixed crash when creating new project via Project Wizard
-- REMIX-4847: Fixed save dialog error
-- Added a frame wait for Stage Manager refresh to ensure all items are properly populated and updated Additional Filters menu sorting
-- Fixed MeshPrimsFilterPlugin to exclude lights in the filter
-- Fixed broken symlinks detection and updated symlink check
-- REMIX-4722: Fixed stage manager issue where viewport selection was not being framed in the Skeleton Treeview
-- Fixed the combobox index for the filter plugins to correctly reset to the first item when the filter is reset
 
 ### Removed
 - Removed Waypoint support based on deprecated kit sample waypoint extension
