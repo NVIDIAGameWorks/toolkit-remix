@@ -15,6 +15,11 @@ This control over cause and effect unlocks new possibilities. Modders can–
 
 Remix Logic is available for every RTX Remix mod to leverage.
 
+```{seealso}
+You can view a full list of available nodes in the [Component Reference](../components/index.md)
+Check out our [Full User Documentation on Remix Logic](../howto/learning-logic.md) for more details on how to get started.
+```
+
 ### RTX Remix Toolkit
 
 #### Remix Logic
@@ -35,8 +40,6 @@ Remix Logic supports four types of nodes:
 * **Transform:** used to change an input to different types, or introduce conditionality/rules (Ex: Add, Between, Bool AND, Bool OR, Greater Than, etc.)
 * **Act:** used to execute the visual change. At launch, we support loading and blending between different RTX.conf files to change Remix Runtime options. In the future, we will look to expand the number of available Act nodes.
 * **Constants**: used for sharing a value between multiple components, and for setting a property with a flexible type (ex: Constant String, Constant Hash, Constant Bool, etc.)
-
-You can view a full list of available nodes in the [Component Reference](../components/index.md), and check out our [documentation on Remix Logic](../howto/learning-logic.md) for more details on how to get started.
 
 Remix Logic was made possible using the [Omnigraph](https://docs.omniverse.nvidia.com/extensions/latest/ext_omnigraph.html) framework to define node types and store graphs as USD, as well as harnessing Omnigraph's graph editor to offer a no code framework to modders.
 
@@ -70,7 +73,21 @@ Remix Logic was made possible using the [Omnigraph](https://docs.omniverse.nvidi
 
 Added support for **RTX Remix Logic** system, including developing a layering system for juggling and transitioning between multiple ".conf" files, each loaded with a unique set of RTX Remix Runtime options. Modders can define the relative "blend strength" of each layer, allowing smooth interpolation between values for fine-grain control.
 
-Read more about the new changes to .conf files in our [documentation](../howto/learning-logic.md#remix-logic--new-conf-files).
+To help streamline mod creation, Remix has introduced three types of config files.
+
+*   **rtx.conf** files. These haven't changed. They are core to a modder's workflow for making a game "Remix Compatible". Modders can adjust how a game renders to make it work best with Remix, save it to the rtx.conf file, and share it in places like ModDB to make it easier for other modders to get started with their mod.
+
+*   **user.conf** files. These are new, and meant to store a user's personal graphics settings, like their graphical preset, and whether they play with Frame Generation on. These should be tailored to the player, and reflect the best graphical settings for them.
+
+*   **New Logic `.conf` files**. For Remix Logic graphs, modders can export a `new.conf` file from the Runtime. This file is meant to be renamed and used as a layer that is temporarily loaded in reaction to a change in the game state.
+
+When modders save their Runtime settings on the "User Graphics Menu" it automatically saves to the user.conf. Additionally, on the "Advanced Developer Menu", modders will see a new drop down near the save button:
+
+![Example3 Graph](../data/images/logic-example3-graph.png)
+
+```{important}
+If you plan to create new conf files for Remix Logic, please follow the steps outlined [here](../howto/learning-logic.md#remix-logic--new-conf-files).
+```
 
 #### Quality of Life Improvements
 
