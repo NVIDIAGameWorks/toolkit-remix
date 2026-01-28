@@ -66,7 +66,6 @@ class TextureDialog(ui.Window):
 
 
 class SetupUI:
-
     MATERIAL_LABEL_NAME_SIZE = 32
     _WIDGET_PADDING = 16
     MAT_PROP_FRAME = "material_property_frame"
@@ -460,7 +459,7 @@ class SetupUI:
         layer = self._context.get_stage().GetEditTarget().GetLayer()
         try:
             abs_new_asset_path = omni.client.normalize_url(layer.ComputeAbsolutePath(value))
-        except Exception:  # noqa.
+        except Exception:  # noqa: BLE001
             # It means that this is not a path (metadata?). Even if we check the type of the attribute, some item
             # use the attribute, but override the value (like when we set metadata).
             callback(value)
@@ -674,7 +673,6 @@ class SetupUI:
         # for instance materials, we allow the user to override the reference in stage
         def refresh_instance_items(prims, num_prims):
             if num_prims > 0:
-
                 omni.ui.Separator(
                     text=" Override Material ("
                     + (prims[0].GetName() if num_prims == 1 else f"Multiple ({num_prims})")

@@ -151,14 +151,14 @@ class TelemetryCore:
         if not data:
             data = {}
 
-        user_id = data.get("userId", None)
+        user_id = data.get("userId")
         if user_id:
             sentry_sdk.set_user({"id": user_id})
 
     def _resolve_settings(self, key: str) -> dict[str, Any]:
         resolved_settings = {}
 
-        for entry in (self._settings.get(key) or {}).keys():
+        for entry in self._settings.get(key) or {}:
             setting = self._settings.get(f"{key}/{entry}")
             if not setting:
                 continue

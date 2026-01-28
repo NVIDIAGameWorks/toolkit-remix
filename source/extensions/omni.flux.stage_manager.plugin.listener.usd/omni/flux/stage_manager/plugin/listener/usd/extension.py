@@ -26,7 +26,6 @@ from .usd_listener import StageManagerUSDNoticeListenerPlugin as _StageManagerUS
 
 
 class StageManagerUSDListenerPluginsExtension(omni.ext.IExt):
-
     _PLUGINS = [
         _StageManagerUSDLayersListenerPlugin,
         _StageManagerUSDStageListenerPlugin,

@@ -133,8 +133,8 @@ class TestRelativeAssetPaths(AsyncTestCase):
         await core.deferred_run()
 
         # Assert
-        self.assertEquals(sub_check_count, 2)  # called 2 times: we check, fix, re check
-        self.assertEquals(sub_fix_count, 1)
+        self.assertEqual(sub_check_count, 2)  # called 2 times: we check, fix, re check
+        self.assertEqual(sub_fix_count, 1)
 
         attr = prim.GetAttribute("inputs:diffuse_texture")
         self.assertEqual(str(attr.Get().path), "./texture.png")
@@ -198,8 +198,8 @@ class TestRelativeAssetPaths(AsyncTestCase):
         await core.deferred_run()
 
         # Assert
-        self.assertEquals(sub_check_count, 2)  # called 2 times: we check, fix, re check
-        self.assertEquals(sub_fix_count, 1)
+        self.assertEqual(sub_check_count, 2)  # called 2 times: we check, fix, re check
+        self.assertEqual(sub_fix_count, 1)
 
         attr = prim.GetAttribute("inputs:diffuse_texture")
         self.assertEqual(str(attr.Get().path), "../texture.png")

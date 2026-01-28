@@ -466,7 +466,7 @@ class ComfyUICore:
             return None
 
         # Read the repository's pyproject.toml file to check if it is a ComfyUI repository
-        with open(project_file, "r", encoding="utf-8") as f:
+        with open(project_file, encoding="utf-8") as f:
             project_config = toml.load(f)
 
         return str(repository) if (project_config.get("project", {}).get("name") == "ComfyUI") else None
@@ -647,7 +647,7 @@ class ComfyUICore:
             return
 
         # Read the remix-models.toml file
-        with open(remix_models_file, "r", encoding="utf-8") as f:
+        with open(remix_models_file, encoding="utf-8") as f:
             remix_models = toml.load(f)
 
         self._update_state(ComfyUIState.MODELS)
@@ -879,7 +879,7 @@ class ComfyUICore:
 
         try:
             self._run_process = subprocess.Popen(run_cmd, cwd=self._repo.workdir)  # noqa PLR1732
-        except Exception as e:  # noqa: PLW0718
+        except Exception as e:  # noqa: BLE001
             self._update_state(ComfyUIState.ERROR)
             carb.log_error(f"Failed to start ComfyUI: {e}")
             return
@@ -927,7 +927,7 @@ class ComfyUICore:
                     process.kill()
             process = None
             self._update_state(ComfyUIState.READY)
-        except Exception as e:  # noqa: PLW0718
+        except Exception as e:  # noqa: BLE001
             self._update_state(ComfyUIState.ERROR)
             carb.log_error(e)
 
@@ -967,7 +967,7 @@ class ComfyUICore:
             raise ValueError(f"The workflow file {workflow_file_path} does not exist")
 
         if workflow_path.as_posix() not in self._workflows_cache:
-            with open(workflow_path, "r", encoding="utf-8") as workflow_file:
+            with open(workflow_path, encoding="utf-8") as workflow_file:
                 self._workflows_cache[workflow_path.as_posix()] = json.load(workflow_file)
 
         parts = workflow_input.split(".")
@@ -1041,7 +1041,7 @@ class ComfyUICore:
         project_file = Path(repo_root) / "pyproject.toml"
         if not project_file.exists():
             return False
-        with open(project_file, "r", encoding="utf-8") as f:
+        with open(project_file, encoding="utf-8") as f:
             project_config = toml.load(f)
 
         return project_config.get("project", {}).get("name") == "ComfyUI"

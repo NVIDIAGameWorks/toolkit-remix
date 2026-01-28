@@ -60,8 +60,8 @@ class USDListener:
         self._default_attr = {"_listeners": None, "_models": None, "_tmp_models": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
-        self._models: List["_USDModel"] = []
-        self._tmp_models: List["_USDModel"] = []
+        self._models: List[_USDModel] = []
+        self._tmp_models: List[_USDModel] = []
         self._listeners: Dict[Usd.Stage, Tf.Listener] = {}
 
     def tmp_enable_all_listeners(self):

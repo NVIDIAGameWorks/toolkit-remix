@@ -22,7 +22,6 @@ from omni.kit.viewport.menubar.render import SingleRenderMenuItemBase
 
 def lss_single_render_menu_item(*args, lss_option_clicked: Callable[[str, str], Any] = None, **kwargs):
     class LssSingleRenderMenuItem(SingleRenderMenuItemBase):
-
         # Note: This cannot currently be triggered since we skip building the menu button below
         def _option_clicked(self):
             lss_option_clicked(self.engine_name, self.hd_renderer.pluginID)

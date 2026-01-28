@@ -56,7 +56,7 @@ class TextureTypes(Enum):
     def _validate_by_name(cls, v: Any) -> str:
         enum_names = cls.__members__.keys()
         if v not in enum_names:
-            raise ValueError(f'Invalid value selected ({v}). Valid values are: {", ".join(enum_names)}')
+            raise ValueError(f"Invalid value selected ({v}). Valid values are: {', '.join(enum_names)}")
         return v
 
 

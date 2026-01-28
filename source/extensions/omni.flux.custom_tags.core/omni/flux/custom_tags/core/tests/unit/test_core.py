@@ -57,7 +57,7 @@ class TestCustomTagsCore(AsyncTestCase):
         value = CustomTagsCore.get_tag_name(path)
 
         # Assert
-        self.assertEquals(value, tag_name)
+        self.assertEqual(value, tag_name)
 
     async def test_get_tag_name_invalid_collection_returns_none(self):
         # Arrange
@@ -80,7 +80,7 @@ class TestCustomTagsCore(AsyncTestCase):
                 value = CustomTagsCore.increment_tag_name(expected_name, existing_tag_names)
 
                 # Assert
-                self.assertEquals(value, expected_name)
+                self.assertEqual(value, expected_name)
 
     async def test_increment_tag_name_existing_name_should_return_incremented_name(self):
         # Arrange
@@ -93,7 +93,7 @@ class TestCustomTagsCore(AsyncTestCase):
                 value = CustomTagsCore.increment_tag_name(input_name, existing_tag_names)
 
                 # Assert
-                self.assertEquals(value, expected_name)
+                self.assertEqual(value, expected_name)
 
     async def test_get_unique_tag_path_create_tag_should_return_unique_path(self):
         # Arrange
@@ -115,7 +115,7 @@ class TestCustomTagsCore(AsyncTestCase):
                 value = core.get_unique_tag_path(input_name, existing_tag_paths=existing_tag_names)
 
                 # Assert
-                self.assertEquals(value, Sdf.Path(f"{base_path}{expected_name}"))
+                self.assertEqual(value, Sdf.Path(f"{base_path}{expected_name}"))
 
     async def test_get_unique_tag_path_rename_tag_should_return_unique_path(self):
         # Arrange
@@ -145,7 +145,7 @@ class TestCustomTagsCore(AsyncTestCase):
                 )
 
                 # Assert
-                self.assertEquals(value, Sdf.Path(f"{expected_base_path}{expected_name}"))
+                self.assertEqual(value, Sdf.Path(f"{expected_base_path}{expected_name}"))
 
     async def test_get_all_tags_should_return_all_tag_collections(self):
         # Arrange
@@ -303,7 +303,7 @@ class TestCustomTagsCore(AsyncTestCase):
                 value = core.prim_has_tag(prim, tag_path)
 
                 # Assert
-                self.assertEquals(value, expected_value)
+                self.assertEqual(value, expected_value)
 
     async def test_create_tag_no_prim_should_create_prim_and_create_tag_collection(self):
         # Arrange
@@ -452,21 +452,21 @@ class TestCustomTagsCore(AsyncTestCase):
             .GetIncludesRel()
             .GetTargets()
         )
-        self.assertEquals(includes_00, [Sdf.Path(p) for p in prims[:1]])
+        self.assertEqual(includes_00, [Sdf.Path(p) for p in prims[:1]])
 
         includes_01 = (
             Usd.CollectionAPI.GetCollection(self.stage, Sdf.Path(f"{base_path}.collection:{tags[1]}"))
             .GetIncludesRel()
             .GetTargets()
         )
-        self.assertEquals(includes_01, [Sdf.Path(p) for p in prims])
+        self.assertEqual(includes_01, [Sdf.Path(p) for p in prims])
 
         includes_02 = (
             Usd.CollectionAPI.GetCollection(self.stage, Sdf.Path(f"{base_path}.collection:{tags[2]}"))
             .GetIncludesRel()
             .GetTargets()
         )
-        self.assertEquals(includes_02, [])
+        self.assertEqual(includes_02, [])
 
     async def test_remove_tag_from_prim_should_remove_prim_from_tag_collection(self):
         # Arrange
@@ -507,18 +507,18 @@ class TestCustomTagsCore(AsyncTestCase):
             .GetIncludesRel()
             .GetTargets()
         )
-        self.assertEquals(includes_00, [Sdf.Path(p) for p in prims[:1]])
+        self.assertEqual(includes_00, [Sdf.Path(p) for p in prims[:1]])
 
         includes_01 = (
             Usd.CollectionAPI.GetCollection(self.stage, Sdf.Path(f"{base_path}.collection:{tags[1]}"))
             .GetIncludesRel()
             .GetTargets()
         )
-        self.assertEquals(includes_01, [Sdf.Path(p) for p in prims])
+        self.assertEqual(includes_01, [Sdf.Path(p) for p in prims])
 
         includes_02 = (
             Usd.CollectionAPI.GetCollection(self.stage, Sdf.Path(f"{base_path}.collection:{tags[2]}"))
             .GetIncludesRel()
             .GetTargets()
         )
-        self.assertEquals(includes_02, [])
+        self.assertEqual(includes_02, [])

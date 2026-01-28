@@ -26,7 +26,6 @@ from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 
 
 class TestFileImportListItems(omni.kit.test.AsyncTestCase):
-
     # Before running each test
     async def setUp(self):
         await omni.usd.get_context().new_stage_async()

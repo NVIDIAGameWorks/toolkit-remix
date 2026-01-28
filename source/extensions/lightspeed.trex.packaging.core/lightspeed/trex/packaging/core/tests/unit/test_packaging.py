@@ -15,6 +15,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+
 import asyncio
 import sys
 from pathlib import Path
@@ -610,17 +611,17 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(expected_0, val_0)
         self.assertEqual(expected_1, val_1)
 
-    async def test_redirect_inside_package_directory_absolute_path_should_change_to_subusds_relative_path_and_mark_dependencies_for_collection(  # noqa E501
+    async def test_redirect_inside_package_directory_absolute_path_should_change_to_subusds_relative_path_and_mark_dependencies_for_collection(
         self,
     ):
         await self.__run_redirect_inside_package_directory(True, False)
 
-    async def test_redirect_inside_package_directory_outside_output_path_should_move_to_subusds_and_mark_dependencies_for_collection(  # noqa E501
+    async def test_redirect_inside_package_directory_outside_output_path_should_move_to_subusds_and_mark_dependencies_for_collection(
         self,
     ):
         await self.__run_redirect_inside_package_directory(False, True)
 
-    async def test_redirect_inside_package_directory_valid_should_return_original_value_and_mark_dependencies_for_collection(  # noqa E501
+    async def test_redirect_inside_package_directory_valid_should_return_original_value_and_mark_dependencies_for_collection(
         self,
     ):
         await self.__run_redirect_inside_package_directory(False, False)
@@ -782,7 +783,8 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
 
         self.assertEqual(expected_val, val)
         self.assertDictEqual(
-            {dependency_path_mock: OmniUrl(expected_val).path}, packaging_core._collected_dependencies  # noqa PLW0212
+            {dependency_path_mock: OmniUrl(expected_val).path},
+            packaging_core._collected_dependencies,  # noqa PLW0212
         )
 
     async def __run_modify_asset_paths(self, dependency_exists: bool, dependency_update: bool, is_absolute: bool):

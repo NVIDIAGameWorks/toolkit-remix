@@ -37,7 +37,6 @@ def _check_legacy_display_option(flag):
 
 
 class SimpleGrid:
-
     _DEFAULT_COLOR: cl = cl(0.25)
 
     def __init__(

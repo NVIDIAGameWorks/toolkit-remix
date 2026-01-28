@@ -83,7 +83,7 @@ async def run(
     exit_code = 0
 
     def _on_run_finished(validation_core, i_progress, size_progress, _result, message: Optional[str] = None):
-        print(f"Progress {i_progress+1}/{size_progress}")
+        print(f"Progress {i_progress + 1}/{size_progress}")
         if not _result:
             nonlocal exit_code
             exit_code = 1
@@ -124,7 +124,7 @@ async def run(
                 timeout=timeout,
                 standalone=True,
             )
-            print(f"Global progress {i+1}/{size_items}")
+            print(f"Global progress {i + 1}/{size_items}")
     finally:
         omni.kit.app.get_app().post_quit(exit_code)
 

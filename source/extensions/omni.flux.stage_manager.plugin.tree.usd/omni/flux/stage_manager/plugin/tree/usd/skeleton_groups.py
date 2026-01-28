@@ -132,7 +132,6 @@ class SkeletonBoundMeshItem(SkeletonTreeItem):
 
 
 class SkeletonGroupsModel(_VirtualGroupsModel):
-
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr

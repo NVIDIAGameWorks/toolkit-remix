@@ -161,9 +161,8 @@ class WorkspaceWindowBase(abc.ABC):
 
         if show:
             self._update_ui()
-        else:
-            if self._content:
-                self._content.show(False)
+        elif self._content:
+            self._content.show(False)
 
     def cleanup(self):
         """
@@ -252,9 +251,8 @@ class WorkspaceWindowBase(abc.ABC):
     def _on_visibility_changed(self, visible: bool):
         if visible:
             self._update_ui()
-        else:
-            if self._content:
-                self._content.show(False)
+        elif self._content:
+            self._content.show(False)
         self.update_menu_item(visible)
 
     def _on_dock_changed(self, docked: bool):

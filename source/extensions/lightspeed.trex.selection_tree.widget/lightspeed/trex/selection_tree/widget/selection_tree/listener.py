@@ -15,9 +15,10 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import re
 import typing
-from typing import List
 
 from lightspeed.common.constants import LSS_NICKNAME, REGEX_HASH
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -33,7 +34,7 @@ class USDListener:
         self._default_attr = {"_listener": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
-        self.__models: List["ListModel"] = []
+        self.__models: list[ListModel] = []
         self._listener: Tf.Listener | None = None
         self.__regex_hash = re.compile(REGEX_HASH)
 
@@ -93,7 +94,7 @@ class USDListener:
         for model in self.__models:
             model.refresh()
 
-    def add_model(self, model: "ListModel"):
+    def add_model(self, model: ListModel):
         """
         Add a model and delegate to listen to
 
@@ -106,7 +107,7 @@ class USDListener:
         if self.__models:
             self._enable_listener()
 
-    def remove_model(self, model: "ListModel"):
+    def remove_model(self, model: ListModel):
         """
         Remove a model and delegate that we were listening to
 

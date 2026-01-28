@@ -518,3 +518,17 @@ ignored-argument-names = "_.*|^ignored_|^unused_"
 # List of qualified module names which can have objects that can redefine
 # builtins.
 redefining-builtins-modules = ["six.moves", "past.builtins", "future.builtins", "builtins", "io"]
+
+########################################################################################################################
+# isort configuration - matches ruff's default import sorting behavior
+########################################################################################################################
+
+[tool.isort]
+profile = "black"
+line_length = 120
+# Treat all Omniverse modules as third-party to keep them grouped together
+known_third_party = ["carb", "omni", "lightspeed"]
+# Keep "import X" separate from "from X import Y" (don't mix alphabetically)
+force_sort_within_sections = false
+# Order: import statements first, then from statements
+from_first = false

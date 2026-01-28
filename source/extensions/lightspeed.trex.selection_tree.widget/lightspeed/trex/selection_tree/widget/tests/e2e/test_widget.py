@@ -15,6 +15,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+
 import os
 import re
 import shutil
@@ -1615,15 +1616,14 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await self.__destroy(_window, _wid)
 
     async def test_copy_from_copy_menu(self):
-        # flake8: noqa N806
-        MESH_HASH = "0AB745B8BEE1F16B"
-        MESH_ROOT_PATH = "/RootNode/meshes/"
-        REFERENCE_RELATIVE_PATH = "project_example/deps/captures/meshes/"
+        mesh_hash = "0AB745B8BEE1F16B"
+        mesh_root_path = "/RootNode/meshes/"
+        reference_relative_path = "project_example/deps/captures/meshes/"
 
         # setup
         _window, _wid = await self.__setup_widget(height=300)  # Keep in memory during test
         usd_context = omni.usd.get_context()
-        usd_context.get_selection().set_selected_prim_paths([f"{MESH_ROOT_PATH}mesh_{MESH_HASH}/mesh"], False)
+        usd_context.get_selection().set_selected_prim_paths([f"{mesh_root_path}mesh_{mesh_hash}/mesh"], False)
         await ui_test.human_delay(human_delay_speed=10)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
@@ -1643,7 +1643,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await omni.kit.ui_test.menu.select_context_menu("Copy Prim Path")
         await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
-        self.assertEqual(copied_text, f"{MESH_ROOT_PATH}mesh_{MESH_HASH}/mesh")
+        self.assertEqual(copied_text, f"{mesh_root_path}mesh_{mesh_hash}/mesh")
 
         # test reference path copy (it should be disabled for type ItemReferenceFileMesh)
         await item_prims[1].click(right_click=True)
@@ -1651,7 +1651,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await omni.kit.ui_test.menu.select_context_menu("Copy Reference Path")
         await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()  # the text should be the same because this option is disabled
-        self.assertEqual(copied_text, f"{MESH_ROOT_PATH}mesh_{MESH_HASH}/mesh")
+        self.assertEqual(copied_text, f"{mesh_root_path}mesh_{mesh_hash}/mesh")
 
         # test hash copy
         await item_prims[1].click(right_click=True)
@@ -1659,7 +1659,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await omni.kit.ui_test.menu.select_context_menu("Copy Hash")
         await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
-        self.assertEqual(copied_text, MESH_HASH)
+        self.assertEqual(copied_text, mesh_hash)
 
         # test name copy on reference
         await item_prims[0].click(right_click=True)
@@ -1667,7 +1667,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await omni.kit.ui_test.menu.select_context_menu("Copy Prim Name")
         await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
-        self.assertEqual(copied_text, f"mesh_{MESH_HASH}")
+        self.assertEqual(copied_text, f"mesh_{mesh_hash}")
 
         # test prim path copy on reference
         await item_prims[0].click(right_click=True)
@@ -1675,7 +1675,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await omni.kit.ui_test.menu.select_context_menu("Copy Prim Path")
         await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
-        self.assertEqual(copied_text, f"{MESH_ROOT_PATH}mesh_{MESH_HASH}")
+        self.assertEqual(copied_text, f"{mesh_root_path}mesh_{mesh_hash}")
 
         # test reference path copy
         await item_prims[0].click(right_click=True)
@@ -1687,7 +1687,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         full_path = os.path.abspath(copied_text)
         start_index = full_path.find("project_example")
         relative_path = full_path[start_index:].replace(os.sep, "/")
-        self.assertEqual(relative_path, f"{REFERENCE_RELATIVE_PATH}mesh_{MESH_HASH}.usda")
+        self.assertEqual(relative_path, f"{reference_relative_path}mesh_{mesh_hash}.usda")
 
         # test hash copy on reference
         await item_prims[0].click(right_click=True)
@@ -1695,7 +1695,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await omni.kit.ui_test.menu.select_context_menu("Copy Hash")
         await ui_test.human_delay(5)
         copied_text = omni.kit.clipboard.paste()
-        self.assertEqual(copied_text, MESH_HASH)
+        self.assertEqual(copied_text, mesh_hash)
 
         # grab other items in the selection tree that should not have copy menus
         add_items = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
@@ -1861,7 +1861,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # save the original primary selection
-        original_selection = _wid._tree_view.selection  # noqa: PLW0212
+        original_selection = _wid._tree_view.selection  # noqa: SLF001
 
         # grab the instance meshes
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
@@ -1876,7 +1876,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # ensure all three instances and the group are selected and the original prim is still selected
         self.assertEqual(len(_wid.get_instance_selection(include_instance_group=True)), 4)
-        self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: PLW0212
+        self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: SLF001
 
         # click the last instance mesh and shift click the second
         await item_instances[2].click()
@@ -1887,7 +1887,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # ensure all three instances are selected and the original prim is still selected
         self.assertEqual(len(_wid.get_instance_selection()), 2)
-        self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: PLW0212
+        self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: SLF001
 
         await self.__destroy(_window, _wid)
 
@@ -1902,7 +1902,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # save the original primary selection
-        original_selection = _wid._tree_view.selection  # noqa: PLW0212
+        original_selection = _wid._tree_view.selection  # noqa: SLF001
 
         # grab the instance meshes
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
@@ -1917,7 +1917,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # ensure all three instances are selected and the original prim is still selected
         self.assertEqual(len(_wid.get_instance_selection()), 2)
-        self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: PLW0212
+        self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: SLF001
 
         # click the last instance mesh and ctrl click the second and first
         await item_instances[2].click()
@@ -1930,7 +1930,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # ensure all three instances and the group are selected and the original prim is still selected
         self.assertEqual(len(_wid.get_instance_selection(include_instance_group=True)), 4)
-        self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: PLW0212
+        self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: SLF001
 
         await self.__destroy(_window, _wid)
 

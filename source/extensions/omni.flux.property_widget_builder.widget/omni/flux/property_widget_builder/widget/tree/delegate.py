@@ -62,7 +62,7 @@ class FieldBuilderList(list[FieldBuilder]):
         """
 
         def _deco(
-            build_func: Callable[[Item], ui.Widget | list[ui.Widget] | None]
+            build_func: Callable[[Item], ui.Widget | list[ui.Widget] | None],
         ) -> Callable[[Item], ui.Widget | list[ui.Widget] | None]:
             self.append(FieldBuilder(claim_func=claim_func, build_func=build_func))
             return build_func
@@ -333,8 +333,7 @@ class Delegate(_TreeDelegateBase):
         max_height = 0
         for widget in widgets:
             value = widget.computed_height
-            if value > max_height:
-                max_height = value
+            max_height = max(max_height, value)
         for stack in stacks:
             stack.height = ui.Pixel(max_height)
         # cleanup

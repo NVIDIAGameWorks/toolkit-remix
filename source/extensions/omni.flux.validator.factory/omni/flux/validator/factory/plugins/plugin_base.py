@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import abc
 from enum import Enum as _Enum
-from typing import Any, Callable, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Iterable
 
 import omni.usd
 from omni.flux.utils.common import Event as _Event
@@ -100,7 +100,7 @@ class Base(_IBase, abc.ABC):
             return v
 
     def __init__(self):
-        self._schema: Optional[_IBaseSchema] = None
+        self._schema: _IBaseSchema | None = None
 
         self.__on_build_ui = _Event()
         self.__on_mass_build_ui = _Event()
@@ -133,7 +133,7 @@ class Base(_IBase, abc.ABC):
         self._schema: _IBaseSchema = schema
         self._callback_to_set()
 
-    def _on_validator_run(self, items: List["Base"], run_mode: ValidatorRunMode, catch_exception: bool = True):
+    def _on_validator_run(self, items: list[Base], run_mode: ValidatorRunMode, catch_exception: bool = True):
         self.__on_validator_run(items, run_mode, catch_exception)
 
     def _on_validator_enable(self, value: bool):
@@ -142,7 +142,7 @@ class Base(_IBase, abc.ABC):
     def _on_validation_is_ready_to_run(self, value: bool):
         self.__on_validation_is_ready_to_run(id(self), value)
 
-    def subscribe_validator_run(self, callback: Callable[[List["Base"], ValidatorRunMode, Optional[bool]], Any]):
+    def subscribe_validator_run(self, callback: Callable[[list[Base], ValidatorRunMode, bool | None], Any]):
         return _EventSubscription(self.__on_validator_run, callback)
 
     def subscribe_enable_validation(self, callback: Callable[[bool], Any]):
@@ -163,10 +163,10 @@ class Base(_IBase, abc.ABC):
     def on_mass_cook_template(self, success, message, data):
         self.__on_mass_cook_template(success, message, data)
 
-    def subscribe_mass_cook_template(self, callback: Callable[[Tuple[bool, Optional[str], Any]], Any]):
+    def subscribe_mass_cook_template(self, callback: Callable[[tuple[bool, str | None, Any]], Any]):
         return _EventSubscription(self.__on_mass_cook_template, callback)
 
-    def get_progress(self) -> Tuple[float, str, bool]:
+    def get_progress(self) -> tuple[float, str, bool]:
         return self._schema.data.progress
 
     def on_progress(self, progress: float, message: str, result: bool):
@@ -215,31 +215,31 @@ class Base(_IBase, abc.ABC):
         pass
 
     def mass_build_queue_action_ui(
-        self, schema_data: Any, default_actions: List[Callable[[], Any]], callback: Callable[[str], Any]
+        self, schema_data: Any, default_actions: list[Callable[[], Any]], callback: Callable[[str], Any]
     ) -> Any:
         result = self._mass_build_queue_action_ui(schema_data, default_actions, callback)  # noqa PLE1111
         self.__on_mass_build_queue_action_ui(result)
         return result
 
     def _mass_build_queue_action_ui(
-        self, schema_data: Any, default_actions: List[Callable[[], Any]], callback: Callable[[str], Any]
+        self, schema_data: Any, default_actions: list[Callable[[], Any]], callback: Callable[[str], Any]
     ) -> Any:
         pass
 
     @omni.usd.handle_exception
-    async def mass_cook_template(self, schema_data_template: Any) -> Tuple[bool, Optional[str], List[Data]]:
+    async def mass_cook_template(self, schema_data_template: Any) -> tuple[bool, str | None, list[Data]]:
         success, message, data = await self._mass_cook_template(schema_data_template)
         self.on_mass_cook_template(success, message, data)
         return success, message, data
 
     @omni.usd.handle_exception
-    async def _mass_cook_template(self, schema_data_template: Any) -> Tuple[bool, Optional[str], Any]:
+    async def _mass_cook_template(self, schema_data_template: Any) -> tuple[bool, str | None, Any]:
         pass
 
     def _get_schema_data_flows(self, schema_data: Data, schema: BaseModel) -> list[_DataFlow]:
         all_data_flows = []
         schema_dict = schema.model_dump(serialize_as_any=True)
-        for attr in schema_dict.keys():
+        for attr in schema_dict:
             next_plugin = getattr(schema, attr)
             next_plugins = []
             if isinstance(next_plugin, _IBaseSchema):

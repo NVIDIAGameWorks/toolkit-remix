@@ -102,7 +102,7 @@ class TextureReplacementsService(ServiceBase):
             description="Override the given textures on the current edit target in the current stage.",
         )
         async def override_textures(
-            body: ServiceBase.inject_hidden_fields(ReplaceTexturesRequestModel, context_name=context_name)
+            body: ServiceBase.inject_hidden_fields(ReplaceTexturesRequestModel, context_name=context_name),
         ) -> str:
             return self.__texture_core.replace_texture_with_data_models(body) or "OK"
 
@@ -126,7 +126,7 @@ class TextureReplacementsService(ServiceBase):
                 TextureMaterialPathParamModel,
                 description="The prim path of a given texture",
                 context_name=context_name,
-            )
+            ),
         ) -> PrimPathsResponseModel:
             try:
                 return self.__texture_core.get_texture_material_with_data_models(texture_prim_path)

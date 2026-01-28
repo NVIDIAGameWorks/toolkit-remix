@@ -168,8 +168,8 @@ class TestAddVertexIndicesToGeomSubsets(AsyncTestCase):
         await core.deferred_run()
 
         # Assert
-        self.assertEquals(sub_check_count, 2)  # called 2 times: we check, fix, re check
-        self.assertEquals(sub_fix_count, 1)
+        self.assertEqual(sub_check_count, 2)  # called 2 times: we check, fix, re check
+        self.assertEqual(sub_fix_count, 1)
 
         usd_context = omni.usd.get_context()
         stage = usd_context.get_stage()
@@ -184,8 +184,8 @@ class TestAddVertexIndicesToGeomSubsets(AsyncTestCase):
             self.assertTrue(attr)
             tri_indices = attr.Get()
             face_indices = face_indices_attr.Get()
-            self.assertEquals(len(face_indices) * 3, len(tri_indices))
+            self.assertEqual(len(face_indices) * 3, len(tri_indices))
             for i, face in enumerate(face_indices):
-                self.assertEquals(tri_indices[i * 3 + 0], parent_indices[face * 3 + 0])
-                self.assertEquals(tri_indices[i * 3 + 1], parent_indices[face * 3 + 1])
-                self.assertEquals(tri_indices[i * 3 + 2], parent_indices[face * 3 + 2])
+                self.assertEqual(tri_indices[i * 3 + 0], parent_indices[face * 3 + 0])
+                self.assertEqual(tri_indices[i * 3 + 1], parent_indices[face * 3 + 1])
+                self.assertEqual(tri_indices[i * 3 + 2], parent_indices[face * 3 + 2])

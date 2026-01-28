@@ -37,7 +37,7 @@ class FluxTestDependenciesExtension(omni.ext.IExt):
             try:
                 # "set_extension_enabled_immediate" mode was trying to load other extensions.
                 manager.set_extension_enabled(ext, True)
-            except Exception as e:  # noqa: PLW0718
+            except Exception as e:  # noqa: BLE001
                 carb.log_warn(f"Failed to enable deferred extension {ext}: {e}")
 
     def on_shutdown(self):

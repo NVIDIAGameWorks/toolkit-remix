@@ -2,6 +2,10 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.4.3]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [1.4.2]
 ### Changed
 - Updated tests to use new StringField identifier for item_prim

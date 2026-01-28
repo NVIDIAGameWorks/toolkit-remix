@@ -42,7 +42,7 @@ class LightspeedTestDependenciesExtension(omni.ext.IExt):
                 continue
             try:
                 manager.set_extension_enabled(ext, True)
-            except Exception as e:  # noqa: PLW0718
+            except Exception as e:  # noqa: BLE001
                 carb.log_warn(f"Failed to enable deferred extension {ext}: {e}")
 
     def on_shutdown(self):

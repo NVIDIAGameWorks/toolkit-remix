@@ -158,14 +158,14 @@ class StageManagerTreeItem(_TreeItemBase):
         self._tooltip = "/".join(parts[:-1]) + "/" + value
 
     @property
-    def parent(self) -> "StageManagerTreeItem":
+    def parent(self) -> StageManagerTreeItem:
         """
         The parent item for which this item is a child
         """
         return self._parent
 
     @parent.setter
-    def parent(self, value: "StageManagerTreeItem"):
+    def parent(self, value: StageManagerTreeItem):
         """
         Set the parent item for which this item is a child
         """
@@ -328,7 +328,7 @@ class StageManagerTreeItem(_TreeItemBase):
         """
         pass
 
-    def add_child(self, item: "StageManagerTreeItem"):
+    def add_child(self, item: StageManagerTreeItem):
         """
         Add a child item
 
@@ -675,7 +675,7 @@ class StageManagerTreeDelegate(_TreeDelegateBase):
             self._column_header_builders[index] = column.build_header
 
     def call_item_clicked(
-        self, button: int, should_validate: bool, model: "StageManagerTreeModel", item: "StageManagerTreeItem"
+        self, button: int, should_validate: bool, model: StageManagerTreeModel, item: StageManagerTreeItem
     ):
         """
         Trigger the `_item_clicked` event
@@ -700,9 +700,7 @@ class StageManagerTreeDelegate(_TreeDelegateBase):
             if column_id in self._column_widget_builders:
                 self._column_widget_builders[column_id](model, item, level, expanded)
 
-    def _build_branch(
-        self, _model: "_TreeModelBase", item: "_TreeItemBase", column_id: int, level: int, expanded: bool
-    ):
+    def _build_branch(self, _model: _TreeModelBase, item: _TreeItemBase, column_id: int, level: int, expanded: bool):
         with ui.Frame(height=self.row_height):
             super()._build_branch(_model, item, column_id, level, expanded)
 
@@ -711,7 +709,7 @@ class StageManagerTreeDelegate(_TreeDelegateBase):
             if column_id in self._column_header_builders:
                 self._column_header_builders[column_id]()
 
-    def _show_context_menu(self, model: "StageManagerTreeModel", item: "StageManagerTreeItem"):
+    def _show_context_menu(self, model: StageManagerTreeModel, item: StageManagerTreeItem):
         super()._show_context_menu(model, item)
 
         context_menu = omni.kit.context_menu.get_instance()

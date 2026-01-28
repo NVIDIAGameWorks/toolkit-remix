@@ -55,7 +55,7 @@ def get_instances() -> Optional[Dict[str, _ViewportSetupUI]]:
 
 
 def get_instance(context_name: str) -> Optional[_ViewportSetupUI]:
-    return _VIEWPORT_MANAGER_INSTANCE.get(context_name, None)
+    return _VIEWPORT_MANAGER_INSTANCE.get(context_name)
 
 
 def get_active_viewport() -> Optional[_ViewportSetupUI]:

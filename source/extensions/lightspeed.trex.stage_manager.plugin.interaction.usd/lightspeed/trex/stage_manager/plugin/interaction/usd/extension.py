@@ -26,7 +26,6 @@ from .all_meshes import AllMeshesInteractionPlugin as _AllMeshesInteractionPlugi
 
 
 class LightspeedStageManagerUSDInteractionPluginsExtension(omni.ext.IExt):
-
     _PLUGINS = [_AllCategoriesInteractionPlugin, _AllMaterialsRemixInteractionPlugin, _AllMeshesInteractionPlugin]
 
     def on_startup(self, _):

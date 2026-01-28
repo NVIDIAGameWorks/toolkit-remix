@@ -24,7 +24,6 @@ from .horizontal_column import HorizontalColumnPlugin as _HorizontalColumnPlugin
 
 
 class StageManagerUSDColumnPluginsExtension(omni.ext.IExt):
-
     _PLUGINS = [_HorizontalColumnPlugin]
 
     def on_startup(self, _):

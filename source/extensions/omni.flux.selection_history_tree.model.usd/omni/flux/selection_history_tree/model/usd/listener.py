@@ -59,7 +59,6 @@ class USDListener:
 
     def _on_usd_changed(self, notice, stage):
         for model in self.__models:
-
             if stage != model.stage:
                 continue
 

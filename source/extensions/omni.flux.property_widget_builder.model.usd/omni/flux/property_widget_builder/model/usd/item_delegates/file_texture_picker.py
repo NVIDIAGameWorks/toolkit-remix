@@ -225,7 +225,6 @@ class FileTexturePicker(_FilePicker):
         try:
             im = Image.open(path)
         except NotImplementedError as exc:
-
             carb.log_warn(f"Error reading image {path!r}, attempting workaround to extract resolution")
 
             # TODO: REMIX-2468

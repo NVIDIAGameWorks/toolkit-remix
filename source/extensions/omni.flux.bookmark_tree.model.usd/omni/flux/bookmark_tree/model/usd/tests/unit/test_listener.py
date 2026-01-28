@@ -23,7 +23,6 @@ from omni.flux.bookmark_tree.model.usd import USDListener, get_usd_listener_inst
 
 
 class TestListener(omni.kit.test.AsyncTestCase):
-
     # Before running each test
     async def setUp(self):
         await omni.usd.get_context().new_stage_async()

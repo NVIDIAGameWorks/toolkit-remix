@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.1]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [1.7.0]
 ### Added
 - Added `use_relative_paths` parameter to FilePicker to convert paths relative to USD edit target

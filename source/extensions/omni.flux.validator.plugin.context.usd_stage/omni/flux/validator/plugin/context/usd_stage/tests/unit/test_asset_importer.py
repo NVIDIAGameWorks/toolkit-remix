@@ -44,7 +44,6 @@ class MockListEntry:
 
 
 class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
-
     # Before running each test
     async def setUp(self):
         self.maxDiff = None
@@ -286,11 +285,7 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
 
             asset_importer = AssetImporter()
             schema_data = asset_importer.Data(
-                **{
-                    "context_name": "",
-                    "input_files": [input_file_path],
-                    "output_directory": output_folder_path,
-                }
+                context_name="", input_files=[input_file_path], output_directory=output_folder_path
             )
             parent_schema = Mock()
             parent_schema.data = schema_data
@@ -321,12 +316,10 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
 
                     asset_importer = AssetImporter()
                     schema_data = asset_importer.Data(
-                        **{
-                            "context_name": "",
-                            "input_files": [input_file_path],
-                            "output_directory": output_folder_path,
-                            "close_stage_on_exit": close_stage_on_exit,
-                        }
+                        context_name="",
+                        input_files=[input_file_path],
+                        output_directory=output_folder_path,
+                        close_stage_on_exit=close_stage_on_exit,
                     )
                     parent_schema = Mock()
                     parent_schema.data = schema_data
@@ -376,12 +369,7 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
 
             asset_importer = AssetImporter()
             schema_data = asset_importer.Data(
-                **{
-                    "context_name": "",
-                    "input_files": input_files,
-                    "output_directory": output_folder_path,
-                    "ignore_unbound_bones": True,
-                }
+                context_name="", input_files=input_files, output_directory=output_folder_path, ignore_unbound_bones=True
             )
             parent_schema = Mock()
             parent_schema.data = schema_data
@@ -489,13 +477,11 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
 
             asset_importer = AssetImporter()
             schema_data = asset_importer.Data(
-                **{
-                    "context_name": "",
-                    "input_files": input_files,
-                    "output_directory": output_folder_path,
-                    "output_usd_extension": output_usd_extension,
-                    "data_flows": data_flows,
-                }
+                context_name="",
+                input_files=input_files,
+                output_directory=output_folder_path,
+                output_usd_extension=output_usd_extension,
+                data_flows=data_flows,
             )
             parent_schema = Mock()
             parent_schema.data = schema_data

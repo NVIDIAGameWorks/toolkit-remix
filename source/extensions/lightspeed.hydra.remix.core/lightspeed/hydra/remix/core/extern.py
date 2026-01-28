@@ -86,7 +86,6 @@ def request_dict_pop(request_dict: dict[int, tuple[int, Callable]], request_id: 
 
 
 class RemixExtern:
-
     # expected dll functions
     required_functions: list[str] = [
         "findworldposition_setcallback",
@@ -155,8 +154,6 @@ class RemixExtern:
         self.__dll.objectpicking_setcallback_oncomplete(self.__pywrap_objectpicking_oncomplete)
         # callback end
 
-        #
-
         # dict to track findworldposition / objectpicking request callbacks
         self.__requestdict_findworldposition: dict[int, tuple[int, Callable]] = {}
         self.__requestdict_objectpicking: dict[int, tuple[int, Callable]] = {}
@@ -178,7 +175,7 @@ class RemixExtern:
         pfn_issupported.argtypes = [ctypes.POINTER(ctypes.c_char_p)]
         pfn_issupported.restype = ctypes.c_int
 
-        out_errormessage_cstr = ctypes.c_char_p("".encode("utf-8"))
+        out_errormessage_cstr = ctypes.c_char_p(b"")
         ok = pfn_issupported(ctypes.pointer(out_errormessage_cstr))
 
         if ok != 1:

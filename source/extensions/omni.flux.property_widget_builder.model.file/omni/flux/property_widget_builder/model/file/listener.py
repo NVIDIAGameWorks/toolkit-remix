@@ -34,7 +34,7 @@ class FileListener:
         self._default_attr = {"_listeners": None, "_models": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
-        self._models: List["_FileModel"] = []
+        self._models: List[_FileModel] = []
         self._listeners: Dict[Usd.Stage, Tf.Listener] = {}
 
     @omni.usd.handle_exception

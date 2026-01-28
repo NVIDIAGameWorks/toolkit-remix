@@ -21,5 +21,5 @@ from typing import ClassVar
 from pydantic import Field
 
 
-class PluginBase(abc.ABC):
+class PluginBase(abc.ABC):  # noqa: B024 PluginBase is intentionally an ABC without abstract methods (marker class)
     name: ClassVar[str] = Field()

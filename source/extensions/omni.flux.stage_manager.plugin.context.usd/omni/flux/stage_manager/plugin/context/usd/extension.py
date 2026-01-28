@@ -25,7 +25,6 @@ from .usd_file import UsdFileContextPlugin as _UsdFileContextPlugin
 
 
 class StageManagerUSDContextPluginsExtension(omni.ext.IExt):
-
     _PLUGINS = [_CurrentStageContextPlugin, _UsdFileContextPlugin]
 
     def on_startup(self, _):

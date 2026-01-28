@@ -26,8 +26,8 @@ class TestCaptureTreeModelEnableListeners(AsyncTestCase):
         """Test that subscriptions are None when model is created."""
         model = CaptureTreeModel("")
 
-        self.assertIsNone(model._stage_event_sub)  # noqa: PLW0212
-        self.assertIsNone(model._layer_event_sub)  # noqa: PLW0212
+        self.assertIsNone(model._stage_event_sub)  # noqa: SLF001
+        self.assertIsNone(model._layer_event_sub)  # noqa: SLF001
 
         model.destroy()
 
@@ -37,8 +37,8 @@ class TestCaptureTreeModelEnableListeners(AsyncTestCase):
 
         model.enable_listeners(True)
 
-        self.assertIsNotNone(model._stage_event_sub)  # noqa: PLW0212
-        self.assertIsNotNone(model._layer_event_sub)  # noqa: PLW0212
+        self.assertIsNotNone(model._stage_event_sub)  # noqa: SLF001
+        self.assertIsNotNone(model._layer_event_sub)  # noqa: SLF001
 
         model.enable_listeners(False)
         model.destroy()
@@ -49,13 +49,13 @@ class TestCaptureTreeModelEnableListeners(AsyncTestCase):
 
         # First enable
         model.enable_listeners(True)
-        self.assertIsNotNone(model._stage_event_sub)  # noqa: PLW0212
-        self.assertIsNotNone(model._layer_event_sub)  # noqa: PLW0212
+        self.assertIsNotNone(model._stage_event_sub)  # noqa: SLF001
+        self.assertIsNotNone(model._layer_event_sub)  # noqa: SLF001
 
         # Then disable
         model.enable_listeners(False)
-        self.assertIsNone(model._stage_event_sub)  # noqa: PLW0212
-        self.assertIsNone(model._layer_event_sub)  # noqa: PLW0212
+        self.assertIsNone(model._stage_event_sub)  # noqa: SLF001
+        self.assertIsNone(model._layer_event_sub)  # noqa: SLF001
 
         model.destroy()
 
@@ -65,22 +65,22 @@ class TestCaptureTreeModelEnableListeners(AsyncTestCase):
 
         # Toggle on
         model.enable_listeners(True)
-        self.assertIsNotNone(model._stage_event_sub)  # noqa: PLW0212
-        self.assertIsNotNone(model._layer_event_sub)  # noqa: PLW0212
+        self.assertIsNotNone(model._stage_event_sub)  # noqa: SLF001
+        self.assertIsNotNone(model._layer_event_sub)  # noqa: SLF001
 
         # Toggle off
         model.enable_listeners(False)
-        self.assertIsNone(model._stage_event_sub)  # noqa: PLW0212
-        self.assertIsNone(model._layer_event_sub)  # noqa: PLW0212
+        self.assertIsNone(model._stage_event_sub)  # noqa: SLF001
+        self.assertIsNone(model._layer_event_sub)  # noqa: SLF001
 
         # Toggle on again
         model.enable_listeners(True)
-        self.assertIsNotNone(model._stage_event_sub)  # noqa: PLW0212
-        self.assertIsNotNone(model._layer_event_sub)  # noqa: PLW0212
+        self.assertIsNotNone(model._stage_event_sub)  # noqa: SLF001
+        self.assertIsNotNone(model._layer_event_sub)  # noqa: SLF001
 
         # Toggle off again
         model.enable_listeners(False)
-        self.assertIsNone(model._stage_event_sub)  # noqa: PLW0212
-        self.assertIsNone(model._layer_event_sub)  # noqa: PLW0212
+        self.assertIsNone(model._stage_event_sub)  # noqa: SLF001
+        self.assertIsNone(model._layer_event_sub)  # noqa: SLF001
 
         model.destroy()

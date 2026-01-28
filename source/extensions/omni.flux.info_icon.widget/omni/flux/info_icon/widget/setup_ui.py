@@ -30,7 +30,6 @@ from .style import style as _style
 
 
 class InfoIconWidget:
-
     __DEFAULT_UI_ICON_SIZE_PIXEL = 16
 
     def __init__(
@@ -84,7 +83,6 @@ class TooltipWidget:
     """Add a nice tooltip to any widget"""
 
     def __init__(self, widget: ui.Widget, message: str, max_width: int | None = None):
-
         self._default_attr = {
             "_message": None,
             "_max_width": None,

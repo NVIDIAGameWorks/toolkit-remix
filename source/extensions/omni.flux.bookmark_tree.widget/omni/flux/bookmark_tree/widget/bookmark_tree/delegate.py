@@ -16,7 +16,7 @@
 """
 
 import asyncio
-from typing import TYPE_CHECKING, Callable, List, Optional
+from typing import Callable, List, Optional
 
 import omni.ui as ui
 import omni.usd
@@ -27,9 +27,6 @@ from omni.flux.utils.widget.color import hex_to_color as _hex_to_color
 from omni.flux.utils.widget.gradient import create_gradient as _create_gradient
 
 from .item_model import ComponentTypes, ItemBase
-
-if TYPE_CHECKING:
-    pass
 
 
 class BookmarkDelegate(ui.AbstractItemDelegate):

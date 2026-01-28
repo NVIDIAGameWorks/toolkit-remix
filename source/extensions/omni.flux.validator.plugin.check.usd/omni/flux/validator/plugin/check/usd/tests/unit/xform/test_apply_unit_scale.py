@@ -292,7 +292,8 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
 
         self.assertEqual(1, set_metadata_mock.call_count)
         self.assertEqual(
-            call(ApplyUnitScale._METADATA_KEY, 1 / scale_target), set_metadata_mock.call_args  # noqa PLW0212
+            call(ApplyUnitScale._METADATA_KEY, 1 / scale_target),
+            set_metadata_mock.call_args,  # noqa PLW0212
         )
 
         self.assertEqual(1, xformable_mock.call_count)

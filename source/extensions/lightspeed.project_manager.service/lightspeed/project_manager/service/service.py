@@ -49,13 +49,13 @@ class ProjectManagerService(ServiceBase):
             try:
                 return self.__layer_core.get_loaded_project_with_data_models()
             except ValueError as e:
-                raise ServiceBase.raise_error(404, e)
+                raise ServiceBase.raise_error(404, e) from e
 
         @self.router.put(path="/{layer_id:path}", operation_id="open_project", description="Open a project.")
         async def open_project(
             layer_id: str = ServiceBase.validate_path_param(  # noqa B008
                 OpenProjectPathParamModel, description="Project identifier for the project to open as project"
-            )
+            ),
         ) -> str:
             return self.__layer_core.open_project_with_data_models(layer_id) or "OK"
 
@@ -63,10 +63,10 @@ class ProjectManagerService(ServiceBase):
         async def close_project(
             force: bool = ServiceBase.describe_query_param(  # noqa B008
                 False, "Whether to force close the project even if there are pending changes."
-            )
+            ),
         ) -> str:
             try:
                 return self.__layer_core.close_project_with_data_models(force=force) or "OK"
             except ValueError as e:
                 # Convert ValueError to 403 Forbidden error for pending changes
-                raise ServiceBase.raise_error(403, e)
+                raise ServiceBase.raise_error(403, e) from e

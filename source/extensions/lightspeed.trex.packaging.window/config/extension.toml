@@ -1,5 +1,5 @@
 [package]
-version = "1.1.1"
+version = "1.1.2"
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "Mod Packaging Window"
 description = "Mod Packaging Window to fix unresolved references"

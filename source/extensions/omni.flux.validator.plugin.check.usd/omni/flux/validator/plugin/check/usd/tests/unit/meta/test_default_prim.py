@@ -169,7 +169,7 @@ class TestDefaultPrim(AsyncTestCase):
         stage = omni.usd.get_context().get_stage()
 
         self.assertTrue(stage.HasDefaultPrim())
-        self.assertEquals(stage.GetDefaultPrim().GetName(), "Group")
+        self.assertEqual(stage.GetDefaultPrim().GetName(), "Group")
 
         session_layer = stage.GetSessionLayer()
         root_prims_count = len(

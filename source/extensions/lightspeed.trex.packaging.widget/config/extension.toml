@@ -2,7 +2,7 @@
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Mod Packaging widget for the StageCraft"
 description = "Mod Packaging widget for NVIDIA RTX Remix StageCraft App"
-version = "1.4.2"
+version = "1.4.3"
 readme = "docs/README.md"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.packaging.widget"
 category = "internal"

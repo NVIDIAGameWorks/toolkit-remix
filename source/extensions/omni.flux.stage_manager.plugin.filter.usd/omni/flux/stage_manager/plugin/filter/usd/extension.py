@@ -31,7 +31,6 @@ from .visible_prims import VisiblePrimsFilterPlugin as _VisiblePrimsFilterPlugin
 
 
 class StageManagerUSDFilterPluginsExtension(omni.ext.IExt):
-
     _PLUGINS = [
         _AdditionalFilterPlugin,
         _IgnorePrimsFilterPlugin,

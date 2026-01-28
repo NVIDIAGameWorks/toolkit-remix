@@ -73,7 +73,7 @@ class USDDirectory(_ContextBaseUSD):
 
         Returns: True if the check passed, False if not
         """
-        directory_path = omni.client.normalize_url((carb.tokens.get_tokens_interface().resolve(schema_data.directory)))
+        directory_path = omni.client.normalize_url(carb.tokens.get_tokens_interface().resolve(schema_data.directory))
         directory_url = _OmniUrl(directory_path)
 
         if not directory_url.is_directory:
@@ -112,7 +112,7 @@ class USDDirectory(_ContextBaseUSD):
 
         Returns: True if ok + message + data that need to be passed into another plugin
         """
-        directory_path = omni.client.normalize_url((carb.tokens.get_tokens_interface().resolve(schema_data.directory)))
+        directory_path = omni.client.normalize_url(carb.tokens.get_tokens_interface().resolve(schema_data.directory))
         context = await self._set_current_context(schema_data, parent_context)
         if not context:
             return False, f"The context {schema_data.computed_context} doesn't exist!", None

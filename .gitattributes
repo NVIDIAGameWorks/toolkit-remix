@@ -1,6 +1,9 @@
 # Normalize text files on commit to LF endings by default
 * text=auto
 
+# Python files should be normalized to LF endings to match the ruff formatter
+*.py text=auto eol=lf
+
 # Make sure Windows batch files preserve CR/LF line endings, otherwise they may not be able to execute.  Windows
 # batch files require a CR/LF for labels to work properly, otherwise they may fail when labels straddle 512-byte
 # block boundaries.  This is important when files are downloaded through a zip archive that was authored on a
@@ -17,6 +20,6 @@
 **/*.json !filter !diff !merge text
 **/*.usda !filter !diff !merge text
 
-# Documentation videos and zips 
-docs/data/videos** filter=lfs diff=lfs merge=lfs -text
+# Documentation videos and zips
+docs/data/videos/** filter=lfs diff=lfs merge=lfs -text
 docs/data/zips/** filter=lfs diff=lfs merge=lfs -text

@@ -21,7 +21,6 @@ from .plugins.plugin_base import Base as _PluginBase
 
 
 class ValidatorFactory(_FactoryBase[_PluginBase]):
-
     def is_plugin_registered(self, name: str) -> bool:
         """
         Check is the plugin is registered into the factory

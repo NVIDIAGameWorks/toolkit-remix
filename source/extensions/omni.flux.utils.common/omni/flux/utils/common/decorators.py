@@ -46,7 +46,6 @@ def limit_recursion(num_allowed_recursive_calls: int = 0, error: bool = False):
     """
 
     def _deco(func):
-
         _lock = threading.RLock()
 
         @functools.wraps(func)

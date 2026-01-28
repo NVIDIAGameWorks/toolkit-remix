@@ -44,9 +44,8 @@ class TestDefaultMaterials(omni.kit.test.AsyncTestCase):
                         # only bind material to the first geomsubset
                         bind_material = False
                         UsdShade.MaterialBindingAPI(subset).Bind(material_binding)
-            else:
-                if bind_material:
-                    UsdShade.MaterialBindingAPI(mesh).Bind(material_binding)
+            elif bind_material:
+                UsdShade.MaterialBindingAPI(mesh).Bind(material_binding)
 
             return mesh.GetPrim()
 

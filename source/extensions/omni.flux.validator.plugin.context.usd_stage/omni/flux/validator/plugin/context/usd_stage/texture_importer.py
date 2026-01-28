@@ -221,7 +221,7 @@ class TextureImporter(_ContextBaseUSD):
 
             _validator_factory_utils.push_input_data(schema_data, [str(input_path)])
 
-            output_path = carb.tokens.get_tokens_interface().resolve(str((output_dir / _OmniUrl(input_path).name)))
+            output_path = carb.tokens.get_tokens_interface().resolve(str(output_dir / _OmniUrl(input_path).name))
             output_path = omni.client.normalize_url(output_path)
 
             try:

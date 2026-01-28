@@ -113,7 +113,6 @@ class Delegate(ui.AbstractItemDelegate):
                         await item.plugin.instance.build_ui(item.plugin.data)
                         ui.Spacer(height=ui.Pixel(8))
                 elif isinstance(item, (_CheckerItem, _SelectorItem, _ResultorItem, _ContextItem)):
-
                     if isinstance(item, _CheckerItem):
                         message = item.plugin.data.last_check_message or "No message"
                         message += "\n"

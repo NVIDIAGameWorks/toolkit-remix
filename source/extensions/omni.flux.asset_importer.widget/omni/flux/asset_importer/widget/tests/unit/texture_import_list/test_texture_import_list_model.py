@@ -66,7 +66,6 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
         self.assertEqual(1, mock.call_count)
 
     async def test_listener_called_multiple_time(self):
-
         # wait for the listener to be empty
         await _get_file_listener_instance().deferred_destroy()
 
@@ -169,7 +168,8 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
                 # Assert
                 self.assertEqual(1 if is_none else 0, type_mock.call_count)
                 self.assertDictEqual(
-                    {c.path.path: c.texture_type for c in model._children}, expected_types  # noqa PLW0212
+                    {c.path.path: c.texture_type for c in model._children},
+                    expected_types,  # noqa PLW0212
                 )
 
     async def test_add_item_should_determine_texture_type_append_subscribe_and_call_item_changed(self):

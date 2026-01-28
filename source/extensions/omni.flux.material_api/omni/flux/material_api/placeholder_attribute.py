@@ -125,7 +125,7 @@ class PlaceholderAttribute:
                 attribute.Set(self.Get())
 
             return attribute
-        except Exception as exc:  # pylint: disable=broad-exception-caught  # pragma: no cover
+        except Exception as exc:  # noqa: BLE001
             carb.log_warn(f"PlaceholderAttribute.CreateAttribute() error {exc}")
         return None  # pragma: no cover
 

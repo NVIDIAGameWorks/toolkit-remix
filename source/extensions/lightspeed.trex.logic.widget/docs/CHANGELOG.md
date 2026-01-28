@@ -4,6 +4,10 @@ This document records all notable changes to the **lightspeed.trex.logic.widget*
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.7.1]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [1.7.0]
 ### Added
 - Missing hotkey for the help menu item

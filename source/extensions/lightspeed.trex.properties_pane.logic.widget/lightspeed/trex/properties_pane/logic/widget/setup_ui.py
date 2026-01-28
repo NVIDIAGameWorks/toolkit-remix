@@ -34,7 +34,10 @@ from lightspeed.trex.logic.core.attributes import get_ogn_default_value
 from lightspeed.trex.logic.core.graphs import LogicGraphCore
 from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.property_widget_builder.delegates.string_value.file_picker import FilePicker
-from omni.flux.property_widget_builder.model.usd import USDAttributeItem, USDAttrListItem
+from omni.flux.property_widget_builder.model.usd import (
+    USDAttributeItem,
+    USDAttrListItem,
+)
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
 from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
 from omni.flux.property_widget_builder.model.usd import (
@@ -425,7 +428,6 @@ class LogicPropertyWidget:
         node_types: list[og.NodeType] = []
 
         if stage is not None:  # noqa PLR1702
-
             # Group attributes by name across all selected prims
             attr_added: dict[str, list[tuple[Usd.Prim, og.Attribute]]] = {}
 

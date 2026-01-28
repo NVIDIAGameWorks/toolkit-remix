@@ -319,6 +319,6 @@ class AssetReplacementsService(ServiceBase):
                 description="Comma-separated list of prim paths to select",
                 validate_list=True,
                 context_name=context_name,
-            )
+            ),
         ) -> str:
             return self.__asset_core.select_prim_paths_with_data_model(prim_paths) or "OK"
