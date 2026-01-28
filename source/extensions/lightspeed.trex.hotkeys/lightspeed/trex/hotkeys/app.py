@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import enum
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable
 
 import carb.input
 from lightspeed.trex.contexts import get_instance as _get_trex_context_manager
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 
 
-def get_global_hotkey_manager() -> "HotkeyManager":
+def get_global_hotkey_manager() -> HotkeyManager:
     if not _global_instance:
         raise RuntimeError("GlobalHotkeys instance has not been initialized!")
     return _global_instance
@@ -135,8 +135,8 @@ class HotkeyManager:
         self,
         hotkey_event,
         fn,
-        context: Optional["_TrexContexts"] = None,
-        enable_fn: Optional[Callable[[], bool]] = None,
+        context: _TrexContexts | None = None,
+        enable_fn: Callable[[], bool] | None = None,
     ) -> EventSubscription:
         """
         Return the subscription object that will automatically unsubscribe when destroyed.

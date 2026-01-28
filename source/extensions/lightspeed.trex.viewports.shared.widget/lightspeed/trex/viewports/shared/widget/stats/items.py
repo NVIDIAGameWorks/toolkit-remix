@@ -168,8 +168,8 @@ class ViewportStatistic:
 
 
 class ViewportDeviceStat(ViewportStatistic):
-    def __init__(self, *args, **kwargs):
-        super().__init__("Device Memory", setting_key="deviceMemory", *args, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__("Device Memory", setting_key="deviceMemory", **kwargs)
         self.__low_memory = []
         self.__enabled = []
 
@@ -215,8 +215,8 @@ class ViewportDeviceStat(ViewportStatistic):
 
 
 class ViewportHostStat(ViewportStatistic):
-    def __init__(self, *args, **kwargs):
-        super().__init__("Host Memory", setting_key="hostMemory", *args, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__("Host Memory", setting_key="hostMemory", **kwargs)
         self.__low_memory = False
 
     def skip_update(self, update_info: dict):
@@ -236,8 +236,8 @@ class ViewportHostStat(ViewportStatistic):
 
 
 class ViewportFPS(ViewportStatistic):
-    def __init__(self, *args, **kwargs):
-        super().__init__("FPS", setting_key="renderFPS", *args, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__("FPS", setting_key="renderFPS", **kwargs)
         self.__fps = None
         self.__multiplier = 1
         self.__precision = 2
@@ -264,8 +264,8 @@ class ViewportFPS(ViewportStatistic):
 
 
 class ViewportResolution(ViewportStatistic):
-    def __init__(self, *args, **kwargs):
-        super().__init__("Resolution", setting_key="renderResolution", *args, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__("Resolution", setting_key="renderResolution", **kwargs)
         self.__resolution = None
 
     def skip_update(self, update_info: dict):
@@ -284,8 +284,8 @@ class ViewportResolution(ViewportStatistic):
 
 
 class ViewportProgress(ViewportStatistic):
-    def __init__(self, *args, **kwargs):
-        super().__init__("Progress", setting_key="renderProgress", *args, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__("Progress", setting_key="renderProgress", **kwargs)
         self.__last_accumulated = 0
         self.__total_elapsed = 0
 
@@ -425,8 +425,8 @@ class _HudMessageTracker:
 
 
 class ViewportStatisticFading(ViewportStatistic):
-    def __init__(self, anim_key: str, *args, parent=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, anim_key: str, *, parent=None, **kwargs):
+        super().__init__(**kwargs)
         self.__message_time = _HudMessageTime(anim_key)
         self.__update_sub = None
         self.__alpha = 0
@@ -444,7 +444,7 @@ class ViewportStatisticFading(ViewportStatistic):
 
     def _skip_update(self, update_info: dict, check_empty: Optional[Callable] = None):
         # Skip updates when calld from the render-update, but return the cached alpha
-        if update_info.get("external_update", None) is None:
+        if update_info.get("external_update") is None:
             alpha = self.__alpha
             update_info["alpha"] = alpha
             if alpha <= 0:
@@ -512,7 +512,7 @@ class ViewportSpeed(ViewportStatisticFading):
     __CAMERA_MANIP_MODE = "/exts/omni.kit.manipulator.camera/viewportMode"
     __COLLAPSE_CAM_SPEED = "/persistent" + f"{CAM_SPEED_MESSAGE_KEY}/collapsed"
 
-    def __init__(self, viewport_api, *args, **kwargs):
+    def __init__(self, viewport_api, **kwargs):
         self.__carb_subs: Sequence[carb.settings.SubscriptionId] = None
         self.__cam_speed_entry: Optional[ui.FloatField] = None
         self.__cam_speed_model_sub: Optional[carb.Subscription] = None
@@ -522,11 +522,10 @@ class ViewportSpeed(ViewportStatisticFading):
         self.__focused_viewport: bool = False
 
         super().__init__(
-            anim_key=CAM_SPEED_MESSAGE_KEY,
+            CAM_SPEED_MESSAGE_KEY,
             stat_name="Camera Speed",
             setting_key="cameraSpeed",
             viewport_api=viewport_api,
-            *args,
             **kwargs,
         )
 
@@ -751,10 +750,8 @@ class ViewportMessage(ViewportStatisticFading):
         def message(self):
             return self.__message
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(
-            anim_key=TOAST_MESSAGE_KEY, stat_name="Toast Message", setting_key="toastMessage", *args, **kwargs
-        )
+    def __init__(self, **kwargs):
+        super().__init__(TOAST_MESSAGE_KEY, stat_name="Toast Message", setting_key="toastMessage", **kwargs)
         self.__messages = {}
 
     def skip_update(self, update_info: dict):
@@ -779,7 +776,7 @@ class ViewportMessage(ViewportStatisticFading):
 
     def add_message(self, message: str, message_id: str):
         self.__messages[message_id] = ViewportMessage._ToastMessage(
-            message, self.__messages.get(message_id), self.message_time
+            message, prev_tckr=self.__messages.get(message_id), message_time=self.message_time
         )
         # Add the update subscription so that messages / updates are received even when not rendering
         self._begin_animation()

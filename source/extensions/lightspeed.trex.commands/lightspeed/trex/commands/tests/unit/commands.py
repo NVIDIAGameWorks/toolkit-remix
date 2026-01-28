@@ -164,7 +164,7 @@ class TestParticleSystemCommands(omni.kit.test.AsyncTestCase):
         test_attrs = await self.__create_test_attributes(test_prim)
 
         # Verify attributes exist
-        for attr_name in test_attrs.keys():
+        for attr_name in test_attrs:
             self.assertTrue(test_prim.HasAttribute(attr_name))
 
         # Act
@@ -172,7 +172,7 @@ class TestParticleSystemCommands(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertFalse(test_prim.HasAPI(PARTICLE_SCHEMA_NAME))
-        for attr_name in test_attrs.keys():
+        for attr_name in test_attrs:
             self.assertFalse(test_prim.HasAttribute(attr_name))
 
     async def test_remove_particle_system_command_do_no_api_present(self):
@@ -249,5 +249,5 @@ class TestParticleSystemCommands(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertFalse(test_prim.HasAPI(PARTICLE_SCHEMA_NAME))
-        for attr_name in test_attrs.keys():
+        for attr_name in test_attrs:
             self.assertFalse(test_prim.HasAttribute(attr_name))

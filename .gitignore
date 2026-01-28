@@ -1,5 +1,7 @@
 # all folders starting with _ are local
 _*/
+# virtual environment for dev environment (pre-commit hooks, etc.)
+.venv/
 # exclude local website repo, used for publishing
 website/
 

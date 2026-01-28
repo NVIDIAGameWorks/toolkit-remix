@@ -129,10 +129,10 @@ def read_file(file_path: str) -> bytes:
         try:  # try local
             with open(file_path, "rb") as in_file:
                 result_data = in_file.read()
-        except IOError as exc:
+        except OSError as exc:
             message = f"Cannot read {file_path}, error code: {result}."
             carb.log_error(message)
-            raise IOError(message) from exc
+            raise OSError(message) from exc
 
     return result_data
 
@@ -178,7 +178,7 @@ def write_file(file_path: str, data: bytes, raise_if_error: bool = True) -> bool
     if raise_if_error and result != omni.client.Result.OK:
         message = f"Cannot write {file_path}, error code: {result}."
         carb.log_error(message)
-        raise IOError(message)
+        raise OSError(message)
     return True
 
 

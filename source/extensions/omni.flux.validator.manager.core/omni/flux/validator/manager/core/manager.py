@@ -15,6 +15,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+
 import asyncio
 import functools
 import io
@@ -149,7 +150,7 @@ class ValidationSchema(BaseModel):
                         if isinstance(item, BaseModel) and isinstance(next_value, dict):
                             _update(item, next_value)
                             continue
-                        if current_value[i] != next_value:
+                        if item != next_value:
                             current_value[i] = next_value
                     continue
 
@@ -269,7 +270,7 @@ class ManagerCore:
 
         def nester_mass_build_queue_action_ui_for_plugins(model):
             to_dict = model.model_dump(serialize_as_any=True)
-            for attr in to_dict.keys():
+            for attr in to_dict:
                 next_plugin = getattr(model, attr)
                 next_plugins = []
                 if isinstance(next_plugin, _BaseSchema):
@@ -287,7 +288,7 @@ class ManagerCore:
     def __init_sub_validator_run_by_plugin(self):
         def nester_init_sub_validator_run_by_plugin(model):
             to_dict = model.model_dump(serialize_as_any=True)
-            for attr in to_dict.keys():
+            for attr in to_dict:
                 next_plugin = getattr(model, attr)
                 next_plugins = []
                 if isinstance(next_plugin, _BaseSchema):
@@ -356,7 +357,7 @@ class ManagerCore:
 
         def nester_on_run_progress(model):
             to_dict = model.model_dump(serialize_as_any=True)
-            for attr in to_dict.keys():
+            for attr in to_dict:
                 next_plugin = getattr(model, attr)
                 next_plugins = []
                 if isinstance(next_plugin, _BaseSchema):
@@ -797,7 +798,7 @@ class ManagerCore:
     def __set_mode_base_all(self):
         def _nester_set_mode_base_all(model, original_model):
             to_dict = model.model_dump(serialize_as_any=True)
-            for attr in to_dict.keys():
+            for attr in to_dict:
                 next_plugin = getattr(model, attr)
                 next_original_plugin = getattr(original_model, attr)
                 next_plugins = []
@@ -824,7 +825,6 @@ class ManagerCore:
         for check_plugin_model, check_plugin_original_model in zip(
             self.__model.check_plugins, self.__model_original.check_plugins
         ):
-
             # if any of the check group is True, we re-run the whole check group (sub context + selector(s) + check)
             found_selfs = (
                 [check_plugin_model.instance in instance_plugins]
@@ -948,7 +948,7 @@ class ManagerCore:
 
         def _nester_disable_some_plugins(model, original_model):
             to_dict = model.model_dump(serialize_as_any=True)
-            for attr in to_dict.keys():
+            for attr in to_dict:
                 next_plugin = getattr(model, attr)
                 next_original_plugin = getattr(original_model, attr)
                 next_plugins = []
@@ -1005,7 +1005,7 @@ class ManagerCore:
         # reset progress for all plugins
         def nester_reset_progress(model):
             to_dict = model.model_dump(serialize_as_any=True)
-            for attr in to_dict.keys():
+            for attr in to_dict:
                 next_plugin = getattr(model, attr)
                 next_plugins = []
                 if isinstance(next_plugin, _BaseSchema):
@@ -1040,7 +1040,7 @@ class ManagerCore:
 
         def nester_destroy(model):
             to_dict = model.model_dump(serialize_as_any=True)
-            for attr in to_dict.keys():
+            for attr in to_dict:
                 next_plugin = getattr(model, attr)
                 next_plugins = []
                 if isinstance(next_plugin, _BaseSchema):

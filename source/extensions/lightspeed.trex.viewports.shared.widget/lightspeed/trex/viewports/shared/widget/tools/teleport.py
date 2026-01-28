@@ -28,7 +28,7 @@ __all__ = [
 
 import asyncio
 import math
-from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Sequence
 
 import carb.settings
 import omni.kit.commands
@@ -83,7 +83,7 @@ def _get_current_mouse_coords() -> tuple[float, float]:
     return pos_x / dpi_scale, pos_y / dpi_scale
 
 
-def default_filter_fn(viewport_api: "ViewportAPI", selection: list[Sdf.Path]):
+def default_filter_fn(viewport_api: ViewportAPI, selection: list[Sdf.Path]):
     # default check to filter down to xformable types
     prims = [viewport_api.stage.GetPrimAtPath(path) for path in selection]
     prims = [prim for prim in prims if prim.IsA(UsdGeom.Xformable)]
@@ -91,12 +91,12 @@ def default_filter_fn(viewport_api: "ViewportAPI", selection: list[Sdf.Path]):
 
 
 async def _teleport(
-    viewport_api: "ViewportAPI",
+    viewport_api: ViewportAPI,
     prim_path: str,
-    position: Optional[carb.Double3],
+    position: carb.Double3 | None,
     max_pick_distance: int = MAX_PICK_DISTANCE,
     default_distance: float = DEFAULT_TELEPORT_DISTANCE,
-    filter_fn: Callable[["ViewportAPI", list[Sdf.Path]], list[Sdf.Path]] = default_filter_fn,
+    filter_fn: Callable[[ViewportAPI, list[Sdf.Path]], list[Sdf.Path]] = default_filter_fn,
     default_to_centered: bool = False,
 ):
     """
@@ -185,12 +185,12 @@ async def _teleport(
 
 @omni.usd.handle_exception
 async def teleport(
-    viewport_api: "ViewportAPI",
+    viewport_api: ViewportAPI,
     prim_path: str,
-    position: Optional[carb.Double3],
+    position: carb.Double3 | None,
     max_pick_distance: int = MAX_PICK_DISTANCE,
     default_distance: float = DEFAULT_TELEPORT_DISTANCE,
-    filter_fn: Callable[["ViewportAPI", list[Sdf.Path]], list[Sdf.Path]] = None,
+    filter_fn: Callable[[ViewportAPI, list[Sdf.Path]], list[Sdf.Path]] = None,
     default_to_centered: bool = False,
 ):
     """Move the currently selected object to the picked position."""
@@ -213,7 +213,7 @@ class PointMousePicker:
 
     def __init__(
         self,
-        viewport_api: "ViewportAPI",
+        viewport_api: ViewportAPI,
         viewport_frame: ui.Frame,
         point_picked_callback_fn: Callable[[str, carb.Double3 | None, carb.Uint2], None],
     ):
@@ -243,7 +243,7 @@ class PointMousePicker:
         self._user_point_picked_callback_fn(prim_path, position, pixels)
 
     def _pick_default(self):
-        self._point_picked_fn("", (0.0, 0.0, 0.0), (int(0), int(0)))
+        self._point_picked_fn("", (0.0, 0.0, 0.0), (0, 0))
 
     def pick(self, mouse_coords: tuple[float, float] | None = None, ndc_coords: tuple[float, float] | None = None):
         if mouse_coords and ndc_coords:
@@ -333,7 +333,7 @@ class Teleporter:
     TELEPORT_MAX_PICK_DISTANCE_SETTING = "/app/viewport/teleport/max_pick_distance_from_camera"
     TELEPORT_DEFAULT_DISTANCE_SETTING = "/app/viewport/teleport/default_teleport_distance_from_camera"
 
-    def __init__(self, viewport_api: "ViewportAPI"):
+    def __init__(self, viewport_api: ViewportAPI):
         self._viewport_api = viewport_api
         self._settings = carb.settings.get_settings()
 
@@ -354,7 +354,7 @@ class Teleporter:
         # Subscribe to presses from Teleport Button
         self._button_pressed_subscription = _teleport_button_group.subscribe_button_pressed(self.on_teleport_button)
 
-    def filter_to_transform_target_fn(self, _viewport_api: "ViewportAPI", selection: list[Sdf.Path]):
+    def filter_to_transform_target_fn(self, _viewport_api: ViewportAPI, selection: list[Sdf.Path]):
         """Replace path with the best target for teleport translation"""
         # redirect from path under instance root to prototype path (same way transform manipulators work)
         # from: lightspeed\trex\viewports\manipulators\custom_manipulator\prim_transform_manipulator.py

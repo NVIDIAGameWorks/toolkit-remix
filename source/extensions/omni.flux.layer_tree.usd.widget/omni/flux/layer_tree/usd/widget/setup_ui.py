@@ -138,7 +138,7 @@ class LayerTreeWidget:
                         with ui.ZStack(height=ui.Pixel(self._height)):
                             self._tree_scroll_frame = ui.ScrollingFrame(
                                 name="PropertiesPaneSection",
-                                horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,  # noqa E501
+                                horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
                             )
                             with self._tree_scroll_frame:
                                 self._layer_tree_widget = _TreeWidget(

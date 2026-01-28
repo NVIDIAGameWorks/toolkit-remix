@@ -221,7 +221,6 @@ class ParticleGizmosLayer:
 
         # Add the manipulator into the SceneView's scene
         with self._scene_view.scene:
-
             particle_prims = []
             for prim in stage.TraverseAll():
                 if not prim.IsA(UsdGeom.Mesh):

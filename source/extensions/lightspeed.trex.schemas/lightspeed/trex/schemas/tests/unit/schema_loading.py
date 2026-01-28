@@ -61,7 +61,7 @@ class TestSchemaLoading(AsyncTestCase):
         # Assert
         usda_result = stage.GetRootLayer().ExportToString()
         fixture_path = pathlib.Path(__file__).parent / "fixtures" / "remix_particle_system.usda"
-        with open(fixture_path, "r", encoding="utf-8") as f:
+        with open(fixture_path, encoding="utf-8") as f:
             expected_usda = f.read()
 
         self.assertEqual(usda_result.strip(), expected_usda.strip())

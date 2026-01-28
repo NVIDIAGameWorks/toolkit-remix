@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.1]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [1.8.0]
 ### Added
 - Added broken symlink check and updated wizard call to use payload when opening existing project

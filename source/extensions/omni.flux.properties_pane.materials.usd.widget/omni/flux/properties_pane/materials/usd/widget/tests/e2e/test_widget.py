@@ -20,7 +20,6 @@ from pxr import UsdShade
 
 class AsyncTestMeterialPropertyHelper:
     def __init__(self):
-
         self.window = None
         self.property_widget = None
 
@@ -89,7 +88,6 @@ class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
             await omni.usd.get_context().close_stage_async()
 
     async def test_file_texture_edit_changes(self):
-
         stage = omni.usd.get_context().get_stage()
 
         prim = stage.GetPrimAtPath("/World/Cube")
@@ -116,10 +114,9 @@ class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
 
             await widget_ref.input(asset_path, end_key=carb.input.KeyboardInput.ENTER)
             await omni.kit.ui_test.human_delay(human_delay_speed=3)
-            self.assertEquals(OmniUrl(widget_ref.widget.model.get_value_as_string()).path, posix_asset_path)
+            self.assertEqual(OmniUrl(widget_ref.widget.model.get_value_as_string()).path, posix_asset_path)
 
     async def test_preview_window(self):
-
         stage = omni.usd.get_context().get_stage()
 
         prim = stage.GetPrimAtPath("/World/Cube")

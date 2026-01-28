@@ -35,7 +35,6 @@ _CONTEXT = "/exts/lightspeed.event.capture_persp_to_persp/context"
 
 
 class EventCapturePerspToPerspCore(_ILSSEvent):
-
     _PERSP_PATH = "/OmniverseKit_Persp"
 
     def __init__(self):

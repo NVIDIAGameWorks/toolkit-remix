@@ -114,50 +114,61 @@ PIX2PIX_TEST_SCRIPT_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("test.py"))
 PIX2PIX_CHECKPOINTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("checkpoints"))
 PIX2PIX_RESULTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("results"))
 
+# REGEX Constants
+
+# Prim Path REGEX
 REGEX_IN_INSTANCE_PATH = (
-    f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa PLW1401
+    f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*/([a-zA-Z0-9_/]+)*$"
 )
 REGEX_MESH_PATH_BASE = rf"^(.*)({MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*"
 REGEX_MESH_PATH = rf"{REGEX_MESH_PATH_BASE}$"
 # direct children of mesh group
-REGEX_IN_MESH_PATH = rf"{REGEX_MESH_PATH_BASE}/([a-zA-Z0-9_\/]+)*$"
+REGEX_IN_MESH_PATH = rf"{REGEX_MESH_PATH_BASE}/([a-zA-Z0-9_/]+)*$"
 # all children of mesh group
-REGEX_IN_MESH_CHILDREN_PATH = rf"{REGEX_MESH_PATH_BASE}/*([a-zA-Z0-9_\/]+)*$"
-REGEX_MESH_PATH_AND_CHILDREN = rf"{REGEX_MESH_PATH_BASE}(/*[a-zA-Z0-9_\/]*)*$"
+REGEX_IN_MESH_CHILDREN_PATH = rf"{REGEX_MESH_PATH_BASE}/*([a-zA-Z0-9_/]+)*$"
+REGEX_MESH_PATH_AND_CHILDREN = rf"{REGEX_MESH_PATH_BASE}(/*[a-zA-Z0-9_/]*)*$"
 REGEX_INSTANCE_PATH = f"^(.*)({INSTANCE_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
-REGEX_HASH = f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX}|{MATERIAL_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*(.*)$"  # noqa E501
-REGEX_HASH_GENERIC = f"^(.*)([A-Z0-9]{{16}})(_[a-zA-Z0-9]+)*(.*)$"  # noqa PLW1309
 REGEX_MESH_TO_INSTANCE_SUB = (
-    f"^((.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*)"  # noqa E501
+    f"^((.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*)"
 )
-REGEX_INSTANCE_TO_MESH_SUB = f"({LIGHT_PATH}|{INSTANCE_PATH}|{MESH_PATH})([A-Z0-9]{{16}})(_[0-9]+)"  # noqa E501
+REGEX_INSTANCE_TO_MESH_SUB = f"({LIGHT_PATH}|{INSTANCE_PATH}|{MESH_PATH})([A-Z0-9]{{16}})(_[0-9]+)"
 REGEX_LIGHT_PATH_BASE = f"^(.*)({LIGHT_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*"
 REGEX_LIGHT_PATH = rf"{REGEX_LIGHT_PATH_BASE}$"
 # direct children of light group
-REGEX_IN_LIGHT_PATH = rf"{REGEX_LIGHT_PATH_BASE}/([a-zA-Z0-9_\/]+)*$"
+REGEX_IN_LIGHT_PATH = rf"{REGEX_LIGHT_PATH_BASE}/([a-zA-Z0-9_/]+)*$"
 # all children of light group
-REGEX_IN_LIGHT_CHILDREN_PATH = rf"{REGEX_LIGHT_PATH_BASE}/*([a-zA-Z0-9_\/]+)*$"
-REGEX_LIGHT_PATH_AND_CHILDREN = rf"{REGEX_LIGHT_PATH_BASE}(/*[a-zA-Z0-9_\/]*)*$"
+REGEX_IN_LIGHT_CHILDREN_PATH = rf"{REGEX_LIGHT_PATH_BASE}/*([a-zA-Z0-9_/]+)*$"
+REGEX_LIGHT_PATH_AND_CHILDREN = rf"{REGEX_LIGHT_PATH_BASE}(/*[a-zA-Z0-9_/]*)*$"
+# fmt: off
 REGEX_MESH_INST_LIGHT_PATH = (
     f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*$"
 )
 REGEX_SUB_LIGHT_PATH = (
-    f"^(.*)({LIGHT_NAME_PREFIX}|{MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*\/([a-zA-Z0-9_\/]+)*$"  # noqa
+    f"^(.*)({LIGHT_NAME_PREFIX}|{MESH_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*/([a-zA-Z0-9_/]+)*$"
 )
 REGEX_MAT_MESH_LIGHT_PATH = (
-    f"^(.*)({LIGHT_NAME_PREFIX}|{MESH_NAME_PREFIX}|{MATERIAL_NAME_PREFIX})([A-Z0-9]{{16}})$"  # noqa E501
+    f"^(.*)({LIGHT_NAME_PREFIX}|{MESH_NAME_PREFIX}|{MATERIAL_NAME_PREFIX})([A-Z0-9]{{16}})$"
 )
-REGEX_RESERVED_FILENAME = rf"(\b{REMIX_MOD_FILE}\b)|(\b{CAPTURE_FILE_PREFIX}[a-zA-Z]*\b)|(\bmod_{REMIX_CAPTURE_BAKER_SUFFIX}\b)|(\bsublayer\b)"  # noqa E501
+# fmt: on
 
+# Hash REGEX
+REGEX_HASH = f"^(.*)({LIGHT_NAME_PREFIX}|{INSTANCE_NAME_PREFIX}|{MESH_NAME_PREFIX}|{MATERIAL_NAME_PREFIX})([A-Z0-9]{{16}})(_[0-9]+)*(.*)$"
+REGEX_HASH_GENERIC = r"^(.*)([A-Z0-9]{16})(_[a-zA-Z0-9]+)*(.*)$"
+
+# Filename and Filepath REGEX
+REGEX_RESERVED_FILENAME = rf"(\b{REMIX_MOD_FILE}\b)|(\b{CAPTURE_FILE_PREFIX}[a-zA-Z]*\b)|(\bmod_{REMIX_CAPTURE_BAKER_SUFFIX}\b)|(\bsublayer\b)"
 # Based on: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#file-and-directory-names
-REGEX_VALID_PATH = r'(?!^.*[\\/]*(?:CON|PRN|AUX|NUL|COM\d|LPT\d)(?:\.[\w\d]+)*$)^((?:\w:)?[^\0-\31"&*:<>?|]+[^\0-\31"&*\.:<>?|])$'  # noqa E501
+REGEX_VALID_PATH = (
+    r'(?!^.*[\/]*(?:CON|PRN|AUX|NUL|COM\d|LPT\d)(?:\.[\w\d]+)*$)^((?:\w:)?[^\0-\31"&*:<>?|]+[^\0-\31"&*\.:<>?|])$'
+)
 
-# REGEX
+# Compiled REGEX
 COMPILED_REGEX_HASH = re.compile(REGEX_HASH)
 COMPILED_REGEX_HASH_GENERIC = re.compile(REGEX_HASH_GENERIC)
 COMPILED_REGEX_INSTANCE_TO_MESH_SUB = re.compile(REGEX_INSTANCE_TO_MESH_SUB)
 COMPILED_REGEX_MESH_TO_INSTANCE_SUB = re.compile(REGEX_MESH_TO_INSTANCE_SUB)
 
+# Export Constants
 BAD_EXPORT_LOG_PREFIX = "Export is not release ready: "
 EXPORT_STATUS_NAME = "remix_replacement_status"
 EXPORT_STATUS_RELEASE_READY = "Release Ready"
@@ -165,7 +176,6 @@ EXPORT_STATUS_INCOMPLETE_EXPORT = "Export did not finish"
 EXPORT_STATUS_PRECHECK_ERRORS = "Precheck Failed"
 EXPORT_STATUS_PRECHECK_MEMORY_ERRORS = "Precheck Memory Failed"
 EXPORT_STATUS_POSTPROCESS_ERRORS = "PostProcess Errors"
-
 
 # Texture information describing various aspects of a class of textures such as its encoding and desired export
 # format.
@@ -322,7 +332,7 @@ REMIX_CATEGORIES = {
     },
     "Sky": {
         "attr": "remix_category:sky",
-        "tooltip": "Geometries from draw calls used for the sky or are otherwise intended to be very far away from the camera at all times (no parallax).",  # noqa E501
+        "tooltip": "Geometries from draw calls used for the sky or are otherwise intended to be very far away from the camera at all times (no parallax).",
         "full_description": [
             "Geometries from draw calls used for the sky or",
             "are otherwise intended to be very far away from",
@@ -407,7 +417,7 @@ REMIX_CATEGORIES = {
     },
     "Beam": {
         "attr": "remix_category:beam",
-        "tooltip": "Textures on draw calls that are already particles or emissively blended and have beam-like geometry.",  # noqa E501
+        "tooltip": "Textures on draw calls that are already particles or emissively blended and have beam-like geometry.",
         "full_description": [
             "Textures on draw calls that are already particles or",
             "emissively blended and have beam-like geometry.",
@@ -447,7 +457,7 @@ REMIX_CATEGORIES = {
     },
     "Terrain": {
         "attr": "remix_category:terrain",
-        "tooltip": "Albedo textures that are baked blended together to form a unified terrain texture used during ray tracing.",  # noqa E501
+        "tooltip": "Albedo textures that are baked blended together to form a unified terrain texture used during ray tracing.",
         "full_description": [
             "Albedo textures that are baked blended together to form",
             "a unified terrain texture used during ray tracing. Put",
@@ -528,9 +538,11 @@ REMIX_OPTIONAL_LIGHT_ATTRIBUTES = [
         "name": "Volumetric Radiance Scale",
         "type": Sdf.ValueTypeNames.Float,
         "default_value": 1.0,
-        "documentation": "Multiplies how bright this light seems to volumetric mediums like fog or suspended dust.\n"
-        + "This can be used to enhance the god-rays coming from this light.\n"
-        + "Not physically accurate.",
+        "documentation": (
+            "Multiplies how bright this light seems to volumetric mediums like fog or suspended dust.\n"
+            "This can be used to enhance the god-rays coming from this light.\n"
+            "Not physically accurate."
+        ),
     },
 ]
 

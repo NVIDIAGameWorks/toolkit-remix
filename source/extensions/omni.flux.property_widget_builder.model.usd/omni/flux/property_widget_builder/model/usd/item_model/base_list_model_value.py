@@ -81,7 +81,8 @@ class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
         self.set_value(self._list_options.index(value))
 
     def get_item_children(
-        self, parentItem: OptionItem = None  # noqa matching parent class kwarg name
+        self,
+        parentItem: OptionItem = None,  # noqa matching parent class kwarg name
     ) -> List[OptionItem]:
         return self._item_options
 

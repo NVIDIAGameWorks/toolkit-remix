@@ -129,7 +129,7 @@ class ConvertToDDS(_CheckBaseUSD):
         message = f"Stage: {stage_url}\nCheck:\n"
         all_pass = True
         for prim in selector_plugin_data:  # noqa
-            for attr_name in schema_data.conversion_args.keys():
+            for attr_name in schema_data.conversion_args:
                 texture_paths = []
                 attr = prim.GetAttribute(attr_name)
                 if attr and attr.Get():
@@ -297,7 +297,7 @@ class ConvertToDDS(_CheckBaseUSD):
                 except subprocess.CalledProcessError as e:  # noqa
                     carb.log_error(
                         "Exception when converting texture to dds.\n"
-                        + f"cmd: {e.cmd}\noutput: {e.output}\nstdout: {e.stdout}\nstderr: {e.stderr}"
+                        f"cmd: {e.cmd}\noutput: {e.output}\nstdout: {e.stdout}\nstderr: {e.stderr}"
                     )
                     message += f"- FAIL: failure in dds compression command: {future.original_command}.\n"
                     self.on_progress(progress, f"Error from {future.out_path}", True)

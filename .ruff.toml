@@ -1,0 +1,146 @@
+# Ruff configuration - migrated from .flake8
+# https://docs.astral.sh/ruff/configuration/
+
+line-length = 120
+
+exclude = [
+    # Keep in sync with repo.toml [repo_lint.ruff].files.exclude
+    # Adding exclusions here allow using the same settings outside of repo tool
+    ".eggs",
+    ".git",
+    ".teamcity",
+    ".venv",
+    ".vscode",
+    "_build",
+    "_compiler",
+    "_repo",
+    "_testoutput",
+    "backup.teamcity",
+    "portable",
+    "source/extensions/example.*",
+    "source/extensions/lightspeed.hydra.remix/plugin/usd/usd/resources/codegenTemplates",
+    "source/extensions/lightspeed.trex.logic.ogn/python/nodes",
+    "source/pythonapps",
+    "tools",
+    "venv",
+]
+
+[format]
+# Use LF line endings (matches .gitattributes: * text=auto)
+line-ending = "lf"
+
+[lint]
+select = [
+    # --- Core Python Style (PEP 8) ---
+    "E",      # pycodestyle errors: indentation, whitespace, blank lines, imports, line length
+    "F",      # pyflakes: undefined names, unused imports/variables, redefinitions
+    "N",      # pep8-naming: class/function/variable naming conventions (PascalCase, snake_case)
+    "W",      # pycodestyle warnings: deprecated features, indentation warnings
+
+    # --- Imports ---
+    # "I",    # isort: Disabled - standalone isort (via format_code.bat) handles import sorting
+    "ICN",    # flake8-import-conventions: enforce import aliases (np for numpy, pd for pandas)
+
+    # --- Code Quality ---
+    "A",      # flake8-builtins: shadowing Python builtin names (list, dict, id, etc.)
+    "B",      # flake8-bugbear: likely bugs and design problems (mutable defaults, assert usage)
+    "BLE",    # flake8-blind-except: bare except clauses catching BaseException
+    "C4",     # flake8-comprehensions: unnecessary list/dict/set calls, simplify comprehensions
+    "PIE800", # flake8-pie: unnecessary spread operator (e.g., [*list] → list)
+    "PIE804", # flake8-pie: unnecessary dict kwargs unpacking (**{"k": v} → k=v)
+    "PL",     # pylint: broad checker (errors PLE, refactor PLR, warnings PLW, conventions PLC)
+    "RET",    # flake8-return: implicit returns, unnecessary return statements, consistency
+    "SIM",    # flake8-simplify: if/else simplifications, context managers, boolean expressions
+    # "ARG",    # flake8-unused-arguments: unused function/method arguments # TODO: add _ prefix
+    # "PERF",   # perflint: performance anti-patterns (unnecessary list(), dict copying) # TODO: enable
+    # "S",      # flake8-bandit: security issues (SQL injection, hardcoded passwords, eval) # TODO: enable
+
+    # --- Modernization ---
+    "FLY",    # flynt: convert .format() and % to f-strings
+    "UP",     # pyupgrade: upgrade syntax for newer Python versions (f-strings, type unions)
+    # "FURB",   # refurb: modernize code patterns (pathlib, newer stdlib) # TODO: requires preview=true
+
+    # --- Strings & Formatting ---
+    "ISC",    # flake8-implicit-str-concat: implicit string concatenation detection
+    "Q",      # flake8-quotes: consistent quote style (single vs double)
+
+    # --- Documentation ---
+    "D3",     # pydocstyle: docstring formatting (quotes, whitespace, punctuation) D300-D399
+    # "D",      # pydocstyle: full docstring checks (presence, formatting, content) # TODO: enable
+
+    # --- Type Checking ---
+    "TCH005",  # flake8-type-checking: empty type-checking block
+    # "ANN",    # flake8-annotations: missing type annotations
+
+    # --- Class Design ---
+    "SLF",    # flake8-self: private member access from outside class
+
+    # --- Logging ---
+    "G",      # flake8-logging-format: logging format string issues (use % not f-strings)
+    "LOG",    # flake8-logging: logging anti-patterns (exception(), warn() usage)
+
+    # --- Framework-Specific ---
+    "NPY",    # NumPy-specific: NumPy deprecations and best practices
+
+    # --- Ruff-Specific ---
+    # "RUF022", # __all__ is not sorted # TODO: requires preview=true
+    # "RUF100", # Unused noqa directive # TODO: enable once lint settles
+
+    # --- Version Checks ---
+    # "YTT",    # flake8-2020: sys.version comparisons and checks # TODO: catch py310+ issues
+]
+
+ignore = [
+    # --- Formatter Conflicts (https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules) ---
+    # These rules conflict with ruff format and should be disabled
+    "W191",    # tab-indentation
+    "E111",    # indentation-with-invalid-multiple
+    "E114",    # indentation-with-invalid-multiple-comment
+    "E117",    # over-indented
+    "D300",    # triple-single-quotes
+    "Q000",    # bad-quotes-inline-string
+    "Q001",    # bad-quotes-multiline-string
+    "Q002",    # bad-quotes-docstring
+    "Q003",    # avoidable-escaped-quote
+    "ISC001",  # single-line-implicit-str-concat - conflicts with formatter (ruff format warns about this)
+    "ISC002",  # multi-line-implicit-str-concat - must be ignored alongside ISC001
+    "E501",    # line-too-long - formatter handles this best-effort
+
+    # --- Core Python Style (PEP 8) ---
+    "E731",    # Do not assign a lambda expression, use a def
+
+    # --- Imports ---
+    "F403",    # 'from module import *' used; unable to detect undefined names
+    "F405",    # Name may be undefined, or defined from star imports
+    "PLC0415", # Import outside toplevel - intentional for lazy/conditional imports
+    "PLR0402", # Use 'from x import y' instead of 'import x.y as y' - 'import omni.ui as ui' is standard
+
+    # --- Code Quality ---
+    "B905",    # zip() without strict= (Python 3.10+ feature, too noisy)
+    "PLR09",   # Too many arguments/branches/statements/returns/etc
+    "PLR0917", # Too many positional arguments
+    "PLR2004", # Magic value used in comparison
+    "PLR6301", # Method could be a function (no-self-use)
+    "PLW0602", # Global variable not assigned
+    "PLW0603", # Using the global statement
+    "PLW2901", # Loop/with variable overwritten - common pattern in this codebase
+    "RET504",  # Unnecessary variable assignment before return statement
+    "SIM103",  # Needless bool - `if x: return True else: return False` → `return x`
+    "SIM108",  # Use ternary operator - often hurts readability for complex expressions
+    "SIM117",  # Multiple with statements - ignored for omni.ui patterns
+
+    # --- Documentation ---
+    "D100",    # Missing module docstring
+    "D101",    # Missing class docstring
+    "D103",    # Missing function/method docstring
+]
+
+[lint.per-file-ignores]
+"*/__init__.py" = ["F401"]
+# __doc__ assignments are intentional module docstrings
+"*/omni.flux.material_api/*" = ["A001"]
+# Tests often need to access private members to verify internal state
+"*/tests/*" = ["SLF001"]
+
+[lint.pydocstyle]
+convention = "google"

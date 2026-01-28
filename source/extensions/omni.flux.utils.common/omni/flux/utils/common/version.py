@@ -30,7 +30,7 @@ def get_app_version() -> str:
     version_file = Path(carb.tokens.get_tokens_interface().resolve("${kit}")).parent / "VERSION"
     if version_file.exists():
         try:
-            with open(version_file, "r", encoding="utf-8") as f:
+            with open(version_file, encoding="utf-8") as f:
                 return f.read().strip()
         except OSError as e:
             carb.log_error(f"Error reading version file: {e}")

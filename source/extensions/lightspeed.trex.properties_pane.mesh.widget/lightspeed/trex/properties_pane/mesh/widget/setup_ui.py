@@ -835,10 +835,8 @@ class SetupUI:
             )
             if new_ref:
                 carb.log_info(
-                    (
-                        f"Set new ref {new_ref.assetPath} {new_ref.primPath}, "
-                        f"layer {self._context.get_stage().GetEditTarget().GetLayer()}"
-                    )
+                    f"Set new ref {new_ref.assetPath} {new_ref.primPath}, "
+                    f"layer {self._context.get_stage().GetEditTarget().GetLayer()}"
                 )
                 # select the new prim of the new added ref
                 self._core.select_child_from_instance_item_and_ref(

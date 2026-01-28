@@ -44,7 +44,6 @@ async def make_temp_directory(context):
 
 
 class TestCore(AsyncTestCase):
-
     async def __open_file(self, temp_dir):
         shutil.copytree(_get_test_data("usd/project_example"), f"{temp_dir.name}/project_example")
         await open_stage(f"{temp_dir.name}/project_example/combined.usda")
@@ -63,7 +62,7 @@ class TestCore(AsyncTestCase):
             settings.set("/rtx/useViewLightingMode", True)
 
             log_file = settings.get("log/file")
-            with open(log_file, "r", encoding="utf-8") as log:
+            with open(log_file, encoding="utf-8") as log:
                 lines = log.readlines()
 
             # Check log file to make sure event was triggered
@@ -84,7 +83,7 @@ class TestCore(AsyncTestCase):
             settings.set("/rtx/useViewLightingMode", False)
 
             log_file = settings.get("log/file")
-            with open(log_file, "r", encoding="utf-8") as log:
+            with open(log_file, encoding="utf-8") as log:
                 lines = log.readlines()
 
             # Check log file to make sure event was triggered

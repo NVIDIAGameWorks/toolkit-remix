@@ -118,15 +118,15 @@ class TestFileMetadataWritter(AsyncTestCase):
             await core.deferred_run()
 
             v1 = _read_metadata(randon_input_path, _BASE_HASH_KEY)
-            self.assertEquals(v1, _hash_file(randon_input_path))
+            self.assertEqual(v1, _hash_file(randon_input_path))
             self.assertIsNotNone(v1)
 
             v2 = _read_metadata(randon_output_path, _BASE_HASH_KEY)
-            self.assertEquals(v2, _hash_file(randon_output_path))
+            self.assertEqual(v2, _hash_file(randon_output_path))
             self.assertIsNotNone(v2)
 
             v3 = _read_metadata(randon_output_path, _VALIDATION_PASSED)
-            self.assertEquals(v3, True)
+            self.assertEqual(v3, True)
             self.assertIsNotNone(v3)
 
     async def test_run_ok_metadata_written_channels(self):
@@ -213,15 +213,15 @@ class TestFileMetadataWritter(AsyncTestCase):
             await core.deferred_run()
 
             v1 = _read_metadata(randon_input_path, _BASE_HASH_KEY)
-            self.assertEquals(v1, _hash_file(randon_input_path))
+            self.assertEqual(v1, _hash_file(randon_input_path))
             self.assertIsNotNone(v1)
 
             v2 = _read_metadata(randon_output_path, _BASE_HASH_KEY)
-            self.assertEquals(v2, _hash_file(randon_output_path))
+            self.assertEqual(v2, _hash_file(randon_output_path))
             self.assertIsNotNone(v2)
 
             v3 = _read_metadata(randon_output_path, _VALIDATION_PASSED)
-            self.assertEquals(v3, True)
+            self.assertEqual(v3, True)
             self.assertIsNotNone(v3)
 
             self.assertIsNone(_read_metadata(randon_input_path1, _BASE_HASH_KEY))

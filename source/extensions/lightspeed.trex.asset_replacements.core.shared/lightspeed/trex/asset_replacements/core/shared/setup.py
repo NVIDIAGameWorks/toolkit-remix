@@ -661,7 +661,6 @@ class Setup:
         layer: Sdf.Layer,
         create_if_remix_ref: bool = True,
     ) -> tuple[Sdf.Reference, str]:
-
         detail_message = ""
 
         # it can happen that we added the same reference multiple time. But USD can't do that.

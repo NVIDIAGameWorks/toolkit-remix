@@ -214,12 +214,11 @@ class ViewportLayers:
                                     )
                         ui.Spacer(width=ui.Pixel(8))
                     ui.Spacer(height=ui.Pixel(8))
+        elif factory in self.__viewport_layers:
+            self.__viewport_layers[factory].destroy()
+            del self.__viewport_layers[factory]
         else:
-            if factory in self.__viewport_layers:
-                self.__viewport_layers[factory].destroy()
-                del self.__viewport_layers[factory]
-            else:
-                carb.log_error(f"Removing {factory} which was never instantiated")
+            carb.log_error(f"Removing {factory} which was never instantiated")
 
     def __del__(self):
         self.destroy()

@@ -25,7 +25,6 @@ from .mesh_groups import MeshGroupsTreePlugin as _MeshGroupsTreePlugin
 
 
 class LightspeedStageManagerUSDTreePluginsExtension(omni.ext.IExt):
-
     _PLUGINS = [_CategoryGroupsTreePlugin, _MeshGroupsTreePlugin]
 
     def on_startup(self, _):

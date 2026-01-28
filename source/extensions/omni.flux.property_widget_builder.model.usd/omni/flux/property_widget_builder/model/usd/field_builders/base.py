@@ -65,7 +65,7 @@ class USDBuilderList(FieldBuilderList):
 
     def _build_func_decorator(self, claim_func) -> Callable:
         def _deco(
-            build_func: Callable[["_Item"], ui.Widget | list[ui.Widget] | None]
+            build_func: Callable[["_Item"], ui.Widget | list[ui.Widget] | None],
         ) -> Callable[["_Item"], ui.Widget | list[ui.Widget] | None]:
             self.append(FieldBuilder(claim_func=claim_func, build_func=build_func))
             return build_func

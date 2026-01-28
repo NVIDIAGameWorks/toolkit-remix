@@ -53,7 +53,6 @@ async def create_prims_and_link_assets(
 
     material_paths = []
     for mat_prefix, imported_types in grouped_textures.items():
-
         # Create a unique valid prim path based on the filename
         prim_path = omni.usd.get_stage_next_free_path(
             stage, f"/TextureImporter/Looks/{Tf.MakeValidIdentifier(mat_prefix)}", False

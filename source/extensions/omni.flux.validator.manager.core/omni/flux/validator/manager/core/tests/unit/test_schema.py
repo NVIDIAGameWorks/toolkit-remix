@@ -40,7 +40,6 @@ def _good_schema():
 
 class TestUpdateMethod(AsyncTestCase):
     async def setUp(self):
-
         self.mymodel_instance = _ValidationSchema(**_good_schema())
 
     async def test_valid_update(self):

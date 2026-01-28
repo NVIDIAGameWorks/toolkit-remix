@@ -21,7 +21,6 @@ from pxr import Usd
 
 
 class TestSchemaDiscovery(omni.kit.test.AsyncTestCase):
-
     async def test_discover_actual_schema_attributes(self):
         """Test to discover the actual schema attributes and their display names"""
         # Arrange & Act

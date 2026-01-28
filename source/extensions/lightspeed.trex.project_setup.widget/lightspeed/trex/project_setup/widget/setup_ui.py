@@ -51,7 +51,6 @@ from .mod_file_picker_create import open_file_picker_create
 
 
 class ProjectSetupPane(WorkspaceWidget):
-
     PROPERTY_NAME_COLUMN_WIDTH = ui.Pixel(150)
 
     def __init__(self, context_name: str):

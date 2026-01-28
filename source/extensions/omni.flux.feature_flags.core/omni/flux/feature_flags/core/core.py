@@ -15,6 +15,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+
 __all__ = ["FeatureFlagsCore"]
 
 import contextlib
@@ -177,7 +178,7 @@ class FeatureFlagsCore:
             transient: The dictionary of transient settings
             persistent: The dictionary of persistent settings
         """
-        for key in persistent.copy().keys():
+        for key in persistent.copy():
             if key not in transient:
                 del persistent[key]
 

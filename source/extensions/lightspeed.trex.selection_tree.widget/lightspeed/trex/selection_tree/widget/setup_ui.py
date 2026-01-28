@@ -189,7 +189,7 @@ class SetupUI:
                     with ui.VStack():
                         self._tree_scroll_frame = ui.ScrollingFrame(
                             name="PropertiesPaneSection",
-                            horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,  # noqa E501
+                            horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
                             height=ui.Pixel(self.DEFAULT_TREE_FRAME_HEIGHT),
                             identifier="TreeSelectionScrollFrame",
                         )
@@ -875,10 +875,8 @@ class SetupUI:
             )
             if new_ref:
                 carb.log_info(
-                    (
-                        f"Set new ref {new_ref.assetPath} {new_ref.primPath}, "
-                        f"layer {self._context.get_stage().GetEditTarget().GetLayer()}"
-                    )
+                    f"Set new ref {new_ref.assetPath} {new_ref.primPath}, "
+                    f"layer {self._context.get_stage().GetEditTarget().GetLayer()}"
                 )
                 # select the new prim of the new added ref
                 current_instance_items = [

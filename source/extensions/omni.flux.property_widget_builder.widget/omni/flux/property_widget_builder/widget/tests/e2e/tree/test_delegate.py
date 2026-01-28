@@ -28,7 +28,6 @@ from ...ui_components import AsyncTestPropertyWidget, TestItem
 
 class TestFieldBuilder(omni.kit.test.AsyncTestCase):
     async def test_custom_widget_builder(self):
-
         field_builders = FieldBuilderList()
 
         @field_builders.register_build(lambda _: True)
@@ -54,7 +53,6 @@ class TestFieldBuilder(omni.kit.test.AsyncTestCase):
             return [widget]
 
         async with AsyncTestPropertyWidget() as helper:
-
             helper.delegate.field_builders = field_builders
 
             items = [

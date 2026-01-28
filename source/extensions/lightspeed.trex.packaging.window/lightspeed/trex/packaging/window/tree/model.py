@@ -15,6 +15,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+
 __all__ = ["PackagingErrorModel", "AssetValidationError", "HEADER_DICT"]
 
 from collections.abc import Callable
@@ -143,18 +144,17 @@ class PackagingErrorModel(ui.AbstractItemModel):
                             self._texture_core.replace_textures(
                                 [(str(item.prim_path), item.fixed_asset_path)], use_undo_group=False
                             )
+                    elif is_reference:
+                        self._asset_core.remove_reference(
+                            stage,
+                            item.prim_path,
+                            Sdf.Reference(assetPath=item.asset_path, primPath=item.prim_path),
+                            target_layer,
+                        )
                     else:
-                        if is_reference:
-                            self._asset_core.remove_reference(
-                                stage,
-                                item.prim_path,
-                                Sdf.Reference(assetPath=item.asset_path, primPath=item.prim_path),
-                                target_layer,
-                            )
-                        else:
-                            self._texture_core.replace_textures(
-                                [(str(item.prim_path), None)], force=True, use_undo_group=False
-                            )
+                        self._texture_core.replace_textures(
+                            [(str(item.prim_path), None)], force=True, use_undo_group=False
+                        )
 
         self.__on_action_changed()
 
@@ -177,9 +177,8 @@ class PackagingErrorModel(ui.AbstractItemModel):
         if is_reference:
             if not is_usd_file_path_valid_for_filepicker(directory, filename):
                 return AssetValidationError.INVALID_REFERENCE
-        else:
-            if asset_url.suffix.lower() != ".dds":
-                return AssetValidationError.INVALID_TEXTURE
+        elif asset_url.suffix.lower() != ".dds":
+            return AssetValidationError.INVALID_TEXTURE
 
         if not self._asset_core.was_the_asset_ingested(str(asset_url)):
             return AssetValidationError.NOT_INGESTED

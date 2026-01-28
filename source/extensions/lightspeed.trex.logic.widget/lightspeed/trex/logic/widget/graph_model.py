@@ -22,7 +22,6 @@ from pxr import Sdf
 
 
 class RemixLogicGraphModel(OmniGraphModel):
-
     def cull_legacy_prims(self):
         """Return True if the OgnPrim nodes should not be created in the graph"""
         return not carb.settings.get_settings().get("/persistent/omnigraph/createPrimNodes")
@@ -43,10 +42,16 @@ class RemixLogicGraphModel(OmniGraphModel):
                     return (
                         f"Flexible type)\n\t"
                         f"Connect a port to specify type.\n\t(Valid types: {', '.join(union_types)}"
-                    )
-                return "Flexible type)\n\tConnect a port to specify type. \n\t(Could not determine valid types."
+                    )  # fmt: skip
+                return (
+                    "Flexible type)\n\t"
+                    "Connect a port to specify type. \n\t(Could not determine valid types."
+                )  # fmt: skip
 
             if extended_type == og.ExtendedAttributeType.EXTENDED_ATTR_TYPE_ANY:
-                return "Flexible type)\n\tConnect a port to specify type.\n\t(Valid types: Any"
+                return (
+                    "Flexible type)\n\t"
+                    "Connect a port to specify type.\n\t(Valid types: Any"
+                )  # fmt: skip
 
         return result

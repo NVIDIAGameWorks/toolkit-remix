@@ -31,7 +31,6 @@ if TYPE_CHECKING:
 
 
 class TreeDelegateBase(ui.AbstractItemDelegate):
-
     DEFAULT_IMAGE_ICON_SIZE = ui.Pixel(24)
 
     def __init__(self):

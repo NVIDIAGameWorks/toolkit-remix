@@ -197,7 +197,7 @@ class GenerateThumbnail(_CheckBaseUSD):
         up_axis = UsdGeom.GetStageUpAxis(stage)
 
         def add_viewport_camera(cam_name, translate, rotate, ortho, md_name, counter):
-            cam_path = f'{cam_prefix}{cam_name}{counter if counter else ""}'
+            cam_path = f"{cam_prefix}{cam_name}{counter if counter else ''}"
             prim = stage.GetPrimAtPath(cam_path)
             existed = prim and prim.IsValid()
             # Test if it's a camera, but also might be a pure-over which Define should take.
@@ -361,7 +361,6 @@ class GenerateThumbnail(_CheckBaseUSD):
         message = f"Generating {str(thumb_path)}\n"
         self.on_progress(0.5, message, True)
         with Usd.EditContext(stage, stage.GetSessionLayer()):
-
             self._reset_camera(stage)
             timeout = 500
             i = 0

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.22.2]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [2.22.1]
 ### Fixed
 - Fixed virtual attribute default values being overwritten during initialization

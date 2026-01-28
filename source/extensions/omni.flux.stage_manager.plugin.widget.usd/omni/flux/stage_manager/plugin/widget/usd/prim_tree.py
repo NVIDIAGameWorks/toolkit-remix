@@ -54,7 +54,7 @@ class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin, _StageManagerMenuMixin)
         # Make sure to only count prims, not virtual groups
         prims_count = len([i for i in model.iter_items_children() if not (hasattr(i, "is_virtual") and i.is_virtual)])
 
-        ui.Label(f"{prims_count} prim{'s' if prims_count > 1 else '' } available")
+        ui.Label(f"{prims_count} prim{'s' if prims_count > 1 else ''} available")
 
     @classmethod
     def _get_menu_items(cls):

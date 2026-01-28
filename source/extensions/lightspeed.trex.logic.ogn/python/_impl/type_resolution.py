@@ -34,6 +34,7 @@ Usage for flexible-type nodes:
         def on_connection_type_resolve(node) -> None:
             resolve_types(node, MyFlexNode.VALID_COMBINATIONS)
 """
+
 from __future__ import annotations
 
 from contextlib import suppress

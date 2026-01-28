@@ -150,8 +150,7 @@ class ImporterCore:
             result, entry = omni.client.stat(default_output_folder)
             if result != omni.client.Result.OK or not entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN:
                 carb.log_error(
-                    f"import_batch was passed an invalid default_output_folder. "
-                    f"{default_output_folder} doesn't exist!"
+                    f"import_batch was passed an invalid default_output_folder. {default_output_folder} doesn't exist!"
                 )
                 return False
 
@@ -165,7 +164,7 @@ class ImporterCore:
                     carb.log_error(f"Config file passed to import_batch could not be opened. path: {batch_config}")
                     return False
                 batch_config = _path_utils.read_json_file(json_path)
-            except (json.JSONDecodeError, IOError):
+            except (OSError, json.JSONDecodeError):
                 carb.log_error(f"Config file passed to import_batch failed json parsing. path: {batch_config}")
                 return False
         model = AssetImporterModel(**batch_config)
@@ -238,7 +237,6 @@ class ImporterCore:
 
         rename_context = None
         for collection, rename_task in collections:
-
             collector_weakref = weakref.ref(collection)
 
             def progress_callback(step, total):
@@ -275,7 +273,7 @@ class ImporterCore:
 
     def _context_from_model(self, model: AssetItemImporterModel):
         context = _kit_asset_converter.AssetConverterContext()
-        for key in context.to_dict().keys():
+        for key in context.to_dict():
             value = getattr(model, key, None)
             if value is not None:
                 setattr(context, key, value)

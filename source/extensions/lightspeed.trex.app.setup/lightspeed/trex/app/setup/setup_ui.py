@@ -72,7 +72,7 @@ class MenubarIgnore:
             carb.log_warn("No menubar ignore file found!")
             self.__rules = {"inclusions": set(), "exclusions": set()}
             return
-        with open(ignore_file_path, "r", encoding="utf-8") as f:
+        with open(ignore_file_path, encoding="utf-8") as f:
             content = f.read()
             content = {line.strip() for line in content.split("\n") if line.strip() and not line.startswith("#")}
 

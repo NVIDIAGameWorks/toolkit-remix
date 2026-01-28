@@ -23,7 +23,6 @@ from . import particle
 
 
 class LightspeedCommandsExtension(omni.ext.IExt):
-
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.trex.commands] Lightspeed Commands Startup.")
 

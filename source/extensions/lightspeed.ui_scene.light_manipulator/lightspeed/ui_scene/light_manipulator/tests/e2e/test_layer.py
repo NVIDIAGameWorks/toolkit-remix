@@ -24,7 +24,6 @@ from pxr import Usd
 
 
 class TestLightLayer(OmniUiTest):
-
     # Before running each test
     async def setUp(self):
         await omni.usd.get_context().new_stage_async()

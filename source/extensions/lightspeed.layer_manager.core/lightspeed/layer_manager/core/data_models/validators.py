@@ -85,9 +85,8 @@ class LayerManagerValidators:
             if OmniUrl(layer_path).exists:
                 raise ValueError(f"A file already exists at the layer path: {layer_path}")
         # Make sure the layer is valid is inserting the layer
-        else:
-            if not Sdf.Layer.FindOrOpen(str(layer_path)):
-                raise ValueError(f"The layer does not exist: {layer_path}")
+        elif not Sdf.Layer.FindOrOpen(str(layer_path)):
+            raise ValueError(f"The layer does not exist: {layer_path}")
 
         return layer_path
 

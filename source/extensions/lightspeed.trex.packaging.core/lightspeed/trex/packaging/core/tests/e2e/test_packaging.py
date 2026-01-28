@@ -31,8 +31,8 @@ from omni.kit.test_suite.helpers import get_test_data_path
 def compare_files(fn1, fn2):
     try:  # try to compare the content to ignore CRLF/LF stuffs
         with (
-            open(fn1, "rt", newline=None, encoding="utf8") as file1,
-            open(fn2, "rt", newline=None, encoding="utf8") as file2,
+            open(fn1, newline=None, encoding="utf8") as file1,
+            open(fn2, newline=None, encoding="utf8") as file2,
         ):
             return file1.read() == file2.read()
     except UnicodeDecodeError:  # not a text file

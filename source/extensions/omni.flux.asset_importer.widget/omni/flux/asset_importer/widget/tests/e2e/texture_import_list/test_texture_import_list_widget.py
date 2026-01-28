@@ -212,7 +212,8 @@ class TestTextureImportListWidget(omni.kit.test.AsyncTestCase):
 
         # Make sure we are selecting the right file
         self.assertEqual(
-            str(new_item.parent.resolve()), dir_path_field.model._field.model.get_value_as_string()  # noqa PLW0212
+            str(new_item.parent.resolve()),
+            dir_path_field.model._field.model.get_value_as_string(),  # noqa PLW0212
         )
         self.assertEqual(str(new_item.name), file_name_field.model.get_value_as_string())
 

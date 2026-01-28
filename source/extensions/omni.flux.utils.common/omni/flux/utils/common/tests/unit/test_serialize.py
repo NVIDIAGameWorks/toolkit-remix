@@ -124,8 +124,8 @@ class TestSerializer(omni.kit.test.AsyncTestCase):
         register_number_converter_hooks(serializer)
 
         def test_round_trip(native, primitive):
-            self.assertEquals(serializer.serialize(native), primitive)
-            self.assertEquals(serializer.deserialize(primitive), native)
+            self.assertEqual(serializer.serialize(native), primitive)
+            self.assertEqual(serializer.deserialize(primitive), native)
 
         test_round_trip(42, 42)
         test_round_trip(42.0, {"_key": "float", "_value": "0x1.5000000000000p+5"})
@@ -137,8 +137,8 @@ class TestSerializer(omni.kit.test.AsyncTestCase):
         register_number_converter_hooks(serializer)
 
         def test_round_trip(native, jsonstr):
-            self.assertEquals(serializer.dumps(native), jsonstr)
-            self.assertEquals(serializer.loads(jsonstr), native)
+            self.assertEqual(serializer.dumps(native), jsonstr)
+            self.assertEqual(serializer.loads(jsonstr), native)
 
         # int has no registered converter, so it should just pass through to json
         test_round_trip(42, "42")
@@ -176,4 +176,4 @@ class TestSerializer(omni.kit.test.AsyncTestCase):
             },
         ]
 
-        self.assertEquals(serializer.serialize(data), expected)
+        self.assertEqual(serializer.serialize(data), expected)

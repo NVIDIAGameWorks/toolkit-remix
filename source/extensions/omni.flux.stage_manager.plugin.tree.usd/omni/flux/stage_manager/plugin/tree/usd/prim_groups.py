@@ -26,7 +26,6 @@ from .base import StageManagerUSDTreePlugin as _StageManagerUSDTreePlugin
 
 
 class PrimGroupsItem(_StageManagerUSDTreeItem):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.available_icons = _get_prim_type_icons()
@@ -47,7 +46,6 @@ class PrimGroupsItem(_StageManagerUSDTreeItem):
 
 
 class PrimGroupsModel(_StageManagerUSDTreeModel):
-
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr

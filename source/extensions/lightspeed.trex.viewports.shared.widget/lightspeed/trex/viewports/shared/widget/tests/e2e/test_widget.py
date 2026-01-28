@@ -38,7 +38,6 @@ _CONTEXT_2_NAME = _TrexContext.STAGE_CRAFT.value
 
 
 class TestSharedViewportWidget(OmniUiTest):
-
     # Before running each test
     async def setUp(self):
         await super().setUp()

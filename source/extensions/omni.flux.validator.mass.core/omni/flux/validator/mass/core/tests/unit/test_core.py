@@ -147,7 +147,6 @@ class TestCore(AsyncTestCase):
         self.assertDictEqual(result[0], _ValidationSchema(**fake_schema).model_dump(serialize_as_any=True))
 
     async def test_cook_same_templates_context(self):
-
         for i in range(4):
             with self.subTest(name=f"Testing with {i} cooking output"):
                 core = _ManagerMassCore()

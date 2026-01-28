@@ -44,7 +44,6 @@ class BytesToHuman(AbstractField):
 
         with ui.HStack(height=ui.Pixel(24)):
             for i in range(item.element_count):
-
                 item.value_models[i].set_display_fn(self.convert_size)
 
                 style_name = f"{self.style_name}Read" if item.value_models[i].read_only else self.style_name

@@ -3,7 +3,7 @@ order = 100  # to start always after the plugins
 
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "2.1.1"
+version = "2.1.2"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]

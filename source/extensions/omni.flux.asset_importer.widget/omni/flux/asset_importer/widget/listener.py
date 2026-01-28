@@ -27,7 +27,6 @@ from .common.items import ImportItem as _ImportItem
 
 
 class FileListener:
-
     WAIT_TIME = 1
 
     def __init__(self):
@@ -38,7 +37,7 @@ class FileListener:
         self._reset()
 
     def _reset(self):
-        self._models: List["_ImportItem"] = []
+        self._models: List[_ImportItem] = []
         self._listeners: Dict[str, asyncio.Task] = {}
         self.__previous_invalid_paths = set()
 

@@ -175,7 +175,7 @@ class TestMaterialShaders(omni.kit.test.AsyncTestCase):
         await self.__run_check(False, True)
         await self.__run_check(False, False)
 
-    async def test_check_valid_prim_invalid_on_other_layer_should_remove_from_invalid_paths_and_return_failure_and_message(  # noqa E501
+    async def test_check_valid_prim_invalid_on_other_layer_should_remove_from_invalid_paths_and_return_failure_and_message(
         self,
     ):
         await self.__run_check(True, False)
@@ -482,7 +482,7 @@ class TestMaterialShaders(omni.kit.test.AsyncTestCase):
                 mtl_path = omni.usd.get_stage_next_free_path(stage, "/World/Looks/TestMaterial", False)
                 mat_prim = stage.DefinePrim(mtl_path, "Material")
                 material_prim = UsdShade.Material.Get(stage, mat_prim.GetPath())
-                shader_mtl_path = stage.DefinePrim("{}/Shader".format(mtl_path), "Shader")
+                shader_mtl_path = stage.DefinePrim(f"{mtl_path}/Shader", "Shader")
                 shader_prim = UsdShade.Shader.Get(stage, shader_mtl_path.GetPath())
                 shader_out = shader_prim.CreateOutput("out", Sdf.ValueTypeNames.Token)
                 material_prim.CreateSurfaceOutput("mdl").ConnectToSource(shader_out)

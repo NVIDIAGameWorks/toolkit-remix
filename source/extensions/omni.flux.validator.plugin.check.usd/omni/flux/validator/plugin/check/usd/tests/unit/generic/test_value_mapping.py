@@ -198,7 +198,7 @@ class TestValueMappingUnit(omni.kit.test.AsyncTestCase):
             )
         else:
             progress_message = (
-                f"FAIL: The prim ({shader_prim.GetPath()}) has the attribute '{attr_name}' " f"that must to be mapped"
+                f"FAIL: The prim ({shader_prim.GetPath()}) has the attribute '{attr_name}' that must to be mapped"
             )
 
         expected_success = not has_mappable_attr or not match_predicate

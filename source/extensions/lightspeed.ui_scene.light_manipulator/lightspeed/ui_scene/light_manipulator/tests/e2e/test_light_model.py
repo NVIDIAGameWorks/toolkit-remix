@@ -44,7 +44,6 @@ class MockLayer:
 
 
 class TestLightModel(OmniUiTest):
-
     # Before running each test
     async def setUp(self):
         await omni.usd.get_context().new_stage_async()
@@ -79,10 +78,10 @@ class TestLightModel(OmniUiTest):
         with self.subTest("Test setting just the model, and reverting via updating from USD"):
             # set only the model item (not USD)
             disk_model.set_item_value(disk_model.radius, 100.0)
-            self.assertNotEquals(disk_model.get_as_float("radius"), 100.0)
+            self.assertNotEqual(disk_model.get_as_float("radius"), 100.0)
             # update the model from USD
             disk_model.update_from_prim()
-            self.assertEquals(disk_model.get_as_float("radius"), 10.0)
+            self.assertEqual(disk_model.get_as_float("radius"), 10.0)
 
         with self.subTest("Test set_float() behavior"):
             # make sure set_float forwards changes to USD
@@ -95,7 +94,7 @@ class TestLightModel(OmniUiTest):
 
             # until we update the model from USD
             disk_model.update_from_prim()
-            self.assertEquals(disk_model.get_as_float("radius"), 100.0)
+            self.assertEqual(disk_model.get_as_float("radius"), 100.0)
 
         with self.subTest("Test set_float_commands() behavior"):
             # set an initial value and then simulate a manipulator move to a new value

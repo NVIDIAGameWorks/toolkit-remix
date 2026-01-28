@@ -47,8 +47,8 @@ class TestFeatureFlag(AsyncTestCase):
                 # Assert
                 self.assertEqual(item.key, key)
                 self.assertEqual(item.value, data["value"])
-                self.assertEqual(item.display_name, data["display_name"] if "display_name" in data else key)
-                self.assertEqual(item.tooltip, data["tooltip"] if "tooltip" in data else "")
+                self.assertEqual(item.display_name, data.get("display_name", key))
+                self.assertEqual(item.tooltip, data.get("tooltip", ""))
 
     async def test_initialize_item_no_value_should_raise_value_error(self):
         # Arrange

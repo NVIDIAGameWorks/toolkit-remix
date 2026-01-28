@@ -30,7 +30,6 @@ from .categories_tree.model import Model as _Model
 
 
 class RemixCategoriesDialog:
-
     _VERTICAL_WIDGET_PADDING = 8
     _HORIZON_WIDGET_PADDING = 8
     _CATEGORIES_WIDGET_WIDTH = 420

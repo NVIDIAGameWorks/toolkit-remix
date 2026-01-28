@@ -284,7 +284,7 @@ class ValidatorMassWidget:
                         carb.log_error(f"{traceback.format_exc()}")
                         self.__show_invalid_dialog()
                         return
-                    result_run: List[Tuple["_ManagerCore", asyncio.Future]] = await self._core.create_tasks(
+                    result_run: List[Tuple[_ManagerCore, asyncio.Future]] = await self._core.create_tasks(
                         self._executors_cb.model.get_item_value_model().get_value_as_int(),
                         result,
                         custom_executors=(self._current_process_executor, self._external_process_executor),

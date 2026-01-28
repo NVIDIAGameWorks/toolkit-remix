@@ -85,7 +85,7 @@ class TestDefaultPrimUI(AsyncTestCase):
         usd_context = omni.usd.get_context()
         stage = usd_context.get_stage()
         self.assertTrue(stage.HasDefaultPrim())
-        self.assertEquals(stage.GetDefaultPrim().GetName(), "Cube2")
+        self.assertEqual(stage.GetDefaultPrim().GetName(), "Cube2")
 
         await self.__destroy_ui(window, wid)
 
@@ -110,6 +110,6 @@ class TestDefaultPrimUI(AsyncTestCase):
         usd_context = omni.usd.get_context()
         stage = usd_context.get_stage()
         self.assertTrue(stage.HasDefaultPrim())
-        self.assertEquals(stage.GetDefaultPrim().GetName(), "Cube2")
+        self.assertEqual(stage.GetDefaultPrim().GetName(), "Cube2")
 
         await self.__destroy_ui(window, wid)

@@ -56,163 +56,163 @@ class TestOmniUrl(omni.kit.test.AsyncTestCase):
 
     async def test_path(self):
         # Assert
-        self.assertEquals(str(OmniUrl(r"omniverse://host.com/path/to/my_file.usd").path), "/path/to/my_file.usd")
-        self.assertEquals(str(OmniUrl(r"omni://host.com/path/to/my_file.usd").path), "/path/to/my_file.usd")
+        self.assertEqual(str(OmniUrl(r"omniverse://host.com/path/to/my_file.usd").path), "/path/to/my_file.usd")
+        self.assertEqual(str(OmniUrl(r"omni://host.com/path/to/my_file.usd").path), "/path/to/my_file.usd")
         # NOTE: Omni client is incorrectly returning "/Z:/..." as the path on Windows, so file:C:/ tests fail.
         # When omni client fixes https://nvidia-omniverse.atlassian.net/browse/HUB-646, these tests should be enabled.
         # self.assertEquals(str(OmniUrl(r"file:Z:/path/to/my_file.usd").path), "Z:/path/to/my_file.usd")
-        self.assertEquals(str(OmniUrl(r"file:/path/to/my_file.usd").path), "/path/to/my_file.usd")
-        self.assertEquals(str(OmniUrl(r"C:\path\to\my_file.usd").path), "C:/path/to/my_file.usd")
-        self.assertEquals(str(OmniUrl(r"/path/to/my_file.usd").path), "/path/to/my_file.usd")
-        self.assertEquals(str(OmniUrl(r"./path/to/my_file.usd").path), "path/to/my_file.usd")
-        self.assertEquals(str(OmniUrl(r"../path/to/my_file.usd").path), "../path/to/my_file.usd")
+        self.assertEqual(str(OmniUrl(r"file:/path/to/my_file.usd").path), "/path/to/my_file.usd")
+        self.assertEqual(str(OmniUrl(r"C:\path\to\my_file.usd").path), "C:/path/to/my_file.usd")
+        self.assertEqual(str(OmniUrl(r"/path/to/my_file.usd").path), "/path/to/my_file.usd")
+        self.assertEqual(str(OmniUrl(r"./path/to/my_file.usd").path), "path/to/my_file.usd")
+        self.assertEqual(str(OmniUrl(r"../path/to/my_file.usd").path), "../path/to/my_file.usd")
 
-        self.assertEquals(str(OmniUrl(r"omniverse://host.com/path/to").path), "/path/to")
-        self.assertEquals(str(OmniUrl(r"omni://host.com/path/to").path), "/path/to")
+        self.assertEqual(str(OmniUrl(r"omniverse://host.com/path/to").path), "/path/to")
+        self.assertEqual(str(OmniUrl(r"omni://host.com/path/to").path), "/path/to")
         # self.assertEquals(str(OmniUrl(r"file:Z:/path/to").path), "Z:/path/to")
-        self.assertEquals(str(OmniUrl(r"file:/path/to").path), "/path/to")
-        self.assertEquals(str(OmniUrl(r"C:\path\to").path), "C:/path/to")
-        self.assertEquals(str(OmniUrl(r"/path/to").path), "/path/to")
-        self.assertEquals(str(OmniUrl(r"./path/to").path), "path/to")
-        self.assertEquals(str(OmniUrl(r"../path/to").path), "../path/to")
-        self.assertEquals(str(OmniUrl(r"path").path), "path")
+        self.assertEqual(str(OmniUrl(r"file:/path/to").path), "/path/to")
+        self.assertEqual(str(OmniUrl(r"C:\path\to").path), "C:/path/to")
+        self.assertEqual(str(OmniUrl(r"/path/to").path), "/path/to")
+        self.assertEqual(str(OmniUrl(r"./path/to").path), "path/to")
+        self.assertEqual(str(OmniUrl(r"../path/to").path), "../path/to")
+        self.assertEqual(str(OmniUrl(r"path").path), "path")
 
     async def test_parent_url(self):
         # Assert
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omniverse://host.com/path/to/my_file.usd").parent_url, r"omniverse://host.com/path/to"
         )
-        self.assertEquals(OmniUrl(r"omni://host.com/path/to/my_file.usd").parent_url, r"omniverse://host.com/path/to")
+        self.assertEqual(OmniUrl(r"omni://host.com/path/to/my_file.usd").parent_url, r"omniverse://host.com/path/to")
         # self.assertEquals(OmniUrl(r"file:Z:/path/to/my_file.usd").parent_url, r"file:Z:/path/to")
-        self.assertEquals(OmniUrl(r"file:/path/to/my_file.usd").parent_url, r"file:/path/to")
-        self.assertEquals(OmniUrl(r"C:\path\to\my_file.usd").parent_url, r"C:/path/to")
-        self.assertEquals(OmniUrl(r"/path/to/my_file.usd").parent_url, r"/path/to")
-        self.assertEquals(OmniUrl(r"./path/to/my_file.usd").parent_url, r"path/to")
-        self.assertEquals(OmniUrl(r"../path/to/my_file.usd").parent_url, r"../path/to")
+        self.assertEqual(OmniUrl(r"file:/path/to/my_file.usd").parent_url, r"file:/path/to")
+        self.assertEqual(OmniUrl(r"C:\path\to\my_file.usd").parent_url, r"C:/path/to")
+        self.assertEqual(OmniUrl(r"/path/to/my_file.usd").parent_url, r"/path/to")
+        self.assertEqual(OmniUrl(r"./path/to/my_file.usd").parent_url, r"path/to")
+        self.assertEqual(OmniUrl(r"../path/to/my_file.usd").parent_url, r"../path/to")
 
-        self.assertEquals(OmniUrl(r"omniverse://host.com/path/to").parent_url, r"omniverse://host.com/path")
-        self.assertEquals(OmniUrl(r"omni://host.com/path/to").parent_url, r"omniverse://host.com/path")
+        self.assertEqual(OmniUrl(r"omniverse://host.com/path/to").parent_url, r"omniverse://host.com/path")
+        self.assertEqual(OmniUrl(r"omni://host.com/path/to").parent_url, r"omniverse://host.com/path")
         # self.assertEquals(OmniUrl(r"file:Z:/path/to").parent_url, r"file:Z:/path")
-        self.assertEquals(OmniUrl(r"file:/path/to").parent_url, r"file:/path")
-        self.assertEquals(OmniUrl(r"C:\path\to").parent_url, r"C:/path")
-        self.assertEquals(OmniUrl(r"/path/to").parent_url, r"/path")
-        self.assertEquals(OmniUrl(r"./path/to").parent_url, r"path")
-        self.assertEquals(OmniUrl(r"../path/to").parent_url, r"../path")
-        self.assertEquals(OmniUrl(r"path").parent_url, r".")
+        self.assertEqual(OmniUrl(r"file:/path/to").parent_url, r"file:/path")
+        self.assertEqual(OmniUrl(r"C:\path\to").parent_url, r"C:/path")
+        self.assertEqual(OmniUrl(r"/path/to").parent_url, r"/path")
+        self.assertEqual(OmniUrl(r"./path/to").parent_url, r"path")
+        self.assertEqual(OmniUrl(r"../path/to").parent_url, r"../path")
+        self.assertEqual(OmniUrl(r"path").parent_url, r".")
 
     async def test_name(self):
         # Assert
-        self.assertEquals(OmniUrl(r"omniverse://host.com/path/to/my_file.usd").name, r"my_file.usd")
-        self.assertEquals(OmniUrl(r"omni://host.com/path/to/my_file.usd").name, r"my_file.usd")
-        self.assertEquals(OmniUrl(r"file:Z:/path/to/my_file.usd").name, r"my_file.usd")
-        self.assertEquals(OmniUrl(r"file:/path/to/my_file.usd").name, r"my_file.usd")
-        self.assertEquals(OmniUrl(r"C:\path\to\my_file.usd").name, r"my_file.usd")
-        self.assertEquals(OmniUrl(r"/path/to/my_file.usd").name, r"my_file.usd")
-        self.assertEquals(OmniUrl(r"./path/to/my_file.usd").name, r"my_file.usd")
-        self.assertEquals(OmniUrl(r"../path/to/my_file.usd").name, r"my_file.usd")
+        self.assertEqual(OmniUrl(r"omniverse://host.com/path/to/my_file.usd").name, r"my_file.usd")
+        self.assertEqual(OmniUrl(r"omni://host.com/path/to/my_file.usd").name, r"my_file.usd")
+        self.assertEqual(OmniUrl(r"file:Z:/path/to/my_file.usd").name, r"my_file.usd")
+        self.assertEqual(OmniUrl(r"file:/path/to/my_file.usd").name, r"my_file.usd")
+        self.assertEqual(OmniUrl(r"C:\path\to\my_file.usd").name, r"my_file.usd")
+        self.assertEqual(OmniUrl(r"/path/to/my_file.usd").name, r"my_file.usd")
+        self.assertEqual(OmniUrl(r"./path/to/my_file.usd").name, r"my_file.usd")
+        self.assertEqual(OmniUrl(r"../path/to/my_file.usd").name, r"my_file.usd")
 
-        self.assertEquals(OmniUrl(r"omniverse://host.com/path/to").name, r"to")
-        self.assertEquals(OmniUrl(r"omni://host.com/path/to").name, r"to")
-        self.assertEquals(OmniUrl(r"file:Z:/path/to").name, r"to")
-        self.assertEquals(OmniUrl(r"file:/path/to").name, r"to")
-        self.assertEquals(OmniUrl(r"C:\path\to").name, r"to")
-        self.assertEquals(OmniUrl(r"/path/to").name, r"to")
-        self.assertEquals(OmniUrl(r"./path/to").name, r"to")
-        self.assertEquals(OmniUrl(r"path/to").name, r"to")
-        self.assertEquals(OmniUrl(r"../path/to").name, r"to")
-        self.assertEquals(OmniUrl(r"path").name, r"path")
+        self.assertEqual(OmniUrl(r"omniverse://host.com/path/to").name, r"to")
+        self.assertEqual(OmniUrl(r"omni://host.com/path/to").name, r"to")
+        self.assertEqual(OmniUrl(r"file:Z:/path/to").name, r"to")
+        self.assertEqual(OmniUrl(r"file:/path/to").name, r"to")
+        self.assertEqual(OmniUrl(r"C:\path\to").name, r"to")
+        self.assertEqual(OmniUrl(r"/path/to").name, r"to")
+        self.assertEqual(OmniUrl(r"./path/to").name, r"to")
+        self.assertEqual(OmniUrl(r"path/to").name, r"to")
+        self.assertEqual(OmniUrl(r"../path/to").name, r"to")
+        self.assertEqual(OmniUrl(r"path").name, r"path")
 
     async def test_stem(self):
         # Assert
-        self.assertEquals(OmniUrl(r"omniverse://host.com/path/to/my_file.usd").stem, r"my_file")
-        self.assertEquals(OmniUrl(r"omni://host.com/path/to/my_file.usd").stem, r"my_file")
-        self.assertEquals(OmniUrl(r"file:Z:/path/to/my_file.usd").stem, r"my_file")
-        self.assertEquals(OmniUrl(r"file:/path/to/my_file.usd").stem, r"my_file")
-        self.assertEquals(OmniUrl(r"C:\path\to\my_file.usd").stem, r"my_file")
-        self.assertEquals(OmniUrl(r"/path/to/my_file.usd").stem, r"my_file")
-        self.assertEquals(OmniUrl(r"./path/to/my_file.usd").stem, r"my_file")
-        self.assertEquals(OmniUrl(r"../path/to/my_file.usd").stem, r"my_file")
+        self.assertEqual(OmniUrl(r"omniverse://host.com/path/to/my_file.usd").stem, r"my_file")
+        self.assertEqual(OmniUrl(r"omni://host.com/path/to/my_file.usd").stem, r"my_file")
+        self.assertEqual(OmniUrl(r"file:Z:/path/to/my_file.usd").stem, r"my_file")
+        self.assertEqual(OmniUrl(r"file:/path/to/my_file.usd").stem, r"my_file")
+        self.assertEqual(OmniUrl(r"C:\path\to\my_file.usd").stem, r"my_file")
+        self.assertEqual(OmniUrl(r"/path/to/my_file.usd").stem, r"my_file")
+        self.assertEqual(OmniUrl(r"./path/to/my_file.usd").stem, r"my_file")
+        self.assertEqual(OmniUrl(r"../path/to/my_file.usd").stem, r"my_file")
 
-        self.assertEquals(OmniUrl(r"omniverse://host.com/path/to").stem, r"to")
-        self.assertEquals(OmniUrl(r"omni://host.com/path/to").stem, r"to")
-        self.assertEquals(OmniUrl(r"file:Z:/path/to").stem, r"to")
-        self.assertEquals(OmniUrl(r"file:/path/to").stem, r"to")
-        self.assertEquals(OmniUrl(r"C:\path\to").stem, r"to")
-        self.assertEquals(OmniUrl(r"/path/to").stem, r"to")
-        self.assertEquals(OmniUrl(r"./path/to").stem, r"to")
-        self.assertEquals(OmniUrl(r"path/to").stem, r"to")
-        self.assertEquals(OmniUrl(r"../path/to").stem, r"to")
-        self.assertEquals(OmniUrl(r"path").stem, r"path")
+        self.assertEqual(OmniUrl(r"omniverse://host.com/path/to").stem, r"to")
+        self.assertEqual(OmniUrl(r"omni://host.com/path/to").stem, r"to")
+        self.assertEqual(OmniUrl(r"file:Z:/path/to").stem, r"to")
+        self.assertEqual(OmniUrl(r"file:/path/to").stem, r"to")
+        self.assertEqual(OmniUrl(r"C:\path\to").stem, r"to")
+        self.assertEqual(OmniUrl(r"/path/to").stem, r"to")
+        self.assertEqual(OmniUrl(r"./path/to").stem, r"to")
+        self.assertEqual(OmniUrl(r"path/to").stem, r"to")
+        self.assertEqual(OmniUrl(r"../path/to").stem, r"to")
+        self.assertEqual(OmniUrl(r"path").stem, r"path")
 
     async def test_suffix(self):
         # Assert
-        self.assertEquals(OmniUrl(r"omniverse://host.com/path/to/my_file.usd").suffix, r".usd")
-        self.assertEquals(OmniUrl(r"omni://host.com/path/to/my_file.usd").suffix, r".usd")
-        self.assertEquals(OmniUrl(r"file:Z:/path/to/my_file.usd").suffix, r".usd")
-        self.assertEquals(OmniUrl(r"file:/path/to/my_file.usd").suffix, r".usd")
-        self.assertEquals(OmniUrl(r"C:\path\to\my_file.usd").suffix, r".usd")
-        self.assertEquals(OmniUrl(r"/path/to/my_file.usd").suffix, r".usd")
-        self.assertEquals(OmniUrl(r"./path/to/my_file.usd").suffix, r".usd")
-        self.assertEquals(OmniUrl(r"../path/to/my_file.usd").suffix, r".usd")
+        self.assertEqual(OmniUrl(r"omniverse://host.com/path/to/my_file.usd").suffix, r".usd")
+        self.assertEqual(OmniUrl(r"omni://host.com/path/to/my_file.usd").suffix, r".usd")
+        self.assertEqual(OmniUrl(r"file:Z:/path/to/my_file.usd").suffix, r".usd")
+        self.assertEqual(OmniUrl(r"file:/path/to/my_file.usd").suffix, r".usd")
+        self.assertEqual(OmniUrl(r"C:\path\to\my_file.usd").suffix, r".usd")
+        self.assertEqual(OmniUrl(r"/path/to/my_file.usd").suffix, r".usd")
+        self.assertEqual(OmniUrl(r"./path/to/my_file.usd").suffix, r".usd")
+        self.assertEqual(OmniUrl(r"../path/to/my_file.usd").suffix, r".usd")
 
-        self.assertEquals(OmniUrl(r"omniverse://host.com/path/to/my_file.tar.gz").suffix, r".gz")
-        self.assertEquals(OmniUrl(r"omni://host.com/path/to/my_file.tar.gz").suffix, r".gz")
-        self.assertEquals(OmniUrl(r"file:Z:/path/to/my_file.tar.gz").suffix, r".gz")
-        self.assertEquals(OmniUrl(r"file:/path/to/my_file.tar.gz").suffix, r".gz")
-        self.assertEquals(OmniUrl(r"C:\path\to\my_file.tar.gz").suffix, r".gz")
-        self.assertEquals(OmniUrl(r"/path/to/my_file.tar.gz").suffix, r".gz")
-        self.assertEquals(OmniUrl(r"./path/to/my_file.tar.gz").suffix, r".gz")
-        self.assertEquals(OmniUrl(r"../path/to/my_file.tar.gz").suffix, r".gz")
+        self.assertEqual(OmniUrl(r"omniverse://host.com/path/to/my_file.tar.gz").suffix, r".gz")
+        self.assertEqual(OmniUrl(r"omni://host.com/path/to/my_file.tar.gz").suffix, r".gz")
+        self.assertEqual(OmniUrl(r"file:Z:/path/to/my_file.tar.gz").suffix, r".gz")
+        self.assertEqual(OmniUrl(r"file:/path/to/my_file.tar.gz").suffix, r".gz")
+        self.assertEqual(OmniUrl(r"C:\path\to\my_file.tar.gz").suffix, r".gz")
+        self.assertEqual(OmniUrl(r"/path/to/my_file.tar.gz").suffix, r".gz")
+        self.assertEqual(OmniUrl(r"./path/to/my_file.tar.gz").suffix, r".gz")
+        self.assertEqual(OmniUrl(r"../path/to/my_file.tar.gz").suffix, r".gz")
 
-        self.assertEquals(OmniUrl(r"omniverse://host.com/path/to").suffix, "")
-        self.assertEquals(OmniUrl(r"omni://host.com/path/to").suffix, "")
-        self.assertEquals(OmniUrl(r"file:Z:/path/to").suffix, "")
-        self.assertEquals(OmniUrl(r"file:/path/to").suffix, "")
-        self.assertEquals(OmniUrl(r"C:\path\to").suffix, "")
-        self.assertEquals(OmniUrl(r"/path/to").suffix, "")
-        self.assertEquals(OmniUrl(r"./path/to").suffix, "")
-        self.assertEquals(OmniUrl(r"path/to").suffix, "")
-        self.assertEquals(OmniUrl(r"../path/to").suffix, "")
-        self.assertEquals(OmniUrl(r"path").suffix, "")
+        self.assertEqual(OmniUrl(r"omniverse://host.com/path/to").suffix, "")
+        self.assertEqual(OmniUrl(r"omni://host.com/path/to").suffix, "")
+        self.assertEqual(OmniUrl(r"file:Z:/path/to").suffix, "")
+        self.assertEqual(OmniUrl(r"file:/path/to").suffix, "")
+        self.assertEqual(OmniUrl(r"C:\path\to").suffix, "")
+        self.assertEqual(OmniUrl(r"/path/to").suffix, "")
+        self.assertEqual(OmniUrl(r"./path/to").suffix, "")
+        self.assertEqual(OmniUrl(r"path/to").suffix, "")
+        self.assertEqual(OmniUrl(r"../path/to").suffix, "")
+        self.assertEqual(OmniUrl(r"path").suffix, "")
 
     async def test_suffixes(self):
         # Assert
-        self.assertEquals(OmniUrl(r"omniverse://host.com/path/to/my_file.usd").suffixes, [".usd"])
-        self.assertEquals(OmniUrl(r"omni://host.com/path/to/my_file.usd").suffixes, [".usd"])
-        self.assertEquals(OmniUrl(r"file:Z:/path/to/my_file.usd").suffixes, [".usd"])
-        self.assertEquals(OmniUrl(r"file:/path/to/my_file.usd").suffixes, [".usd"])
-        self.assertEquals(OmniUrl(r"C:\path\to\my_file.usd").suffixes, [".usd"])
-        self.assertEquals(OmniUrl(r"/path/to/my_file.usd").suffixes, [".usd"])
-        self.assertEquals(OmniUrl(r"./path/to/my_file.usd").suffixes, [".usd"])
-        self.assertEquals(OmniUrl(r"../path/to/my_file.usd").suffixes, [".usd"])
+        self.assertEqual(OmniUrl(r"omniverse://host.com/path/to/my_file.usd").suffixes, [".usd"])
+        self.assertEqual(OmniUrl(r"omni://host.com/path/to/my_file.usd").suffixes, [".usd"])
+        self.assertEqual(OmniUrl(r"file:Z:/path/to/my_file.usd").suffixes, [".usd"])
+        self.assertEqual(OmniUrl(r"file:/path/to/my_file.usd").suffixes, [".usd"])
+        self.assertEqual(OmniUrl(r"C:\path\to\my_file.usd").suffixes, [".usd"])
+        self.assertEqual(OmniUrl(r"/path/to/my_file.usd").suffixes, [".usd"])
+        self.assertEqual(OmniUrl(r"./path/to/my_file.usd").suffixes, [".usd"])
+        self.assertEqual(OmniUrl(r"../path/to/my_file.usd").suffixes, [".usd"])
 
-        self.assertEquals(OmniUrl(r"omniverse://host.com/path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
-        self.assertEquals(OmniUrl(r"omni://host.com/path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
-        self.assertEquals(OmniUrl(r"file:Z:/path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
-        self.assertEquals(OmniUrl(r"file:/path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
-        self.assertEquals(OmniUrl(r"C:\path\to\my_file.tar.gz").suffixes, [".tar", ".gz"])
-        self.assertEquals(OmniUrl(r"/path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
-        self.assertEquals(OmniUrl(r"./path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
-        self.assertEquals(OmniUrl(r"../path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
+        self.assertEqual(OmniUrl(r"omniverse://host.com/path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
+        self.assertEqual(OmniUrl(r"omni://host.com/path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
+        self.assertEqual(OmniUrl(r"file:Z:/path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
+        self.assertEqual(OmniUrl(r"file:/path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
+        self.assertEqual(OmniUrl(r"C:\path\to\my_file.tar.gz").suffixes, [".tar", ".gz"])
+        self.assertEqual(OmniUrl(r"/path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
+        self.assertEqual(OmniUrl(r"./path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
+        self.assertEqual(OmniUrl(r"../path/to/my_file.tar.gz").suffixes, [".tar", ".gz"])
 
-        self.assertEquals(OmniUrl(r"omniverse://host.com/path/to").suffixes, [])
-        self.assertEquals(OmniUrl(r"omni://host.com/path/to").suffixes, [])
-        self.assertEquals(OmniUrl(r"file:Z:/path/to").suffixes, [])
-        self.assertEquals(OmniUrl(r"file:/path/to").suffixes, [])
-        self.assertEquals(OmniUrl(r"C:\path\to").suffixes, [])
-        self.assertEquals(OmniUrl(r"/path/to").suffixes, [])
-        self.assertEquals(OmniUrl(r"./path/to").suffixes, [])
-        self.assertEquals(OmniUrl(r"path/to").suffixes, [])
-        self.assertEquals(OmniUrl(r"../path/to").suffixes, [])
-        self.assertEquals(OmniUrl(r"path").suffixes, [])
+        self.assertEqual(OmniUrl(r"omniverse://host.com/path/to").suffixes, [])
+        self.assertEqual(OmniUrl(r"omni://host.com/path/to").suffixes, [])
+        self.assertEqual(OmniUrl(r"file:Z:/path/to").suffixes, [])
+        self.assertEqual(OmniUrl(r"file:/path/to").suffixes, [])
+        self.assertEqual(OmniUrl(r"C:\path\to").suffixes, [])
+        self.assertEqual(OmniUrl(r"/path/to").suffixes, [])
+        self.assertEqual(OmniUrl(r"./path/to").suffixes, [])
+        self.assertEqual(OmniUrl(r"path/to").suffixes, [])
+        self.assertEqual(OmniUrl(r"../path/to").suffixes, [])
+        self.assertEqual(OmniUrl(r"path").suffixes, [])
 
     async def test_with_path(self):
         # Assert
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omniverse://host.com/path/to/my_file.usd").with_path(Path("other_path/to/my_other_file.txt")),
             OmniUrl(r"omniverse://host.com/other_path/to/my_other_file.txt"),
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omni://host.com/path/to/my_file.usd").with_path(Path("other_path/to/my_other_file.txt")),
             OmniUrl(r"omniverse://host.com/other_path/to/my_other_file.txt"),
         )
@@ -220,52 +220,52 @@ class TestOmniUrl(omni.kit.test.AsyncTestCase):
         #     OmniUrl(r"file:Z:/path/to/my_file.usd").with_path(Path("C:/other_path/to/my_other_file.txt")),
         #     OmniUrl(r"file:C:/other_path/to/my_other_file.txt"),
         # )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"file:/path/to/my_file.usd").with_path(Path("/other_path/to/my_other_file.txt")),
             OmniUrl(r"file:/other_path/to/my_other_file.txt"),
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"C:\path\to\my_file.usd").with_path(Path(r"Z:\other_path\to\my_other_file.txt")),
             OmniUrl(r"Z:/other_path/to/my_other_file.txt"),
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"/path/to/my_file.usd").with_path(Path("/other_path/to/my_other_file.txt")),
             OmniUrl(r"/other_path/to/my_other_file.txt"),
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"./path/to/my_file.usd").with_path(Path("other_path/to/my_other_file.txt")),
             OmniUrl(r"other_path/to/my_other_file.txt"),
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"../path/to/my_file.usd").with_path(Path("../other_path/to/my_other_file.txt")),
             OmniUrl(r"../other_path/to/my_other_file.txt"),
         )
 
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omniverse://host.com/path/to").with_path(Path("other_path/to")),
             OmniUrl(r"omniverse://host.com/other_path/to"),
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omni://host.com/path/to").with_path(Path("other_path/to")),
             OmniUrl(r"omniverse://host.com/other_path/to"),
         )
         # self.assertEquals(
         #     OmniUrl(r"file:Z:/path/to").with_path(Path("C:/other_path/to")), OmniUrl(r"file:C:/other_path/to")
         # )
-        self.assertEquals(OmniUrl(r"file:/path/to").with_path(Path("/other_path/to")), OmniUrl(r"file:/other_path/to"))
-        self.assertEquals(OmniUrl(r"C:\path\to").with_path(Path(r"Z:\other_path\to")), OmniUrl(r"Z:/other_path/to"))
-        self.assertEquals(OmniUrl(r"/path/to").with_path(Path("/other_path/to")), OmniUrl(r"/other_path/to"))
-        self.assertEquals(OmniUrl(r"./path/to").with_path(Path("other_path/to")), OmniUrl(r"other_path/to"))
-        self.assertEquals(OmniUrl(r"../path/to").with_path(Path("../other_path/to")), OmniUrl(r"../other_path/to"))
-        self.assertEquals(OmniUrl(r"path").with_path(Path("other_path")), OmniUrl(r"other_path"))
+        self.assertEqual(OmniUrl(r"file:/path/to").with_path(Path("/other_path/to")), OmniUrl(r"file:/other_path/to"))
+        self.assertEqual(OmniUrl(r"C:\path\to").with_path(Path(r"Z:\other_path\to")), OmniUrl(r"Z:/other_path/to"))
+        self.assertEqual(OmniUrl(r"/path/to").with_path(Path("/other_path/to")), OmniUrl(r"/other_path/to"))
+        self.assertEqual(OmniUrl(r"./path/to").with_path(Path("other_path/to")), OmniUrl(r"other_path/to"))
+        self.assertEqual(OmniUrl(r"../path/to").with_path(Path("../other_path/to")), OmniUrl(r"../other_path/to"))
+        self.assertEqual(OmniUrl(r"path").with_path(Path("other_path")), OmniUrl(r"other_path"))
 
     async def test_with_name(self):
         # Assert
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omniverse://host.com/path/to/my_file.usd").with_name("my_other_file.txt"),
             OmniUrl(r"omniverse://host.com/path/to/my_other_file.txt"),
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omni://host.com/path/to/my_file.usd").with_name("my_other_file.txt"),
             OmniUrl(r"omniverse://host.com/path/to/my_other_file.txt"),
         )
@@ -273,86 +273,86 @@ class TestOmniUrl(omni.kit.test.AsyncTestCase):
         #     OmniUrl(r"file:Z:/path/to/my_file.usd").with_name("my_other_file.txt"),
         #     OmniUrl(r"file:Z:/path/to/my_other_file.txt"),
         # )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"file:/path/to/my_file.usd").with_name("my_other_file.txt"),
             OmniUrl(r"file:/path/to/my_other_file.txt"),
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"C:\path\to\my_file.usd").with_name("my_other_file.txt"), OmniUrl(r"C:/path/to/my_other_file.txt")
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"/path/to/my_file.usd").with_name("my_other_file.txt"), OmniUrl(r"/path/to/my_other_file.txt")
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"./path/to/my_file.usd").with_name("my_other_file.txt"), OmniUrl(r"path/to/my_other_file.txt")
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"../path/to/my_file.usd").with_name("my_other_file.txt"), OmniUrl(r"../path/to/my_other_file.txt")
         )
 
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omniverse://host.com/path/to").with_name("other_to"),
             OmniUrl(r"omniverse://host.com/path/other_to"),
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omni://host.com/path/to").with_name("other_to"), OmniUrl(r"omniverse://host.com/path/other_to")
         )
         # self.assertEquals(OmniUrl(r"file:Z:/path/to").with_name("other_to"), OmniUrl(r"file:Z:/path/other_to"))
-        self.assertEquals(OmniUrl(r"file:/path/to").with_name("other_to"), OmniUrl(r"file:/path/other_to"))
-        self.assertEquals(OmniUrl(r"C:\path\to").with_name("other_to"), OmniUrl(r"C:/path/other_to"))
-        self.assertEquals(OmniUrl(r"/path/to").with_name("other_to"), OmniUrl(r"/path/other_to"))
-        self.assertEquals(OmniUrl(r"./path/to").with_name("other_to"), OmniUrl(r"path/other_to"))
-        self.assertEquals(OmniUrl(r"../path/to").with_name("other_to"), OmniUrl(r"../path/other_to"))
-        self.assertEquals(OmniUrl(r"path").with_name("other_to"), OmniUrl(r"other_to"))
+        self.assertEqual(OmniUrl(r"file:/path/to").with_name("other_to"), OmniUrl(r"file:/path/other_to"))
+        self.assertEqual(OmniUrl(r"C:\path\to").with_name("other_to"), OmniUrl(r"C:/path/other_to"))
+        self.assertEqual(OmniUrl(r"/path/to").with_name("other_to"), OmniUrl(r"/path/other_to"))
+        self.assertEqual(OmniUrl(r"./path/to").with_name("other_to"), OmniUrl(r"path/other_to"))
+        self.assertEqual(OmniUrl(r"../path/to").with_name("other_to"), OmniUrl(r"../path/other_to"))
+        self.assertEqual(OmniUrl(r"path").with_name("other_to"), OmniUrl(r"other_to"))
 
     async def test_with_suffix(self):
         # Assert
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omniverse://host.com/path/to/my_file.usd").with_suffix(".usda"),
             OmniUrl(r"omniverse://host.com/path/to/my_file.usda"),
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omni://host.com/path/to/my_file.usd").with_suffix(".usda"),
             OmniUrl(r"omniverse://host.com/path/to/my_file.usda"),
         )
         # self.assertEquals(
         #     OmniUrl(r"file:Z:/path/to/my_file.usd").with_suffix(".usda"), OmniUrl(r"file:Z:/path/to/my_file.usda")
         # )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"file:/path/to/my_file.usd").with_suffix(".usda"), OmniUrl(r"file:/path/to/my_file.usda")
         )
-        self.assertEquals(OmniUrl(r"C:\path\to\my_file.usd").with_suffix(".usda"), OmniUrl(r"C:/path/to/my_file.usda"))
-        self.assertEquals(OmniUrl(r"/path/to/my_file.usd").with_suffix(".usda"), OmniUrl(r"/path/to/my_file.usda"))
-        self.assertEquals(OmniUrl(r"./path/to/my_file.usd").with_suffix(".usda"), OmniUrl(r"path/to/my_file.usda"))
-        self.assertEquals(OmniUrl(r"../path/to/my_file.usd").with_suffix(".usda"), OmniUrl(r"../path/to/my_file.usda"))
+        self.assertEqual(OmniUrl(r"C:\path\to\my_file.usd").with_suffix(".usda"), OmniUrl(r"C:/path/to/my_file.usda"))
+        self.assertEqual(OmniUrl(r"/path/to/my_file.usd").with_suffix(".usda"), OmniUrl(r"/path/to/my_file.usda"))
+        self.assertEqual(OmniUrl(r"./path/to/my_file.usd").with_suffix(".usda"), OmniUrl(r"path/to/my_file.usda"))
+        self.assertEqual(OmniUrl(r"../path/to/my_file.usd").with_suffix(".usda"), OmniUrl(r"../path/to/my_file.usda"))
 
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omniverse://host.com/path/to").with_suffix(".usda"), OmniUrl(r"omniverse://host.com/path/to.usda")
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omni://host.com/path/to").with_suffix(".usda"), OmniUrl(r"omniverse://host.com/path/to.usda")
         )
         # self.assertEquals(OmniUrl(r"file:Z:/path/to").with_suffix(".usda"), OmniUrl(r"file:Z:/path/to.usda"))
-        self.assertEquals(OmniUrl(r"file:/path/to").with_suffix(".usda"), OmniUrl(r"file:/path/to.usda"))
-        self.assertEquals(OmniUrl(r"C:\path\to").with_suffix(".usda"), OmniUrl(r"C:/path/to.usda"))
-        self.assertEquals(OmniUrl(r"/path/to").with_suffix(".usda"), OmniUrl(r"/path/to.usda"))
-        self.assertEquals(OmniUrl(r"./path/to").with_suffix(".usda"), OmniUrl(r"path/to.usda"))
-        self.assertEquals(OmniUrl(r"../path/to").with_suffix(".usda"), OmniUrl(r"../path/to.usda"))
-        self.assertEquals(OmniUrl(r"path").with_suffix(".usda"), OmniUrl(r"path.usda"))
+        self.assertEqual(OmniUrl(r"file:/path/to").with_suffix(".usda"), OmniUrl(r"file:/path/to.usda"))
+        self.assertEqual(OmniUrl(r"C:\path\to").with_suffix(".usda"), OmniUrl(r"C:/path/to.usda"))
+        self.assertEqual(OmniUrl(r"/path/to").with_suffix(".usda"), OmniUrl(r"/path/to.usda"))
+        self.assertEqual(OmniUrl(r"./path/to").with_suffix(".usda"), OmniUrl(r"path/to.usda"))
+        self.assertEqual(OmniUrl(r"../path/to").with_suffix(".usda"), OmniUrl(r"../path/to.usda"))
+        self.assertEqual(OmniUrl(r"path").with_suffix(".usda"), OmniUrl(r"path.usda"))
 
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omniverse://host.com/path/to/my_file.usd").with_suffix(""),
             OmniUrl(r"omniverse://host.com/path/to/my_file"),
         )
-        self.assertEquals(
+        self.assertEqual(
             OmniUrl(r"omni://host.com/path/to/my_file.usd").with_suffix(""),
             OmniUrl(r"omniverse://host.com/path/to/my_file"),
         )
         # self.assertEquals(
         #    OmniUrl(r"file:Z:/path/to/my_file.usd").with_suffix(""), OmniUrl(r"file:Z:/path/to/my_file")
         # )
-        self.assertEquals(OmniUrl(r"file:/path/to/my_file.usd").with_suffix(""), OmniUrl(r"file:/path/to/my_file"))
-        self.assertEquals(OmniUrl(r"C:\path\to\my_file.usd").with_suffix(""), OmniUrl(r"C:/path/to/my_file"))
-        self.assertEquals(OmniUrl(r"/path/to/my_file.usd").with_suffix(""), OmniUrl(r"/path/to/my_file"))
-        self.assertEquals(OmniUrl(r"./path/to/my_file.usd").with_suffix(""), OmniUrl(r"path/to/my_file"))
-        self.assertEquals(OmniUrl(r"../path/to/my_file.usd").with_suffix(""), OmniUrl(r"../path/to/my_file"))
+        self.assertEqual(OmniUrl(r"file:/path/to/my_file.usd").with_suffix(""), OmniUrl(r"file:/path/to/my_file"))
+        self.assertEqual(OmniUrl(r"C:\path\to\my_file.usd").with_suffix(""), OmniUrl(r"C:/path/to/my_file"))
+        self.assertEqual(OmniUrl(r"/path/to/my_file.usd").with_suffix(""), OmniUrl(r"/path/to/my_file"))
+        self.assertEqual(OmniUrl(r"./path/to/my_file.usd").with_suffix(""), OmniUrl(r"path/to/my_file"))
+        self.assertEqual(OmniUrl(r"../path/to/my_file.usd").with_suffix(""), OmniUrl(r"../path/to/my_file"))

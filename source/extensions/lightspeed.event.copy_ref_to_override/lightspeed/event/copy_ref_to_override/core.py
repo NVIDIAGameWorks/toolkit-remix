@@ -208,7 +208,6 @@ class CopyRefToPrimCore(_ILSSEvent):
         return op
 
     def __create_default_stage_nodes(self, stage, source_layer, output_layer, all_replacements_layers):
-
         regex_to_update = re.compile(_constants.REGEX_MAT_MESH_LIGHT_PATH)
 
         def should_copy_value(

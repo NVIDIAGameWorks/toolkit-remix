@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.1]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [1.9.0]
 ### Changed
 - Changed the listener to refresh the selection tree items when the nickname attribute changes
