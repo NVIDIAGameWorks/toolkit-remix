@@ -124,8 +124,8 @@ class TestTriangulate(AsyncTestCase):
         await core.deferred_run()
 
         # Assert
-        self.assertEquals(sub_check_count, 2)  # called 2 times: we check, fix, re check
-        self.assertEquals(sub_fix_count, 1)
+        self.assertEqual(sub_check_count, 2)  # called 2 times: we check, fix, re check
+        self.assertEqual(sub_fix_count, 1)
 
         usd_context = omni.usd.get_context()
         stage = usd_context.get_stage()
@@ -134,7 +134,7 @@ class TestTriangulate(AsyncTestCase):
         self.assertTrue(mesh)
         faces = mesh.GetFaceVertexCountsAttr().Get()
         for face in faces:
-            self.assertEquals(face, 3)
+            self.assertEqual(face, 3)
 
     async def test_run_fix_subsets(self):
         # Arrange
@@ -187,8 +187,8 @@ class TestTriangulate(AsyncTestCase):
         await core.deferred_run()
 
         # Assert
-        self.assertEquals(sub_check_count, 2)  # called 2 times: we check, fix, re check
-        self.assertEquals(sub_fix_count, 1)
+        self.assertEqual(sub_check_count, 2)  # called 2 times: we check, fix, re check
+        self.assertEqual(sub_fix_count, 1)
 
         usd_context = omni.usd.get_context()
         stage = usd_context.get_stage()
@@ -197,10 +197,10 @@ class TestTriangulate(AsyncTestCase):
         self.assertTrue(mesh)
         faces = mesh.GetFaceVertexCountsAttr().Get()
         for face in faces:
-            self.assertEquals(face, 3)
+            self.assertEqual(face, 3)
 
         subsets = ["/Cube/Cube/subset1", "/Cube/Cube/subset2"]
         for subset_name in subsets:
             subset = stage.GetPrimAtPath(subset_name)
             indices = subset.GetAttribute("indices").Get()
-            self.assertEquals(len(indices), 6)
+            self.assertEqual(len(indices), 6)

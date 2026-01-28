@@ -193,9 +193,11 @@ def open_file_picker(
         file_extension_options: A list of filename extension options. Each list element is an (extension name,
                   description) pair.
 
-                  Examples: ``(“*.usdc”, “Binary format”) or (“.usd*”, “USD format”) or (“*.png, *.jpg, *.exr”, “Image format”)``  # noqa
+            Examples: ``("*.usdc", "Binary format")`` or ``(".usd*", "USD format")``
+                or ``("*.png, *.jpg, *.exr", "Image format")``
         select_directory: whether the file picker is used to select a directory or a file
-        validate_selection: function to execute to validate the selected file/directory. If false, the window file will not be selected.
+        validate_selection: function to execute to validate the selected file/directory.
+            If false, the window file will not be selected.
             If allow_multi_selection is True, the callback will take a list of file
         validation_failed_callback: function to call if the selection validation returns False.
             If allow_multi_selection is True, the callback will take a list of file

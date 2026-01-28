@@ -169,7 +169,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
 
         await item_prims[0].click()
 
@@ -289,7 +289,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
         # test restore
@@ -356,7 +356,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
         # test replace a mesh with a new one
@@ -402,7 +402,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay()
         # the new asset give us 4 prims
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 5)
+        self.assertEqual(len(item_prims), 5)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -424,7 +424,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(human_delay_speed=3)
 
             item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-            self.assertEquals(len(item_prims), 6)
+            self.assertEqual(len(item_prims), 6)
             await item_prims[0].click()
 
             # Test replace a mesh with a new one
@@ -489,7 +489,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await cancel_external_asset_button.click()
         await ui_test.human_delay(5)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -511,7 +511,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(human_delay_speed=3)
 
             item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-            self.assertEquals(len(item_prims), 6)
+            self.assertEqual(len(item_prims), 6)
             await item_prims[0].click()
 
             # Test replace a mesh with a new one
@@ -610,7 +610,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(human_delay_speed=3)
 
             item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-            self.assertEquals(len(item_prims), 6)
+            self.assertEqual(len(item_prims), 6)
             await item_prims[0].click()
 
             # Test replace a mesh with a new one
@@ -665,7 +665,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await cancel_ingestion_button.click()
         await ui_test.human_delay(5)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -690,7 +690,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
         # test replace a mesh with a new one
@@ -714,7 +714,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNone(cancel_ingestion_button)
 
         # text should go back like before
-        self.assertEquals(original_text, mesh_ref_field.widget.model.get_value_as_string())
+        self.assertEqual(original_text, mesh_ref_field.widget.model.get_value_as_string())
 
         # nothing changed
         usd_context.get_selection().set_selected_prim_paths(
@@ -723,7 +723,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -740,7 +740,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
         # test replace a mesh with a new one
@@ -766,7 +766,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNone(cancel_ingestion_button)
 
         # text should not go back like before
-        self.assertNotEquals(original_text, mesh_ref_field.widget.model.get_value_as_string())
+        self.assertNotEqual(original_text, mesh_ref_field.widget.model.get_value_as_string())
 
         # the ref was replaced. We should have the new ref
         usd_context.get_selection().set_selected_prim_paths(
@@ -775,7 +775,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 5)
+        self.assertEqual(len(item_prims), 5)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -807,7 +807,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
         # test replace a mesh with a new one
@@ -836,7 +836,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay()
 
         # text should go back like before
-        self.assertEquals(original_text, mesh_ref_field.widget.model.get_value_as_string())
+        self.assertEqual(original_text, mesh_ref_field.widget.model.get_value_as_string())
 
         # nothing changed
         usd_context.get_selection().set_selected_prim_paths(
@@ -845,7 +845,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -877,7 +877,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
         # test replace a mesh with a new one
@@ -906,7 +906,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay()
 
         # text should go back like before
-        self.assertNotEquals(original_text, mesh_ref_field.widget.model.get_value_as_string())
+        self.assertNotEqual(original_text, mesh_ref_field.widget.model.get_value_as_string())
 
         # the ref was replaced. We should have the new ref
         usd_context.get_selection().set_selected_prim_paths(
@@ -915,7 +915,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 5)
+        self.assertEqual(len(item_prims), 5)
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
     async def test_replace_mesh_ref_using_string_field_asset_outside_project_dir_cancel(self):
@@ -931,7 +931,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
         # Make sure the mesh reference field exists
@@ -979,10 +979,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await cancel_external_asset_button.click()
         await ui_test.human_delay(5)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
 
         # The text should revert back to what it was originally
-        self.assertEquals(original_text, mesh_ref_field.widget.model.get_value_as_string())
+        self.assertEqual(original_text, mesh_ref_field.widget.model.get_value_as_string())
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -999,7 +999,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
         # Make sure the mesh reference field exists
@@ -1060,7 +1060,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
             self.assertTrue(_path_utils.hash_match_metadata(file_path=asset_path, key=BASE_HASH_KEY))
 
             # The text should not revert back to what it was originally
-            self.assertNotEquals(original_text, mesh_ref_field.widget.model.get_value_as_string())
+            self.assertNotEqual(original_text, mesh_ref_field.widget.model.get_value_as_string())
 
             # Delete the newly created project_example/assets/ingested subdirectory and its contents
             shutil.rmtree(_get_test_data(f"usd/project_example/{_constants.REMIX_INGESTED_ASSETS_FOLDER}"))
@@ -1080,7 +1080,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
         # Make sure the mesh reference field exists
@@ -1117,11 +1117,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay()
 
         # The text should revert back to what it was originally (nothing should have happened)
-        self.assertEquals(original_text, mesh_ref_field.widget.model.get_value_as_string())
+        self.assertEqual(original_text, mesh_ref_field.widget.model.get_value_as_string())
 
         # There should still be the same amount of prims
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
-        self.assertEquals(len(item_prims), 6)
+        self.assertEqual(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 

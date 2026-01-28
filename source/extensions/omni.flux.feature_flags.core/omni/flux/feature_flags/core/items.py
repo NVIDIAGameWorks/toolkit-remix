@@ -15,6 +15,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+
 __all__ = ["FeatureFlag"]
 
 from omni.flux.utils.common import reset_default_attrs

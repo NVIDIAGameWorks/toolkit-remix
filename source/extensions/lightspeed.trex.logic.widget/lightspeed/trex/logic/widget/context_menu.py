@@ -93,7 +93,7 @@ class MenuEntry:
 
 def _get_selection(widget: RemixLogicGraphWidget) -> list:
     """Get all currently selected items in the graph view."""
-    return widget._graph_view.selection or []  # noqa: PLW0212
+    return widget._graph_view.selection or []  # noqa: SLF001
 
 
 def _get_og_prims(widget: RemixLogicGraphWidget) -> list:
@@ -215,14 +215,14 @@ def _on_disconnect(widget: RemixLogicGraphWidget):
             if VirtualNodeHelper.is_virtual_node(node) or not model.get_node_from_prim(node):
                 continue
             for port in model[node].ports:
-                if conns := model._connections.get(port):  # noqa: PLW0212
+                if conns := model._connections.get(port):  # noqa: SLF001
                     model.remove_connections(port, conns)
                 for conn in model.get_output_connections(port):
                     model.remove_connections(conn, [port])
 
 
 def _on_frame(widget: RemixLogicGraphWidget):
-    view = widget._graph_view  # noqa: PLW0212
+    view = widget._graph_view  # noqa: SLF001
     if view and (items := _get_selection(widget)):
         view.focus_on_nodes(items)
 
@@ -233,9 +233,9 @@ def _on_copy(widget: RemixLogicGraphWidget):
 
 
 def _on_paste(widget: RemixLogicGraphWidget):
-    view = widget._graph_view  # noqa: PLW0212
+    view = widget._graph_view  # noqa: SLF001
     graph = widget.current_compound
-    filter_fn = widget._OmniGraphWidget__filter_fn  # noqa: PLW0212
+    filter_fn = widget._OmniGraphWidget__filter_fn  # noqa: SLF001
 
     action = omni.kit.actions.core.get_action_registry().get_action("omni.kit.stage.copypaste", "stage_paste")
     if not action or not view or not graph:
@@ -245,7 +245,7 @@ def _on_paste(widget: RemixLogicGraphWidget):
     if (
         hasattr(widget, "_get_graph_view_hovered_position")
         and hasattr(view, "screen_to_canvas")
-        and (mouse_pos := widget._get_graph_view_hovered_position())  # noqa: PLW0212
+        and (mouse_pos := widget._get_graph_view_hovered_position())  # noqa: SLF001
     ):
         canvas_pos = view.screen_to_canvas(*mouse_pos)
 
@@ -259,14 +259,14 @@ def _on_paste(widget: RemixLogicGraphWidget):
 
 
 def _on_layout_all(widget: RemixLogicGraphWidget):
-    view = widget._graph_view  # noqa: PLW0212
+    view = widget._graph_view  # noqa: SLF001
     if view:
         with omni.kit.undo.group():
             view.layout_all()
 
 
 def _on_create_backdrop(widget: RemixLogicGraphWidget):
-    view = widget._graph_view  # noqa: PLW0212
+    view = widget._graph_view  # noqa: SLF001
     graph = widget.current_compound
     items = _get_selection(widget)
 
@@ -278,8 +278,8 @@ def _on_create_backdrop(widget: RemixLogicGraphWidget):
     x_max = y_max = float("-inf")
 
     for node in items:
-        pos = view._model[node].position  # noqa: PLW0212
-        widget_node = view._node_widgets[node]  # noqa: PLW0212
+        pos = view._model[node].position  # noqa: SLF001
+        widget_node = view._node_widgets[node]  # noqa: SLF001
         x_min = min(x_min, pos[0] - header_offset)
         x_max = max(x_max, pos[0] + widget_node.computed_width)
         y_min = min(y_min, pos[1] - header_offset)

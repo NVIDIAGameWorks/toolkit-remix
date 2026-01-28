@@ -30,7 +30,7 @@ class OmniUrl:
     A class to present a pathlib like wrapper around omni client urls.
     """
 
-    def __init__(self, url: str | Path | "OmniUrl", list_entry=None):
+    def __init__(self, url: str | Path | OmniUrl, list_entry=None):
         self._url = str(url).replace("\\", "/")
         windows_path = PureWindowsPath(self._url)
         if windows_path.is_absolute():
@@ -65,7 +65,7 @@ class OmniUrl:
         )
 
     @classmethod
-    def _validate_omni_url_for_pydantic(cls, v: Any) -> "OmniUrl":
+    def _validate_omni_url_for_pydantic(cls, v: Any) -> OmniUrl:
         if isinstance(v, OmniUrl):
             return v
         if isinstance(v, (str, Path)):

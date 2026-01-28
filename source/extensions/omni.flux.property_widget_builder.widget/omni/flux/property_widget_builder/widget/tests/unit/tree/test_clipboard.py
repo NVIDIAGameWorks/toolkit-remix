@@ -40,7 +40,7 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
         ]
         clipboard.copy(orig_items)
         raw = omni.kit.clipboard.paste()
-        self.assertEquals(raw, '[{"names": ["CN_1"], "values": ["CV_1"]}, {"names": ["CN_2"], "values": ["CV_2"]}]')
+        self.assertEqual(raw, '[{"names": ["CN_1"], "values": ["CV_1"]}, {"names": ["CN_2"], "values": ["CV_2"]}]')
 
     async def test_paste(self):
         clipboard.copy(
@@ -59,8 +59,8 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
         self.assertEqual(new_items, matches)
 
         clipboard.paste(new_items)
-        self.assertEquals(new_items[0].get_value(), ["V_1"])
-        self.assertEquals(new_items[1].get_value(), ["V_2"])
+        self.assertEqual(new_items[0].get_value(), ["V_1"])
+        self.assertEqual(new_items[1].get_value(), ["V_2"])
 
     async def test_copy_multiple_paste_single(self):
         clipboard.copy(
@@ -78,7 +78,7 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
         self.assertEqual(new_items, matches)
 
         clipboard.paste(new_items)
-        self.assertEquals(new_items[0].get_value(), ["V_1"])
+        self.assertEqual(new_items[0].get_value(), ["V_1"])
 
     async def test_copy_single_paste_multiple(self):
         clipboard.copy(
@@ -93,5 +93,5 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
         ]
 
         clipboard.paste(test_items)
-        self.assertEquals(test_items[0].get_value(), ["V_1"])
-        self.assertEquals(test_items[1].get_value(), [""])
+        self.assertEqual(test_items[0].get_value(), ["V_1"])
+        self.assertEqual(test_items[1].get_value(), [""])

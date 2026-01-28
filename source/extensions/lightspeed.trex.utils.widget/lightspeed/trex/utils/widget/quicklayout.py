@@ -30,7 +30,7 @@ def load_layout(layout_file: str):
 
 
 async def _load_layout_async(layout_file: str):
-    with open(layout_file, "r", encoding="utf-8") as f:
+    with open(layout_file, encoding="utf-8") as f:
         layout_data = json.load(f)
 
     visible_windows = _find_visible_windows(layout_data)

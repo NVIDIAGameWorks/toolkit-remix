@@ -1,5 +1,5 @@
 [package]
-version = "1.6.2"
+version = "1.6.3"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix widget utils"
 description = "Utils helper for Lightspeed widgets"

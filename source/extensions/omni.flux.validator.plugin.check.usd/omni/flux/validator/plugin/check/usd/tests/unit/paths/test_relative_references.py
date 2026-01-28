@@ -142,8 +142,8 @@ class TestRelativeReferences(AsyncTestCase):
         await core.deferred_run()
 
         # Assert
-        self.assertEquals(sub_check_count, 2)  # called 2 times: we check, fix, re check
-        self.assertEquals(sub_fix_count, 1)
+        self.assertEqual(sub_check_count, 2)  # called 2 times: we check, fix, re check
+        self.assertEqual(sub_fix_count, 1)
 
         refs_and_layers = omni.usd.get_composed_references_from_prim(prim)
         self.assertEqual(Path(refs_and_layers[0][0].assetPath), Path("../mesh.usda"))

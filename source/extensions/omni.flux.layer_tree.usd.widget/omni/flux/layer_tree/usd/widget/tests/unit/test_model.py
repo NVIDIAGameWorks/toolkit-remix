@@ -37,7 +37,6 @@ from pxr import Sdf
 
 
 class TestModel(omni.kit.test.AsyncTestCase):
-
     EXPECTED_FILE_EXTENSIONS = [
         ("*.usda", "Human-readable USD File"),
         ("*.usd", "Binary or Ascii USD File"),
@@ -871,10 +870,10 @@ class TestModel(omni.kit.test.AsyncTestCase):
         model.set_items([root_item])
 
         # Act
-        result = model.find_item(value, lambda i, v: i.title == v, parent=items.get(parent, None))
+        result = model.find_item(value, lambda i, v: i.title == v, parent=items.get(parent))
 
         # Assert
-        self.assertEqual(items.get(expected_result, None), result)
+        self.assertEqual(items.get(expected_result), result)
 
     async def __run_test_get_item_children(self, recursive: bool, expected_results: List[str], parent: Optional[str]):
         # Arrange
@@ -898,12 +897,12 @@ class TestModel(omni.kit.test.AsyncTestCase):
         model.set_items([root_item])
 
         # Act
-        result = model.get_item_children(parent=items.get(parent, None), recursive=recursive)
+        result = model.get_item_children(parent=items.get(parent), recursive=recursive)
 
         # Assert
         self.assertEqual(len(expected_results), len(result))
         for index, item in enumerate(expected_results):
-            self.assertEqual(items.get(item, None), result[index])
+            self.assertEqual(items.get(item), result[index])
 
     async def __run_test_drop_accepted(self, expected_result: bool, target: str, source: str, location: int):
         # Arrange
@@ -1000,7 +999,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         model.set_items([root_item])
 
         # Act
-        result = model.drop_accepted(items.get(target, None), items.get(source, None), drop_location=location)
+        result = model.drop_accepted(items.get(target), items.get(source), drop_location=location)
 
         # Assert
         self.assertEqual(expected_result, result)

@@ -46,7 +46,8 @@ class FilePicker(AbstractField):
             file_extension_options: A list of filename extension options. Each list element is an (extension name,
                   description) pair.
 
-                  Examples: ``("*.usdc", "Binary format") or (".usd*", "USD format") or ("*.png, *.jpg, *.exr", "Image format")``  # noqa
+                Examples: ``("*.usdc", "Binary format")`` or ``(".usd*", "USD format")``
+                    or ``("*.png, *.jpg, *.exr", "Image format")``
             use_relative_paths: If True, convert selected file paths to be relative to the current USD edit target.
                   Requires the value_model to have a `stage` attribute.
         """

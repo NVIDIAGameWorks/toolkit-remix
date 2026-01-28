@@ -27,7 +27,6 @@ TREE_COLUMNS = {0: "Thumbnail", 1: "Name", 2: "Game", 3: "Version", 4: "Last Mod
 
 
 class RecentProjectModel(TreeModelBase):
-
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr

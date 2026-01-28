@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.4]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [2.1.3]
 ## Fixed
 - Fixed validation callbacks incorrectly triggered when updating the schema

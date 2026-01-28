@@ -242,9 +242,8 @@ class RemixLogicGraphExtension(omni.ext.IExt):
             self._workspace.create_window()
             if self._actions:
                 self._actions.set_window(self._workspace.get_window())
-        else:
-            if self._actions:
-                self._actions.set_window(None)
+        elif self._actions:
+            self._actions.set_window(None)
         self._workspace.show_window_fn(value)
 
     @staticmethod
@@ -349,8 +348,8 @@ class RemixLogicGraphExtension(omni.ext.IExt):
         class CustomEvent:
             def __init__(self, data):
                 self.mime_data = data
-                self.x = None if is_drop else inst._quicksearch_pos[0]
-                self.y = None if is_drop else inst._quicksearch_pos[1]
+                self.x = None if is_drop else inst._quicksearch_pos[0]  # noqa: SLF001
+                self.y = None if is_drop else inst._quicksearch_pos[1]  # noqa: SLF001
 
         graph_widget = inst._workspace.get_window().get_graph_widget()  # noqa: SLF001, PLW0212
         if graph_widget:

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.1]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [2.1.0]
 ### Changed
 - Renamed the extension to lightspeed.trex.properties_pane.material.widget

@@ -40,11 +40,10 @@ class FileMetadataWritter(_ResultorBase):
 
     name = "FileMetadataWritter"
     display_name = "File Metadata Writter"
-    tooltip = (
-        "This plugin will write metadata from the input/output data of context and check plugins"
-        " + validation result"  # noqa
+    tooltip = (  # type: ignore[assignment]
+        "This plugin will write metadata from the input/output data of context and check plugins + validation result"
     )
-    data_type = Data
+    data_type = Data  # type: ignore[assignment]
 
     def __init__(self):
         super().__init__()

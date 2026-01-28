@@ -29,7 +29,6 @@ from omni.kit.mainwindow import get_main_window
 
 class StandaloneWindow:
     def __init__(self):
-
         self._flags = ui.WINDOW_FLAGS_NO_COLLAPSE
         self._flags |= ui.WINDOW_FLAGS_NO_CLOSE
         self._flags |= ui.WINDOW_FLAGS_NO_MOVE

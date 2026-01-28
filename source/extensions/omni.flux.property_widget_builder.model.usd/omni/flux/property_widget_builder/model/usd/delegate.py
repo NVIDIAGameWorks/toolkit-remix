@@ -198,7 +198,7 @@ class USDDelegate(_Delegate):
                                     tooltip = (
                                         "The displayed value has overrides.\n\n"
                                         "Click to view and manage the overrides."
-                                    )
+                                    )  # fmt: skip
                                 else:
                                     tooltip = "When highlighted, the displayed value has overrides."
                                 row.more_widget = ui.Image(

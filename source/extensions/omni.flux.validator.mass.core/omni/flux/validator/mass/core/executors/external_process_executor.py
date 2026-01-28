@@ -50,7 +50,6 @@ OVERRIDE_EXPERIENCE = (
 
 
 class ExternalProcessExecutor(_BaseExecutor):
-
     _EXECUTOR = None
 
     def __init__(self):

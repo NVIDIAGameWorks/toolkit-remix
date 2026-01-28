@@ -143,10 +143,10 @@ class TestAssetReplacementsService(AsyncTestCase):
                             "/RootNode/lights/light_0FBF0D906770A019",
                             "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh",
                             "/RootNode/meshes/mesh_CED45075A077A49A/mesh",
-                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/AssetImporter/Looks/Cube_01__",  # noqa E501
-                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Looks/CubeMaterial",  # noqa E501
-                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube",  # noqa E501
-                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01",  # noqa E501
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/AssetImporter/Looks/Cube_01__",
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Looks/CubeMaterial",
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube",
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01",
                             "/RootNode/Looks/mat_BC868CE5A075ABB1",
                         ]
                     },
@@ -156,10 +156,10 @@ class TestAssetReplacementsService(AsyncTestCase):
                     {
                         "prim_paths": [
                             "/RootNode/meshes/mesh_CED45075A077A49A/mesh",
-                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/AssetImporter/Looks/Cube_01__",  # noqa E501
-                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Looks/CubeMaterial",  # noqa E501
-                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube",  # noqa E501
-                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01",  # noqa E501
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/AssetImporter/Looks/Cube_01__",
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Looks/CubeMaterial",
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube",
+                            "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01",
                         ]
                     },
                 ),
@@ -281,7 +281,7 @@ class TestAssetReplacementsService(AsyncTestCase):
         # Act
         response = await send_request(
             "GET",
-            f"{self.service.prefix}/%2FRootNode%2FLooks%2Fmat_BC868CE5A075ABB1/textures?texture_types=DIFFUSE&texture_types=NORMAL_OGL",  # noqa E501
+            f"{self.service.prefix}/%2FRootNode%2FLooks%2Fmat_BC868CE5A075ABB1/textures?texture_types=DIFFUSE&texture_types=NORMAL_OGL",
             raw_response=True,
         )
 
@@ -391,7 +391,7 @@ class TestAssetReplacementsService(AsyncTestCase):
         # Act
         response = await send_request(
             "PUT",
-            f"{self.service.prefix}/%2FRootNode%2Fmeshes%2Fmesh_BAC90CAA733B0859%2Fref_c89e0497f4ff4dc4a7b70b79c85692da%2FXForms%2FRoot%2FCube_01/file-paths",  # noqa: E501
+            f"{self.service.prefix}/%2FRootNode%2Fmeshes%2Fmesh_BAC90CAA733B0859%2Fref_c89e0497f4ff4dc4a7b70b79c85692da%2FXForms%2FRoot%2FCube_01/file-paths",
             json={
                 "existing_asset_file_path": original_prim_path,
                 "existing_asset_layer_id": original_layer,

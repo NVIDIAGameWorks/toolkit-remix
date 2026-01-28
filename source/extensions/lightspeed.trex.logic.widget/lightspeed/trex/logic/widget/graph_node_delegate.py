@@ -24,7 +24,6 @@ from omni.kit.widget.graph.abstract_graph_node_delegate import GraphNodeDescript
 
 
 class RemixLogicNodeDelegate(OmniGraphNodeDelegate):
-
     def node_header(self, model: OmniGraphModel, node_desc: GraphNodeDescription):
         """Override the node header to add a description of the node type."""
         (error_state, error_name, message, error_icon) = self.get_error_state(model, node_desc)

@@ -264,7 +264,6 @@ class TestWizardPage(omni.kit.test.AsyncTestCase):
         self.assertEqual(1, mock.call_count)
 
     async def __run_test_blocked_setter_triggers_event(self, value_changed: bool):
-
         # Arrange
         blocked = True
         new_value = not blocked if value_changed else blocked

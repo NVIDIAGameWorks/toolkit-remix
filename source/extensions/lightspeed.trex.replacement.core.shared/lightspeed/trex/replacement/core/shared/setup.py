@@ -58,9 +58,7 @@ class Setup:
                 return False
         else:
             result, entry = omni.client.stat(os.path.dirname(path))
-            if result != omni.client.Result.OK or not (
-                entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN
-            ):  # noqa PLC0325
+            if result != omni.client.Result.OK or not (entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN):  # noqa PLC0325
                 return False
         if constants.CAPTURE_FOLDER in Path(path).parts or constants.REMIX_CAPTURE_FOLDER in Path(path).parts:
             carb.log_error(f"'{path}' is in the {constants.REMIX_CAPTURE_FOLDER} directory")
@@ -180,7 +178,7 @@ class Setup:
 
         existing_mod_layer = Sdf.Layer.FindOrOpen(str(mod_file_path))
         custom_layer_data = existing_mod_layer.customLayerData
-        return custom_layer_data[LSS_LAYER_MOD_NOTES] if LSS_LAYER_MOD_NOTES in custom_layer_data else None
+        return custom_layer_data.get(LSS_LAYER_MOD_NOTES, None)
 
     @staticmethod
     def group_replaced_hashes(args: Tuple["Sdf.Layer", Dict[str, "Sdf.Path"]]) -> Set[str]:

@@ -51,7 +51,7 @@ class TestSelectionHistoryWidget(omni.kit.test.AsyncTestCase):
         wid.destroy()
         window.frame.clear()
         window.destroy()
-        #
+
         await ui_test.human_delay(human_delay_speed=1)
 
     async def test_click_on_item_select_viewport(self):

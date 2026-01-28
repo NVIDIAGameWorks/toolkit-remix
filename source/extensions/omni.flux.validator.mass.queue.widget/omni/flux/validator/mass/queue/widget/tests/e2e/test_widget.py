@@ -46,7 +46,7 @@ class TestManagerWidget(AsyncTestCase):
         wid.destroy()
         window.frame.clear()
         window.destroy()
-        #
+
         await ui_test.human_delay(human_delay_speed=1)
 
     async def test_can_create_widget(self):

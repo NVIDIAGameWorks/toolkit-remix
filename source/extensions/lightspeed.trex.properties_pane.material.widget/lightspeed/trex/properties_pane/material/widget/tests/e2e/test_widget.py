@@ -15,6 +15,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+
 import contextlib
 import os
 import shutil
@@ -389,7 +390,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             self.assertIsNone(cancel_ingestion_button)
 
             # text should be the asset path
-            self.assertEquals(
+            self.assertEqual(
                 OmniUrl(asset_path).path, OmniUrl(texture_file_fields[0].widget.model.get_value_as_string()).path
             )
 
@@ -434,7 +435,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             await ui_test.human_delay()
 
             # text should go back like before
-            self.assertEquals(original_text, texture_file_fields[0].widget.model.get_value_as_string())
+            self.assertEqual(original_text, texture_file_fields[0].widget.model.get_value_as_string())
 
         finally:
             await self.__destroy(_window, _material_property_wid)
@@ -476,7 +477,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             await ui_test.human_delay(20)
 
             # text should be the asset path
-            self.assertEquals(
+            self.assertEqual(
                 OmniUrl(asset_path).path, OmniUrl(diffuse_texture_file_field.widget.model.get_value_as_string()).path
             )
 
@@ -543,7 +544,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             await ui_test.human_delay(5)
 
             # Text field should revert to the original path
-            self.assertEquals(original_text, diffuse_texture_file_field.widget.model.get_value_as_string())
+            self.assertEqual(original_text, diffuse_texture_file_field.widget.model.get_value_as_string())
 
         finally:
             await self.__destroy(_window, _material_property_wid)
@@ -606,7 +607,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
                 await ui_test.human_delay(50)
 
                 # The original (external) asset path should not equal the field text
-                self.assertNotEquals(asset_path, diffuse_texture_file_field.widget.model.get_value_as_string())
+                self.assertNotEqual(asset_path, diffuse_texture_file_field.widget.model.get_value_as_string())
 
                 # Make sure the metadata matches
                 self.assertTrue(_path_utils.hash_match_metadata(file_path=asset_path, key=BASE_HASH_KEY))
@@ -675,7 +676,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             await ui_test.human_delay(5)
 
             # Text should go back like before
-            self.assertEquals(original_text, diffuse_texture_file_field.widget.model.get_value_as_string())
+            self.assertEqual(original_text, diffuse_texture_file_field.widget.model.get_value_as_string())
 
         finally:
             await self.__destroy(_window, _material_property_wid)
@@ -720,7 +721,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             rel_path = omni.client.normalize_url(
                 omni.usd.make_path_relative_to_current_edit_target(asset_path)
             ).replace("\\", "/")
-            self.assertEquals(rel_path, texture_file_fields[1].widget.model.get_value_as_string())
+            self.assertEqual(rel_path, texture_file_fields[1].widget.model.get_value_as_string())
 
         finally:
             await self.__destroy(_window, _material_property_wid)
@@ -759,7 +760,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             await ui_test.human_delay(3)
 
             rel_path = omni.usd.make_path_relative_to_current_edit_target(asset_path)
-            self.assertEquals(
+            self.assertEqual(
                 OmniUrl(rel_path).path, OmniUrl(texture_file_fields[1].widget.model.get_value_as_string()).path
             )
 
@@ -861,7 +862,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
                         omni.usd.make_path_relative_to_current_edit_target(str(texture))
                     ).replace("\\", "/")
                     with self.subTest(name=rel_path):
-                        self.assertEquals(rel_path, texture_file_fields[index].widget.model.get_value_as_string())
+                        self.assertEqual(rel_path, texture_file_fields[index].widget.model.get_value_as_string())
 
         finally:
             await self.__destroy(_window, _material_property_wid)

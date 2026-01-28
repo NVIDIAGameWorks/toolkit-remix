@@ -26,7 +26,6 @@ from omni.kit.test_suite.helpers import open_stage
 
 
 class TestHotkeys(AsyncTestCase):
-
     async def setUp(self):
         trex_context_manager = get_context_manager()
         trex_context_manager.set_current_context(Contexts.TEXTURE_CRAFT)

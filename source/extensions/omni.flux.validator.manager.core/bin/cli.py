@@ -62,7 +62,9 @@ def main():
         cmd.extend([arg])
 
     cmd.append("--no-window")
-    exec_cmd = f"{pathlib.Path(__file__).parent.parent.joinpath('omni', 'flux', 'validator', 'manager', 'core', 'cli.py')}"  # noqa E501
+    exec_cmd = (
+        f"{pathlib.Path(__file__).parent.parent.joinpath('omni', 'flux', 'validator', 'manager', 'core', 'cli.py')}"
+    )
     exec_cmd += f" -s {args.schema}"
     if args.print_result:
         exec_cmd += " -p"

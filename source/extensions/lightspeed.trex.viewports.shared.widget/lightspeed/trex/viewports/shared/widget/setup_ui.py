@@ -42,7 +42,6 @@ if TYPE_CHECKING:
 
 
 class SetupUI(_WorkspaceWidget):
-
     viewport_counts = {}
 
     def __init__(self, context_name):

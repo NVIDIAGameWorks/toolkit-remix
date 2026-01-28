@@ -143,8 +143,8 @@ class TestEditCustomTagsWindow(AsyncTestCase):
             available_items = [i for i in tree_items if i.widget.text in available_model_item]
             assigned_items = [i for i in tree_items if i.widget.text in assigned_model_item]
 
-            self.assertEquals(len(available_items), len(tags) - 1)
-            self.assertEquals(len(assigned_items), 1)
+            self.assertEqual(len(available_items), len(tags) - 1)
+            self.assertEqual(len(assigned_items), 1)
 
             # Test Edit/Delete enable state
             self.assertTrue(create_button.widget.enabled)
@@ -175,8 +175,8 @@ class TestEditCustomTagsWindow(AsyncTestCase):
             available_items = [i for i in tree_items if i.widget.text in available_model_item]
             assigned_items = [i for i in tree_items if i.widget.text in assigned_model_item]
 
-            self.assertEquals(len(available_items), len(tags) - 2)
-            self.assertEquals(len(assigned_items), 1)
+            self.assertEqual(len(available_items), len(tags) - 2)
+            self.assertEqual(len(assigned_items), 1)
 
             # Test adding an item
             await create_button.click()
@@ -184,7 +184,7 @@ class TestEditCustomTagsWindow(AsyncTestCase):
 
             edit_items = ui_test.find_all(f"{window.title}//Frame/**/StringField[*].identifier=='edit_tag'")
 
-            self.assertEquals(len(edit_items), 1)
+            self.assertEqual(len(edit_items), 1)
 
             # Delete Existing Text
             for _ in range(len(TagsEditItem().value)):
@@ -200,8 +200,8 @@ class TestEditCustomTagsWindow(AsyncTestCase):
             available_items = [i for i in tree_items if i.widget.text in available_model_item]
             assigned_items = [i for i in tree_items if i.widget.text in assigned_model_item]
 
-            self.assertEquals(len(available_items), len(tags) - 1)
-            self.assertEquals(len(assigned_items), 1)
+            self.assertEqual(len(available_items), len(tags) - 1)
+            self.assertEqual(len(assigned_items), 1)
 
             self.assertListEqual(available_model_item, tags[:4])
 
@@ -214,7 +214,7 @@ class TestEditCustomTagsWindow(AsyncTestCase):
 
             edit_items = ui_test.find_all(f"{window.title}//Frame/**/StringField[*].identifier=='edit_tag'")
 
-            self.assertEquals(len(edit_items), 1)
+            self.assertEqual(len(edit_items), 1)
 
             await edit_items[0].input("", human_delay_speed=0, end_key=KeyboardInput.BACKSPACE)
             await edit_items[0].input("#In. Valid + Name", human_delay_speed=20, end_key=KeyboardInput.DOWN)
@@ -237,8 +237,8 @@ class TestEditCustomTagsWindow(AsyncTestCase):
             available_items = [i for i in tree_items if i.widget.text in available_model_item]
             assigned_items = [i for i in tree_items if i.widget.text in assigned_model_item]
 
-            self.assertEquals(len(available_items), len(tags) - 1)
-            self.assertEquals(len(assigned_items), 1)
+            self.assertEqual(len(available_items), len(tags) - 1)
+            self.assertEqual(len(assigned_items), 1)
 
             self.assertListEqual(available_model_item, ["Empty_Tag", "Test_Tag_01", "Test_Tag_02", "Test_Tag_03"])
 
@@ -251,7 +251,7 @@ class TestEditCustomTagsWindow(AsyncTestCase):
 
             edit_items = ui_test.find_all(f"{window.title}//Frame/**/StringField[*].identifier=='edit_tag'")
 
-            self.assertEquals(len(edit_items), 1)
+            self.assertEqual(len(edit_items), 1)
 
             await edit_items[0].input("", human_delay_speed=0, end_key=KeyboardInput.BACKSPACE)
             await edit_items[0].input(tags[2], human_delay_speed=20, end_key=KeyboardInput.ENTER)
@@ -265,8 +265,8 @@ class TestEditCustomTagsWindow(AsyncTestCase):
             available_items = [i for i in tree_items if i.widget.text in available_model_item]
             assigned_items = [i for i in tree_items if i.widget.text in assigned_model_item]
 
-            self.assertEquals(len(available_items), len(tags) - 1)
-            self.assertEquals(len(assigned_items), 1)
+            self.assertEqual(len(available_items), len(tags) - 1)
+            self.assertEqual(len(assigned_items), 1)
 
             self.assertListEqual(available_model_item, ["Empty_Tag", "Test_Tag_02", "Test_Tag_03", "Test_Tag_05"])
 
@@ -282,8 +282,8 @@ class TestEditCustomTagsWindow(AsyncTestCase):
             available_items = [i for i in tree_items if i.widget.text in available_model_item]
             assigned_items = [i for i in tree_items if i.widget.text in assigned_model_item]
 
-            self.assertEquals(len(available_items), len(tags))
-            self.assertEquals(len(assigned_items), 0)
+            self.assertEqual(len(available_items), len(tags))
+            self.assertEqual(len(assigned_items), 0)
 
             # Test multiple item drag/drop
             await available_items[2].click()
@@ -302,8 +302,8 @@ class TestEditCustomTagsWindow(AsyncTestCase):
             available_items = [i for i in tree_items if i.widget.text in available_model_item]
             assigned_items = [i for i in tree_items if i.widget.text in assigned_model_item]
 
-            self.assertEquals(len(available_items), 2)
-            self.assertEquals(len(assigned_items), len(tags) - 2)
+            self.assertEqual(len(available_items), 2)
+            self.assertEqual(len(assigned_items), len(tags) - 2)
 
             # Test apply and cancel
             with (
@@ -332,11 +332,11 @@ class TestEditCustomTagsWindow(AsyncTestCase):
 
             # If we are applying the changes, assert the commands are called correctly,
             # otherwise make sure no commands are executed
-            self.assertEquals(add_tag_mock.call_count, 12 if apply_changes else 0)
-            self.assertEquals(remove_tag_mock.call_count, 4 if apply_changes else 0)
-            self.assertEquals(rename_tag_mock.call_count, 1 if apply_changes else 0)
-            self.assertEquals(delete_tags_mock.call_count, 1 if apply_changes else 0)
-            self.assertEquals(create_tag_mock.call_count, 1 if apply_changes else 0)
+            self.assertEqual(add_tag_mock.call_count, 12 if apply_changes else 0)
+            self.assertEqual(remove_tag_mock.call_count, 4 if apply_changes else 0)
+            self.assertEqual(rename_tag_mock.call_count, 1 if apply_changes else 0)
+            self.assertEqual(delete_tags_mock.call_count, 1 if apply_changes else 0)
+            self.assertEqual(create_tag_mock.call_count, 1 if apply_changes else 0)
         finally:
             # Cleanup the test
             instance.destroy()

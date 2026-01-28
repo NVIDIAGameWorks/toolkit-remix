@@ -679,7 +679,6 @@ class USDAttributeItemStub(USDAttributeItem):
     def _create_attributes(self):
         with omni.kit.undo.group():
             for attr_def in self._attribute_defs:
-
                 # Grab the current value for existing attributes, otherwise use the default.
                 if attr_def.exists:
                     attr_value = self._stage.GetAttributeAtPath(attr_def.path).Get()

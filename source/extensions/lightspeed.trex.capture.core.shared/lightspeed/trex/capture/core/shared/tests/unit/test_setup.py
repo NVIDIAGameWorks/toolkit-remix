@@ -24,7 +24,6 @@ from pxr import Sdf, Usd, UsdGeom
 
 
 class TestSetup(omni.kit.test.AsyncTestCase):
-
     # Before running each test
     async def setUp(self):
         pass

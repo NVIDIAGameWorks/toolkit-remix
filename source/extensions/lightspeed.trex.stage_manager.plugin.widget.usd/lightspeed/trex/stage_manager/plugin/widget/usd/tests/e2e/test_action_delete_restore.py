@@ -58,7 +58,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
         result = await client.copy_async(project_path.parent_url, temp_path.path)
         if result != client.Result.OK:
-            raise IOError(f"Can't copy the project path to the temporary directory: {result}")
+            raise OSError(f"Can't copy the project path to the temporary directory: {result}")
 
         await usd.get_context().open_stage_async(temp_project.path)
 

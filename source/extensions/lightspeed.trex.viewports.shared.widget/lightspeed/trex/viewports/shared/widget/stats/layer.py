@@ -117,10 +117,9 @@ class ViewportStatsLayer(_LayerItem):
                 self.__frame_changed_sub = viewport_api.subscribe_to_frame_change(self.__update_stats)
 
             self.__update_stats(viewport_api)
-        else:
-            if self.__frame_changed_sub:
-                self.__frame_changed_sub.destroy()
-                self.__frame_changed_sub = None
+        elif self.__frame_changed_sub:
+            self.__frame_changed_sub.destroy()
+            self.__frame_changed_sub = None
         self.__root.visible = enabled
 
     def __make_update_info(self, viewport_api):

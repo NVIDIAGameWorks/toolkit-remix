@@ -190,12 +190,12 @@ class TestCore(omni.kit.test.AsyncTestCase):
             call(context_name_mock, converter_mock, input_material_next_path_mock), create_definition_mock.call_args
         )
 
-    async def test_convert_has_source_prop_spec_should_create_material_definition_and_fix_connections_and_return_success_and_success_message(  # noqa E501
+    async def test_convert_has_source_prop_spec_should_create_material_definition_and_fix_connections_and_return_success_and_success_message(
         self,
     ):
         await self.__run_convert_has_source_prop_spec(True)
 
-    async def test_convert_does_not_have_source_prop_spec_should_create_material_override_and_set_specifier_and_return_success_and_success_message(  # noqa E501
+    async def test_convert_does_not_have_source_prop_spec_should_create_material_override_and_set_specifier_and_return_success_and_success_message(
         self,
     ):
         await self.__run_convert_has_source_prop_spec(False)
@@ -249,7 +249,7 @@ class TestCore(omni.kit.test.AsyncTestCase):
         self.assertEqual(1, get_shader_mock.call_count)
         self.assertEqual(call(output_prim_mock, get_prim=True), get_shader_mock.call_args)
 
-    async def test_create_material_override_prim_should_create_empty_material_prim_and_empty_shader_prim_and_return_shader_prim(  # noqa E501
+    async def test_create_material_override_prim_should_create_empty_material_prim_and_empty_shader_prim_and_return_shader_prim(
         self,
     ):
         # Arrange

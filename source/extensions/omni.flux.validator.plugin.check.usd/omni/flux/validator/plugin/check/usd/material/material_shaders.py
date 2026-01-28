@@ -218,7 +218,7 @@ class MaterialShaders(_CheckBaseUSD):
                     # Only fix invalid materials. Skip materials that were not tagged as invalid
                     if (
                         root_identifier not in self._layers_invalid_paths
-                        or prim.GetPath() not in self._layers_invalid_paths[root_identifier].keys()
+                        or prim.GetPath() not in self._layers_invalid_paths[root_identifier]
                     ):
                         result_message = f"SKIPPED: {prim.GetPath()}"
                         message += f"- {result_message}\n"

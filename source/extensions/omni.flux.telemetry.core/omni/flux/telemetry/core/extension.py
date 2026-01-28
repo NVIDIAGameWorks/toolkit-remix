@@ -32,7 +32,6 @@ def get_telemetry_instance() -> _TelemetryCore:
 
 
 class TelemetryCoreExtension(omni.ext.IExt):
-
     def on_startup(self, _):
         global _instance
         carb.log_info("[omni.flux.telemetry.core] Startup")

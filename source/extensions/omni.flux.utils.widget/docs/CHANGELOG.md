@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.23.1]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [1.23.0]
 ### Added
 - Added `ScrollingTreeWidget` - a reusable widget that encapsulates `TreeWidget` with `ScrollingFrame` and optional alternating row backgrounds

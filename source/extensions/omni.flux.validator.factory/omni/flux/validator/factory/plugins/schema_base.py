@@ -78,7 +78,7 @@ class BaseSchema(_IBaseSchema):
         return values
 
     @model_validator(mode="after")
-    def _initialize_plugin_instance_and_check_flow(self) -> "BaseSchema":
+    def _initialize_plugin_instance_and_check_flow(self) -> BaseSchema:
         # This validator runs after the model fields (name, data) are validated and assigned.
         # self.data is now an instance of the plugin's specific Data model.
 
@@ -95,7 +95,7 @@ class BaseSchema(_IBaseSchema):
         return self
 
     @property
-    def instance(self) -> "BaseSchema" | None:
+    def instance(self) -> BaseSchema | None:
         return self._instance
 
     @staticmethod

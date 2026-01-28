@@ -172,11 +172,11 @@ class PackagingPane(_WorkspaceWidget):
                                 partial(
                                     self.__on_info_hovered,
                                     info_image,
-                                    "Whether the reference dependencies taken from external mods should be redirected\n"  # noqa E501
+                                    "Whether the reference dependencies taken from external mods should be redirected\n"
                                     "or copied in this mod's package during the packaging process.\n\n"
-                                    "- Redirecting will allow the mod to use the installed mod's dependencies so updating\n"  # noqa E501
+                                    "- Redirecting will allow the mod to use the installed mod's dependencies so updating\n"
                                     "   a dependency will be as simple as to install the updated dependency.\n"
-                                    "- Copying will make sure the mod is completely standalone so no other mods need\n"  # noqa E501
+                                    "- Copying will make sure the mod is completely standalone so no other mods need\n"
                                     "   to be installed for this mod to be loaded successfully.",
                                 )
                             )

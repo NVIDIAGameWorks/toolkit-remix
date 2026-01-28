@@ -177,31 +177,30 @@ class ContentViewerCore:
         """Set the selected content"""
         if content_data is None:
             self._selection = []
-        else:
-            if append:
+        elif append:
+            if self._selection and isinstance(self._selection[0], ContentDataAdd):
+                # we cant have a multi selection with a ContentDataAdd
+                return
+            if content_data in self._selection:
+                self._selection.remove(content_data)
+            else:
+                self._selection.append(content_data)
+        elif append_in_between:
+            if not self._selection:
+                self._selection = [content_data]
+            else:
                 if self._selection and isinstance(self._selection[0], ContentDataAdd):
                     # we cant have a multi selection with a ContentDataAdd
                     return
-                if content_data in self._selection:
-                    self._selection.remove(content_data)
-                else:
-                    self._selection.append(content_data)
-            elif append_in_between:
-                if not self._selection:
-                    self._selection = [content_data]
-                else:
-                    if self._selection and isinstance(self._selection[0], ContentDataAdd):
-                        # we cant have a multi selection with a ContentDataAdd
-                        return
-                    idx_clicked = self._content.index(content_data)
-                    ix_last_selected = self._content.index(self._selection[-1])
-                    start_idx = ix_last_selected + 1 if idx_clicked - ix_last_selected > 0 else idx_clicked
-                    end_idx = idx_clicked + 1 if idx_clicked - ix_last_selected > 0 else ix_last_selected
-                    for content in self._content[start_idx:end_idx]:
-                        if content not in self._selection:
-                            self._selection.append(content)
-            else:
-                self._selection = [content_data]
+                idx_clicked = self._content.index(content_data)
+                ix_last_selected = self._content.index(self._selection[-1])
+                start_idx = ix_last_selected + 1 if idx_clicked - ix_last_selected > 0 else idx_clicked
+                end_idx = idx_clicked + 1 if idx_clicked - ix_last_selected > 0 else ix_last_selected
+                for content in self._content[start_idx:end_idx]:
+                    if content not in self._selection:
+                        self._selection.append(content)
+        else:
+            self._selection = [content_data]
         self._selection_changed()
 
     def get_selection(self) -> List[Type[BaseContentData]]:

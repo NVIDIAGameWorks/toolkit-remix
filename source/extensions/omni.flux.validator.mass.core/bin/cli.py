@@ -77,7 +77,7 @@ def main():
     cmd.append("--start-future-args-remove")
     cmd.append("--no-window")
 
-    exec_cmd = f"{pathlib.Path(__file__).parent.parent.joinpath('omni', 'flux', 'validator', 'mass', 'core', 'cli.py')}"  # noqa E501
+    exec_cmd = f"{pathlib.Path(__file__).parent.parent.joinpath('omni', 'flux', 'validator', 'mass', 'core', 'cli.py')}"
     for schema in args.schema:
         exec_cmd += f" -s {schema}"
     if args.print_result:

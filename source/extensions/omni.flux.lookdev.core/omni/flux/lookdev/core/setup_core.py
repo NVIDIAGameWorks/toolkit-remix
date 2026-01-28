@@ -83,11 +83,10 @@ class LookDevCore:
                 adjustment = Gf.Matrix4d(0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1)
             else:
                 adjustment = Gf.Matrix4d(0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1)
+        elif ref_up == "Y":
+            adjustment = Gf.Matrix4d(0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1)
         else:
-            if ref_up == "Y":
-                adjustment = Gf.Matrix4d(0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1)
-            else:
-                adjustment = Gf.Matrix4d(0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1)
+            adjustment = Gf.Matrix4d(0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1)
 
         # Can set to any existing attributes but CANNOT CREATE them as the caller is in an Sd.ChangeBlock
         if adjustment:
