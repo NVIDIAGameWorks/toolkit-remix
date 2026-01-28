@@ -525,7 +525,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         unique_additional_filters = [f for f in self.additional_filters if f.name not in existing_filter_names]
         self.additional_filters = unique_additional_filters
         for additional_filter_plugin in unique_additional_filters:
-
             additional_filter_plugin.enabled = False
             # Ensure toggleable filters start inactive
             if hasattr(additional_filter_plugin, "filter_active"):

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.2]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [2.3.1]
 ### Fixed
 - Fixed stage manager not refreshing when enabling the stage manager feature flag while a stage is open

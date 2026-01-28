@@ -286,11 +286,10 @@ class ComfyUIWidget(WorkspaceWidget):
             self._update_button.enabled = update_button_enabled
             if update_button_enabled:
                 self._update_button.tooltip = "Update the current ComfyUI installation to the latest version"
+            elif self._core.update_available is None:
+                self._update_button.tooltip = "Failed to check for updates. Check the logs for more details."
             else:
-                if self._core.update_available is None:
-                    self._update_button.tooltip = "Failed to check for updates. Check the logs for more details."
-                else:
-                    self._update_button.tooltip = "No update available for the current ComfyUI installation"
+                self._update_button.tooltip = "No update available for the current ComfyUI installation"
 
         if self._refresh_button:
             self._refresh_button.enabled = refresh_button_enabled

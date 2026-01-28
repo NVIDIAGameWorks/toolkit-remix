@@ -28,7 +28,6 @@ from omni.flux.asset_importer.widget.listener import FileListener as _FileListen
 
 
 class TestFileImportListModel(omni.kit.test.AsyncTestCase):
-
     # Before running each test
     async def setUp(self):
         await omni.usd.get_context().new_stage_async()

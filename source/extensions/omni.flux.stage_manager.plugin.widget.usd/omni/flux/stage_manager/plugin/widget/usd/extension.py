@@ -26,7 +26,6 @@ from .prim_tree import PrimTreeWidgetPlugin as _PrimTreeWidgetPlugin
 
 
 class StageManagerUSDWidgetPluginsExtension(omni.ext.IExt):
-
     _PLUGINS = [_CustomTagsWidgetPlugin, _IsVisibleActionWidgetPlugin, _PrimTreeWidgetPlugin]
 
     def on_startup(self, _):

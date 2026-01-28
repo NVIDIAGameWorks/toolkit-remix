@@ -107,7 +107,7 @@ class BookmarkTreeWidget:
                     with ui.VStack():
                         self._tree_scroll_frame = ui.ScrollingFrame(
                             name="PropertiesPaneSection",
-                            horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,  # noqa E501
+                            horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
                             height=ui.Pixel(self._DEFAULT_TREE_FRAME_HEIGHT),
                         )
                         with self._tree_scroll_frame:

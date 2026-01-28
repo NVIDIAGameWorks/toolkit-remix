@@ -6,6 +6,11 @@ check-format:
     - .soak_check_rules
   needs: []
   script:
+    # Force fresh checkout to apply .gitattributes line ending rules (*.py eol=lf).
+    # GIT_STRATEGY=fetch reuses cached working directories which may have stale CRLF
+    # files from previous runs. Without this, ruff sees CRLF and reports false failures.
+    - git rm --cached -r . >$null 2>&1
+    - git reset --hard HEAD
     - .\format_code.bat --verify
   timeout: 10m
   rules:

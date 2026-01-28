@@ -200,4 +200,4 @@ class GlobalSelection:
         hdremix_highlight_paths(context.get_selection().get_selected_prim_paths())
 
 
-GlobalSelection._instance = GlobalSelection()  # noqa: PLW0212
+GlobalSelection._instance = GlobalSelection()  # noqa: SLF001

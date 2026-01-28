@@ -144,7 +144,6 @@ class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
 
 
 class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
-
     display_name: str = Field(default="Additional Filters", exclude=True)
     tooltip: str = Field(default="Additional filters to apply to the list of prims", exclude=True)
 

@@ -24,7 +24,6 @@ from omni.kit.test_suite.helpers import get_test_data_path, open_stage
 
 
 class TestLayers(omni.kit.test.AsyncTestCase):
-
     # Before running each test
     async def setUp(self):
         self.core = AssetReplacementLayersCore()

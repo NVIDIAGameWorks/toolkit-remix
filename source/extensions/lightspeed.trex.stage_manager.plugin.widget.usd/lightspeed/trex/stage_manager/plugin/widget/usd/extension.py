@@ -33,7 +33,6 @@ from .state_is_capture import IsCaptureStateWidgetPlugin as _IsCaptureStateWidge
 
 
 class LightspeedStageManagerUSDWidgetPluginsExtension(omni.ext.IExt):
-
     _PLUGINS = [
         _AssignCategoryActionWidgetPlugin,
         _DeleteRestoreActionWidgetPlugin,

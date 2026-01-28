@@ -34,22 +34,23 @@ CYLINDER_LIGHT_INTENSITY = 140
 ARROW_WIDTH = 0.03
 ARROW_HEIGHT = 0.1
 ARROW_P = [  # points
+    # --- triangle 1 ---
     [ARROW_WIDTH, ARROW_WIDTH, 0],
     [-ARROW_WIDTH, ARROW_WIDTH, 0],
     [0, 0, ARROW_HEIGHT],
-    #
+    # --- triangle 2 ---
     [ARROW_WIDTH, -ARROW_WIDTH, 0],
     [-ARROW_WIDTH, -ARROW_WIDTH, 0],
     [0, 0, ARROW_HEIGHT],
-    #
+    # --- triangle 3 ---
     [ARROW_WIDTH, ARROW_WIDTH, 0],
     [ARROW_WIDTH, -ARROW_WIDTH, 0],
     [0, 0, ARROW_HEIGHT],
-    #
+    # --- triangle 4 ---
     [-ARROW_WIDTH, ARROW_WIDTH, 0],
     [-ARROW_WIDTH, -ARROW_WIDTH, 0],
     [0, 0, ARROW_HEIGHT],
-    #
+    # --- triangle 5 ---
     [ARROW_WIDTH, ARROW_WIDTH, 0],
     [-ARROW_WIDTH, ARROW_WIDTH, 0],
     [-ARROW_WIDTH, -ARROW_WIDTH, 0],

@@ -32,7 +32,6 @@ class Item(ui.AbstractItem):
 
 
 class ComboListModel(ui.AbstractItemModel):
-
     def __init__(self, item_list, default_index=0):
         super().__init__()
         if default_index >= len(item_list):
@@ -73,7 +72,6 @@ class ComboListModel(ui.AbstractItemModel):
 
 
 class RemappedJointModel(ComboListModel):
-
     def __init__(self, joint_names: list[str], default_index=-1):
         # if joint not found or out of range, use the last index as this is the most likely to be correct
         # for remapping skeletons where an extra joint exists at the end of a hierarchy chain

@@ -118,7 +118,6 @@ class TestCore(AsyncTestCase):
             self.assertEqual(translate_values, metadata_value)  # if we are here, it should fail
 
     async def test_open_stage_with_no_camera_in_metadata(self):
-
         context = omni.usd.get_context()
         async with make_temp_directory(context) as temp_dir:
             shutil.copytree(_get_test_data("usd/project_example"), f"{temp_dir.name}/project_example")
@@ -136,7 +135,6 @@ class TestCore(AsyncTestCase):
             self.assertNotEqual(translate_values, (500.0, 500.0, 500.0))
 
     async def test_open_stage_with_no_camera_in_metadata_disable(self):
-
         context = omni.usd.get_context()
         async with make_temp_directory(context) as temp_dir:
             shutil.copytree(_get_test_data("usd/project_example"), f"{temp_dir.name}/project_example")

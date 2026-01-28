@@ -128,9 +128,7 @@ class ContentLibraryWidget:
                 )
 
         self._subscription_tree_model_menu_items_selected_changed = (
-            self._tree_model_menu.subscribe_items_selected_changed(  # noqa: E501
-                self._on_tree_model_menu_items_selected_changed
-            )
+            self._tree_model_menu.subscribe_items_selected_changed(self._on_tree_model_menu_items_selected_changed)
         )
         self._on_tree_model_menu_items_selected_changed()
 
@@ -242,7 +240,6 @@ class ContentLibraryWidget:
                     )
                     ui.Spacer(height=ui.Pixel(24))
                     with ui.HStack(height=0):
-
                         # menu burger
                         with ui.VStack():
                             ui.Spacer(height=ui.Pixel(4))

@@ -29,7 +29,6 @@ from .virtual_groups import VirtualGroupsTreePlugin as _VirtualGroupsTreePlugin
 
 
 class StageManagerUSDTreePluginsExtension(omni.ext.IExt):
-
     _PLUGINS = [
         _CustomTagGroupsTreePlugin,
         _LightGroupsTreePlugin,

@@ -341,17 +341,17 @@ class GeneratePBRMaterial(_CheckBaseUSD):
                 ui.Spacer(width=0)
                 max_res = schema_data.max_inference_resolution
                 _InfoIconWidget(
-                    f"Select the AI Model inference mode.\n\n"  # noqa E501
-                    f"- {InferenceMode.SPEED.value}:\n"  # noqa E501
-                    f"    Will downscale the input image to a resolution of {max_res // 2}x{max_res // 2} and output images of size {max_res * 2}x{max_res * 2}.\n"  # noqa E501
-                    f"    This is quicker but limits the output images' resolutions. It also uses more VRAM since the entire output is in memory.\n"  # noqa E501
-                    f"- {InferenceMode.QUALITY.value}:\n"  # noqa E501
-                    f"    Will run many inferences of size {max_res}x{max_res} within the input image, until the complete output images are\n"  # noqa E501
-                    f"    generated. The inference process will be slower and memory usage will increase exponentially in relation\n"  # noqa E501
-                    f"    to the input image resolution but the output images will also be higher resolution (4x the input resolution).\n\n"  # noqa E501
-                    f"NOTE:\n"  # noqa E501
-                    f'    When running in "{InferenceMode.QUALITY.value}" mode, inputting images larger than {max_res * 2}x{max_res * 2} may result in visual artifacts being\n'  # noqa E501
-                    f"    introduced to the generated maps."  # noqa E501
+                    f"Select the AI Model inference mode.\n\n"
+                    f"- {InferenceMode.SPEED.value}:\n"
+                    f"    Will downscale the input image to a resolution of {max_res // 2}x{max_res // 2} and output images of size {max_res * 2}x{max_res * 2}.\n"
+                    f"    This is quicker but limits the output images' resolutions. It also uses more VRAM since the entire output is in memory.\n"
+                    f"- {InferenceMode.QUALITY.value}:\n"
+                    f"    Will run many inferences of size {max_res}x{max_res} within the input image, until the complete output images are\n"
+                    f"    generated. The inference process will be slower and memory usage will increase exponentially in relation\n"
+                    f"    to the input image resolution but the output images will also be higher resolution (4x the input resolution).\n\n"
+                    f"NOTE:\n"
+                    f'    When running in "{InferenceMode.QUALITY.value}" mode, inputting images larger than {max_res * 2}x{max_res * 2} may result in visual artifacts being\n'
+                    f"    introduced to the generated maps."
                 )
                 ui.Spacer(width=0)
 

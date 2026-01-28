@@ -762,6 +762,11 @@ job_count = 1
 ########################################################################################################################
 
 [repo_lint.flake8]
+enabled = false
+
+[repo_lint.ruff]
+enabled = true
+flags = ["--fix"]
 files.include = ["**/*.py"]
 files.exclude = [
     ".eggs/*",

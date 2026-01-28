@@ -90,8 +90,8 @@ class OmniGraphNodeQuickSearchModel(ComponentNodeTypeCatalogModel):
         # Workaround for OM-99274. See note in omni.graph.window.core's catalog_model.py for details.
         # This check is to prevent the node being added twice once OM-99274 is fixed. It should be removed
         # at the same time as the corresponding code in omni.graph.window.core.
-        if not __class__._node_created:  # noqa: protected-access
-            __class__._node_created = True  # noqa: protected-access
+        if not __class__._node_created:  # noqa: SLF001
+            __class__._node_created = True  # noqa: SLF001
             from .extension import RemixLogicGraphExtension
 
             RemixLogicGraphExtension.add_node(data, False)

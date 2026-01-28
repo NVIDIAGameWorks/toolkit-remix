@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.7.1]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [0.7.0]
 ## Fixed
 - Refactored hdremix loading to be resilient to test race conditions

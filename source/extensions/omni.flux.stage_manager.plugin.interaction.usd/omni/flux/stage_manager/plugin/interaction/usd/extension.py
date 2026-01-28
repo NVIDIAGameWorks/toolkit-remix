@@ -28,7 +28,6 @@ from .all_tags import AllTagsInteractionPlugin as _AllTagsInteractionPlugin
 
 
 class StageManagerUSDInteractionPluginsExtension(omni.ext.IExt):
-
     _PLUGINS = [
         _AllLightsInteractionPlugin,
         _AllMaterialsInteractionPlugin,

@@ -250,11 +250,7 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
 
         # setup data and a widget:
         schema_data = TextureImporter.Data(
-            **{
-                "context_name": "",
-                "input_files": [input_file_0, input_file_1],
-                "output_directory": f"{input_path_2}",
-            }
+            context_name="", input_files=[input_file_0, input_file_1], output_directory=f"{input_path_2}"
         )
 
         window, _ = await self.__setup_widget(schema_data)  # Keep in memory during test
@@ -297,7 +293,8 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
 
         # Make sure we are selecting the right file
         self.assertEqual(
-            str(input_path_2), directory_path_field.model._field.model.get_value_as_string()  # noqa PLW0212
+            str(input_path_2),
+            directory_path_field.model._field.model.get_value_as_string(),  # noqa PLW0212
         )
         self.assertEqual(str(input_file_2[0].name), file_name_field.model.get_value_as_string())
 
@@ -372,53 +369,52 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
 
             await select_button.click()
             await ui_test.human_delay()
+        elif output_in_input:
+            # can't use this because when we write the input path `AppData/Local/Temp/tmpzpa_yyej/input`
+            # the field will catch `AppData/Local/Temp/`, which is a valid path
+            # so we emulate the keyboard with 0 human time to have the field to not catch this
+            # await output_directory_field.input(str(input_files[0][0].parent), end_key=KeyboardInput.DOWN)
+
+            await output_directory_field.double_click(human_delay_speed=2)
+            await ui_test.human_delay(2)
+            await ui_test.emulate_char_press(str(input_files[0][0].parent), human_delay_speed=0)
+            await ui_test.emulate_keyboard_press(KeyboardInput.DOWN)
+
+            # If the value is invalid, the style should reflect that
+            self.assertEqual("FieldError", output_directory_field.widget.style_type_name_override)
+
+            # End edit
+            await output_directory_field.input("", end_key=KeyboardInput.ENTER)
+
+            await ui_test.human_delay()
         else:
-            if output_in_input:
-                # can't use this because when we write the input path `AppData/Local/Temp/tmpzpa_yyej/input`
-                # the field will catch `AppData/Local/Temp/`, which is a valid path
-                # so we emulate the keyboard with 0 human time to have the field to not catch this
-                # await output_directory_field.input(str(input_files[0][0].parent), end_key=KeyboardInput.DOWN)
+            # Clear the output directory field only if is_valid, otherwise it will contain the "."
+            # as its last correct value it will fall back to:
+            if is_valid:
+                output_directory_field.widget.model.set_value("")
 
-                await output_directory_field.double_click(human_delay_speed=2)
-                await ui_test.human_delay(2)
-                await ui_test.emulate_char_press(str(input_files[0][0].parent), human_delay_speed=0)
-                await ui_test.emulate_keyboard_press(KeyboardInput.DOWN)
+            # can't use this because when we write the input path `AppData/Local/Temp/tmpzpa_yyej/input`
+            # the field will catch `AppData/Local/Temp/`, which is a valid path
+            # so we emulate the keyboard with 0 human time to have the field to not catch this
+            # Don't end edit
+            # await output_directory_field.input(str(new_output_dir_path), end_key=KeyboardInput.DOWN)
 
-                # If the value is invalid, the style should reflect that
-                self.assertEqual("FieldError", output_directory_field.widget.style_type_name_override)
+            await output_directory_field.double_click(human_delay_speed=2)
+            await ui_test.human_delay(2)
+            await ui_test.emulate_char_press(str(new_output_dir_path), human_delay_speed=0)
+            await ui_test.emulate_keyboard_press(KeyboardInput.DOWN)
 
-                # End edit
-                await output_directory_field.input("", end_key=KeyboardInput.ENTER)
+            await ui_test.human_delay()
 
-                await ui_test.human_delay()
-            else:
-                # Clear the output directory field only if is_valid, otherwise it will contain the "."
-                # as its last correct value it will fall back to:
-                if is_valid:
-                    output_directory_field.widget.model.set_value("")
+            # If the value is invalid, the style should reflect that
+            self.assertEqual(
+                "Field" if is_valid else "FieldError", output_directory_field.widget.style_type_name_override
+            )
 
-                # can't use this because when we write the input path `AppData/Local/Temp/tmpzpa_yyej/input`
-                # the field will catch `AppData/Local/Temp/`, which is a valid path
-                # so we emulate the keyboard with 0 human time to have the field to not catch this
-                # Don't end edit
-                # await output_directory_field.input(str(new_output_dir_path), end_key=KeyboardInput.DOWN)
+            # End edit
+            await output_directory_field.input("", end_key=KeyboardInput.ENTER)
 
-                await output_directory_field.double_click(human_delay_speed=2)
-                await ui_test.human_delay(2)
-                await ui_test.emulate_char_press(str(new_output_dir_path), human_delay_speed=0)
-                await ui_test.emulate_keyboard_press(KeyboardInput.DOWN)
-
-                await ui_test.human_delay()
-
-                # If the value is invalid, the style should reflect that
-                self.assertEqual(
-                    "Field" if is_valid else "FieldError", output_directory_field.widget.style_type_name_override
-                )
-
-                # End edit
-                await output_directory_field.input("", end_key=KeyboardInput.ENTER)
-
-                await ui_test.human_delay()
+            await ui_test.human_delay()
 
         # Make sure the expected value is set and the field style is valid
         self.assertEqual(
@@ -461,11 +457,9 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
             )
 
         schema_data = TextureImporter.Data(
-            **{
-                "context_name": context,
-                "input_files": input_files,
-                "create_output_directory_if_missing": False,
-                "output_directory": "${texture_importer_test_dir}/output",
-            }
+            context_name=context,
+            input_files=input_files,
+            create_output_directory_if_missing=False,
+            output_directory="${texture_importer_test_dir}/output",
         )
         return input_files, output_path, schema_data

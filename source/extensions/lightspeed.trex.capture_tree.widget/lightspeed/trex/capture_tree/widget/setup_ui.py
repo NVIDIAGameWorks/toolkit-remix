@@ -113,7 +113,6 @@ class CaptureWidget(WorkspaceWidget):
                 horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
             ):
                 with ui.VStack(style={"margin": 5}):
-
                     with ui.HStack():
                         with ui.VStack(style={"margin": 0}):
                             self._capture_file_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
@@ -200,8 +199,8 @@ class CaptureWidget(WorkspaceWidget):
                                                         with ui.ZStack():
                                                             self._tree_capture_scroll_frame = ui.ScrollingFrame(
                                                                 name="PropertiesPaneSection",
-                                                                # height=ui.Pixel(self.DEFAULT_CAPTURE_TREE_FRAME_HEIGHT),  # noqa E501
-                                                                horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,  # noqa E501
+                                                                # height=ui.Pixel(self.DEFAULT_CAPTURE_TREE_FRAME_HEIGHT),
+                                                                horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
                                                                 identifier="TreeCaptureScrollFrame",
                                                             )
                                                             with self._tree_capture_scroll_frame:
@@ -213,7 +212,7 @@ class CaptureWidget(WorkspaceWidget):
                                                                         header_visible=True,
                                                                         columns_resizable=False,
                                                                         mouse_hovered_fn=self._on_capture_tree_hovered,
-                                                                        selection_changed_fn=self._on_capture_tree_selection_changed,  # noqa E501
+                                                                        selection_changed_fn=self._on_capture_tree_selection_changed,
                                                                     )
                                                                     self._fake_frame_for_scroll = ui.Frame()
                                                             self._tree_capture_scroll_frame.set_build_fn(
@@ -223,7 +222,7 @@ class CaptureWidget(WorkspaceWidget):
                                                                     self._tree_capture_scroll_frame,
                                                                 )
                                                             )
-                                                            self._tree_capture_scroll_frame.set_computed_content_size_changed_fn(  # noqa E501
+                                                            self._tree_capture_scroll_frame.set_computed_content_size_changed_fn(
                                                                 functools.partial(
                                                                     self._resize_capture_tree_columns,
                                                                     self._capture_tree_view,
@@ -688,8 +687,9 @@ class CaptureWidget(WorkspaceWidget):
             )
             final_value_h = rows_size + 40
             dpi_scale = ui.Workspace.get_dpi_scale()
-            if final_value_h > size[1] / dpi_scale - self._tree_capture_scroll_frame.screen_position_y - 8:
-                final_value_h = size[1] / dpi_scale - self._tree_capture_scroll_frame.screen_position_y - 8
+            final_value_h = min(
+                final_value_h, size[1] / dpi_scale - self._tree_capture_scroll_frame.screen_position_y - 8
+            )
             self._window_capture_tree.height = ui.Pixel(final_value_h + 8)
             self._window_capture_tree.width = ui.Pixel(self._tree_capture_scroll_frame.computed_width + 24)
             scroll_y_value = int(self._tree_capture_scroll_frame.scroll_y)
@@ -702,8 +702,9 @@ class CaptureWidget(WorkspaceWidget):
                 value = max(frame.scroll_x_max for frame in item_path_scroll_frames.values())
                 if value != 0:  # no scroll max = we see everything
                     final_value_w = self._window_capture_tree.width + value
-                    if final_value_w > size[0] / dpi_scale - self._tree_capture_scroll_frame.screen_position_x - 8:
-                        final_value_w = size[0] / dpi_scale - self._tree_capture_scroll_frame.screen_position_x - 8
+                    final_value_w = min(
+                        final_value_w, size[0] / dpi_scale - self._tree_capture_scroll_frame.screen_position_x - 8
+                    )
                     self._window_capture_tree.width = ui.Pixel(final_value_w + 32)
             self.__ignore_capture_tree_hovered = False
         elif (

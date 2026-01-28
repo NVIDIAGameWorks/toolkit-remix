@@ -300,7 +300,7 @@ class ShaderInfoAPI:
                 try:
                     value = ast.literal_eval(expr)
 
-                except Exception as e:  # pylint: disable=broad-exception-caught  # pragma: no cover
+                except Exception as e:  # noqa: BLE001
                     carb.log_warn(
                         f"Unable to evaluate '{expr}' for Sdr.ShaderProperty: '{sdr_shader_property.GetName()}' "
                         f"for prim: '{self._prim_path}'. Error: '{e}'"
@@ -430,8 +430,7 @@ class ShaderInfoAPI:
 
         def set_hidden(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> None:
             metadata[Sdf.AttributeSpec.HiddenKey] = (
-                ("hidden" in metadata)
-                or ("hidden" in metadata[Sdf.AttributeSpec.CustomDataKey])
+                ("hidden" in metadata) or ("hidden" in metadata[Sdf.AttributeSpec.CustomDataKey])
                 # REMIX: "unused" is used to avoid spam errors in AperturePBR_Opacity.mdl so it does not necessarily
                 #  mean the attribute should be hidden in the ui.
                 # or ("unused" in metadata)

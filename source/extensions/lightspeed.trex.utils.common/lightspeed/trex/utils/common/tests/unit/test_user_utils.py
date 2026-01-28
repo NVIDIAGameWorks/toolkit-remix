@@ -27,7 +27,7 @@ class TestUserUtils(omni.kit.test.AsyncTestCase):
 
         # Assert
         # Verify that keys are hex values
-        self.assert_(int(key1, 16))
-        self.assert_(int(key2, 16))
+        self.assertTrue(int(key1, 16))
+        self.assertTrue(int(key2, 16))
         # Verify that it is consistent
         self.assertEqual(key1, key2)

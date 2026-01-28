@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.1]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [1.5.0]
 ### Added
 - Added semantic event subscriptions: subscribe_stage_opened_or_closed(), subscribe_sublayers_changed()

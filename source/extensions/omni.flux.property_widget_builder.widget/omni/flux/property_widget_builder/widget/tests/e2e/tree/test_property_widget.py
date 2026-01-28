@@ -19,7 +19,6 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
 
     async def test_tree_selection(self):
         async with AsyncTestPropertyWidget() as helper:
-
             group_a = ItemGroup("Parent_A")
             group_a.children.extend(
                 [
@@ -98,7 +97,6 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
             self.assertListEqual(items[1].get_value(), ["1.5", "0.0", "0.0"])
 
     async def test_slider_widget(self):
-
         min_value = 0.0
         max_value = 1.0
         item = TestItem([("Slider", (max_value - min_value) / 2)])
@@ -111,7 +109,6 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
             return builder(item)
 
         async with AsyncTestPropertyWidget() as helper:
-
             helper.delegate.field_builders = field_builders
 
             await helper.set_items([item])

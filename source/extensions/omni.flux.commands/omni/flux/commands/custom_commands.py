@@ -155,7 +155,6 @@ class SetFluxXFormPrimCommand(omni.kit.commands.Command):
             self._delete_from_layer(xform_order_attribute)
 
         for attr_def in attr_defs:
-
             carb.log_info(f"{self.__class__.__name__}: Creating attribute {attr_def}")
 
             precision = existing_precision.get(attr_def["op"], attr_def["precision"])

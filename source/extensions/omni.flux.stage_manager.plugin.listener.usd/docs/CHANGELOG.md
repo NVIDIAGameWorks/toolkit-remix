@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.1]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [2.3.0]
 ## Added
 - Added nickname attribute changes to the listener and only refresh if there are new paths changes

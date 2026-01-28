@@ -1,5 +1,5 @@
 [package]
-version = "1.0.1"
+version = "1.0.2"
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Particle System gizmos extension"
 description = "Render particle system gizmos using omni.ui.scene"

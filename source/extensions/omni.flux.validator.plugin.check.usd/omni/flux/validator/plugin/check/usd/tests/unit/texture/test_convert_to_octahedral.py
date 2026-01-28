@@ -127,7 +127,7 @@ class TestConvertToOctahedral(AsyncTestCase):
         self.assertEqual(sub_check_count, 1)
         self.assertEqual(sub_fix_count, 0)  # 0 because the check is good, so we dont run the fix
 
-        self.assertEquals(
+        self.assertEqual(
             Path(core.model.check_plugins[0].data.data_flows[0].output_data[0]),
             Path(get_test_data_path(__name__, "usd/pillow_cube/T_Prop_CompanionCube_Pillow_A_OTH_Normal.png")),
         )
@@ -144,17 +144,17 @@ class TestConvertToOctahedral(AsyncTestCase):
         await core.deferred_run()
 
         prim = stage.GetPrimAtPath("/World/Looks/M_Prop_CompanionCube_Pillow_A/Shader")
-        self.assertEquals(prim.GetAttribute("inputs:encoding").Get(), 0)
+        self.assertEqual(prim.GetAttribute("inputs:encoding").Get(), 0)
         out_path = self.temp_path / Path("pillow_cube/T_Prop_CompanionCube_Pillow_A_OTH_Normal.png")
-        self.assertEquals(prim.GetAttribute("inputs:normalmap_texture").Get().resolvedPath, str(out_path))
+        self.assertEqual(prim.GetAttribute("inputs:normalmap_texture").Get().resolvedPath, str(out_path))
         self.assertTrue(out_path.exists())
 
-        self.assertEquals(
+        self.assertEqual(
             Path(core.model.check_plugins[0].data.data_flows[0].input_data[0]),
             self.temp_path / Path("pillow_cube/T_Prop_CompanionCube_Pillow_A_Normal.png"),
         )
 
-        self.assertEquals(
+        self.assertEqual(
             Path(core.model.check_plugins[0].data.data_flows[0].output_data[0]),
             self.temp_path / Path("pillow_cube/T_Prop_CompanionCube_Pillow_A_OTH_Normal.png"),
         )
@@ -174,17 +174,17 @@ class TestConvertToOctahedral(AsyncTestCase):
 
         # Assert
         prim = stage.GetPrimAtPath("/World/Looks/M_Prop_CompanionCube_Pillow_A/Shader")
-        self.assertEquals(prim.GetAttribute("inputs:encoding").Get(), 0)
+        self.assertEqual(prim.GetAttribute("inputs:encoding").Get(), 0)
         out_path = self.temp_path / Path("pillow_cube/T_Prop_CompanionCube_Pillow_A_OTH_Normal.png")
-        self.assertEquals(prim.GetAttribute("inputs:normalmap_texture").Get().resolvedPath, str(out_path))
+        self.assertEqual(prim.GetAttribute("inputs:normalmap_texture").Get().resolvedPath, str(out_path))
         self.assertTrue(out_path.exists())
 
-        self.assertEquals(
+        self.assertEqual(
             Path(core.model.check_plugins[0].data.data_flows[0].input_data[0]),
             self.temp_path / Path("pillow_cube/T_Prop_CompanionCube_Pillow_A_Normal.png"),
         )
 
-        self.assertEquals(
+        self.assertEqual(
             Path(core.model.check_plugins[0].data.data_flows[0].output_data[0]),
             self.temp_path / Path("pillow_cube/T_Prop_CompanionCube_Pillow_A_OTH_Normal.png"),
         )

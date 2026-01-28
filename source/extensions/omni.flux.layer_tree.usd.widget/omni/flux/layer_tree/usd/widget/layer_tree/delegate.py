@@ -285,13 +285,12 @@ class LayerDelegate(_TreeDelegateBase):
                     tooltip += ": The layer is muted"
                 elif not item.data["parent_visible"]:
                     tooltip += ": A parent layer is muted"
+            elif item.data["authoring"]:
+                tooltip = "The layer is the active Edit Target"
+                icon = "LayerActive"
             else:
-                if item.data["authoring"]:
-                    tooltip = "The layer is the active Edit Target"
-                    icon = "LayerActive"
-                else:
-                    tooltip = "Set the layer as the Edit Target"
-                    icon = "Layer"
+                tooltip = "Set the layer as the Edit Target"
+                icon = "Layer"
             ui.Image(
                 "",
                 height=ui.Pixel(16),

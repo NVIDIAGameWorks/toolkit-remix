@@ -51,7 +51,6 @@ class FloatSliderField(AbstractField):
         widgets = []
         with ui.HStack(height=ui.Pixel(24)):
             for i in range(item.element_count):
-
                 # Create subscriptions on the begin/end edits so we can undo the slider changes all at once.
                 value_model = item.value_models[i]
                 self._subs.append(value_model.subscribe_begin_edit_fn(self.begin_edit))

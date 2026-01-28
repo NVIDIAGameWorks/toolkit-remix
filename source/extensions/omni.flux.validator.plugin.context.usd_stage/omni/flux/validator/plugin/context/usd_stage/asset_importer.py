@@ -70,7 +70,6 @@ def _get_converter_context():
 
 
 class AssetImporter(_ContextBaseUSD):
-
     DEFAULT_UI_WIDTH_PIXEL = 120
     DEFAULT_UI_HEIGHT_PIXEL = 24
     DEFAULT_UI_SPACING_PIXEL = 8

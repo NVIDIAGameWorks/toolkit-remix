@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.2.3]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [4.2.2]
 ### Changed
 - Combined both Pip Archives into one extension

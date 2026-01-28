@@ -1,0 +1,27 @@
+# Pre-commit hooks configuration
+# See https://pre-commit.com for more information
+#
+# Install:
+#   pip install pre-commit
+#   pre-commit install
+#   pre-commit install --hook-type pre-push
+#
+# Usage:
+#   - Format runs automatically on git commit
+#   - Lint runs automatically on git push
+#   - Skip with: git commit --no-verify / git push --no-verify
+#   - Run manually: pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.10
+    hooks:
+      # Run the formatter on commit
+      - id: ruff-format
+        types_or: [python, pyi]
+        stages: [pre-commit]
+      # Run the linter on push (all files, check only)
+      - id: ruff
+        stages: [pre-push]
+        args: [--no-fix, source/extensions]
+        pass_filenames: false

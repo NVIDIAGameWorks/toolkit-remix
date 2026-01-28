@@ -45,7 +45,6 @@ SCHEMA_PATH_SETTING = "/exts/omni.flux.validator.manager.widget/schema"
 
 
 class ValidatorManagerWidget:
-
     DEFAULT_BLINKING_OVERLAY_COLOR = [0.8, 0.4, 0.0, 0.6]
 
     _main_loop = asyncio.get_event_loop()
@@ -270,7 +269,7 @@ class ValidatorManagerWidget:
 
                                 with ui.ScrollingFrame(
                                     name="PropertiesPaneSection",
-                                    horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,  # noqa E501
+                                    horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
                                 ):
                                     self._check_tree_view = ui.TreeView(
                                         self._check_model,
@@ -300,7 +299,7 @@ class ValidatorManagerWidget:
 
                                 with ui.ScrollingFrame(
                                     name="PropertiesPaneSection",
-                                    horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,  # noqa E501
+                                    horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
                                 ):
                                     self._resultor_tree_view = ui.TreeView(
                                         self._resultor_model,

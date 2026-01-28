@@ -67,9 +67,7 @@ class OgRemixLogicTestGraphWidget(RemixLogicGraphWidget):
 
 class OgRemixLogicTestWindow(RemixLogicGraphWindow):
     def on_build_window(self):
-        self._main_widget = OgRemixLogicTestGraphWidget(  # noqa: protected-access
-            catalog_model=OgRemixLogicTestCatalogModel()
-        )
+        self._main_widget = OgRemixLogicTestGraphWidget(catalog_model=OgRemixLogicTestCatalogModel())
 
 
 class TestOgWindowComponentUI(OmniUiTest):
@@ -133,7 +131,7 @@ class TestOgWindowComponentUI(OmniUiTest):
             await omni.kit.app.get_app().next_update_async()
 
         # Close the catalog so that our golden images don't break whenever the categories or node counts change.
-        graph_window._main_widget._splitter_left._button.call_clicked_fn()  # noqa: PLW0212
+        graph_window._main_widget._splitter_left._button.call_clicked_fn()  # noqa: SLF001
 
         for _ in range(5):
             await omni.kit.app.get_app().next_update_async()
@@ -169,7 +167,7 @@ class TestOgWindowComponentUI(OmniUiTest):
             },
         )
 
-        graph_window._import_prims(None, [controller.prim(graph.get_path_to_graph())])  # noqa: protected-access
+        graph_window._import_prims(None, [controller.prim(graph.get_path_to_graph())])  # noqa: SLF001
 
         await self.__wait_for_window_to_draw()
         await self.finalize_test(
@@ -196,7 +194,7 @@ class TestOgWindowComponentUI(OmniUiTest):
         await usd_context.open_stage_async(str(test_file_path))
         await wait_stage_loading()
 
-        graph_window._import_prims(None, [controller.prim("/World/PushGraph")])  # noqa: protected-access
+        graph_window._import_prims(None, [controller.prim("/World/PushGraph")])  # noqa: SLF001
 
         await self.__wait_for_window_to_draw()
         await self.finalize_test(
@@ -233,23 +231,21 @@ class TestOgWindowComponentUI(OmniUiTest):
             },
         )
 
-        graph_window._import_prims(None, [controller.prim(graph.get_path_to_graph())])  # noqa: protected-access
+        graph_window._import_prims(None, [controller.prim(graph.get_path_to_graph())])  # noqa: SLF001
         await self.__wait_for_window_to_draw()
-        graph_window._main_widget.model.create_subgraph_compound(  # noqa: protected-access
+        graph_window._main_widget.model.create_subgraph_compound(  # noqa: SLF001
             [controller.prim(f"{self.TEST_GRAPH_PATH}/add"), controller.prim(f"{self.TEST_GRAPH_PATH}/simple")]
         )
         await self.__wait_for_window_to_draw()
 
         # Verify that compound is selected after creation
         self.assertEqual(
-            graph_window._main_widget.model.selection,  # noqa: protected-access
+            graph_window._main_widget.model.selection,  # noqa: SLF001
             [stage.GetPrimAtPath(f"{self.TEST_GRAPH_PATH}/compound")],
         )
 
         # Verify that entering a compound shows the nodes
-        graph_window._main_widget.enter_compound(  # noqa: protected-access
-            controller.prim(f"{self.TEST_GRAPH_PATH}/compound")
-        )
+        graph_window._main_widget.enter_compound(controller.prim(f"{self.TEST_GRAPH_PATH}/compound"))  # noqa: SLF001
 
         await self.__wait_for_window_to_draw()
         await self.finalize_test(
@@ -265,13 +261,13 @@ class TestOgWindowComponentUI(OmniUiTest):
         _stage, _, graph_window = await self.__initialize_test_window()
         graph = graph_create_fn()
 
-        graph_window._import_prims(None, [og.Controller.prim(graph.get_path_to_graph())])  # noqa: protected-access
+        graph_window._import_prims(None, [og.Controller.prim(graph.get_path_to_graph())])  # noqa: SLF001
         await self.__wait_for_window_to_draw()
 
         # Verify that entering a compound shows the nodes
         # dig down in the compounds
         for compound in compounds:
-            graph_window._main_widget.enter_compound(og.Controller.prim(compound))  # noqa: protected-access
+            graph_window._main_widget.enter_compound(og.Controller.prim(compound))  # noqa: SLF001
             await self.__wait_for_window_to_draw()
 
         await self.finalize_test(

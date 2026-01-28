@@ -20,7 +20,7 @@ from __future__ import annotations
 __all__ = ["StageManagerItem"]
 
 import threading
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from omni.flux.utils.common import reset_default_attrs
 
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 class StageManagerItem:
-    def __init__(self, identifier: Any, data: Any = None, parent: Optional[StageManagerItem] = None):
+    def __init__(self, identifier: Any, data: Any = None, parent: StageManagerItem | None = None):
         """
         An item that should be built by a context plugin and used by the interaction plugin and any of its children
         plugins.
@@ -77,7 +77,7 @@ class StageManagerItem:
         return self._data
 
     @property
-    def parent(self) -> Optional[StageManagerItem]:
+    def parent(self) -> StageManagerItem | None:
         """
         Returns:
             The parent item if one exists.
@@ -85,7 +85,7 @@ class StageManagerItem:
         return self._parent
 
     @parent.setter
-    def parent(self, value: Optional[StageManagerItem]):
+    def parent(self, value: StageManagerItem | None):
         """
         Set the parent item for which this item is a child.
         """

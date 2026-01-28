@@ -72,7 +72,7 @@ class SkeletonReplacementBinding:
         self._captured_skeleton_prim = skel_root.GetChild("skel")
         if not self._captured_skeleton_prim:
             raise SkeletonDefinitionError(
-                f"Captured skeleton not found: " f"{self._skel_root_prim.GetPath().AppendChild('skel')}"
+                f"Captured skeleton not found: {self._skel_root_prim.GetPath().AppendChild('skel')}"
             )
         self._captured_skeleton: UsdSkel.Skeleton = UsdSkel.Skeleton(self._captured_skeleton_prim)
         self._original_mesh_joint_indices: Vt.IntArray | None = None

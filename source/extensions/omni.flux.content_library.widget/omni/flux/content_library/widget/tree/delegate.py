@@ -54,12 +54,11 @@ class Delegate(ui.AbstractItemDelegate):
                 if "ImageWithProvider::TreePanelTitleItemTitle" not in current_dict:
                     # use regular labels
                     ui.Label(item.title)
-                else:
-                    # use custom styled font
-                    if item.title not in self._title_images_provider:
-                        self._title_images_provider[item.title], _, _ = _create_label_with_font(
-                            item.title, "TreePanelTitleItemTitle", remove_offset=True, offset_divider=2
-                        )
+                # use custom styled font
+                elif item.title not in self._title_images_provider:
+                    self._title_images_provider[item.title], _, _ = _create_label_with_font(
+                        item.title, "TreePanelTitleItemTitle", remove_offset=True, offset_divider=2
+                    )
                 ui.Spacer(height=ui.Pixel(4))
 
     def _on_item_hovered(self, hovered, item):

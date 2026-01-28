@@ -44,7 +44,6 @@ class IBase(PluginBase, abc.ABC):
         pass
 
     class Data(BaseModel, abc.ABC):
-
         @property
         @abc.abstractmethod
         def data_flow_compatible_name(self) -> list[str] | None:

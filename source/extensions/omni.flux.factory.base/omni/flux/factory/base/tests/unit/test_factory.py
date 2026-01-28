@@ -101,7 +101,8 @@ class TestValidatorFactory(AsyncTestCase):
 
         # Assert
         self.assertDictEqual(
-            self.factory._plugins, {_PLUGIN_NAME_1: TestPlugin1, _PLUGIN_NAME_2: TestPlugin2}  # noqa PLW0212
+            self.factory._plugins,
+            {_PLUGIN_NAME_1: TestPlugin1, _PLUGIN_NAME_2: TestPlugin2},  # noqa PLW0212
         )
 
     async def test_unregister_plugins_should_remove_plugins_from_plugins(self):

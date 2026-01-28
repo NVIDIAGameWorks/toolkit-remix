@@ -124,8 +124,8 @@ class TestForcePrimvarToVertexInterpolation(AsyncTestCase):
         await core.deferred_run()
 
         # Assert
-        self.assertEquals(sub_check_count, 2)  # called 2 times: we check, fix, re check
-        self.assertEquals(sub_fix_count, 1)
+        self.assertEqual(sub_check_count, 2)  # called 2 times: we check, fix, re check
+        self.assertEqual(sub_fix_count, 1)
 
         usd_context = omni.usd.get_context()
         stage = usd_context.get_stage()
@@ -141,7 +141,7 @@ class TestForcePrimvarToVertexInterpolation(AsyncTestCase):
             self.assertNotEqual(interpolation, UsdGeom.Tokens.faceVarying)
             self.assertNotEqual(interpolation, UsdGeom.Tokens.varying)
             if interpolation == UsdGeom.Tokens.vertex:
-                self.assertEquals(len(points) * primvar.GetElementSize(), len(primvar.Get()))
+                self.assertEqual(len(points) * primvar.GetElementSize(), len(primvar.Get()))
 
     async def test_run_fix_vertex_normals(self):
         # Arrange
@@ -194,8 +194,8 @@ class TestForcePrimvarToVertexInterpolation(AsyncTestCase):
         await core.deferred_run()
 
         # Assert
-        self.assertEquals(sub_check_count, 2)  # called 2 times: we check, fix, re check
-        self.assertEquals(sub_fix_count, 1)
+        self.assertEqual(sub_check_count, 2)  # called 2 times: we check, fix, re check
+        self.assertEqual(sub_fix_count, 1)
 
         usd_context = omni.usd.get_context()
         stage = usd_context.get_stage()
@@ -211,4 +211,4 @@ class TestForcePrimvarToVertexInterpolation(AsyncTestCase):
             self.assertNotEqual(interpolation, UsdGeom.Tokens.faceVarying)
             self.assertNotEqual(interpolation, UsdGeom.Tokens.varying)
             if interpolation == UsdGeom.Tokens.vertex:
-                self.assertEquals(len(points) * primvar.GetElementSize(), len(primvar.Get()))
+                self.assertEqual(len(points) * primvar.GetElementSize(), len(primvar.Get()))

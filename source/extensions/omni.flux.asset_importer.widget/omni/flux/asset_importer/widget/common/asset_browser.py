@@ -52,7 +52,6 @@ class AssetBrowserModel(_AssetBrowserModel):
 
 
 class AssetBrowserWindow:
-
     _SIZE_PERCENT_WINDOW = 0.86
 
     def __init__(self, add_callback_fn: Callable[[List[Union[str, _OmniUrl]]], Any]):

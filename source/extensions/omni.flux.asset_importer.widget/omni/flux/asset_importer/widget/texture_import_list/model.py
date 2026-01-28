@@ -29,7 +29,6 @@ from .items import TextureImportItem, TextureTypes
 
 
 class TextureImportListModel(ui.AbstractItemModel):
-
     def __init__(self):
         super().__init__()
         self.default_attr = {

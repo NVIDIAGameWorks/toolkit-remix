@@ -50,7 +50,6 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
 
     async def test_copy_all(self):
         async with AsyncTestPropertyWidget() as helper:
-
             item1 = TestItem([("N_1", "V_1")])
             item2 = TestItem([("N_2", "V_2")])
 
@@ -60,7 +59,7 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
             await omni.kit.ui_test.menu.select_context_menu("Copy All", menu_root=helper.get_context_menu())
 
             raw = omni.kit.clipboard.paste()
-            self.assertEquals(raw, '[{"names": ["N_1"], "values": ["V_1"]}, {"names": ["N_2"], "values": ["V_2"]}]')
+            self.assertEqual(raw, '[{"names": ["N_1"], "values": ["V_1"]}, {"names": ["N_2"], "values": ["V_2"]}]')
 
     async def test_copy_all_paste_all(self):
         async with AsyncTestPropertyWidget() as helper:

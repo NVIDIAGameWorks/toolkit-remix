@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.4]
+### Changed
+- Switched to ruff for linting and formatting
+
 ## [3.1.3]
 ### Changed
 - Updated TYPE_CHECKING import references for renamed selection_tree.widget extension (no runtime dependency)

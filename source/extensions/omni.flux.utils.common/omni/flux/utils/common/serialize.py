@@ -23,7 +23,7 @@ import dataclasses
 import functools
 import inspect
 import json
-from typing import Any, Callable, Generic, Mapping, Type, TypeAlias, TypeVar
+from typing import Any, Callable, Generic, Mapping, TypeAlias, TypeVar
 
 Json: TypeAlias = dict[str, "Json"] | list["Json"] | str | int | float | bool | None
 T = TypeVar("T")
@@ -120,7 +120,7 @@ class Serializer(Generic[T]):
 
     @classmethod
     def _resolve_key_and_claim_func(
-        cls, claim_func_or_type: Type | Callable[[Any], bool], key: str | None = None
+        cls, claim_func_or_type: type | Callable[[Any], bool], key: str | None = None
     ) -> tuple[str, Callable[[Any], bool]]:
         """
         Used with the `register_serialize_hook` decorator to determine if the user provided a claim function or type.
@@ -142,7 +142,7 @@ class Serializer(Generic[T]):
                     key = f"{mod}.{claim_func_or_type.__qualname__}"
         return key, claim_func
 
-    def _get_or_create_converter(self, claim_func_or_type: Type | Callable[[Any], bool], key: str | None = None):
+    def _get_or_create_converter(self, claim_func_or_type: type | Callable[[Any], bool], key: str | None = None):
         """
         Get an existing converter or create a new one.
 
@@ -158,7 +158,7 @@ class Serializer(Generic[T]):
         self._converters.append(result)
         return result
 
-    def register_serialize_hook(self, claim_func_or_type: Type | Callable[[Any], bool], key: str | None = None):
+    def register_serialize_hook(self, claim_func_or_type: type | Callable[[Any], bool], key: str | None = None):
         """
         Decorator used to register a serialize hook for specific type(s).
         """
@@ -170,7 +170,7 @@ class Serializer(Generic[T]):
 
         return _deco
 
-    def register_deserialize_hook(self, claim_func_or_type: Type | Callable[[Any], bool], key: str | None = None):
+    def register_deserialize_hook(self, claim_func_or_type: type | Callable[[Any], bool], key: str | None = None):
         """
         Decorator used to register a deserialize hook for specific type(s).
         """
