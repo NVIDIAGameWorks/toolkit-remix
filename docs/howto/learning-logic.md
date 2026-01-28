@@ -331,13 +331,13 @@ The **RTX Remix Logic** system required developing a layering system for jugglin
 
 To help streamline mod creation, Remix has introduced three types of config files.
 
-*   **rtx.conf** files. These haven't changed. They are core to a modder's workflow for making a game "Remix Compatible". Modders can adjust how a game renders to make it work best with Remix, save it to the rtx.conf file, and share it in places like ModDB to make it easier for other modders to get started with their mod.
+*   **`rtx.conf` files**. These haven't changed. They are core to a modder's workflow for making a game "Remix Compatible". Modders can adjust how a game renders to make it work best with Remix, save it to the `rtx.conf` file, and share it in places like ModDB to make it easier for other modders to get started with their mod.
 
-*   **user.conf** files. These are new, and meant to store a user's personal graphics settings, like their graphical preset, and whether they play with Frame Generation on. These should be tailored to the player, and reflect the best graphical settings for them.
+*   **`user.conf` files**. These are new, and meant to store a user's personal graphics settings, like their graphical preset, and whether they play with Frame Generation on. These should be tailored to the player, and reflect the best graphical settings for them.
 
 *   **New Logic `.conf` files**. For Remix Logic graphs, modders can export a `new.conf` file from the Runtime. This file is meant to be renamed and used as a layer that is temporarily loaded in reaction to a change in the game state.
 
-When modders save their Runtime settings on the "User Graphics Menu" it automatically saves to the user.conf. Additionally, on the "Advanced Developer Menu", modders will see a new drop down near the save button:
+When modders save their Runtime settings on the "User Graphics Menu" it automatically saves to the `user.conf`. Additionally, on the "Advanced Developer Menu", modders will see a new drop down near the save button:
 
 ![Example3 Graph](../data/images/logic-example3-graph.png)
 
@@ -347,7 +347,7 @@ When modders save their Runtime settings on the "User Graphics Menu" it automati
 If you plan to create new `.conf` files for Remix Logic, you need to ensure your `user.conf` contains only your personal graphics settings, including any derived settings that are set based on graphics preset or hardware compatibility. This will prevent those settings from being included in exported `.conf` files, which could accidentally change another player's graphics settings.
 ```
 
-* **First**, delete any existing user.conf you might have in your file structure.
+* **First**, delete any existing `user.conf` you might have in your file structure.
 
 * **Second,** In-game, launch the Runtime graphics settings menu and hit save (without going to the advanced developer menu).
 
@@ -363,7 +363,7 @@ Save the settings to a `new.conf` file. The save settings should look like this 
 
 ![Example3 Key Input](../data/images/logic-example3-key-input.png)
 
-The `new.conf` file can be found in your file structure next to the rtx.conf file.
+The `new.conf` file can be found in your file structure next to the `rtx.conf` file.
 
 Modders should rename the `new.conf` file, maintaining the `.conf` extension. They should then manually move it to their mod folder (in the root or any subfolder).
 
@@ -373,7 +373,7 @@ In the Remix Toolkit, modders create a graph that features a "RTX Option Layer A
 
 ![Example3 Sphere Light](../data/images/logic-example3-sphere-light.png)
 
-## Understanding user.conf Priority
+## Understanding `user.conf` Priority
 
 ```{important}
 **Config priority (highest to lowest):** `user.conf` > Logic `.conf` layers > `rtx.conf`
@@ -381,7 +381,7 @@ In the Remix Toolkit, modders create a graph that features a "RTX Option Layer A
 
 `user.conf` stores the local graphics settings and is intended for the end user-settings the player chooses for their hardware and personal preferences. It is **not** meant for shareable mod-related settings.
 
-Because `user.conf` has the highest priority, **Logic cannot override values defined in user.conf**. If
+Because `user.conf` has the highest priority, **Logic cannot override values defined in `user.conf`**. If
 you're testing and your Logic layer seems to have no effect on certain values, check if those values exist
 in `user.conf`.
 
@@ -431,7 +431,7 @@ Some node properties require values you can't guess—like the rotation range fo
 
 **Layer not applying?**
 *   Verify the `.conf` file exists at the specified path
-*   Check that values aren't locked by `user.conf` (see "Understanding user.conf Priority" above)
+*   Check that values aren't locked by `user.conf` (see "Understanding `user.conf` Priority" above)
 *   Look at the Option Layers panel in Dev Settings to see if the layer appears and at what strength
 
 **Tonemapping or other values don't reset correctly?**

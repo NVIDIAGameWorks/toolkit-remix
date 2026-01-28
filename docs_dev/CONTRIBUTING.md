@@ -44,7 +44,7 @@ For example, to display a list of USD prims in the RTX Remix app using a list wi
 Lightspeed extensions are created for implementing features specific to the RTX Remix Toolkit, such as altering the app
 layout. Reusable code fragments should be placed in a Flux extension first, then customized in a Lightspeed extension.
 
-# Developer's Guide
+## Developer's Guide
 
 ## Quick Start
 
@@ -71,7 +71,7 @@ Optional git hooks are available using [pre-commit](https://pre-commit.com/):
 - Skip with: `git commit --no-verify` or `git push --no-verify`
 - Run manually: `pre-commit run --all-files`
 
-Alternatively, if you prefer not to install pre-commit hooks, you can still use our convenience scripts to run similar processes: `.\format_code.bat` and `.\lint_code.bat`
+Alternatively, use our convenience scripts directly (without installing pre-commit): `format_code.bat` and `lint_code.bat`
 
 ## Common Flags
 
@@ -83,18 +83,17 @@ use flags to modify the Toolkit's behavior.
 - Turn off Driver-Version check (to prevent Kit from crashing on startup when it finds an unsupported driver version):
     - `--/rtx/verifyDriverVersion/enabled=false`
 - Enable the PyCharm Debugger (see the [PYCHARM_GUIDE](./PYCHARM_GUIDE.md) for more details):
-    - `--/app/extensions/registryEnabled=1 `
+    - `--/app/extensions/registryEnabled=1`
     - `--enable omni.kit.debug.pycharm`
     - `--/exts/omni.kit.debug.pycharm/pycharm_location="C:\Program Files\JetBrains\PyCharm 2023.2"` (Update the file
       path to match your PyCharm Installation)
 
 ## Additional Documentation
 
-- **[Using Pycharm IDE](./PYCHARM_GUIDE.md)**: Learn about developing with Pycharm.
+- **[Using PyCharm IDE](./PYCHARM_GUIDE.md)**: Learn about developing with PyCharm.
 - **[Debugging Guide](./DEBUGGING_GUIDE.md)**: Info on how to attach debuggers to the toolkit.
 - **[How to profile](./PROFILE_GUIDE.md)**: Introduction to profiling.
 - **[Review Checklist](./REVIEW_CHECKLIST.md)**: Guidelines for engineers submitting merge requests.
-- **[Automated Testing](./TESTING_GUIDELINES.md)**: Process for writing and deploying tests in lightspeed for kit
-  applications.
+- **[Automated Testing](./TESTING_GUIDELINES.md)**: Process for writing and deploying tests.
 - **[Omniverse Dev Tips](./OMNIVERSE_TIPS.md)**: Tips and tricks for developing on Omniverse from engineers.
-- **[Security](../SECURITY.md)**: Anything related to security.
+- **[Security](../SECURITY.md)**: Security policies and reporting.

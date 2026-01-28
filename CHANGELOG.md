@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4722: Refactored Stage Manager to use the new `ScrollingTreeWidget` component, decoupling scroll-frame logic for reuse
 - Excluded the python scripts from the package to avoid distributing binary files.
 - REMIX-4891: Migrated to ruff for formatting/linting, modernized codebase, and added pre-commit hooks.
+- Add `create_venv.bat` to create a virtual environment for development.
+- Tweaks for release notes
 
 ### Fixed
 - Added a frame wait for Stage Manager refresh to ensure all items are properly populated and updated Additional Filters menu sorting
