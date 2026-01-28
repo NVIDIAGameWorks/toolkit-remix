@@ -16,8 +16,9 @@ This control over cause and effect unlocks new possibilities. Modders can–
 Remix Logic is available for every RTX Remix mod to leverage.
 
 ```{seealso}
-You can view a full list of available nodes in the [Component Reference](../components/index.md)
 Check out our [Full User Documentation on Remix Logic](../howto/learning-logic.md) for more details on how to get started.
+
+You can view a full list of available nodes in the [Component Reference](../components/index.md)
 ```
 
 ### RTX Remix Toolkit
@@ -38,7 +39,7 @@ Remix Logic supports four types of nodes:
 
 * **Sense:** used to detect the in-game event (Ex: Camera, Mesh Proximity, Time, Keyboard Input, etc.)
 * **Transform:** used to change an input to different types, or introduce conditionality/rules (Ex: Add, Between, Bool AND, Bool OR, Greater Than, etc.)
-* **Act:** used to execute the visual change. At launch, we support loading and blending between different RTX.conf files to change Remix Runtime options. In the future, we will look to expand the number of available Act nodes.
+* **Act:** used to execute the visual change. At launch, we support loading and blending between different `rtx.conf` files to change Remix Runtime options. In the future, we will look to expand the number of available Act nodes.
 * **Constants**: used for sharing a value between multiple components, and for setting a property with a flexible type (ex: Constant String, Constant Hash, Constant Bool, etc.)
 
 Remix Logic was made possible using the [Omnigraph](https://docs.omniverse.nvidia.com/extensions/latest/ext_omnigraph.html) framework to define node types and store graphs as USD, as well as harnessing Omnigraph's graph editor to offer a no code framework to modders.
@@ -62,7 +63,7 @@ Remix Logic was made possible using the [Omnigraph](https://docs.omniverse.nvidi
 * Removed waypoint support
 
 
-#### Code Contributions
+#### Community Contributions
 * Changed modding tabs to vertical layout from @Simon-Lajoie [PR 7](https://github.com/NVIDIAGameWorks/toolkit-remix/pull/7)
 
 ***
@@ -75,13 +76,13 @@ Added support for **RTX Remix Logic** system, including developing a layering sy
 
 To help streamline mod creation, Remix has introduced three types of config files.
 
-*   **rtx.conf** files. These haven't changed. They are core to a modder's workflow for making a game "Remix Compatible". Modders can adjust how a game renders to make it work best with Remix, save it to the rtx.conf file, and share it in places like ModDB to make it easier for other modders to get started with their mod.
+*   **`rtx.conf` files**. These haven't changed. They are core to a modder's workflow for making a game "Remix Compatible". Modders can adjust how a game renders to make it work best with Remix, save it to the `rtx.conf` file, and share it in places like ModDB to make it easier for other modders to get started with their mod.
 
-*   **user.conf** files. These are new, and meant to store a user's personal graphics settings, like their graphical preset, and whether they play with Frame Generation on. These should be tailored to the player, and reflect the best graphical settings for them.
+*   **`user.conf` files**. These are new, and meant to store a user's personal graphics settings, like their graphical preset, and whether they play with Frame Generation on. These should be tailored to the player, and reflect the best graphical settings for them.
 
 *   **New Logic `.conf` files**. For Remix Logic graphs, modders can export a `new.conf` file from the Runtime. This file is meant to be renamed and used as a layer that is temporarily loaded in reaction to a change in the game state.
 
-When modders save their Runtime settings on the "User Graphics Menu" it automatically saves to the user.conf. Additionally, on the "Advanced Developer Menu", modders will see a new drop down near the save button:
+When modders save their Runtime settings on the "User Graphics Menu" it automatically saves to the `user.conf`. Additionally, on the "Advanced Developer Menu", modders will see a new drop down near the save button:
 
 ![Example3 Graph](../data/images/logic-example3-graph.png)
 
@@ -99,7 +100,7 @@ If you plan to create new conf files for Remix Logic, please follow the steps ou
 * Implemented vertex color as baked lighting as a per surface property. Added a heuristic for legacy materials based on FF state. Disabled this feature for particles (where we know the vertex color is not baked lighting).
 * RTX Option change callbacks (including cascading changes) are now applied in the same frame on the resolved value for consistent behavior.
 
-#### Code Contributions
+#### Community Contributions
 
 
 * Remade entire Remix Runtime UI thanks to xoxor4d [PR 105](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/105). Added a UI theme selector with three themes, compact/spacious modes, large GUI toggle, and background alpha slider. Made multiple changes to improve menu look and feel:
@@ -122,7 +123,7 @@ If you plan to create new conf files for Remix Logic, please follow the steps ou
 
 #### Known Issues
 
-* When saving your mod, avoid leaving the "Save Changed Settings Only" unchecked, and keep the "Override configs" option unchecked. It can lead to problematic behavior with our revamped multiple config file system, causing unintentional settings to be saved to rtx/user/new config files. By default, we recommend modders always have "Save Changed Settings Only" checked, and ensure their personal graphics settings are saved to the user.conf file by saving on the main Graphics Menu at least once.
+* When saving your mod, avoid leaving the "Save Changed Settings Only" unchecked, and keep the "Override configs" option unchecked. It can lead to problematic behavior with our revamped multiple config file system, causing unintentional settings to be saved to rtx/user/new config files. By default, we recommend modders always have "Save Changed Settings Only" checked, and ensure their personal graphics settings are saved to the `user.conf` file by saving on the main Graphics Menu at least once.
 
   ```{image} ../data/images/remix-config-save-settings-1.png
   :width: 400px
@@ -132,11 +133,11 @@ If you plan to create new conf files for Remix Logic, please follow the steps ou
   :width: 400px
   ```
 
-  If you have this setting checked off, please check it on, delete any user.conf file in your file structure, and save your personal graphics settings in the "Graphics Menu". Then, delete any new.conf files you may have created for Remix Logic and remake them.
+  If you have this setting checked off, please check it on, delete any `user.conf` file in your file structure, and save your personal graphics settings in the "Graphics Menu". Then, delete any new.conf files you may have created for Remix Logic and remake them.
 
 * Migrating Texture Tagging:
-    * Users who have been using Github Action builds may have saved non-user settings into user.conf. This causes problems, particularly when it comes to adding and removing textures from texture categories.
-    * To resolve this, we've added a migration flow, which will move all texture hashsets in user.conf to rtx.conf.
+    * Users who have been using Github Action builds may have saved non-user settings into `user.conf`. This causes problems, particularly when it comes to adding and removing textures from texture categories.
+    * To resolve this, we've added a migration flow, which will move all texture hashsets in `user.conf` to `rtx.conf`.
 
   ![Remix Texture Migration](../data/images/remix-texture-migration.png)
 
@@ -144,7 +145,7 @@ If you plan to create new conf files for Remix Logic, please follow the steps ou
 
   ![Remix 1.3 Image 9](../data/images/remix-1.3-image-9.png)
 
-  * If you have texture categories in your user.conf, the runtime menus will offer you "Migrate" buttons before allowing you to save rtx.conf or user.conf. Clicking these buttons will move the texture categories into rtx.conf (merging with any that are already there), and save both files.
+  * If you have texture categories in your `user.conf`, the runtime menus will offer you "Migrate" buttons before allowing you to save `rtx.conf` or `user.conf`. Clicking these buttons will move the texture categories into `rtx.conf` (merging with any that are already there), and save both files.
   * After migration, you should be able to add or remove textures as normal
   * NOTE: textures added in dxvk.conf, the hardcoded config.cpp, or in Logic .conf files won't be removable in the UI for 1.3. You'll need to edit the files by hand.
 
@@ -481,7 +482,7 @@ adjust the look of the game to meet the monitor’s output
   92 MB. FPS saw a 2% improvement at 1080p on 3060, though performance gains may vary depending on GPU, workload, and
   settings.
 - Improved memory usage for RTX Skin
-- Improved performance by limiting max bones per vertex for skinned characters and assets. There is a new rtx.conf
+- Improved performance by limiting max bones per vertex for skinned characters and assets. There is a new `rtx.conf`
   option called rtx.limitedBonesPerVertex, which defaults to 4.
 - Optimized memory usage of renderer to better reuse memory across graphics features (ex: saves 25MB at 1080p, more at
   higher resolutions).
@@ -509,7 +510,7 @@ adjust the look of the game to meet the monitor’s output
 
 - Exposed a new developer tool to help track resource aliasing opportunities. Developers can find it here: Dev Settings
   tab > Developer options > Resource Aliasing Query
-- Changed how texture hashes are sorted in rtx.conf
+- Changed how texture hashes are sorted in `rtx.conf`
 - Advanced Developer Menu now provides a “Composite Debug View” setting under Rendering Tab > Debug. Developers can view
   multiple debug views simultaneously from a predefined list
 
@@ -1193,7 +1194,7 @@ page of the Omniverse Launcher.
 ### RTX Remix Runtime 0.5.0
 
 Note to modders–with RTX Remix Runtime 0.5 we have removed an option that was causing excessive ghosting with no benefit
-to users. If your project requires you to remain on an older RTX Remix Runtime, we advise you to check your rtx.conf
+to users. If your project requires you to remain on an older RTX Remix Runtime, we advise you to check your `rtx.conf`
 file, and ensure `rtx.enableDeveloperOptions = false`.
 
 #### Features
