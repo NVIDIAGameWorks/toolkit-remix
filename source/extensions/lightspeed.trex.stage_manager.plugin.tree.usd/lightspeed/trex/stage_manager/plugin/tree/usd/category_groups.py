@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable
+from typing import Iterable
 
 from lightspeed.common.constants import HIDDEN_REMIX_CATEGORIES as _HIDDEN_REMIX_CATEGORIES
 from lightspeed.common.constants import REMIX_CATEGORIES_DISPLAY_NAMES as _REMIX_CATEGORIES_DISPLAY_NAMES
@@ -27,13 +27,23 @@ from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroups
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsItem as _VirtualGroupsItem
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsModel as _VirtualGroupsModel
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsTreePlugin as _VirtualGroupsTreePlugin
+from pxr import Usd
 from pydantic import Field
-
-if TYPE_CHECKING:
-    from pxr import Usd
 
 
 class CategoryGroupsItem(_VirtualGroupsItem):
+    """
+    Create a Category Group Item
+
+    Args:
+        display_name: The name to display in the Tree
+        data: The USD Prim this item represents
+        tooltip: The tooltip to display when hovering an item in the TreeView
+        display_name_ancestor: A string to prepend to the display name with
+
+        category: The name of the category this item represents
+    """
+
     def __init__(
         self,
         display_name: str,
@@ -42,18 +52,12 @@ class CategoryGroupsItem(_VirtualGroupsItem):
         display_name_ancestor: str = None,
         category: str = None,
     ):
-        """
-        Create a Category Group Item
-
-        Args:
-            display_name: The name to display in the Tree
-            data: The USD Prim this item represents
-            tooltip: The tooltip to display when hovering an item in the TreeView
-            display_name_ancestor: A string to prepend to the display name with
-            category: The name of the category this item represents
-        """
-
-        super().__init__(display_name, data, tooltip=tooltip, display_name_ancestor=display_name_ancestor)
+        super().__init__(
+            display_name,
+            data,
+            tooltip=tooltip,
+            display_name_ancestor=display_name_ancestor,
+        )
 
         self._category = category
 
@@ -81,12 +85,26 @@ class CategoryGroupsModel(_VirtualGroupsModel):
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
-    def _build_items(self, items: Iterable[_StageManagerItem]) -> list[CategoryGroupsItem] | None:
-        tree_items = {}
+    def _build_item(
+        self,
+        display_name: str,
+        data: Usd.Prim,
+        tooltip: str = "",
+        category: str | None = None,
+        display_name_ancestor: str | None = None,
+    ):
+        return CategoryGroupsItem(
+            display_name,
+            data,
+            tooltip=tooltip,
+            category=category,
+        )
 
-        # Build the group items
+    def _build_items(self, items: Iterable[_StageManagerItem]) -> list[CategoryGroupsItem] | None:
+        # Build the group items only needs to be done once (preserves expanded states)
+        parent_lookup = {}
         for attr, display_name in _REMIX_CATEGORIES_DISPLAY_NAMES.items():
-            tree_items[attr] = CategoryGroupsItem(display_name, None, tooltip=f"{display_name} Group", category=attr)
+            parent_lookup[attr] = self._build_item(display_name, None, tooltip=f"{display_name} Group", category=attr)
 
         # Get unique item names
         item_names = _StageManagerUtils.get_unique_names(items)
@@ -97,17 +115,18 @@ class CategoryGroupsModel(_VirtualGroupsModel):
             for attr in item.data.GetAttributes():
                 if attr.GetName() in _REMIX_CATEGORIES_DISPLAY_NAMES and attr.Get():
                     name, parent = item_names.get(item, (None, None))
-                    tree_items[attr.GetName()].add_child(
-                        CategoryGroupsItem(
-                            name,
-                            item.data,
-                            tooltip=str(prim_path),
-                            display_name_ancestor=parent,
-                        )
+
+                    tree_item = self._build_item(
+                        name,
+                        item.data,
+                        tooltip=str(prim_path),
+                        display_name_ancestor=parent,
                     )
 
+                    tree_item.parent = parent_lookup[attr.GetName()]
+
         # Filter out empty groups and sort alphabetically (both parents and children)
-        filtered_items = [item for item in tree_items.values() if item.children]
+        filtered_items = [item for item in parent_lookup.values() if item.children]
         self.sort_items(filtered_items)
 
         return filtered_items

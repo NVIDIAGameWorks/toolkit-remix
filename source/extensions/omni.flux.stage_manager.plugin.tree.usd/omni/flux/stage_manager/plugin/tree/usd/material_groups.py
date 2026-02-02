@@ -21,7 +21,7 @@ from typing import Iterable
 
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.utils.common.materials import get_materials_from_prim_paths as _get_materials_from_prim_paths
-from pxr import UsdGeom, UsdShade
+from pxr import Usd, UsdGeom, UsdShade
 from pydantic import Field
 
 from .virtual_groups import VirtualGroupsDelegate as _VirtualGroupsDelegate
@@ -47,6 +47,35 @@ class MaterialGroupsModel(_VirtualGroupsModel):
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
+    def _build_item(
+        self,
+        display_name: str,
+        data: Usd.Prim | None,
+        tooltip: str = "",
+        display_name_ancestor: str = "",
+        is_virtual: bool = False,
+    ) -> MaterialGroupsItem:
+        """
+        Factory method to create a MaterialGroupsItem instance.
+
+        Args:
+            display_name: The name to display in the tree.
+            data: The USD prim this item represents, or None for material group headers.
+            tooltip: The tooltip text to display on hover.
+            display_name_ancestor: Ancestor path prefix for disambiguation.
+            is_virtual: Whether this is a virtual grouping node (material header).
+
+        Returns:
+            A new MaterialGroupsItem instance.
+        """
+        return MaterialGroupsItem(
+            display_name=display_name,
+            data=data,
+            tooltip=tooltip,
+            is_virtual=is_virtual,
+            display_name_ancestor=display_name_ancestor,
+        )
+
     def _build_items(self, items: Iterable[_StageManagerItem]) -> list[MaterialGroupsItem] | None:
         tree_items = {}
 
@@ -57,9 +86,9 @@ class MaterialGroupsModel(_VirtualGroupsModel):
                 mesh_items.append(item)
             if item.data.IsA(UsdShade.Material):
                 item_path = item.data.GetPath()
-                tree_items[str(item_path)] = MaterialGroupsItem(
-                    display_name=str(item_path.name),
-                    data=item.data,
+                tree_items[str(item_path)] = self._build_item(
+                    str(item_path.name),
+                    item.data,
                     tooltip=str(item_path),
                     is_virtual=True,
                 )
@@ -77,15 +106,13 @@ class MaterialGroupsModel(_VirtualGroupsModel):
 
                 # Create the mesh children per parent material
                 if parent_material_path in tree_items:
-                    tree_items[parent_material_path].add_child(
-                        MaterialGroupsItem(
-                            display_name=item_name,
-                            data=item.data,
-                            tooltip=str(item.data.GetPath()),
-                            display_name_ancestor=parent_name,
-                            is_virtual=False,
-                        )
+                    mat_tree_item = self._build_item(
+                        item_name,
+                        item.data,
+                        tooltip=str(item.data.GetPath()),
+                        display_name_ancestor=parent_name,
                     )
+                    mat_tree_item.parent = tree_items[parent_material_path]
 
         # Sort the items alphabetically (both parents and children)
         sorted_tree_items = list(tree_items.values())

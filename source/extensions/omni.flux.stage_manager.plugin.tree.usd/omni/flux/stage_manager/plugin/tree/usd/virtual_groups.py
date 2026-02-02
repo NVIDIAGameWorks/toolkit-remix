@@ -17,8 +17,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from omni import ui
 from pydantic import Field
 
@@ -27,33 +25,39 @@ from .base import StageManagerUSDTreeItem as _StageManagerUSDTreeItem
 from .base import StageManagerUSDTreeModel as _StageManagerUSDTreeModel
 from .base import StageManagerUSDTreePlugin as _StageManagerUSDTreePlugin
 
-if TYPE_CHECKING:
-    from pxr import Usd
-
 
 class VirtualGroupsItem(_StageManagerUSDTreeItem):
+    """
+    Create a Virtual Group Item.
+
+    Virtual items are synthetic grouping nodes that exist for UI organization purposes
+    and don't directly correspond to a real USD prim. For example, a Material node that
+    groups meshes by their bound material. Non-virtual items represent actual USD prims.
+
+    Note: The same USD prim may appear multiple times under different virtual parents
+    (e.g., a mesh with multiple materials). In such cases, always create new instances
+    via `_build_item()` rather than reusing existing tree items to ensure each
+    occurrence gets its own unique tree item instance.
+
+    Args:
+        display_name: The name to display in the Tree
+        data: The USD Prim this item represents (None for pure virtual grouping nodes)
+        tooltip: The tooltip to display when hovering an item in the TreeView
+        display_name_ancestor: A string to prepend to the display name with
+        is_virtual: Whether this is a virtual grouping node. If None, inferred from
+            whether data is None.
+    """
+
     def __init__(
         self,
-        display_name: str,
-        data: Usd.Prim | None,
-        tooltip: str = "",
-        display_name_ancestor: str | None = None,
+        *args,
         is_virtual: bool | None = None,
+        **kwargs,
     ):
-        """
-        Create a Virtual Group Item
-
-        Args:
-            display_name: The name to display in the Tree
-            data: The USD Prim this item represents
-            tooltip: The tooltip to display when hovering an item in the TreeView
-            display_name_ancestor: A string to prepend to the display name with
-            is_virtual: Can be set explicitly, otherwise it will be inferred from the data argument
-        """
-
-        super().__init__(display_name, data, tooltip=tooltip, display_name_ancestor=display_name_ancestor)
-
-        self._is_virtual = (data is None) if (is_virtual is None) else is_virtual
+        super().__init__(*args, **kwargs)
+        # NOTE: is_virtual is a tri-state where if data is not provided object is always virtual
+        # but it can also be forced
+        self._is_virtual = (self.data is None) if (is_virtual is None) else is_virtual
 
     @property
     def default_attr(self) -> dict[str, None]:

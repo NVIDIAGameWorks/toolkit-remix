@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.0]
+### Added
+- Added `_build_item()` factory methods to `VirtualGroupsModel`, `LightGroupsModel`, `MaterialGroupsModel`, and derived models
+
+### Changed
+- Updated all group models (`LightGroupsModel`, `MaterialGroupsModel`, `VirtualGroupsModel`, etc.) to use `_build_item()` for item creation
+- Replaced `add_child()` calls with direct `parent` property assignment throughout
+
 ## [2.4.1]
 ### Changed
 - Switched to ruff for linting and formatting

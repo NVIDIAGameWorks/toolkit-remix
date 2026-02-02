@@ -146,8 +146,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         """
         Async implementation of tree selection update.
         """
-        # Cache the value to be used in `_update_expansion_states_deferred`
-        scroll_to_selection = not self._ignore_selection_update
+
         # Make sure to reset the value so next time we update the tree selection we have the right value
         self._ignore_selection_update = False
 
@@ -155,28 +154,13 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             return
 
         # Get USD selection
-        selection = self._get_selection()
-
+        selection = set(self._get_selection())
         if not selection:
             return
 
-        self._item_expansion_states.clear()
-
-        def is_selected_item(selected_prim_paths, item) -> bool:
-            should_select = item.data and item.data.GetPath() in selected_prim_paths
-
-            # Expand the selected items and their parents
-            if should_select:
-                self._item_expansion_states[hash(item)] = should_select
-                parent = item.parent
-                while parent:
-                    self._item_expansion_states[hash(parent)] = should_select
-                    parent = parent.parent
-
-            return should_select
-
-        # Use async find_items to avoid blocking the UI
-        matching_items = await self.tree.model.find_items_async(lambda item: is_selected_item(selection, item))
+        matching_items = await self.tree.model.find_items_async(
+            lambda item: item.data and str(item.data.GetPath()) in selection
+        )
 
         # Check if the selection task has been cancelled or superseded
         task_cancelled = (
@@ -187,22 +171,13 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
 
         # Lock to prevent _on_selection_changed from setting _ignore_selection_update
         self._selection_update_lock = True
+
         try:
             self._tree_widget.selection = matching_items
         finally:
             self._selection_update_lock = False
 
-        # Cancel any previous expansion task before starting a new one
-        if self._update_expansion_task:  # noqa PLE0203
-            self._update_expansion_task.cancel()  # noqa PLE0203
-
-        # Track and await expansion - assign to task so cancellation checks work in base class
-        self._update_expansion_task = ensure_future(
-            self._update_expansion_states_deferred(scroll_to_selection_override=scroll_to_selection)
-        )
-        await self._update_expansion_task
-
-    def _get_selection(self):
+    def _get_selection(self) -> list[str]:
         return omni.usd.get_context(self._context_name).get_selection().get_selected_prim_paths()
 
     def _on_selection_changed(self, items: list[_StageManagerTreeItem]):
@@ -356,19 +331,8 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         ):
             return
 
-        def expand_items(items):
-            for item in items:
-                if not item or not item.data:
-                    continue
-                self._item_expansion_states[hash(item)] = True
-
-                # Directly expand in the widget
-                if self._tree_widget:
-                    self._tree_widget.set_expanded(item, True, False)
-
-                expand_items(self.tree.model.get_item_children(item))
-
-        expand_items(self.tree.model.get_item_children(None))
+        for each in self.tree.model.get_item_children(None):
+            self._tree_widget.set_expanded(each, True, True)  # NOTE: Use built-in recursive
 
     def _on_item_changed(self, model, item):
         # Convert `_on_item_changed` to an async method since `_update_context_items` is also async

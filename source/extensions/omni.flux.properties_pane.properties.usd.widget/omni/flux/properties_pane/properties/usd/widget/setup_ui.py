@@ -257,7 +257,7 @@ class PropertyWidget:
                         items.append(group)
                     else:
                         group = group_items[group_name]
-                    group.children.append(attr_item)
+                    attr_item.parent = group
                 else:
                     items.append(attr_item)
 

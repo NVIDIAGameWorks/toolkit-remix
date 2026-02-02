@@ -613,7 +613,7 @@ class LogicPropertyWidget:
                 # Collect items by group (but don't add to items list yet)
                 if group_name not in group_items:
                     group_items[group_name] = ItemGroup(group_name, expanded=True)
-                group_items[group_name].children.append(attr_item)
+                attr_item.parent = group_items[group_name]
 
             # Add groups to items in the specified order
             for group_name in LOGIC_ATTR_GROUP_ORDER:

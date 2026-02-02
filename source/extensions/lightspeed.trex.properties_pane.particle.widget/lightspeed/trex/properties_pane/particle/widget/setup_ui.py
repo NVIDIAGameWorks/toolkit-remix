@@ -308,7 +308,7 @@ class ParticleSystemPropertyWidget:
                 # Collect items by group (but don't add to items list yet)
                 if group_name not in group_items:
                     group_items[group_name] = _ItemGroup(group_name)
-                group_items[group_name].children.append(attr_item)
+                attr_item.parent = group_items[group_name]
 
             # Add groups to items in the specified order
             for group_name in PARTICLE_ATTR_GROUP_ORDER:

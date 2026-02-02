@@ -81,6 +81,7 @@ class TreeWidget(ui.TreeView):
             "_delegate": None,
             "_select_all_children": None,
             "_sub_selection_changed": None,
+            "_validate_action_selection": None,
         }
 
     def _on_item_clicked(self, should_validate: bool, model: _TreeModelBase, item: _TreeItemBase):

@@ -43,6 +43,24 @@ class StageManagerUSDTreeItem(_StageManagerTreeItem):
         if attr and attr.HasValue():
             self._nickname = attr.Get()
 
+    @property
+    def long_display_path_name(self):
+        if self._long_display_path_name is not None:
+            return self._long_display_path_name
+
+        name_parts = []
+        item = self
+        while item:
+            name = item.display_name
+            if item.data and hasattr(item.data, "GetName"):
+                name = item.data.GetName()
+            name_parts.append(name)
+            item = item.parent
+
+        name_parts.reverse()
+        self._long_display_path_name = "/".join(name_parts)
+        return self._long_display_path_name
+
     def _on_edit_complete(self, new_value: str):
         """Save nickname to USD prim attribute."""
         if new_value == self._display_name:
@@ -62,7 +80,6 @@ class StageManagerUSDTreeItem(_StageManagerTreeItem):
 class StageManagerUSDTreeModel(_StageManagerTreeModel):
     def __init__(self, context_name: str = ""):
         super().__init__()
-
         self._context_name = context_name
 
     @property

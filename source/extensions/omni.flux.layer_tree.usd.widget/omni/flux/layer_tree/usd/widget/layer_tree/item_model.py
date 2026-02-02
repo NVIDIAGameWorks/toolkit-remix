@@ -16,7 +16,7 @@
 """
 
 import abc
-from typing import Any, List, Optional
+from typing import Any
 
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 
@@ -29,12 +29,10 @@ class ItemBase(_TreeItemBase):
 
     def __init__(self):
         super().__init__()
-        self._parent = None
         self._title = None
         self._data = None
         self._enabled = True
         self._can_have_children = True
-        self._children = []
 
     @property
     @abc.abstractmethod
@@ -46,7 +44,6 @@ class ItemBase(_TreeItemBase):
                 "_data": None,
                 "_enabled": None,
                 "_can_have_children": None,
-                "_children": None,
             }
         )
         return default_attr
@@ -75,23 +72,9 @@ class ItemBase(_TreeItemBase):
         self._title = value
 
     @property
-    def parent(self) -> Optional["ItemBase"]:
-        """The item's parent item. Not every item has a parent."""
-        return self._parent
-
-    @parent.setter
-    def parent(self, value: "ItemBase"):
-        self._parent = value
-
-    @property
     def data(self) -> Any:
         """Any data that the item needs to carry."""
         return self._data
-
-    @property
-    def children(self) -> List["ItemBase"]:
-        """The item's children"""
-        return self._children
 
     @property
     def can_have_children(self) -> bool:
@@ -110,7 +93,7 @@ class ItemBase(_TreeItemBase):
         """Should be overridden by the inheriting class."""
         pass
 
-    def set_children(self, children: List["ItemBase"], sort: bool = True) -> None:
+    def set_children(self, children: list["ItemBase"], sort: bool = True) -> None:
         """
         Set an item's children and the children's parent
 
@@ -118,15 +101,12 @@ class ItemBase(_TreeItemBase):
             children: the list of children to set
             sort: whether the children should be sorted
         """
+        self.clear_children()
+        children = children[:]  # we make copy so that the sort is invisible to devs
+        if sort:
+            children.sort(key=lambda i: i.title)
         for child in children:
             child.parent = self
-        self._children = children
-        if sort:
-            self._children.sort(key=lambda i: i.title)
-
-    def clear_children(self) -> None:
-        """Clear all the item's children"""
-        self._children.clear()
 
     def append_child(self, child: "ItemBase", sort: bool = True) -> None:
         """
@@ -136,10 +116,18 @@ class ItemBase(_TreeItemBase):
             child: the item to append
             sort: whether the children should be sorted after appending the child
         """
-        child.parent = self
-        self._children.append(child)
-        if sort:
-            self._children.sort(key=lambda i: i.title)
+        if child.parent == self:
+            child.parent = None  # remove it and re add it
+
+        child.parent = self  # simple append
+        if not sort:
+            return
+
+        children = self.children
+        children.sort(key=lambda i: i.title)
+        self.clear_children()
+        for _child in children:
+            _child.parent = self
 
     def insert_child(self, child: "ItemBase", index: int) -> None:
         """
@@ -149,8 +137,14 @@ class ItemBase(_TreeItemBase):
             child: the item to insert
             index: the index at which to insert the child
         """
-        child.parent = self
-        self._children.insert(index, child)
+        if child.parent == self:
+            child.parent = None  # remove and re add
+
+        children = self.children
+        self.clear_children()
+        children.insert(index, child)
+        for _child in children:
+            _child.parent = self
 
     def remove_child(self, child: "ItemBase") -> None:
         """
@@ -159,7 +153,6 @@ class ItemBase(_TreeItemBase):
         Args:
             child: the item to remove
         """
-        self._children.remove(child)
         child.parent = None
 
     def __repr__(self):
@@ -169,10 +162,10 @@ class ItemBase(_TreeItemBase):
 class LayerItem(ItemBase):
     """A layer item is held inside a LayerCollectionItem"""
 
-    def __init__(self, title: str, data: dict = None, parent: ItemBase = None, children: List[ItemBase] = None):
+    def __init__(self, title: str, data: dict = None, parent: ItemBase = None, children: list[ItemBase] = None):
         super().__init__()
         self._title = title
-        self._parent = parent
+        self.parent = parent
         self._data = data or {"locked": False, "visible": True, "savable": True}
         self._can_have_children = True
 

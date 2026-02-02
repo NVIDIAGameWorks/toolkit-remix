@@ -17,20 +17,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable
+from typing import Iterable
 
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
-from pxr import UsdSkel
+from pxr import Usd, UsdSkel
 from pydantic import Field
 
 from .virtual_groups import VirtualGroupsDelegate as _VirtualGroupsDelegate
 from .virtual_groups import VirtualGroupsItem as _VirtualGroupsItem
 from .virtual_groups import VirtualGroupsModel as _VirtualGroupsModel
 from .virtual_groups import VirtualGroupsTreePlugin as _VirtualGroupsTreePlugin
-
-if TYPE_CHECKING:
-    from pxr import Usd
 
 
 class SkeletonTreeItem(_VirtualGroupsItem):
@@ -152,7 +149,7 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
 
         tree_items: list[SkeletonTreeItem] = []
         for item in items:
-            tree_item = self._build_item(item)
+            tree_item = self._create_tree_item_from_stage_item(item)
             item.tree_item = tree_item
 
             parent = item.parent
@@ -163,13 +160,14 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
                 else:
                     # Add under orphan group
                     if not orphan_group:
-                        orphan_group = SkeletonTreeItem(
+                        orphan_group = self._build_item(
                             "Orphaned Skeletons", None, tooltip="Orphaned skeletons with no skel root"
                         )
-                    orphan_group.add_child(tree_item)
+
+                    tree_item.parent = orphan_group
             else:
                 # Add to the parent
-                parent.tree_item.add_child(tree_item)
+                tree_item.parent = parent.tree_item
 
         # Add orphan group last
         if orphan_group:
@@ -180,7 +178,80 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
 
         return tree_items
 
-    def _build_item(self, item: _StageManagerItem) -> SkeletonTreeItem:
+    def _build_item(
+        self,
+        display_name: str,
+        data: Usd.Prim | None,
+        tooltip: str = "",
+        display_name_ancestor: str = "",
+        skel_root: Usd.Prim | None = None,
+        skel_prim: Usd.Prim | None = None,
+        bound_prim: Usd.Prim | None = None,
+        long_name: str = "",
+        index: int | None = None,
+    ) -> SkeletonTreeItem:
+        """
+        Factory method to create SkeletonTreeItem instances based on prim type.
+
+        One of the more complex implementations of _build_item as it manages
+        multiple constructors for different skeleton-related item types.
+
+        Args:
+            display_name: The name to display in the tree
+            data: The USD prim (None for virtual groups)
+            tooltip: Tooltip text for the item
+            display_name_ancestor: Ancestor path prefix for display
+            skel_root: The skeleton root prim
+            skel_prim: The skeleton prim
+            bound_prim: The bound mesh prim if applicable
+            long_name: Full joint path used as cache key for recycling
+            index: Joint index (required when creating SkeletonJointItem)
+
+        Returns:
+            A SkeletonTreeItem subclass instance appropriate for the prim type
+        """
+
+        if data is None:
+            if index is None or not long_name:
+                return SkeletonTreeItem(display_name, data, tooltip=tooltip)
+
+            return SkeletonJointItem(
+                display_name,
+                data,  # messy to have all joints select same prim
+                index,
+                tooltip=tooltip,
+                skel_root=skel_root,
+                skel_prim=skel_prim,
+            )
+
+        match data.GetTypeName():
+            case "SkelRoot":
+                return SkeletonRootItem(
+                    display_name,
+                    data,
+                    tooltip=tooltip,
+                    display_name_ancestor=display_name_ancestor,
+                )
+            case "Skeleton":
+                return SkeletonItem(
+                    display_name,
+                    data,
+                    tooltip=tooltip,
+                    display_name_ancestor=display_name_ancestor,
+                    skel_root=skel_root,
+                )
+
+        return SkeletonBoundMeshItem(
+            display_name,
+            data,
+            tooltip=tooltip,
+            display_name_ancestor=display_name_ancestor,
+            skel_root=skel_root,
+            skel_prim=skel_prim,
+            bound_prim=data,
+        )
+
+    def _create_tree_item_from_stage_item(self, item: _StageManagerItem) -> SkeletonTreeItem:
         """
         Function used to transform Stage Manager items into TreeView items
 
@@ -203,15 +274,16 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
             item_name = prim.GetName()
 
         if prim.GetTypeName() == "SkelRoot":
-            return SkeletonRootItem(
+            return self._build_item(
                 item_name,
                 prim,
                 tooltip=f"{prim.GetTypeName()}: {prim.GetPath()}",
                 display_name_ancestor=parent_name,
             )
+
         if prim.GetTypeName() == "Skeleton":
             skel_root = get_skel_root(prim)
-            tree_item = SkeletonItem(
+            tree_item = self._build_item(
                 item_name,
                 prim,
                 tooltip=f"{prim.GetTypeName()}: {prim.GetPath()}",
@@ -228,22 +300,24 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
                 topology = UsdSkel.Topology(joint_names)
                 for i, joint_name in enumerate(joint_names):
                     short_name = joint_name.rsplit("/", 1)[-1]
-                    joint_item = SkeletonJointItem(
+
+                    joint_item = self._build_item(
                         short_name,
                         None,  # messy to have all joints select same prim
-                        i,
                         tooltip=f"Joint: {prim.GetPath()}, {joint_name}",
+                        index=i,
                         skel_root=skel_root,
                         skel_prim=prim,
+                        long_name=joint_name,
                     )
                     joint_items[i] = joint_item
 
                     # Add joints to the right parent in the hierarchy
                     if topology.IsRoot(i):
-                        tree_item.add_child(joint_item)
+                        joint_item.parent = tree_item
                     else:
                         parent_index = topology.GetParent(i)
-                        joint_items[parent_index].add_child(joint_item)
+                        joint_item.parent = joint_items[parent_index]
 
             return tree_item
         if prim.HasAPI(UsdSkel.BindingAPI):
@@ -252,7 +326,7 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
             skeleton = UsdSkel.BindingAPI(prim).GetSkeleton()
             if skeleton:
                 skel_prim = skeleton.GetPrim()
-            return SkeletonBoundMeshItem(
+            return self._build_item(
                 item_name,
                 prim,
                 tooltip=f"{prim.GetTypeName()}: {prim.GetPath()}",
