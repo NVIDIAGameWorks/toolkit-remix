@@ -22,6 +22,7 @@ from typing import Iterable
 from omni.flux.custom_tags.core import CustomTagsCore as _CustomTagsCore
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
+from pxr import Usd
 from pydantic import Field
 
 from .virtual_groups import VirtualGroupsDelegate as _VirtualGroupsDelegate
@@ -45,6 +46,16 @@ class CustomTagGroupsModel(_VirtualGroupsModel):
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
+    def _build_item(
+        self, display_name: str, data: Usd.Prim | None, tooltip: str = "", display_name_ancestor: str = ""
+    ) -> CustomTagGroupsItem:
+        return CustomTagGroupsItem(
+            display_name,
+            data,
+            tooltip=tooltip,
+            display_name_ancestor=display_name_ancestor,
+        )
+
     def _build_items(self, items: Iterable[_StageManagerItem]) -> list[CustomTagGroupsItem] | None:
         tree_items = []
         tag_items = {}
@@ -53,16 +64,17 @@ class CustomTagGroupsModel(_VirtualGroupsModel):
 
         # Build the group items
         for tag_path in core.get_all_tags():
-            group_item = CustomTagGroupsItem(
+            group_item = self._build_item(
                 core.get_tag_name(tag_path),
                 None,
                 tooltip=f"Items tagged with the '{core.get_tag_name(tag_path)}' custom tag",
             )
-            tree_items.append(group_item)
 
+            tree_items.append(group_item)
             for prim_path in core.get_tag_prims(tag_path):
                 if prim_path not in tag_items:
                     tag_items[prim_path] = []
+
                 tag_items[prim_path].append(group_item)
 
         # If no tags were found, we can quick return
@@ -83,9 +95,10 @@ class CustomTagGroupsModel(_VirtualGroupsModel):
                 item_name = item.data.GetPath().name
 
             for group_item in tag_items[prim_path]:
-                group_item.add_child(
-                    CustomTagGroupsItem(item_name, item.data, tooltip=str(prim_path), display_name_ancestor=parent_name)
+                cust_tree_item = self._build_item(
+                    item_name, item.data, tooltip=str(prim_path), display_name_ancestor=parent_name
                 )
+                cust_tree_item.parent = group_item
 
         # Sort the items alphabetically (both parents and children)
         self.sort_items(tree_items)

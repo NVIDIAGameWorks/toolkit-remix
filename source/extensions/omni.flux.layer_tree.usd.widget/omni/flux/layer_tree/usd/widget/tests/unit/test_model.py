@@ -337,7 +337,6 @@ class TestModel(omni.kit.test.AsyncTestCase):
 
         root_item = LayerItem("root", data={"layer": root})
         layer0_item = LayerItem("layer0", data={"layer": layer0}, parent=root_item)
-        root_item.set_children([root_item], sort=False)
 
         layer_creation_validation_mock = Mock()
         layer_creation_validation_failed_mock = Mock()
@@ -622,18 +621,20 @@ class TestModel(omni.kit.test.AsyncTestCase):
         model = LayerModel()
         model.set_items([root_item])
 
-        # Act
-        layer0_item = LayerItem("a_layer0", parent=root_item)
-        layer1_item = LayerItem("b_layer1", parent=root_item)
+        # Act - force=True allows items with duplicate titles (separate instances)
+        layer0_item = LayerItem("a_layer0")
+        layer1_item = LayerItem("b_layer1")
+        layer1_item_dup = LayerItem("b_layer1")  # Same title, different instance
+
         model.append_item(layer1_item, parent=root_item, sort=True, force=True)
-        model.append_item(layer1_item, parent=root_item, sort=True, force=True)
+        model.append_item(layer1_item_dup, parent=root_item, sort=True, force=True)
         model.append_item(layer0_item, parent=root_item, sort=True, force=True)
 
         # Assert
         self.assertEqual(3, len(root_item.children))
         self.assertEqual(layer0_item, root_item.children[0])
         self.assertEqual(layer1_item, root_item.children[1])
-        self.assertEqual(layer1_item, root_item.children[2])
+        self.assertEqual(layer1_item_dup, root_item.children[2])
 
     async def test_append_item_with_parent_no_sort_no_force(self):
         # Arrange
@@ -643,8 +644,8 @@ class TestModel(omni.kit.test.AsyncTestCase):
         model.set_items([root_item])
 
         # Act
-        layer0_item = LayerItem("a_layer0", parent=root_item)
-        layer1_item = LayerItem("b_layer1", parent=root_item)
+        layer0_item = LayerItem("a_layer0")
+        layer1_item = LayerItem("b_layer1")
         model.append_item(layer1_item, parent=root_item, sort=False, force=False)
         model.append_item(layer1_item, parent=root_item, sort=False, force=False)
         model.append_item(layer0_item, parent=root_item, sort=False, force=False)

@@ -1,6 +1,18 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.9.0]
+### Added
+- Added `_build_item()` factory method to `StageManagerTreeModel` for item creation
+
+### Changed
+- Enabled `frame_selection=True` in `ScrollingTreeWidget` initialization for automatic expansion/scroll behavior
+- Moved expansion state management from `StageManagerInteractionPlugin` to `ScrollingTreeWidget`
+- Removed manual expansion state tracking (`_item_expansion_states`, `_update_expansion_states_deferred`)
+- Simplified `StageManagerTreeItem` by delegating `parent`/`children` management to base class
+- Removed `add_child()` method in favor of direct `parent` property assignment
+- Changed `_build_items()` to use `_build_item()` for item creation
+
 ## [4.8.1]
 ### Changed
 - Switched to ruff for linting and formatting

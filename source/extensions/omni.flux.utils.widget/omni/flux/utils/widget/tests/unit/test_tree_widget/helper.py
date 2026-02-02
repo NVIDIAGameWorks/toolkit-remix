@@ -25,13 +25,17 @@ class MockTreeItem(TreeItemBase):
     """A simple mock tree item for testing."""
 
     def __init__(self, name: str, children: list["MockTreeItem"] | None = None):
-        super().__init__(children=children)
+        super().__init__()
         self._name = name
+
+        # Set up children using the new parent-based API
+        if children:
+            for child in children:
+                child.parent = self
 
     @property
     def default_attr(self) -> dict[str, None]:
         return {
-            "_children": None,
             "_name": None,
         }
 
@@ -41,7 +45,7 @@ class MockTreeItem(TreeItemBase):
 
     @property
     def can_have_children(self) -> bool:
-        return len(self._children) > 0
+        return len(self.children) > 0
 
     def __repr__(self) -> str:
         return f"MockTreeItem({self._name})"
@@ -81,7 +85,8 @@ class MockTreeDelegate(TreeDelegateBase):
         Note:
             Always called within a context manager, so no return value is needed.
         """
-        ui.Label(item.name if item else "None", height=24)
+        label = item.name if item and hasattr(item, "name") else "None"
+        ui.Label(label, height=24)
 
 
 class MockTreeWidget(TreeWidget):

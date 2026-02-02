@@ -14,9 +14,3 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
-
-from .test_item import TestTreeItemBase
-from .test_model import TestTreeWidgetModel
-from .test_widget.test_tree_widget import TestTreeWidget
-
-__all__ = ["TestTreeWidgetModel", "TestTreeWidget", "TestTreeItemBase"]

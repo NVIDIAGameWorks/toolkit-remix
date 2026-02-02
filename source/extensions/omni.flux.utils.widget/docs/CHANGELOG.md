@@ -2,6 +2,21 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.24.0]
+### Added
+- Added `expand_to_items()` async method to `ScrollingTreeWidget` for expanding parent items to reveal specified items
+- Added `frame_selection` parameter to `ScrollingTreeWidget` for automatic expansion and scrolling when selection changes
+- Added `height` and `visible` properties to `ScrollingTreeWidget` for external control
+- Added automatic header height handling when `header_visible=False`
+- Added `parent` property to `TreeItemBase` with automatic bidirectional parent-child relationship management
+- Added `clear_children()` method to `TreeItemBase`
+- Added `_build_item()` factory method to `TreeModelBase` for subclass item creation
+
+### Changed
+- Changed `TreeItemBase.children` internal storage from list to dict for O(1) lookup performance
+- `TreeItemBase.children` now returns a copy of the children list to prevent accidental mutation
+- `ScrollingTreeWidget` now auto-subscribes to model item changes to keep alternating rows in sync
+
 ## [1.23.1]
 ### Changed
 - Switched to ruff for linting and formatting
