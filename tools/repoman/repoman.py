@@ -3,9 +3,10 @@
 
 import contextlib
 import io
+import json
 import os
 import sys
-from http.client import HTTPConnection
+from http.client import HTTPSConnection
 from urllib.parse import urlparse
 
 import packmanapi
@@ -38,19 +39,19 @@ INTERNAL_DOWNLOADS = [
     ),
 ]
 
-def is_url_reachable(url: str, timeout: float = 2):
+def is_host_reachable(url: str, timeout: float = 2):
     """
-    Check if a URL is reachable. Allows for quick checks without downloading the file.
+    Check if the host of a URL is reachable. Does not check if the specific file exists.
 
     Args:
-        url: The URL to check.
+        url: The URL whose host to check.
         timeout: The timeout in seconds.
     """
     connection = None
     try:
         parsed_url = urlparse(url)
         host = parsed_url.netloc or parsed_url.path.split("/")[0]
-        connection = HTTPConnection(host, timeout=timeout)
+        connection = HTTPSConnection(host, timeout=timeout)
         connection.request("HEAD", "/")
         response = connection.getresponse()
         return response.status < 400
@@ -59,6 +60,107 @@ def is_url_reachable(url: str, timeout: float = 2):
     finally:
         if connection:
             connection.close()
+
+
+class GitBlobHashCache:
+    """Context manager for caching git blob hashes with auto-save on exit."""
+
+    _CACHE_FILE = os.path.join(REPO_ROOT, ".git-blob-hash-cache.json")
+
+    def __init__(self):
+        self._data = {}
+        self._modified = False
+
+    def __enter__(self):
+        if os.path.exists(self._CACHE_FILE):
+            try:
+                with open(self._CACHE_FILE, encoding="utf-8") as f:
+                    self._data = json.load(f)
+            except Exception as e:  # noqa
+                print(f"Warning: Failed to load git blob hash cache: {e}")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._modified:
+            try:
+                with open(self._CACHE_FILE, "w", encoding="utf-8") as f:
+                    json.dump(self._data, f, indent=2)
+            except Exception as e:  # noqa
+                print(f"Warning: Failed to save git blob hash cache: {e}")
+        return False
+
+    @staticmethod
+    def _get_gitlab_file_hash(url: str, timeout: float = 5) -> tuple[str | None, bool]:
+        """
+        Get the blob_id (git content hash) for a file from GitLab API.
+
+        Converts a raw file URL to the metadata endpoint and retrieves the blob_id,
+        which is the git SHA-1 hash of the file content.
+
+        Returns:
+            A tuple of (hash, file_accessible).
+            - hash: The blob_id if successfully retrieved, None otherwise.
+            - file_accessible: False if the file doesn't exist (404), True otherwise.
+        """
+        # Convert raw URL to metadata URL by removing /raw from the path
+        metadata_url = url.replace("/raw?", "?")
+        connection = None
+        try:
+            parsed_url = urlparse(metadata_url)
+            host = parsed_url.netloc
+            path = parsed_url.path + ("?" + parsed_url.query if parsed_url.query else "")
+
+            connection = HTTPSConnection(host, timeout=timeout)
+            connection.request("GET", path)
+            response = connection.getresponse()
+
+            if response.status == 404:
+                return None, False
+
+            if response.status != 200:
+                return None, True
+
+            data = json.loads(response.read().decode("utf-8"))
+            return data.get("blob_id"), True
+        except Exception:  # noqa
+            return None, True
+        finally:
+            if connection:
+                connection.close()
+
+    def download_if_needed(self, url: str, local_path: str) -> bool:
+        """
+        Download file if it needs updating based on git hash comparison.
+
+        Args:
+            url: The remote file URL.
+            local_path: The local file path.
+
+        Returns:
+            True if the file was downloaded, False otherwise.
+        """
+        remote_hash, file_accessible = self._get_gitlab_file_hash(url)
+
+        if not file_accessible:
+            print(f"Warning: Remote file not accessible: {url}")
+            return False
+
+        if remote_hash is None:
+            print(f"Warning: Could not retrieve remote file hash: {url}")
+            return False
+
+        needs_download = (
+            not os.path.exists(local_path)  # File doesn't exist locally
+            or remote_hash != self._data.get(url)  # Hash changed
+        )
+
+        if needs_download:
+            packmanapi.get_file(url, local_path)
+            self._data[url] = remote_hash
+            self._modified = True
+
+        return needs_download
+
 
 ## END CUSTOM BOOTSTRAP CODE ##
 
@@ -73,15 +175,16 @@ def bootstrap():
 
     deps_files = [REPO_DEPS_FILE]
 
-    for download in INTERNAL_DEPENDENCIES:
-        if not os.path.exists(download[1]) and is_url_reachable(download[0]) :
-            packmanapi.get_file(download[0], download[1])
-        if os.path.exists(download[1]):
-            deps_files.append(download[1])
+    with GitBlobHashCache() as cache:
+        for url, local_path in INTERNAL_DEPENDENCIES:
+            if is_host_reachable(url):
+                cache.download_if_needed(url, local_path)
+            if os.path.exists(local_path):
+                deps_files.append(local_path)
 
-    for download in INTERNAL_DOWNLOADS:
-        if not os.path.exists(download[1]) and is_url_reachable(download[0]):
-            packmanapi.get_file(download[0], download[1])
+        for url, local_path in INTERNAL_DOWNLOADS:
+            if is_host_reachable(url):
+                cache.download_if_needed(url, local_path)
 
     # END CUSTOM BOOTSTRAP CODE
 

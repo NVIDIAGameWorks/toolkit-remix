@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
- 
+
 ### Added
 - Created 1.3.6-2 build
 - REMIX-4838: Added Instance Group and Mesh Group filter plugins to the Stage Manager and added headers to the Additional Filters menu
@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4891: Migrated to ruff for formatting/linting, modernized codebase, and added pre-commit hooks.
 - Add `create_venv.bat` to create a virtual environment for development.
 - Tweaks for release notes
+- Improved Repoman internal dependency management with GitBlobHashCache
 
 ### Fixed
 - Added a frame wait for Stage Manager refresh to ensure all items are properly populated and updated Additional Filters menu sorting
