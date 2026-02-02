@@ -122,6 +122,7 @@ nrc_session_log.txt
 
 # Ignore internal repo tools
 /deps/repo-deps-internal.packman.xml
+/.git-blob-hash-cache.json
 
 # Ignore internal settings
 repo_internal.toml
