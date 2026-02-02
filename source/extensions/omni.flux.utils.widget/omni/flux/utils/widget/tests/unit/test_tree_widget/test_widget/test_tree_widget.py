@@ -23,7 +23,7 @@ from omni import ui
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows
 
-from .helper import MockTreeDelegate, MockTreeItem, MockTreeModel, MockTreeWidget
+from ..helper import MockTreeDelegate, MockTreeItem, MockTreeModel, MockTreeWidget
 
 
 class TestTreeWidget(AsyncTestCase):
@@ -259,7 +259,7 @@ class TestTreeWidget(AsyncTestCase):
         # Should see Root1, its children, Root2 and Root3
         expected_names = ["Root1", "Child1_1", "Child1_2", "Root2", "Root3"]
 
-        # NOTE: test for presense not order we know the order is wonky
+        # NOTE: test for presence not order we know the order is wonky
         expected_names.sort()
         visible_names.sort()
 
@@ -301,7 +301,7 @@ class TestTreeWidget(AsyncTestCase):
             "Root2",
             "Root3",
         ]
-        # NOTE: test for presense not order we know the order is wonky
+        # NOTE: test for presence not order we know the order is wonky
         expected_names.sort()
         visible_names.sort()
         self.assertListEqual(expected_names, visible_names)

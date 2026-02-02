@@ -22,7 +22,7 @@ import carb
 from omni import kit, ui, usd
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.hover import hover_helper as _hover_helper
-from omni.flux.utils.widget.tree_widget import TreeWidget as _TreeWidget
+from omni.flux.utils.widget.scrolling_tree_view import ScrollingTreeWidget as _ScrollingTreeWidget
 from omni.kit import undo
 from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
 
@@ -33,6 +33,29 @@ from .layer_tree.model import LayerModel as _LayerModel
 
 
 class LayerTreeWidget:
+    """
+    A widget for displaying and managing USD layer hierarchies.
+
+    This widget provides a tree view of USD layers with support for:
+    - Expanding/collapsing layer hierarchies
+    - Setting the authoring (edit target) layer
+    - Creating, importing, and deleting sublayers
+    - Saving, locking, and muting layers
+    - Drag-and-drop reordering of sublayers
+    - Resizable height via drag manipulator
+
+    The widget uses `ScrollingTreeWidget` internally for scroll handling
+    and alternating row backgrounds.
+
+    Args:
+        context_name: The USD context name to use (empty string for default)
+        model: Optional custom LayerModel instance
+        delegate: Optional custom LayerDelegate instance
+        height: Initial height in pixels (default: 130)
+        expansion_default: Default expansion state for items (default: False)
+        hide_create_insert_buttons: Whether to hide create/import buttons (default: False)
+    """
+
     _DEFAULT_TREE_FRAME_HEIGHT = 130
     _SIZE_PERCENT_MANIPULATOR_WIDTH = 50
 
@@ -54,7 +77,6 @@ class LayerTreeWidget:
             "_hide_create_insert_buttons": None,
             "_manipulator_frame": None,
             "_loading_frame": None,
-            "_tree_scroll_frame": None,
             "_manip_frame": None,
             "_slide_placer": None,
             "_slider_manip": None,
@@ -136,23 +158,21 @@ class LayerTreeWidget:
                 with ui.ZStack():
                     with ui.VStack():
                         with ui.ZStack(height=ui.Pixel(self._height)):
-                            self._tree_scroll_frame = ui.ScrollingFrame(
-                                name="PropertiesPaneSection",
-                                horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                            self._layer_tree_widget = _ScrollingTreeWidget(
+                                self._model,
+                                self._delegate,
+                                alternating_rows=False,
+                                row_height=self._delegate.row_height,
+                                select_all_children=False,
+                                frame_selection=False,
+                                header_visible=False,
+                                drop_between_items=True,
+                                columns_resizable=False,
+                                column_widths=[ui.Fraction(1)],
+                                style_type_name_override="TreeView.Selection",
+                                key_pressed_fn=self._on_delete_pressed,
                             )
-                            with self._tree_scroll_frame:
-                                self._layer_tree_widget = _TreeWidget(
-                                    self._model,
-                                    self._delegate,
-                                    select_all_children=False,
-                                    header_visible=False,
-                                    drop_between_items=True,
-                                    columns_resizable=False,
-                                    column_widths=[ui.Fraction(1)],
-                                    style_type_name_override="TreeView.Selection",
-                                    key_pressed_fn=self._on_delete_pressed,
-                                )
-                                self._layer_tree_widget.set_selection_changed_fn(self.on_selection_changed)
+                            self._layer_tree_widget.subscribe_selection_changed(self.on_selection_changed)
 
                             self._loading_frame = ui.ZStack(content_clipping=True, visible=False)
                             with self._loading_frame:
@@ -220,7 +240,7 @@ class LayerTreeWidget:
     def _on_slide_y_changed(self, _, y):
         if y.value < 0:
             self._slide_placer.offset_y = 0
-        self._tree_scroll_frame.height = ui.Pixel(self._height + y.value)
+        self._layer_tree_widget.height = ui.Pixel(self._height + y.value)
 
     def _on_stage_opened(self):
         """Reset expansion state when a new stage is opened."""

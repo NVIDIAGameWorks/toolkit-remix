@@ -6,13 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
+ 
 ### Added
 - Created 1.3.6-2 build
 - REMIX-4838: Added Instance Group and Mesh Group filter plugins to the Stage Manager and added headers to the Additional Filters menu
 - REMIX-4722: Added `ScrollingTreeWidget` - a reusable widget for scrollable tree views with correct item iteration order
 - REMIX-4418: Added a nickname attribute to the selection tree widget and the Stage Manager
 - REMIX-4795: Added a new documentation page for Remix Logic
+- REMIX-4920: Added tree item recycling to preserve expansion states across Stage Manager refreshes
 
 ### Changed
 - REMIX-4786: Changed the "Delete/Restore" StageManager action to use layer-based logic driven by the EditTarget State

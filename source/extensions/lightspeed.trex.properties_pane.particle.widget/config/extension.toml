@@ -1,5 +1,5 @@
 [package]
-version = "1.2.2"
+version = "1.2.3"
 authors = ["Emanuel Kozerski <ekozerski@nvidia.com>"]
 title = "Remix Particle System Properties Widget"
 description = "Properties panel for RemixParticleSystem prim types"

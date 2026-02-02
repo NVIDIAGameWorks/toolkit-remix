@@ -17,7 +17,12 @@
 
 from __future__ import annotations
 
-__all__ = ["StageManagerTreeItem", "StageManagerTreeModel", "StageManagerTreeDelegate", "StageManagerTreePlugin"]
+__all__ = [
+    "StageManagerTreeDelegate",
+    "StageManagerTreeItem",
+    "StageManagerTreeModel",
+    "StageManagerTreePlugin",
+]
 
 import abc
 import asyncio
@@ -91,20 +96,54 @@ class StageManagerTreeItem(_TreeItemBase):
         data: Any,
         tooltip: str = "",
         display_name_ancestor: str | None = None,
+        **kwargs,
     ):
-        super().__init__()
-
+        super().__init__(**kwargs)
         self._display_name = display_name
         self._tooltip = tooltip
         self._data = data
         self._display_name_ancestor = display_name_ancestor
 
-        self._parent = None
         self._label_width = 0
         self._nickname = None
         self._load_nickname()
+
         self._pending_edit = False
+
         self._show_nickname = True
+        self._long_display_path_name = None
+
+    def clear_long_display_path_name_cache(self):
+        self._long_display_path_name = None
+
+    @_TreeItemBase.parent.setter
+    def parent(self, item: StageManagerTreeItem):
+        # NOTE: clear out the long name cache any time parent changes
+        if item != self.parent:
+            self.clear_long_display_path_name_cache()
+            children = self.children
+            while children:
+                child = children.pop()
+                child.clear_long_display_path_name_cache()
+                children.extend(child.children)
+
+        # NOTE: execute the original setter
+        _TreeItemBase.parent.fset(self, item)
+
+    @property
+    def long_display_path_name(self) -> str:
+        if self._long_display_path_name is not None:
+            return self._long_display_path_name
+
+        name_parts = []
+        item = self
+        while item:
+            name_parts.append(item.display_name)
+            item = item.parent
+
+        name_parts.reverse()
+        self._long_display_path_name = "/".join(name_parts)
+        return self._long_display_path_name
 
     @property
     @abc.abstractmethod
@@ -114,7 +153,6 @@ class StageManagerTreeItem(_TreeItemBase):
             {
                 "_display_name": None,
                 "_tooltip": None,
-                "_parent": None,
                 "_data": None,
                 "_parent_name": None,
                 "_nickname": None,
@@ -147,29 +185,8 @@ class StageManagerTreeItem(_TreeItemBase):
         return self._tooltip
 
     @tooltip.setter
-    def tooltip(self, value: str):
-        """
-        Set the tooltip displayed when hovering the item. Can be used by the widgets
-        """
-        if not self._tooltip:
-            self._tooltip = value
-            return
-        parts = self._tooltip.split("/")
-        self._tooltip = "/".join(parts[:-1]) + "/" + value
-
-    @property
-    def parent(self) -> StageManagerTreeItem:
-        """
-        The parent item for which this item is a child
-        """
-        return self._parent
-
-    @parent.setter
-    def parent(self, value: StageManagerTreeItem):
-        """
-        Set the parent item for which this item is a child
-        """
-        self._parent = value
+    def tooltip(self, val: str):
+        self._tooltip = val
 
     @property
     def data(self) -> Any:
@@ -328,16 +345,6 @@ class StageManagerTreeItem(_TreeItemBase):
         """
         pass
 
-    def add_child(self, item: StageManagerTreeItem):
-        """
-        Add a child item
-
-        Args:
-            item: The child item to add
-        """
-        item.parent = self
-        self._children.append(item)
-
     @abc.abstractmethod
     def _load_nickname(self):
         """Load nickname from USD prim attribute."""
@@ -345,11 +352,11 @@ class StageManagerTreeItem(_TreeItemBase):
 
     def __eq__(self, other):
         if isinstance(other, StageManagerTreeItem):
-            return self.display_name == other.display_name and self.tooltip == other.tooltip and self.data == other.data
+            return self.display_name == other.display_name and self.data == other.data
         return False
 
     def __hash__(self):
-        return hash(self.display_name + self.tooltip + str(self.data))
+        return hash(self.long_display_path_name)
 
 
 class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
@@ -405,10 +412,14 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
 
         await omni.kit.app.get_app().next_update_async()
         with get_telemetry_instance().sentry_sdk.start_transaction(
-            op="stage_manager", name="Refresh Stage Manager", custom_sampling_context={"sample_rate_override": 0.25}
+            op="stage_manager",
+            name="Refresh Stage Manager",
+            custom_sampling_context={"sample_rate_override": 0.25},
         ) as transaction:
             filtered_items = await _StageManagerUtils.filter_items(
-                self._context_items, self._user_filter_predicates, max_workers=self._max_workers
+                self._context_items,
+                self._user_filter_predicates,
+                max_workers=self._max_workers,
             )
 
             transaction.set_data("input_items_count", len(self._context_items))
@@ -587,6 +598,19 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
             "right_clicked_item": item,
         }
 
+    def _build_item(self, *args, **kwargs) -> StageManagerTreeItem:
+        """
+        Factory method to create a StageManagerTreeItem instance.
+
+        Args:
+            *args: Positional arguments forwarded to StageManagerTreeItem (display_name, data, ...).
+            **kwargs: Keyword arguments forwarded to StageManagerTreeItem.
+
+        Returns:
+            A new StageManagerTreeItem instance.
+        """
+        return StageManagerTreeItem(*args, **kwargs)
+
     def _build_items(self, items: Iterable[_StageManagerItem]) -> list[StageManagerTreeItem] | None:
         """
         Recursively build the model items from Stage Manager items
@@ -600,7 +624,11 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
 
         tree_items = []
         for item in items:
-            tree_item = self._build_item(item)
+            prim_path = item.data.GetPath()
+            display_name = str(prim_path.name)
+            tooltip = str(prim_path)
+            tree_item = self._build_item(display_name, item.data, tooltip=tooltip)
+
             item.tree_item = tree_item
 
             if item.parent is None:
@@ -608,21 +636,9 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
                 tree_items.append(tree_item)
             else:
                 # Add to the parent
-                item.parent.tree_item.add_child(tree_item)
+                tree_item.parent = item.parent.tree_item
 
         return tree_items
-
-    def _build_item(self, item: _StageManagerItem) -> StageManagerTreeItem:
-        """
-        Function used to transform Stage Manager items into TreeView items
-
-        Args:
-            item: Stage Manager item
-
-        Returns:
-            A fully built TreeView item
-        """
-        return StageManagerTreeItem(item.identifier, item.data)
 
 
 class StageManagerTreeDelegate(_TreeDelegateBase):

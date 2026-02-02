@@ -47,7 +47,8 @@ class TestItemGroupExpansion(omni.kit.test.AsyncTestCase):
 
     def _create_group_with_child(self, name: str, expanded: bool = False) -> ItemGroup:
         group = ItemGroup(name, expanded=expanded)
-        group.children.append(TestItem([("Child", "value")]))
+        child = TestItem([("Child", "value")])
+        child.parent = group
         return group
 
     async def _wait_for_ui(self, frames: int = 2):

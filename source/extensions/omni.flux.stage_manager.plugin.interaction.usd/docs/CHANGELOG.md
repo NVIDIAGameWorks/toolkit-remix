@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.13.0]
+### Changed
+- Simplified selection handling by delegating expansion and scroll behavior to `ScrollingTreeWidget`
+- Removed manual expansion state tracking in favor of widget-based `frame_selection` handling
+
 ## [2.12.1]
 ### Changed
 - Switched to ruff for linting and formatting

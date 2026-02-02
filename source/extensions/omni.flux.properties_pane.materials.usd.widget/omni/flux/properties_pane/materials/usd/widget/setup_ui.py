@@ -345,9 +345,9 @@ class MaterialPropertyWidget:
                             items.append(group)
                         else:
                             group = group_items[group_name]
-                        group.children.append(attr_item)
+                        attr_item.parent = group
                         if color_space_item:
-                            group.children.append(color_space_item)
+                            color_space_item.parent = group
                     else:
                         items.append(attr_item)
                         if color_space_item:

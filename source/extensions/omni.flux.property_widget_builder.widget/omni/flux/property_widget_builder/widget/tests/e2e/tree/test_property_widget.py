@@ -20,22 +20,20 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
     async def test_tree_selection(self):
         async with AsyncTestPropertyWidget() as helper:
             group_a = ItemGroup("Parent_A")
-            group_a.children.extend(
-                [
-                    TestItem([("A_Child_1", 42)]),
-                    TestItem([("A_Child_2", 42)]),
-                    TestItem([("A_Child_3", 42)]),
-                ]
-            )
+            for child in [
+                TestItem([("A_Child_1", 42)]),
+                TestItem([("A_Child_2", 42)]),
+                TestItem([("A_Child_3", 42)]),
+            ]:
+                child.parent = group_a
 
             group_b = ItemGroup("Parent_B")
-            group_b.children.extend(
-                [
-                    TestItem([("B_Child_1", 42)]),
-                    TestItem([("B_Child_2", 42)]),
-                    TestItem([("B_Child_3", 42)]),
-                ]
-            )
+            for child in [
+                TestItem([("B_Child_1", 42)]),
+                TestItem([("B_Child_2", 42)]),
+                TestItem([("B_Child_3", 42)]),
+            ]:
+                child.parent = group_b
 
             await helper.set_items(
                 [

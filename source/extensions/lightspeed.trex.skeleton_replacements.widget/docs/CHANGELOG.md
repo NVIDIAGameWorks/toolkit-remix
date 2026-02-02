@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0]
+### Changed
+- Replaced `add_child()` calls with direct `parent` property assignment for tree item hierarchy
+
 ## [1.1.2]
 ### Changed
 - Switched to ruff for linting and formatting
