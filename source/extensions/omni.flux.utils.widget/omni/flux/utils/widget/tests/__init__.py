@@ -19,5 +19,10 @@ from .e2e.test_file_picker import TestFilePicker
 from .e2e.test_hover_helper import TestHoverHelper
 from .unit.test_scrolling_tree_widget import TestScrollingTreeWidget
 from .unit.test_search import TestSearch
+from .unit.test_tree_widget.test_item import TestTreeItemBase
 from .unit.test_tree_widget.test_model import TestTreeWidgetModel
-from .unit.test_tree_widget.test_widget import TestTreeWidget
+from .unit.test_tree_widget.test_widget.test_alternating_rows_widget import (
+    TestAlternatingRowModel,
+    TestAlternatingRowWidget,
+)
+from .unit.test_tree_widget.test_widget.test_tree_widget import TestTreeWidget

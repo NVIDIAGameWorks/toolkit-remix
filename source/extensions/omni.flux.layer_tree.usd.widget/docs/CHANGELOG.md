@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.0]
+### Changed
+- Refactored to use unified `ScrollingTreeWidget` class for improved scroll handling and alternating row support
+
 ## [1.14.1]
 ### Changed
 - Switched to ruff for linting and formatting

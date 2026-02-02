@@ -150,20 +150,17 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     _result_frames: list[ui.Frame] = PrivateAttr(default=[])
 
-    _item_expansion_states: dict[int, bool] = PrivateAttr(default={})
-
     _context_items_changed: _Event = PrivateAttr(default=_Event())
 
     _context_items_changed_sub: _EventSubscription | None = PrivateAttr(default=None)
     _item_changed_sub: _EventSubscription | None = PrivateAttr(default=None)
-    _item_expanded_sub: _EventSubscription | None = PrivateAttr(default=None)
+
     _selection_changed_sub: _EventSubscription | None = PrivateAttr(default=None)
 
     _widget_item_clicked_subs: list[_EventSubscription] | None = PrivateAttr(default=[])
     _filter_items_changed_subs: list[_EventSubscription] = PrivateAttr(default=[])
     _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr(default=[])
 
-    _update_expansion_task: Future | None = PrivateAttr(default=None)
     _model_refresh_task: Future | None = PrivateAttr(default=None)
     _update_items_task: Future | None = PrivateAttr(default=None)
 
@@ -266,16 +263,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             if self.percent_available_core_usage
             else None
         )
-
-    @property
-    def _is_expansion_task_cancelled(self) -> bool:
-        """
-        Check if the current expansion task has been cancelled or superseded.
-
-        Returns:
-            True if the task should abort, False if it should continue.
-        """
-        return self._update_expansion_task is None or self._update_expansion_task.cancelled() or not self._is_active
 
     @abc.abstractmethod
     def _setup_listeners(self):
@@ -381,8 +368,10 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                             header_height=self.header_height,
                             row_height=self.row_height,
                             select_all_children=self.select_all_children,
+                            frame_selection=True,
                             validate_action_selection=self.validate_action_selection,
                             alternating_rows=self.alternate_row_colors,
+                            expansion_caching=True,
                             root_visible=False,
                             header_visible=True,
                             columns_resizable=False,  # Can't resize the results after resizing a column
@@ -543,15 +532,10 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         self.tree.model.column_count = len(enabled_columns)
         self.tree.delegate.set_column_builders(enabled_columns)
 
-        self._item_expanded_sub = self.tree.delegate.subscribe_item_expanded(self._on_item_expanded)
-
     def _refresh_tree_model(self):
         """
         Callback to execute when context items are updated
         """
-        # TODO: on the next MR this and self._tree_model.refresh
-        # will be centralized to make sure we have a better way to
-        # tie model refresh and item refresh together in our one ScrollingTreeWidget Class
         self._show_loading_overlay(True)
 
         if self._model_refresh_task:
@@ -566,36 +550,20 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         for frame in self._result_frames:
             frame.rebuild()
 
-        # Expand the right items
-        if self._update_expansion_task:
-            self._update_expansion_task.cancel()
-        self._update_expansion_task = ensure_future(self._update_expansion_states_deferred())
-
         # Update the show nickname state of the items
         for item in self.tree.model.iter_items_children():
             if self.tree.model.get_show_nickname_override(item):
                 continue
             item.show_nickname = self.tree.model.show_nickname
 
-        # Update the number of alternating rows to draw
-        self._tree_widget.refresh()  # TODO: in next MR will handle model refresh as well.
-
         # Hide the loading overlay
         self._show_loading_overlay(False)
-
-    def _on_item_expanded(self, item: _StageManagerTreeItem, expanded: bool):
-        """
-        A callback executed whenever a tree item is expanded or collapsed.
-
-        Args:
-            item: The item that was expanded or collapsed.
-            expanded: The expansion state
-        """
-        self._item_expansion_states[hash(item)] = expanded
 
     def _on_selection_changed(self, items: list[_StageManagerTreeItem]):
         """
         A callback executed whenever the tree selection changes.
+
+        Override in subclasses to handle selection changes.
 
         Args:
             items: The list of items selected in the tree.
@@ -696,42 +664,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._context_items_changed()
 
-    @omni.usd.handle_exception
-    async def _update_expansion_states_deferred(self, scroll_to_selection_override: bool = True):
-        """
-        Wait 1 frame, then update the expansion state of the Tree items based on their cached state.
-
-        Args:
-            scroll_to_selection_override: Whether to scroll to the selection or not
-        """
-        await omni.kit.app.get_app().next_update_async()
-
-        # Early exit if cancelled
-        if self._is_expansion_task_cancelled:
-            return
-
-        # Build items dict in a background thread using the model's property
-        items_dict = await asyncio.to_thread(lambda: self.tree.model.items_dict)
-
-        # Early exit if cancelled or no items
-        if self._is_expansion_task_cancelled or items_dict is None:
-            return
-
-        # Expand the items that were previously expanded
-        for item_hash, expanded in reversed(self._item_expansion_states.items()):
-            item = items_dict.get(item_hash)
-            if not item:
-                continue
-            self._tree_widget.set_expanded(item, expanded, False)
-
-        if scroll_to_selection_override and self.scroll_to_selection:
-            # Wait for expanded items to render before scrolling
-            await omni.kit.app.get_app().next_update_async()
-            if self._is_expansion_task_cancelled:
-                return
-
-            await self._tree_widget.scroll_to_items(self._tree_widget.selection)
-
     def subscribe_context_items_changed(self, callback: Callable[[], None]) -> _EventSubscription:
         """
         Execute the callback when context items are updated.
@@ -745,8 +677,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         return _EventSubscription(self._context_items_changed, callback)
 
     def destroy(self):
-        if self._update_expansion_task:
-            self._update_expansion_task.cancel()
         if self._model_refresh_task:
             self._model_refresh_task.cancel()
         if self._update_items_task:

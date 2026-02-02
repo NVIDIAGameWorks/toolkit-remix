@@ -27,6 +27,7 @@ from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroups
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsItem as _VirtualGroupsItem
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsModel as _VirtualGroupsModel
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsTreePlugin as _VirtualGroupsTreePlugin
+from pxr import Usd
 from pydantic import Field
 
 
@@ -47,6 +48,22 @@ class MeshGroupsModel(_VirtualGroupsModel):
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
+    def _build_item(
+        self,
+        display_name: str,
+        data: Usd.Prim,
+        tooltip: str = "",
+        display_name_ancestor: str = "",
+        is_virtual: bool = False,
+    ) -> MeshGroupsItem:
+        return MeshGroupsItem(
+            display_name=display_name,
+            data=data,
+            tooltip=str(data.GetPath()),
+            display_name_ancestor=display_name_ancestor,
+            is_virtual=is_virtual,
+        )
+
     def _build_items(self, items: Iterable[_StageManagerItem]) -> list[MeshGroupsItem] | None:
         tree_items = {}
 
@@ -55,12 +72,15 @@ class MeshGroupsModel(_VirtualGroupsModel):
         for item in items:
             if _is_instance(item.data):
                 instance_items.append(item)
+
             if _is_mesh_prototype(item.data):
                 # Display name should be the mesh_HASH prim instead of "mesh", otherwise keep the original name
                 item_path = item.data.GetPath()
-                tree_items[str(item.data.GetPath())] = MeshGroupsItem(
-                    display_name=item_path.GetParentPath().name if item_path.name == "mesh" else item_path.name,
-                    data=item.data,
+                display_name = item_path.GetParentPath().name if item_path.name == "mesh" else item_path.name
+
+                tree_items[str(item.data.GetPath())] = self._build_item(
+                    display_name,
+                    item.data,
                     tooltip=str(item.data.GetPath()),
                     is_virtual=True,
                 )
@@ -75,16 +95,16 @@ class MeshGroupsModel(_VirtualGroupsModel):
             parent_mesh_path = str(
                 constants.COMPILED_REGEX_INSTANCE_TO_MESH_SUB.sub(rf"{constants.MESH_PATH}\2", str(item.data.GetPath()))
             )
+
             if parent_mesh_path in tree_items:
-                tree_items[parent_mesh_path].add_child(
-                    MeshGroupsItem(
-                        display_name=item_name,
-                        data=item.data,
-                        tooltip=str(item.data.GetPath()),
-                        display_name_ancestor=parent_name,
-                        is_virtual=False,
-                    )
+                mesh_tree_item = self._build_item(
+                    item_name,
+                    item.data,
+                    tooltip=str(item.data.GetPath()),
+                    display_name_ancestor=parent_name,
+                    is_virtual=False,
                 )
+                mesh_tree_item.parent = tree_items[parent_mesh_path]
 
         # Sort the items alphabetically (both parents and children)
         sorted_tree_items = list(tree_items.values())

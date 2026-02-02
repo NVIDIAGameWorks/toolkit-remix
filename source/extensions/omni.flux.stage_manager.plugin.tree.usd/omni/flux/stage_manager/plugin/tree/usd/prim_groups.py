@@ -15,8 +15,8 @@
 * limitations under the License.
 """
 
-from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.utils.common.icons import get_prim_type_icons as _get_prim_type_icons
+from pxr import Usd
 from pydantic import Field
 
 from .base import StageManagerUSDTreeDelegate as _StageManagerUSDTreeDelegate
@@ -50,9 +50,19 @@ class PrimGroupsModel(_StageManagerUSDTreeModel):
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
-    def _build_item(self, item: _StageManagerItem) -> PrimGroupsItem:
-        prim_path = item.data.GetPath()
-        return PrimGroupsItem(str(prim_path.name), item.data, tooltip=str(prim_path))
+    def _build_item(self, display_name: str, prim: Usd.Prim, tooltip: str = "") -> PrimGroupsItem:
+        """
+        Factory method to create a PrimGroupsItem instance.
+
+        Args:
+            display_name: The name to display in the tree.
+            prim: The USD prim this item represents.
+            tooltip: The tooltip text to display on hover.
+
+        Returns:
+            A new PrimGroupsItem instance.
+        """
+        return PrimGroupsItem(display_name, prim, tooltip=tooltip)
 
 
 class PrimGroupsDelegate(_StageManagerUSDTreeDelegate):

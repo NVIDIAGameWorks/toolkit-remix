@@ -86,6 +86,10 @@ class LayerDelegate(_TreeDelegateBase):
     def _dynamic_edit_target_icons(self):
         return True
 
+    @property
+    def row_height(self) -> int:
+        return self.__DEFAULT_IMAGE_ICON_SIZE
+
     def get_scroll_frames(self):
         """
         Get the scroll frames used in the delegates. This can be used to control the scrolling of the items externally.

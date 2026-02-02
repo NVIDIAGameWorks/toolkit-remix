@@ -84,6 +84,35 @@ class LightGroupsModel(_VirtualGroupsModel):
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
+    def _build_item(
+        self,
+        display_name: str,
+        data: Usd.Prim | None,
+        tooltip: str = "",
+        light_type: _LightTypes | None = None,
+        display_name_ancestor: str = "",
+    ) -> LightGroupsItem:
+        """
+        Factory method to create a LightGroupsItem instance.
+
+        Args:
+            display_name: The name to display in the tree.
+            data: The USD prim this item represents, or None for group headers.
+            tooltip: The tooltip text to display on hover.
+            light_type: The type of light for icon selection.
+            display_name_ancestor: Ancestor path prefix for disambiguation.
+
+        Returns:
+            A new LightGroupsItem instance.
+        """
+        return LightGroupsItem(
+            display_name,
+            data,
+            tooltip=tooltip,
+            display_name_ancestor=display_name_ancestor,
+            light_type=light_type,
+        )
+
     def _build_items(self, items: Iterable[_StageManagerItem]) -> list[LightGroupsItem] | None:
         tree_items = {}
 
@@ -91,8 +120,11 @@ class LightGroupsModel(_VirtualGroupsModel):
         for light_type in _LightTypes:
             # Since this is a group, make plural
             display_name = f"{light_type.value}s"
-            tree_items[light_type] = LightGroupsItem(
-                display_name, None, tooltip=f"{display_name} Group", light_type=light_type
+            tree_items[light_type] = self._build_item(
+                display_name,
+                None,
+                tooltip=f"{display_name} Group",
+                light_type=light_type,
             )
 
         item_names = _StageManagerUtils.get_unique_names(items)
@@ -108,14 +140,13 @@ class LightGroupsModel(_VirtualGroupsModel):
             if item_name is None:
                 item_name = prim_path.name
 
-            tree_items[light_type].add_child(
-                LightGroupsItem(
-                    item_name,
-                    item.data,
-                    tooltip=str(prim_path),
-                    display_name_ancestor=parent_name,
-                )
+            light_tree_item = self._build_item(
+                item_name,
+                item.data,
+                tooltip=str(prim_path),
+                display_name_ancestor=parent_name,
             )
+            light_tree_item.parent = tree_items[light_type]
 
         # Filter out empty groups and sort the items alphabetically (both parents and children)
         filtered_items = [item for item in tree_items.values() if item.children]

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.11.2]
+### Changed
+- Updated to use `TreeItemBase.parent` setter for adding children (compatibility with omni.flux.utils.widget 1.24.0)
+
 ## [2.11.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

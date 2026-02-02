@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.0]
+### Added
+- Added `_build_item()` factory method to `CategoryGroupsModel` and `MeshGroupsModel`
+
+### Changed
+- Updated `CategoryGroupsModel` and `MeshGroupsModel` to use model-level item recycling via `_build_item()` for parent group items, preserving tree expansion states across refreshes
+- Child items now use `_build_item()` directly (non-recycled) to prevent duplicate item issues
+- Replaced `add_child()` calls with direct `parent` property assignment for tree item hierarchy
+
 ## [2.0.2]
 ### Changed
 - Switched to ruff for linting and formatting

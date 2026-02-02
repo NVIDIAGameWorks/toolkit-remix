@@ -117,6 +117,6 @@ class JointTreeModel(TreeModelBase[JointItem]):
                     self._items.append(joint_item)
                 else:
                     parent_index = topology.GetParent(i)
-                    joint_items[parent_index].add_child(joint_item)
+                    joint_item.parent = joint_items[parent_index]
 
         self._item_changed(None)

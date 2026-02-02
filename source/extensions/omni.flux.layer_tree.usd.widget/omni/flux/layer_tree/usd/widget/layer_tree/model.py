@@ -720,7 +720,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
                 pool,
                 self._create_layer_items,
                 root_layer,
-                None,
+                True,
                 excluded_layers,
                 dirty_layers,
                 edit_target_layer_identifier,
@@ -748,7 +748,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
     def _create_layer_items(
         self,
         layer: Sdf.Layer,
-        parent: Optional[LayerItem],
+        is_root: bool,
         excluded_layers: dict[_LayerCustomData, set[str]],
         dirty_layers: set[str],
         edit_target_layer_identifier: str,
@@ -756,13 +756,19 @@ class LayerModel(_TreeModelBase[ItemBase]):
     ) -> tuple[LayerItem, bool]:
         children = []
         child_authoring = False
+
         for sub_layer in layer.subLayerPaths:
             child_layer = Sdf.Layer.FindOrOpenRelativeToLayer(layer, sub_layer)
             if not child_layer:
                 continue
 
             child, authoring = self._create_layer_items(
-                child_layer, layer, excluded_layers, dirty_layers, edit_target_layer_identifier, layers_state
+                child_layer,
+                False,
+                excluded_layers,
+                dirty_layers,
+                edit_target_layer_identifier,
+                layers_state,
             )
 
             children.append(child)
@@ -781,7 +787,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
                 value = layer.identifier in excluded_layers[exclude_type]
             excludes[exclude_type] = value
 
-        layer_name = _layers.LayerUtils.get_custom_layer_name(layer) if parent is not None else "Root Layer"
+        layer_name = "Root Layer" if is_root else _layers.LayerUtils.get_custom_layer_name(layer)
         is_authoring = edit_target_layer_identifier == layer.identifier
 
         layer_data = {
@@ -800,7 +806,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
             "exclude_add_child": excludes[_LayerCustomData.EXCLUDE_ADD_CHILD],
             "exclude_move": excludes[_LayerCustomData.EXCLUDE_MOVE],
         }
-        layer_item = LayerItem(layer_name, layer_data, parent, children)
+        layer_item = LayerItem(layer_name, layer_data, None, children)
 
         if is_authoring:
             self._edit_target_layer = layer_item
