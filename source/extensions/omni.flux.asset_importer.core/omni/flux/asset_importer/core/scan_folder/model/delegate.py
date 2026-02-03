@@ -16,9 +16,10 @@
 """
 
 import omni.ui as ui
+from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 
 
-class Delegate(ui.AbstractItemDelegate):
+class Delegate(_TreeDelegateBase):
     """Delegate for TreeView"""
 
     _WIDGET_PADDING = 8
@@ -33,6 +34,7 @@ class Delegate(ui.AbstractItemDelegate):
         self._checkboxes = {}
         self._scroll_frames = {}
         self._select_button = None
+        self._clicked_checkbox_item = None
 
     def set_selection_button(self, button):
         self._select_button = button
@@ -48,6 +50,11 @@ class Delegate(ui.AbstractItemDelegate):
         pass
 
     def _set_value(self, item, model):
+        # To avoid a loop, we don't want to run this for every selection when we're setting value via multi-select.
+        # So, only run this value once via the user-selected checkbox.
+        if self._clicked_checkbox_item is not item:
+            return
+
         if item.value:
             item.value = False
         else:
@@ -57,15 +64,20 @@ class Delegate(ui.AbstractItemDelegate):
         # Secondly, gather values to see if the Select button should be enabled or not.
         values = []
         change_value = item.value
-        for child in model.get_item_children(None):
-            if not child.selected:
+
+        if not self._clicked_checkbox_item.selected:
+            for child in model.get_item_children(None):
                 values.append(child.value)
-                continue
-            if child == item:
-                continue
-            child.value = change_value
-            self._checkboxes[child.path.name].model.set_value(change_value)
-            values.append(child.value)
+        else:
+            for child in model.get_item_children(None):
+                if not child.selected:
+                    values.append(child.value)
+                    continue
+                if child == item:
+                    continue
+                child.value = change_value
+                self._checkboxes[child.path.name].model.set_value(change_value)
+                values.append(child.value)
 
         self._select_button.enabled = any(values)
 
@@ -78,6 +90,9 @@ class Delegate(ui.AbstractItemDelegate):
                 self._checkboxes[str(child.path.name)].model.set_value(val)
                 values.append(val)
         self._select_button.enabled = any(values)
+
+    def _on_checkbox_clicked(self, item, checkbox):
+        self._clicked_checkbox_item = item
 
     def _show_context_menu(self, button, model):
         if button != 1:
@@ -105,24 +120,41 @@ class Delegate(ui.AbstractItemDelegate):
         if item is None:
             return
         if column_id == 0:
-            with ui.VStack(height=ui.Pixel(self._ROW_HEIGHT)):
-                ui.Spacer(height=ui.Pixel(self._ROW_PADDING))
+            with ui.ZStack():
                 with ui.HStack(
                     mouse_pressed_fn=lambda x, y, b, m: self._show_context_menu(b, model),
                     height=ui.Pixel(self._LABEL_HEIGHT),
                 ):
                     ui.Spacer(width=ui.Pixel(self._ROW_PADDING))
-                    checkbox = ui.CheckBox(
-                        mouse_pressed_fn=lambda x, y, b, m: self._set_value(item, model),
-                        width=ui.Pixel(self._CHECKBOX_WIDTH),
-                    )
-                    checkbox.name = item.path.name
-                    checkbox.model.set_value(item.value)
-                    self._checkboxes[checkbox.name] = checkbox
-                    self._scroll_frames[id(item)] = ui.ScrollingFrame(
-                        vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                        horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                    )
-                    with self._scroll_frames[id(item)]:
-                        ui.Label(str(item.path), tooltip=str(item.path), identifier="found_item")
-                ui.Spacer(height=ui.Pixel(self._ROW_PADDING))
+                    with ui.VStack(width=ui.Pixel(self._CHECKBOX_WIDTH)):
+                        ui.Spacer(height=ui.Pixel(self._ROW_PADDING))
+                        checkbox = ui.CheckBox(
+                            width=ui.Pixel(self._CHECKBOX_WIDTH),
+                            mouse_pressed_fn=lambda x, y, b, m: self._on_checkbox_clicked(item, checkbox),
+                        )
+
+                        checkbox.name = item.path.name
+                        checkbox.model.set_value(item.value)
+                        checkbox.model.add_value_changed_fn(
+                            lambda value_model, item=item, model=model: self._set_value(item, model)
+                        )
+
+                        self._checkboxes[checkbox.name] = checkbox
+
+                    with ui.Frame(
+                        height=0,
+                        separate_window=True,
+                        tooltip=str(item.path),
+                        identifier="found_item",
+                    ):
+                        with ui.ZStack():
+                            self._scroll_frames[id(item)] = ui.ScrollingFrame(
+                                height=ui.Pixel(self._ROW_HEIGHT),
+                                vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                                horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                                scroll_y_max=0,
+                            )
+
+                            with self._scroll_frames[id(item)]:
+                                with ui.HStack():
+                                    ui.Label(str(item.path))

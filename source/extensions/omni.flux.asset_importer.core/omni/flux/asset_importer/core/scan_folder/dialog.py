@@ -22,11 +22,15 @@ from typing import Callable
 import carb
 from omni import ui
 from omni.flux.asset_importer.core.data_models.constants import (
+    SUPPORTED_ASSET_EXTENSIONS as _SUPPORTED_ASSET_EXTENSIONS,
+)
+from omni.flux.asset_importer.core.data_models.constants import (
     SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS,
 )
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.file_pickers import open_file_picker as _open_file_picker
 from omni.flux.utils.widget.hover import hover_helper as _hover_helper
+from omni.flux.utils.widget.tree_widget import TreeWidget as _TreeWidget
 
 from .model import Delegate, Model
 
@@ -119,7 +123,7 @@ class ScanFolderWidget:
             if not value:
                 continue
             suffix = item.path.suffix
-            if suffix in [".usd", ".usda", ".usdc"]:
+            if suffix in _SUPPORTED_ASSET_EXTENSIONS:
                 mesh_paths.append(str(item.path))
             elif suffix in _SUPPORTED_TEXTURE_EXTENSIONS:
                 image_paths.append(str(item.path))
@@ -219,7 +223,7 @@ class ScanFolderWidget:
                             name="PropertiesPaneSection",
                             horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
                         ):
-                            self._tree = ui.TreeView(
+                            self._tree = _TreeWidget(
                                 self._model,
                                 delegate=self._delegate,
                                 root_visible=False,
