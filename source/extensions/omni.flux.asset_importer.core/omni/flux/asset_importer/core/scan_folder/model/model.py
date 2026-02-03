@@ -17,6 +17,7 @@
 
 import omni.ui as ui
 from omni.flux.utils.common import Event as _Event
+from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
 
 
 class Item(ui.AbstractItem):
@@ -36,7 +37,7 @@ class Item(ui.AbstractItem):
         return f'"{self.path}"'
 
 
-class Model(ui.AbstractItemModel):
+class Model(_TreeModelBase):
     """Model for TreeView"""
 
     def __init__(self):

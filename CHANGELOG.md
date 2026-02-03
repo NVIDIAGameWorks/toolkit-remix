@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed broken symlinks detection and updated symlink check
 - REMIX-4722: Fixed stage manager issue where viewport selection was not being framed in the Skeleton Treeview
 - Fixed the combobox index for the filter plugins to correctly reset to the first item when the filter is reset
+- REMIX-4546: Fix issue with Scan Folder functionality when interacting with scanned items
+- REMIX-4723: Fix Scan Folder functionality to account for selected vs unselected checkboxes with multiselect
+- REMIX-4724: Fix issue with model ingestion validation via Scan Folder function
+
 
 ### Removed
 
