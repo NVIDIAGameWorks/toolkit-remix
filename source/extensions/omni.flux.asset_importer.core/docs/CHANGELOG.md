@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.4]
+### Changed
+- Fix issue with scan folder list view interaction
+- Fix issue with scan folder model ingestion validation
+
 ## [2.0.3]
 ### Changed
 - Switched to ruff for linting and formatting
