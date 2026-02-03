@@ -57,22 +57,6 @@ To contribute to the RTX Remix Toolkit:
     [Contributor License Agreement](https://github.com/NVIDIAGameWorks/toolkit-remix/blob/main/.github/workflows/cla/NVIDIA_CLA_v1.0.1.md),
     via your Pull Request's comment page.
 
-## Pre-commit Hooks (Optional)
-
-Optional git hooks are available using [pre-commit](https://pre-commit.com/):
-- **On commit:** Auto-format with ruff
-- **On push:** Lint check with ruff (aborts if issues found)
-
-**Install:** `install_hooks.bat` (Windows) or `install_hooks.sh` (Linux/Mac)
-
-**Uninstall:** `uninstall_hooks.bat` (Windows) or `uninstall_hooks.sh` (Linux/Mac)
-
-**Usage:**
-- Skip with: `git commit --no-verify` or `git push --no-verify`
-- Run manually: `pre-commit run --all-files`
-
-Alternatively, use our convenience scripts directly (without installing pre-commit): `format_code.bat` and `lint_code.bat`
-
 ## Common Flags
 
 When starting the RTX Remix Toolkit using the `lightspeed.app.trex.bat` (or `lightspeed.app.trex_dev.bat`) file, you can
@@ -90,6 +74,7 @@ use flags to modify the Toolkit's behavior.
 
 ## Additional Documentation
 
+- **[Environment Setup](./ENVIRONMENT_SETUP.md)**: Setting up pre-commit hooks and development environment.
 - **[Using PyCharm IDE](./PYCHARM_GUIDE.md)**: Learn about developing with PyCharm.
 - **[Debugging Guide](./DEBUGGING_GUIDE.md)**: Info on how to attach debuggers to the toolkit.
 - **[How to profile](./PROFILE_GUIDE.md)**: Introduction to profiling.
