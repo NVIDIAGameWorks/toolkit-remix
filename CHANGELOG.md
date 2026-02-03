@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4546: Fix issue with Scan Folder functionality when interacting with scanned items
 - REMIX-4723: Fix Scan Folder functionality to account for selected vs unselected checkboxes with multiselect
 - REMIX-4724: Fix issue with model ingestion validation via Scan Folder function
-
+- Fixed pre-commit hooks installation to work on systems with legacy Git hooks
 
 ### Removed
 
