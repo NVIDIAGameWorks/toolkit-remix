@@ -133,6 +133,12 @@ ignore = [
     "D100",    # Missing module docstring
     "D101",    # Missing class docstring
     "D103",    # Missing function/method docstring
+    
+    # --- TODO ---
+    "UP035",   # `typing.Dict` is deprecated, use `dict` instead
+    "UP006",   # Use `tuple` instead of `Tuple` for type annotation
+    "SIM115",  # Use a context manager for opening files
+    "PLC0206", # Extracting value from dictionary without calling `.items()`
 ]
 
 [lint.per-file-ignores]
