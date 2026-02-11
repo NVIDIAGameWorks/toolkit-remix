@@ -16,3 +16,5 @@
 """
 
 from .extension import TrexStageCraftControlExtension
+
+__all__ = ["TrexStageCraftControlExtension"]

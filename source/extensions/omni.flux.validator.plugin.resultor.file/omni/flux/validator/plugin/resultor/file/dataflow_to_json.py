@@ -16,7 +16,7 @@
 """
 
 from pathlib import Path
-from typing import Any, Tuple
+from typing import Any
 
 import carb.tokens
 import omni.ui as ui
@@ -44,7 +44,7 @@ class DataflowToJson(_ResultorBase):
     data_type = Data
 
     @omni.usd.handle_exception
-    async def _result(self, schema_data: Data, schema: BaseModel) -> Tuple[bool, str]:
+    async def _result(self, schema_data: Data, schema: BaseModel) -> tuple[bool, str]:
         """
         Function that will be called to work on the result
 

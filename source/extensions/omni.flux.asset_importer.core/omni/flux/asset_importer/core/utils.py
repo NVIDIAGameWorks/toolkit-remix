@@ -18,7 +18,6 @@
 import hashlib
 import re
 from collections import defaultdict
-from typing import Dict, List, Tuple
 
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 
@@ -65,7 +64,7 @@ def _get_default_prefix(path):
     return f"{_PREFIX_TEXTURE_NO_PREFIX}_{hash_int}"
 
 
-def get_texture_sets(paths: List[str]) -> Dict[str, List[Tuple[str, str]]]:
+def get_texture_sets(paths: list[str]) -> dict[str, list[tuple[str, str]]]:
     """
     From a list of paths, return a list of set of textures
 
@@ -108,7 +107,7 @@ def get_texture_sets(paths: List[str]) -> Dict[str, List[Tuple[str, str]]]:
     return texture_sets
 
 
-def determine_ideal_types(paths: List[str], pref_normal_conv: _TextureTypes = None) -> Dict[str, _TextureTypes]:
+def determine_ideal_types(paths: list[str], pref_normal_conv: _TextureTypes = None) -> dict[str, _TextureTypes]:
     """
     Will try to determine the TextureType based on the filename. If no TextureType can be found, no entry will be
     added to the returned dictionary.

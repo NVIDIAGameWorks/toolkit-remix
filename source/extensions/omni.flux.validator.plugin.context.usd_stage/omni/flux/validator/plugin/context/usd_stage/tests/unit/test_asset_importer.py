@@ -15,9 +15,11 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 from unittest.mock import AsyncMock, Mock, call, patch
 
 import omni.client
@@ -292,7 +294,7 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
             asset_importer.set_parent_schema(parent_schema)
 
         # Act
-        success, message = await asset_importer._on_exit(schema_data, None)  # noqa PLW0212
+        success, message = await asset_importer._on_exit(schema_data, None)
 
         # Assert
         self.assertTrue(success)
@@ -337,7 +339,7 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
                 # Act
                 with patch.object(omni.usd, "get_context") as get_context_mock, patch.object(Sdf, "_TestTakeOwnership"):
                     get_context_mock.return_value = context_mock
-                    success, message = await asset_importer._on_exit(schema_data, None)  # noqa PLW0212
+                    success, message = await asset_importer._on_exit(schema_data, None)
 
                     # Assert
                     self.assertEqual(close_stage_mock.called, close_stage_on_exit)
@@ -376,7 +378,7 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
             asset_importer.set_parent_schema(parent_schema)
 
             # Act
-            is_valid, message = await asset_importer._check(schema_data, None)  # noqa PLW0212
+            is_valid, message = await asset_importer._check(schema_data, None)
 
         # Assert
         self.assertEqual(success, is_valid)
@@ -430,7 +432,7 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
         valid_stage: bool,
         expected_message: str,
         output_usd_extension: str = None,
-        data_flows: Optional[List[Dict[Any, Any]]] = None,
+        data_flows: list[dict[Any, Any]] | None = None,
     ):
         # Arrange
         input_file_path_0 = Path("./Test0.fbx")
@@ -488,7 +490,7 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
             asset_importer.set_parent_schema(parent_schema)
 
             # Act
-            is_valid, message, value = await asset_importer._setup(schema_data, callback_mock, None)  # noqa PLW0212
+            is_valid, message, value = await asset_importer._setup(schema_data, callback_mock, None)
 
         # Assert
         self.assertEqual(valid_context and valid_stage, is_valid)

@@ -82,6 +82,6 @@ class TestOmniPBRToAperturePBRConverterBuilderE2E(omni.kit.test.AsyncTestCase):
 
         self.context.save_as_stage(str(aperture_pbr_temp_path))
 
-        with open(aperture_pbr_path, "r") as expected_file:  # noqa PLW1514
-            with open(aperture_pbr_temp_path, "r") as actual_file:  # noqa PLW1514
+        with open(aperture_pbr_path) as expected_file:
+            with open(aperture_pbr_temp_path) as actual_file:
                 self.assertEqual(expected_file.read(), actual_file.read())

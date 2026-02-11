@@ -15,18 +15,20 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import os
 import re
 import typing
 from functools import partial
-from typing import Callable
+from collections.abc import Callable
 
 import omni.kit.clipboard
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
-from lightspeed.trex.app.style.trex_style import DEFAULT_FIELD_EDITABLE_STYLE, DEFAULT_FIELD_READ_ONLY_STYLE
+from lightspeed.trex.app.style import DEFAULT_FIELD_EDITABLE_STYLE, DEFAULT_FIELD_READ_ONLY_STYLE
 from lightspeed.trex.asset_replacements.core.shared.setup import Setup as _AssetReplacementsCoreSetup
 from lightspeed.trex.utils.widget.dialogs import confirm_remove_prim_overrides as _confirm_remove_prim_overrides
 from omni.flux.utils.common import Event as _Event
@@ -90,7 +92,7 @@ class Delegate(ui.AbstractItemDelegate):
         self._gradient_image_with_provider = {}
         self._item_fields = {}
 
-        self.__item_is_pressed = False  # noqa PLW0238
+        self.__item_is_pressed = False
 
         # gradient
         style = ui.Style.get_instance()
@@ -192,11 +194,11 @@ class Delegate(ui.AbstractItemDelegate):
         """
         return _EventSubscription(self.__on_delete_prim, function)
 
-    def _frame_prim(self, prim: "Usd.Prim"):
+    def _frame_prim(self, prim: Usd.Prim):
         """Call the event object that has the list of functions"""
         self.__on_frame_prim(prim)
 
-    def subscribe_frame_prim(self, function: Callable[["Usd.Prim"], None]):
+    def subscribe_frame_prim(self, function: Callable[[Usd.Prim], None]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
@@ -669,7 +671,7 @@ class Delegate(ui.AbstractItemDelegate):
 
     def _on_item_mouse_pressed(self, button, item):
         if button == 0:
-            self.__item_is_pressed = True  # noqa PLW0238
+            self.__item_is_pressed = True
             self.refresh_gradient_color(item)
         elif button == 1:
             self._show_copy_menu(item)
@@ -677,7 +679,7 @@ class Delegate(ui.AbstractItemDelegate):
     def _on_item_mouse_released(self, button, item):
         if button != 0:
             return
-        self.__item_is_pressed = False  # noqa PLW0238
+        self.__item_is_pressed = False
         self.refresh_gradient_color(item)
 
     def _show_copy_menu(self, item):

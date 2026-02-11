@@ -19,7 +19,7 @@ import asyncio
 from asyncio import ensure_future
 from functools import partial
 from pathlib import Path
-from typing import Callable
+from collections.abc import Callable
 
 import carb
 import lightspeed.trex.sidebar as sidebar
@@ -120,7 +120,7 @@ class Setup:
         self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
             self._on_stage_event, name="StagecraftStageEvent"
         )
-        self.__sub_sidebar_items = None  # noqa PLW0238
+        self.__sub_sidebar_items = None
 
         settings = carb.settings.get_settings()
         default_layout = settings.get(_DEFAULT_LAYOUT) or ""
@@ -205,7 +205,7 @@ class Setup:
         self.prompt_if_unsaved_project(callback, "closing app")
 
     def register_sidebar_items(self):
-        self.__sub_sidebar_items = sidebar.register_items(  # noqa PLW0238
+        self.__sub_sidebar_items = sidebar.register_items(
             [
                 sidebar.ItemDescriptor(
                     name="Modding",

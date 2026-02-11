@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import Optional
-
 import omni.usd
 from omni.flux.property_widget_builder.widget import ItemValueModel as _ItemValueModel
 from pxr import Sdf
@@ -28,8 +26,8 @@ class UsdAttributeNameModel(_ItemValueModel):
         context_name: str,
         attribute_path: Sdf.Path,
         channel_index: int,
-        display_attr_name: Optional[str] = None,
-        display_attr_name_tooltip: Optional[str] = None,
+        display_attr_name: str | None = None,
+        display_attr_name_tooltip: str | None = None,
     ):
         """
         The value model for the name of an USD attribute

@@ -1,5 +1,5 @@
 [package]
-version = "2.1.1"
+version = "2.1.2"
 authors =["Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Material Properties implementation for the StageCraft"
 description = "Material Properties implementation for NVIDIA RTX Remix StageCraft App"

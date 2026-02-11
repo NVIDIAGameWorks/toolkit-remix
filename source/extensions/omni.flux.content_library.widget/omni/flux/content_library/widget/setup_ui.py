@@ -16,8 +16,8 @@
 """
 
 import functools
-import typing
-from typing import Callable, Dict, List, Optional, Type
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 import omni.ui as ui
 from omni.flux.content_library.property.widget import ContentLibraryPropertyWidget as _ContentLibraryPropertyWidget
@@ -32,18 +32,18 @@ from omni.flux.utils.widget.search import create_search_widget as _create_search
 from .tree.delegate import Delegate as _DelegateMenu
 from .tree.model import Model as _ModelMenu
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from omni.flux.content_viewer.widget.core import ContentData, ContentViewerCore
 
 
 class ContentLibraryWidget:
     def __init__(
         self,
-        content_viewer_cores: Dict[str, List["ContentViewerCore"]],
-        viewer_type=Optional[Type[_ContentViewerWidget]],
-        tree_model_menu: Optional[_ModelMenu] = None,
-        tree_delegate_menu: Optional[_DelegateMenu] = None,
-        tree_metadata_widget: Optional[_ContentLibraryPropertyWidget] = None,
+        content_viewer_cores: dict[str, list["ContentViewerCore"]],
+        viewer_type=type[_ContentViewerWidget] | None,
+        tree_model_menu: _ModelMenu | None = None,
+        tree_delegate_menu: _DelegateMenu | None = None,
+        tree_metadata_widget: _ContentLibraryPropertyWidget | None = None,
         title: str = "Title",
         load_button_display: str = "Load",
         cancel_button_display: str = "Cancel",
@@ -98,7 +98,7 @@ class ContentLibraryWidget:
         self.__load_button_display = load_button_display
         self.__cancel_button_display = cancel_button_display
 
-        self._tree_model_menu = _ModelMenu([]) if tree_model_menu is None else tree_model_menu  # noqa PLE1121
+        self._tree_model_menu = _ModelMenu([]) if tree_model_menu is None else tree_model_menu
         self._tree_delegate_menu = _DelegateMenu() if tree_delegate_menu is None else tree_delegate_menu
 
         self._tree_metadata_widget = (
@@ -163,7 +163,7 @@ class ContentLibraryWidget:
         """
         return _EventSubscription(self.__on_cancel, function)
 
-    def _get_current_content_viewer_cores(self) -> List["ContentViewerCore"]:
+    def _get_current_content_viewer_cores(self) -> list["ContentViewerCore"]:
         result = []
         current_selected_titles = [
             item.title for item in self._tree_model_menu.get_item_children(None) if item.selected
@@ -423,7 +423,7 @@ class ContentLibraryWidget:
         for content_viewer in self._content_viewers:
             content_viewer.filter_content(text)
 
-    def _on_content_viewer_selection_changed(self, core: "ContentViewerCore", items: List["ContentData"]):
+    def _on_content_viewer_selection_changed(self, core: "ContentViewerCore", items: list["ContentData"]):
         # un-select the other viewers
         if not self.__block_selection_event:
             self.__block_selection_event = True

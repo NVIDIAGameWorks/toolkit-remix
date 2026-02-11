@@ -32,7 +32,7 @@ class FluxValidatorWindowExtension(omni.ext.IExt):
         If you use the standalone app, here an example:
 
             bin/omni.flux.app.validator.bat --enable omni.flux.validator.plugin.check.usd --enable omni.flux.validator.plugin.context.usd_stage --enable omni.flux.validator.plugin.selector.usd --{_SCHEMA_PATH_SETTING}="your_schema.json"
-        """  # noqa
+        """
         print(example)
         self._window = _ValidatorManagerWindow()
 

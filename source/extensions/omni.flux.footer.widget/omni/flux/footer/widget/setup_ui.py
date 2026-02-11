@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import Type
-
 import omni.ui as ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
@@ -26,7 +24,7 @@ from .model import FooterModel as _FooterModel
 class FooterWidget:
     def __init__(
         self,
-        model: Type[_FooterModel] = None,
+        model: type[_FooterModel] = None,
         height: ui.Length = None,
         column_width: ui.Length = None,
         between_columns_width: ui.Length = None,

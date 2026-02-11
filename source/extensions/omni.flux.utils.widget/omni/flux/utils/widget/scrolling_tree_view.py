@@ -19,7 +19,7 @@ __all__ = ["ScrollingTreeWidget"]
 
 from asyncio import Future, ensure_future
 from collections import deque
-from typing import Iterable
+from collections.abc import Iterable
 
 import omni.kit.app
 import omni.usd

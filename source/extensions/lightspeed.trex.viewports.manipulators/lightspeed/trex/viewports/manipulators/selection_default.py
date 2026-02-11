@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import omni.usd
 from omni.kit.manipulator.selection import SelectionManipulator, SelectionMode
@@ -63,7 +63,7 @@ class SelectionDefault(IManipulator):
     def _model_changed(self, model, item):
         # https://gitlab-master.nvidia.com/omniverse/kit/-/merge_requests/13725
         if not hasattr(omni.usd, "PickingMode"):
-            import carb
+            import carb  # noqa: PLC0415
 
             carb.log_error("No picking support in omni.hydratexture")
             return
@@ -111,6 +111,6 @@ class SelectionDefault(IManipulator):
         return "Selection"
 
 
-def selection_default_factory(desc: Dict[str, Any]):
+def selection_default_factory(desc: dict[str, Any]):
     manip = SelectionDefault(desc.get("viewport_api"))
     return manip

@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["TreeModelBase", "AlternatingRowModel"]
+__all__ = ["AlternatingRowModel", "TreeModelBase"]
 
 import abc
 from typing import Generic, TypeVar

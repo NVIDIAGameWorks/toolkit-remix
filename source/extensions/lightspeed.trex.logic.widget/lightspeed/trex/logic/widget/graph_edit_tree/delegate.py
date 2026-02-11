@@ -18,7 +18,7 @@
 __all__ = ["GraphEditTreeDelegate"]
 
 from functools import partial
-from typing import Callable
+from collections.abc import Callable
 
 from omni import ui
 from omni.flux.utils.common import Event, EventSubscription

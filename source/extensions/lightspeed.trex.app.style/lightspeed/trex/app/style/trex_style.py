@@ -1,5 +1,3 @@
-# noqa PLC0302
-
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -192,7 +190,7 @@ update_viewport_menu_style()
 
 
 # override the style of the message dialog
-def override_dialog_get_style(style_value):  # noqa PLW0621
+def override_dialog_get_style(style_value):
     style_value.update(
         {
             "Background": {"color": _WHITE_100, "background_color": 0x0, "border_width": 0},
@@ -218,8 +216,8 @@ DEFAULT_FIELD_EDITABLE_STYLE = {
 }
 
 try:
-    style_value = message_dialog.get_style()
-    message_dialog.get_style = lambda: override_dialog_get_style(style_value)
+    message_dialog_style = message_dialog.get_style()
+    message_dialog.get_style = lambda: override_dialog_get_style(message_dialog_style)
 except AttributeError:
     from omni.kit.window.popup_dialog.style import UI_STYLES
 

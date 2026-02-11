@@ -20,7 +20,7 @@ __all__ = ["ViewportSceneLayer"]
 
 import traceback
 import weakref
-from typing import Sequence
+from collections.abc import Sequence
 
 import carb
 import omni.ui as ui
@@ -85,7 +85,7 @@ class _SceneItem(_LayerItem):
         if instance and callable(getattr(instance, "destroy", None)):
             try:
                 instance.destroy()
-            except Exception:  # noqa
+            except Exception:
                 carb.log_error(f"Error destroying {self.__instance}. Traceback:\n{traceback.format_exc()}")
                 raise
 
@@ -96,8 +96,8 @@ class ViewportSceneLayer:
     def __init__(self, factory_args, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__scene_view = None
-        self.__dd_handler = None  # noqa PLW0238
-        self.__view_change_sub = None  # noqa PLW0238
+        self.__dd_handler = None
+        self.__view_change_sub = None
         self.__scene_items = {}
         self.__factory_args = factory_args
         self.__ui_frame = ui.Frame()
@@ -131,9 +131,9 @@ class ViewportSceneLayer:
             # 1030 Tell the ViewportAPI that we have a SceneView we want it to be updating
             if hasattr(viewport_api, "add_scene_view"):
                 viewport_api.add_scene_view(self.__scene_view)
-                self.__view_change_sub = None  # noqa PLW0238
+                self.__view_change_sub = None
             else:
-                self.__view_change_sub = viewport_api.subscribe_to_view_change(self.__view_changed)  # noqa PLW0238
+                self.__view_change_sub = viewport_api.subscribe_to_view_change(self.__view_changed)
 
             # 1030 Fixes menu issue triggering selection (should remove hasattr pre 103-final)
             if hasattr(self.__scene_view, "child_windows_input"):
@@ -147,7 +147,7 @@ class ViewportSceneLayer:
                     instance = factory(self.__factory_args.copy())
                     if instance:
                         self.__scene_items[factory] = _SceneItem(transform, instance)
-                except Exception:  # noqa PLW0718
+                except Exception:  # noqa: BLE001
                     carb.log_error(f"Error loading {factory}. Traceback:\n{traceback.format_exc()}")
 
     def ___scene_type_removed(self, factory):
@@ -162,7 +162,7 @@ class ViewportSceneLayer:
         if not self.__scene_items and self.__scene_view:
             self.__scene_view.destroy()
             self.__scene_view = None
-            self.__dd_handler = None  # noqa PLW0238
+            self.__dd_handler = None
 
     def ___scene_type_notification(self, factory, loading):
         if loading:
@@ -173,12 +173,12 @@ class ViewportSceneLayer:
     def destroy(self):
         remove_event_delegation(self.__scene_view)
         RegisterScene.remove_notifier(self.___scene_type_notification)
-        self.__dd_handler = None  # noqa PLW0238
+        self.__dd_handler = None
         for factory, instance in self.__scene_items.items():
             try:
                 if hasattr(instance, "destroy"):
                     instance.destroy()
-            except Exception:  # noqa PLW0718
+            except Exception:  # noqa: BLE001
                 carb.log_error(f"Error destroying {instance} from {factory}. Traceback:\n{traceback.format_exc()}")
         if self.__scene_view:
             scene_view, self.__scene_view = self.__scene_view, None
@@ -188,7 +188,7 @@ class ViewportSceneLayer:
                 if hasattr(viewport_api, "remove_scene_view"):
                     viewport_api.remove_scene_view(scene_view)
                 else:
-                    self.__view_change_sub = None  # noqa PLW0238
+                    self.__view_change_sub = None
         if self.__ui_frame:
             self.__ui_frame.destroy()
             self.__ui_frame = None

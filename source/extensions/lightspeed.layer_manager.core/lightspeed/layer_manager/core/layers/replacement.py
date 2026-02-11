@@ -15,15 +15,13 @@
 * limitations under the License.
 """
 
-from typing import Dict
-
 from ..constants import LSS_LAYER_GAME_NAME
 from ..data_models import LayerType
 from .i_layer import ILayer
 
 
 class ReplacementLayer(ILayer):
-    def set_custom_layer_data(self, value: Dict[str, str]):
+    def set_custom_layer_data(self, value: dict[str, str]):
         if LSS_LAYER_GAME_NAME not in value:
             raise ValueError(f"{LSS_LAYER_GAME_NAME} need to be set")
 

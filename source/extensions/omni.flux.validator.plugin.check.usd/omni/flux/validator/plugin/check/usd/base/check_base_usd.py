@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import carb
 import omni.usd
@@ -27,14 +27,14 @@ from pxr import Sdf
 class CheckBaseUSD(_CheckBase):
     class Data(_CheckBase.Data):
         save_on_fix_failure: bool = True
-        context_name: Optional[str] = None
+        context_name: str | None = None
 
     data_type = Data
 
     @omni.usd.handle_exception
     async def check(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check if asset paths on the selected prims in the attributes listed in schema
         data's `conversion_args` are dds encoded
@@ -54,7 +54,7 @@ class CheckBaseUSD(_CheckBase):
     @omni.usd.handle_exception
     async def fix(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be called to fix the data if the fix function return False
 
@@ -92,5 +92,5 @@ class CheckBaseUSD(_CheckBase):
             stage = context.get_stage()
             root_layer = stage.GetRootLayer()
             # ugly work around to un-hold layers
-            Sdf._TestTakeOwnership(root_layer)  # noqa
+            Sdf._TestTakeOwnership(root_layer)  # noqa: SLF001
             await context.close_stage_async()

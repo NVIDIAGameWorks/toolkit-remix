@@ -16,7 +16,6 @@
 """
 
 from functools import partial
-from typing import Dict
 
 from omni import ui
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
@@ -56,7 +55,7 @@ class TextureImportListDelegate(ui.AbstractItemDelegate):
         self._frames = {}
 
     @property
-    def frames(self) -> Dict:
+    def frames(self) -> dict:
         return self._frames
 
     def build_widget(self, _model, item, column_id, _level, _expanded):

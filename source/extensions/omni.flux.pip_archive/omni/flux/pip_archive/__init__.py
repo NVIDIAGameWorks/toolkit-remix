@@ -22,6 +22,6 @@ import sys
 if sys.platform == "win32" and sys.version_info >= (3, 8):
     import importlib.util
 
-    if spec := importlib.util.find_spec("pygit2"):  # noqa SIM102
+    if spec := importlib.util.find_spec("pygit2"):  # noqa: SIM102
         if spec.origin:
             os.add_dll_directory(os.path.dirname(spec.origin))

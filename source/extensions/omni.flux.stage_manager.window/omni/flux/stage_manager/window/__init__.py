@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["FluxStageManagerWindowExtension", "get_window_instance", "StageManagerManagerWindow"]
+__all__ = ["FluxStageManagerWindowExtension", "StageManagerManagerWindow", "get_window_instance"]
 
 from .extension import FluxStageManagerWindowExtension
 from .window import StageManagerManagerWindow, get_window_instance

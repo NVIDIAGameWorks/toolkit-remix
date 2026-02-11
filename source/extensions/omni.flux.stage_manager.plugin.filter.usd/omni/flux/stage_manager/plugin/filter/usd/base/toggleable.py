@@ -51,7 +51,7 @@ class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
         result = self._filter_predicate(item.data)
         return result if self.include_results else not result
 
-    def build_ui(self):  # noqa PLW0221
+    def build_ui(self):
         with ui.VStack(width=0, spacing=ui.Pixel(4)):
             ui.Spacer(width=0)
             with ui.HStack(height=0, spacing=ui.Pixel(8)):

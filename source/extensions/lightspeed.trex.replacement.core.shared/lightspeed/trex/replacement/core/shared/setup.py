@@ -15,10 +15,11 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import os
 import re
 from pathlib import Path
-from typing import Dict, Optional, Set, Tuple, Union
 
 import carb
 import omni.client
@@ -52,13 +53,13 @@ class Setup:
             return False
         if existing_file:
             _, entry = omni.client.stat(path)
-            if not (entry.flags & omni.client.ItemFlags.WRITEABLE_FILE):  # noqa PLC0325
+            if not (entry.flags & omni.client.ItemFlags.WRITEABLE_FILE):
                 if entry.flags & omni.client.ItemFlags.READABLE_FILE:
                     carb.log_error(f"'{path}' is not writeable")
                 return False
         else:
             result, entry = omni.client.stat(os.path.dirname(path))
-            if result != omni.client.Result.OK or not (entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN):  # noqa PLC0325
+            if result != omni.client.Result.OK or not (entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN):
                 return False
         if constants.CAPTURE_FOLDER in Path(path).parts or constants.REMIX_CAPTURE_FOLDER in Path(path).parts:
             carb.log_error(f"'{path}' is in the {constants.REMIX_CAPTURE_FOLDER} directory")
@@ -141,7 +142,7 @@ class Setup:
             return True
         return False
 
-    def get_existing_mod_file(self, dirname: Union[str, Path]) -> Optional[str]:
+    def get_existing_mod_file(self, dirname: str | Path) -> str | None:
         """
         Args:
             dirname: The path to search for mod files
@@ -165,7 +166,7 @@ class Setup:
 
         return None
 
-    def get_layer_notes(self, mod_file_path: Union[str, Path]) -> Optional[str]:
+    def get_layer_notes(self, mod_file_path: str | Path) -> str | None:
         """
         Args:
             mod_file_path: The full path to an existing mod file
@@ -181,7 +182,7 @@ class Setup:
         return custom_layer_data.get(LSS_LAYER_MOD_NOTES, None)
 
     @staticmethod
-    def group_replaced_hashes(args: Tuple["Sdf.Layer", Dict[str, "Sdf.Path"]]) -> Set[str]:
+    def group_replaced_hashes(args: tuple[Sdf.Layer, dict[str, Sdf.Path]]) -> set[str]:
         """
         Filter the hashes so that meshes and their associate materials count as a single entry
         """
@@ -205,7 +206,7 @@ class Setup:
                 filtered_hashes.add(prim_hash)
         return filtered_hashes
 
-    def get_replaced_hashes(self, path: Optional[Union[str, Path]] = None) -> Dict[Sdf.Layer, Dict[str, Sdf.Path]]:
+    def get_replaced_hashes(self, path: str | Path | None = None) -> dict[Sdf.Layer, dict[str, Sdf.Path]]:
         def get_sublayers_recursive(path: Sdf.Path):
             layer = Sdf.Layer.FindOrOpen(path)
             if not layer:

@@ -15,14 +15,12 @@
 * limitations under the License.
 """
 
-from typing import List, Optional
-
 from .base_data_flow import DataFlow as _DataFlow
 
 
 class InOutDataFlow(_DataFlow):
     name: str = "InOutData"
-    input_data: Optional[List[str]] = None
+    input_data: list[str] | None = None
     push_input_data: bool = False
-    output_data: Optional[List[str]] = None
+    output_data: list[str] | None = None
     push_output_data: bool = False

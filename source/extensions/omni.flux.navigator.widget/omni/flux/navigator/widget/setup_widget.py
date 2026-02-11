@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import Dict, List, Tuple
-
 import carb.input
 import omni.appwindow
 from omni import ui
@@ -37,7 +35,7 @@ class NavigatorWidget:
 
         self._widgets = {}
 
-    def register_widgets(self, widgets: Dict[str, ui.Widget]):
+    def register_widgets(self, widgets: dict[str, ui.Widget]):
         """
         Register the navigable widgets.
 
@@ -49,7 +47,7 @@ class NavigatorWidget:
         """
         self._widgets.update(widgets)
 
-    def unregister_widgets(self, ids: List[str] = None):
+    def unregister_widgets(self, ids: list[str] = None):
         """
         Unregister the navigable widgets.
 
@@ -195,7 +193,7 @@ class NavigatorWidget:
 
     def _get_closest_from_point(
         self,
-        point: Tuple[int, int] = None,
+        point: tuple[int, int] = None,
         over_x=None,
         over_y=None,
         under_x=None,

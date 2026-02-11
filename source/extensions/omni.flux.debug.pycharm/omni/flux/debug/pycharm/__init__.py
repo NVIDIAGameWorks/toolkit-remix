@@ -16,3 +16,5 @@
 """
 
 from .extension import FluxPyCharmDebuggerExtension
+
+__all__ = ["FluxPyCharmDebuggerExtension"]

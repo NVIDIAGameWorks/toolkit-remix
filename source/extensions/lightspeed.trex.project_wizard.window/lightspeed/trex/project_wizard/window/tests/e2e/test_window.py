@@ -20,7 +20,6 @@ import shutil
 import tempfile
 from enum import Enum
 from pathlib import Path
-from typing import Tuple
 
 import carb.settings
 from carb.input import KeyboardInput
@@ -93,7 +92,7 @@ class TestWizardWindow(AsyncTestCase):
         self.window = None
         self.wizard = None
 
-    async def __setup_widget(self) -> Tuple[ui.Window, _ProjectWizardWindow]:
+    async def __setup_widget(self) -> tuple[ui.Window, _ProjectWizardWindow]:
         await arrange_windows(topleft_window="Stage")
 
         window = ui.Window("TestWizardWindow", width=1000, height=800)
@@ -104,7 +103,7 @@ class TestWizardWindow(AsyncTestCase):
         await ui_test.human_delay()
 
         # Avoid having the same title for multiple windows. Fixes test flakiness.
-        wizard._wizard_window._window.title = f"{wizard._wizard_window._window.title}_{id(self)}"  # noqa PLW0212
+        wizard._wizard_window._window.title = f"{wizard._wizard_window._window.title}_{id(self)}"
 
         return window, wizard
 
@@ -208,7 +207,7 @@ class TestWizardWindow(AsyncTestCase):
 
     async def test_navigation_should_go_through_all_pages_and_back(self):
         # Setup the test
-        wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
+        wizard_window = self.wizard._wizard_window._window
 
         # Start the test
         self.wizard.show_project_wizard(reset_page=True)
@@ -350,7 +349,7 @@ class TestWizardWindow(AsyncTestCase):
 
     async def test_create_project_should_create_project(self):
         # Setup the test
-        wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
+        wizard_window = self.wizard._wizard_window._window
 
         # Start the test
         self.wizard.show_project_wizard(reset_page=True)
@@ -424,7 +423,7 @@ class TestWizardWindow(AsyncTestCase):
 
     async def test_edit_project_should_create_project_and_copy_mod(self):
         # Setup the test
-        wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
+        wizard_window = self.wizard._wizard_window._window
 
         # Start the test
         self.wizard.show_project_wizard(reset_page=True)
@@ -520,7 +519,7 @@ class TestWizardWindow(AsyncTestCase):
 
     # async def test_remaster_project_should_create_project_with_dependencies(self):
     #     # Setup the test
-    #     wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
+    #     wizard_window = self.wizard._wizard_window._window
     #
     #     # Start the test
     #     self.wizard.show_project_wizard(reset_page=True)
@@ -619,7 +618,7 @@ class TestWizardWindow(AsyncTestCase):
 
     async def test_wizard_file_picker_and_wizard_window_handoff(self):
         # Setup the test
-        wizard_window = self.wizard._wizard_window._window  # noqa PLW0212
+        wizard_window = self.wizard._wizard_window._window
 
         # Start the test
         self.wizard.show_project_wizard(reset_page=True)

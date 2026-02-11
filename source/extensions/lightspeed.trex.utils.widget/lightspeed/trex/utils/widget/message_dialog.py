@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
 
@@ -33,10 +33,10 @@ class TrexMessageDialog:
         disable_middle_button: bool = True,
         disable_middle_2_button: bool = True,
         disable_cancel_button: bool = False,
-        ok_handler: Optional[Callable] = None,
-        middle_handler: Optional[Callable] = None,
-        middle_2_handler: Optional[Callable] = None,
-        cancel_handler: Optional[Callable] = None,
+        ok_handler: Callable | None = None,
+        middle_handler: Callable | None = None,
+        middle_2_handler: Callable | None = None,
+        cancel_handler: Callable | None = None,
         on_window_closed_fn: Callable[[], None] = None,
     ):
         PromptManager.post_simple_prompt(

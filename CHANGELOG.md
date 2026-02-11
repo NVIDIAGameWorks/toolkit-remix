@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `create_venv.bat` to create a virtual environment for development.
 - Tweaks for release notes
 - Improved Repoman internal dependency management with GitBlobHashCache
+- Modernized python format style for 3.10
 
 ### Fixed
 - Added a frame wait for Stage Manager refresh to ensure all items are properly populated and updated Additional Filters menu sorting

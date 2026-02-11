@@ -22,7 +22,7 @@ from pxr import Sdf, Usd
 from pydantic import BaseModel, Field
 
 
-def _translate(input_attr_value: Any, input_attr: Usd.Attribute) -> Any:
+def _translate(input_attr_value: Any, _input_attr: Usd.Attribute) -> Any:
     """
     Allows translating the input value to produce the output value
 
@@ -37,7 +37,7 @@ def _translate(input_attr_value: Any, input_attr: Usd.Attribute) -> Any:
 
 
 def _translate_alt(
-    input_attr_type: Sdf.ValueTypeNames, input_attr_value: Any, input_attr: Usd.Attribute
+    input_attr_type: Sdf.ValueTypeNames, input_attr_value: Any, _input_attr: Usd.Attribute
 ) -> tuple[Sdf.ValueTypeNames, Any]:
     """
     Allows translating the input type and value to produce the output type and value when we need to create

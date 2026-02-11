@@ -15,7 +15,10 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 import omni.ui as ui
 from omni.flux.utils.common import Event as _Event
@@ -38,7 +41,7 @@ class SetupUI:
         model: _Model = None,
         delegate: _Delegate = None,
         horizontal: bool = True,
-        size_tab_label: Tuple[ui.Length, ui.Length] = None,
+        size_tab_label: tuple[ui.Length, ui.Length] = None,
         disable_tab_toggle: bool = False,
         hidden_by_default: bool = False,
         width: ui.Length = None,
@@ -89,18 +92,18 @@ class SetupUI:
         self.__on_tab_toggled = _Event()
         self.__on_selection_changed = _Event()
 
-    def _selection_changed(self, item: "_Item"):
+    def _selection_changed(self, item: _Item):
         """Call the event object that has the list of functions"""
         self.__on_selection_changed(item)
 
-    def subscribe_selection_changed(self, function: Callable[["_Item"], Any]):
+    def subscribe_selection_changed(self, function: Callable[[_Item], Any]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         Called when the selection of the tree change
         """
         return _EventSubscription(self.__on_selection_changed, function)
 
-    def _tab_toggled(self, item: "_Item", visible: bool):
+    def _tab_toggled(self, item: _Item, visible: bool):
         """Call the event object that has the list of functions"""
         # fraction will let the widget to not oversize to the right
         if self._horizontal:
@@ -110,7 +113,7 @@ class SetupUI:
         self._tree.set_toggled_value([item], visible)
         self.__on_tab_toggled(item, visible)
 
-    def subscribe_tab_toggled(self, function: Callable[["_Item", bool], Any]):
+    def subscribe_tab_toggled(self, function: Callable[[_Item, bool], Any]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         Called when the selection of the tree change
@@ -122,7 +125,7 @@ class SetupUI:
         """Get the root frame of this widget"""
         return self._root_frame
 
-    def get_frame(self, name: str) -> Optional[ui.Frame]:
+    def get_frame(self, name: str) -> ui.Frame | None:
         """
         Get the frame of a specific tab
 
@@ -134,11 +137,11 @@ class SetupUI:
         """
         return self._all_frames.get(name)
 
-    def get_frames(self) -> Dict[str, ui.Frame]:
+    def get_frames(self) -> dict[str, ui.Frame]:
         """Get all the frames of all tabs"""
         return self._all_frames
 
-    def add(self, datas: List[str]):
+    def add(self, datas: list[str]):
         """
         Add a tab
 
@@ -158,7 +161,7 @@ class SetupUI:
     def model(self):
         return self._model
 
-    def remove(self, datas: List[str]):
+    def remove(self, datas: list[str]):
         """
         Remove tabs
 
@@ -175,7 +178,7 @@ class SetupUI:
         return self._tree.selection
 
     @selection.setter
-    def selection(self, values: List[str]):
+    def selection(self, values: list[str]):
         """Select tabs"""
         to_select = []
         for item in self._model.get_item_children(None):
@@ -291,7 +294,7 @@ class SetupUI:
         self._work_frame.visible = value
         self._background_scroll.visible = value
 
-    def force_toggle(self, item: "_Item", value: bool):
+    def force_toggle(self, item: _Item, value: bool):
         """
         Toggle or not a tab
 
@@ -301,7 +304,7 @@ class SetupUI:
         """
         self.__do_selection_changed([item], force_value=value)
 
-    def __do_selection_changed(self, selection: List["_Item"], force_value: Optional[bool] = None):
+    def __do_selection_changed(self, selection: list[_Item], force_value: bool | None = None):
         if not selection:
             self._set_work_frame_visibility(False)
             self._previous_selection = self._tree.selection

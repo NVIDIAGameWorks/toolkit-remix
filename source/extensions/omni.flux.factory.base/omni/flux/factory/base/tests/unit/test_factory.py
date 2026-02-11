@@ -40,7 +40,7 @@ class TestValidatorFactory(AsyncTestCase):
 
     async def test_is_plugin_registered_is_registered_should_return_true(self):
         # Arrange
-        self.factory._plugins[_PLUGIN_NAME_1] = TestPlugin1  # noqa PLW0212
+        self.factory._plugins[_PLUGIN_NAME_1] = TestPlugin1
 
         # Act
         value = self.factory.is_plugin_registered(_PLUGIN_NAME_1)
@@ -60,7 +60,7 @@ class TestValidatorFactory(AsyncTestCase):
 
     async def test_get_plugins_from_name_is_registered_should_return_plugin_type(self):
         # Arrange
-        self.factory._plugins[_PLUGIN_NAME_1] = TestPlugin1  # noqa PLW0212
+        self.factory._plugins[_PLUGIN_NAME_1] = TestPlugin1
 
         # Act
         value = self.factory.get_plugin_from_name(_PLUGIN_NAME_1)
@@ -84,7 +84,7 @@ class TestValidatorFactory(AsyncTestCase):
             _PLUGIN_NAME_1: TestPlugin1,
             _PLUGIN_NAME_2: TestPlugin2,
         }
-        self.factory._plugins = expected_plugins  # noqa PLW0212
+        self.factory._plugins = expected_plugins
 
         # Act
         value = self.factory.get_all_plugins()
@@ -94,7 +94,7 @@ class TestValidatorFactory(AsyncTestCase):
 
     async def test_register_plugins_should_add_plugins_to_plugins(self):
         # Arrange
-        self.factory._plugins = {_PLUGIN_NAME_2: TestPlugin2}  # noqa PLW0212
+        self.factory._plugins = {_PLUGIN_NAME_2: TestPlugin2}
 
         # Act
         self.factory.register_plugins([TestPlugin1])
@@ -102,7 +102,7 @@ class TestValidatorFactory(AsyncTestCase):
         # Assert
         self.assertDictEqual(
             self.factory._plugins,
-            {_PLUGIN_NAME_1: TestPlugin1, _PLUGIN_NAME_2: TestPlugin2},  # noqa PLW0212
+            {_PLUGIN_NAME_1: TestPlugin1, _PLUGIN_NAME_2: TestPlugin2},
         )
 
     async def test_unregister_plugins_should_remove_plugins_from_plugins(self):
@@ -111,10 +111,10 @@ class TestValidatorFactory(AsyncTestCase):
             _PLUGIN_NAME_1: TestPlugin1,
             _PLUGIN_NAME_2: TestPlugin2,
         }
-        self.factory._plugins = expected_plugins  # noqa PLW0212
+        self.factory._plugins = expected_plugins
 
         # Act
         self.factory.unregister_plugins([TestPlugin1])
 
         # Assert
-        self.assertDictEqual(self.factory._plugins, {_PLUGIN_NAME_2: TestPlugin2})  # noqa PLW0212
+        self.assertDictEqual(self.factory._plugins, {_PLUGIN_NAME_2: TestPlugin2})

@@ -20,7 +20,6 @@ import tempfile
 import time
 import uuid
 from asyncio import ensure_future
-from typing import Tuple
 
 import carb
 import omni.client
@@ -100,7 +99,7 @@ class EventGenerateThumbnailCore(_ILSSEvent):
 
             self.__crop_and_resize_image(temp_file, (256, 256))
 
-    def __crop_and_resize_image(self, temp_path: str, resolution: Tuple[int, int]):
+    def __crop_and_resize_image(self, temp_path: str, resolution: tuple[int, int]):
         """
         For a given image and resolution image is resized and stored under a .thumbs directory along the current path.
         """
@@ -129,7 +128,7 @@ class EventGenerateThumbnailCore(_ILSSEvent):
                 bottom = height - top
 
             im = im.crop((left, top, right, bottom))
-            im.thumbnail(resolution, Image.LANCZOS)  # noqa
+            im.thumbnail(resolution, Image.LANCZOS)
 
             thumbnail_bytes = io.BytesIO()
             im.save(thumbnail_bytes, format="PNG")

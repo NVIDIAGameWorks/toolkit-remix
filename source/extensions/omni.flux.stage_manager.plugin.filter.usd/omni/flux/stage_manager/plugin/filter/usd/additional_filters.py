@@ -272,7 +272,7 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
         menu = AdditionalFiltersPopupMenu("Additional Filters", self._active_filters, self._on_filter_changed)
         menu.show()
 
-    def build_ui(self):  # noqa PLW0221
+    def build_ui(self):
         # Gather available filters and update active filters
         if not self._active_filters:
             self._active_filters = self._get_available_filters()

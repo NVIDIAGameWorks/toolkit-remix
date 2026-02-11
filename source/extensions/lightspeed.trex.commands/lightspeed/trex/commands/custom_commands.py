@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import List
+from __future__ import annotations
 
 import omni.kit.commands
 from pxr import Sdf, Usd
@@ -32,7 +32,7 @@ def _commands_changed():
         __registered = [True]
 
         class SetExplicitReferencesCommand(omni.kit.commands.get_command_class("ReferenceCommandBase")):
-            def __init__(self, stage, prim_path: "Sdf.Path", reference: "Sdf.Reference", to_set: List["Sdf.Reference"]):
+            def __init__(self, stage, prim_path: Sdf.Path, reference: Sdf.Reference, to_set: list[Sdf.Reference]):
                 super().__init__(stage, prim_path, reference)
                 self.__to_set = to_set
 

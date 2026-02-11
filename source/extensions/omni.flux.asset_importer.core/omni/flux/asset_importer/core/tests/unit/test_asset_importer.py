@@ -41,7 +41,7 @@ class TestAssetImporter(omni.kit.test.AsyncTestCase):
 
     # Before running each test
     async def setUp(self):
-        self.temp_dir = TemporaryDirectory()  # noqa PLR1732
+        self.temp_dir = TemporaryDirectory()  # pylint: disable=consider-using-with
         self.temp_path = Path(self.temp_dir.name)
         self._importer = ImporterCore()
         self.test_config_path = Path(get_test_data("test_config.json", ext_name="omni.flux.asset_importer.core"))
@@ -62,8 +62,8 @@ class TestAssetImporter(omni.kit.test.AsyncTestCase):
         sub_finished_count = []
         sub_progress_count = []
 
-        _sub = self._importer.subscribe_batch_finished(sub_finished_count_fn)  # noqa
-        _sub1 = self._importer.subscribe_batch_progress(sub_progress_count_fn)  # noqa
+        _sub = self._importer.subscribe_batch_finished(sub_finished_count_fn)
+        _sub1 = self._importer.subscribe_batch_progress(sub_progress_count_fn)
 
         config = {"data": []}
         expected_outputs = []

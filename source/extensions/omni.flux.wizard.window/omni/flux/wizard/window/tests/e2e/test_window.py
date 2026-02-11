@@ -16,7 +16,6 @@
 """
 
 import tempfile
-from typing import Tuple
 
 import omni.ui as ui
 import omni.usd
@@ -59,7 +58,7 @@ class TestWizardWindow(AsyncTestCase):
         self.stage = None
         self.temp_dir = None
 
-    async def __setup_widget(self, model: WizardModel) -> Tuple[ui.Window, WizardWindow]:
+    async def __setup_widget(self, model: WizardModel) -> tuple[ui.Window, WizardWindow]:
         await arrange_windows(topleft_window="Stage")
 
         window = ui.Window("TestWizardWindow", width=700, height=500)
@@ -76,7 +75,7 @@ class TestWizardWindow(AsyncTestCase):
         page_1 = TestPage(page_1_title)
 
         _, wizard = await self.__setup_widget(WizardModel(page_1))  # Keep in memory during test
-        wizard_window = wizard._window  # noqa PLW0212
+        wizard_window = wizard._window
 
         # Start the test
         wizard.show_wizard(reset_page=True)
@@ -105,7 +104,7 @@ class TestWizardWindow(AsyncTestCase):
         page_1 = TestPage(page_1_title)
 
         _, wizard = await self.__setup_widget(WizardModel(page_1))  # Keep in memory during test
-        wizard_window = wizard._window  # noqa PLW0212
+        wizard_window = wizard._window
 
         # Start the test
         wizard.show_wizard(reset_page=True)

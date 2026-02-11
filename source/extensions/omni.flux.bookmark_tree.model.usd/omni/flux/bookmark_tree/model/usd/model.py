@@ -17,7 +17,6 @@
 
 import asyncio
 from contextlib import nullcontext
-from typing import List, Optional
 
 import omni.usd
 from omni.flux.bookmark_tree.widget import (
@@ -31,7 +30,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit import app, commands, undo
 
 # Required to register commands
-from omni.kit.core.collection import commands as _usd_commands  # noqa F401
+from omni.kit.core.collection import commands as _usd_commands  # noqa: F401
 from pxr import Usd
 
 from .extension import get_usd_listener_instance as _get_usd_listener_instance
@@ -88,7 +87,7 @@ class UsdBookmarkCollectionModel(BookmarkCollectionModel):
             self._stage_event = None
 
     def create_collection(
-        self, collection_name: str, parent: Optional[BookmarkCollectionItem], use_undo_group: bool = True
+        self, collection_name: str, parent: BookmarkCollectionItem | None, use_undo_group: bool = True
     ):
         """
         Create a bookmark collection. Will also create the bookmark prim if it doesn't already exist.
@@ -130,7 +129,7 @@ class UsdBookmarkCollectionModel(BookmarkCollectionModel):
                 return collection_path
 
     def delete_collection(
-        self, collection_path: str, parent: Optional[BookmarkCollectionItem], use_undo_group: bool = True
+        self, collection_path: str, parent: BookmarkCollectionItem | None, use_undo_group: bool = True
     ):
         """
         Delete a bookmark collection and all its content. Will also recursively delete any child collection.
@@ -159,7 +158,7 @@ class UsdBookmarkCollectionModel(BookmarkCollectionModel):
         self,
         old_collection_path: str,
         new_collection_name: str,
-        parent: Optional[BookmarkCollectionItem],
+        parent: BookmarkCollectionItem | None,
         use_undo_group: bool = True,
     ):
         """
@@ -241,7 +240,7 @@ class UsdBookmarkCollectionModel(BookmarkCollectionModel):
                     usd_context_name=self._context_name,
                 )
 
-    def get_active_items(self) -> List:
+    def get_active_items(self) -> list:
         """
         Get the list of items currently selected in the viewport.
         """
@@ -300,7 +299,7 @@ class UsdBookmarkCollectionModel(BookmarkCollectionModel):
             on_mouse_double_clicked_callback=self._on_bookmark_collection_double_clicked,
         )
 
-    def __remove_children_from_root(self, items: List[BookmarkCollectionItem]) -> List[BookmarkCollectionItem]:
+    def __remove_children_from_root(self, items: list[BookmarkCollectionItem]) -> list[BookmarkCollectionItem]:
         filtered_items = []
         for item in items:
             child = self.__find_usd_item(item.data)

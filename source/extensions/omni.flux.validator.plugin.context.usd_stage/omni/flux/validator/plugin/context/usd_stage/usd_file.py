@@ -15,8 +15,11 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import uuid
-from typing import Any, Awaitable, Callable, List, Optional, Tuple
+from typing import Any
+from collections.abc import Awaitable, Callable
 
 import carb.tokens
 import omni.client
@@ -43,11 +46,11 @@ class USDFile(_ContextBaseUSD):
         file_validated_fixes: set[str] | None = Field(default=None)
 
         _compatible_data_flow_names = ["InOutData"]
-        data_flows: Optional[List[_InOutDataFlow]] = Field(default=None)
+        data_flows: list[_InOutDataFlow] | None = Field(default=None)
 
         @model_validator(mode="after")
         @classmethod
-        def file_validated_fixes_set(cls, instance_model: "USDFile.Data") -> "USDFile.Data":
+        def file_validated_fixes_set(cls, instance_model: USDFile.Data) -> USDFile.Data:
             if instance_model.skip_validated_files and not instance_model.file_validated_fixes:
                 raise ValueError("When `skip_validated_files` is True, `file_validated_fixes` must be set")
             return instance_model
@@ -58,7 +61,7 @@ class USDFile(_ContextBaseUSD):
     data_type = Data
 
     @omni.usd.handle_exception
-    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to execute the data.
 
@@ -85,7 +88,7 @@ class USDFile(_ContextBaseUSD):
         schema_data: Data,
         run_callback: Callable[[_SetupDataTypeVar], Awaitable[None]],
         parent_context: _SetupDataTypeVar,
-    ) -> Tuple[bool, str, _SetupDataTypeVar]:
+    ) -> tuple[bool, str, _SetupDataTypeVar]:
         """
         Function that will be executed to set the data. Here we will open the file path and give the stage
 
@@ -121,7 +124,7 @@ class USDFile(_ContextBaseUSD):
 
         return True, file_path, context.get_stage()
 
-    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to after the check of the data. For example, save the input USD stage
 
@@ -152,7 +155,7 @@ class USDFile(_ContextBaseUSD):
         return True, message
 
     @omni.usd.handle_exception
-    async def _mass_cook_template(self, schema_data_template: Data) -> Tuple[bool, Optional[str], List[Data]]:
+    async def _mass_cook_template(self, schema_data_template: Data) -> tuple[bool, str | None, list[Data]]:
         """
         Take a template as an input and the (previous) result, and edit the result for mass processing.
         Here, for each file input, we generate a list of schema

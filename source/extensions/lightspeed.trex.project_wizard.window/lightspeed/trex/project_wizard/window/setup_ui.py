@@ -19,7 +19,6 @@ import abc
 import asyncio
 from enum import Enum
 from functools import partial
-from typing import Dict, Optional
 
 import carb.settings
 import omni.kit.app
@@ -118,7 +117,7 @@ class ProjectWizardBase(abc.ABC):
         else:
             await _setup_project()
 
-    def _on_setup_completed(self, payload: Dict, success: bool, error: Optional[str]):
+    def _on_setup_completed(self, payload: dict, success: bool, error: str | None):
         if not success:
             _ErrorPopup(
                 "Wizard Error Occurred",

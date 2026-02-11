@@ -60,7 +60,7 @@ _callback_registered: set[int] = set()
 # =============================================================================
 
 
-def standard_compute(db) -> bool:
+def standard_compute(_db) -> bool:
     """Standard compute handler for all nodes.
 
     Use this as the compute method for nodes that don't need custom compute logic.

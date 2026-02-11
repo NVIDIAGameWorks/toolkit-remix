@@ -16,7 +16,7 @@
 """
 
 import abc
-from typing import Callable, List, Optional
+from collections.abc import Callable
 
 import carb
 import omni.ui as ui
@@ -42,13 +42,13 @@ class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
     def __init__(
         self,
         context_name: str,
-        attribute_paths: List[Sdf.Path],
+        attribute_paths: list[Sdf.Path],
         default_value: str,
-        options: List[str],
+        options: list[str],
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
         metadata: dict | None = None,
-        metadata_key: Optional[str] = None,
+        metadata_key: str | None = None,
     ):
         super().__init__(
             context_name,
@@ -82,8 +82,8 @@ class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
 
     def get_item_children(
         self,
-        parentItem: OptionItem = None,  # noqa matching parent class kwarg name
-    ) -> List[OptionItem]:
+        parentItem: OptionItem = None,  # noqa: N803 (intentional match for parent kwarg)
+    ) -> list[OptionItem]:
         return self._item_options
 
     def get_item_value_model(self, item: OptionItem = None, column_id: int = 0):
@@ -154,7 +154,7 @@ class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
         else:
             # Trigger value changed callbacks for underlying widget when the value does not
             #  change. Mixed state may change even if widget is already at index.
-            self._current_index._value_changed()  # noqa
+            self._current_index._value_changed()  # noqa: SLF001
         self.__block_set_value = False
 
     def _on_dirty(self):

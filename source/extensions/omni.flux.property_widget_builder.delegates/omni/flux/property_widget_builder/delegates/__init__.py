@@ -17,17 +17,17 @@
 
 __all__ = (
     "AbstractField",
-    "DefaultField",
-    "CreatorField",
-    "ColorField",
-    "FloatSliderField",
     "BytesToHuman",
+    "ColorField",
+    "CreatorField",
+    "DefaultField",
     "DefaultLabelField",
-    "NameField",
     "FileAccess",
     "FileFlags",
     "FilePicker",
+    "FloatSliderField",
     "MultilineField",
+    "NameField",
 )
 
 from .base import AbstractField

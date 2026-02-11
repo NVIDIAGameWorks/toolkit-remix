@@ -18,17 +18,18 @@
 from __future__ import annotations
 
 __all__ = [
-    "teleport",
-    "teleporter_factory",
-    "TeleportButtonGroup",
     "PointMousePicker",
+    "TeleportButtonGroup",
     "create_button_instance",
     "delete_button_instance",
+    "teleport",
+    "teleporter_factory",
 ]
 
 import asyncio
 import math
-from typing import TYPE_CHECKING, Any, Callable, Sequence
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable, Sequence
 
 import carb.settings
 import omni.kit.commands
@@ -47,7 +48,7 @@ from omni.kit.widget.toolbar.widget_group import WidgetGroup
 from pxr import Gf, Sdf, Usd, UsdGeom
 
 if TYPE_CHECKING:
-    from omni.kit.widget.viewport.api import ViewportAPI
+    from omni.kit.widget.viewport.api import ViewportAPI  # noqa: PLC0415
 
 
 # distance to teleport in front of camera if no objects are hit

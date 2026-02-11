@@ -54,9 +54,9 @@ async def run(parsed_args):
     try:
         core = ProjectWizardCore()
 
-        _log_sub = core.subscribe_log_info(lambda v: print_message(v))  # noqa F841
-        _progress_sub = core.subscribe_run_progress(lambda v: print_message(f"Progress: {v}%"))  # noqa F841
-        _completed_sub = core.subscribe_run_finished(  # noqa F841
+        _log_sub = core.subscribe_log_info(lambda v: print_message(v))
+        _progress_sub = core.subscribe_run_progress(lambda v: print_message(f"Progress: {v}%"))
+        _completed_sub = core.subscribe_run_finished(
             lambda v, *_: print_message(f"Project Setup Finished: {'Success' if v else 'Failed'}")
         )
 

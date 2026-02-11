@@ -23,4 +23,4 @@ carb.log_warn(
     'Please use "omni.flux.properties_pane.properties.usd.widget"'
 )
 carb.log_warn("=" * 20)
-from omni.flux.properties_pane.properties.usd.widget import PropertyWidget  # noqa F401
+from omni.flux.properties_pane.properties.usd.widget import PropertyWidget  # noqa: F401, E402

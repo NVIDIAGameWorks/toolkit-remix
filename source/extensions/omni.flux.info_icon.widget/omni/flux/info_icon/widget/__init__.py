@@ -18,4 +18,4 @@
 __all__ = ["InfoIconWidget", "SelectableToolTipWidget", "TooltipWidget"]
 
 
-from .setup_ui import InfoIconWidget, SelectableToolTipWidget, TooltipWidget  # noqa F401
+from .setup_ui import InfoIconWidget, SelectableToolTipWidget, TooltipWidget

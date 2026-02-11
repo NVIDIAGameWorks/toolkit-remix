@@ -50,10 +50,10 @@ class TestFileImportListModel(omni.kit.test.AsyncTestCase):
             model.refresh(items)
 
         # Assert
-        self.assertEqual(len(items), len(model._children))  # noqa PLW0212
+        self.assertEqual(len(items), len(model._children))
 
-        for i in range(len(model._children)):  # noqa PLW0212
-            self.assertEqual(items[i], Path(str(list(model._children.keys())[i]._path)))  # noqa PLW0212
+        for i in range(len(model._children)):
+            self.assertEqual(items[i], Path(str(list(model._children.keys())[i]._path)))
 
         self.assertEqual(1, mock.call_count)
 
@@ -62,7 +62,7 @@ class TestFileImportListModel(omni.kit.test.AsyncTestCase):
         model = FileImportListModel()
 
         items = {Mock(): (), Mock(): ()}
-        model._children = items.copy()  # noqa PLW0212
+        model._children = items.copy()
 
         new_item = Mock()
 
@@ -71,8 +71,8 @@ class TestFileImportListModel(omni.kit.test.AsyncTestCase):
             model.add_item(new_item)
 
         # Assert
-        self.assertEqual(len(items) + 1, len(model._children))  # noqa PLW0212
-        self.assertEqual(new_item, list(model._children.keys())[-1])  # noqa PLW0212
+        self.assertEqual(len(items) + 1, len(model._children))
+        self.assertEqual(new_item, list(model._children.keys())[-1])
 
         self.assertEqual(1, mock.call_count)
 
@@ -82,17 +82,17 @@ class TestFileImportListModel(omni.kit.test.AsyncTestCase):
 
         removed_item = Mock()
         items = {Mock(): (), Mock(): (), removed_item: ()}
-        model._children = items.copy()  # noqa PLW0212
+        model._children = items.copy()
 
         # Act
         with patch.object(FileImportListModel, "_item_changed") as mock:
             model.remove_items([removed_item])
 
         # Assert
-        self.assertEqual(len(items) - 1, len(list(model._children.keys())))  # noqa PLW0212
+        self.assertEqual(len(items) - 1, len(list(model._children.keys())))
 
         with self.assertRaises(ValueError):
-            list(model._children.keys()).index(removed_item)  # noqa PLW0212
+            list(model._children.keys()).index(removed_item)
 
         self.assertEqual(1, mock.call_count)
 
@@ -171,7 +171,7 @@ class TestFileImportListModel(omni.kit.test.AsyncTestCase):
         model = FileImportListModel()
 
         items = {FileImportItem(Path("Test")): (), Mock(): (), Mock(): ()}
-        model._children = items  # noqa PLW0212
+        model._children = items
 
         # Act
         val = model.get_item_children(list(items.keys())[0] if use_parent else None)

@@ -104,7 +104,7 @@ def is_file_path_valid(path: str, layer: Sdf.Layer | None = None, log_error: boo
         path = layer.ComputeAbsolutePath(path)
     path = omni.client.normalize_url(path).replace("\\", "/")
     _, entry = omni.client.stat(path)
-    if not (entry.flags & omni.client.ItemFlags.READABLE_FILE):  # noqa PLC0325
+    if not (entry.flags & omni.client.ItemFlags.READABLE_FILE):
         if log_error:
             carb.log_error(f"{path} can't be read")
         return False

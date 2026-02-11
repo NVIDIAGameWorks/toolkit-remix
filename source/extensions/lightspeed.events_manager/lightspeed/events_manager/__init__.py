@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["get_instance", "ILSSEvent"]
+__all__ = ["EventsManagerExtension", "ILSSEvent", "get_instance"]
 
 
 from .extension import EventsManagerExtension, get_instance

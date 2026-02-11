@@ -45,7 +45,7 @@ class PyCharmDebuggerCore:
         except RuntimeError as e:
             raise RuntimeError(f"{self._ext_name} Could not setup pydevd module") from e
         try:
-            import pydevd_pycharm
+            import pydevd_pycharm  # noqa: PLC0415
 
             pydevd_pycharm.settrace(
                 self._settings["host"],
@@ -74,7 +74,7 @@ class PyCharmDebuggerCore:
             sys.path.append(pydev_location.resolve().as_posix())
         elif self._settings["pip_install_pydevd"]:
             try:
-                import omni.kit.pipapi
+                import omni.kit.pipapi  # noqa: PLC0415
 
                 pydevd_version = self._settings.get("pydevd_version", "243.22562.23")
                 omni.kit.pipapi.install(

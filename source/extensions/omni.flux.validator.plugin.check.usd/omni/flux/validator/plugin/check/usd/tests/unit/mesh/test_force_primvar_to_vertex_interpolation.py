@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import omni.usd
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
 from omni.kit.test import AsyncTestCase
@@ -63,8 +65,8 @@ class TestForcePrimvarToVertexInterpolation(AsyncTestCase):
             nonlocal sub_fix_count
             sub_fix_count += 1
 
-        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)  # noqa
+        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)
+        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)
 
         # Act
         await core.deferred_run()
@@ -117,8 +119,8 @@ class TestForcePrimvarToVertexInterpolation(AsyncTestCase):
             self.assertNotIn("FAIL", _message)
             self.assertIn("Fix:\n- Fixing /Cube/Cube- PASS", _message)
 
-        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)  # noqa
+        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)
+        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)
 
         # Act
         await core.deferred_run()
@@ -187,8 +189,8 @@ class TestForcePrimvarToVertexInterpolation(AsyncTestCase):
             self.assertNotIn("FAIL", _message)
             self.assertIn("Fix:\n- Fixing /Cube/Cube- PASS", _message)
 
-        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)  # noqa
+        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)
+        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)
 
         # Act
         await core.deferred_run()

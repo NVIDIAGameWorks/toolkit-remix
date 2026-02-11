@@ -17,7 +17,7 @@
 
 from asyncio import ensure_future
 from pathlib import Path
-from typing import Callable, List, Optional
+from collections.abc import Callable
 
 from lightspeed.common import constants as _constants
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
@@ -41,8 +41,8 @@ class SetupPage(_WizardPage):
     def __init__(
         self,
         context_name: str = "",
-        previous_page: Optional[_WizardPage] = None,
-        next_page: Optional[_WizardPage] = None,
+        previous_page: _WizardPage | None = None,
+        next_page: _WizardPage | None = None,
     ):
         super().__init__(
             previous_page=previous_page, next_page=next_page, next_text="Select Mods", done_text="Create", blocked=True
@@ -161,7 +161,7 @@ class SetupPage(_WizardPage):
             or (not self._capture_selected and not self._open_or_create)
         )
 
-    def __update_payload_project(self, project_path: Optional[str]):
+    def __update_payload_project(self, project_path: str | None):
         if not project_path:
             return
         self.payload = {
@@ -180,7 +180,7 @@ class SetupPage(_WizardPage):
             )
         self.__enable_capture_picker(bool(remix_path))
 
-    def __update_payload_capture(self, selection: List[_CaptureTreeItem]):
+    def __update_payload_capture(self, selection: list[_CaptureTreeItem]):
         if not selection:
             return
         self.payload = {
@@ -240,7 +240,7 @@ class SetupPage(_WizardPage):
 
         return captures
 
-    def __update_capture_picker_ui(self, capture_files: List[str]):
+    def __update_capture_picker_ui(self, capture_files: list[str]):
         if not self._capture_frame:
             return
 

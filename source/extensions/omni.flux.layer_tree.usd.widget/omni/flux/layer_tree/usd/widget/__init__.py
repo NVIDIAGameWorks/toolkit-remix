@@ -16,6 +16,8 @@
 """
 
 from .layer_tree.delegate import LayerDelegate
-from .layer_tree.item_model import *
+from .layer_tree.item_model import ItemBase, LayerItem
 from .layer_tree.model import LayerModel
-from .setup_ui import LayerTreeWidget  # noqa F401
+from .setup_ui import LayerTreeWidget
+
+__all__ = ["ItemBase", "LayerDelegate", "LayerItem", "LayerModel", "LayerTreeWidget"]

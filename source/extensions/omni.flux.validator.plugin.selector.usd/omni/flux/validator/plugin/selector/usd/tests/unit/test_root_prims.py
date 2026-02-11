@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import omni.usd
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
 from omni.kit.test import AsyncTestCase
@@ -81,7 +83,7 @@ class TestRootPrims(AsyncTestCase):
             self.assertListEqual(_data, [])
 
         _sub_selector_select = None
-        _sub_selector_select = (  # noqa
+        _sub_selector_select = (
             core.model.check_plugins[0]
             .selector_plugins[0]
             .instance.subscribe_select(selector_select_sub_validation_empty)

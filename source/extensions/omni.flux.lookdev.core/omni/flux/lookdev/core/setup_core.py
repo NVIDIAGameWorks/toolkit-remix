@@ -16,7 +16,6 @@
 """
 
 import tempfile
-from typing import Optional
 
 import carb.settings
 import carb.tokens
@@ -134,7 +133,7 @@ class LookDevCore:
                 xformable.AddXformOp(UsdGeom.XformOp.TypeTransform).Set(adjustment)
         return stage
 
-    def get_default_material_path(self) -> Optional[Sdf.Path]:
+    def get_default_material_path(self) -> Sdf.Path | None:
         context = omni.usd.get_context(self.__context_name)
         stage = context.get_stage()
         default_material_path = self.__settings.get(_LOOKDEV_DEFAULT_MATERIAL_PATH)

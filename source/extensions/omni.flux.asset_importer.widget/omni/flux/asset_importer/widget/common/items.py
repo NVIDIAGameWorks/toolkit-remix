@@ -15,7 +15,8 @@
 * limitations under the License.
 """
 
-from typing import Any, Callable, Tuple
+from typing import Any
+from collections.abc import Callable
 
 import carb
 import carb.tokens
@@ -49,7 +50,7 @@ class ImportItem(ui.AbstractItem):
         return _EventSubscription(self.__item_changed, func)
 
     @staticmethod
-    def is_valid(path: _OmniUrl, show_warning: bool = True) -> Tuple[bool, str]:
+    def is_valid(path: _OmniUrl, show_warning: bool = True) -> tuple[bool, str]:
         path = carb.tokens.get_tokens_interface().resolve(str(path))
         file_url = _OmniUrl(path)
         if not file_url.exists:

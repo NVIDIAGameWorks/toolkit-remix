@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from lightspeed.common.constants import ROOTNODE_INSTANCES as _ROOTNODE_INSTANCES
@@ -35,5 +37,5 @@ class InstanceGroupFilterPlugin(_ToggleableUSDFilterPlugin):
     display_name: str = Field(default="Instance Group", exclude=True)
     tooltip: str = Field(default="Filter out instance group", exclude=True)
 
-    def _filter_predicate(self, prim: "Usd.Prim") -> bool:
+    def _filter_predicate(self, prim: Usd.Prim) -> bool:
         return str(prim.GetPath()).startswith(_ROOTNODE_INSTANCES)

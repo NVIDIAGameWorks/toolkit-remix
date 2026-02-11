@@ -15,11 +15,14 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 from datetime import datetime
 from enum import Enum
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, List, Optional
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 import omni.ui as ui
 import omni.usd
@@ -78,7 +81,7 @@ class _CustomProgressValueModel(ui.AbstractValueModel):
 class Item(ui.AbstractItem):
     """Item of the model"""
 
-    def __init__(self, data: "_ManagerCore"):
+    def __init__(self, data: _ManagerCore):
         super().__init__()
         self._data = data
         self._is_finished = False
@@ -96,10 +99,10 @@ class Item(ui.AbstractItem):
     def schema_uuid(self):
         return self._data.model.uuid
 
-    def update_schema(self, schema: "_ValidationSchema"):
+    def update_schema(self, schema: _ValidationSchema):
         self._data.update_model(schema)
 
-    def subscribe_mass_queue_action_pressed(self, callback: Callable[["Item", str, Optional[Any]], Any]):
+    def subscribe_mass_queue_action_pressed(self, callback: Callable[[Item, str, Any | None], Any]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
@@ -108,7 +111,7 @@ class Item(ui.AbstractItem):
     def build_validation_widget_ui(self, use_global_style: bool = False):
         self._validation_widget = _ValidatorManagerWidget(core=self._data, use_global_style=use_global_style)
 
-    def subscribe_run_finished(self, callback: Callable[[bool, Optional[str]], Any]):
+    def subscribe_run_finished(self, callback: Callable[[bool, str | None], Any]):
         return self._data.subscribe_run_finished(callback)
 
     def subscribe_run_progress(self, callback: Callable[[float], Any]):
@@ -126,7 +129,7 @@ class Item(ui.AbstractItem):
         self.progress_model.set_value(progress)
         self.progress_changed()
 
-    def _run_finished(self, result, message: Optional[str] = None):
+    def _run_finished(self, result, message: str | None = None):
         if not result:
             self.progress_changed(result=False)
         if message is not None:
@@ -152,7 +155,7 @@ class Item(ui.AbstractItem):
         setattr(cl, self.progress_color_attr, cl(red, green, 0, 1.0))
 
     def mass_build_queue_action_ui(
-        self, default_actions: List[Callable[[], Any]], callback: Callable[[str], Any]
+        self, default_actions: list[Callable[[], Any]], callback: Callable[[str], Any]
     ) -> Any:
         """
         Default exposed action for Mass validation. The UI will be built into the delegate of the mass queue.
@@ -171,7 +174,7 @@ class Item(ui.AbstractItem):
     def display_name_tooltip(self):
         return self._data.model.data["name_tooltip"] if self._data.model.data else self._data.model.name
 
-    def can_item_have_children(self, item: "Item") -> bool:
+    def can_item_have_children(self, item: Item) -> bool:
         """
         Define if the item can have children or not
 
@@ -217,7 +220,7 @@ class Model(ui.AbstractItemModel):
         """
         return _EventSubscription(self.__on_progress, callback)
 
-    def __update_all_finish_value(self, item: Item, value: bool, message: Optional[str] = None):
+    def __update_all_finish_value(self, item: Item, value: bool, message: str | None = None):
         self.__all_finish_value[id(item)] = value
         self._update_progress()
 
@@ -229,7 +232,7 @@ class Model(ui.AbstractItemModel):
             (100 / len(self.__items) * len(self.__all_finish_value.keys())) / 100, all(self.__all_finish_value.values())
         )
 
-    def _on_item_changed(self, _model: "Model", _items: List[Item]):
+    def _on_item_changed(self, _model: Model, _items: list[Item]):
         self.__sub_item_finish = {}
         self.__all_finish_value = {}
         for item in self.__items:
@@ -240,7 +243,7 @@ class Model(ui.AbstractItemModel):
                 self.__all_finish_value[id(item)] = item.finish_result
         self._update_progress()
 
-    def add_schema_in_update_item_queue(self, schema: "_ValidationSchema"):
+    def add_schema_in_update_item_queue(self, schema: _ValidationSchema):
         """
         Add a schema into a queue. Use the dictionary to track what was the last schema added in the queue.
 
@@ -303,12 +306,12 @@ class Model(ui.AbstractItemModel):
             # mark the task as done for the item
             self.__queue_update_item.task_done()
 
-    def add_items(self, items: List[Item]):
+    def add_items(self, items: list[Item]):
         """Set the items to show"""
         self.__items.extend(items)
         self._item_changed(None)
 
-    def remove_items(self, items: List[Item]):
+    def remove_items(self, items: list[Item]):
         """Set the items to show"""
         for item in items:
             if item not in self.__items:
@@ -316,7 +319,7 @@ class Model(ui.AbstractItemModel):
             self.__items.remove(item)
         self._item_changed(None)
 
-    def get_item_children(self, item: Optional[Item]):
+    def get_item_children(self, item: Item | None):
         """Returns all the children when the widget asks it."""
         if item is None:
             return self.__items

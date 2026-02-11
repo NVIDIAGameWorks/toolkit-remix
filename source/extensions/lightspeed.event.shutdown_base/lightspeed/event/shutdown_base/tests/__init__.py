@@ -16,3 +16,5 @@
 """
 
 from .e2e import TestEventOnShutdownBase
+
+__all__ = ["TestEventOnShutdownBase"]

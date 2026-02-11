@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.21.2]
+### Changed
+- Modernize python style and enable more ruff checks
+
 ## [1.21.1]
 ### Added
 - Added PropertiesPaneSelectionTreeFieldItem

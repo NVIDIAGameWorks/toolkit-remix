@@ -24,7 +24,6 @@ import math
 import os
 import shutil
 from pathlib import Path
-from typing import Dict
 
 import carb
 import carb.tokens
@@ -71,8 +70,8 @@ class RecentProjectsCore:
             del current_data[path]
         current_data[path] = {"game": game, "capture": capture}
         result = {}
-        for i, (current_path, current_data) in enumerate(current_data.items()):  # noqa B020
-            result[current_path] = current_data  # noqa B020
+        for i, (item_path, item_data) in enumerate(current_data.items()):
+            result[item_path] = item_data
             if i == 40:
                 break
         if save:
@@ -115,7 +114,7 @@ class RecentProjectsCore:
             Path(file_path).unlink()
         return {}
 
-    def get_path_detail(self, path) -> Dict[str, str]:
+    def get_path_detail(self, path) -> dict[str, str]:
         """Get details from the given path"""
         result = {}
         recent_url = OmniUrl(path)
@@ -167,7 +166,7 @@ class RecentProjectsCore:
 
         try:
             result, _ = await asyncio.wait_for(omni.client.stat_async(thumbnail), timeout=10.0)
-        except (Exception, asyncio.TimeoutError):  # noqa PLW0703
+        except (Exception, asyncio.TimeoutError):  # noqa: BLE001
             result = omni.client.Result.ERROR_NOT_FOUND
         if result == omni.client.Result.OK:
             return path, thumbnail

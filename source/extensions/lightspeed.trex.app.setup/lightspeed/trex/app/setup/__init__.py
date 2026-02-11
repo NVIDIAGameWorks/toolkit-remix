@@ -16,3 +16,5 @@
 """
 
 from .extension import TrexSetupExtension
+
+__all__ = ["TrexSetupExtension"]

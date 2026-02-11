@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["get_prim_type_icons", "ICONS_SETTING_PATH"]
+__all__ = ["ICONS_SETTING_PATH", "get_prim_type_icons"]
 
 import carb.settings
 

@@ -16,3 +16,5 @@
 """
 
 from .extension import TextureCraftLayoutExtension
+
+__all__ = ["TextureCraftLayoutExtension"]

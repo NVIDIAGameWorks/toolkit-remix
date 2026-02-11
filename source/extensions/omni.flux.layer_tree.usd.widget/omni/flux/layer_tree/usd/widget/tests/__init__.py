@@ -17,3 +17,5 @@
 
 from .e2e.test_widget import TestWidget
 from .unit.test_model import TestModel
+
+__all__ = ["TestModel", "TestWidget"]

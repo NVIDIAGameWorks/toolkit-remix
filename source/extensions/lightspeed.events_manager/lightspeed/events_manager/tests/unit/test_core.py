@@ -105,8 +105,8 @@ class TestCore(AsyncTestCase):
         await self.__register_global_events(core)
         mock01 = Mock()
         mock02 = Mock()
-        _1 = core.subscribe_global_custom_event("testEvent01", mock01)  # noqa
-        _2 = core.subscribe_global_custom_event("testEvent02", mock02)  # noqa
+        _1 = core.subscribe_global_custom_event("testEvent01", mock01)
+        _2 = core.subscribe_global_custom_event("testEvent02", mock02)
 
         core.call_global_custom_event("testEvent01", "1", "2", hello=3)
         self.assertTrue(mock01.called)

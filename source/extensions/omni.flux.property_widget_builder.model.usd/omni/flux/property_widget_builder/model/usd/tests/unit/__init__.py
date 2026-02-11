@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
-from .test_relationship_item import TestUSDRelationshipItem  # noqa: F401
-from .test_relationship_utils import TestRelationshipUtils  # noqa: F401
-from .test_relationship_value_model import TestUsdRelationshipValueModel  # noqa: F401
+from .test_relationship_item import TestUSDRelationshipItem
+from .test_relationship_utils import TestRelationshipUtils
+from .test_relationship_value_model import TestUsdRelationshipValueModel
+
+__all__ = ["TestRelationshipUtils", "TestUSDRelationshipItem", "TestUsdRelationshipValueModel"]

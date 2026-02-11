@@ -58,7 +58,7 @@ class TestTextureImportListItems(omni.kit.test.AsyncTestCase):
         item_0.texture_type = TextureTypes.NORMAL_DX
 
         # Assert
-        self.assertEqual(TextureTypes.NORMAL_DX, item_0._texture_type)  # noqa PLW0212
+        self.assertEqual(TextureTypes.NORMAL_DX, item_0._texture_type)
         self.assertEqual(1, callback_mock.call_count)
 
     async def test_value_model_returns_value_model(self):

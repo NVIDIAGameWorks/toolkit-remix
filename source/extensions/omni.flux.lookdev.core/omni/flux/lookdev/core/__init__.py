@@ -17,4 +17,4 @@
 
 __all__ = ["LookDevCore"]
 
-from .setup_core import LookDevCore  # noqa F401
+from .setup_core import LookDevCore

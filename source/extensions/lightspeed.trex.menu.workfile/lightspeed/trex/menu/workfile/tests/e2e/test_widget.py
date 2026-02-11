@@ -17,7 +17,7 @@
 
 import asyncio
 import uuid
-from typing import Optional, TypeVar
+from typing import TypeVar
 from unittest.mock import patch
 
 import omni.kit.test
@@ -47,8 +47,8 @@ class AsyncTestMenu:
         self._is_built = False
 
         # These are populated in `build` below.
-        self._window: Optional[ui.Window] = None
-        self._ui_builder: Optional[SetupUI] = None
+        self._window: ui.Window | None = None
+        self._ui_builder: SetupUI | None = None
 
     async def build(self):
         # Used to generate unique window title names
@@ -111,7 +111,7 @@ class TestWorkFileBurgerMenu(omni.kit.test.AsyncTestCase):
             await menu.click("preferences")
 
             inst = omni.kit.window.preferences.get_instance()
-            self.assertTrue(inst._window_is_visible)  # noqa PLW0212
+            self.assertTrue(inst._window_is_visible)
             # NOTE: Use this helper to destroy the window to ensure the preferences instance keeps the proper state.
             inst.hide_preferences_window()
 
@@ -120,7 +120,7 @@ class TestWorkFileBurgerMenu(omni.kit.test.AsyncTestCase):
             await menu.click("about")
 
             inst = omni.kit.window.about.get_instance()
-            self.assertTrue(inst._is_visible())  # noqa PLW0212
+            self.assertTrue(inst._is_visible())
             # NOTE: The about extension doesn't create/destroy the window just toggles its visibility.
             inst.show(False)
 

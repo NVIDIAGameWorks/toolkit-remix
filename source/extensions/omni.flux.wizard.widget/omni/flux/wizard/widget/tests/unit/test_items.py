@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from unittest.mock import Mock, patch
 
 import omni.kit.test
@@ -204,7 +206,7 @@ class TestWizardPage(omni.kit.test.AsyncTestCase):
         item.set_request_next_fn(mock)
 
         # Assert
-        self.assertEqual(mock, item._request_next_fn)  # noqa PLW0212
+        self.assertEqual(mock, item._request_next_fn)
 
     async def test_request_next_no_fn_set_raises(self):
         # Arrange
@@ -221,7 +223,7 @@ class TestWizardPage(omni.kit.test.AsyncTestCase):
         # Arrange
         item = WizardPage()
         mock = Mock()
-        item._request_next_fn = mock  # noqa PLW0212
+        item._request_next_fn = mock
 
         # Act
         item.request_next()
@@ -238,7 +240,7 @@ class TestWizardPage(omni.kit.test.AsyncTestCase):
         item.set_request_previous_fn(mock)
 
         # Assert
-        self.assertEqual(mock, item._request_previous_fn)  # noqa PLW0212
+        self.assertEqual(mock, item._request_previous_fn)
 
     async def test_request_previous_no_fn_set_raises(self):
         # Arrange
@@ -255,7 +257,7 @@ class TestWizardPage(omni.kit.test.AsyncTestCase):
         # Arrange
         item = WizardPage()
         mock = Mock()
-        item._request_previous_fn = mock  # noqa PLW0212
+        item._request_previous_fn = mock
 
         # Act
         item.request_previous()

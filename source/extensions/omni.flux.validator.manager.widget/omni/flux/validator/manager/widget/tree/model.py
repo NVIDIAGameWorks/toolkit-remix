@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import List, Optional, Union
+from __future__ import annotations
 
 import omni.ui as ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -87,7 +87,7 @@ class BaseItem(ui.AbstractItem):
         value, message, result = plugin.instance.get_progress()
         self.progress_model = CustomProgressValueModel(value, message, result)
         self.set_progress(value, message, result)
-        self.__sub_progress = plugin.instance.subscribe_progress(self.set_progress)  # noqa
+        self.__sub_progress = plugin.instance.subscribe_progress(self.set_progress)
 
     @property
     def plugin(self):
@@ -117,7 +117,7 @@ class BaseItem(ui.AbstractItem):
 
     def destroy(self):
         self.progress_model = None
-        self.__sub_progress = None  # noqa
+        self.__sub_progress = None
         self.title_model = None
 
     def __repr__(self):
@@ -127,9 +127,7 @@ class BaseItem(ui.AbstractItem):
 class UIItem(ui.AbstractItem):
     """Item of the model"""
 
-    def __init__(
-        self, plugin: Union[_CheckSchema, _SelectorSchema], parent: Union["SelectorItem", "CheckerItem", "ResultorItem"]
-    ):
+    def __init__(self, plugin: _CheckSchema | _SelectorSchema, parent: SelectorItem | CheckerItem | ResultorItem):
         super().__init__()
         self._plugin = plugin
         self.parent = parent
@@ -143,7 +141,7 @@ class UIItem(ui.AbstractItem):
 class ContextItem(BaseItem):
     """Item of the model"""
 
-    def __init__(self, plugin: _ContextSchema, parent: "CheckerItem" = None):
+    def __init__(self, plugin: _ContextSchema, parent: CheckerItem | None = None):
         super().__init__(plugin)
         self._title = f"Context: {plugin.instance.display_name or plugin.name}"
         self.parent = parent
@@ -162,7 +160,7 @@ class ContextItem(BaseItem):
 class SelectorItem(BaseItem):
     """Item of the model"""
 
-    def __init__(self, plugin: _SelectorSchema, parent: "CheckerItem"):
+    def __init__(self, plugin: _SelectorSchema, parent: CheckerItem):
         super().__init__(plugin)
         self._title = f"Selector: {plugin.instance.display_name or plugin.name}"
         self.parent = parent
@@ -222,12 +220,12 @@ class Model(ui.AbstractItemModel):
             setattr(self, attr, value)
         self._items = []
 
-    def set_items(self, items: List[CheckerItem]):
+    def set_items(self, items: list[CheckerItem]):
         """Set the items to show"""
         self._items = items
         self._item_changed(None)
 
-    def get_item_children(self, item: Optional[CheckerItem]):
+    def get_item_children(self, item: CheckerItem | None):
         """Returns all the children when the widget asks it."""
         if item is None:
             return self._items

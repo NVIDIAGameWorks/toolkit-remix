@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Optional
+from __future__ import annotations
 
 import carb
 import omni.ext
@@ -23,7 +23,7 @@ from fastmcp import FastMCP
 
 from .mcp import MCPCore
 
-_instance: Optional[FastMCP] = None
+_instance: FastMCP | None = None
 
 
 def get_mcp_instance():

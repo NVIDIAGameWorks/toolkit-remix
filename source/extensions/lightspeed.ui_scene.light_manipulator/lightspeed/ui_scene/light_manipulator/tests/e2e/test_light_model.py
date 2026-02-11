@@ -73,7 +73,7 @@ class TestLightModel(OmniUiTest):
         mock_viewport_layer.create_manipulator("/TestLight", MockManip(disk_model))
         # mock selecting a light
         omni.usd.get_context().get_selection().set_selected_prim_paths(["/TestLight"], True)
-        disk_model._on_kit_selection_changed()  # noqa PSW0212 protected member
+        disk_model._on_kit_selection_changed()
 
         with self.subTest("Test setting just the model, and reverting via updating from USD"):
             # set only the model item (not USD)

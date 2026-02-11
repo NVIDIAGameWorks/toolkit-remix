@@ -16,16 +16,16 @@
 """
 
 __all__ = [
-    "ImporterCore",
     "AssetImporterModel",
     "AssetItemImporterModel",
-    "get_texture_sets",
+    "ImporterCore",
+    "destroy_scanner_dialog",
     "determine_ideal_types",
+    "get_texture_sets",
     "get_texture_type_from_filename",
     "parse_texture_paths",
     "scan_folder",
     "setup_scanner_dialog",
-    "destroy_scanner_dialog",
 ]
 
 from .asset_importer import AssetImporterModel, AssetItemImporterModel, ImporterCore

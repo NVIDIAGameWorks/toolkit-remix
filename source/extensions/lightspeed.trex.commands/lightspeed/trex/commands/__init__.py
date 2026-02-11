@@ -15,6 +15,13 @@
 * limitations under the License.
 """
 
-from .custom_commands import *
+from .custom_commands import SetPrimTypeName
 from .extension import LightspeedCommandsExtension
 from .particle import CreateParticleSystemCommand, RemoveParticleSystemCommand
+
+__all__ = [
+    "CreateParticleSystemCommand",
+    "LightspeedCommandsExtension",
+    "RemoveParticleSystemCommand",
+    "SetPrimTypeName",
+]

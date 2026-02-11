@@ -33,12 +33,12 @@ class StagePrimPickerExtension(omni.ext.IExt):
 
     def on_startup(self, ext_id):
         """Called when the extension is starting up."""
-        global _INSTANCE  # noqa: PLW0603
+        global _INSTANCE
         carb.log_info("[omni.flux.stage_prim_picker.widget] Extension startup")
         _INSTANCE = self
 
     def on_shutdown(self):
         """Called when the extension is shutting down."""
-        global _INSTANCE  # noqa: PLW0603
+        global _INSTANCE
         carb.log_info("[omni.flux.stage_prim_picker.widget] Extension shutdown")
         _INSTANCE = None

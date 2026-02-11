@@ -33,7 +33,7 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
 
     @field_validator("context_name", mode="before")
     @classmethod
-    def context_name_is_valid(cls, v):  # noqa N805
+    def context_name_is_valid(cls, v):
         if not omni.usd.get_context(v):
             raise ValueError("The context does not exist")
         return v

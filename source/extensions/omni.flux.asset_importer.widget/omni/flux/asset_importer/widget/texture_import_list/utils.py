@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import List, Tuple
-
 import omni.usd
 from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP as _TEXTURE_TYPE_INPUT_MAP
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
@@ -27,8 +25,8 @@ from pxr import Sdf, Tf
 
 @omni.usd.handle_exception
 async def create_prims_and_link_assets(
-    context_name: str, imported_files: List[Tuple[_OmniUrl, _TextureTypes]]
-) -> List[str]:
+    context_name: str, imported_files: list[tuple[_OmniUrl, _TextureTypes]]
+) -> list[str]:
     """
     Create material(s) from a list of textures. It will setup 1 material by PBR texture set
 

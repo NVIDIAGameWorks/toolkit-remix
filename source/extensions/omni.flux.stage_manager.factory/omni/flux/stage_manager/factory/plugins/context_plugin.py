@@ -16,7 +16,8 @@
 """
 
 import abc
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import Field, field_validator
@@ -47,7 +48,7 @@ class StageManagerContextPlugin(_StageManagerPluginBase, abc.ABC):
 
     @field_validator("listeners", mode="before")
     @classmethod
-    def check_unique_listeners(cls, v):  # noqa N805
+    def check_unique_listeners(cls, v):
         # Use a list + validator to keep the list order
         return list(dict.fromkeys(v))
 

@@ -16,15 +16,16 @@
 """
 
 __all__ = (
-    "MockClipboard",
-    "TestItemModel",
-    "TestItem",
     "AsyncTestPropertyWidget",
+    "MockClipboard",
+    "TestItem",
+    "TestItemModel",
 )
 
 import asyncio
 import uuid
-from typing import Any, Iterable, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Iterable
 from unittest import mock
 
 import omni.kit.app
@@ -52,7 +53,7 @@ class MockClipboard:
 
     def start(self):
         for ctx in self._ctx:
-            ctx.__enter__()  # noqa PCL2801
+            ctx.__enter__()
 
     def stop(self):
         for ctx in reversed(self._ctx):
@@ -190,7 +191,7 @@ class AsyncTestPropertyWidget:
         await self.destroy()
 
     async def set_item_expand(self, item: Item, value: bool):
-        self.delegate._item_expanded(0, item, value)  # noqa PLW0212
+        self.delegate._item_expanded(0, item, value)
 
     async def click_item(self, item: Item, column_id: int = 0, right_click: bool = False):
         cache = self.delegate.widgets.get(id(item), {})
@@ -210,11 +211,11 @@ class AsyncTestPropertyWidget:
         await asyncio.sleep(0.05)
 
     def get_selected_items(self) -> list[Item]:
-        return list(self.property_widget._tree_view.selection)  # noqa PLW0212
+        return list(self.property_widget._tree_view.selection)
 
     async def select_items(self, items: Iterable[Item]):
         await omni.kit.app.get_app().next_update_async()
-        self.property_widget._tree_view.selection = items  # noqa PLW0212
+        self.property_widget._tree_view.selection = items
 
     def get_context_menu(self) -> ui.Menu | None:
-        return self.delegate._context_menu  # noqa PLW0212
+        return self.delegate._context_menu

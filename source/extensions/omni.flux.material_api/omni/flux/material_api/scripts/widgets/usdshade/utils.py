@@ -15,26 +15,28 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 __doc__ = """This module provides utilities for manipulating USDShade and SDR shader properties, including finding
 shader nodes, getting shader information, updating dictionary values, and handling shader properties and connections
 in USD."""
 
 __all__ = [
-    "get_sdr_shader_node_for_prim",
-    "get_shader_info",
-    "property_name_to_display_name",
     "create_nonpersistant_attribute",
-    "get_mdl_subidentifiers_for_prim",
-    "get_info_ids_for_prim",
     "deep_dict_update",
     "get_display_group_for_render_context",
+    "get_info_ids_for_prim",
+    "get_mdl_subidentifiers_for_prim",
+    "get_sdr_shader_node_for_prim",
     "get_sdr_shader_property_default_value",
+    "get_shader_info",
+    "property_name_to_display_name",
     "remove_properties_and_connections",
 ]
 
 import collections.abc
 import re
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import omni.mdl.neuraylib
 import omni.usd
@@ -45,13 +47,13 @@ from .placeholder import UsdShadePropertyPlaceholder, get_placeholder_properties
 
 
 def get_sdr_shader_node_for_prim(
-    prim: Usd.Prim, source_type_priority: List[str] = None, warn_on_substitution: bool = False
-) -> Union[Sdr.ShaderNode | None]:
+    prim: Usd.Prim, source_type_priority: list[str] = None, warn_on_substitution: bool = False
+) -> Sdr.ShaderNode | None:
     """Finds and returns the Sdr.ShaderNode used to define the corresponding UsdShade.Shader prim.
 
     Args:
         prim (:obj:`Usd.Prim`): The USD primitive to find the shader node for.
-        source_type_priority (Optional[List[str]]): A list of source type priorities to consider
+        source_type_priority (list[str] | None): A list of source type priorities to consider
             when finding the shader node.
         warn_on_substitution (bool): UsdMdl.RegistryUtils.FindShaderNodeForPrim will first try and
             find the Sdr.ShaderNode using the subidentifier on the prim.
@@ -59,8 +61,8 @@ def get_sdr_shader_node_for_prim(
             match was found this flag is used to indicate whether or not a warning should be issued.
 
     Returns:
-        Union[Sdr.ShaderNode, None]: The found Sdr.ShaderNode, or None if not found."""
-    import omni.UsdMdl as UsdMdl
+        Sdr.ShaderNode | None: The found Sdr.ShaderNode, or None if not found."""
+    import omni.UsdMdl as UsdMdl  # noqa: PLC0415
 
     usdshade_shader = UsdShade.Shader(prim)
     if not usdshade_shader:
@@ -111,19 +113,19 @@ def get_sdr_shader_node_for_prim(
     return UsdMdl.RegistryUtils.FindShaderNodeForPrim(prim, warn_on_substitution)
 
 
-def get_shader_info(usdshade_shader: UsdShade.Shader) -> Tuple[str, Optional[str], Optional[str]]:
+def get_shader_info(usdshade_shader: UsdShade.Shader) -> tuple[str, str | None, str | None]:
     """Gets the shader information for a given UsdShade.Shader.
 
     Args:
         usdshade_shader (:obj:`UsdShade.Shader`): The shader to retrieve information from.
 
     Returns:
-        Tuple[str, Optional[str], Optional[str]]: A tuple containing the shader's implementation source as the first
+        tuple[str, str | None, str | None]: A tuple containing the shader's implementation source as the first
         element, the shader ID as the second element (if implementation source is 'id'), and the source asset
         sub-identifier as the third element (if implementation source is 'sourceAsset'). If the shader ID or source
         asset sub-identifier is not available, their respective positions in the tuple will be None.
     """
-    import omni.UsdMdl as UsdMdl
+    import omni.UsdMdl as UsdMdl  # noqa: PLC0415
 
     implementation_source = usdshade_shader.GetImplementationSource()
     if implementation_source == UsdShade.Tokens.id:
@@ -189,7 +191,7 @@ async def create_nonpersistant_attribute(material_paths, name, sdf_value_type_na
         await create_attribute_specs(material_paths, name, sdf_value_type_name, value)
 
 
-def get_mdl_subidentifiers_for_prim(prim: Usd.Prim) -> Union[List[str] | None]:
+def get_mdl_subidentifiers_for_prim(prim: Usd.Prim) -> list[str] | None:
     """
     Retrieves the list of MDL subidentifiers associated with a given USD primitive (prim) if any exist. MDL
     subidentifiers are unique identifiers used to reference sub-components or variants within an MDL asset.
@@ -198,10 +200,10 @@ def get_mdl_subidentifiers_for_prim(prim: Usd.Prim) -> Union[List[str] | None]:
         prim (:obj:`Usd.Prim`): The USD primitive for which to retrieve MDL subidentifiers.
 
     Returns:
-        Union[List[str], None]: A sorted list of MDL subidentifiers associated with the provided USD primitive
+        list[str] | None: A sorted list of MDL subidentifiers associated with the provided USD primitive
          if any exist; otherwise, None.
     """
-    import omni.UsdMdl as UsdMdl
+    import omni.UsdMdl as UsdMdl  # noqa: PLC0415
 
     if not prim:
         return None  # pragma: no cover
@@ -230,15 +232,15 @@ def get_mdl_subidentifiers_for_prim(prim: Usd.Prim) -> Union[List[str] | None]:
     return subidentifiers
 
 
-def get_info_ids_for_prim(prim: Usd.Prim) -> Union[List[str] | None]:
+def get_info_ids_for_prim(prim: Usd.Prim) -> list[str] | None:
     """Returns a list of allowed tokens for the info:id property of a shader.
 
     Args:
         prim (:obj:`Usd.Prim`): The USD primitive representing the shader.
 
     Returns:
-        Union[List[str], None]: A list of info:id tokens if found, otherwise None."""
-    import omni.UsdMdl as UsdMdl
+        list[str] | None: A list of info:id tokens if found, otherwise None."""
+    import omni.UsdMdl as UsdMdl  # noqa: PLC0415
 
     usdshade_shader = UsdShade.Shader(prim)
     shader_id = usdshade_shader.GetShaderId()
@@ -299,7 +301,7 @@ def get_display_group_for_render_context(render_context: str) -> str:
     return context_mapper.get(render_context, render_context)
 
 
-def get_sdr_shader_property_default_value(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> Union[Any | None]:
+def get_sdr_shader_property_default_value(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> Any | None:
     """Returns the default value for a given SDR shader property considering the metadata.
 
     Args:
@@ -309,9 +311,9 @@ def get_sdr_shader_property_default_value(sdr_shader_property: Sdr.ShaderPropert
             the default value.
 
     Returns:
-        Union[Any, None]: The default value of the shader property, or None if no default can be determined."""
+        Any | None: The default value of the shader property, or None if no default can be determined."""
 
-    def get_default_from_type(sdr_shader_property: Sdr.ShaderProperty) -> Union[Any | None]:
+    def get_default_from_type(sdr_shader_property: Sdr.ShaderProperty) -> Any | None:
         """
         See doc's for SdrShaderProperty.GetTypeAsSdfType()
         If ndr_type_indicator[1] contains a value this means we have an unclean mapping from the from SdrProperties
@@ -341,7 +343,7 @@ def get_sdr_shader_property_default_value(sdr_shader_property: Sdr.ShaderPropert
     return default_value
 
 
-def remove_properties_and_connections(prim: Usd.Prim) -> Tuple[bool, List, Dict]:
+def remove_properties_and_connections(prim: Usd.Prim) -> tuple[bool, list, dict]:
     """Remove properties and connections from a given USD Prim that are no longer valid.
 
     This function will remove properties that are no longer valid due to changing the shader node type, as well as
@@ -367,7 +369,7 @@ def remove_properties_and_connections(prim: Usd.Prim) -> Tuple[bool, List, Dict]
             "variability": usd_attribute.GetVariability(),
         }
 
-    def remove_properties(usdshade_ports: List[Union[UsdShade.Input | UsdShade.Output]], placeholders: Dict) -> List:
+    def remove_properties(usdshade_ports: list[UsdShade.Input | UsdShade.Output], placeholders: dict) -> list:
         """
         Remove and optionally backup properties that are no longer valid due to the change in shader node
         """
@@ -390,12 +392,12 @@ def remove_properties_and_connections(prim: Usd.Prim) -> Tuple[bool, List, Dict]
         return properties_removed
 
     def remove_connections(
-        prim: Usd.Prim, property_paths_removed: List[Sdf.Path], placeholders: List[UsdShadePropertyPlaceholder]
-    ) -> Dict:
+        prim: Usd.Prim, property_paths_removed: list[Sdf.Path], placeholders: list[UsdShadePropertyPlaceholder]
+    ) -> dict:
         """
         Remove and optionally backup connections that are no longer valid due to the change in shader node
         """
-        import omni.UsdMdl as UsdMdl
+        import omni.UsdMdl as UsdMdl  # noqa: PLC0415
 
         def get_root_container(prim: Usd.Prim) -> Usd.Prim:
             parent = prim.GetParent()
@@ -404,7 +406,7 @@ def remove_properties_and_connections(prim: Usd.Prim) -> Tuple[bool, List, Dict]
 
             return get_root_container(parent)
 
-        def get_render_type(placeholder: UsdShadePropertyPlaceholder) -> Union[str | None]:
+        def get_render_type(placeholder: UsdShadePropertyPlaceholder) -> str | None:
             metadata = placeholder.GetAllMetadata()
             rendertype = metadata.get(Sdr.PropertyMetadata.RenderType, None)
 

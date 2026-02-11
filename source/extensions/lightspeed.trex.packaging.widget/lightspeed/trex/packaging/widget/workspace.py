@@ -35,8 +35,8 @@ class PackagingWindow(_WorkspaceWindowBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__sub_sidebar_items = None  # noqa PLW0238
-        self.__sub_stage_event = None  # noqa PLW0238
+        self.__sub_sidebar_items = None
+        self.__sub_stage_event = None
         self.__register_sidebar_items()
         self.__subscribe_stage_events()
 
@@ -55,7 +55,7 @@ class PackagingWindow(_WorkspaceWindowBase):
         return _PackagingPane(self._usd_context_name)
 
     def __register_sidebar_items(self):
-        self.__sub_sidebar_items = sidebar.register_items(  # noqa PLW0238
+        self.__sub_sidebar_items = sidebar.register_items(
             [
                 sidebar.ItemDescriptor(
                     name="PackageMod",
@@ -72,7 +72,7 @@ class PackagingWindow(_WorkspaceWindowBase):
 
     def __subscribe_stage_events(self):
         context = omni.usd.get_context(self._usd_context_name)
-        self.__sub_stage_event = context.get_stage_event_stream().create_subscription_to_pop(  # noqa: PLW0238
+        self.__sub_stage_event = context.get_stage_event_stream().create_subscription_to_pop(
             self.__on_stage_event, name="ModPackagingStageEvent"
         )
 

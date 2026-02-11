@@ -16,16 +16,16 @@
 """
 
 __all__ = [
+    "CASE_SENSITIVE_ASSET_EXTENSIONS",
+    "PREFIX_TEXTURE_NO_PREFIX",
     "SUPPORTED_ASSET_EXTENSIONS",
     "SUPPORTED_TEXTURE_EXTENSIONS",
     "TEXTURE_TYPE_CONVERTED_SUFFIX_MAP",
     "TEXTURE_TYPE_INPUT_MAP",
     "TEXTURE_TYPE_REGEX_MAP",
-    "TextureTypes",
     "TextureTypeNames",
+    "TextureTypes",
     "UsdExtensions",
-    "PREFIX_TEXTURE_NO_PREFIX",
-    "CASE_SENSITIVE_ASSET_EXTENSIONS",
 ]
 
 from .constants import (

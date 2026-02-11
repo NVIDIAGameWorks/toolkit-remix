@@ -15,7 +15,9 @@
 * limitations under the License.
 """
 
-from typing import Any, List, Tuple
+from __future__ import annotations
+
+from typing import Any
 
 import omni.kit.app
 import omni.kit.material.library
@@ -24,7 +26,7 @@ from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from pxr import Tf, Usd, UsdGeom, UsdShade
 
-from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
+from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
 
 class DefaultMaterial(_CheckBaseUSD):
@@ -42,7 +44,7 @@ class DefaultMaterial(_CheckBaseUSD):
     @usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check the data
 
@@ -95,7 +97,7 @@ class DefaultMaterial(_CheckBaseUSD):
     @usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to fix the data
 
@@ -138,7 +140,7 @@ class DefaultMaterial(_CheckBaseUSD):
         return success, message, None
 
     @usd.handle_exception
-    async def _get_children_without_materials(self, prim) -> List[Usd.Prim]:
+    async def _get_children_without_materials(self, prim) -> list[Usd.Prim]:
         prims_without_material = []
 
         # is there any material bound to this prim?
@@ -170,7 +172,7 @@ class DefaultMaterial(_CheckBaseUSD):
 
     @usd.handle_exception
     async def _create_default_material(
-        self, context_plugin_data: _SetupDataTypeVar, schema_data: Data, prim: "Usd.Prim"
+        self, context_plugin_data: _SetupDataTypeVar, schema_data: Data, prim: Usd.Prim
     ) -> bool:
         stage = omni.usd.get_context(context_plugin_data).get_stage()
 

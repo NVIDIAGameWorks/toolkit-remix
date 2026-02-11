@@ -16,4 +16,6 @@
 """
 
 from .layers import AssetReplacementLayersCore
-from .setup import Setup  # noqa F401
+from .setup import Setup
+
+__all__ = ["AssetReplacementLayersCore", "Setup"]

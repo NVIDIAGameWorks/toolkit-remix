@@ -17,3 +17,5 @@
 
 from .e2e.test_widget import TestSelectionHistoryWidget
 from .unit.test_model import TestUSDSelectionHistoryModel
+
+__all__ = ["TestSelectionHistoryWidget", "TestUSDSelectionHistoryModel"]

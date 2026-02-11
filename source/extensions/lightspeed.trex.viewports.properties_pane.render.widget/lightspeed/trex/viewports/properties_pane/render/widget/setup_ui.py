@@ -37,7 +37,7 @@ class RenderPane:
         with self._root_frame:
             ui.Label("Render settings")
 
-    def __on_collapsable_frame_changed(self, widget, collapsed):  # noqa PLW0238, TODO
+    def __on_collapsable_frame_changed(self, widget, collapsed):
         widget.show(not collapsed)
 
     def refresh(self, engine_name: str, render_mode: str):

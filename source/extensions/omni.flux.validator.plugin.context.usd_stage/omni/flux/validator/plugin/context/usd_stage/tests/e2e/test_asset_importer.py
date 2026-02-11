@@ -57,7 +57,7 @@ class TestAssetImporterE2E(omni.kit.test.AsyncTestCase):
             parent_schema = Mock()
             parent_schema.data = schema_data
             asset_importer.set_parent_schema(parent_schema)
-            await asset_importer._build_ui(schema_data)  # noqa PLW0212
+            await asset_importer._build_ui(schema_data)
 
         await ui_test.human_delay()
 
@@ -136,7 +136,7 @@ class TestAssetImporterE2E(omni.kit.test.AsyncTestCase):
         await ui_test.human_delay()
 
         # Run the import
-        await asset_importer._setup(schema_data, mock_callback, None)  # noqa PLW0212
+        await asset_importer._setup(schema_data, mock_callback, None)
 
         await ui_test.human_delay()
 
@@ -169,7 +169,7 @@ class TestAssetImporterE2E(omni.kit.test.AsyncTestCase):
         await ui_test.human_delay()
 
         # Run the import
-        await asset_importer._setup(schema_data, mock_callback, None)  # noqa PLW0212
+        await asset_importer._setup(schema_data, mock_callback, None)
 
         await ui_test.human_delay()
 
@@ -272,7 +272,7 @@ class TestAssetImporterE2E(omni.kit.test.AsyncTestCase):
         await ui_test.human_delay()
 
         # Make sure we are selecting the right file
-        self.assertEqual(str(input_path_2), dir_path_field.model._field.model.get_value_as_string())  # noqa PLW0212
+        self.assertEqual(str(input_path_2), dir_path_field.model._field.model.get_value_as_string())
         self.assertEqual(str(input_file_2.name), file_name_field.model.get_value_as_string())
 
         await import_button.click()
@@ -342,7 +342,7 @@ class TestAssetImporterE2E(omni.kit.test.AsyncTestCase):
             await ui_test.human_delay(50)
 
             # Make sure we are selecting the right file
-            self.assertEqual(expected_output_path + "/", dir_path_field.model._path)  # noqa PLW0212
+            self.assertEqual(expected_output_path + "/", dir_path_field.model._path)
 
             await select_button.click()
             await ui_test.human_delay()
@@ -402,7 +402,7 @@ class TestAssetImporterE2E(omni.kit.test.AsyncTestCase):
         self.assertEqual("Field", output_directory_field.widget.style_type_name_override)
 
         # Run the import
-        await asset_importer._setup(schema_data, mock_callback, None)  # noqa PLW0212
+        await asset_importer._setup(schema_data, mock_callback, None)
 
         await ui_test.human_delay()
 

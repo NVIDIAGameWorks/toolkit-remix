@@ -16,3 +16,5 @@
 """
 
 from .setup_ui import ParticleSystemPropertyWidget
+
+__all__ = ["ParticleSystemPropertyWidget"]

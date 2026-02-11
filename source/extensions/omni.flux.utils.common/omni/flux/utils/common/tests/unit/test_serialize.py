@@ -56,32 +56,32 @@ class TestSerializer(omni.kit.test.AsyncTestCase):
     def test_register_converter(self):
         serializer = Serializer()
         serializer.register_converter(float_converter)
-        self.assertTrue(float_converter in serializer._converters)  # noqa PLW0212
+        self.assertTrue(float_converter in serializer._converters)
 
     def test_register_decorator_with_type(self):
         serializer = Serializer()
 
-        self.assertTrue(len(serializer._converters) == 0)  # noqa PLW0212
+        self.assertTrue(len(serializer._converters) == 0)
 
         @serializer.register_serialize_hook(float)
         def serialize_float(f):
             return f.hex()
 
-        self.assertTrue(len(serializer._converters) == 1)  # noqa PLW0212
-        self.assertIs(serializer._converters[0].serialize_hook, serialize_float)  # noqa PLW0212
+        self.assertTrue(len(serializer._converters) == 1)
+        self.assertIs(serializer._converters[0].serialize_hook, serialize_float)
 
         @serializer.register_deserialize_hook(float)
         def deserialize_float(s):
             return float.fromhex(s)
 
         # Test we add to existing Converter and don't create a new one.
-        self.assertTrue(len(serializer._converters) == 1)  # noqa PLW0212
-        self.assertIs(serializer._converters[0].deserialize_hook, deserialize_float)  # noqa PLW0212
+        self.assertTrue(len(serializer._converters) == 1)
+        self.assertIs(serializer._converters[0].deserialize_hook, deserialize_float)
 
     def test_register_decorator_with_claim_func(self):
         serializer = Serializer()
 
-        self.assertTrue(len(serializer._converters) == 0)  # noqa PLW0212
+        self.assertTrue(len(serializer._converters) == 0)
 
         with self.assertRaises(ValueError):
             # Check using a claim func with no key raises an error.
@@ -93,16 +93,16 @@ class TestSerializer(omni.kit.test.AsyncTestCase):
         def serialize_float(f):
             return f.hex()
 
-        self.assertTrue(len(serializer._converters) == 1)  # noqa PLW0212
-        self.assertIs(serializer._converters[0].serialize_hook, serialize_float)  # noqa PLW0212
+        self.assertTrue(len(serializer._converters) == 1)
+        self.assertIs(serializer._converters[0].serialize_hook, serialize_float)
 
         @serializer.register_deserialize_hook(lambda x: isinstance(x, float), key="float")
         def deserialize_float(s):
             return float.fromhex(s)
 
         # Test we add to existing Converter and don't create a new one.
-        self.assertTrue(len(serializer._converters) == 1)  # noqa PLW0212
-        self.assertIs(serializer._converters[0].deserialize_hook, deserialize_float)  # noqa PLW0212
+        self.assertTrue(len(serializer._converters) == 1)
+        self.assertIs(serializer._converters[0].deserialize_hook, deserialize_float)
 
     def test_serialize_and_dumps_no_registered(self):
         serializer = Serializer()

@@ -22,7 +22,8 @@ import weakref
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Union
+from typing import Any
+from collections.abc import Callable
 
 import carb
 import omni.kit.usd.layers as _layers
@@ -52,16 +53,16 @@ class LayerModel(_TreeModelBase[ItemBase]):
     def __init__(
         self,
         context_name: str = "",
-        layer_creation_validation_fn: Optional[Callable[[str, str], bool]] = None,
-        layer_creation_validation_failed_callback: Optional[Callable[[str, str], None]] = None,
-        layer_import_validation_fn: Optional[Callable[[str, str], bool]] = None,
-        layer_import_validation_failed_callback: Optional[Callable[[str, str], None]] = None,
-        exclude_remove_fn: Optional[Callable[[], List[str]]] = None,
-        exclude_lock_fn: Optional[Callable[[], List[str]]] = None,
-        exclude_mute_fn: Optional[Callable[[], List[str]]] = None,
-        exclude_edit_target_fn: Optional[Callable[[], List[str]]] = None,
-        exclude_add_child_fn: Optional[Callable[[], List[str]]] = None,
-        exclude_move_fn: Optional[Callable[[], List[str]]] = None,
+        layer_creation_validation_fn: Callable[[str, str], bool] | None = None,
+        layer_creation_validation_failed_callback: Callable[[str, str], None] | None = None,
+        layer_import_validation_fn: Callable[[str, str], bool] | None = None,
+        layer_import_validation_failed_callback: Callable[[str, str], None] | None = None,
+        exclude_remove_fn: Callable[[], list[str]] | None = None,
+        exclude_lock_fn: Callable[[], list[str]] | None = None,
+        exclude_mute_fn: Callable[[], list[str]] | None = None,
+        exclude_edit_target_fn: Callable[[], list[str]] | None = None,
+        exclude_add_child_fn: Callable[[], list[str]] | None = None,
+        exclude_move_fn: Callable[[], list[str]] | None = None,
     ):
         """
         Args:
@@ -140,7 +141,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
         return default_attr
 
     @property
-    def edit_target_layer(self) -> Optional[LayerItem]:
+    def edit_target_layer(self) -> LayerItem | None:
         return self._edit_target_layer
 
     # USD methods
@@ -191,8 +192,8 @@ class LayerModel(_TreeModelBase[ItemBase]):
     def create_layer(
         self,
         create_or_insert: bool,
-        parent: Optional[LayerItem] = None,
-        layer_created_callback: Optional[Callable[[str], None]] = None,
+        parent: LayerItem | None = None,
+        layer_created_callback: Callable[[str], None] | None = None,
     ) -> None:
         """
         **Note:** The layer name could differ from the given one if the layer name was already in use.
@@ -431,7 +432,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
             usd_context=self._context_name,
         )
 
-    def merge_layers(self, layers: List[LayerItem]):
+    def merge_layers(self, layers: list[LayerItem]):
         """
         Merge the overrides located in multiple layers in a single layer. Only the layer with the strongest opinions
         will remain at the end of this operation.
@@ -501,7 +502,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
 
     # Item methods
 
-    def set_items(self, items: List[ItemBase], parent: Optional[ItemBase] = None) -> None:
+    def set_items(self, items: list[ItemBase], parent: ItemBase | None = None) -> None:
         """
         Set the items to be displayed in the tree widget. If the parent argument is set this will set an item's
         children.
@@ -516,7 +517,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
             parent.set_children(items)
         self._item_changed(None)
 
-    def clear_items(self, parent: Optional[ItemBase] = None) -> None:
+    def clear_items(self, parent: ItemBase | None = None) -> None:
         """
         Clear all the items to be displayed in the tree widget. If the parent argument is set this will clear an item's
         children.
@@ -531,7 +532,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
         self._item_changed(None)
 
     def append_item(
-        self, item: ItemBase, parent: Optional[ItemBase] = None, sort: bool = False, force: bool = False
+        self, item: ItemBase, parent: ItemBase | None = None, sort: bool = False, force: bool = False
     ) -> None:
         """
         Append an item to display in the tree widget. If the parent argument is set this will append an item to the
@@ -554,7 +555,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
             parent.append_child(item, sort=sort)
         self._item_changed(None)
 
-    def insert_item(self, item: ItemBase, index: int, parent: Optional[ItemBase] = None, force: bool = False) -> None:
+    def insert_item(self, item: ItemBase, index: int, parent: ItemBase | None = None, force: bool = False) -> None:
         """
         Insert an item to display in the tree widget at a given index. If the parent argument is set this will insert an
         item in the parent's children.
@@ -574,7 +575,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
             parent.insert_child(item, index)
         self._item_changed(None)
 
-    def remove_item(self, item: ItemBase, parent: Optional[ItemBase] = None) -> None:
+    def remove_item(self, item: ItemBase, parent: ItemBase | None = None) -> None:
         """
         Remove an item from the tree widget list. If the parent argument is set this will remove an item from the
         parent's children.
@@ -612,7 +613,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
                 break
         return found
 
-    def get_item_index(self, item: ItemBase, parent: Optional[ItemBase] = None) -> int:
+    def get_item_index(self, item: ItemBase, parent: ItemBase | None = None) -> int:
         """
         Get an item's index.
 
@@ -628,7 +629,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
             return self._items.index(item)
         return parent.children.index(item)
 
-    def get_items_count(self, parent: Optional[ItemBase] = None) -> int:
+    def get_items_count(self, parent: ItemBase | None = None) -> int:
         """
         Get the number of items or children.
 
@@ -640,7 +641,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
         """
         return len(self._items if parent is None else parent.children)
 
-    def get_item_children(self, parent: Optional[ItemBase] = None, recursive: bool = False) -> List[ItemBase]:
+    def get_item_children(self, parent: ItemBase | None = None, recursive: bool = False) -> list[ItemBase]:
         """
         Get the model's items or item's children.
 
@@ -666,7 +667,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
     def get_drag_mime_data(self, item: ItemBase) -> str:
         return str(item)
 
-    def drop_accepted(self, item_target: ItemBase, item_source: Union[str, ItemBase], drop_location: int = -1) -> bool:
+    def drop_accepted(self, item_target: ItemBase, item_source: str | ItemBase, drop_location: int = -1) -> bool:
         # Can't drop on itself
         if str(item_source) == str(item_target):
             return False
@@ -689,7 +690,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
             return False
         return True
 
-    def drop(self, item_target: ItemBase, item_source: Union[str, ItemBase], drop_location: int = -1) -> None:
+    def drop(self, item_target: ItemBase, item_source: str | ItemBase, drop_location: int = -1) -> None:
         source = item_source
         if isinstance(item_source, str):
             source = self.find_item(item_source, lambda item, mime: self.get_drag_mime_data(item) == mime)

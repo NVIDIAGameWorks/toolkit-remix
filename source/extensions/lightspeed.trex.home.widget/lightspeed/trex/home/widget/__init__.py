@@ -17,3 +17,5 @@
 
 from .extension import TrexHomePageWindowExtension
 from .home_widget import HomePageWidget
+
+__all__ = ["HomePageWidget", "TrexHomePageWindowExtension"]

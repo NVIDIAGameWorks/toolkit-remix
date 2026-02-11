@@ -15,7 +15,8 @@
 * limitations under the License.
 """
 
-from typing import Any, Callable, List, Optional, Union
+from typing import Any
+from collections.abc import Callable
 
 from omni import ui
 from omni.flux.utils.common import Event as _Event
@@ -38,14 +39,14 @@ class FileImportListModel(ui.AbstractItemModel):
         self.__changed = _Event()
         self.__file_listener_instance = _get_file_listener_instance()
 
-    def refresh(self, paths: List[_OmniUrl]):
+    def refresh(self, paths: list[_OmniUrl]):
         """Refresh the list"""
         for item in self._children:
             self.__file_listener_instance.remove_model(item)
         self._children = {}
         self.add_items(paths)
 
-    def add_items(self, paths: List[Union[str, _OmniUrl]]):
+    def add_items(self, paths: list[str | _OmniUrl]):
         for path in paths:
             # Don't allow adding the same path 2x
             if str(path) in [c.path for c in self._children]:
@@ -63,7 +64,7 @@ class FileImportListModel(ui.AbstractItemModel):
         self.__file_listener_instance.add_model(item)
         self._item_changed(None)
 
-    def remove_items(self, items: List[FileImportItem]):
+    def remove_items(self, items: list[FileImportItem]):
         for item in items:
             del self._children[item]
             self.__file_listener_instance.remove_model(item)
@@ -79,7 +80,7 @@ class FileImportListModel(ui.AbstractItemModel):
         """
         return _EventSubscription(self.__changed, func)
 
-    def get_item_children(self, item: Optional[FileImportItem]):
+    def get_item_children(self, item: FileImportItem | None):
         """Returns all the children."""
         return list(self._children.keys()) if item is None else []
 

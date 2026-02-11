@@ -16,6 +16,8 @@
 """
 
 __all__ = [
+    "ColumnWidth",
+    "LengthUnit",
     "StageManagerColumnPlugin",
     "StageManagerContextPlugin",
     "StageManagerFilterPlugin",
@@ -24,8 +26,6 @@ __all__ = [
     "StageManagerMenuMixin",
     "StageManagerTreePlugin",
     "StageManagerWidgetPlugin",
-    "LengthUnit",
-    "ColumnWidth",
 ]
 
 from .column_plugin import ColumnWidth, LengthUnit, StageManagerColumnPlugin

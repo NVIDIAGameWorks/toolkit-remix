@@ -15,9 +15,9 @@
 * limitations under the License.
 """
 
-from typing import Any, Dict
+from typing import Any
 
-__all__ = ["SimpleGrid", "SimpleOrigin", "CameraAxisLayer"]
+__all__ = ["CameraAxisLayer", "SimpleGrid", "SimpleOrigin"]
 
 # Simple scene items that don't yet warrant a devoted extension
 
@@ -30,7 +30,7 @@ from .utils import flatten_rot_matrix as _flatten_rot_matrix
 
 
 def _check_legacy_display_option(flag):
-    import carb
+    import carb  # noqa: PLC0415
 
     display_options = carb.settings.get_settings().get("/persistent/app/viewport/displayOptions")
     return bool(display_options & flag) if display_options is not None else False
@@ -205,16 +205,16 @@ class CameraAxisLayer:
         return "Axis"
 
 
-def grid_default_factory(desc: Dict[str, Any]):
+def grid_default_factory(desc: dict[str, Any]):
     manip = SimpleGrid(desc.get("viewport_api"))
     return manip
 
 
-def origin_default_factory(desc: Dict[str, Any]):
+def origin_default_factory(desc: dict[str, Any]):
     manip = SimpleOrigin(desc.get("viewport_api"))
     return manip
 
 
-def camera_axis_default_factory(desc: Dict[str, Any]):
+def camera_axis_default_factory(desc: dict[str, Any]):
     manip = CameraAxisLayer(desc.get("viewport_api"))
     return manip

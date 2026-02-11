@@ -102,7 +102,7 @@ class ParticleGizmoModel(sc.AbstractManipulatorModel):
     def get_item(self, identifier: str) -> sc.AbstractManipulatorItem | None:
         return getattr(self, identifier, None)
 
-    def _get_as_floats(self, item: sc.AbstractManipulatorItem) -> list[float] | None:  # noqa PLE0602 - linter doesn't understand new type alias
+    def _get_as_floats(self, item: sc.AbstractManipulatorItem) -> list[float] | None:
         return None
 
     def get_as_floats(self, item: sc.AbstractManipulatorItem) -> list[float]:

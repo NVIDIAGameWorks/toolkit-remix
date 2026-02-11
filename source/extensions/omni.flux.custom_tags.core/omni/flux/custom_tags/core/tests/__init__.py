@@ -16,3 +16,5 @@
 """
 
 from .unit.test_core import TestCustomTagsCore
+
+__all__ = ["TestCustomTagsCore"]

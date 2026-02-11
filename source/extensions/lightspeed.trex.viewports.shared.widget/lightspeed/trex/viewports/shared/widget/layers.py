@@ -109,7 +109,7 @@ class ViewportLayers:
         self.__viewport = None
         self.__zstack = None
         self.__timeline = omni.timeline.get_timeline_interface()
-        self.__timeline_sub = self.__timeline.get_timeline_event_stream().create_subscription_to_pop(  # noqa
+        self.__timeline_sub = self.__timeline.get_timeline_event_stream().create_subscription_to_pop(
             self.__on_timeline_event
         )
         isettings = carb.settings.get_settings()
@@ -165,7 +165,7 @@ class ViewportLayers:
         else:
             time = Usd.TimeCode.Default()
         # Push the time, and let the Viewport handle any view-changed notifications
-        self.__viewport._viewport_changed(camera_path, stage, time)  # noqa
+        self.__viewport._viewport_changed(camera_path, stage, time)  # noqa: SLF001
 
     def __on_timeline_event(self, e: carb.events.IEvent):
         if self.__viewport:
@@ -208,7 +208,7 @@ class ViewportLayers:
                             with self.__zstack:
                                 try:
                                     self.__viewport_layers[factory_v] = factory_v(factory_args.copy())
-                                except Exception:  # noqa
+                                except Exception:  # noqa: BLE001
                                     carb.log_error(
                                         f"Error creating layer {factory_v}. Traceback:\n{traceback.format_exc()}"
                                     )
@@ -224,7 +224,7 @@ class ViewportLayers:
         self.destroy()
 
     def destroy(self):
-        self.__timeline_sub = None  # noqa
+        self.__timeline_sub = None
         RegisterViewportLayer.remove_notifier(self.__viewport_layer_event)
         for _factory, instance in self.__viewport_layers.items():
             instance.destroy()

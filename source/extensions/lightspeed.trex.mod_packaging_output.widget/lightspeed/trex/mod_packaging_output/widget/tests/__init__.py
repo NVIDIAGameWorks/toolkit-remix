@@ -16,3 +16,5 @@
 """
 
 from .e2e.test_widget import TestModPackagingOutputWidget
+
+__all__ = ["TestModPackagingOutputWidget"]

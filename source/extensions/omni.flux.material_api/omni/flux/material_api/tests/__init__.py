@@ -16,3 +16,5 @@
 """
 
 from .unit.test_placeholder import TestPlaceholderAttribute
+
+__all__ = ["TestPlaceholderAttribute"]

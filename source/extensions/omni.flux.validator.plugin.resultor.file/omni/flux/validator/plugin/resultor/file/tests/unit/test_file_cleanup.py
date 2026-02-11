@@ -15,10 +15,11 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import os
 import pathlib
 import tempfile
-from typing import List, Optional
 from unittest.mock import PropertyMock, patch
 
 from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
@@ -32,7 +33,7 @@ class TestFileCleanup(AsyncTestCase):
     async def setUp(self):
         await arrange_windows()
         await open_stage(get_test_data_path(__name__, "usd/cubes.usda"))
-        self.temp_dir = tempfile.TemporaryDirectory()  # noqa PLR1732
+        self.temp_dir = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
 
     # After running each test
     async def tearDown(self):
@@ -70,7 +71,7 @@ class TestFileCleanup(AsyncTestCase):
             fout.write(os.urandom(file_size_in_bytes))
 
         class _Data(_PrintPrims.Data):
-            data_flows: Optional[List[_InOutDataFlow]] = None
+            data_flows: list[_InOutDataFlow] | None = None
 
             @property
             def data_flow_compatible_name(self):
@@ -133,7 +134,7 @@ class TestFileCleanup(AsyncTestCase):
             fout.write(os.urandom(file_size_in_bytes))
 
         class _Data(_PrintPrims.Data):
-            data_flows: Optional[List[_InOutDataFlow]] = None
+            data_flows: list[_InOutDataFlow] | None = None
 
             @property
             def data_flow_compatible_name(self):

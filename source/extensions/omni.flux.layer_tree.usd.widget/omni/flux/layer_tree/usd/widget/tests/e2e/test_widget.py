@@ -17,7 +17,6 @@
 
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 import omni.kit.usd.layers as layers
 import omni.ui as ui
@@ -36,7 +35,7 @@ class TestWidget(AsyncTestCase):
         await omni.usd.get_context().new_stage_async()
         self.context = omni.usd.get_context()
         self.stage = self.context.get_stage()
-        self.temp_dir = tempfile.TemporaryDirectory()  # noqa: PLR1732
+        self.temp_dir = tempfile.TemporaryDirectory()
 
     # After running each test
     async def tearDown(self):
@@ -47,7 +46,7 @@ class TestWidget(AsyncTestCase):
         self.stage = None
         self.temp_dir = None
 
-    async def __setup_widget(self, model: Optional[LayerModel] = None, delegate: Optional[LayerDelegate] = None):
+    async def __setup_widget(self, model: LayerModel | None = None, delegate: LayerDelegate | None = None):
         await arrange_windows(topleft_window="Stage")
 
         window = ui.Window("TestLayerTreeWindow", height=400, width=400)
@@ -122,7 +121,7 @@ class TestWidget(AsyncTestCase):
         await ui_test.human_delay()
 
         # Make sure we create the layer in the correct directory
-        self.assertEqual(dir_name + "/", dir_path_field.model._path)  # noqa PLW0212
+        self.assertEqual(dir_name + "/", dir_path_field.model._path)
         self.assertEqual(file_name, file_name_field.model.get_value_as_string())
 
         await create_button.click(human_delay_speed=10)

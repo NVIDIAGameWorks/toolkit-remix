@@ -16,7 +16,6 @@
 """
 
 import abc
-from typing import List, Optional
 
 import omni.ui as ui
 from omni.flux.utils.common import Event as _Event
@@ -61,7 +60,7 @@ class Item(ui.AbstractItem):
 
     @property
     @abc.abstractmethod
-    def component_type(self) -> Optional[str]:
+    def component_type(self) -> str | None:
         """
         The component type. Use this attribute to set a "type/category" of your item.
         This attribute is used in the delegate as a style for the branch icon like:
@@ -104,12 +103,12 @@ class Model(ui.AbstractItemModel):
         super().__init__()
         self.__items = []
 
-    def set_items(self, items: List[Item]):
+    def set_items(self, items: list[Item]):
         """Set the items to show"""
         self.__items = items
         self._item_changed(None)
 
-    def get_item_children(self, item: Optional[Item]):
+    def get_item_children(self, item: Item | None):
         """Returns all the children when the widget asks it."""
         if item is None:
             return self.__items

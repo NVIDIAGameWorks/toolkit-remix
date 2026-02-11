@@ -17,14 +17,14 @@
 
 import abc
 from functools import partial
-from typing import Callable, Dict, Tuple
+from collections.abc import Callable
 
 import omni.ui as ui
 
 
 class FooterModel:
     @abc.abstractmethod
-    def content(self) -> Dict[int, Tuple[Callable]]:
+    def content(self) -> dict[int, tuple[Callable]]:
         """
         Get the data.
 

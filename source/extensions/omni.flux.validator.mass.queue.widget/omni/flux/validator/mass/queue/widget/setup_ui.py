@@ -15,7 +15,10 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 import carb.input
 import omni.ui as ui
@@ -35,10 +38,10 @@ if TYPE_CHECKING:
 class MassQueueTreeWidget:
     def __init__(
         self,
-        tree_model: Optional[_Model] = None,
-        tree_delegate: Optional[_Delegate] = None,
+        tree_model: _Model | None = None,
+        tree_delegate: _Delegate | None = None,
         use_global_style: bool = False,
-        style: Dict[str, Any] = None,
+        style: dict[str, Any] = None,
     ):
         """
         Panel outliner widget
@@ -80,7 +83,7 @@ class MassQueueTreeWidget:
     def get_queue_id(self):
         return self.__queue_id
 
-    def _update_items(self, schema: "_ValidationSchema", queue_id: str | None = None):
+    def _update_items(self, schema: _ValidationSchema, queue_id: str | None = None):
         if queue_id is not None and queue_id != self.__queue_id:
             return
         # we add the schema into a queue
@@ -102,21 +105,21 @@ class MassQueueTreeWidget:
         self._progress_bar_widget.model.set_value(value)
         cl.mass_progress_bar_color = cl.validation_result_ok if result else cl.validation_result_failed
 
-    def subscribe_selection_changed(self, callback: Callable[[List[_Item]], Any]):
+    def subscribe_selection_changed(self, callback: Callable[[list[_Item]], Any]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         Subscription that will let the plugin re-run a validation by itself.
         """
         return self._tree_view.set_selection_changed_fn(callback)
 
-    def subscribe_item_changed(self, function: Callable[[_Model, List[_Item]], Any]):
+    def subscribe_item_changed(self, function: Callable[[_Model, list[_Item]], Any]):
         return self._tree_model.subscribe_item_changed_fn(function)
 
     @property
     def tree_model(self) -> _Model:
         return self._tree_model
 
-    def add_items(self, cores: List["_ManagerCore"]):
+    def add_items(self, cores: list[_ManagerCore]):
         items = [_Item(core) for core in cores]
         self._tree_model.add_items(items)
 

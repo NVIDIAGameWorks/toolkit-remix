@@ -16,7 +16,7 @@
 """
 
 from pathlib import Path
-from typing import Callable
+from collections.abc import Callable
 
 from lightspeed.common import constants as _constants
 from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys

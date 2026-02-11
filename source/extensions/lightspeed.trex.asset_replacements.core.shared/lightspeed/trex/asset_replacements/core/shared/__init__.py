@@ -19,8 +19,8 @@ __all__ = [
     "CachedReplacementSkeletons",
     "Setup",
     "SkeletonAutoRemappingError",
-    "SkeletonReplacementBinding",
     "SkeletonDefinitionError",
+    "SkeletonReplacementBinding",
 ]
 
 from .setup import Setup

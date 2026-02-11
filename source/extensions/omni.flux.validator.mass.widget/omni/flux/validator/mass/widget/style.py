@@ -16,13 +16,12 @@
 """
 
 import pathlib
-from typing import Optional
 
 import carb.imgui
 from omni.ui import color as cl
 
 
-def _get_icons(name: str) -> Optional[str]:
+def _get_icons(name: str) -> str | None:
     """
     Get icon from the extension
 
@@ -40,7 +39,7 @@ def _get_icons(name: str) -> Optional[str]:
     return None
 
 
-def _get_image(name: str) -> Optional[str]:
+def _get_image(name: str) -> str | None:
     """
     Get icon from the extension
 

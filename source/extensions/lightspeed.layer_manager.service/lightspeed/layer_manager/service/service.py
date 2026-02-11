@@ -71,10 +71,10 @@ class LayerManagerService(ServiceBase):
         )
         async def get_layers(
             # Use regex to validate the enum values since None is also a valid type
-            layer_types: set[Annotated[str, Field(pattern=layer_types_pattern)]] = ServiceBase.describe_query_param(  # noqa: B008
+            layer_types: set[Annotated[str, Field(pattern=layer_types_pattern)]] = ServiceBase.describe_query_param(
                 None, "The type of layer to get. Filtering by layer type will ignore layer children."
             ),
-            layer_count: int = ServiceBase.describe_query_param(  # noqa: B008
+            layer_count: int = ServiceBase.describe_query_param(
                 -1,
                 "The number of layers to get per `layer_type`. "
                 "If `layer_type` is not set this parameter will have no effect. "
@@ -92,12 +92,12 @@ class LayerManagerService(ServiceBase):
             response_model=LayerStackResponseModel,
         )
         async def get_sublayers(
-            layer_id: str = ServiceBase.validate_path_param(  # noqa: B008
+            layer_id: str = ServiceBase.validate_path_param(
                 GetLayerPathParamModel,
                 description="Layer identifier for the layer to get the sublayers from",
                 context_name=context_name,
             ),
-            layer_types: set[Annotated[str, Field(pattern=layer_types_pattern)]] = ServiceBase.describe_query_param(  # noqa: B008
+            layer_types: set[Annotated[str, Field(pattern=layer_types_pattern)]] = ServiceBase.describe_query_param(
                 None, "The type of layer to get. Filtering by layer type will ignore layer children."
             ),
         ) -> LayerStackResponseModel:
@@ -122,7 +122,7 @@ class LayerManagerService(ServiceBase):
         )
         async def remove_layer(
             body: ServiceBase.inject_hidden_fields(DeleteLayerRequestModel, context_name=context_name),
-            layer_id: str = ServiceBase.validate_path_param(  # noqa: B008
+            layer_id: str = ServiceBase.validate_path_param(
                 DeleteLayerPathParamModel,
                 description="Layer identifier for the layer to remove",
                 context_name=context_name,
@@ -137,7 +137,7 @@ class LayerManagerService(ServiceBase):
         )
         async def move_layer(
             body: ServiceBase.inject_hidden_fields(MoveLayerRequestModel, context_name=context_name),
-            layer_id: str = ServiceBase.validate_path_param(  # noqa: B008
+            layer_id: str = ServiceBase.validate_path_param(
                 MoveLayerPathParamModel, description="Layer identifier for the layer to move", context_name=context_name
             ),
         ) -> str:
@@ -150,7 +150,7 @@ class LayerManagerService(ServiceBase):
         )
         async def lock_layer(
             body: ServiceBase.inject_hidden_fields(LockLayerRequestModel, context_name=context_name),
-            layer_id: str = ServiceBase.validate_path_param(  # noqa: B008
+            layer_id: str = ServiceBase.validate_path_param(
                 LockLayerPathParamModel,
                 description="Layer identifier for the layer to lock/unlock",
                 context_name=context_name,
@@ -165,7 +165,7 @@ class LayerManagerService(ServiceBase):
         )
         async def mute_layer(
             body: ServiceBase.inject_hidden_fields(MuteLayerRequestModel, context_name=context_name),
-            layer_id: str = ServiceBase.validate_path_param(  # noqa: B008
+            layer_id: str = ServiceBase.validate_path_param(
                 MuteLayerPathParamModel,
                 description="Layer identifier for the layer to lock/unlock",
                 context_name=context_name,
@@ -179,7 +179,7 @@ class LayerManagerService(ServiceBase):
             description="Save a layer in the current stage.",
         )
         async def save_layer(
-            layer_id: str = ServiceBase.validate_path_param(  # noqa: B008
+            layer_id: str = ServiceBase.validate_path_param(
                 SaveLayerPathParamModel, description="Layer identifier for the layer to save", context_name=context_name
             ),
         ) -> str:
@@ -200,7 +200,7 @@ class LayerManagerService(ServiceBase):
             description="Set the active edit target in the current stage.",
         )
         async def set_edit_target_layer(
-            layer_id: str = ServiceBase.validate_path_param(  # noqa: B008
+            layer_id: str = ServiceBase.validate_path_param(
                 SetEditTargetPathParamModel,
                 description="Layer identifier for the layer to set as edit target",
                 context_name=context_name,

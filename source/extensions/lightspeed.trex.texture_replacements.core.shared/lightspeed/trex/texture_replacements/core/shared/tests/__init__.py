@@ -17,3 +17,5 @@
 
 from .unit.test_core import TestTextureReplacementsCore
 from .unit.test_validators import TestTextureReplacementsValidators
+
+__all__ = ["TestTextureReplacementsCore", "TestTextureReplacementsValidators"]

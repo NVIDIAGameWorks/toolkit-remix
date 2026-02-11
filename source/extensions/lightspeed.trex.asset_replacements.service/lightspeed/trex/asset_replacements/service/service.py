@@ -107,7 +107,7 @@ class AssetReplacementsService(ServiceBase):
             response_model=FilePathsResponseModel,
         )
         async def get_available_ingested_assets(
-            asset_type: AssetType | None = ServiceBase.describe_query_param(  # noqa B008
+            asset_type: AssetType | None = ServiceBase.describe_query_param(
                 None, "A type of asset to filter the results by ('textures' or 'models')"
             ),
         ) -> DirectoryResponseModel:
@@ -169,25 +169,25 @@ class AssetReplacementsService(ServiceBase):
             response_model=PrimPathsResponseModel,
         )
         async def get_prim_paths(
-            prim_hashes: set[str] | None = ServiceBase.describe_query_param(  # noqa B008
+            prim_hashes: set[str] | None = ServiceBase.describe_query_param(
                 None, "Filter prim paths to keep specific hashes"
             ),
-            prim_types: set[PrimTypes] | None = ServiceBase.describe_query_param(  # noqa B008
+            prim_types: set[PrimTypes] | None = ServiceBase.describe_query_param(
                 None, "Filter prim paths to keep specific types of prims"
             ),
-            selection: bool = ServiceBase.describe_query_param(  # noqa B008
+            selection: bool = ServiceBase.describe_query_param(
                 False, "Select all prims (False) or the prims currently selected in the viewport (True)"
             ),
-            filter_session_prims: bool = ServiceBase.describe_query_param(  # noqa B008
+            filter_session_prims: bool = ServiceBase.describe_query_param(
                 False, "Filter out the prims that exist on the session layer or not"
             ),
-            layer_identifier: str | None = ServiceBase.describe_query_param(  # noqa B008
+            layer_identifier: str | None = ServiceBase.describe_query_param(
                 None,
                 "Look for prims that exists or not on a given layer. "
                 "Use the `exists` query parameter to set whether existing or non-existing prims should be "
                 "returned.",
             ),
-            exists: bool = ServiceBase.describe_query_param(  # noqa B008
+            exists: bool = ServiceBase.describe_query_param(
                 True,
                 "Filter an prim if it exists or not on a given layer. Use in conjunction with `layer_identifier` "
                 "to filter on a given layer, otherwise this parameter will be ignored.",
@@ -215,9 +215,9 @@ class AssetReplacementsService(ServiceBase):
             response_model=PrimPathsResponseModel,
         )
         async def get_model_instances(
-            prim_path: str = ServiceBase.validate_path_param(  # noqa B008
+            prim_path: str = ServiceBase.validate_path_param(
                 PrimInstancesPathParamModel,
-                description=prim_path_description.format("instances"),  # noqa B008
+                description=prim_path_description.format("instances"),
                 context_name=context_name,
             ),
         ) -> PrimPathsResponseModel:
@@ -230,12 +230,12 @@ class AssetReplacementsService(ServiceBase):
             response_model=TexturesResponseModel,
         )
         async def get_material_textures(
-            prim_path: str = ServiceBase.validate_path_param(  # noqa B008
+            prim_path: str = ServiceBase.validate_path_param(
                 PrimTexturesPathParamModel,
-                description=prim_path_description.format("textures"),  # noqa B008
+                description=prim_path_description.format("textures"),
                 context_name=context_name,
             ),
-            texture_types: set[TextureTypeNames] | None = ServiceBase.describe_query_param(  # noqa B008
+            texture_types: set[TextureTypeNames] | None = ServiceBase.describe_query_param(
                 None, "The type of textures to look for in the given material."
             ),
         ) -> TexturesResponseModel:
@@ -250,9 +250,9 @@ class AssetReplacementsService(ServiceBase):
             response_model=ReferenceResponseModel,
         )
         async def get_prim_reference_file_paths(
-            prim_path: str = ServiceBase.validate_path_param(  # noqa B008
+            prim_path: str = ServiceBase.validate_path_param(
                 PrimReferencePathParamModel,
-                description=prim_path_description.format("file paths"),  # noqa B008
+                description=prim_path_description.format("file paths"),
                 context_name=context_name,
             ),
         ) -> ReferenceResponseModel:
@@ -266,7 +266,7 @@ class AssetReplacementsService(ServiceBase):
         )
         async def append_prim_reference_file_path(
             body: ServiceBase.inject_hidden_fields(AppendReferenceRequestModel, context_name=context_name),
-            prim_path: str = ServiceBase.validate_path_param(  # noqa B008
+            prim_path: str = ServiceBase.validate_path_param(
                 PrimReferencePathParamModel,
                 description="The prim path to append a reference to",
                 context_name=context_name,
@@ -285,7 +285,7 @@ class AssetReplacementsService(ServiceBase):
         )
         async def replace_prim_reference_file_path(
             body: ServiceBase.inject_hidden_fields(ReplaceReferenceRequestModel, context_name=context_name),
-            prim_path: str = ServiceBase.validate_path_param(  # noqa B008
+            prim_path: str = ServiceBase.validate_path_param(
                 PrimReferencePathParamModel,
                 description="The prim path for which to replace a reference",
                 context_name=context_name,
@@ -314,7 +314,7 @@ class AssetReplacementsService(ServiceBase):
             description="Set the selection in the current stage.",
         )
         async def set_selection(
-            prim_paths: str = ServiceBase.validate_path_param(  # noqa B008
+            prim_paths: str = ServiceBase.validate_path_param(
                 SetSelectionPathParamModel,
                 description="Comma-separated list of prim paths to select",
                 validate_list=True,

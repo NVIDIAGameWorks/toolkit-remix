@@ -18,7 +18,6 @@
 import contextlib
 import shutil
 import tempfile
-from typing import Optional, Tuple
 from unittest.mock import MagicMock, patch
 
 import omni.kit.app
@@ -40,7 +39,7 @@ _CONTEXT_NAME = ""
 
 @contextlib.asynccontextmanager
 async def make_temp_directory(context):
-    temp_dir = tempfile.TemporaryDirectory()  # noqa PLR1732
+    temp_dir = tempfile.TemporaryDirectory()
     try:
         yield temp_dir
     finally:
@@ -54,7 +53,7 @@ async def make_temp_directory(context):
 
 
 class AsyncMock(MagicMock):
-    async def __call__(self, *args, **kwargs):  # noqa PLW0236
+    async def __call__(self, *args, **kwargs):
         return super().__call__(*args, **kwargs)
 
 
@@ -69,7 +68,7 @@ class TestCore(AsyncTestCase):
         # await wait_stage_loading()
         pass
 
-    def __get_camera_translate_from_stage(self, context) -> Optional[Tuple[float, float, float]]:
+    def __get_camera_translate_from_stage(self, context) -> tuple[float, float, float] | None:
         stage = context.get_stage()
         camera_path = "/OmniverseKit_Persp"
         camera_prim = stage.GetPrimAtPath(camera_path)
@@ -78,7 +77,7 @@ class TestCore(AsyncTestCase):
         xf_tr = camera_prim.GetProperty("xformOp:translate")
         return tuple(xf_tr.Get())
 
-    def __set_camera_translate_from_stage(self, value: Tuple[float, float, float]):
+    def __set_camera_translate_from_stage(self, value: tuple[float, float, float]):
         camera_path = "/OmniverseKit_Persp"
         omni.kit.commands.execute(
             "TransformPrimCommand",
@@ -87,7 +86,7 @@ class TestCore(AsyncTestCase):
             usd_context_name=_CONTEXT_NAME,
         )
 
-    def __get_camera_translate_from_stage_custom_data(self, context) -> Optional[Tuple[float]]:
+    def __get_camera_translate_from_stage_custom_data(self, context) -> tuple[float] | None:
         root_layer = context.get_stage().GetRootLayer()
         return root_layer.customLayerData.get("cameraSettings").get("Perspective").get("position")
 

@@ -18,3 +18,12 @@
 from .app import HotkeyEvent, HotkeyManager, TrexHotkeyEvent, get_global_hotkey_manager
 from .extension import TrexHotkeysExtension
 from .hotkey import AppHotkey
+
+__all__ = [
+    "AppHotkey",
+    "HotkeyEvent",
+    "HotkeyManager",
+    "TrexHotkeyEvent",
+    "TrexHotkeysExtension",
+    "get_global_hotkey_manager",
+]

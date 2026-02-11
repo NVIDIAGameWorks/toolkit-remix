@@ -18,7 +18,6 @@
 import subprocess
 import sys
 from pathlib import Path
-from typing import Tuple
 
 from .uac import UnsupportedPlatformError as _UnsupportedPlatformError
 from .uac import is_admin as _is_admin
@@ -56,7 +55,7 @@ def get_path_or_symlink(path_obj: Path) -> Path | None:
     return None
 
 
-def create_folder_symlinks(links_targets: list[Tuple[str, str]], create_junction: bool = False):
+def create_folder_symlinks(links_targets: list[tuple[str, str]], create_junction: bool = False):
     """
     Create symlink(s). If create_junction is False and the user doesn't have the permission to create symlink(s),
     it will prompt the Windows UAC for Windows user.

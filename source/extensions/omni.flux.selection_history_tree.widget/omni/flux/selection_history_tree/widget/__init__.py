@@ -19,3 +19,5 @@ from .selection_history_tree.delegate import SelectionHistoryDelegate
 from .selection_history_tree.item_model import SelectionHistoryItem
 from .selection_history_tree.model import SelectionHistoryModel
 from .setup_ui import SelectionHistoryWidget
+
+__all__ = ["SelectionHistoryDelegate", "SelectionHistoryItem", "SelectionHistoryModel", "SelectionHistoryWidget"]

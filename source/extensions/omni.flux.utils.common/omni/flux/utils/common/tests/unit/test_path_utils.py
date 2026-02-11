@@ -136,8 +136,8 @@ class TestPathUtils(omni.kit.test.AsyncTestCase):
         with patch.object(_path_utils, "hash_file") as mock:
             hash_str = "fd32abf0d19be70ea063dd7e9b4706e5"
             mock.return_value = hash_str
-            jsonfile = tempfile.NamedTemporaryFile("w", delete=False, suffix=".meta")
-            with jsonfile:
+            with tempfile.NamedTemporaryFile("w", delete=False, suffix=".meta") as jsonfile:
+                jsonfile_name = jsonfile.name
                 data = {
                     "src_hash": hash_str,
                     "blabla": "hello",
@@ -145,14 +145,15 @@ class TestPathUtils(omni.kit.test.AsyncTestCase):
                 json.dump(data, jsonfile, indent=4)
                 jsonfile.flush()
 
-            data = _path_utils.read_json_file(jsonfile.name)
-            self.assertTrue("blabla" in data)
+            try:
+                data = _path_utils.read_json_file(jsonfile_name)
+                self.assertTrue("blabla" in data)
 
-            _path_utils.delete_metadata(str(Path(jsonfile.name).parent / Path(jsonfile.name).stem), "blabla")
-            data = _path_utils.read_json_file(jsonfile.name)
-            self.assertTrue("blabla" not in data)
-            jsonfile.close()
-            os.unlink(jsonfile.name)
+                _path_utils.delete_metadata(str(Path(jsonfile_name).parent / Path(jsonfile_name).stem), "blabla")
+                data = _path_utils.read_json_file(jsonfile_name)
+                self.assertTrue("blabla" not in data)
+            finally:
+                os.unlink(jsonfile_name)
 
     async def test_write_read_metadata(self):
         with tempfile.NamedTemporaryFile("w") as tmpfile:
@@ -170,15 +171,15 @@ class TestPathUtils(omni.kit.test.AsyncTestCase):
             self.assertEqual(_path_utils.read_metadata(str(tmpfile.name), key2), value2)
 
     async def test_hash_file_exist(self):
-        tmp_file = tempfile.NamedTemporaryFile("w", delete=False)
-        with open(tmp_file.name, "w", encoding="utf8") as f:
-            f.write("123456789")
+        with tempfile.NamedTemporaryFile("w", delete=False) as tmp_file:
+            tmp_file_name = tmp_file.name
+            tmp_file.write("123456789")
 
-        result = _path_utils.hash_file(str(tmp_file.name))
-        self.assertEqual(result, "25f9e794323b453885f5181f1b624d0b")
-
-        tmp_file.close()
-        os.unlink(tmp_file.name)
+        try:
+            result = _path_utils.hash_file(str(tmp_file_name))
+            self.assertEqual(result, "25f9e794323b453885f5181f1b624d0b")
+        finally:
+            os.unlink(tmp_file_name)
 
     async def test_hash_file_dont_exit(self):
         with patch.object(carb, "log_error") as mock:

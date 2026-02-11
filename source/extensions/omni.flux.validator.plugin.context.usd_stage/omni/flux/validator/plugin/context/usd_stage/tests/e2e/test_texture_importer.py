@@ -56,7 +56,7 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
         window = ui.Window("TestTextureImporterWindow", height=400, width=800)
         with window.frame:
             texture_importer = TextureImporter()
-            await texture_importer._build_ui(schema_data)  # noqa PLW0212
+            await texture_importer._build_ui(schema_data)
 
         await ui_test.human_delay()
 
@@ -143,7 +143,7 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
         self.assertEqual(len(input_files) - 1, len(input_file_types))
 
         # Run the import
-        await texture_importer._setup(schema_data, mock_callback, None)  # noqa PLW0212
+        await texture_importer._setup(schema_data, mock_callback, None)
 
         await ui_test.human_delay()
 
@@ -214,9 +214,7 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
 
         for i, input_file in enumerate(input_files):
             expected_type_index = [
-                t.name
-                for t in TextureTypes
-                if TextureImportListDelegate._TEXTURE_TYPE_IMPORT_ENABLED_MAP.get(t, False)  # noqa PLW0212
+                t.name for t in TextureTypes if TextureImportListDelegate._TEXTURE_TYPE_IMPORT_ENABLED_MAP.get(t, False)
             ].index(input_file[1])
             self.assertEqual(
                 expected_type_index, input_file_types[i].widget.model.get_item_value_model().get_value_as_int()
@@ -294,7 +292,7 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
         # Make sure we are selecting the right file
         self.assertEqual(
             str(input_path_2),
-            directory_path_field.model._field.model.get_value_as_string(),  # noqa PLW0212
+            directory_path_field.model._field.model.get_value_as_string(),
         )
         self.assertEqual(str(input_file_2[0].name), file_name_field.model.get_value_as_string())
 
@@ -365,7 +363,7 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
             await ui_test.human_delay(50)
 
             # Make sure we are selecting the right file
-            self.assertEqual(expected_output_path + "/", dir_path_field.model._path)  # noqa PLW0212
+            self.assertEqual(expected_output_path + "/", dir_path_field.model._path)
 
             await select_button.click()
             await ui_test.human_delay()
@@ -424,7 +422,7 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
         self.assertEqual("Field", output_directory_field.widget.style_type_name_override)
 
         # Run the import
-        await texture_importer._setup(schema_data, mock_callback, None)  # noqa PLW0212
+        await texture_importer._setup(schema_data, mock_callback, None)
 
         await ui_test.human_delay()
 

@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .octahedral_converter_core import *  # noqa: F401
+from .octahedral_converter_core import OctahedralConverter
+
+__all__ = ["OctahedralConverter"]

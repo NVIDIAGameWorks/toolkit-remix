@@ -19,7 +19,7 @@ __all__ = ["ComfyUIWidget"]
 
 import asyncio
 from functools import partial
-from typing import Callable
+from collections.abc import Callable
 
 from lightspeed.trex.comfyui.core import ComfyUIQueueType, ComfyUIState, get_comfyui_instance
 from lightspeed.trex.utils.widget import TrexMessageDialog, WorkspaceWidget

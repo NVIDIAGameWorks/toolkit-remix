@@ -1,4 +1,3 @@
-# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -42,7 +41,7 @@ class StageManagerSchema(BaseModel):
 
     @field_validator("interactions", mode="before")
     @classmethod
-    def check_unique_interactions(cls, v):  # noqa N805
+    def check_unique_interactions(cls, v):
         # Use a list + validator to keep the list order
         return list(dict.fromkeys(v))
 

@@ -15,13 +15,11 @@
 * limitations under the License.
 """
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict
 
 
 class DataFlow(BaseModel):
     name: str
-    channel: Optional[str] = "Default"
+    channel: str | None = "Default"
 
     model_config = ConfigDict(extra="forbid")

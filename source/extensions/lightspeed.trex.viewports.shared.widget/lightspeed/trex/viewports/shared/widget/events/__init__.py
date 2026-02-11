@@ -28,7 +28,6 @@ _ui_delegate_list = []
 
 
 def add_event_delegation(scene_view, viewport_api):
-    global _ui_delegate_setup  # noqa
     if _ui_delegate_setup:
         delegate = _ui_delegate_setup(scene_view, viewport_api)
         if delegate:
@@ -65,7 +64,7 @@ def set_ui_delegate(ui_delegate_setup):
     for delegate in _ui_delegate_list:
         try:
             delegate.destroy()
-        except Exception:  # noqa
+        except Exception:  # noqa: BLE001
             carb.log_error(f"Traceback:\n{traceback.format_exc()}")
 
     _ui_delegate_list = new_delegate_list

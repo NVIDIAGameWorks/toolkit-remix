@@ -23,7 +23,8 @@ import re
 import struct
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Pattern, Tuple
+from typing import TYPE_CHECKING
+from re import Pattern
 
 import carb
 import omni.client
@@ -54,7 +55,7 @@ class FileTexturePicker(_FilePicker):
 
     def __init__(
         self,
-        file_extension_options: List[Tuple[str, str]] | None = None,
+        file_extension_options: list[tuple[str, str]] | None = None,
         style_name: str = "PropertiesWidgetField",
         regex_hash: Pattern[str] = None,
     ):
@@ -93,7 +94,7 @@ class FileTexturePicker(_FilePicker):
                             mouse_pressed_fn=functools.partial(self._show_copy_menu, item.value_models[i]),
                         )
 
-                        def _update_tooltip_value(hovered: bool, value_index=i, string_field_widget=widget):
+                        def _update_tooltip_value(_hovered: bool, value_index=i, string_field_widget=widget):
                             if item.value_models[value_index].is_mixed:
                                 # TODO: We should probably display resolved paths here too. We
                                 #  need to store assetPath object in `value_model._values` to make that happen.
@@ -218,7 +219,7 @@ class FileTexturePicker(_FilePicker):
                     )
 
     @staticmethod
-    def _get_resolution(path: str) -> Tuple[int, int]:
+    def _get_resolution(path: str) -> tuple[int, int]:
         """
         Get the width and height of the provided image file.
         """
@@ -320,7 +321,7 @@ class FileTexturePicker(_FilePicker):
 
     def _on_navigate_to(
         self, path, value_model: "_UsdAttributeValueModel", element_current_idx: int
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Function that defines the path to navigate to by default when we open the file picker
 

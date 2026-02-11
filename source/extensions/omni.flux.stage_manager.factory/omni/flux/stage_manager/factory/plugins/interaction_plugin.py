@@ -20,7 +20,8 @@ import asyncio
 import os
 from asyncio import Future, Queue, ensure_future
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 import omni.appwindow
 import omni.kit.app
@@ -176,13 +177,13 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     @field_validator("filters", "context_filters", "internal_context_filters", mode="before")
     @classmethod
-    def check_unique_filters(cls, v):  # noqa N805
+    def check_unique_filters(cls, v):
         # Use a list + validator to keep the list order
         return list(dict.fromkeys(v))
 
     @field_validator("percent_available_core_usage", mode="before")
     @classmethod
-    def check_valid_percent_available_core_usage(cls, v):  # noqa N805
+    def check_valid_percent_available_core_usage(cls, v):
         if v is None:
             return v
         if v <= 0 or v > 1:
@@ -191,14 +192,14 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     @field_validator("debounce_frames", mode="before")
     @classmethod
-    def check_positive_frame_count(cls, v):  # noqa N805
+    def check_positive_frame_count(cls, v):
         if v < 0:
             raise ValueError("Value must be 0 or larger")
         return v
 
     @model_validator(mode="after")
     @classmethod
-    def check_plugin_compatibility(cls, instance_model):  # noqa N805
+    def check_plugin_compatibility(cls, instance_model):
         filters_list = instance_model.filters
         context_filters_list = instance_model.context_filters
         columns_list = instance_model.columns
@@ -320,7 +321,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._is_initialized = True
 
-    def build_ui(self):  # noqa PLW0221
+    def build_ui(self):
         """
         The method used to build the UI for the plugin.
 

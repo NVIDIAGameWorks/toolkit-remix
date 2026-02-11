@@ -16,3 +16,5 @@
 """
 
 from .extension import FluxTestSettingsExtension
+
+__all__ = ["FluxTestSettingsExtension"]

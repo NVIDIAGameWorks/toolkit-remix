@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .setup_ui import LightCreatorWidget  # noqa F401
+from .setup_ui import LightCreatorWidget
+
+__all__ = ["LightCreatorWidget"]

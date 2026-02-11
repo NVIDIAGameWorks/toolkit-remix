@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import omni.client
 import omni.usd
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
@@ -94,8 +96,8 @@ class TestCurrentStage(AsyncTestCase):
             self.assertTrue(_message.startswith("anon:") and _message.endswith(".usd"))
             self.assertTrue(_data == usd_context.get_stage() and _data.GetRootLayer().anonymous)
 
-        _sub_check_check = core.model.context_plugin.instance.subscribe_check(check_check_sub_validation_empty)  # noqa
-        _sub_check_set = core.model.context_plugin.instance.subscribe_set(check_set_sub_validation_empty)  # noqa
+        _sub_check_check = core.model.context_plugin.instance.subscribe_check(check_check_sub_validation_empty)
+        _sub_check_set = core.model.context_plugin.instance.subscribe_set(check_set_sub_validation_empty)
 
         await core.deferred_run()
         self.assertTrue(sub_check_count == 1)

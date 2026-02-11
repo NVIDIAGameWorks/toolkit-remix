@@ -19,7 +19,8 @@ __all__ = ["PackagingErrorWindow"]
 
 from asyncio import ensure_future
 from functools import partial
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 import omni.kit.app
 from lightspeed.common.constants import USD_EXTENSIONS

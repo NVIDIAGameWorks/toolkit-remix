@@ -23,7 +23,7 @@ __all__ = (
 
 import abc
 import typing
-from typing import List, Mapping, Optional
+from collections.abc import Mapping
 
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
@@ -59,12 +59,12 @@ class Item(_TreeItemBase):
         return default_attr
 
     @property
-    def name_models(self) -> List["ItemModelBase"]:
+    def name_models(self) -> list["ItemModelBase"]:
         """The name model that will be showed on the tree"""
         return self._name_models
 
     @property
-    def value_models(self) -> List["ItemModelBase"]:
+    def value_models(self) -> list["ItemModelBase"]:
         """The name that will be showed on the tree"""
         return self._value_models
 
@@ -158,7 +158,7 @@ class Model(_TreeModelBase[_TreeItemBase]):
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
-    def set_items(self, items: List[Item]):
+    def set_items(self, items: list[Item]):
         """
         Set the items to show
 
@@ -186,7 +186,7 @@ class Model(_TreeModelBase[_TreeItemBase]):
             return []
         return _get_children(self._items)
 
-    def get_item_children(self, item: Optional[Item]):
+    def get_item_children(self, item: Item | None):
         """Returns all the children when the widget asks it."""
         if item is None:
             return self._items

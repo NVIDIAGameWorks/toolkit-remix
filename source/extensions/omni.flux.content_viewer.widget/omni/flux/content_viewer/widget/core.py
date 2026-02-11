@@ -17,7 +17,7 @@
 
 import abc
 import functools
-from typing import Callable, List, Optional, Type
+from collections.abc import Callable
 
 import carb
 import omni.client
@@ -35,7 +35,7 @@ from .thumbnail_core import ThumbnailCore as _ThumbnailCore
 
 class BaseContentData(BaseModel):
     title: str
-    path: Optional[str]
+    path: str | None
 
 
 class ContentData(BaseContentData):
@@ -44,15 +44,15 @@ class ContentData(BaseContentData):
     """
 
     path: str
-    image_path_fn: Optional[Callable[[], str]] = None  # function that return an image path
-    checkpoint_version: Optional[int] = None
-    original_path: Optional[str] = None  # dont set it
+    image_path_fn: Callable[[], str] | None = None  # function that return an image path
+    checkpoint_version: int | None = None
+    original_path: str | None = None  # dont set it
 
     model_config = ConfigDict(validate_assignment=True)
 
     @model_validator(mode="after")
     @classmethod
-    def inject_checkpoint_version(cls, instance_model):  # noqa: N805
+    def inject_checkpoint_version(cls, instance_model):
         if instance_model.original_path is None:
             instance_model.original_path = instance_model.path
         if instance_model.checkpoint_version is not None:
@@ -74,7 +74,7 @@ class ContentDataAdd(BaseContentData):
     Schema of options
     """
 
-    image_path_fn: Optional[Callable[[], str]] = functools.partial(_get_icons, "add")
+    image_path_fn: Callable[[], str] | None = functools.partial(_get_icons, "add")
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -113,12 +113,12 @@ class ContentViewerCore:
         return self.__thumbnail_core.get_primary_thumbnails(path)
 
     @abc.abstractmethod
-    def _get_content_data(self) -> List[Type[BaseContentData]]:
+    def _get_content_data(self) -> list[type[BaseContentData]]:
         """If None is returned, an error message is showed"""
         return []
 
     @omni.usd.handle_exception
-    async def __deferred_get_content_data(self, callback):  # noqa PLW0238
+    async def __deferred_get_content_data(self, callback):
         wrapped_fn = _async_wrap(self._get_content_data)
         result = await wrapped_fn()
         callback(result)
@@ -131,7 +131,7 @@ class ContentViewerCore:
         result = sorted(result, key=lambda x: x.title)
         callback(result)
 
-    def _content_changed(self, maps: List[Type[BaseContentData]] = None):
+    def _content_changed(self, maps: list[type[BaseContentData]] = None):
         """Call the event object that has the list of functions"""
         self.__on_content_changed(maps)
 
@@ -172,7 +172,7 @@ class ContentViewerCore:
         return _EventSubscription(self.__on_primary_thumbnail_loaded, function)
 
     def set_selection(
-        self, content_data: Optional[BaseContentData], append: bool = False, append_in_between: bool = False
+        self, content_data: BaseContentData | None, append: bool = False, append_in_between: bool = False
     ):
         """Set the selected content"""
         if content_data is None:
@@ -203,7 +203,7 @@ class ContentViewerCore:
             self._selection = [content_data]
         self._selection_changed()
 
-    def get_selection(self) -> List[Type[BaseContentData]]:
+    def get_selection(self) -> list[type[BaseContentData]]:
         """Get the current selection"""
         return self._selection
 

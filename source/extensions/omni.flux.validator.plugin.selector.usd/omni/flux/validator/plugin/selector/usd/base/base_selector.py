@@ -41,7 +41,7 @@ class SelectorUSDBase(_SelectorBase):
             stage = context.get_stage()
             root_layer = stage.GetRootLayer()
             # ugly work around to un-hold layers
-            Sdf._TestTakeOwnership(root_layer)  # noqa
+            Sdf._TestTakeOwnership(root_layer)  # noqa: SLF001
             await context.close_stage_async()
 
     def _get_prims(self, schema_data: Any, context_plugin_data: _SetupDataTypeVar) -> list["Usd.Prim"]:

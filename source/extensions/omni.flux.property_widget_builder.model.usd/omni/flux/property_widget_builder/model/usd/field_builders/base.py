@@ -15,12 +15,15 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 __all__ = (
-    "USDBuilderList",
     "DEFAULT_FIELD_BUILDERS",
+    "USDBuilderList",
 )
 
-from typing import TYPE_CHECKING, Callable, Iterable
+from typing import TYPE_CHECKING
+from collections.abc import Callable, Iterable
 
 import carb
 import omni.ui as ui
@@ -49,24 +52,24 @@ class USDBuilderList(FieldBuilderList):
     """
 
     @staticmethod
-    def claim_by_name(*names: str) -> Callable[["_Item"], bool]:
+    def claim_by_name(*names: str) -> Callable[[_Item], bool]:
         """
         Get a FieldBuilder claim_func that will claim items that use any USD attributes that match `names`.
         """
 
-        def _claim(item: "_Item") -> bool:
+        def _claim(item: _Item) -> bool:
             return (
                 isinstance(item, _USDAttributeItem)
-                and item._attribute_paths  # noqa PLW0212
-                and any(x.name in names for x in item._attribute_paths)  # noqa PLW0212
+                and item._attribute_paths  # noqa: SLF001
+                and any(x.name in names for x in item._attribute_paths)  # noqa: SLF001
             )
 
         return _claim
 
     def _build_func_decorator(self, claim_func) -> Callable:
         def _deco(
-            build_func: Callable[["_Item"], ui.Widget | list[ui.Widget] | None],
-        ) -> Callable[["_Item"], ui.Widget | list[ui.Widget] | None]:
+            build_func: Callable[[_Item], ui.Widget | list[ui.Widget] | None],
+        ) -> Callable[[_Item], ui.Widget | list[ui.Widget] | None]:
             self.append(FieldBuilder(claim_func=claim_func, build_func=build_func))
             return build_func
 
@@ -77,7 +80,7 @@ class USDBuilderList(FieldBuilderList):
         Decorator to simplify registering a build function for USDAttributeItem of specific type(s).
         """
 
-        def _claim(item: "_USDAttributeItem") -> bool:
+        def _claim(item: _USDAttributeItem) -> bool:
             try:
                 metadata = item.value_models[0].metadata
             except (IndexError, AttributeError):
@@ -93,7 +96,7 @@ class USDBuilderList(FieldBuilderList):
         return self._build_func_decorator(self.claim_by_name(*names))
 
     def append_builder_by_attr_name(
-        self, names: str | Iterable[str], build_func: Callable[["_Item"], ui.Widget | list[ui.Widget] | None]
+        self, names: str | Iterable[str], build_func: Callable[[_Item], ui.Widget | list[ui.Widget] | None]
     ):
         """
         A simple helper which allows users to register a FieldBuilder with just attribute names and a build_func.

@@ -18,7 +18,8 @@
 from __future__ import annotations
 
 import enum
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 import carb.input
 from lightspeed.trex.contexts import get_instance as _get_trex_context_manager

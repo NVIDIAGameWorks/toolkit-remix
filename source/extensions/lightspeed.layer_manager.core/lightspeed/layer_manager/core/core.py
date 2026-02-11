@@ -19,7 +19,7 @@ import asyncio
 import re
 from contextlib import nullcontext
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from collections.abc import Callable
 
 import carb
 import omni.client
@@ -116,7 +116,7 @@ class LayerManagerCore:
                     layer_models.append(LayerModel(layer_id=layer.identifier, layer_type=layer_type, children=[]))
             return LayerStackResponseModel(layers=layer_models)
 
-        def get_layer_info(layer: Sdf.Layer) -> Optional[LayerModel]:
+        def get_layer_info(layer: Sdf.Layer) -> LayerModel | None:
             if not layer:
                 return None
             layer_type = layer.customLayerData.get(LayerTypeKeys.layer_type.value)
@@ -199,7 +199,7 @@ class LayerManagerCore:
         """
         return self.__context.get_stage().GetEditTarget().GetLayer()
 
-    def set_edit_target_with_identifier(self, layer_identifier: Union[str, Path, OmniUrl]):
+    def set_edit_target_with_identifier(self, layer_identifier: str | Path | OmniUrl):
         """
         Set the current edit target in the stage based on its identifier
 
@@ -212,9 +212,9 @@ class LayerManagerCore:
 
     def move_layer_with_identifier(
         self,
-        layer_identifier: Union[str, Path, OmniUrl],
-        current_parent_layer_identifier: Union[str, Path, OmniUrl],
-        new_parent_layer_identifier: Union[str, Path, OmniUrl] = None,
+        layer_identifier: str | Path | OmniUrl,
+        current_parent_layer_identifier: str | Path | OmniUrl,
+        new_parent_layer_identifier: str | Path | OmniUrl = None,
         layer_index: int = 0,
     ):
         """
@@ -250,7 +250,7 @@ class LayerManagerCore:
         )
 
     def remove_layer_with_identifier(
-        self, layer_identifier: Union[str, Path, OmniUrl], parent_layer_identifier: Union[str, Path, OmniUrl]
+        self, layer_identifier: str | Path | OmniUrl, parent_layer_identifier: str | Path | OmniUrl
     ):
         """
         Remove a layer from the stage based on its identifier
@@ -268,7 +268,7 @@ class LayerManagerCore:
             usd_context=self.context_name,
         )
 
-    def mute_layer_with_identifier(self, layer_identifier: Union[str, Path, OmniUrl], value: bool):
+    def mute_layer_with_identifier(self, layer_identifier: str | Path | OmniUrl, value: bool):
         """
         Mute a layer in the current stage based on its identifier
 
@@ -283,7 +283,7 @@ class LayerManagerCore:
             usd_context=self.context_name,
         )
 
-    def lock_layer_with_identifier(self, layer_identifier: Union[str, Path, OmniUrl], value: bool):
+    def lock_layer_with_identifier(self, layer_identifier: str | Path | OmniUrl, value: bool):
         """
         Lock a layer in the current stage based on its identifier
 
@@ -295,7 +295,7 @@ class LayerManagerCore:
             "LockLayer", layer_identifier=str(layer_identifier), locked=value, usd_context=self.context_name
         )
 
-    def save_layer_with_identifier(self, layer_identifier: Union[str, Path, OmniUrl], force: bool = False):
+    def save_layer_with_identifier(self, layer_identifier: str | Path | OmniUrl, force: bool = False):
         """
         Save a layer in the current stage based on its identifier
 
@@ -311,8 +311,8 @@ class LayerManagerCore:
         layer.Save(force=force)
 
     def set_custom_layer_type_data_with_identifier(
-        self, layer_identifier: Union[str, Path, OmniUrl], layer_type: LayerType
-    ) -> Optional[Dict]:
+        self, layer_identifier: str | Path | OmniUrl, layer_type: LayerType
+    ) -> dict | None:
         """
         Set a layer's custom data based on the Layer Type's pre-defined custom data.
 
@@ -341,7 +341,7 @@ class LayerManagerCore:
 
         return layer.customLayerData
 
-    def get_layer_instance(self, layer_type: LayerType) -> Optional[i_layer.ILayer]:
+    def get_layer_instance(self, layer_type: LayerType) -> i_layer.ILayer | None:
         for layer_obj in self.__layers:
             if layer_obj.layer_type == layer_type:
                 return layer_obj
@@ -349,11 +349,11 @@ class LayerManagerCore:
 
     def create_layer(
         self,
-        path: Union[str, Path, OmniUrl],
+        path: str | Path | OmniUrl,
         layer_type: LayerType = None,
         set_edit_target: bool = False,
         sublayer_position: int = 0,
-        parent_layer_identifier: Union[str, Path, OmniUrl] = None,
+        parent_layer_identifier: str | Path | OmniUrl = None,
         replace_existing: bool = True,
         create_or_insert: bool = True,
         transfer_root_content: bool = False,
@@ -439,7 +439,7 @@ class LayerManagerCore:
             Whether the layer type is found or not
         """
 
-        def get_layer_stack(_layer: Sdf.Layer) -> List[Sdf.Layer]:
+        def get_layer_stack(_layer: Sdf.Layer) -> list[Sdf.Layer]:
             _layer_stack = []
             if _layer is None:
                 return _layer_stack
@@ -469,7 +469,7 @@ class LayerManagerCore:
 
         result = []
 
-        def get_layer_stack(_layer: Sdf.Layer) -> List[Sdf.Layer]:
+        def get_layer_stack(_layer: Sdf.Layer) -> list[Sdf.Layer]:
             _layer_stack = []
             for sublayer_path in _layer.subLayerPaths:
                 sdf_layer = Sdf.Layer.FindOrOpenRelativeToLayer(_layer, sublayer_path)
@@ -534,7 +534,7 @@ class LayerManagerCore:
         path: str = None,
         set_as_edit_target: bool = True,
         sublayer_create_position: int = 0,
-        parent_layer: Optional[Sdf.Layer] = None,
+        parent_layer: Sdf.Layer | None = None,
         do_undo: bool = True,
         replace_existing: bool = True,
     ):
@@ -547,7 +547,7 @@ class LayerManagerCore:
         )
         if do_undo:
             omni.kit.undo.begin_group()
-        for layer_obj in self.__layers:  # noqa R503
+        for layer_obj in self.__layers:
             if layer_obj.layer_type == layer_type:
                 layer = layer_obj.create_sublayer(
                     path=path,
@@ -660,7 +660,7 @@ class LayerManagerCore:
 
     def get_layers(
         self, layer_type: LayerType | None, max_results: int = -1, find_muted_layers: bool = True
-    ) -> List[Sdf.Layer]:
+    ) -> list[Sdf.Layer]:
         """
         Get all layers of a given layer type.
 
@@ -676,7 +676,7 @@ class LayerManagerCore:
             layer_type, max_results=max_results, context_name=self.context_name, find_muted_layers=find_muted_layers
         )
 
-    def get_layer(self, layer_type: LayerType | None, find_muted_layers: bool = True) -> Optional[Sdf.Layer]:
+    def get_layer(self, layer_type: LayerType | None, find_muted_layers: bool = True) -> Sdf.Layer | None:
         """
         Get the top-most layer of a given layer type
 
@@ -729,11 +729,11 @@ class LayerManagerCore:
         return sub_layers
 
     @staticmethod
-    def get_custom_data(layer: Sdf.Layer) -> Dict[str, str]:
+    def get_custom_data(layer: Sdf.Layer) -> dict[str, str]:
         return layer.customLayerData
 
     @staticmethod
-    def set_custom_data_layer_type(layer: Sdf.Layer, layer_type: LayerType) -> Dict:
+    def set_custom_data_layer_type(layer: Sdf.Layer, layer_type: LayerType) -> dict:
         custom_layer_data = layer.customLayerData
         custom_layer_data.update({LayerTypeKeys.layer_type.value: layer_type.value})
         layer.customLayerData = custom_layer_data
@@ -830,7 +830,7 @@ class LayerManagerCore:
             return default
         return layer.customLayerData.get(LSS_LAYER_GAME_NAME, default)
 
-    def game_current_game_capture_folder(self, show_error: bool = True) -> Tuple[Optional[str], Optional[str]]:
+    def game_current_game_capture_folder(self, show_error: bool = True) -> tuple[str | None, str | None]:
         """Get the current capture folder from the current capture layer"""
         layer = self.get_layer(LayerType.capture)
         # we only save stage that have a replacement layer
@@ -847,7 +847,7 @@ class LayerManagerCore:
             return None, None
         return self.get_game_name_from_path(layer.realPath), str(capture_folder.parent)
 
-    def get_layer_hashes_no_comp_arcs(self, layer: Sdf.Layer) -> Dict[str, Sdf.Path]:
+    def get_layer_hashes_no_comp_arcs(self, layer: Sdf.Layer) -> dict[str, Sdf.Path]:
         """
         This function does not take in consideration the layer composition arcs.
         It only evaluates the given layer and no sub-layers.
@@ -859,7 +859,7 @@ class LayerManagerCore:
             A dictionary of the various hashes found and their respective prims
         """
 
-        def get_prims_recursive_no_comp_arcs(parents: List[Sdf.PrimSpec]):
+        def get_prims_recursive_no_comp_arcs(parents: list[Sdf.PrimSpec]):
             """
             Composition Arcs are not taken in consideration when fetching the prims.
             The prims will therefore all belong to the same layer but prims in

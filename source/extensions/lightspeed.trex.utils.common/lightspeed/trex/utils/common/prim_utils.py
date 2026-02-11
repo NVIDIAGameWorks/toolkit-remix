@@ -15,28 +15,30 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 __all__ = [
     "PrimTypes",
-    "get_prim_paths",
     "filter_prims_paths",
+    "get_children_prims",
+    "get_extended_selection",
+    "get_prim_paths",
+    "get_prototype",
+    "get_reference_file_paths",
+    "is_in_light_group",
+    "is_in_mesh_group",
+    "is_instance",
     "is_light_asset",
     "is_light_prototype",
     "is_material_prototype",
     "is_mesh_asset",
-    "is_shader_prototype",
     "is_mesh_prototype",
-    "is_instance",
-    "is_in_mesh_group",
-    "is_in_light_group",
-    "get_extended_selection",
-    "get_children_prims",
-    "get_reference_file_paths",
-    "get_prototype",
+    "is_shader_prototype",
 ]
 
 import re
 from enum import Enum
-from typing import Callable, List, Optional, Tuple
+from collections.abc import Callable
 
 import omni.usd
 from lightspeed.common import constants
@@ -402,7 +404,7 @@ def get_children_prims(
 
 def get_reference_file_paths(
     prim: Usd.Prim,
-) -> Tuple[List[Tuple[Usd.Prim, "Sdf.Reference", "Sdf.Layer", int]], int]:
+) -> tuple[list[tuple[Usd.Prim, Sdf.Reference, Sdf.Layer, int]], int]:
     """
     Collects file references from a USD prim and its reference children.
     Handles special child prims for multiple identical references.
@@ -439,7 +441,7 @@ def get_reference_file_paths(
     return prim_paths, i
 
 
-def get_prototype(prim: Usd.Prim) -> Optional[Usd.Prim]:
+def get_prototype(prim: Usd.Prim) -> Usd.Prim | None:
     """
     Idempotent function to retrieve the prototype (mesh_hash) version of a prim, if existent, else None.
 

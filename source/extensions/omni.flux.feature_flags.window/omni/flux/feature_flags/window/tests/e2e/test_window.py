@@ -29,8 +29,8 @@ class TestFeatureFlagsWindow(AsyncTestCase):
     async def setUp(self):
         await arrange_windows()
 
-        self.persistent_path = FeatureFlagsCore._PERSISTENT_PREFIX  # noqa PLW0212
-        self.settings_path = FeatureFlagsCore._FEATURE_FLAGS_SETTING  # noqa PLW0212
+        self.persistent_path = FeatureFlagsCore._PERSISTENT_PREFIX
+        self.settings_path = FeatureFlagsCore._FEATURE_FLAGS_SETTING
 
         self.core = FeatureFlagsCore()
         self.settings = carb.settings.get_settings()

@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["FeatureFlagsCore", "FeatureFlag"]
+__all__ = ["FeatureFlag", "FeatureFlagsCore"]
 
 from .core import FeatureFlagsCore
 from .items import FeatureFlag

@@ -1,4 +1,3 @@
-# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -16,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["PackagingErrorItem", "PackagingActions"]
+__all__ = ["PackagingActions", "PackagingErrorItem"]
 
 from enum import Enum
 

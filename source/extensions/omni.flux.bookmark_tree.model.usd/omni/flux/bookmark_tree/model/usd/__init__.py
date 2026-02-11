@@ -16,10 +16,10 @@
 """
 
 __all__ = [
+    "USDListener",
+    "UsdBookmarkCollectionModel",
     "UsdBookmarkCollectionWidgetExtension",
     "get_usd_listener_instance",
-    "UsdBookmarkCollectionModel",
-    "USDListener",
 ]
 
 from .extension import UsdBookmarkCollectionWidgetExtension, get_usd_listener_instance
