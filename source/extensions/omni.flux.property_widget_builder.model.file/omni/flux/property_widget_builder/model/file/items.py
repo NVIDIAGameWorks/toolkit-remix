@@ -16,7 +16,7 @@
 """
 
 import abc
-from typing import Any, Optional
+from typing import Any
 
 from omni.flux.property_widget_builder.widget import Item as _Item
 
@@ -33,7 +33,7 @@ class FileAttributeItem(_Item):
         self,
         path: str,
         attribute: str,
-        display_attr_name: Optional[str] = None,
+        display_attr_name: str | None = None,
     ):
         """
         Item that represent an attribute of a file

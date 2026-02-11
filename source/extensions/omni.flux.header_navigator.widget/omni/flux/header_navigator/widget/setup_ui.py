@@ -16,7 +16,8 @@
 """
 
 import asyncio
-from typing import Any, Callable, Dict, Tuple
+from typing import Any
+from collections.abc import Callable
 
 import carb
 import omni.ui as ui
@@ -53,7 +54,7 @@ class _SetupUI:
         self.__on_button_registered = _Event()
         self.__on_header_refreshed = _Event()
 
-    def _button_registered(self, button: Dict[str, Tuple[ui.Widget, int]]):
+    def _button_registered(self, button: dict[str, tuple[ui.Widget, int]]):
         """Call the event object that has the list of functions"""
         self.__on_button_registered(button)
 
@@ -73,7 +74,7 @@ class _SetupUI:
         """
         return _EventSubscription(self.__on_header_refreshed, function)
 
-    def register_button(self, button: Dict[str, Tuple[Callable[[], ui.Widget], int]]):
+    def register_button(self, button: dict[str, tuple[Callable[[], ui.Widget], int]]):
         """
         Register a new button
 
@@ -98,7 +99,7 @@ class _SetupUI:
         self._buttons.pop(button)
         self.refresh()
 
-    def get_registered_buttons(self) -> Dict[str, Tuple[Callable[[], ui.Widget]]]:
+    def get_registered_buttons(self) -> dict[str, tuple[Callable[[], ui.Widget]]]:
         """Get the list of registered buttons"""
         return self._buttons
 
@@ -237,15 +238,14 @@ def create_instance(name: str) -> _SetupUI:
     Returns:
         The instance
     """
-    global _INSTANCES  # noqa PLW0602
     if name in _INSTANCES:
         carb.log_warn(f"Instance of the header navigator with the name {name} already exist")
         return _INSTANCES[name]
     instance = _SetupUI(name)
     _INSTANCES[name] = instance
-    return instance  # noqa R504
+    return instance
 
 
-def get_instances() -> Dict[str, _SetupUI]:
+def get_instances() -> dict[str, _SetupUI]:
     """Get the created instances"""
     return _INSTANCES

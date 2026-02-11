@@ -47,9 +47,9 @@ class TestSelectionTreeModel(omni.kit.test.AsyncTestCase):
         model.refresh(paths)
 
         # Assert
-        self.assertEqual(len(paths), len(model._items))  # noqa PLW0212
+        self.assertEqual(len(paths), len(model._items))
         for i, path in enumerate(paths):
-            self.assertEqual(path, model._items[i]._path)  # noqa PLW0212
+            self.assertEqual(path, model._items[i]._path)
 
     async def test_find_item_valid_item_should_return_item(self):
         # Arrange
@@ -61,7 +61,7 @@ class TestSelectionTreeModel(omni.kit.test.AsyncTestCase):
         items = [ModSelectionItem(p) for p in paths]
 
         model = ModSelectionModel()
-        model._items = items  # noqa PLW0212
+        model._items = items
 
         # Act
         mod_1 = model.find_item(str(paths[0]))
@@ -87,7 +87,7 @@ class TestSelectionTreeModel(omni.kit.test.AsyncTestCase):
         items = [ModSelectionItem(p) for p in paths]
 
         model = ModSelectionModel()
-        model._items = items  # noqa PLW0212
+        model._items = items
 
         # Act
         result = model.find_item(self.temp_dir.name)
@@ -116,7 +116,7 @@ class TestSelectionTreeModel(omni.kit.test.AsyncTestCase):
         expected_results = [paths[2], paths[0], paths[1]]
 
         for i, expected_result in enumerate(expected_results):
-            self.assertEqual(str(expected_result), str(model._items[i]._path))  # noqa PLW0212
+            self.assertEqual(str(expected_result), str(model._items[i]._path))
 
     async def test_remove_item_valid_item_should_find_item_remove_and_call_item_changed(self):
         await self.__run_test_remove_item(True)
@@ -134,7 +134,7 @@ class TestSelectionTreeModel(omni.kit.test.AsyncTestCase):
         items = [ModSelectionItem(p) for p in paths]
 
         model = ModSelectionModel()
-        model._items = items  # noqa PLW0212
+        model._items = items
 
         # Act
         items_result = model.get_item_children(None)
@@ -166,7 +166,7 @@ class TestSelectionTreeModel(omni.kit.test.AsyncTestCase):
         result = model.get_drag_mime_data(item)
 
         # Assert
-        self.assertEqual(str(item._path), result)  # noqa PLW0212
+        self.assertEqual(str(item._path), result)
 
     async def test_drop_accepted_should_return_item_source_exists(self):
         # Arrange
@@ -209,7 +209,7 @@ class TestSelectionTreeModel(omni.kit.test.AsyncTestCase):
         items = [ModSelectionItem(p) for p in paths]
 
         model = ModSelectionModel()
-        model._items = items  # noqa PLW0212
+        model._items = items
 
         # Act
         with patch.object(ModSelectionModel, "_item_changed") as mock:
@@ -217,12 +217,12 @@ class TestSelectionTreeModel(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(1 if valid else 0, mock.call_count)
-        self.assertEqual(2 if valid else 3, len(model._items))  # noqa PLW0212
+        self.assertEqual(2 if valid else 3, len(model._items))
 
         expected_results = [paths[0], paths[2]] if valid else paths
 
         for i, expected_result in enumerate(expected_results):
-            self.assertEqual(str(expected_result), str(model._items[i]._path))  # noqa PLW0212
+            self.assertEqual(str(expected_result), str(model._items[i]._path))
 
     async def __run_test_drop_move(self, is_item: bool):
         # Arrange
@@ -234,7 +234,7 @@ class TestSelectionTreeModel(omni.kit.test.AsyncTestCase):
         items = [ModSelectionItem(p) for p in paths]
 
         model = ModSelectionModel()
-        model._items = items  # noqa PLW0212
+        model._items = items
 
         # Act
         with patch.object(ModSelectionModel, "_item_changed") as mock:
@@ -242,12 +242,12 @@ class TestSelectionTreeModel(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(2, mock.call_count)
-        self.assertEqual(3, len(model._items))  # noqa PLW0212
+        self.assertEqual(3, len(model._items))
 
         expected_results = [paths[2], paths[0], paths[1]]
 
         for i, expected_result in enumerate(expected_results):
-            self.assertEqual(str(expected_result), str(model._items[i]._path))  # noqa PLW0212
+            self.assertEqual(str(expected_result), str(model._items[i]._path))
 
     async def __run_test_drop_add(self, is_item: bool):
         # Arrange
@@ -259,7 +259,7 @@ class TestSelectionTreeModel(omni.kit.test.AsyncTestCase):
         items = [ModSelectionItem(p) for p in paths]
 
         model = ModSelectionModel()
-        model._items = items  # noqa PLW0212
+        model._items = items
 
         item_0_path = Path(self.temp_dir.name) / "ExtraMod0" / "mod_file_0.usda"
         item_1_path = Path(self.temp_dir.name) / "ExtraMod1" / "mod_file_1.usda"
@@ -274,9 +274,9 @@ class TestSelectionTreeModel(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(2, mock.call_count)
-        self.assertEqual(4, len(model._items))  # noqa PLW0212
+        self.assertEqual(4, len(model._items))
 
         expected_results = [paths[0], item_0_path, paths[1], item_1_path]
 
         for i, expected_result in enumerate(expected_results):
-            self.assertEqual(str(expected_result), str(model._items[i]._path))  # noqa PLW0212
+            self.assertEqual(str(expected_result), str(model._items[i]._path))

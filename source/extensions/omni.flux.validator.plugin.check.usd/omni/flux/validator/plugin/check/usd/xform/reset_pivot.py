@@ -24,7 +24,7 @@ from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from pxr import Sdf
 from pydantic import Field, field_validator
 
-from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
+from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
 
 class ResetPivot(_CheckBaseUSD):

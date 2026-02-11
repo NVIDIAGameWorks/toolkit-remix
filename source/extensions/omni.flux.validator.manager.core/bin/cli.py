@@ -26,7 +26,7 @@ def main():
     Example:
 
         cli.bat -s my_schema.json -e omni.flux.validator.plugin.check.usd omni.flux.validator.plugin.context.usd_stage omni.flux.validator.plugin.selector.usd -p
-    """  # noqa
+    """
 
     parser = argparse.ArgumentParser(
         description="Run the validation in command line.", epilog=example, formatter_class=argparse.RawTextHelpFormatter

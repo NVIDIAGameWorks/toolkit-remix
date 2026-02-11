@@ -1,7 +1,7 @@
 # Main extension description values
 [package]
 # The current extension version number - uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
-version = "1.0.1"
+version = "1.0.2"
 # The title of the extension that will appear in the extension window
 title = "Remix OmniGraph Python Nodes"
 # Longer description of the extension

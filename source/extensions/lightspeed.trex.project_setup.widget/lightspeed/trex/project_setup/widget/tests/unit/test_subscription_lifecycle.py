@@ -36,8 +36,8 @@ class TestProjectSetupPaneSubscriptionLifecycle(AsyncTestCase):
         await omni.kit.app.get_app().next_update_async()
 
         # Subscriptions should be None initially (created in show(True))
-        self.assertIsNone(widget._sub_stage_event)  # noqa: SLF001
-        self.assertIsNone(widget._sub_layer_event)  # noqa: SLF001
+        self.assertIsNone(widget._sub_stage_event)
+        self.assertIsNone(widget._sub_layer_event)
 
         widget.destroy()
         window.destroy()
@@ -53,8 +53,8 @@ class TestProjectSetupPaneSubscriptionLifecycle(AsyncTestCase):
         widget.show(True)
         await omni.kit.app.get_app().next_update_async()
 
-        self.assertIsNotNone(widget._sub_stage_event)  # noqa: SLF001
-        self.assertIsNotNone(widget._sub_layer_event)  # noqa: SLF001
+        self.assertIsNotNone(widget._sub_stage_event)
+        self.assertIsNotNone(widget._sub_layer_event)
 
         widget.destroy()
         window.destroy()
@@ -69,14 +69,14 @@ class TestProjectSetupPaneSubscriptionLifecycle(AsyncTestCase):
         # First show
         widget.show(True)
         await omni.kit.app.get_app().next_update_async()
-        self.assertIsNotNone(widget._sub_stage_event)  # noqa: SLF001
+        self.assertIsNotNone(widget._sub_stage_event)
 
         # Then hide
         widget.show(False)
         await omni.kit.app.get_app().next_update_async()
 
-        self.assertIsNone(widget._sub_stage_event)  # noqa: SLF001
-        self.assertIsNone(widget._sub_layer_event)  # noqa: SLF001
+        self.assertIsNone(widget._sub_stage_event)
+        self.assertIsNone(widget._sub_layer_event)
 
         widget.destroy()
         window.destroy()

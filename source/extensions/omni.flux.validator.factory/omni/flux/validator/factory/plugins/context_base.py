@@ -18,7 +18,8 @@
 import abc
 import time
 from functools import partial
-from typing import Any, Awaitable, Callable, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Awaitable, Callable
 
 import carb
 import omni.usd

@@ -36,7 +36,7 @@ class TestWizardModel(omni.kit.test.AsyncTestCase):
         model = WizardModel(Mock())
 
         # Act
-        model._active_item = item  # noqa PLW0212
+        model._active_item = item
 
         # Assert
         self.assertEqual(item, model.get_active_item())
@@ -48,14 +48,14 @@ class TestWizardModel(omni.kit.test.AsyncTestCase):
 
         with patch.object(WizardModel, "on_active_item_changed") as mock:
             model = WizardModel(item_1)
-            model._active_item = item_2  # noqa PLW0212
+            model._active_item = item_2
 
             # Act
             model.reset_active_item()
 
         # Assert
         self.assertEqual(1, mock.call_count)
-        self.assertEqual(item_1, model._active_item)  # noqa PLW0212
+        self.assertEqual(item_1, model._active_item)
 
     async def test_go_next_has_next_sets_item_next_as_active_item_and_triggers_active_items_changed_event(self):
         # Arrange
@@ -70,7 +70,7 @@ class TestWizardModel(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(1, mock.call_count)
-        self.assertEqual(item_1, model._active_item)  # noqa PLW0212
+        self.assertEqual(item_1, model._active_item)
 
     async def test_go_next_has_no_next_triggers_items_completed_event(self):
         # Arrange
@@ -84,7 +84,7 @@ class TestWizardModel(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(1, mock.call_count)
-        self.assertEqual(item_1, model._active_item)  # noqa PLW0212
+        self.assertEqual(item_1, model._active_item)
 
     async def test_go_previous_sets_item_previous_as_active_item_and_triggers_event(self):
         # Arrange
@@ -99,7 +99,7 @@ class TestWizardModel(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(1, mock.call_count)
-        self.assertEqual(item_1, model._active_item)  # noqa PLW0212
+        self.assertEqual(item_1, model._active_item)
 
     async def test_on_active_item_changed_sets_request_fns(self):
         # Arrange

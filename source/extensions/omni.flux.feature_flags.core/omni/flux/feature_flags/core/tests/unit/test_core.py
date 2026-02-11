@@ -25,8 +25,8 @@ from omni.kit.test import AsyncTestCase
 class TestFeatureFlagsCore(AsyncTestCase):
     async def setUp(self):
         self.core = FeatureFlagsCore()
-        self.persistent_path = FeatureFlagsCore._PERSISTENT_PREFIX  # noqa PLW0212
-        self.settings_path = FeatureFlagsCore._FEATURE_FLAGS_SETTING  # noqa PLW0212
+        self.persistent_path = FeatureFlagsCore._PERSISTENT_PREFIX
+        self.settings_path = FeatureFlagsCore._FEATURE_FLAGS_SETTING
 
         self.settings = carb.settings.get_settings()
 

@@ -15,11 +15,14 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 __all__ = ["IBase", "IBaseSchema"]
 
 import abc
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 from omni.flux.factory.base import PluginBase
 from omni.flux.validator.factory import DataFlow as _DataFlow
@@ -67,7 +70,7 @@ class IBase(PluginBase, abc.ABC):
             pass
 
     @abc.abstractmethod
-    def set_parent_schema(self, schema: "IBaseSchema"):
+    def set_parent_schema(self, schema: IBaseSchema):
         """
         Set the schema
 
@@ -77,7 +80,7 @@ class IBase(PluginBase, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _on_validator_run(self, items: list["IBase"], run_mode: Enum, catch_exception: bool = True):
+    def _on_validator_run(self, items: list[IBase], run_mode: Enum, catch_exception: bool = True):
         """
         Run the validator
 
@@ -109,7 +112,7 @@ class IBase(PluginBase, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def subscribe_validator_run(self, callback: Callable[[list["IBase"], Enum, bool | None], Any]):
+    def subscribe_validator_run(self, callback: Callable[[list[IBase], Enum, bool | None], Any]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         Subscription that will let the plugin re-run a validation by itself.

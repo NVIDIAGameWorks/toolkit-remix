@@ -16,3 +16,5 @@
 """
 
 from .e2e.test_info_icon_widget import TestOmniFluxInfoIcon
+
+__all__ = ["TestOmniFluxInfoIcon"]

@@ -16,7 +16,8 @@
 """
 
 import abc
-from typing import Callable, Generic, TypeVar
+from typing import Generic, TypeVar
+from collections.abc import Callable
 
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription

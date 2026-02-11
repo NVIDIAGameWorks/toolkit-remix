@@ -17,7 +17,7 @@
 
 import functools
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Set, Tuple
+from collections.abc import Callable
 
 import carb
 import omni.client
@@ -60,14 +60,14 @@ class Setup:
             stage_destination.SetTimeCodesPerSecond(time_codes)
 
     @staticmethod
-    def is_path_valid(path: str, error_callback: Optional[Callable[[str, str], None]] = None) -> bool:
+    def is_path_valid(path: str, error_callback: Callable[[str, str], None] | None = None) -> bool:
         error_title = "Wrong capture directory"
         if not path or not path.strip():
             if error_callback is not None:
                 error_callback(error_title, f"{path} is not valid")
             return False
         _, entry = omni.client.stat(path)
-        if not (entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN):  # noqa PLC0325
+        if not (entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN):
             if error_callback is not None:
                 error_callback(error_title, f"{path} is not a directory")
             return False
@@ -78,12 +78,12 @@ class Setup:
         return True
 
     @staticmethod
-    def get_game_icon_from_folder(folder_path: str) -> Optional[str]:
+    def get_game_icon_from_folder(folder_path: str) -> str | None:
         icons = list(Path(folder_path).glob("*_icon.bmp"))
         return str(icons[0]) if icons else None
 
     @staticmethod
-    def get_upscaled_game_icon_from_folder(folder_path: str) -> Optional[str]:
+    def get_upscaled_game_icon_from_folder(folder_path: str) -> str | None:
         default_icon = Setup.get_game_icon_from_folder(folder_path)
         if not default_icon:
             return None
@@ -95,7 +95,7 @@ class Setup:
         return str(png_file)
 
     @omni.usd.handle_exception
-    async def deferred_get_upscaled_game_icon_from_folder(self, folder_path: str, callback):  # noqa PLW0238
+    async def deferred_get_upscaled_game_icon_from_folder(self, folder_path: str, callback):
         wrapped_fn = _async_wrap(functools.partial(self.get_upscaled_game_icon_from_folder, folder_path))
         result = await wrapped_fn()
         callback(result)
@@ -163,12 +163,12 @@ class Setup:
         return True
 
     @omni.usd.handle_exception
-    async def deferred_get_capture_files(self, callback):  # noqa PLW0238
+    async def deferred_get_capture_files(self, callback):
         wrapped_fn = _async_wrap(self.get_capture_files)
         result = await wrapped_fn()
         await callback(result)
 
-    def get_capture_files(self) -> List[str]:
+    def get_capture_files(self) -> list[str]:
         def _get_files(_file):
             return _file.is_file() and _file.suffix in constants.USD_EXTENSIONS and self.is_capture_file(str(_file))
 
@@ -185,7 +185,7 @@ class Setup:
         #             result.append(str(file))
         return sorted(result, reverse=True)
 
-    def get_capture_image(self, path: str) -> Optional[str]:
+    def get_capture_image(self, path: str) -> str | None:
         for folder in [".thumbs", "thumbs"]:
             image_path = Path(path).parent / folder / f"{Path(path).name}.dds"
             if image_path.exists():
@@ -193,7 +193,7 @@ class Setup:
         return None
 
     @staticmethod
-    def get_hashes_from_capture_layer(layer: Sdf.Layer) -> Tuple[Dict[str, Sdf.Path], Dict[str, Set[str]]]:
+    def get_hashes_from_capture_layer(layer: Sdf.Layer) -> tuple[dict[str, Sdf.Path], dict[str, set[str]]]:
         """
         Faster version that use pre defined prims from a capture layer
 
@@ -228,7 +228,7 @@ class Setup:
         return result, result_switch_grouped
 
     @omni.usd.handle_exception
-    async def async_get_replaced_hashes(self, layer_path: str, replaced_items: List[str]) -> Tuple[Set[str], Set[str]]:
+    async def async_get_replaced_hashes(self, layer_path: str, replaced_items: list[str]) -> tuple[set[str], set[str]]:
         """
         Get the number of asset replaced from a capture layer and the current replacement layer
 
@@ -269,7 +269,7 @@ class Setup:
 
     def get_captured_hashes(
         self, layer: Sdf.Layer, ignore_capture_check: bool = False
-    ) -> Tuple[Dict[str, Sdf.Path], Dict[str, Set[str]]]:
+    ) -> tuple[dict[str, Sdf.Path], dict[str, set[str]]]:
         if not ignore_capture_check and not self.is_layer_a_capture_file(layer):
             return {}, {}
         return Setup.get_hashes_from_capture_layer(layer)

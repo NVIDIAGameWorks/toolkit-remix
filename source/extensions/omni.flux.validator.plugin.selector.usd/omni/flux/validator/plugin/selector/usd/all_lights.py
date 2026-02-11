@@ -16,7 +16,7 @@
 """
 
 from enum import Enum
-from typing import Any, Tuple
+from typing import Any
 
 import omni.ui as ui
 import omni.usd
@@ -46,7 +46,7 @@ class AllLights(_SelectorUSDBase):
     @omni.usd.handle_exception
     async def _select(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to select the data
 

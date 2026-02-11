@@ -20,3 +20,5 @@ and shader widgets, along with utility functions."""
 
 
 from .utils import get_sdr_shader_node_for_prim, property_name_to_display_name, remove_properties_and_connections
+
+__all__ = ["get_sdr_shader_node_for_prim", "property_name_to_display_name", "remove_properties_and_connections"]

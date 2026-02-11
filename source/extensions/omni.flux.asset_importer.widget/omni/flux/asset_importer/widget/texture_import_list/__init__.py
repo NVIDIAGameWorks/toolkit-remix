@@ -16,10 +16,10 @@
 """
 
 __all__ = [
-    "TextureImportListWidget",
-    "TextureImportListModel",
     "TextureImportItem",
     "TextureImportListDelegate",
+    "TextureImportListModel",
+    "TextureImportListWidget",
     "TextureTypes",
 ]
 

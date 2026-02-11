@@ -15,12 +15,15 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import re
 import uuid
 from asyncio import ensure_future
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any
+from collections.abc import Callable
 
 import carb
 import omni.client
@@ -104,7 +107,7 @@ class PackagingCore:
         """
         return self._status
 
-    def package(self, schema: Dict):
+    def package(self, schema: dict):
         r"""
         Execute the project packaging process using the given schema.
 
@@ -131,13 +134,13 @@ class PackagingCore:
         return ensure_future(self.package_async(schema))
 
     @omni.usd.handle_exception
-    async def package_async(self, schema: Dict):
+    async def package_async(self, schema: dict):
         """
         Asynchronous implementation of package
         """
         await self.package_async_with_exceptions(schema)
 
-    async def package_async_with_exceptions(self, schema: Dict):
+    async def package_async_with_exceptions(self, schema: dict):
         """
         Asynchronous implementation of package, but async without error handling.  This is meant for testing.
         """
@@ -203,7 +206,7 @@ class PackagingCore:
                     errors.extend(self._update_layer_metadata(model, root_mod_layer, mod_dependencies, False))
                 else:
                     errors.append("Unable to find the exported mod file.")
-        except Exception as e:  # noqa PLW0718
+        except Exception as e:  # noqa: BLE001
             errors.append(str(e))
         finally:
             # Cleanup the temp files
@@ -227,16 +230,16 @@ class PackagingCore:
     async def _clean_temp_files(self):
         self._packaging_new_stage("Cleaning up temporary layers...", len(self._temp_files))
 
-        for temp_file in self._temp_files.keys():  # noqa PLC0201
+        for temp_file in self._temp_files:
             try:
                 await _OmniClientWrapper.delete(str(temp_file))
-            except Exception:  # noqa PLW0718
+            except Exception:  # noqa: BLE001
                 carb.log_warn(f"Unable to cleanup temporary layer: {temp_file}")
             self.current_count += 1
         self._temp_files.clear()
 
     @omni.usd.handle_exception
-    async def _initialize_usd_stage(self, context_name: str, root_mod_layer_path: str) -> "Usd.Stage":
+    async def _initialize_usd_stage(self, context_name: str, root_mod_layer_path: str) -> Usd.Stage | None:
         # Make sure the context exists
         context = omni.usd.get_context(context_name)
         if not context:
@@ -254,10 +257,10 @@ class PackagingCore:
     async def _filter_sublayers(
         self,
         context_name: str,
-        parent_layer: Optional[Sdf.Layer],
+        parent_layer: Sdf.Layer | None,
         temp_layer: Sdf.Layer,
-        selected_layer_paths: List[str],
-    ) -> List[str]:
+        selected_layer_paths: list[str],
+    ) -> list[str]:
         # The given layer is already a temp path
         temp_layers = [temp_layer.identifier]
 
@@ -302,13 +305,13 @@ class PackagingCore:
     @omni.usd.handle_exception
     async def _collect(
         self,
-        stage: "Usd.Stage",
+        stage: Usd.Stage,
         temp_root_layer: Sdf.Layer,
-        existing_temp_layers: List[str],
-        output_directory: Union[Path, str],
-        redirected_dependencies: Set[str],
-        ignored_errors: Optional[List[Tuple[str, str, str]]],
-    ) -> Tuple[List[str], List[Tuple[str, str, str]]]:
+        existing_temp_layers: list[str],
+        output_directory: Path | str,
+        redirected_dependencies: set[str],
+        ignored_errors: list[tuple[str, str, str]] | None,
+    ) -> tuple[list[str], list[tuple[str, str, str]]]:
         errors = []
         failed_assets = []
         if self._cancel_token:
@@ -440,7 +443,7 @@ class PackagingCore:
 
                 self.current_count += 1
         # Make sure to bubble up failures
-        except Exception as e:  # noqa PLW0706
+        except Exception as e:  # noqa: BLE001
             errors.append(e)
 
         # Clear assets marked for collection now that they were copied
@@ -451,7 +454,7 @@ class PackagingCore:
     @omni.usd.handle_exception
     async def _get_unresolved_assets_prim_paths(
         self, stage: Usd.Stage, unresolved_paths: list[str]
-    ) -> List[Tuple[str, str, str]]:
+    ) -> list[tuple[str, str, str]]:
         result = []
 
         for prim in stage.TraverseAll():
@@ -474,13 +477,13 @@ class PackagingCore:
 
         return result
 
-    def _get_original_path(self, temp_layer_path: str) -> Optional[str]:
+    def _get_original_path(self, temp_layer_path: str) -> str | None:
         original_name = self._temp_files.get(_OmniUrl(temp_layer_path).path)
         return _OmniUrl(temp_layer_path).with_name(original_name).path if original_name else None
 
     def _get_redirected_dependencies(
-        self, temp_root_layer: Sdf.Layer, external_mod_paths: List[Path]
-    ) -> Tuple[Set[str], Set[str]]:
+        self, temp_root_layer: Sdf.Layer, external_mod_paths: list[Path]
+    ) -> tuple[set[str], set[str]]:
         mod_dependencies = set()
         redirected_dependencies = set()
 
@@ -517,8 +520,8 @@ class PackagingCore:
         return mod_dependencies, redirected_dependencies
 
     def _update_layer_metadata(
-        self, model: _ModPackagingSchema, layer: Sdf.Layer, mod_dependencies: Set[str], update_dependencies: bool
-    ) -> List[str]:
+        self, model: _ModPackagingSchema, layer: Sdf.Layer, mod_dependencies: set[str], update_dependencies: bool
+    ) -> list[str]:
         errors = []
 
         if self._cancel_token:
@@ -570,7 +573,7 @@ class PackagingCore:
         return relative_path.replace(f"{_REMIX_DEPENDENCIES_FOLDER}/", "../../")
 
     def _redirect_inside_package_directory(
-        self, dependency_path: str, output_directory: Union[Path, str], temp_layer: Sdf.Layer, relative_path: str
+        self, dependency_path: str, output_directory: Path | str, temp_layer: Sdf.Layer, relative_path: str
     ) -> str:
         if self._cancel_token:
             return relative_path
@@ -610,7 +613,7 @@ class PackagingCore:
         return fixed_relative_path
 
     def _modify_asset_paths(
-        self, temp_layer: Sdf.Layer, dependency_updates: Dict[str, Callable[[Sdf.Layer, str], str]], relative_path: str
+        self, temp_layer: Sdf.Layer, dependency_updates: dict[str, Callable[[Sdf.Layer, str], str]], relative_path: str
     ) -> str:
         if self._cancel_token:
             return relative_path
@@ -675,14 +678,14 @@ class PackagingCore:
         """
         return _EventSubscription(self.__packaging_progress, function)
 
-    def _packaging_completed(self, errors: List[str], failed_assets: List[Tuple[str, str, str]]):
+    def _packaging_completed(self, errors: list[str], failed_assets: list[tuple[str, str, str]]):
         """Call the event object that has the list of functions"""
         for error in errors:
             carb.log_error(error)
         self.__packaging_completed(errors, failed_assets, self._cancel_token)
         self._cancel_token = False
 
-    def subscribe_packaging_completed(self, function: Callable[[List[str], List[Tuple[str, str, str]], bool], Any]):
+    def subscribe_packaging_completed(self, function: Callable[[list[str], list[tuple[str, str, str]], bool], Any]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """

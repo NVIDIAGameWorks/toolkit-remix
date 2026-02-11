@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.7.2]
+### Changed
+- Modernize python style and enable more ruff checks
+
 ## [0.7.1]
 ### Changed
 - Switched to ruff for linting and formatting

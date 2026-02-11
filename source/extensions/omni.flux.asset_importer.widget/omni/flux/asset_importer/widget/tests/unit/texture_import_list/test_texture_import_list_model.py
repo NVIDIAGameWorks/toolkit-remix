@@ -34,13 +34,13 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
     async def test_set_preferred_normal_type_should_set_pref_normal_conv(self):
         # Arrange
         model = TextureImportListModel()
-        model._pref_normal_conv = TextureTypes.OTHER  # noqa PLW0212
+        model._pref_normal_conv = TextureTypes.OTHER
 
         # Act
         model.set_preferred_normal_type(TextureTypes.METALLIC)
 
         # Assert
-        self.assertEqual(model._pref_normal_conv, TextureTypes.METALLIC)  # noqa PLW0212
+        self.assertEqual(model._pref_normal_conv, TextureTypes.METALLIC)
 
     async def test_refresh_should_set_children_subscribe_to_items_and_call_item_changed(self):
         # Arrange
@@ -57,11 +57,11 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
             model.refresh(items)
 
         # Assert
-        self.assertEqual(len(items), len(model._children))  # noqa PLW0212
+        self.assertEqual(len(items), len(model._children))
 
-        for i in range(len(model._children)):  # noqa PLW0212
-            self.assertEqual(items[i][0], list(model._children.keys())[i]._path)  # noqa PLW0212
-            self.assertEqual(items[i][1], list(model._children.keys())[i]._texture_type)  # noqa PLW0212
+        for i in range(len(model._children)):
+            self.assertEqual(items[i][0], list(model._children.keys())[i]._path)
+            self.assertEqual(items[i][1], list(model._children.keys())[i]._texture_type)
 
         self.assertEqual(1, mock.call_count)
 
@@ -152,7 +152,7 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
                 }
 
                 model = TextureImportListModel()
-                model._children = [  # noqa PLW0212
+                model._children = [
                     TextureImportItem(OmniUrl(texture_path), texture_type=texture_type)
                     for texture_path, texture_type in initial_types.items()
                 ]
@@ -169,7 +169,7 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
                 self.assertEqual(1 if is_none else 0, type_mock.call_count)
                 self.assertDictEqual(
                     {c.path.path: c.texture_type for c in model._children},
-                    expected_types,  # noqa PLW0212
+                    expected_types,
                 )
 
     async def test_add_item_should_determine_texture_type_append_subscribe_and_call_item_changed(self):
@@ -180,7 +180,7 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
             TextureImportItem(OmniUrl("./test/metal_01.png"), texture_type=TextureTypes.OTHER): (),
             TextureImportItem(OmniUrl("./test/default_02.jpg"), texture_type=TextureTypes.EMISSIVE): (),
         }
-        model._children = default_items.copy()  # noqa PLW0212
+        model._children = default_items.copy()
 
         diffuse_item = "test/test_diffuse_lss.png"
         albedo_item = "test/test_metal_albedo_upscaled.png"
@@ -215,7 +215,7 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
             model.add_items(new_items)
 
         # Assert
-        self.assertEqual(len(default_items) + len(new_items), len(model._children))  # noqa PLW0212
+        self.assertEqual(len(default_items) + len(new_items), len(model._children))
         self.assertListEqual(
             [
                 (TextureTypes.METALLIC, list(default_items.keys())[0].path.path),
@@ -233,7 +233,7 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
                 (TextureTypes.OTHER, duplicate_item_01),
                 (TextureTypes.OTHER, duplicate_item_02),
             ],
-            [(c.texture_type, c.path.path) for c in model._children],  # noqa PLW0212
+            [(c.texture_type, c.path.path) for c in model._children],
         )
 
         self.assertEqual(1, mock.call_count)
@@ -244,17 +244,17 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
 
         removed_item = Mock()
         items = {Mock(): (), Mock(): (), removed_item: ()}
-        model._children = items.copy()  # noqa PLW0212
+        model._children = items.copy()
 
         # Act
         with patch.object(TextureImportListModel, "_item_changed") as mock:
             model.remove_items([removed_item])
 
         # Assert
-        self.assertEqual(len(items) - 1, len(model._children))  # noqa PLW0212
+        self.assertEqual(len(items) - 1, len(model._children))
 
         with self.assertRaises(ValueError):
-            list(model._children.keys()).index(removed_item)  # noqa PLW0212
+            list(model._children.keys()).index(removed_item)
 
         self.assertEqual(1, mock.call_count)
 
@@ -290,7 +290,7 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
         model = TextureImportListModel()
 
         items = {TextureImportItem(Path("Test")): (), Mock(): (), Mock(): ()}
-        model._children = items  # noqa PLW0212
+        model._children = items
 
         # Act
         val = model.get_item_children(list(items.keys())[0] if use_parent else None)

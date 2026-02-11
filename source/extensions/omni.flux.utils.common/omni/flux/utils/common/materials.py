@@ -44,7 +44,7 @@ def get_materials_from_prim_paths(
     stage = usd_context.get_stage()
 
     material_prims = []
-    for prim_path in prim_paths:  # noqa PLR1702
+    for prim_path in prim_paths:
         prim = stage.GetPrimAtPath(prim_path)
         if prim.IsValid():
             if prim.IsA(UsdShade.Material):

@@ -17,3 +17,5 @@
 
 from .extension import TrexCaptureWindowExtension
 from .setup_ui import CaptureWidget
+
+__all__ = ["CaptureWidget", "TrexCaptureWindowExtension"]

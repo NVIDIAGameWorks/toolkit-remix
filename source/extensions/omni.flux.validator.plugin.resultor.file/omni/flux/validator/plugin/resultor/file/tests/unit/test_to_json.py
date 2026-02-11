@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import pathlib
 import tempfile
 
@@ -28,7 +30,7 @@ class TestToJson(AsyncTestCase):
     async def setUp(self):
         await arrange_windows()
         await open_stage(get_test_data_path(__name__, "usd/cubes.usda"))
-        self.temp_dir = tempfile.TemporaryDirectory()  # noqa PLR1732
+        self.temp_dir = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
 
     # After running each test
     async def tearDown(self):
@@ -110,4 +112,4 @@ class TestToJson(AsyncTestCase):
 
         # test that the file was created
         self.assertTrue(json_path.exists())
-        _sub = None  # noqa
+        _sub = None

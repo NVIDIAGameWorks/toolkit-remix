@@ -16,3 +16,5 @@
 """
 
 from .extension import EventAppStartExtension
+
+__all__ = ["EventAppStartExtension"]

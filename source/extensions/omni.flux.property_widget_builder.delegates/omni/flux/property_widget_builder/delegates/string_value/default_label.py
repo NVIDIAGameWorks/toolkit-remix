@@ -34,7 +34,7 @@ class DefaultLabelField(AbstractField):
         super().__init__(style_name=style_name, identifier=identifier)
         self.widget_type_name = widget_type_name
 
-    def build_ui(self, item) -> list[ui.Widget]:  # noqa PLW0221
+    def build_ui(self, item) -> list[ui.Widget]:
         with ui.VStack(height=ui.Pixel(24)):
             ui.Spacer(height=ui.Pixel(4))
             with ui.HStack(width=ui.Percent(60), height=ui.Pixel(16)):
@@ -54,7 +54,7 @@ class DefaultLabelField(AbstractField):
 
 class NameField(AbstractField):
     def _create_attribute_name_build_fn(self, item, right_aligned):
-        from omni.flux.property_widget_builder.widget import ItemGroup
+        from omni.flux.property_widget_builder.widget import ItemGroup  # noqa: PLC0415
 
         widgets = []
         with ui.HStack():
@@ -77,7 +77,7 @@ class NameField(AbstractField):
             if isinstance(item, ItemGroup):
                 ui.Spacer(height=0)
 
-    def build_ui(self, item, right_aligned: bool = True):  # noqa PLW0221
+    def build_ui(self, item, right_aligned: bool = True):
         stack = ui.VStack()
         with stack:
             frame = ui.Frame()

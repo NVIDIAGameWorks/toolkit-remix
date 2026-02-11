@@ -16,7 +16,7 @@
 """
 
 import abc
-from typing import Callable
+from collections.abc import Callable
 
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription

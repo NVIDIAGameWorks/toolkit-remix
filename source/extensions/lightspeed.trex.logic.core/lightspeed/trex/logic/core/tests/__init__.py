@@ -16,3 +16,5 @@
 """
 
 from .unit.test_graphs import TestLogicGraphCore
+
+__all__ = ["TestLogicGraphCore"]

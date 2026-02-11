@@ -20,7 +20,7 @@ from __future__ import annotations
 __all__ = ("PrimCollection",)
 
 import fnmatch
-from typing import Callable
+from collections.abc import Callable
 
 import omni.usd
 from pxr import Usd

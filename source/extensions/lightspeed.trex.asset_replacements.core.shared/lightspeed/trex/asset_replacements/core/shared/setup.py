@@ -1,5 +1,3 @@
-# noqa PLC0302
-
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -17,10 +15,11 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import re
 import typing
 import uuid
-from typing import Optional, Union
 
 import carb
 import omni.client
@@ -282,7 +281,7 @@ class Setup:
         self,
         prim,
         from_reference_layer_path: str = None,
-        level: Optional[int] = None,
+        level: int | None = None,
         skip_remix_ref: bool = False,
         only_prim_not_from_ref: bool = False,
     ):
@@ -304,7 +303,7 @@ class Setup:
         return instances
 
     def get_textures_from_material_path(
-        self, prim_path: str, texture_types: Optional[set[_TextureTypes]]
+        self, prim_path: str, texture_types: set[_TextureTypes] | None
     ) -> list[tuple[str, str]]:
         textures = []
 
@@ -348,7 +347,7 @@ class Setup:
         stage,
         from_prim,
         from_reference_layer_path,
-        instance_items: list["_ItemInstance"],
+        instance_items: list[_ItemInstance],
         only_xformable: bool = False,
         only_imageable: bool = False,
         filter_scope_prim_without_imageable: bool = False,
@@ -457,7 +456,7 @@ class Setup:
         prims = [stage.GetPrimAtPath(path) for path in paths]
         return self.get_corresponding_prototype_prims(prims)
 
-    def remove_prim_overrides(self, prim_path: Union[Sdf.Path, str]):
+    def remove_prim_overrides(self, prim_path: Sdf.Path | str):
         # Recursively remove prim specs from given layer and all its sublayers
         def remove_prim_specs_recursive(layer, prim_spec_paths):
             for prim_spec_path in prim_spec_paths:
@@ -508,11 +507,11 @@ class Setup:
 
     def get_prim_from_ref_items(
         self,
-        ref_items: list["_ItemReferenceFile"],
-        parent_items: list[Union["_ItemInstance", "_ItemReferenceFile"]],
+        ref_items: list[_ItemReferenceFile],
+        parent_items: list[_ItemInstance | _ItemReferenceFile],
         only_xformable: bool = False,
         only_imageable: bool = False,
-        level: Optional[int] = None,
+        level: int | None = None,
         skip_remix_ref: bool = False,
     ) -> list[Usd.Prim]:
         """
@@ -564,7 +563,7 @@ class Setup:
     def was_the_asset_ingested(path: str, ignore_invalid_paths: bool = True) -> bool:
         return _is_asset_ingested(path, ignore_invalid_paths)
 
-    def asset_is_in_project_dir(self, path: str, layer: "Sdf.Layer", include_deps_dir: bool = False) -> bool:
+    def asset_is_in_project_dir(self, path: str, layer: Sdf.Layer, include_deps_dir: bool = False) -> bool:
         # get asset, root, and deps urls
         prim_path = layer.ComputeAbsolutePath(path)
         prim_path_url = omni.client.normalize_url(prim_path)
@@ -939,7 +938,7 @@ class Setup:
     def is_file_path_valid(path: str, layer: Sdf.Layer, log_error: bool = True) -> bool:
         return _path_utils.is_file_path_valid(path, layer=layer, log_error=log_error)
 
-    def filter_transformable_prims(self, paths: Optional[list[Sdf.Path]]) -> list[str]:
+    def filter_transformable_prims(self, paths: list[Sdf.Path] | None) -> list[str]:
         """
         Filter a list of prim paths to those that can be transformed.
 

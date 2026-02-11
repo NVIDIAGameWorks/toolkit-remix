@@ -289,7 +289,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             elif rule.start:
                 if value.startswith(rule.start):
                     return True
-            elif rule.end:  # noqa SIM102
+            elif rule.end:  # noqa: SIM102
                 if value.endswith(rule.start):
                     return True
         return False

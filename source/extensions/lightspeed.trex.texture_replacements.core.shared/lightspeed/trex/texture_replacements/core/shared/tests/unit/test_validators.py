@@ -88,38 +88,45 @@ class TestTextureReplacementsValidators(AsyncTestCase):
 
     async def test_is_valid_texture_asset_returns_expected_value_or_raises(self):
         # Arrange
-        valid_prim_path = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        with tempfile.NamedTemporaryFile(suffix=".png") as valid_prim_path:
+            valid_prim_path_name = valid_prim_path.name
 
-        test_cases = {
-            (valid_prim_path.name, True): (True, None),
-            (valid_prim_path.name, False): (
-                False,
-                "The asset was not ingested. Ingest the asset before replacing the texture",
-            ),
-            ("Z:/Test/invalid_type.docx", True): (False, "The asset path points to an unsupported texture file type"),
-            ("Z:/Test/invalid_type.docx", False): (False, "The asset path points to an unsupported texture file type"),
-            ("Z:/Test/non_existent.png", True): (False, "The asset path does not point to an existing file"),
-            ("Z:/Test/non_existent.png", False): (False, "The asset path does not point to an existing file"),
-        }
+            test_cases = {
+                (valid_prim_path_name, True): (True, None),
+                (valid_prim_path_name, False): (
+                    False,
+                    "The asset was not ingested. Ingest the asset before replacing the texture",
+                ),
+                ("Z:/Test/invalid_type.docx", True): (
+                    False,
+                    "The asset path points to an unsupported texture file type",
+                ),
+                ("Z:/Test/invalid_type.docx", False): (
+                    False,
+                    "The asset path points to an unsupported texture file type",
+                ),
+                ("Z:/Test/non_existent.png", True): (False, "The asset path does not point to an existing file"),
+                ("Z:/Test/non_existent.png", False): (False, "The asset path does not point to an existing file"),
+            }
 
-        for input_value, expected_value in test_cases.items():
-            prim_path, force = input_value
-            success, message = expected_value
+            for input_value, expected_value in test_cases.items():
+                prim_path, force = input_value
+                success, message = expected_value
 
-            with self.subTest(title=f"prim_path_{prim_path}_force_{force}_success_{success}"):
-                input_val = (None, prim_path)
+                with self.subTest(title=f"prim_path_{prim_path}_force_{force}_success_{success}"):
+                    input_val = (None, prim_path)
 
-                with patch(
-                    "lightspeed.trex.texture_replacements.core.shared.data_models.validators.is_asset_ingested"
-                ) as was_ingested_mock:
-                    was_ingested_mock.return_value = False
+                    with patch(
+                        "lightspeed.trex.texture_replacements.core.shared.data_models.validators.is_asset_ingested"
+                    ) as was_ingested_mock:
+                        was_ingested_mock.return_value = False
 
-                    # Act
-                    with nullcontext() if success else self.assertRaises(ValueError) as cm:
-                        value = TextureReplacementsValidators.is_valid_texture_asset(input_val, force)
+                        # Act
+                        with nullcontext() if success else self.assertRaises(ValueError) as cm:
+                            value = TextureReplacementsValidators.is_valid_texture_asset(input_val, force)
 
-                # Assert
-                if success:
-                    self.assertEqual(value, input_val)
-                else:
-                    self.assertEqual(str(cm.exception), f"{message}: {prim_path}")
+                    # Assert
+                    if success:
+                        self.assertEqual(value, input_val)
+                    else:
+                        self.assertEqual(str(cm.exception), f"{message}: {prim_path}")

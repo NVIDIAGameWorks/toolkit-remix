@@ -16,3 +16,5 @@
 """
 
 from .unit.test_pip_archive import TestPipArchive
+
+__all__ = ["TestPipArchive"]

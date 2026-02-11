@@ -18,7 +18,7 @@
 import asyncio
 import functools
 import threading
-from typing import Any, List, Optional
+from typing import Any
 
 import omni.kit.app
 from omni import ui, usd
@@ -36,9 +36,7 @@ class SelectionHistoryWidget:
 
     _main_loop = asyncio.get_event_loop()
 
-    def __init__(
-        self, model: Optional[SelectionHistoryModel] = None, delegate: Optional[SelectionHistoryDelegate] = None
-    ):
+    def __init__(self, model: SelectionHistoryModel | None = None, delegate: SelectionHistoryDelegate | None = None):
         self._default_attr = {
             "_model": None,
             "_delegate": None,
@@ -158,15 +156,15 @@ class SelectionHistoryWidget:
             self._slide_placer.offset_y = 0
         self._tree_scroll_frame.height = ui.Pixel(self._DEFAULT_TREE_FRAME_HEIGHT + y.value)
 
-    def _block_active_items(func):  # noqa N805
-        def do(self, *args, **kwargs):  # noqa PLC0103
-            self.__block_active_items = True  # noqa PLW0212
-            func(self, *args, **kwargs)  # noqa PLE1102
+    def _block_active_items(func):  # noqa: N805
+        def do(self, *args, **kwargs):
+            self.__block_active_items = True
+            func(self, *args, **kwargs)
 
         return do
 
     @_block_active_items
-    def _on_selection_changed(self, items: List[SelectionHistoryItem]):
+    def _on_selection_changed(self, items: list[SelectionHistoryItem]):
         self._model.set_active_items(items)
         self._delegate.on_item_selected(items, self._model.get_item_children(None))
 
@@ -194,7 +192,7 @@ class SelectionHistoryWidget:
                 return
             self._delegate.refresh_gradient_color(item, deferred=False)
 
-    def _on_active_items_changed(self, active_items: List[Any]):
+    def _on_active_items_changed(self, active_items: list[Any]):
         if self.__block_active_items:
             self.__block_active_items = False
             return

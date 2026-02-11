@@ -15,7 +15,14 @@
 * limitations under the License.
 """
 
-__all__ = ["create_instance", "get_instance", "get_instances", "get_active_viewport", "get_viewport_api"]
+__all__ = [
+    "TrexViewportSharedExtension",
+    "create_instance",
+    "get_active_viewport",
+    "get_instance",
+    "get_instances",
+    "get_viewport_api",
+]
 
 from .extension import (
     TrexViewportSharedExtension,

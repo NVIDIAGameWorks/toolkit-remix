@@ -18,7 +18,6 @@
 import os
 import shutil
 from pathlib import Path
-from typing import List, Optional
 
 import carb
 import omni.client
@@ -33,7 +32,7 @@ from pxr import Sdf, Usd, UsdShade
 
 class ToolMaterialCore:
     @staticmethod
-    def copy_default_mat_reference() -> List[str]:
+    def copy_default_mat_reference() -> list[str]:
         material_files = []
         current_path = Path(__file__)
         for _ in range(5):
@@ -72,11 +71,11 @@ class ToolMaterialCore:
         return shader if shader else None
 
     @staticmethod
-    def get_materials_from_prim_paths(prim_paths: List[str], context_name: str = ""):
+    def get_materials_from_prim_paths(prim_paths: list[str], context_name: str = ""):
         return _get_materials_from_prim_paths(prim_paths, context_name)
 
     @staticmethod
-    def get_corresponding_usd_mat_from_mdl_path(material_files, mdl_path) -> Optional[str]:
+    def get_corresponding_usd_mat_from_mdl_path(material_files, mdl_path) -> str | None:
         # grab the good reference material
         sub_id = os.path.basename(mdl_path).rpartition(".")[0]
         for material_file in material_files:
@@ -90,7 +89,7 @@ class ToolMaterialCore:
         return None
 
     @staticmethod
-    def get_mat_prim_from_usd(material_file) -> Optional[Usd.Prim]:
+    def get_mat_prim_from_usd(material_file) -> Usd.Prim | None:
         # grab the good reference material
         stage = Usd.Stage.Open(material_file)
         iterator = iter(stage.TraverseAll())
@@ -208,7 +207,7 @@ class ToolMaterialCore:
         return True
 
     @staticmethod
-    def convert_materials(prims: List[Usd.Prim], mdl_file_name: str, context_name: str = ""):
+    def convert_materials(prims: list[Usd.Prim], mdl_file_name: str, context_name: str = ""):
         usd_context = omni.usd.get_context(context_name)
         stage = usd_context.get_stage()
 

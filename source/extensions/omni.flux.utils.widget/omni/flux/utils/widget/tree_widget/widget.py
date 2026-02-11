@@ -19,7 +19,8 @@ from __future__ import annotations
 
 import abc
 import math
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 from omni import ui
 from omni.flux.utils.common import Event as _Event

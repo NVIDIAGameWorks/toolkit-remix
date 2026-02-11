@@ -16,7 +16,6 @@
 """
 
 import abc
-from typing import List
 
 import omni.ui as ui
 from omni.flux.utils.common import Event as _Event
@@ -72,7 +71,7 @@ class Model(ui.AbstractItemModel):
         """
         return _EventSubscription(self.__on_items_selected_changed, function)
 
-    def set_items_selected(self, items: List[Item]):
+    def set_items_selected(self, items: list[Item]):
         """
         Select the items from the tree
 

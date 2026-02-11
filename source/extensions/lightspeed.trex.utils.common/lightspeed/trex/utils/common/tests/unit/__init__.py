@@ -17,3 +17,5 @@
 
 from .test_prim_utils import TestGetPrototype
 from .test_user_utils import TestUserUtils
+
+__all__ = ["TestGetPrototype", "TestUserUtils"]

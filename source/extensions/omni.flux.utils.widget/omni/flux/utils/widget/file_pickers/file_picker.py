@@ -56,7 +56,6 @@ def _on_click_open(
     callback: Callable[[str | list[str]], None],
     validate_selection: Callable[[str, str], bool] | Callable[[list[str]], bool] | None,
     validation_failed_callback: Callable[[str, str], None] | Callable[[list[str]], None] | None,
-    extensions: list[str] | None = None,
     select_directory: bool = False,
     allow_multi_selection: bool = False,
 ):
@@ -89,7 +88,7 @@ def _on_click_open(
         # "*.usda", or "*.usdc", or "*.jpg", we can auto add the extension
         # If we have something like "*.usd*" or "*.jpg, *.png, *.exr", we don't add an auto extension and show a message
         exts = dialog.get_file_extension().split(",")
-        if not select_directory and exts and len(exts) == 1 and re.match("^\*.[a-zA-Z0-9]+$", exts[0].strip()):  # noqa
+        if not select_directory and exts and len(exts) == 1 and re.match(r"^\*\.[a-zA-Z0-9]+$", exts[0].strip()):
             if not select_directory and exts and not fnmatch.fnmatch(str(_Path(filename).suffix), exts[0].strip()):
                 # we remove the *
                 filename += exts[0].strip().replace("*", "")
@@ -241,7 +240,6 @@ def open_file_picker(
             callback,
             validate_selection,
             validation_failed_callback,
-            extensions,
             select_directory,
             allow_multi_selection,
         ),

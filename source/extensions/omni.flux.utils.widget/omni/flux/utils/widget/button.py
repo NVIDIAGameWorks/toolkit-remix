@@ -39,7 +39,7 @@ def create_button_from_widget(widget: ui.Widget, on_clicked: Callable[[float, fl
         # in the helper functions.
         can_click[0] = is_hovered
 
-    def on_pressed(x, y, button, m):
+    def on_pressed(_x, _y, button, _m):
         if button != 0:
             return
         widget.selected = True

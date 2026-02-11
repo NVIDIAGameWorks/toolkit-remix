@@ -1,4 +1,3 @@
-# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -16,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import functools
 import io
@@ -26,7 +27,8 @@ from collections.abc import Iterable
 from contextlib import asynccontextmanager, contextmanager, redirect_stderr, redirect_stdout
 from enum import Enum as _Enum
 from json import JSONEncoder
-from typing import Any, Awaitable, Callable
+from typing import Any
+from collections.abc import Awaitable, Callable
 
 import carb
 import carb.settings
@@ -113,7 +115,7 @@ class ValidationSchema(BaseModel):
             raise ValueError("We should have at least 1 check plugin")
         return v
 
-    def update(self, data: dict) -> "ValidationSchema":
+    def update(self, data: dict) -> ValidationSchema:
         """This function updates the attributes of a `ValidationSchema` instance with new values provided in a
         dictionary. The update is performed recursively for nested models and lists within the model."""
 
@@ -211,7 +213,7 @@ class ManagerCore:
         """
         self._last_run_task = None
         self.__force_ignore_exception = False
-        self.__factory_instance = _get_factory_instance()  # noqa
+        self.__factory_instance = _get_factory_instance()
         self.__no_check_failed = True
 
         self.__run_started = False
@@ -493,7 +495,7 @@ class ManagerCore:
         if plugin_model.resultor_plugins:
             size_plugins = len(plugin_model.resultor_plugins)
             progress_check_add = (progress_check_add / size_plugins) / 2  # divide by 2 because we start at 50
-            for resultor_plugin in plugin_model.resultor_plugins:  # noqa PLE1133
+            for resultor_plugin in plugin_model.resultor_plugins:
                 progress_check += progress_check_add
                 self._on_run_progress(progress_check)
                 if not resultor_plugin.enabled:
@@ -855,7 +857,7 @@ class ManagerCore:
         if self.__model.resultor_plugins:
             for resultor_plugin, resultor_original_plugin in zip(
                 self.__model.resultor_plugins, self.__model_original.resultor_plugins
-            ):  # noqa
+            ):
                 resultor_plugin.enabled = all(
                     [resultor_plugin.instance in instance_plugins, resultor_original_plugin.enabled]
                 )
@@ -904,7 +906,7 @@ class ManagerCore:
         if self.__model.resultor_plugins:
             for resultor_plugin, resultor_original_plugin in zip(
                 self.__model.resultor_plugins, self.__model_original.resultor_plugins
-            ):  # noqa
+            ):
                 if not found_self:
                     found_self = all([resultor_plugin.instance in instance_plugins, resultor_original_plugin.enabled])
                 resultor_plugin.enabled = found_self

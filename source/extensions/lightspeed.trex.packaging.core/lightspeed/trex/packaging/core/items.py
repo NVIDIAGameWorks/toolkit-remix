@@ -17,7 +17,6 @@
 
 import re
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
@@ -28,11 +27,11 @@ class ModPackagingSchema(BaseModel):
     context_name: str = Field(
         description="The context name to use for the packaging stage. Should be a unique context name."
     )
-    mod_layer_paths: List[Path] = Field(
+    mod_layer_paths: list[Path] = Field(
         description="The mod layer paths should be ordered by opinion strength where the strongest layer is first. "
         "All mod layers found in a given project should be in found in the list, including external mod dependencies",
     )
-    selected_layer_paths: List[Path] = Field(
+    selected_layer_paths: list[Path] = Field(
         description="A list of layers to package. Must at least contain the strongest mod layer found in "
         "`mod_layer_paths` or the packaging process will quick return.",
     )
@@ -40,7 +39,7 @@ class ModPackagingSchema(BaseModel):
         description="The directory where the packaged mod should be stored.\n\n"
         "WARNING: The directory will be emptied prior to packaging the mod.",
     )
-    redirect_external_dependencies: Optional[bool] = Field(
+    redirect_external_dependencies: bool | None = Field(
         default=True,
         description="Whether the reference dependencies taken from external mods should be redirected or copied in "
         "this mod's package during the packaging process.\n\n"
@@ -51,10 +50,8 @@ class ModPackagingSchema(BaseModel):
     )
     mod_name: str = Field(description="The display name used for the mod in the RTX Remix Runtime.")
     mod_version: str = Field(description="The mod version. Used when building dependency lists.")
-    mod_details: Optional[str] = Field(
-        default=None, description="Optional text used to describe the mod in more details."
-    )
-    ignored_errors: Optional[List[Tuple[str, str, str]]] = Field(
+    mod_details: str | None = Field(default=None, description="Optional text used to describe the mod in more details.")
+    ignored_errors: list[tuple[str, str, str]] | None = Field(
         default=None, description="A list of errors to ignore when packaging the mod."
     )
 

@@ -56,7 +56,7 @@ class SelectionHistoryDelegate(ui.AbstractItemDelegate):
         self._gradient_image_provider = {}
         self._gradient_image_with_provider = {}
 
-        self.__item_is_pressed = False  # noqa PLW0238
+        self.__item_is_pressed = False
 
         # gradient
         style = ui.Style.get_instance()
@@ -193,13 +193,13 @@ class SelectionHistoryDelegate(ui.AbstractItemDelegate):
     def _on_item_mouse_pressed(self, button, item):
         if button != 0:
             return
-        self.__item_is_pressed = True  # noqa PLW0238
+        self.__item_is_pressed = True
         self.refresh_gradient_color(item)
 
     def _on_item_mouse_released(self, button, item):
         if button != 0:
             return
-        self.__item_is_pressed = False  # noqa PLW0238
+        self.__item_is_pressed = False
         self.refresh_gradient_color(item)
 
     def refresh_gradient_color(self, item, deferred=True):

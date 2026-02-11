@@ -414,8 +414,8 @@ class LogicPropertyWidget:
         if not self._context:
             return
 
-        if self.__usd_listener_instance and self._property_model:  # noqa PLE0203
-            self.__usd_listener_instance.remove_model(self._property_model)  # noqa PLE0203
+        if self.__usd_listener_instance and self._property_model:
+            self.__usd_listener_instance.remove_model(self._property_model)
 
         stage: Usd.Stage = self._context.get_stage()
         items: list[ItemGroup | USDAttributeItem | USDAttrListItem | USDRelationshipItem] = []
@@ -427,7 +427,7 @@ class LogicPropertyWidget:
 
         node_types: list[og.NodeType] = []
 
-        if stage is not None:  # noqa PLR1702
+        if stage is not None:
             # Group attributes by name across all selected prims
             attr_added: dict[str, list[tuple[Usd.Prim, og.Attribute]]] = {}
 

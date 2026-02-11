@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils

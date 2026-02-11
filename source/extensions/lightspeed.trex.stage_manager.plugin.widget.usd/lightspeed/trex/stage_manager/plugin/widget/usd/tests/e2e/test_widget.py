@@ -20,7 +20,6 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Type
 
 import omni.kit.commands
 import omni.kit.test
@@ -69,7 +68,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         self.stage = None
         self.temp_dir = None
 
-    async def __setup_widget(self, widget_plugin_type: Type[_StageManagerStateWidgetPlugin]):
+    async def __setup_widget(self, widget_plugin_type: type[_StageManagerStateWidgetPlugin]):
         await arrange_windows(topleft_window="Stage")
 
         window = ui.Window("TestWidgetPluginsWindow", width=200, height=100)
@@ -81,7 +80,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
     async def __destroy(self, window, widget):
         # await wait_stage_loading()  # NOTE: This causes the window to not fully destroy
 
-        widget = None  # noqa F841
+        widget = None  # noqa: F841
         window.destroy()
 
     async def __setup_directories(self):

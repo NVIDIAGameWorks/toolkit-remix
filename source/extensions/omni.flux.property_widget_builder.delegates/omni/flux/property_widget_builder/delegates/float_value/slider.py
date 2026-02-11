@@ -47,7 +47,7 @@ class FloatSliderField(AbstractField):
             return self._step
         return (self.max_value - self.min_value) * 0.005
 
-    def build_ui(self, item) -> list[ui.Widget]:  # noqa PLW0221
+    def build_ui(self, item) -> list[ui.Widget]:
         widgets = []
         with ui.HStack(height=ui.Pixel(24)):
             for i in range(item.element_count):

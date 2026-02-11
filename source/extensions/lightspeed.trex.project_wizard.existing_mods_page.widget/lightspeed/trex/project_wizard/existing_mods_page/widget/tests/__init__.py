@@ -17,3 +17,5 @@
 
 from .unit.test_selection_tree_items import TestSelectionTreeItems
 from .unit.test_selection_tree_model import TestSelectionTreeModel
+
+__all__ = ["TestSelectionTreeItems", "TestSelectionTreeModel"]

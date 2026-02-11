@@ -16,13 +16,13 @@
 """
 
 __all__ = (
-    "iter_clipboard_changes",
     "copy",
+    "iter_clipboard_changes",
     "paste",
 )
 
 import json
-from typing import Iterable, Iterator
+from collections.abc import Iterable, Iterator
 
 import omni.kit.clipboard
 import omni.kit.undo

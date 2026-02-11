@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import carb
 import omni.usd
@@ -31,7 +31,7 @@ class LegacyGridScene(IManipulator):
         self.__persp_grid = "XZ"
         self.__last_grid = None
         self.__on_stage_opened(self.stage)
-        self.__stage_sub = self.usd_context.get_stage_event_stream().create_subscription_to_pop(  # noqa PLW0238
+        self.__stage_sub = self.usd_context.get_stage_event_stream().create_subscription_to_pop(
             self.__on_usd_context_event, name="LegacyGridScene StageUp watcher"
         )
 
@@ -104,7 +104,7 @@ class LegacyGridScene(IManipulator):
         carb.settings.get_settings().set("/app/viewport/grid/enabled", bool(value))
 
     def destroy(self):
-        self.__stage_sub = None  # noqa PLW0238
+        self.__stage_sub = None
         if self.__vc_change:
             self.__vc_change.destroy()
             self.__vc_change = None
@@ -167,16 +167,16 @@ class LegacyAudioScene(IManipulator):
         carb.settings.get_settings().set("/app/viewport/show/audio", bool(value))
 
 
-def grid_default_factory(desc: Dict[str, Any]):
+def grid_default_factory(desc: dict[str, Any]):
     manip = LegacyGridScene(desc.get("viewport_api"))
     return manip
 
 
-def light_factory(desc: Dict[str, Any]):
+def light_factory(desc: dict[str, Any]):
     manip = LegacyLightScene(desc.get("viewport_api"))
     return manip
 
 
-def audio_factory(desc: Dict[str, Any]):
+def audio_factory(desc: dict[str, Any]):
     manip = LegacyAudioScene(desc.get("viewport_api"))
     return manip

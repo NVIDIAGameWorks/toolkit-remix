@@ -15,7 +15,9 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING, Any, Tuple
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 import omni.ui as ui
 import omni.usd
@@ -38,7 +40,7 @@ class FileCleanup(_ResultorBase):
     data_type = Data
 
     @omni.usd.handle_exception
-    async def _result(self, schema_data: Data, schema: "_ValidationSchema") -> Tuple[bool, str]:
+    async def _result(self, schema_data: Data, schema: _ValidationSchema) -> tuple[bool, str]:
         """
         Function that will be called to work on the result
 

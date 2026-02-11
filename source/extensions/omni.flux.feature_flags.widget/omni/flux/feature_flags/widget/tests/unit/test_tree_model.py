@@ -37,13 +37,13 @@ class TestFeatureFlagModel(AsyncTestCase):
             self.model.enable_listeners(True)
 
         # Assert
-        self.assertIsNotNone(self.model._feature_flags_changed_subs)  # noqa PLW0212
+        self.assertIsNotNone(self.model._feature_flags_changed_subs)
         self.assertEqual(refresh_mock.call_count, 1)
 
     async def test_disable_listeners_should_delete_subscription(self):
         # Arrange
         sub = Mock()
-        self.model._feature_flags_changed_subs = [sub]  # noqa PLW0212
+        self.model._feature_flags_changed_subs = [sub]
 
         with patch.object(FeatureFlagsCore, "unsubscribe_feature_flags_changed") as unsubscribe_mock:
             # Act
@@ -53,7 +53,7 @@ class TestFeatureFlagModel(AsyncTestCase):
         self.assertEqual(unsubscribe_mock.call_count, 1)
         self.assertEqual(unsubscribe_mock.call_args, call([sub]))
 
-        self.assertIsNone(self.model._feature_flags_changed_subs)  # noqa PLW0212
+        self.assertIsNone(self.model._feature_flags_changed_subs)
 
     async def test_refresh_should_get_all_flags_and_trigger_item_changed(self):
         # Arrange
@@ -70,13 +70,13 @@ class TestFeatureFlagModel(AsyncTestCase):
             self.model.refresh()
 
         # Assert
-        self.assertEqual(len(self.model._items), 2)  # noqa PLW0212
+        self.assertEqual(len(self.model._items), 2)
 
-        self.assertEqual(self.model._items[0].key, "test_enabled")  # noqa PLW0212
-        self.assertEqual(self.model._items[0].value, True)  # noqa PLW0212
+        self.assertEqual(self.model._items[0].key, "test_enabled")
+        self.assertEqual(self.model._items[0].value, True)
 
-        self.assertEqual(self.model._items[1].key, "test_disabled")  # noqa PLW0212
-        self.assertEqual(self.model._items[1].value, False)  # noqa PLW0212
+        self.assertEqual(self.model._items[1].key, "test_disabled")
+        self.assertEqual(self.model._items[1].value, False)
 
         self.assertEqual(get_flags_mock.call_count, 1)
 
@@ -86,7 +86,7 @@ class TestFeatureFlagModel(AsyncTestCase):
     async def test_get_item_children_no_item_should_return_items(self):
         # Arrange
         item_mocks = [Mock(), Mock(), Mock()]
-        self.model._items = item_mocks  # noqa PLW0212
+        self.model._items = item_mocks
 
         # Act
         items = self.model.get_item_children(None)
@@ -97,7 +97,7 @@ class TestFeatureFlagModel(AsyncTestCase):
     async def test_get_item_children_item_should_return_empty_list(self):
         # Arrange
         item_mocks = [Mock(), Mock(), Mock()]
-        self.model._items = item_mocks  # noqa PLW0212
+        self.model._items = item_mocks
 
         # Act
         items = self.model.get_item_children(item_mocks[0])

@@ -15,10 +15,12 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import abc
 import asyncio
 import os
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
@@ -32,11 +34,11 @@ class BaseExecutor:
     @abc.abstractmethod
     def submit(
         self,
-        core: "_ManagerCore",
+        core: _ManagerCore,
         print_result: bool = False,
         silent: bool = False,
-        timeout: Optional[int] = None,
-        standalone: Optional[bool] = False,
+        timeout: int | None = None,
+        standalone: bool | None = False,
         queue_id: str | None = None,
     ) -> asyncio.Future:
         """

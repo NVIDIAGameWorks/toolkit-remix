@@ -1,4 +1,3 @@
-# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -118,7 +117,7 @@ class TestViewportManipulators(AsyncTestCase):
         )
         self.assertIsNone(
             root_layer.GetPropertyAtPath(
-                "/RootNode/instances/inst_BAC90CAA733B0859_1/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube_01.xformOp:translate"  # noqa
+                "/RootNode/instances/inst_BAC90CAA733B0859_1/ref_c89e0497f4ff4dc4a7b70b79c85692da/Cube_01.xformOp:translate"
             )
         )
 

@@ -16,3 +16,5 @@
 """
 
 from .extension import ViewportMenuBarCameraExtension, get_instance
+
+__all__ = ["ViewportMenuBarCameraExtension", "get_instance"]

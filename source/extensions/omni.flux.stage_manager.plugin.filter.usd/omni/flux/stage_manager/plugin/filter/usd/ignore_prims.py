@@ -47,7 +47,7 @@ class IgnorePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
                 break
         return is_valid
 
-    def build_ui(self):  # noqa PLW0221
+    def build_ui(self):
         with ui.HStack(spacing=ui.Pixel(8)):
             ui.Spacer(width=0)
             ui.Label(self.display_name, width=ui.Pixel(self._LABEL_WIDTH), alignment=ui.Alignment.RIGHT)

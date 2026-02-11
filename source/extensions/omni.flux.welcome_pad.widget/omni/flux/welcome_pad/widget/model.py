@@ -15,8 +15,9 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import abc
-from typing import List, Optional
 
 from omni import ui
 from omni.flux.utils.common import Event as _Event
@@ -126,7 +127,7 @@ class Model(ui.AbstractItemModel):
         """
         return _EventSubscription(self.__on_items_enabled, callback)
 
-    def set_list_limit(self, limit_list: Optional[int]):
+    def set_list_limit(self, limit_list: int | None):
         """Set a size limit into the list of items"""
         self.__current_limit_list = limit_list
         self._refresh_list()
@@ -142,17 +143,17 @@ class Model(ui.AbstractItemModel):
         """Get the size of the list of items"""
         return self.__original_len_data
 
-    def add_items(self, items: List[Item]):
+    def add_items(self, items: list[Item]):
         """Add items into the list"""
         self.__original_items.extend(items)
         self._refresh_list()
 
-    def set_items(self, items: List[Item]):
+    def set_items(self, items: list[Item]):
         """Set items into the list"""
         self.__original_items = items
         self._refresh_list()
 
-    def enable_items(self, items: List[Item], value):
+    def enable_items(self, items: list[Item], value):
         """
         Enable/disable items
 
@@ -165,7 +166,7 @@ class Model(ui.AbstractItemModel):
         self._item_changed(None)
         self._items_enabled(items, value)
 
-    def remove_items(self, items: List[Item]):
+    def remove_items(self, items: list[Item]):
         """Remove items from the list"""
         for item in items:
             if item in self.__original_items:

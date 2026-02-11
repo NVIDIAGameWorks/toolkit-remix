@@ -16,9 +16,9 @@
 """
 
 __all__ = [
+    "EXTS_MASS_VALIDATOR_SERVICE_PREFIX",
     "EXTS_OMNI_SERVICES_TRANSPORT_SERVER_HTTP_HOST",
     "EXTS_OMNI_SERVICES_TRANSPORT_SERVER_HTTP_PORT",
-    "EXTS_MASS_VALIDATOR_SERVICE_PREFIX",
     "ManagerCore",
     "ValidationSchema",
     "validation_schema_json_encoder",

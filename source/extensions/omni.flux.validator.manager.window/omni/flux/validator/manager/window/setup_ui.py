@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Type
+from __future__ import annotations
 
 import omni.ui as ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -34,8 +34,8 @@ class ValidatorManagerWindow:
 
     def __init__(
         self,
-        core: "_ManagerCore" = None,
-        widget: Type["_ValidatorManagerWidget"] = None,
+        core: _ManagerCore = None,
+        widget: type[_ValidatorManagerWidget] = None,
     ):
         """
         Create a footer widget

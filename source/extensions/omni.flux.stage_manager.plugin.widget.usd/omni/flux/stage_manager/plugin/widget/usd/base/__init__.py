@@ -17,3 +17,5 @@
 
 from .state_base import StageManagerStateWidgetPlugin
 from .usd_base import StageManagerUSDWidgetPlugin
+
+__all__ = ["StageManagerStateWidgetPlugin", "StageManagerUSDWidgetPlugin"]

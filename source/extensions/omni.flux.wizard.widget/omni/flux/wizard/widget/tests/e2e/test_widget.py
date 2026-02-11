@@ -17,7 +17,6 @@
 
 import tempfile
 from enum import Enum
-from typing import Tuple
 from unittest.mock import Mock, call
 
 import omni.ui as ui
@@ -100,7 +99,7 @@ class TestWizardWidget(AsyncTestCase):
         self.stage = None
         self.temp_dir = None
 
-    async def __setup_widget(self, model: WizardModel) -> Tuple[ui.Window, WizardWidget]:
+    async def __setup_widget(self, model: WizardModel) -> tuple[ui.Window, WizardWidget]:
         await arrange_windows(topleft_window="Stage")
 
         window = ui.Window("TestWizardWindow", width=700, height=500)

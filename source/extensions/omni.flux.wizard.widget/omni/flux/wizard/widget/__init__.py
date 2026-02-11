@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["WizardPage", "WizardModel", "WizardWidget"]
+__all__ = ["WizardModel", "WizardPage", "WizardWidget"]
 
 from .items import WizardPage
 from .model import WizardModel

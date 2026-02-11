@@ -16,3 +16,5 @@
 """
 
 from .unit import TestGetPrototype, TestUserUtils
+
+__all__ = ["TestGetPrototype", "TestUserUtils"]

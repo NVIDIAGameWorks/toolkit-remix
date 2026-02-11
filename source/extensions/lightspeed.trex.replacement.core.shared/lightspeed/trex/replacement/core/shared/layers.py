@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import List, Optional
-
 import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core.data_models import LayerType as _LayerType
@@ -39,19 +37,19 @@ class AssetReplacementLayersCore:
         self._layer_manager = _LayerManagerCore(self._context_name)
 
     @property
-    def _layer_replacement(self) -> Optional[Sdf.Layer]:
+    def _layer_replacement(self) -> Sdf.Layer | None:
         return self._layer_manager.get_layer(_LayerType.replacement)
 
     @property
-    def _layer_capture(self) -> Optional[Sdf.Layer]:
+    def _layer_capture(self) -> Sdf.Layer | None:
         return self._layer_manager.get_layer(_LayerType.capture)
 
     @property
-    def _layer_root(self) -> Optional[Sdf.Layer]:
+    def _layer_root(self) -> Sdf.Layer | None:
         stage = self._context.get_stage()
         return stage.GetRootLayer() if stage else None
 
-    def get_layers_exclude_remove(self) -> List[str]:
+    def get_layers_exclude_remove(self) -> list[str]:
         return [
             layer.identifier
             for layer in [
@@ -62,7 +60,7 @@ class AssetReplacementLayersCore:
             if layer is not None
         ]
 
-    def get_layers_exclude_lock(self) -> List[str]:
+    def get_layers_exclude_lock(self) -> list[str]:
         return [
             layer.identifier
             for layer in [
@@ -73,7 +71,7 @@ class AssetReplacementLayersCore:
             if layer is not None
         ]
 
-    def get_layers_exclude_mute(self) -> List[str]:
+    def get_layers_exclude_mute(self) -> list[str]:
         return [
             layer.identifier
             for layer in [
@@ -83,9 +81,9 @@ class AssetReplacementLayersCore:
             if layer is not None
         ]
 
-    def get_layers_exclude_edit_target(self) -> List[str]:
+    def get_layers_exclude_edit_target(self) -> list[str]:
         # Only allow the mod layer and its sub-layers to be set as edit targets
-        def get_layer_paths_recursive(layer: Sdf.Layer) -> List[str]:
+        def get_layer_paths_recursive(layer: Sdf.Layer) -> list[str]:
             sublayers = []
             if layer is None:
                 return []
@@ -98,7 +96,7 @@ class AssetReplacementLayersCore:
         layer_stack = self._context.get_stage().GetLayerStack(includeSessionLayers=False)
         return [layer.identifier for layer in layer_stack if layer.identifier not in mod_layers]
 
-    def get_layers_exclude_add_child(self) -> List[str]:
+    def get_layers_exclude_add_child(self) -> list[str]:
         return [
             layer.identifier
             for layer in [
@@ -108,7 +106,7 @@ class AssetReplacementLayersCore:
             if layer is not None
         ]
 
-    def get_layers_exclude_move(self) -> List[str]:
+    def get_layers_exclude_move(self) -> list[str]:
         return [
             layer.identifier
             for layer in [

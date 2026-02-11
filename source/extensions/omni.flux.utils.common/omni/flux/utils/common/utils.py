@@ -75,7 +75,7 @@ async def deferred_destroy_tasks(tasks: list[asyncio.Task]):
                 await omni.kit.app.get_app().next_update_async()
                 if not task:
                     break
-        task = None  # noqa
+        task = None
 
 
 def reset_default_attrs(obj):
@@ -102,6 +102,6 @@ def reset_default_attrs(obj):
         for m_attr in m_attrs:
             destroy = getattr(m_attr, "destroy", None)
             if callable(destroy):
-                destroy()  # noqa PLE1102
+                destroy()
             del m_attr
         setattr(obj, attr, value)

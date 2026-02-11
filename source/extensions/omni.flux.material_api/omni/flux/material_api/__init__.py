@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["ShaderInfoAPI", "UsdShadePropertyPlaceholder"]
+from .placeholder_attribute import PlaceholderAttribute
+from .scripts import ShaderInfoAPI, UsdShadePropertyPlaceholder
 
-from .placeholder_attribute import *
-from .scripts import *
+__all__ = ["PlaceholderAttribute", "ShaderInfoAPI", "UsdShadePropertyPlaceholder"]

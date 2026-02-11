@@ -16,7 +16,6 @@
 """
 
 import asyncio
-from typing import Dict, List
 
 import omni.usd
 from omni.flux.utils.common import deferred_destroy_tasks as _deferred_destroy_tasks
@@ -37,8 +36,8 @@ class FileListener:
         self._reset()
 
     def _reset(self):
-        self._models: List[_ImportItem] = []
-        self._listeners: Dict[str, asyncio.Task] = {}
+        self._models: list[_ImportItem] = []
+        self._listeners: dict[str, asyncio.Task] = {}
         self.__previous_invalid_paths = set()
 
     @omni.usd.handle_exception

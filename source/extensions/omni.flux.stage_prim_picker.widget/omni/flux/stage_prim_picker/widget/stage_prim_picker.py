@@ -21,7 +21,7 @@ __all__ = ("StagePrimPickerField",)
 
 import asyncio
 import typing
-from typing import Callable
+from collections.abc import Callable
 
 import carb.input
 import omni.appwindow

@@ -16,7 +16,7 @@
 """
 
 
-def Singleton(class_):  # noqa
+def Singleton(class_):  # noqa: N802
     """A singleton decorator"""
     instances = {}
 

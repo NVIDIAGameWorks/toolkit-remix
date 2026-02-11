@@ -17,7 +17,7 @@
 
 import asyncio
 import functools
-from typing import Any, List, Optional
+from typing import Any
 
 import carb
 import omni.kit.undo
@@ -35,7 +35,7 @@ class BookmarkTreeWidget:
     _DEFAULT_TREE_FRAME_HEIGHT = 100
     _SIZE_PERCENT_MANIPULATOR_WIDTH = 50
 
-    def __init__(self, model: Optional[BookmarkCollectionModel] = None, delegate: Optional[BookmarkDelegate] = None):
+    def __init__(self, model: BookmarkCollectionModel | None = None, delegate: BookmarkDelegate | None = None):
         self._default_attr = {
             "_tree_expanded": None,
             "_tree_selection": None,
@@ -191,7 +191,7 @@ class BookmarkTreeWidget:
             item = item.parent
         self._bookmark_tree_widget.set_expanded(item, value, True)
 
-    def __show_temp_item_popup(self, is_renaming: bool, item: Optional[ItemBase] = None):
+    def __show_temp_item_popup(self, is_renaming: bool, item: ItemBase | None = None):
         if is_renaming and item is None:
             return
 
@@ -265,7 +265,7 @@ class BookmarkTreeWidget:
         await kit.app.get_app().next_update_async()
         self._on_active_items_changed(self._model.get_active_items())
 
-    def _on_selection_changed(self, items: List[ItemBase], update_active_items: bool = True):
+    def _on_selection_changed(self, items: list[ItemBase], update_active_items: bool = True):
         # If an item is getting dragged, don't change the selection
         if self._delegate.dragged_item is not None:
             return
@@ -304,7 +304,7 @@ class BookmarkTreeWidget:
             self._refresh_task.cancel()
         self._refresh_task = asyncio.ensure_future(self.__refresh_async())
 
-    def _on_active_items_changed(self, active_items: List[Any]):
+    def _on_active_items_changed(self, active_items: list[Any]):
         if not active_items:
             return
         selection_items = []

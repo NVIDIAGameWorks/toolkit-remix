@@ -15,7 +15,9 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING, Any, List, Tuple
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 import omni.kit.commands
 import omni.kit.undo
@@ -23,7 +25,7 @@ import omni.ui as ui
 import omni.usd
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
-from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
+from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
 if TYPE_CHECKING:
     from pxr import Usd
@@ -107,7 +109,7 @@ class DefaultPrim(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Checks if the given stage has a default prim.
 
@@ -139,7 +141,7 @@ class DefaultPrim(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Attempts to set a default prim.
 
@@ -220,7 +222,7 @@ class DefaultPrim(_CheckBaseUSD):
                         self._tree.set_selection_changed_fn(self._on_tree_selection_changed)
                 ui.Spacer(width=ui.Pixel(4))
 
-    def __get_root_prims(self, stage: "Usd.Stage") -> List["Usd.Prim"]:
+    def __get_root_prims(self, stage: Usd.Stage) -> list[Usd.Prim]:
         root_prims = []
 
         session_layer = stage.GetSessionLayer()

@@ -15,16 +15,18 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import functools
 import re
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 import omni.ui as ui
 from omni.flux.info_icon.widget import SelectableToolTipWidget as _SelectableToolTipWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.ui import color as cl
 
-from .model import HEADER_DICT, Actions  # noqa PLE0402
+from .model import HEADER_DICT, Actions
 
 if TYPE_CHECKING:
     from .model import Item as _Item
@@ -33,7 +35,7 @@ if TYPE_CHECKING:
 class Delegate(ui.AbstractItemDelegate):
     """Delegate of the tree"""
 
-    def __init__(self, use_global_style: bool = False, style: Dict[str, Any] = None):
+    def __init__(self, use_global_style: bool = False, style: dict[str, Any] = None):
         super().__init__()
         self._default_attrs = {
             "_show_validation_buttons": None,
@@ -56,7 +58,7 @@ class Delegate(ui.AbstractItemDelegate):
         """Create a branch widget that opens or closes subtree"""
         pass
 
-    def build_widget(self, model, item: "_Item", column_id, level, expanded):
+    def build_widget(self, model, item: _Item, column_id, level, expanded):
         """Create a widget per item"""
         if item is None:
             return
@@ -143,7 +145,7 @@ class Delegate(ui.AbstractItemDelegate):
                         ui.Spacer()
                     ui.Spacer(width=ui.Pixel(4))
 
-    def _on_progress_message_value_changed(self, item: "_Item", model: ui.AbstractValueModel) -> None:
+    def _on_progress_message_value_changed(self, item: _Item, model: ui.AbstractValueModel) -> None:
         self._progress_message_widget[id(item)].set_message(model.get_value_as_string())
 
     def _on_item_hovered(self, hovered, item):
@@ -168,7 +170,7 @@ class Delegate(ui.AbstractItemDelegate):
                 action_name, show_validation_checked=any_checked, force_show_frame=disable_toggle
             )
 
-    def _on_run_finished(self, item: "_Item", value, message: Optional[str] = None):
+    def _on_run_finished(self, item: _Item, value, message: str | None = None):
         if id(item) not in self._show_validation_button_widget:
             return
         self._show_validation_button_widget[id(item)].name = "ShowValidation" if value else "ShowValidationFailed"

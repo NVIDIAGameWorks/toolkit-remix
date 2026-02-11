@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import Type
-
 import omni.ui as ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.validator.mass.widget import ValidatorMassWidget as _ValidatorMassWidget
@@ -27,7 +25,7 @@ class ValidatorMassWindow:
 
     def __init__(
         self,
-        widget: Type[_ValidatorMassWidget] = None,
+        widget: type[_ValidatorMassWidget] = None,
     ):
         """
         Create a footer widget

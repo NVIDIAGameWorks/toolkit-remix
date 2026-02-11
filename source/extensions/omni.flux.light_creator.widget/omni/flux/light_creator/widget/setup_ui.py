@@ -17,7 +17,7 @@
 
 import functools
 from enum import Enum
-from typing import Callable
+from collections.abc import Callable
 
 import omni.kit.commands
 import omni.kit.undo

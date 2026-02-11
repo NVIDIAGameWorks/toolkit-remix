@@ -19,7 +19,8 @@ import shutil
 import uuid
 from asyncio import ensure_future
 from functools import partial
-from typing import Any, Awaitable, Callable, List, Optional, Tuple
+from typing import Any
+from collections.abc import Awaitable, Callable
 
 import carb
 import omni.client
@@ -160,7 +161,7 @@ class TextureImporter(_ContextBaseUSD):
         self._file_list_field = None
 
     @omni.usd.handle_exception
-    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to execute the data.
 
@@ -192,7 +193,7 @@ class TextureImporter(_ContextBaseUSD):
         schema_data: Data,
         run_callback: Callable[[_SetupDataTypeVar], Awaitable[None]],
         parent_context: _SetupDataTypeVar,
-    ) -> Tuple[bool, str, _SetupDataTypeVar]:
+    ) -> tuple[bool, str, _SetupDataTypeVar]:
         """
         Function that will be executed to set the data. Here we will open the file path and give the stage
 
@@ -210,7 +211,7 @@ class TextureImporter(_ContextBaseUSD):
         if schema_data.create_output_directory_if_missing:
             try:
                 await omni.client.create_folder_async(str(output_dir))
-            except Exception as e:  # noqa PLW0718
+            except Exception as e:  # noqa: BLE001
                 return False, str(e), None
 
         # Copy every input file in the output directory
@@ -232,7 +233,7 @@ class TextureImporter(_ContextBaseUSD):
             _validator_factory_utils.push_output_data(schema_data, [str(output_path)])
 
             # Make sure to retain what kind of texture we imported
-            imported_files.append((output_path, _TextureTypes[input_file_type]))  # noqa
+            imported_files.append((output_path, _TextureTypes[input_file_type]))
 
         context = await self._set_current_context(schema_data, parent_context)
         if not context:
@@ -249,7 +250,7 @@ class TextureImporter(_ContextBaseUSD):
 
         return True, "Textures were imported successfully", imported_files
 
-    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to after the check of the data. For example, save the input USD stage
 
@@ -264,7 +265,7 @@ class TextureImporter(_ContextBaseUSD):
         return True, "Exit ok"
 
     @omni.usd.handle_exception
-    async def _mass_cook_template(self, schema_data_template: Data) -> Tuple[bool, Optional[str], List[Data]]:
+    async def _mass_cook_template(self, schema_data_template: Data) -> tuple[bool, str | None, list[Data]]:
         """
         Take a template as an input and the (previous) result, and edit the result for mass processing.
         Here, for each file input, we generate a list of schema
@@ -320,7 +321,7 @@ class TextureImporter(_ContextBaseUSD):
         if schema_data.expose_mass_ui and not force_build_ui:
             return
 
-        def __filter_drop(paths: List[str]):
+        def __filter_drop(paths: list[str]):
             return [
                 path
                 for path in paths
@@ -372,7 +373,7 @@ class TextureImporter(_ContextBaseUSD):
                     "NOTE: At least one file is required."
                 )
 
-            self._file_list_field.model.refresh([(p, _TextureTypes[t]) for p, t in schema_data.input_files])  # noqa
+            self._file_list_field.model.refresh([(p, _TextureTypes[t]) for p, t in schema_data.input_files])
             self._file_list_field_item_changed_sub = self._file_list_field.model.subscribe_item_changed_fn(
                 partial(self.__update_file_list, schema_data, self._file_list_field.model)
             )

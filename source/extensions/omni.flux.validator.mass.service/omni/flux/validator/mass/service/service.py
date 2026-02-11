@@ -71,9 +71,7 @@ class MassValidatorService(ServiceBase):
         )
         async def update_schema(
             body: dict,
-            queue_id: str = ServiceBase.describe_query_param(  # noqa B008
-                None, "ID to describe which queue should be updated"
-            ),
+            queue_id: str = ServiceBase.describe_query_param(None, "ID to describe which queue should be updated"),
         ) -> str:
             return (
                 self._mass_queue_core.update_schema(

@@ -26,3 +26,15 @@ from .unit.test_tree_widget.test_widget.test_alternating_rows_widget import (
     TestAlternatingRowWidget,
 )
 from .unit.test_tree_widget.test_widget.test_tree_widget import TestTreeWidget
+
+__all__ = [
+    "TestAlternatingRowModel",
+    "TestAlternatingRowWidget",
+    "TestFilePicker",
+    "TestHoverHelper",
+    "TestScrollingTreeWidget",
+    "TestSearch",
+    "TestTreeItemBase",
+    "TestTreeWidget",
+    "TestTreeWidgetModel",
+]

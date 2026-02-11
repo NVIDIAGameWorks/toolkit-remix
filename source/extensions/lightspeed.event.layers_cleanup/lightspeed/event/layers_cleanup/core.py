@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import List
-
 import carb
 import omni.client
 import omni.kit.app
@@ -96,7 +94,7 @@ class EventLayersCleanupCore(_ILSSEvent):
         if all_invalid_paths:
             self._post_notification(all_invalid_paths)
 
-    def _post_notification(self, invalid_paths: List[str]):
+    def _post_notification(self, invalid_paths: list[str]):
         if not invalid_paths:
             return
 

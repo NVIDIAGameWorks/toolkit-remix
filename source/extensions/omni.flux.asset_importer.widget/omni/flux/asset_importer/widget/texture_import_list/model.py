@@ -15,7 +15,8 @@
 * limitations under the License.
 """
 
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any
+from collections.abc import Callable
 
 from omni import ui
 from omni.flux.asset_importer.core.utils import determine_ideal_types as _determine_ideal_types
@@ -37,8 +38,8 @@ class TextureImportListModel(ui.AbstractItemModel):
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
 
-        self._children: Dict[TextureImportItem, Tuple] = {}
-        self._pref_normal_conv: Optional[TextureTypes] = None
+        self._children: dict[TextureImportItem, tuple] = {}
+        self._pref_normal_conv: TextureTypes | None = None
         self.__file_listener_instance = _get_file_listener_instance()
 
         self.__texture_type_changed = _Event()
@@ -47,7 +48,7 @@ class TextureImportListModel(ui.AbstractItemModel):
     def set_preferred_normal_type(self, preferred_normal_type: TextureTypes):
         self._pref_normal_conv = preferred_normal_type
 
-    def refresh(self, input_files: List[Tuple[_OmniUrl, TextureTypes]]):
+    def refresh(self, input_files: list[tuple[_OmniUrl, TextureTypes]]):
         """Refresh the list"""
         for child in self._children:
             self.__file_listener_instance.remove_model(child)
@@ -62,7 +63,7 @@ class TextureImportListModel(ui.AbstractItemModel):
 
         self._item_changed(None)
 
-    def refresh_texture_types(self, texture_types: Dict[str, TextureTypes] = None):
+    def refresh_texture_types(self, texture_types: dict[str, TextureTypes] = None):
         """Re-parse the texture types based on the file names"""
         if texture_types is None:
             texture_types = self._determine_ideal_types([])
@@ -73,7 +74,7 @@ class TextureImportListModel(ui.AbstractItemModel):
                 continue
             child.texture_type = child_type
 
-    def add_items(self, paths: List[Union[str, _OmniUrl]]):
+    def add_items(self, paths: list[str | _OmniUrl]):
         # Don't allow adding the same path 2x
         current_paths = [c.path.path for c in self._children]
         paths = [str(path) for path in paths if _OmniUrl(path).path not in current_paths]
@@ -96,7 +97,7 @@ class TextureImportListModel(ui.AbstractItemModel):
             self.__file_listener_instance.add_model(item)
         self._item_changed(None)
 
-    def _determine_ideal_types(self, paths: List[str]) -> Dict[str, TextureTypes]:
+    def _determine_ideal_types(self, paths: list[str]) -> dict[str, TextureTypes]:
         """
         Will try to determine the TextureType based on the filename. If no TextureType can be found, no entry will be
         added to the dictionary.
@@ -107,13 +108,13 @@ class TextureImportListModel(ui.AbstractItemModel):
 
         return _determine_ideal_types(all_paths, pref_normal_conv=self._pref_normal_conv)
 
-    def remove_items(self, items: List[TextureImportItem]):
+    def remove_items(self, items: list[TextureImportItem]):
         for item in items:
             del self._children[item]
             self.__file_listener_instance.remove_model(item)
         self._item_changed(None)
 
-    def get_item_children(self, item: Optional[TextureImportItem]):
+    def get_item_children(self, item: TextureImportItem | None):
         """Returns all the children."""
         return list(self._children.keys()) if item is None else []
 

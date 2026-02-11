@@ -15,11 +15,14 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import stat
 from pathlib import Path
 from shutil import copytree
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 import carb
 import carb.settings
@@ -56,7 +59,7 @@ class ProjectWizardCore:
         self.__on_log_info = _Event()
         self.__on_log_error = _Event()
 
-    def subscribe_run_finished(self, callback: Union["partial", Callable[[bool, Optional[str]], Any]]):
+    def subscribe_run_finished(self, callback: partial | Callable[[bool, str | None], Any]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
@@ -80,7 +83,7 @@ class ProjectWizardCore:
         """
         return _EventSubscription(self.__on_log_error, callback)
 
-    def setup_project(self, schema: Dict, dry_run: bool = False):
+    def setup_project(self, schema: dict, dry_run: bool = False):
         r"""
         Run the project setup using the given schema.
 
@@ -105,13 +108,13 @@ class ProjectWizardCore:
         return asyncio.ensure_future(self.setup_project_async(schema, dry_run))
 
     @omni.usd.handle_exception
-    async def setup_project_async(self, schema: Dict, dry_run: bool = False) -> tuple[bool, str | None]:
+    async def setup_project_async(self, schema: dict, dry_run: bool = False) -> tuple[bool, str | None]:
         """
         Asynchronous implementation of setup_project
         """
         return await self.setup_project_async_with_exceptions(schema, dry_run)
 
-    async def setup_project_async_with_exceptions(self, schema: Dict, dry_run: bool = False) -> tuple[bool, str | None]:
+    async def setup_project_async_with_exceptions(self, schema: dict, dry_run: bool = False) -> tuple[bool, str | None]:
         """
         Asynchronous implementation of setup_project, but async without error handling.  This is meant for testing.
         """
@@ -207,7 +210,7 @@ class ProjectWizardCore:
             self._on_run_finished(True)
 
             return True, None
-        except Exception as e:  # noqa
+        except Exception as e:  # noqa: BLE001
             error_message = f"An unknown error occurred: {e}"
             self._log_error(error_message)
             self._on_run_finished(False, error=error_message)

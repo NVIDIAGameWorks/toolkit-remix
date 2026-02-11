@@ -167,14 +167,14 @@ class MaterialPropertyWidget:
         if not self._root_frame or not self._root_frame.visible:
             return
 
-        if self.__usd_listener_instance and self._property_model:  # noqa PLE0203
-            self.__usd_listener_instance.remove_model(self._property_model)  # noqa PLE0203
+        if self.__usd_listener_instance and self._property_model:
+            self.__usd_listener_instance.remove_model(self._property_model)
 
         stage: Usd.Stage = self._context.get_stage()
         items: list[_ItemGroup | _VirtualUSDAttributeItem | _VirtualUSDAttrListItem] = []
         valid_paths: list[Sdf.Path] = []
 
-        if stage is not None:  # noqa PLR1702
+        if stage is not None:
             prims = [stage.GetPrimAtPath(path) for path in self._paths]
 
             shader_paths = []

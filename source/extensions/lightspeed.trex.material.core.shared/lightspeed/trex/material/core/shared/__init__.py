@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .setup import Setup  # noqa F401
+from .setup import Setup
+
+__all__ = ["Setup"]

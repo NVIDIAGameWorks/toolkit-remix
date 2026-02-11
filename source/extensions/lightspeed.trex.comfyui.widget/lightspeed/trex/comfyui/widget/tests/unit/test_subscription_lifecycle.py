@@ -36,9 +36,9 @@ class TestComfyUIWidgetSubscriptionLifecycle(AsyncTestCase):
         await omni.kit.app.get_app().next_update_async()
 
         # Subscriptions should be None initially (created in show(True))
-        self.assertIsNone(widget._state_changed_subscription)  # noqa: SLF001
-        self.assertIsNone(widget._texture_selection_changed_subscription)  # noqa: SLF001
-        self.assertIsNone(widget._mesh_selection_changed_subscription)  # noqa: SLF001
+        self.assertIsNone(widget._state_changed_subscription)
+        self.assertIsNone(widget._texture_selection_changed_subscription)
+        self.assertIsNone(widget._mesh_selection_changed_subscription)
 
         widget.destroy()
         window.destroy()
@@ -54,9 +54,9 @@ class TestComfyUIWidgetSubscriptionLifecycle(AsyncTestCase):
         widget.show(True)
         await omni.kit.app.get_app().next_update_async()
 
-        self.assertIsNotNone(widget._state_changed_subscription)  # noqa: SLF001
-        self.assertIsNotNone(widget._texture_selection_changed_subscription)  # noqa: SLF001
-        self.assertIsNotNone(widget._mesh_selection_changed_subscription)  # noqa: SLF001
+        self.assertIsNotNone(widget._state_changed_subscription)
+        self.assertIsNotNone(widget._texture_selection_changed_subscription)
+        self.assertIsNotNone(widget._mesh_selection_changed_subscription)
 
         widget.destroy()
         window.destroy()
@@ -71,15 +71,15 @@ class TestComfyUIWidgetSubscriptionLifecycle(AsyncTestCase):
         # First show
         widget.show(True)
         await omni.kit.app.get_app().next_update_async()
-        self.assertIsNotNone(widget._state_changed_subscription)  # noqa: SLF001
+        self.assertIsNotNone(widget._state_changed_subscription)
 
         # Then hide
         widget.show(False)
         await omni.kit.app.get_app().next_update_async()
 
-        self.assertIsNone(widget._state_changed_subscription)  # noqa: SLF001
-        self.assertIsNone(widget._texture_selection_changed_subscription)  # noqa: SLF001
-        self.assertIsNone(widget._mesh_selection_changed_subscription)  # noqa: SLF001
+        self.assertIsNone(widget._state_changed_subscription)
+        self.assertIsNone(widget._texture_selection_changed_subscription)
+        self.assertIsNone(widget._mesh_selection_changed_subscription)
 
         widget.destroy()
         window.destroy()
@@ -94,22 +94,22 @@ class TestComfyUIWidgetSubscriptionLifecycle(AsyncTestCase):
         # Toggle on
         widget.show(True)
         await omni.kit.app.get_app().next_update_async()
-        self.assertIsNotNone(widget._state_changed_subscription)  # noqa: SLF001
+        self.assertIsNotNone(widget._state_changed_subscription)
 
         # Toggle off
         widget.show(False)
         await omni.kit.app.get_app().next_update_async()
-        self.assertIsNone(widget._state_changed_subscription)  # noqa: SLF001
+        self.assertIsNone(widget._state_changed_subscription)
 
         # Toggle on again
         widget.show(True)
         await omni.kit.app.get_app().next_update_async()
-        self.assertIsNotNone(widget._state_changed_subscription)  # noqa: SLF001
+        self.assertIsNotNone(widget._state_changed_subscription)
 
         # Toggle off again
         widget.show(False)
         await omni.kit.app.get_app().next_update_async()
-        self.assertIsNone(widget._state_changed_subscription)  # noqa: SLF001
+        self.assertIsNone(widget._state_changed_subscription)
 
         widget.destroy()
         window.destroy()

@@ -16,7 +16,7 @@
 """
 
 import asyncio
-from typing import Any, Tuple
+from typing import Any
 
 import omni.ui as ui
 import omni.usd
@@ -37,7 +37,7 @@ class PrintPrims(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check the data
 
@@ -67,7 +67,7 @@ class PrintPrims(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to fix the data
 

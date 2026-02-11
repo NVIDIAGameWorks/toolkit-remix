@@ -19,7 +19,8 @@ from __future__ import annotations
 
 import abc
 from enum import Enum as _Enum
-from typing import Any, Callable, Iterable
+from typing import Any
+from collections.abc import Callable, Iterable
 
 import omni.usd
 from omni.flux.utils.common import Event as _Event
@@ -217,7 +218,7 @@ class Base(_IBase, abc.ABC):
     def mass_build_queue_action_ui(
         self, schema_data: Any, default_actions: list[Callable[[], Any]], callback: Callable[[str], Any]
     ) -> Any:
-        result = self._mass_build_queue_action_ui(schema_data, default_actions, callback)  # noqa PLE1111
+        result = self._mass_build_queue_action_ui(schema_data, default_actions, callback)
         self.__on_mass_build_queue_action_ui(result)
         return result
 

@@ -15,8 +15,10 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import abc
-from typing import Any, Optional
+from typing import Any
 
 import omni.client
 import omni.kit.app
@@ -29,15 +31,15 @@ from pydantic import Field
 
 class ContextBaseUSD(_ContextBase, abc.ABC):
     class Data(_ContextBase.Data):
-        context_name: Optional[str] = None
+        context_name: str | None = None
         create_context_if_not_exist: bool = False
 
         # tmp data
-        computed_context: Optional[str] = Field(default=None, repr=False)  # the resulting context
+        computed_context: str | None = Field(default=None, repr=False)  # the resulting context
 
     async def _set_current_context(
-        self, schema_data: "ContextBaseUSD.Data", parent_context: _SetupDataTypeVar
-    ) -> Optional[omni.usd.UsdContext]:
+        self, schema_data: ContextBaseUSD.Data, parent_context: _SetupDataTypeVar
+    ) -> omni.usd.UsdContext | None:
         schema_data.computed_context = ""
         if parent_context is not None:
             schema_data.computed_context = parent_context
@@ -65,7 +67,7 @@ class ContextBaseUSD(_ContextBase, abc.ABC):
             return
         root_layer = stage.GetRootLayer()
         # ugly work around to un-hold layers
-        Sdf._TestTakeOwnership(root_layer)  # noqa
+        Sdf._TestTakeOwnership(root_layer)  # noqa: SLF001
         await context.close_stage_async()
 
     @omni.usd.handle_exception

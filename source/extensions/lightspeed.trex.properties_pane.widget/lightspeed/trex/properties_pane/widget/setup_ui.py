@@ -15,12 +15,13 @@
 * limitations under the License.
 """
 
-__all__ = ["CollapsiblePanels", "AssetReplacementsPane"]
+__all__ = ["AssetReplacementsPane", "CollapsiblePanels"]
 
 import functools
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 import omni.client
 import omni.usd

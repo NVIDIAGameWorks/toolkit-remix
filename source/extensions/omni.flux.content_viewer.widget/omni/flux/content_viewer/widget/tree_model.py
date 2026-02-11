@@ -16,7 +16,6 @@
 """
 
 import typing
-from typing import List, Type
 
 if typing.TYPE_CHECKING:
     from .items import BaseContentItem
@@ -33,7 +32,7 @@ class Model(ui.AbstractItemModel):
         super().__init__()
         self.__items = []
 
-    def refresh(self, items: List[Type["BaseContentItem"]]):
+    def refresh(self, items: list[type["BaseContentItem"]]):
         """
         Refresh the list with those items
 

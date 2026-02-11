@@ -16,3 +16,5 @@
 """
 
 from .e2e.test_service import TestProjectManagerService
+
+__all__ = ["TestProjectManagerService"]

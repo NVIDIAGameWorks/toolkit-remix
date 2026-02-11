@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import omni.kit.test
 from pxr import Sdf
 
@@ -24,7 +26,7 @@ class TestPlaceholderAttribute(omni.kit.test.AsyncTestCase):
         await omni.usd.get_context().new_stage_async()
 
     async def test_placeholder_attribute(self):
-        from omni.flux.material_api.placeholder_attribute import PlaceholderAttribute
+        from omni.flux.material_api.placeholder_attribute import PlaceholderAttribute  # noqa: PLC0415
 
         omni.kit.commands.execute("CreatePrimWithDefaultXform", prim_type="Sphere")
 

@@ -16,16 +16,17 @@
 """
 
 __all__ = (
-    "_SetValueCallbackManager",
-    "Serializable",
+    "ItemGroupNameModel",
+    "ItemModel",
     "ItemModelBase",
     "ItemValueModel",
-    "ItemModel",
-    "ItemGroupNameModel",
+    "Serializable",
+    "_SetValueCallbackManager",
 )
 
 import abc
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 import omni.ui as ui
 
@@ -87,7 +88,7 @@ class Serializable(abc.ABC):
         super().__init__()
         self.register_serializer_hooks(clipboard.SERIALIZER)
 
-    def register_serializer_hooks(self, serializer):  # noqa B027 optional to override
+    def register_serializer_hooks(self, serializer):  # noqa: B027  # optional to override
         """
         Register serialization hooks for clipboard copy/paste.
 
@@ -255,7 +256,7 @@ class ItemValueModel(ItemModelBase, ui.AbstractValueModel, metaclass=AbstractVal
 
     def __init__(self):
         super().__init__()
-        self.__display_fn = None  # noqa PLW0238
+        self.__display_fn = None
 
     def get_value_as_string(self) -> str:
         value = self._get_value_as_string()
@@ -308,7 +309,7 @@ class ItemGroupNameModel(ItemValueModel):
         super().__init__()
         self._name = name
         self._read_only = True
-        self.__display_fn = None  # noqa PLW0238
+        self.__display_fn = None
 
     def refresh(self):
         """Called by the watcher when something change"""

@@ -1,5 +1,3 @@
-# noqa PLC0302
-
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -22,7 +20,6 @@ import tempfile
 import weakref
 from functools import partial
 from pathlib import Path
-from typing import List, Optional
 from unittest.mock import Mock, call, patch
 
 import omni.kit
@@ -64,7 +61,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         model = LayerModel()
 
         # Act
-        await model._deferred_refresh()  # noqa PLW0212
+        await model._deferred_refresh()
 
         # Assert
         self.assertEqual(1, model.get_items_count())
@@ -89,7 +86,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         model = LayerModel()
 
         # Act
-        await model._deferred_refresh()  # noqa PLW0212
+        await model._deferred_refresh()
         items = model.get_item_children(recursive=False)
 
         # Assert
@@ -176,7 +173,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         layer1.customLayerData = custom_data
 
         # Act
-        await model._deferred_refresh()  # noqa PLW0212
+        await model._deferred_refresh()
         root_item = model.get_item_children(recursive=False)[0]
         items = model.get_item_children(parent=root_item, recursive=True)
 
@@ -232,7 +229,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
             model = LayerModel()
 
             # Act
-            await model._deferred_refresh()  # noqa PLW0212
+            await model._deferred_refresh()
             root_item = model.get_item_children(recursive=False)[0]
             items = model.get_item_children(parent=root_item, recursive=True)
 
@@ -342,8 +339,8 @@ class TestModel(omni.kit.test.AsyncTestCase):
         layer_creation_validation_failed_mock = Mock()
 
         model = LayerModel(
-            layer_creation_validation_fn=layer_creation_validation_mock,  # noqa
-            layer_creation_validation_failed_callback=layer_creation_validation_failed_mock,  # noqa
+            layer_creation_validation_fn=layer_creation_validation_mock,
+            layer_creation_validation_failed_callback=layer_creation_validation_failed_mock,
         )
         model.set_items([root_item])
 
@@ -391,8 +388,8 @@ class TestModel(omni.kit.test.AsyncTestCase):
         layer_creation_validation_failed_mock = Mock()
 
         model = LayerModel(
-            layer_creation_validation_fn=layer_creation_validation_mock,  # noqa
-            layer_creation_validation_failed_callback=layer_creation_validation_failed_mock,  # noqa
+            layer_creation_validation_fn=layer_creation_validation_mock,
+            layer_creation_validation_failed_callback=layer_creation_validation_failed_mock,
         )
         model.set_items([root_item])
 
@@ -536,7 +533,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
 
         with patch.object(commands, "execute") as mock:
             # Act
-            model.move_sublayer(layer0_item, None)  # noqa
+            model.move_sublayer(layer0_item, None)
 
             # Assert
             self.assertFalse(mock.called)
@@ -727,7 +724,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         await self.__run_test_drop_accepted(False, "layer0_item", "layer0_item", -1)
 
     async def test_drop_accepted_target_is_none_invalid(self):
-        await self.__run_test_drop_accepted(False, None, "layer0_item", -1)  # noqa
+        await self.__run_test_drop_accepted(False, None, "layer0_item", -1)
 
     async def test_drop_accepted_reorder_parent_not_valid_invalid(self):
         # Parent is invalid because of exclude_child policy
@@ -850,7 +847,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(is_locked, model.is_layer_locked(layer0_item))
 
-    async def __run_test_find_item(self, value: str, expected_result: Optional[str], parent: Optional[str]):
+    async def __run_test_find_item(self, value: str, expected_result: str | None, parent: str | None):
         # Arrange
         root_item = LayerItem("root")
         layer0_item = LayerItem("layer0", parent=root_item)
@@ -876,7 +873,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(items.get(expected_result), result)
 
-    async def __run_test_get_item_children(self, recursive: bool, expected_results: List[str], parent: Optional[str]):
+    async def __run_test_get_item_children(self, recursive: bool, expected_results: list[str], parent: str | None):
         # Arrange
         root_item = LayerItem("root")
         layer0_item = LayerItem("layer0", parent=root_item)

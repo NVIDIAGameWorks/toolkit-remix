@@ -17,3 +17,5 @@
 
 from .test_hotkeys import TestHotkeys
 from .test_stage_manger import TestStageManagerPropertiesInteraction
+
+__all__ = ["TestHotkeys", "TestStageManagerPropertiesInteraction"]

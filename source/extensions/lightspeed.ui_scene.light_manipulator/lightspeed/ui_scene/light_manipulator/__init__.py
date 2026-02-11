@@ -26,3 +26,19 @@ from .light_manipulator import (
     get_manipulator_class,
 )
 from .light_model import AbstractLightModel, DiskLightModel, DistantLightModel, RectLightModel, SphereLightModel
+
+__all__ = [
+    "AbstractLightManipulator",
+    "AbstractLightModel",
+    "DiskLightManipulator",
+    "DiskLightModel",
+    "DistantLightManipulator",
+    "DistantLightModel",
+    "LightManipulatorExtension",
+    "LightManipulatorLayer",
+    "RectLightManipulator",
+    "RectLightModel",
+    "SphereLightManipulator",
+    "SphereLightModel",
+    "get_manipulator_class",
+]

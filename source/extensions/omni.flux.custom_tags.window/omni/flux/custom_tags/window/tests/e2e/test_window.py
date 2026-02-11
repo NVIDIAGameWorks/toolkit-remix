@@ -99,7 +99,7 @@ class TestEditCustomTagsWindow(AsyncTestCase):
 
         await ui_test.human_delay()
 
-        window = ui_test.find(instance._window.title).window  # noqa PLW0212
+        window = ui_test.find(instance._window.title).window
         self.assertIsNotNone(window)
 
         return instance, window

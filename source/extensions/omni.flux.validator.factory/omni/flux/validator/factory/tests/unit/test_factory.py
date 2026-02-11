@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Any, Tuple
+from typing import Any
 
 import omni.usd
 from omni.flux.validator.factory import SelectorBase as _SelectorBase
@@ -33,7 +33,7 @@ class FakeSelectorPlugin(_SelectorBase):
     @omni.usd.handle_exception
     async def _select(
         self, schema_data: Any, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         return True, "Test", [1, 2, 3]
 
     @omni.usd.handle_exception
@@ -55,7 +55,7 @@ class TestValidatorFactory(AsyncTestCase):
 
     async def test_is_plugin_registered_is_registered_should_return_true(self):
         # Arrange
-        self.factory._plugins[_FAKE_PLUGIN_NAME] = FakeSelectorPlugin  # noqa PLW0212
+        self.factory._plugins[_FAKE_PLUGIN_NAME] = FakeSelectorPlugin
 
         # Act
         value = self.factory.is_plugin_registered(_FAKE_PLUGIN_NAME)

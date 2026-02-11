@@ -579,7 +579,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         await ui_test.human_delay()
 
         # Make sure we create the layer in the correct directory
-        self.assertEqual(dir_name + "/", dir_path_field.model._path)  # noqa PLW0212
+        self.assertEqual(dir_name + "/", dir_path_field.model._path)
         self.assertEqual(file_name, file_name_field.model.get_value_as_string())
 
         await create_button.click()

@@ -16,7 +16,8 @@
 """
 
 import abc
-from typing import Any, Callable, List, Optional
+from typing import Any
+from collections.abc import Callable
 
 from omni import ui
 from omni.flux.utils.common import Event as _Event
@@ -42,7 +43,7 @@ class SelectionHistoryModel(ui.AbstractItemModel):
         self.__items = []
         self.refresh()
 
-    def insert_items(self, items: List[SelectionHistoryItem], idx: int = 0) -> None:
+    def insert_items(self, items: list[SelectionHistoryItem], idx: int = 0) -> None:
         """
         Insert items at the given position
 
@@ -64,7 +65,7 @@ class SelectionHistoryModel(ui.AbstractItemModel):
         if item_added:
             self.refresh()
 
-    def set_active_items(self, items: List[SelectionHistoryItem]) -> None:
+    def set_active_items(self, items: list[SelectionHistoryItem]) -> None:
         """
         Set the currently active item. For USD this could be the selected viewport item
 
@@ -75,7 +76,7 @@ class SelectionHistoryModel(ui.AbstractItemModel):
         self._on_active_items_changed(items)
 
     @abc.abstractmethod
-    def _set_active_items(self, items: List[SelectionHistoryItem]) -> None:
+    def _set_active_items(self, items: list[SelectionHistoryItem]) -> None:
         """
         Set the currently active item. For USD this could be the selected viewport item
 
@@ -84,11 +85,11 @@ class SelectionHistoryModel(ui.AbstractItemModel):
         """
         pass
 
-    def _on_active_items_changed(self, items: List[SelectionHistoryItem]):
+    def _on_active_items_changed(self, items: list[SelectionHistoryItem]):
         """Call the event object that has the list of functions"""
         self.__on_active_items_changed(items)
 
-    def subscribe_on_active_items_changed(self, function: Callable[[List[SelectionHistoryItem]], Any]):
+    def subscribe_on_active_items_changed(self, function: Callable[[list[SelectionHistoryItem]], Any]):
         """
         Subscribe to the *on_active_items_changed* event.
 
@@ -100,7 +101,7 @@ class SelectionHistoryModel(ui.AbstractItemModel):
         """
         return _EventSubscription(self.__on_active_items_changed, function)
 
-    def get_active_items(self) -> List[Any]:
+    def get_active_items(self) -> list[Any]:
         """
         Get the currently active item. For USD this could be the selected viewport item
 
@@ -110,7 +111,7 @@ class SelectionHistoryModel(ui.AbstractItemModel):
         return self._get_active_items()
 
     @abc.abstractmethod
-    def _get_active_items(self) -> List[Any]:
+    def _get_active_items(self) -> list[Any]:
         """
         Get the currently active item. For USD this could be the selected viewport item
 
@@ -119,17 +120,17 @@ class SelectionHistoryModel(ui.AbstractItemModel):
         """
         pass
 
-    def get_item_children(self, item: Optional[SelectionHistoryItem] = None):
+    def get_item_children(self, item: SelectionHistoryItem | None = None):
         """Returns all the children when the widget asks it."""
         # Since we are doing a flat list, we return the children of root only.
         # If it's not root we return.
         return self.__items if not item else []
 
-    def get_item_value_model_count(self, item: Optional[SelectionHistoryItem] = None):
+    def get_item_value_model_count(self, item: SelectionHistoryItem | None = None):
         """The number of columns"""
         return 1
 
-    def get_item_value_model(self, item: Optional[SelectionHistoryItem] = None):
+    def get_item_value_model(self, item: SelectionHistoryItem | None = None):
         """
         Return value model.
         It's the object that tracks the specific value.

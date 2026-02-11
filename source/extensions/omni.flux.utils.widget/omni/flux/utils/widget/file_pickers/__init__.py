@@ -16,3 +16,5 @@
 """
 
 from .file_picker import LAST_SELECTED_DIRECTORY_SETTING, destroy_file_picker, open_file_picker
+
+__all__ = ["LAST_SELECTED_DIRECTORY_SETTING", "destroy_file_picker", "open_file_picker"]

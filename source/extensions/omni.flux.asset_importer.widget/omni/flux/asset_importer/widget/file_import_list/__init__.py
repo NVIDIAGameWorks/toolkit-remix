@@ -16,10 +16,10 @@
 """
 
 __all__ = [
-    "FileImportListWidget",
-    "FileImportListModel",
     "FileImportItem",
     "FileImportListDelegate",
+    "FileImportListModel",
+    "FileImportListWidget",
 ]
 
 from .delegate import FileImportListDelegate

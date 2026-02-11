@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["PackagingPane"]
+__all__ = ["PackagingPane", "TrexPackagingWindowExtension"]
 
 from .extension import TrexPackagingWindowExtension
 from .setup_ui import PackagingPane

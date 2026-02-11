@@ -15,9 +15,11 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import typing
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 import omni.kit.app
 import omni.ui as ui
@@ -53,9 +55,9 @@ class ContentViewerWidget:
     #: Width of the slider
     LIST_ROW_HEIGHT: int = 36
     #: Height of the slider
-    CONTENT_ITEM_TYPE: Type[_ContentItem] = _ContentItem
+    CONTENT_ITEM_TYPE: type[_ContentItem] = _ContentItem
     #: Width of the column of the grid view
-    LIST_DELEGATE_TREE_VIEW: Type[_DelegateTreeView] = _DelegateTreeView
+    LIST_DELEGATE_TREE_VIEW: type[_DelegateTreeView] = _DelegateTreeView
     #: Height of the column of the grid view
     ENABLE_ADD_ITEM: bool = False
     #: Class that will be used as an item
@@ -65,7 +67,7 @@ class ContentViewerWidget:
 
     """Instance"""
 
-    def __init__(self, core: "ContentViewerCore"):
+    def __init__(self, core: ContentViewerCore):
         """
         Init
 
@@ -95,7 +97,7 @@ class ContentViewerWidget:
         self.__slider = None
         self.__filter_content_title_value = None
 
-        self.__block_list_selection = False  # noqa PLW0238
+        self.__block_list_selection = False
 
         self.__model_tree_view = _ModelTreeView()
         self.__delegate_tree_view = self.LIST_DELEGATE_TREE_VIEW()
@@ -111,25 +113,25 @@ class ContentViewerWidget:
         """
         self.__is_list_view_mode = value
 
-    def get_content_items(self) -> List[Type["BaseContentItem"]]:
+    def get_content_items(self) -> list[type[BaseContentItem]]:
         """Get all content items"""
         return self.__content_items
 
-    def _block_list_selection(func):  # noqa N805
-        def do(self, *args, **kwargs):  # noqa PLC0103
-            self.__block_list_selection = True  # noqa PLW0212
-            func(self, *args, **kwargs)  # noqa PLE1102
-            self.__block_list_selection = False  # noqa PLW0212
+    def _block_list_selection(func):  # noqa: N805
+        def do(self, *args, **kwargs):
+            self.__block_list_selection = True
+            func(self, *args, **kwargs)
+            self.__block_list_selection = False
 
         return do
 
     @property
-    def default_attr(self) -> Dict[str, Any]:
+    def default_attr(self) -> dict[str, Any]:
         """Default attribute with default values created in the class that will be destroyed during closing"""
         return {"_core": None}
 
     @_block_list_selection
-    def _on_selection_changed(self, contents_data: List[Type["BaseContentData"]]):
+    def _on_selection_changed(self, contents_data: list[type[BaseContentData]]):
         """Called when the selection of an item content is changed"""
         if self.__content_items is None:
             return
@@ -151,7 +153,7 @@ class ContentViewerWidget:
             self.__label_error.text = message
         self.__label_error.visible = True
 
-    def _on_content_changed(self, content_data: List[Type["BaseContentData"]]):
+    def _on_content_changed(self, content_data: list[type[BaseContentData]]):
         """Called when the content is changed"""
 
         if self.__frame_grid is None:
@@ -287,7 +289,7 @@ class ContentViewerWidget:
         """Called when the ui is refreshed"""
         self._core.refresh_content()
 
-    def set_filter_content_title_value(self, text: Optional[str]):
+    def set_filter_content_title_value(self, text: str | None):
         """
         Set the value text.
 
@@ -296,7 +298,7 @@ class ContentViewerWidget:
         """
         self.__filter_content_title_value = text
 
-    def filter_content(self, text: Optional[str]):
+    def filter_content(self, text: str | None):
         """
         Filter the content with this text and refresh the view
 
@@ -306,7 +308,7 @@ class ContentViewerWidget:
         self.__filter_content_title_value = text
         self._on_content_changed(self.__content_data)
 
-    def _filter_fn(self, text: Optional[str], data: Type["BaseContentData"]) -> bool:
+    def _filter_fn(self, text: str | None, data: type[BaseContentData]) -> bool:
         """
         Default filter function
 

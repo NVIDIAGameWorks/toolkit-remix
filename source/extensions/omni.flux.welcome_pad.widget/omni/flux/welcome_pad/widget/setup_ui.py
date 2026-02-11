@@ -15,9 +15,11 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import typing
-from typing import Callable, Dict, List, Optional
+from collections.abc import Callable
 
 import omni.usd
 from omni import ui
@@ -31,8 +33,8 @@ if typing.TYPE_CHECKING:
     from .model import Item as _Item
 
 
-class WelcomePadWidget:  # noqa PLR0902, PLC0115
-    def __init__(  # noqa PLR0913
+class WelcomePadWidget:
+    def __init__(
         self,
         model: Model = None,
         show_footer: bool = True,
@@ -147,7 +149,7 @@ class WelcomePadWidget:  # noqa PLR0902, PLC0115
             ui.Spacer(height=ui.Pixel(24))
         self.resize_tree_content()
 
-    def get_item_background_widgets(self) -> Dict[str, ui.Widget]:
+    def get_item_background_widgets(self) -> dict[str, ui.Widget]:
         """
         Get the background rectangle of all items
 
@@ -164,11 +166,11 @@ class WelcomePadWidget:  # noqa PLR0902, PLC0115
     def _on_items_enabled(self, _, __):
         self._tree_view.dirty_widgets()
 
-    def get_current_selection(self) -> List["_Item"]:
+    def get_current_selection(self) -> list[_Item]:
         """Get selected item from the tree view"""
         return self._tree_view.selection
 
-    def set_current_selection(self, item: Optional["_Item"]):
+    def set_current_selection(self, item: _Item | None):
         """
         Set the selection on the tree view
 
@@ -184,7 +186,7 @@ class WelcomePadWidget:  # noqa PLR0902, PLC0115
         """Subscribe when the selection of the treeview change"""
         return self._tree_view.set_selection_changed_fn(callback)
 
-    def _on_footer_released(self, x, y, b, m):  # noqa PLC0103
+    def _on_footer_released(self, x, y, b, m):
         if self._footer_callback is not None:
             self._footer_callback(x, y, b, m)
 

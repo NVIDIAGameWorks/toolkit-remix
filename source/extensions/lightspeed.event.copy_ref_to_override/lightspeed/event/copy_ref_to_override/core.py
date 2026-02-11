@@ -210,8 +210,8 @@ class CopyRefToPrimCore(_ILSSEvent):
     def __create_default_stage_nodes(self, stage, source_layer, output_layer, all_replacements_layers):
         regex_to_update = re.compile(_constants.REGEX_MAT_MESH_LIGHT_PATH)
 
-        def should_copy_value(
-            spec_type, field, src_layer, src_path, field_in_src, dst_layer, dst_path, field_in_dst, *args, **kwargs
+        def should_copy_value(  # fmt: off
+            _spec_type, field, src_layer, src_path, _field_in_src, dst_layer, _dst_path, _field_in_dst, *args, **kwargs
         ):
             # if there is a reference, we re-path the ref to be relative to the capture_baker layer
             match = regex_to_update.match(str(src_path))
@@ -223,7 +223,9 @@ class CopyRefToPrimCore(_ILSSEvent):
                     return True, op_result
             return True
 
-        def should_copy_children(children_field, src_layer, src_path, field_in_src, dst_layer, dst_path, field_in_dst):
+        def should_copy_children(  # fmt: off
+            _children_field, _src_layer, src_path, _field_in_src, _dst_layer, _dst_path, _field_in_dst
+        ):
             value = False
             # we copy all children of the root node and the camera
             if str(src_path) in [_constants.ROOTNODE, _constants.ROOTNODE_CAMERA]:
@@ -265,11 +267,11 @@ class CopyRefToPrimCore(_ILSSEvent):
         )
         prims = [lights_prim, looks_prim, meshes_prim]
 
-        for prim, folder, capture_prefix in prims:  # noqa PLR1702
-            if not prim or not prim.IsValid():  # noqa PLE1101
+        for prim, folder, capture_prefix in prims:
+            if not prim or not prim.IsValid():
                 continue
             # loop over /RootNode/lights, /RootNode/Looks, /RootNode/meshes
-            for prim_child in prim.GetAllChildren():  # noqa PLE1101
+            for prim_child in prim.GetAllChildren():
                 # if the prim has any override(s)
                 is_override = CopyRefToPrimCore._is_prim_overridden(prim_child.GetPath(), all_replacements_layers)
                 if not is_override:
@@ -279,9 +281,7 @@ class CopyRefToPrimCore(_ILSSEvent):
                         _remove_prim_spec(output_layer, str(prim_child.GetPath()))
                     continue
 
-                capture_asset_abs_path = CopyRefToPrimCore._get_capture_asset_path(
-                    prim_child, source_layer, output_layer, folder
-                )
+                capture_asset_abs_path = CopyRefToPrimCore._get_capture_asset_path(prim_child, source_layer, folder)
 
                 # check if the ref was intentionally deleted
                 intentionally_deleted = False
@@ -384,7 +384,7 @@ class CopyRefToPrimCore(_ILSSEvent):
                     prim_spec.SetInfo(Sdf.PrimSpec.ReferencesKey, expected_refs)
 
     @staticmethod
-    def _get_capture_asset_path(prim, capture_layer, output_layer, capture_folder):
+    def _get_capture_asset_path(prim, capture_layer, capture_folder):
         return Sdf.ComputeAssetPathRelativeToLayer(capture_layer, capture_folder + "/" + prim.GetName() + ".usd")
 
     # @omni.usd.handle_exception

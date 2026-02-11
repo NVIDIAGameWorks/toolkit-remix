@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.13.1]
+### Changed
+- Modernize python style and enable more ruff checks
+
 ## [2.13.0]
 ### Changed
 - Simplified selection handling by delegating expansion and scroll behavior to `ScrollingTreeWidget`

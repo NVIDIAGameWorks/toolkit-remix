@@ -34,5 +34,5 @@ def hdremix_uselegacyselecthighlight() -> int:
             return defaultvalue
 
         return 1 if isettings.get_as_bool(SETTING_NAME) else 0
-    except Exception:  # noqa PLW0718
+    except Exception:  # noqa: BLE001
         return defaultvalue

@@ -1,4 +1,4 @@
-# noqa PLC0302
+# ruff: noqa: ARG001
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -16,12 +16,14 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import os
 import sys
 import unittest
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import call, patch
 
 import carb.tokens
@@ -343,7 +345,7 @@ class TestCore(AsyncTestCase):
                 _ManagerCore(wrong_schema)
 
     async def test_run_ok(self):
-        def sub_finished_count_fn(_value, message: Optional[str] = None):
+        def sub_finished_count_fn(_value, message: str | None = None):
             nonlocal sub_finished_count
             sub_finished_count.append(_value)
 
@@ -362,9 +364,9 @@ class TestCore(AsyncTestCase):
         sub_progress_count = []
         sub_started_count = []
 
-        _sub = core.subscribe_run_finished(sub_finished_count_fn)  # noqa
-        _sub1 = core.subscribe_run_progress(sub_progress_count_fn)  # noqa
-        _sub2 = core.subscribe_run_started(sub_started_count_fn)  # noqa
+        _sub = core.subscribe_run_finished(sub_finished_count_fn)
+        _sub1 = core.subscribe_run_progress(sub_progress_count_fn)
+        _sub2 = core.subscribe_run_started(sub_started_count_fn)
         # run, it should be ok
         await core.deferred_run()
         self.assertTrue(sub_finished_count[-1])
@@ -422,7 +424,7 @@ class TestCore(AsyncTestCase):
         )
 
         sub_stopped_count = []
-        _sub = core.subscribe_run_stopped(sub_stopped_count_fn)  # noqa
+        _sub = core.subscribe_run_stopped(sub_stopped_count_fn)
 
         # run, it should be ok
         with self.assertRaises(ValueError), patch.object(_PrintPrims, "_check", wraps=_custom_check):
@@ -458,7 +460,7 @@ class TestCore(AsyncTestCase):
         )
 
         sub_paused_count = []
-        _sub = core.subscribe_run_paused(sub_paused_count_fn)  # noqa
+        _sub = core.subscribe_run_paused(sub_paused_count_fn)
 
         # run, it should be ok
         with patch.object(_PrintPrims, "_check") as m_mocked:
@@ -492,7 +494,7 @@ class TestCore(AsyncTestCase):
             patch.object(
                 _ManagerCore,
                 "_ManagerCore__set_mode_base_all",
-                side_effect=core._ManagerCore__set_mode_base_all,  # noqa
+                side_effect=core._ManagerCore__set_mode_base_all,
             ) as m_mocked,
             patch.object(_PrintPrims, "_check", wraps=_custom_check) as check_mocked,
         ):
@@ -506,7 +508,7 @@ class TestCore(AsyncTestCase):
         # run, it should be ok
         with patch.object(_ManagerCore, "run", side_effect=core.run) as m_mocked:
             check_instance = core.model.check_plugins[1].instance
-            check_instance._on_validator_run([check_instance], _BaseValidatorRunMode.BASE_ALL)  # noqa
+            check_instance._on_validator_run([check_instance], _BaseValidatorRunMode.BASE_ALL)
             self.assertTrue(m_mocked.call_count == 1)
             self.assertTrue(
                 m_mocked.call_args
@@ -526,7 +528,7 @@ class TestCore(AsyncTestCase):
             patch.object(
                 _ManagerCore,
                 "_ManagerCore__set_mode_base_only_selected",
-                side_effect=core._ManagerCore__set_mode_base_only_selected,  # noqa
+                side_effect=core._ManagerCore__set_mode_base_only_selected,
             ) as m_mocked,
             patch.object(_PrintPrims, "_check", wraps=_custom_check) as check_mocked,
         ):
@@ -543,7 +545,7 @@ class TestCore(AsyncTestCase):
         # run, it should be ok
         with patch.object(_ManagerCore, "run", side_effect=core.run) as m_mocked:
             check_instance = core.model.check_plugins[1].instance
-            check_instance._on_validator_run([check_instance], _BaseValidatorRunMode.BASE_ONLY_SELECTED)  # noqa
+            check_instance._on_validator_run([check_instance], _BaseValidatorRunMode.BASE_ONLY_SELECTED)
             self.assertTrue(m_mocked.call_count == 1)
             self.assertTrue(
                 m_mocked.call_args
@@ -565,7 +567,7 @@ class TestCore(AsyncTestCase):
             patch.object(
                 _ManagerCore,
                 "_ManagerCore__set_mode_base_self_to_end",
-                side_effect=core._ManagerCore__set_mode_base_self_to_end,  # noqa
+                side_effect=core._ManagerCore__set_mode_base_self_to_end,
             ) as m_mocked,
             patch.object(_PrintPrims, "_check", wraps=_custom_check) as check_mocked,
         ):
@@ -581,7 +583,7 @@ class TestCore(AsyncTestCase):
         # run, it should be ok
         with patch.object(_ManagerCore, "run", side_effect=core.run) as m_mocked:
             check_instance = core.model.check_plugins[1].instance
-            check_instance._on_validator_run([check_instance], _BaseValidatorRunMode.BASE_SELF_TO_END)  # noqa
+            check_instance._on_validator_run([check_instance], _BaseValidatorRunMode.BASE_SELF_TO_END)
             self.assertTrue(m_mocked.call_count == 1)
             self.assertTrue(
                 m_mocked.call_args
@@ -595,7 +597,7 @@ class TestCore(AsyncTestCase):
         # run, it should be ok
         with patch.object(_ManagerCore, "run", side_effect=core.run) as m_mocked:
             selector_instance = core.model.check_plugins[2].selector_plugins[0].instance
-            selector_instance._on_validator_run([selector_instance], _BaseValidatorRunMode.BASE_SELF_TO_END)  # noqa
+            selector_instance._on_validator_run([selector_instance], _BaseValidatorRunMode.BASE_SELF_TO_END)
             self.assertTrue(m_mocked.call_count == 1)
             self.assertTrue(
                 m_mocked.call_args
@@ -609,7 +611,7 @@ class TestCore(AsyncTestCase):
         # run, it should be ok
         with patch.object(_ManagerCore, "run", side_effect=core.run) as m_mocked:
             context_instance = core.model.check_plugins[2].context_plugin.instance
-            context_instance._on_validator_run([context_instance], _BaseValidatorRunMode.BASE_SELF_TO_END)  # noqa
+            context_instance._on_validator_run([context_instance], _BaseValidatorRunMode.BASE_SELF_TO_END)
             self.assertTrue(m_mocked.call_count == 1)
             self.assertTrue(
                 m_mocked.call_args
@@ -624,11 +626,11 @@ class TestCore(AsyncTestCase):
         with patch.object(_ManagerCore, "run", side_effect=core.run) as m_mocked:
             resultor_instance = core.model.resultor_plugins[0].instance
             with self.assertRaises(ValueError):
-                resultor_instance._on_validator_run(  # noqa
+                resultor_instance._on_validator_run(
                     [resultor_instance], _BaseValidatorRunMode.BASE_SELF_TO_END, catch_exception=False
                 )
                 await omni.kit.app.get_app().next_update_async()
-                await asyncio.gather(core._last_run_task)  # noqa
+                await asyncio.gather(core._last_run_task)
             self.assertTrue(m_mocked.call_count == 1)
             self.assertTrue(
                 m_mocked.call_args
@@ -653,25 +655,25 @@ class TestCore(AsyncTestCase):
         with patch.object(_PrintPrims, "_check", wraps=_custom_check):
             self.assertTrue(core.is_enabled())
             check_instance = core.model.check_plugins[1].instance
-            check_instance._on_validator_enable(False)  # noqa
+            check_instance._on_validator_enable(False)
             self.assertFalse(core.is_enabled())
 
             await core.deferred_run()
             self.assertTrue(len(check_count) == 0)
 
-            check_instance._on_validator_enable(True)  # noqa
+            check_instance._on_validator_enable(True)
             self.assertTrue(core.is_enabled())
             await core.deferred_run()
             self.assertTrue(len(check_count) == 2)
 
     async def test_run_fail_plugin_context_disabled(self):
-        def sub_finished_count_fn(_value, message: Optional[str] = None):
+        def sub_finished_count_fn(_value, message: str | None = None):
             nonlocal sub_finished_count
             sub_finished_count.append(_value)
 
         core = _create_good_schema()
         sub_finished_count = []
-        _sub = core.subscribe_run_finished(sub_finished_count_fn)  # noqa
+        _sub = core.subscribe_run_finished(sub_finished_count_fn)
         # first check plugin is disabled
         self.assertFalse(core.model.check_plugins[0].enabled)
 
@@ -687,13 +689,13 @@ class TestCore(AsyncTestCase):
         self.assertTrue(sub_finished_count[-1])
 
     async def test_run_fail_plugin_selector_disabled(self):
-        def sub_finished_count_fn(_value, message: Optional[str] = None):
+        def sub_finished_count_fn(_value, message: str | None = None):
             nonlocal sub_finished_count
             sub_finished_count.append(_value)
 
         core = _create_good_schema()
         sub_finished_count = []
-        _sub = core.subscribe_run_finished(sub_finished_count_fn)  # noqa
+        _sub = core.subscribe_run_finished(sub_finished_count_fn)
 
         # disabling the selector plugin will set an error
         core.model.check_plugins[1].selector_plugins[0].enabled = False
@@ -704,13 +706,13 @@ class TestCore(AsyncTestCase):
         core.model.check_plugins[1].selector_plugins[0].enabled = True
 
     async def test_run_fail_plugin_check_disabled(self):
-        def sub_finished_count_fn(_value, message: Optional[str] = None):
+        def sub_finished_count_fn(_value, message: str | None = None):
             nonlocal sub_finished_count
             sub_finished_count.append(_value)
 
         core = _create_good_schema()
         sub_finished_count = []
-        _sub = core.subscribe_run_finished(sub_finished_count_fn)  # noqa
+        _sub = core.subscribe_run_finished(sub_finished_count_fn)
         # disabling the second and third check will error, because we dont have any check plugin anymore
         core.model.check_plugins[1].enabled = False
         core.model.check_plugins[2].enabled = False
@@ -725,13 +727,13 @@ class TestCore(AsyncTestCase):
         self.assertTrue(sub_finished_count[-1])
 
     async def test_run_fail_plugin_context_check_return_false(self):
-        def sub_finished_count_fn(_value, message: Optional[str] = None):
+        def sub_finished_count_fn(_value, message: str | None = None):
             nonlocal sub_finished_count
             sub_finished_count.append(_value)
 
         core = _create_good_schema()
         sub_finished_count = []
-        _sub = core.subscribe_run_finished(sub_finished_count_fn)  # noqa
+        _sub = core.subscribe_run_finished(sub_finished_count_fn)
 
         with patch.object(_CurrentStage, "_check") as m_mocked, patch.object(_CurrentStage, "_on_crash"):
             v1 = (False, "Failed")
@@ -752,13 +754,13 @@ class TestCore(AsyncTestCase):
         self.assertTrue(sub_finished_count[-1])
 
     async def test_run_fail_plugin_context_set_return_false(self):
-        def sub_finished_count_fn(_value, message: Optional[str] = None):
+        def sub_finished_count_fn(_value, message: str | None = None):
             nonlocal sub_finished_count
             sub_finished_count.append(_value)
 
         core = _create_good_schema()
         sub_finished_count = []
-        _sub = core.subscribe_run_finished(sub_finished_count_fn)  # noqa
+        _sub = core.subscribe_run_finished(sub_finished_count_fn)
 
         with patch.object(_CurrentStage, "_setup") as m_mocked, patch.object(_CurrentStage, "_on_crash"):
             v1 = (False, "Failed", None)
@@ -779,13 +781,13 @@ class TestCore(AsyncTestCase):
         self.assertTrue(sub_finished_count[-1])
 
     async def test_run_fail_plugin_context_exit_return_false(self):
-        def sub_finished_count_fn(_value, message: Optional[str] = None):
+        def sub_finished_count_fn(_value, message: str | None = None):
             nonlocal sub_finished_count
             sub_finished_count.append(_value)
 
         core = _create_good_schema()
         sub_finished_count = []
-        _sub = core.subscribe_run_finished(sub_finished_count_fn)  # noqa
+        _sub = core.subscribe_run_finished(sub_finished_count_fn)
 
         with patch.object(_CurrentStage, "_on_exit") as m_mocked, patch.object(_CurrentStage, "_on_crash"):
             v1 = (False, "Failed")
@@ -806,13 +808,13 @@ class TestCore(AsyncTestCase):
         self.assertTrue(sub_finished_count[-1])
 
     async def test_run_fail_plugin_select_select_return_false(self):
-        def sub_finished_count_fn(_value, message: Optional[str] = None):
+        def sub_finished_count_fn(_value, message: str | None = None):
             nonlocal sub_finished_count
             sub_finished_count.append(_value)
 
         core = _create_good_schema()
         sub_finished_count = []
-        _sub = core.subscribe_run_finished(sub_finished_count_fn)  # noqa
+        _sub = core.subscribe_run_finished(sub_finished_count_fn)
 
         with patch.object(_AllPrims, "_select") as m_mocked, patch.object(_AllPrims, "_on_crash"):
             v1 = (False, "Failed", None)
@@ -835,21 +837,21 @@ class TestCore(AsyncTestCase):
     async def test_run_is_ready_to_run(self):
         core = _create_good_schema()
 
-        core.model.check_plugins[0].instance._on_validation_is_ready_to_run(False)  # noqa PLW0212
+        core.model.check_plugins[0].instance._on_validation_is_ready_to_run(False)
 
         self.assertFalse(list(core.is_ready_to_run().values())[0])
 
-        core.model.check_plugins[0].instance._on_validation_is_ready_to_run(True)  # noqa PLW0212
+        core.model.check_plugins[0].instance._on_validation_is_ready_to_run(True)
         self.assertTrue(list(core.is_ready_to_run().values())[0])
 
     async def test_run_ok_plugin_check_check_return_false(self):
-        def sub_finished_count_fn(_value, message: Optional[str] = None):
+        def sub_finished_count_fn(_value, message: str | None = None):
             nonlocal sub_finished_count
             sub_finished_count.append(_value)
 
         core = _create_good_schema()
         sub_finished_count = []
-        _sub = core.subscribe_run_finished(sub_finished_count_fn)  # noqa
+        _sub = core.subscribe_run_finished(sub_finished_count_fn)
 
         with patch.object(_PrintPrims, "_check") as m_mocked:
             v1 = (False, "Failed", None)
@@ -872,13 +874,13 @@ class TestCore(AsyncTestCase):
     async def test_run_fail_plugin_check_check_return_false(self):
         """Here we set the stop_if_fix_failed to True for all check plugins"""
 
-        def sub_finished_count_fn(_value, message: Optional[str] = None):
+        def sub_finished_count_fn(_value, message: str | None = None):
             nonlocal sub_finished_count
             sub_finished_count.append(_value)
 
         core = _create_good_schema()
         sub_finished_count = []
-        _sub = core.subscribe_run_finished(sub_finished_count_fn)  # noqa
+        _sub = core.subscribe_run_finished(sub_finished_count_fn)
 
         for check_plugin in core.model.check_plugins:
             check_plugin.stop_if_fix_failed = True
@@ -901,13 +903,13 @@ class TestCore(AsyncTestCase):
         self.assertTrue(sub_finished_count[-1])
 
     async def test_run_ok_plugin_check_fix_return_false(self):
-        def sub_finished_count_fn(_value, message: Optional[str] = None):
+        def sub_finished_count_fn(_value, message: str | None = None):
             nonlocal sub_finished_count
             sub_finished_count.append(_value)
 
         core = _create_good_schema()
         sub_finished_count = []
-        _sub = core.subscribe_run_finished(sub_finished_count_fn)  # noqa
+        _sub = core.subscribe_run_finished(sub_finished_count_fn)
 
         with patch.object(_PrintPrims, "_check") as m_mocked, patch.object(_PrintPrims, "_fix") as m_mocked2:
             v1 = (False, "Failed", None)
@@ -937,13 +939,13 @@ class TestCore(AsyncTestCase):
     async def test_run_fail_plugin_check_fix_return_false(self):
         """Here we set the stop_if_fix_failed to True for all check plugins"""
 
-        def sub_finished_count_fn(_value, message: Optional[str] = None):
+        def sub_finished_count_fn(_value, message: str | None = None):
             nonlocal sub_finished_count
             sub_finished_count.append(_value)
 
         core = _create_good_schema()
         sub_finished_count = []
-        _sub = core.subscribe_run_finished(sub_finished_count_fn)  # noqa
+        _sub = core.subscribe_run_finished(sub_finished_count_fn)
 
         for check_plugin in core.model.check_plugins:
             check_plugin.stop_if_fix_failed = True
@@ -979,20 +981,20 @@ class TestCore(AsyncTestCase):
         self.assertTrue(sub_finished_count[-1])
 
     async def test_run_fail_plugin_context_disabled_with_set_attr(self):
-        def sub_finished_count_fn(_value, message: Optional[str] = None):
+        def sub_finished_count_fn(_value, message: str | None = None):
             nonlocal sub_finished_count
             sub_finished_count.append(_value)
 
         core = _create_good_schema()
         sub_finished_count = []
-        _sub = core.subscribe_run_finished(sub_finished_count_fn)  # noqa
+        _sub = core.subscribe_run_finished(sub_finished_count_fn)
         # set the enabled attribute using the _set_attribute private function
-        core.model.context_plugin.instance._set_schema_attribute("enabled", False)  # noqa
+        core.model.context_plugin.instance._set_schema_attribute("enabled", False)
         with self.assertRaises(ValueError):
             await core.deferred_run()
         self.assertFalse(sub_finished_count[-1])
         # put it back
-        core.model.context_plugin.instance._set_schema_attribute("enabled", True)  # noqa
+        core.model.context_plugin.instance._set_schema_attribute("enabled", True)
 
     async def test_run_ok_print_result(self):
         core = _create_good_schema()

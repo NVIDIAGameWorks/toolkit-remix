@@ -61,10 +61,10 @@ def is_admin() -> bool:
     """
     Tell if the current user has admin right or not
     """
-    match sys.platform:  # noqa R503
+    match sys.platform:
         case "win32":
             return bool(ctypes.windll.shell32.IsUserAnAdmin())
         case "linux":
-            return os.getuid() == 0  # noqa PLE1101
+            return os.getuid() == 0
         case _:
             raise UnsupportedPlatformError

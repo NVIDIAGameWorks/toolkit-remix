@@ -18,7 +18,8 @@
 import asyncio
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, List, Optional
+from typing import Any
+from collections.abc import Callable
 
 import carb
 import omni.appwindow
@@ -54,8 +55,8 @@ class TextureImportListWidget:
         delegate: TextureImportListDelegate = None,
         allow_empty_input_files_list: bool = False,
         enable_drop: bool = False,
-        drop_filter_fn: Callable[[List[str]], List[str]] = None,
-        drop_callback: Callable[[List[str]], Any] = None,
+        drop_filter_fn: Callable[[list[str]], list[str]] = None,
+        drop_callback: Callable[[list[str]], Any] = None,
     ):
         self._default_attr = {
             "_model": None,
@@ -88,7 +89,7 @@ class TextureImportListWidget:
 
         self._normals_type_info_icon = None
 
-        self._preferred_normal_type: Optional[_TextureTypes] = None
+        self._preferred_normal_type: _TextureTypes | None = None
         self._normal_types = [_TextureTypes.NORMAL_OGL, _TextureTypes.NORMAL_DX, _TextureTypes.NORMAL_OTH]
 
         self.__root_frame = ui.Frame()
@@ -204,7 +205,7 @@ class TextureImportListWidget:
     def __on_texture_changed(self, *_):
         self._file_tree_view.dirty_widgets()
 
-    def __on_selection_changed(self, selection: List[_TextureImportItem]):
+    def __on_selection_changed(self, selection: list[_TextureImportItem]):
         if self._allow_empty_input_files_list:
             return
         will_have_items_left = len(selection) < len(self._model.get_item_children(None))

@@ -91,7 +91,7 @@ class TestLayerUtils(omni.kit.test.AsyncTestCase):
 
         with patch("omni.flux.utils.common.layer_utils.create_layer") as mock:
             # Act
-            layer_utils.save_layer_as("", True, mock_ref, mock_ref, save_done_mock, str(self.temp_dir))  # noqa
+            layer_utils.save_layer_as("", True, mock_ref, mock_ref, save_done_mock, str(self.temp_dir))
 
             # Assert
             self.assertFalse(mock.called)
@@ -123,7 +123,7 @@ class TestLayerUtils(omni.kit.test.AsyncTestCase):
             create_mock.return_value = layer1
 
             # Act
-            layer_utils.save_layer_as("", False, layer0_ref, root_ref, save_done_mock, str(layer1_path))  # noqa
+            layer_utils.save_layer_as("", False, layer0_ref, root_ref, save_done_mock, str(layer1_path))
 
             # Assert
             self.assertEqual(1, create_mock.call_count)
@@ -168,7 +168,7 @@ class TestLayerUtils(omni.kit.test.AsyncTestCase):
             create_mock.return_value = layer0
 
             # Act
-            layer_utils.save_layer_as("", True, root_ref, None, save_done_mock, str(layer0_path))  # noqa
+            layer_utils.save_layer_as("", True, root_ref, None, save_done_mock, str(layer0_path))
 
         # Assert
         self.assertEqual(1, context_mock.call_count)
@@ -209,7 +209,7 @@ class TestLayerUtils(omni.kit.test.AsyncTestCase):
             sublayer_mock.return_value = sublayer_position
 
             # Act
-            layer_utils.save_layer_as("", True, layer0_ref, root_ref, save_done_mock, str(layer1_path))  # noqa
+            layer_utils.save_layer_as("", True, layer0_ref, root_ref, save_done_mock, str(layer1_path))
 
             # Assert
             self.assertEqual(1, sublayer_mock.call_count)

@@ -15,9 +15,11 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import shutil
-from typing import Any, Dict, List, Optional
+from typing import Any
 from unittest.mock import Mock, PropertyMock, call, patch
 
 import omni.client
@@ -230,7 +232,7 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
         texture_importer = TextureImporter()
 
         # Act
-        success, message = await texture_importer._on_exit(schema_data, None)  # noqa PLW0212
+        success, message = await texture_importer._on_exit(schema_data, None)
 
         # Assert
         self.assertTrue(success)
@@ -262,13 +264,13 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
         texture_importer = TextureImporter()
 
         # Act
-        is_valid, message = await texture_importer._check(schema_data, None)  # noqa PLW0212
+        is_valid, message = await texture_importer._check(schema_data, None)
 
         # Assert
         self.assertEqual(has_input_files and has_output_directory, is_valid)
         self.assertEqual(expected_message, message)
 
-    async def __run_setup(self, valid_context: bool, data_flows: Optional[List[Dict[Any, Any]]] = None):
+    async def __run_setup(self, valid_context: bool, data_flows: list[dict[Any, Any]] | None = None):
         # Arrange
         texture_importer = TextureImporter()
 
@@ -316,9 +318,7 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
             create_prims_mock.return_value = create_prims_future
 
             # Act
-            is_valid, message, value = await texture_importer._setup(  # noqa PLW0212
-                schema_mock, run_callback_mock, None
-            )
+            is_valid, message, value = await texture_importer._setup(schema_mock, run_callback_mock, None)
 
         # Assert
         expected_message = (
@@ -396,7 +396,7 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
             get_shader_mock.return_value = material_shader_mock
 
             # Act
-            await _create_prims_and_link_assets(context_name_mock, imported_files)  # noqa PLW0212
+            await _create_prims_and_link_assets(context_name_mock, imported_files)
 
         # Assert
         self.assertEqual(

@@ -17,11 +17,11 @@
 
 from __future__ import annotations
 
-__all__ = ["RemixBackdropDelegate", "trigger_backdrop_rename", "clear_edit_triggers"]
+__all__ = ["RemixBackdropDelegate", "clear_edit_triggers", "trigger_backdrop_rename"]
 
 import weakref
 from functools import partial
-from typing import Callable
+from collections.abc import Callable
 
 import omni.ui as ui
 from omni.kit.graph.delegate.modern import HEADER, HIGHLIGHT_THICKNESS, PORT_VISIBLE_MIN
@@ -74,7 +74,7 @@ class RemixBackdropDelegate(BackdropDelegate):
             )
             model[node].display_color = rgb
             model.selection = []
-            model._item_changed(None)  # noqa: SLF001, PLW0212
+            model._item_changed(None)  # noqa: SLF001
 
         header = ui.VStack()
         with header:
@@ -149,7 +149,7 @@ class RemixBackdropDelegate(BackdropDelegate):
                                         field.visible = False
                                         label_widget.visible = True
                                         model[node].name = field.model.as_string
-                                        model._item_changed(None)  # noqa: SLF001, PLW0212
+                                        model._item_changed(None)  # noqa: SLF001
 
                                     label_field.model.add_end_edit_fn(partial(label_edited, label_field, label))
                                 ui.Spacer()

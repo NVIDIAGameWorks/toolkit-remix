@@ -4,6 +4,10 @@ This document records all notable changes to the **lightspeed.trex.logic.widget*
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.7.2]
+### Changed
+- Modernize python style and enable more ruff checks
+
 ## [1.7.1]
 ### Changed
 - Switched to ruff for linting and formatting

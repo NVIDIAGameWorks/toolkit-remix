@@ -23,7 +23,8 @@ import dataclasses
 import functools
 import inspect
 import json
-from typing import Any, Callable, Generic, Mapping, TypeAlias, TypeVar
+from typing import Any, Generic, TypeAlias, TypeVar
+from collections.abc import Callable, Mapping
 
 Json: TypeAlias = dict[str, "Json"] | list["Json"] | str | int | float | bool | None
 T = TypeVar("T")
@@ -248,7 +249,7 @@ def register_std(serializer: Serializer):
     """
     Simple helper method to register converters for common standard library types.
     """
-    import datetime
+    import datetime  # noqa: PLC0415
 
     serializer.register_converter(
         Converter(

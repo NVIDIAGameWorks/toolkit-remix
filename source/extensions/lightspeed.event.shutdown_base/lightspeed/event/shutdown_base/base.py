@@ -16,7 +16,8 @@
 """
 
 import abc
-from typing import Callable, Protocol
+from typing import Protocol
+from collections.abc import Callable
 
 import omni.kit.app
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent

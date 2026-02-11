@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .extension import *  # noqa: F401 F403
+from .extension import GlobalEventsExtension
+
+__all__ = ["GlobalEventsExtension"]

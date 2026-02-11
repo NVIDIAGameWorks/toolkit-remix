@@ -15,5 +15,7 @@
 * limitations under the License.
 """
 
-from .items import BaseContentItem, ContentItem, ContentItemAdd  # noqa: F401, PLE0611
-from .setup_ui import ContentViewerWidget  # noqa: F401, PLE0611
+from .items import BaseContentItem, ContentItem, ContentItemAdd
+from .setup_ui import ContentViewerWidget
+
+__all__ = ["BaseContentItem", "ContentItem", "ContentItemAdd", "ContentViewerWidget"]

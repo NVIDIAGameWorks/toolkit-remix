@@ -16,3 +16,5 @@
 """
 
 from .e2e.test_widget import TestManagerWidget
+
+__all__ = ["TestManagerWidget"]

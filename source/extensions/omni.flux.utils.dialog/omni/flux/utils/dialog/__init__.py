@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["ErrorPopup", "show_popup", "ProgressPopup"]
+__all__ = ["ErrorPopup", "ProgressPopup", "show_popup"]
 
 from .error_popup import ErrorPopup
 from .progress_popup import ProgressPopup

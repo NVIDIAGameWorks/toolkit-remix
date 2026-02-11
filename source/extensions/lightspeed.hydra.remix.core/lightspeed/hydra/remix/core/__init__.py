@@ -16,19 +16,20 @@
 """
 
 __all__ = [
-    "is_remix_supported",
-    "RemixSupport",
+    "HdRemixFinalizer",
     "RemixRequestQueryType",
+    "RemixSupport",
     "hdremix_findworldposition_request",
-    "hdremix_objectpicking_request",
     "hdremix_highlight_paths",
-    "hdremix_uselegacyselecthighlight",
-    "viewport_api_request_query_hdremix",
+    "hdremix_objectpicking_request",
     "hdremix_set_configvar",
+    "hdremix_uselegacyselecthighlight",
+    "is_remix_supported",
+    "viewport_api_request_query_hdremix",
 ]
 
 # Export extension class
-from .extension import HdRemixFinalizer  # noqa F401
+from .extension import HdRemixFinalizer
 from .extern import (
     RemixRequestQueryType,
     RemixSupport,

@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .setup_ui import WelcomePadWidget  # noqa F401
+from .setup_ui import WelcomePadWidget
+
+__all__ = ["WelcomePadWidget"]

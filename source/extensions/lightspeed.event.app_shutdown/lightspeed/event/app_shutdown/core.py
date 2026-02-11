@@ -17,7 +17,7 @@
 
 import time
 from datetime import datetime, timezone
-from typing import Callable
+from collections.abc import Callable
 
 from lightspeed.event.shutdown_base import EventOnShutdownBase as _EventOnShutdownBase
 from lightspeed.event.shutdown_base import InterrupterBase as _InterrupterBase

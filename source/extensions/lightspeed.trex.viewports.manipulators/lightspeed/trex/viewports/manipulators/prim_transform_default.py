@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from .custom_manipulator.prim_transform_manipulator import PrimTransformManipulator as _PrimTransformManipulator
 from .custom_manipulator.prim_transform_model import PrimTransformModel as _ManipulatorPrimTransformModel
@@ -53,6 +53,6 @@ class PrimTransformDefault(IManipulator):
         pass
 
 
-def prim_transform_default_factory(desc: Dict[str, Any]):
+def prim_transform_default_factory(desc: dict[str, Any]):
     manip = PrimTransformDefault(desc.get("viewport_api"))
     return manip

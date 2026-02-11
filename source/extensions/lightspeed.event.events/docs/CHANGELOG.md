@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.3]
+### Changed
+- Modernize python style and enable more ruff checks
+
 ## [1.0.2]
 ### Changed
 - Run auto format code tool to fix errors

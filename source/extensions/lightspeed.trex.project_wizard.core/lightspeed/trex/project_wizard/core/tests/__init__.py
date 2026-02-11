@@ -17,3 +17,5 @@
 
 from .unit.test_items import TestItems
 from .unit.test_wizard import TestWizard
+
+__all__ = ["TestItems", "TestWizard"]

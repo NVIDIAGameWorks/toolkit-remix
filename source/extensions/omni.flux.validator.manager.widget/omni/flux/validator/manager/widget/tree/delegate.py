@@ -17,7 +17,8 @@
 
 import asyncio
 import functools
-from typing import Any, Callable, List
+from typing import Any
+from collections.abc import Callable
 
 import omni.ui as ui
 import omni.usd
@@ -29,7 +30,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.validator.factory import BaseValidatorRunMode as _BaseValidatorRunMode
 from omni.ui import color as cl
 
-from .model import HEADER_DICT  # noqa PLE0402
+from .model import HEADER_DICT
 from .model import BaseItem as _BaseItem
 from .model import CheckerItem as _CheckerItem
 from .model import ContextItem as _ContextItem
@@ -248,7 +249,7 @@ class Delegate(ui.AbstractItemDelegate):
         return _EventSubscription(self.__on_run_menu_clicked, function)
 
     def on_plugin_done(
-        self, message_set_fn: Callable[[str], Any], data, attr_messages: List[str], _result: bool, _message: str, *_args
+        self, message_set_fn: Callable[[str], Any], data, attr_messages: list[str], _result: bool, _message: str, *_args
     ):
         """
         When a plugin finished his process, we can set the message into a string field

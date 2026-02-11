@@ -223,7 +223,7 @@ class TestCore(omni.kit.test.AsyncTestCase):
             get_shader_mock.return_value = shader_mock
 
             # Act
-            val = MaterialConverterCore._create_material_definition_prim(  # noqa PLW0212
+            val = MaterialConverterCore._create_material_definition_prim(
                 context_name_mock, converter_mock, output_path_mock
             )
 
@@ -268,7 +268,7 @@ class TestCore(omni.kit.test.AsyncTestCase):
             get_context_mock.return_value.get_stage.return_value = stage_mock
 
             # Act
-            val = MaterialConverterCore._create_material_override_prim(  # noqa PLW0212
+            val = MaterialConverterCore._create_material_override_prim(
                 context_name_mock, output_material_path_mock, output_shader_path_mock
             )
 
@@ -514,7 +514,7 @@ class TestCore(omni.kit.test.AsyncTestCase):
             get_context_mock.return_value = context_mock
 
             # Act
-            await MaterialConverterCore._convert_material_attributes(  # noqa PLW0212
+            await MaterialConverterCore._convert_material_attributes(
                 context_name_mock, converter_mock, input_shader_prim_mock, output_shader_prim_mock
             )
 
@@ -606,7 +606,7 @@ class TestCore(omni.kit.test.AsyncTestCase):
             get_context_mock.return_value.get_stage.return_value.GetSessionLayer.return_value = session_layer_mock
 
             # Act
-            await MaterialConverterCore._create_material_attributes(  # noqa PLW0212
+            await MaterialConverterCore._create_material_attributes(
                 context_name_mock, converter_mock, input_shader_prim_mock, output_shader_prim_mock
             )
 

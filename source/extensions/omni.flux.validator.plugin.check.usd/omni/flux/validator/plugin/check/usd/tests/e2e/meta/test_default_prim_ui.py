@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import omni.ui as ui
 import omni.usd
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
