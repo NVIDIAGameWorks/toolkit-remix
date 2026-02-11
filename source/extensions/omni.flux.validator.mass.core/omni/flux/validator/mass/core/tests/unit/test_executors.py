@@ -48,7 +48,7 @@ class TestExecutors(AsyncTestCase):
             patch("omni.flux.validator.mass.core.manager._ManagerCore.deferred_run_with_exception") as run_mock,
             patch.object(core, "_on_core_added") as core_added_mock,
         ):
-            await core.create_tasks(0, [items[0]._data])  # noqa
+            await core.create_tasks(0, [items[0]._data])
             await omni.kit.app.get_app().next_update_async()
             run_mock.assert_called_once()
             core_added_mock.assert_called_once()
@@ -62,14 +62,14 @@ class TestExecutors(AsyncTestCase):
             patch("omni.flux.validator.mass.core.manager._ManagerCore.deferred_run_with_exception") as run_mock,
             patch.object(core, "_on_core_added") as core_added_mock,
         ):
-            result = await core.create_tasks(0, [item._data for item in items])  # noqa
+            result = await core.create_tasks(0, [item._data for item in items])
             await omni.kit.app.get_app().next_update_async()
             self.assertEqual(run_mock.call_count, 2)
             self.assertEqual(core_added_mock.call_count, 2)
             self.assertIsNotNone(result)
 
             # add others
-            await core.create_tasks(0, [item._data for item in items])  # noqa
+            await core.create_tasks(0, [item._data for item in items])
             await omni.kit.app.get_app().next_update_async()
             self.assertEqual(run_mock.call_count, 4)
             self.assertEqual(core_added_mock.call_count, 4)
@@ -83,7 +83,7 @@ class TestExecutors(AsyncTestCase):
 
             # create task will create the task and run them using the executor
             with patch.object(core, "_on_core_added") as core_added_mock:
-                await core.create_tasks(1, [items[0]._data])  # noqa
+                await core.create_tasks(1, [items[0]._data])
                 for _ in range(len(items) * 2):
                     await omni.kit.app.get_app().next_update_async()
                 run_mock.assert_called_once()
@@ -97,7 +97,7 @@ class TestExecutors(AsyncTestCase):
 
             # create task will create the task and run them using the executor
             with patch.object(core, "_on_core_added") as core_added_mock:
-                result = await core.create_tasks(1, [item._data for item in items])  # noqa
+                result = await core.create_tasks(1, [item._data for item in items])
                 for _ in range(len(items) * 2):
                     await omni.kit.app.get_app().next_update_async()
                 self.assertEqual(run_mock.call_count, 2)
@@ -105,7 +105,7 @@ class TestExecutors(AsyncTestCase):
                 self.assertIsNotNone(result)
 
                 # add others
-                await core.create_tasks(1, [item._data for item in items])  # noqa
+                await core.create_tasks(1, [item._data for item in items])
                 for _ in range(len(items) * 2):
                     await omni.kit.app.get_app().next_update_async()
                 self.assertEqual(run_mock.call_count, 4)

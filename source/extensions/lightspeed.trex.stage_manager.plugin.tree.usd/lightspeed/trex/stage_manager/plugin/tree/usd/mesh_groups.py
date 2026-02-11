@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from lightspeed.common import constants
 from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance

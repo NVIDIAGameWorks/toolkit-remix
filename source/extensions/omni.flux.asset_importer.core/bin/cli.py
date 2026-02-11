@@ -55,7 +55,7 @@ async def run(parsed_args):
     exit_code = 1
     try:
         importer = ImporterCore()
-        _sub = importer.subscribe_batch_progress(sub_progress_count_fn)  # noqa
+        _sub = importer.subscribe_batch_progress(sub_progress_count_fn)
         success = await importer.import_batch_async(parsed_args.config, parsed_args.default_output)
         if success:
             exit_code = 0

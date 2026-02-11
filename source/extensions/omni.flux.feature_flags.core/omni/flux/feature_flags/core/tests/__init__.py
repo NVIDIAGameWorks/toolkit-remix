@@ -17,3 +17,5 @@
 
 from .unit.test_core import TestFeatureFlagsCore
 from .unit.test_items import TestFeatureFlag
+
+__all__ = ["TestFeatureFlag", "TestFeatureFlagsCore"]

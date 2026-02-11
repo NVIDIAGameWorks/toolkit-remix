@@ -15,7 +15,9 @@
 * limitations under the License.
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from __future__ import annotations
+
+from typing import Any
 
 import omni.kit
 import omni.ui as ui
@@ -51,11 +53,11 @@ class TransformPropertyWidget:
     def __init__(
         self,
         context_name: str,
-        tree_column_widths: List[ui.Length] = None,
+        tree_column_widths: list[ui.Length] = None,
         columns_resizable: bool = False,
         right_aligned_labels: bool = True,
-        attr_display_names_table: Dict[UsdGeom.XformOp, List[str]] = None,
-        virtual_xform_ops: List[List[Tuple[List[UsdGeom.XformOp], List[Any]]]] = None,
+        attr_display_names_table: dict[UsdGeom.XformOp, list[str]] = None,
+        virtual_xform_ops: list[list[tuple[list[UsdGeom.XformOp], list[Any]]]] = None,
         field_builders: list[_FieldBuilder] | None = None,
     ):
         """
@@ -145,7 +147,7 @@ class TransformPropertyWidget:
                 columns_resizable=self._columns_resizable,
             )
 
-    def refresh(self, paths: Optional[List[Union[str, "Sdf.Path"]]] = None):
+    def refresh(self, paths: list[str | Sdf.Path] | None = None):
         """
         Refresh the panel with the given prim paths
 
@@ -158,14 +160,14 @@ class TransformPropertyWidget:
         if not self._root_frame or not self._root_frame.visible:
             return
 
-        if self.__usd_listener_instance and self._property_model:  # noqa PLE0203
-            self.__usd_listener_instance.remove_model(self._property_model)  # noqa PLE0203
+        if self.__usd_listener_instance and self._property_model:
+            self.__usd_listener_instance.remove_model(self._property_model)
 
         stage = self._context.get_stage()
         items = []
         valid_paths = []
 
-        if stage is not None:  # noqa PLR1702
+        if stage is not None:
             prims = [stage.GetPrimAtPath(path) for path in self._paths]
 
             attrs_added = {}

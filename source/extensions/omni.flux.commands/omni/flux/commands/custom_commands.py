@@ -17,14 +17,15 @@
 
 __all__ = [
     "AttributeDef",
+    "CreateOrInsertSublayerCommand",
+    "RemoveOverrideCommand",
     "SetDefaultPrimCommand",
     "SetFluxXFormPrimCommand",
-    "RemoveOverrideCommand",
     "SetVisibilitySelectedPrimsCommand",
-    "CreateOrInsertSublayerCommand",
 ]
 
-from typing import Any, Iterable, TypedDict
+from typing import Any, TypedDict
+from collections.abc import Iterable
 
 import carb
 import omni.kit.commands
@@ -229,7 +230,7 @@ class RemoveOverrideCommand(omni.kit.commands.Command):
             return False
         children = prim.GetChildren()
 
-        for child in children:  # Noqa SIM110
+        for child in children:
             if seen is None or child not in seen:
                 if self._has_attribute_override(child):
                     return True
@@ -424,7 +425,7 @@ class CreateOrInsertSublayerCommand(omni.kit.commands.Command):
             transfer_root_content (bool): True if we should move the root contents to the new layer.
             create_or_insert (bool): If it's true, it will create layer from this path. It's insert, otherwise.
             layer_name (str, optional): If it's to create anonymous layer (new_layer_path is empty), this name is used.
-            usd_context (Union[str, omni.usd.UsdContext]): Usd context name or instance. It uses default context if it's
+            usd_context (str | omni.usd.UsdContext): Usd context name or instance. It uses default context if it's
                                                            empty.
         """
         self._usd_context = self._get_usd_context(usd_context)

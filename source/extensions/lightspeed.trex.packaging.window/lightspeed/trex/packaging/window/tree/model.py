@@ -1,4 +1,3 @@
-# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -16,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["PackagingErrorModel", "AssetValidationError", "HEADER_DICT"]
+__all__ = ["HEADER_DICT", "AssetValidationError", "PackagingErrorModel"]
 
 from collections.abc import Callable
 from enum import Enum

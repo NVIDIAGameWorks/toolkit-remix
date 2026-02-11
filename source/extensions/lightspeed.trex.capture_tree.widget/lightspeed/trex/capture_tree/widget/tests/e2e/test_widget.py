@@ -33,7 +33,7 @@ from omni.kit.test_suite.helpers import arrange_windows, open_stage
 
 @contextlib.asynccontextmanager
 async def make_temp_directory(context):
-    temp_dir = tempfile.TemporaryDirectory()  # noqa PLR1732
+    temp_dir = tempfile.TemporaryDirectory()
     try:
         yield temp_dir
     finally:

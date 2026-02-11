@@ -26,7 +26,7 @@ import omni.kit.commands
 from omni import ui, usd
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
+from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
 
 class Operator(Enum):
@@ -68,7 +68,7 @@ class ValueMapping(_CheckBaseUSD):
         def input_output_same_type(cls, v: dict[str, list[AttributeMapping]]) -> dict[str, list[AttributeMapping]]:
             for _, attr_mappings in v.items():
                 for index, mapping in enumerate(attr_mappings):
-                    if not mapping.mapping_fn and type(mapping.input_value) != type(mapping.output_value):  # noqa
+                    if not mapping.mapping_fn and type(mapping.input_value) != type(mapping.output_value):  # noqa: E721
                         raise ValueError(f"Input and Output value types do not match for mapping -> {index}")
             return v
 
@@ -152,7 +152,7 @@ class ValueMapping(_CheckBaseUSD):
 
         self.on_progress(progress, "Start", success)
 
-        if selector_plugin_data:  # noqa PLR1702
+        if selector_plugin_data:
             progress_delta = 1 / len(selector_plugin_data)
 
             for prim in selector_plugin_data:
@@ -215,7 +215,7 @@ class ValueMapping(_CheckBaseUSD):
 
         self.on_progress(progress, "Start", success)
 
-        if selector_plugin_data:  # noqa PLR1702
+        if selector_plugin_data:
             progress_delta = 1 / len(selector_plugin_data)
 
             for prim in selector_plugin_data:
@@ -235,7 +235,7 @@ class ValueMapping(_CheckBaseUSD):
                         ):
                             output_value = mapping.output_value
                             if mapping.mapping_fn:
-                                output_value = eval(mapping.mapping_fn)(input_value)  # noqa PLW0123
+                                output_value = eval(mapping.mapping_fn)(input_value)
                             omni.kit.commands.execute(
                                 "ChangeProperty",
                                 prop_path=prim.GetProperty(attr_name).GetPath(),

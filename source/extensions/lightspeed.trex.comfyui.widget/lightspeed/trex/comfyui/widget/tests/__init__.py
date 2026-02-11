@@ -16,3 +16,5 @@
 """
 
 from .unit.test_subscription_lifecycle import TestComfyUIWidgetSubscriptionLifecycle
+
+__all__ = ["TestComfyUIWidgetSubscriptionLifecycle"]

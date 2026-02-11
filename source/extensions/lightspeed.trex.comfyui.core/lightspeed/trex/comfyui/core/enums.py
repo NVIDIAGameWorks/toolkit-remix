@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["ComfyUIState", "ComfyUIQueueType"]
+__all__ = ["ComfyUIQueueType", "ComfyUIState"]
 
 from enum import Enum
 

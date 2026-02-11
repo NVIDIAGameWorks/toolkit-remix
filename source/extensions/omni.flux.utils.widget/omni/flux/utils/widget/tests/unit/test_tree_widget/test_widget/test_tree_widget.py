@@ -644,11 +644,11 @@ class TestTreeWidget(AsyncTestCase):
         callback1_called = False
         callback2_called = False
 
-        def on_selection_changed_1(selected_items):
+        def on_selection_changed_1(_selected_items):
             nonlocal callback1_called
             callback1_called = True
 
-        def on_selection_changed_2(selected_items):
+        def on_selection_changed_2(_selected_items):
             nonlocal callback2_called
             callback2_called = True
 

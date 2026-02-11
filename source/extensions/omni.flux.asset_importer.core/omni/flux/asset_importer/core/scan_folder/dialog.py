@@ -17,7 +17,7 @@
 
 import re
 from pathlib import Path
-from typing import Callable
+from collections.abc import Callable
 
 import carb
 from omni import ui

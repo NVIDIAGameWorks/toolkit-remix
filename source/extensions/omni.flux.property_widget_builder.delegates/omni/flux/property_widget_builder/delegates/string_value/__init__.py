@@ -17,11 +17,11 @@
 
 __all__ = (
     "DefaultLabelField",
-    "NameField",
     "FileAccess",
     "FileFlags",
     "FilePicker",
     "MultilineField",
+    "NameField",
 )
 
 from .default_label import DefaultLabelField, NameField

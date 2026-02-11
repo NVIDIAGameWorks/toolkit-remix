@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import Dict
-
 from omni import ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
@@ -37,7 +35,7 @@ class FileImportListDelegate(ui.AbstractItemDelegate):
         self._frames = {}
 
     @property
-    def frames(self) -> Dict:
+    def frames(self) -> dict:
         return self._frames
 
     def build_widget(self, _model, item, column_id, _level, _expanded):

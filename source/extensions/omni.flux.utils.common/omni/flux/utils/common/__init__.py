@@ -15,16 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = [
-    "Event",
-    "EventSubscription",
-    "async_wrap",
-    "reset_default_attrs",
-    "Converter",
-    "Serializer",
-]
-
-# `layer_utils` and `path_utils` should be imported directly from the module to add context to the import:
+# Modules like `layer_utils` and `path_utils` should be imported directly from the module to add context to the import:
 # `from omni.flux.utils.common import save_as` -> `from omni.flux.utils.common.layer_utils import save_as`
 
 # Generic utils that don't need extra context can be imported via the base module.
@@ -32,6 +23,17 @@ __all__ = [
 # In all cases, the __all__ property should be set to expose only the explicitly listed functions/classes from the
 # respective modules.
 
-from .event import *
+from .event import Event, EventSubscription
 from .serialize import Converter, Serializer
-from .utils import *
+from .utils import async_wrap, deferred_destroy_tasks, get_omni_prims, reset_default_attrs
+
+__all__ = [
+    "Converter",
+    "Event",
+    "EventSubscription",
+    "Serializer",
+    "async_wrap",
+    "deferred_destroy_tasks",
+    "get_omni_prims",
+    "reset_default_attrs",
+]

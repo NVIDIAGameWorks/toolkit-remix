@@ -28,10 +28,10 @@ class _TestLightspeedTrexLogicOgnApi(ogts.OmniGraphTestCase):
     _UNPUBLISHED = ["tests", "ogn"]
 
     async def test_api(self):
-        _check_module_api_consistency(ogtp, self._UNPUBLISHED)  # noqa: SLF001
-        _check_module_api_consistency(ogtp.tests, is_test_module=True)  # noqa: SLF001
+        _check_module_api_consistency(ogtp, self._UNPUBLISHED)
+        _check_module_api_consistency(ogtp.tests, is_test_module=True)
 
     async def test_api_features(self):
         """Test that the known public API features continue to exist"""
-        _check_public_api_contents(ogtp, [], self._UNPUBLISHED, only_expected_allowed=True)  # noqa: SLF001
-        _check_public_api_contents(ogtp.tests, [], [], only_expected_allowed=True)  # noqa: SLF001
+        _check_public_api_contents(ogtp, [], self._UNPUBLISHED, only_expected_allowed=True)
+        _check_public_api_contents(ogtp.tests, [], [], only_expected_allowed=True)

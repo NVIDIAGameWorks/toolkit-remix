@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["ComfyUICoreExtension", "get_comfyui_instance", "ComfyUIState", "ComfyUIQueueType"]
+__all__ = ["ComfyUICoreExtension", "ComfyUIQueueType", "ComfyUIState", "get_comfyui_instance"]
 
 from .enums import ComfyUIQueueType, ComfyUIState
 from .extension import ComfyUICoreExtension, get_comfyui_instance

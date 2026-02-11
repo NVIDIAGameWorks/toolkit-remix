@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import carb
@@ -39,7 +41,7 @@ class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin, _StageManagerMenuMixin)
     icon_size: int = Field(default=24 - 8, description="The size of the icon in pixels", exclude=True)
     item_spacing: int = Field(default=8, description="The horizontal space between the items in pixels", exclude=True)
 
-    def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
+    def build_ui(self, model: _StageManagerTreeModel, item: _StageManagerTreeItem, level: int, expanded: bool):
         with ui.HStack(spacing=ui.Pixel(self.item_spacing), tooltip=item.tooltip or ""):
             if item.icon:
                 with ui.VStack(width=0):
@@ -50,7 +52,7 @@ class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin, _StageManagerMenuMixin)
                 ui.Spacer(height=0, width=0)
             item.build_widget()
 
-    def build_overview_ui(self, model: "_StageManagerTreeModel"):
+    def build_overview_ui(self, model: _StageManagerTreeModel):
         # Make sure to only count prims, not virtual groups
         prims_count = len([i for i in model.iter_items_children() if not (hasattr(i, "is_virtual") and i.is_virtual)])
 

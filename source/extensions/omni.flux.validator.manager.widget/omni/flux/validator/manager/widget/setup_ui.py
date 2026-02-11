@@ -15,10 +15,12 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import threading
 from functools import partial
-from typing import Any, Dict, Optional
+from typing import Any
 
 import carb.settings
 import carb.tokens
@@ -50,7 +52,7 @@ class ValidatorManagerWidget:
     _main_loop = asyncio.get_event_loop()
 
     def __init__(
-        self, core: "_ManagerCore" = None, use_global_style: bool = False, style: Dict[str, Dict[str, Any]] = None
+        self, core: _ManagerCore = None, use_global_style: bool = False, style: dict[str, dict[str, Any]] = None
     ):
         """
         Create a validator widget
@@ -102,7 +104,7 @@ class ValidatorManagerWidget:
         self._manager_core = core if core else _ManagerCore(data)
         self.__stop_warning_loop = False
         if not use_global_style:
-            from .style import style as _local_style  # or doc will not build
+            from .style import style as _local_style  # noqa: PLC0415  # or doc will not build
 
             self._style = style or _local_style
         else:
@@ -123,7 +125,7 @@ class ValidatorManagerWidget:
     def _on_run_progress(self, progress):
         self._progress_widget.model.set_value(progress / 100)
 
-    def _on_run_finished(self, result, message: Optional[str] = None):
+    def _on_run_finished(self, result, message: str | None = None):
         cl.validation_progress_color = cl.validation_result_ok if result else cl.validation_result_failed
 
     def _on_run_started(self):
@@ -192,7 +194,7 @@ class ValidatorManagerWidget:
                                                     alignment=ui.Alignment.RIGHT,
                                                 )
                                                 ui.Spacer(height=0, width=ui.Pixel(8))
-                                                self._context_progress_color_attr = f"progress_color_{id(self._manager_core.model.context_plugin.instance)}"  # noqa
+                                                self._context_progress_color_attr = f"progress_color_{id(self._manager_core.model.context_plugin.instance)}"
                                                 setattr(
                                                     cl,
                                                     self._context_progress_color_attr,

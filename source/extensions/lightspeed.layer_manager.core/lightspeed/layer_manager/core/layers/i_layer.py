@@ -15,8 +15,9 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import abc
-from typing import Dict, Optional
 
 import omni.kit.commands
 import omni.kit.undo
@@ -47,7 +48,7 @@ class ILayer:
     def layer_type(self) -> LayerType:
         pass
 
-    def set_custom_layer_data(self, value: Dict[str, str]):
+    def set_custom_layer_data(self, value: dict[str, str]):
         """Custom layer data to be saved"""
         self.__custom_layer_data = value
 
@@ -70,7 +71,7 @@ class ILayer:
         self,
         path: str = None,
         sublayer_create_position: int = 0,
-        parent_layer: Optional["Sdf.Layer"] = None,
+        parent_layer: Sdf.Layer | None = None,
         do_undo: bool = True,
         replace_existing: bool = True,
     ):

@@ -16,7 +16,7 @@
 """
 
 import abc
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import omni.ui as ui
 from omni.flux.property_widget_builder.delegates.default import DefaultField as _DefaultField
@@ -65,7 +65,7 @@ class FileDelegate(_Delegate):
 
         return None
 
-    def _is_multiline_field(self, values: List["_ItemModelBase"]):
+    def _is_multiline_field(self, values: list["_ItemModelBase"]):
         for value in values:
             if value.multiline[0]:
                 return value.multiline

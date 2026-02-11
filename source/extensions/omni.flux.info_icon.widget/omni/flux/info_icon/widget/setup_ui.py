@@ -267,7 +267,6 @@ class SelectableToolTipWidget:
         Args:
             hovered: hovered or not
         """
-        global _ALL_SELECTABLE_TOOL_TIP_WINDOWS  # noqa
         self.__hovered = hovered
         if not hovered:
             return
@@ -314,7 +313,6 @@ class SelectableToolTipWidget:
                 flags=flags,
             )
             self._window.set_focused_changed_fn(self._on_focused_changed_fn)
-            global _ALL_SELECTABLE_TOOL_TIP_WINDOWS  # noqa
             _ALL_SELECTABLE_TOOL_TIP_WINDOWS.add(self._window)
             if "Image::Copy" not in ui.Style.get_instance().default:
                 self._window.frame.set_style(self._default_style)

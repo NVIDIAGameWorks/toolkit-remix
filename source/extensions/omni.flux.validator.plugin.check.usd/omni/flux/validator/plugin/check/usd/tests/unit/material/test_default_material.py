@@ -117,7 +117,7 @@ class TestDefaultMaterials(omni.kit.test.AsyncTestCase):
 
         with patch.object(DefaultMaterial, "on_progress") as progress_mock:
             # Act
-            success, message, data = await default_material._check(Mock(), Mock(), [])  # noqa PLW0212
+            success, message, data = await default_material._check(Mock(), Mock(), [])
 
         # Assert
         self.assertTrue(success)
@@ -133,7 +133,7 @@ class TestDefaultMaterials(omni.kit.test.AsyncTestCase):
 
         with patch.object(DefaultMaterial, "on_progress") as progress_mock:
             # Act
-            success, message, data = await default_material._fix(Mock(), Mock(), [])  # noqa PLW0212
+            success, message, data = await default_material._fix(Mock(), Mock(), [])
 
         # Assert
         self.assertTrue(success)
@@ -150,9 +150,7 @@ class TestDefaultMaterials(omni.kit.test.AsyncTestCase):
 
         with patch.object(DefaultMaterial, "on_progress") as progress_mock:
             # Act
-            success, message, data = await default_material._check(  # noqa PLW0212
-                schema, schema.context_name, env.mesh_prims
-            )  # noqa PLW0212
+            success, message, data = await default_material._check(schema, schema.context_name, env.mesh_prims)
         await self._cleanup(env, schema)
 
         # Assert
@@ -181,9 +179,7 @@ class TestDefaultMaterials(omni.kit.test.AsyncTestCase):
 
         with patch.object(DefaultMaterial, "on_progress") as progress_mock:
             # Act
-            success, message, data = await default_material._fix(  # noqa PLW0212
-                schema, schema.context_name, env.mesh_prims
-            )
+            success, message, data = await default_material._fix(schema, schema.context_name, env.mesh_prims)
         await self._cleanup(env, schema)
 
         # Assert

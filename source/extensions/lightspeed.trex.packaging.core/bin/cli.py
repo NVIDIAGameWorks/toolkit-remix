@@ -56,10 +56,10 @@ async def run(parsed_args):
             else:
                 message += "Packaging was cancelled." if cancelled else "The project was successfully packaged."
 
-        _progress_sub = core.subscribe_packaging_progress(  # noqa F841
+        _progress_sub = core.subscribe_packaging_progress(  # fmt: off
             lambda c, t, s: print(f"Progress: {s} ({c} / {t})")
         )
-        _completed_sub = core.subscribe_packaging_completed(print_completed)  # noqa F841
+        _completed_sub = core.subscribe_packaging_completed(print_completed)
 
         success = await core.package(read_json_file(parsed_args.schema))
         if success:

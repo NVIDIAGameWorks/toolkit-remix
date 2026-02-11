@@ -24,7 +24,8 @@ __all__ = (
 import abc
 import asyncio
 import dataclasses
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 import carb
 import omni.ui as ui

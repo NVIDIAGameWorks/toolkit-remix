@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import omni.client
 import omni.usd
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
@@ -63,8 +65,8 @@ class TestUsdFile(AsyncTestCase):
             nonlocal sub_set_count
             sub_set_count += 1
 
-        _sub_check_check = core.model.context_plugin.instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_set = core.model.context_plugin.instance.subscribe_set(check_set_sub_validation)  # noqa
+        _sub_check_check = core.model.context_plugin.instance.subscribe_check(check_check_sub_validation)
+        _sub_check_set = core.model.context_plugin.instance.subscribe_set(check_set_sub_validation)
 
         with self.assertRaises(ValueError):
             # will crash because the usd file doesn't exist
@@ -113,8 +115,8 @@ class TestUsdFile(AsyncTestCase):
             self.assertTrue(_message == omni.client.normalize_url(get_test_data_path(__name__, "usd/cubes.usda")))
             self.assertTrue(_data == omni.usd.get_context().get_stage())
 
-        _sub_check_check = core.model.context_plugin.instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_set = core.model.context_plugin.instance.subscribe_set(check_set_sub_validation)  # noqa
+        _sub_check_check = core.model.context_plugin.instance.subscribe_check(check_check_sub_validation)
+        _sub_check_set = core.model.context_plugin.instance.subscribe_set(check_set_sub_validation)
 
         await core.deferred_run()
 

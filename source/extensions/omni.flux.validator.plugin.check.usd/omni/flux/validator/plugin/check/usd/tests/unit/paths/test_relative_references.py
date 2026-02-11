@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import omni.usd
@@ -65,8 +67,8 @@ class TestRelativeReferences(AsyncTestCase):
             nonlocal sub_fix_count
             sub_fix_count += 1
 
-        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)  # noqa
+        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)
+        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)
 
         # Act
         await core.deferred_run()
@@ -118,8 +120,8 @@ class TestRelativeReferences(AsyncTestCase):
             self.assertNotIn("FAIL", _message)
             self.assertIn("PASS: /Xform/mesh", _message)
 
-        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)  # noqa
+        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)
+        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)
 
         abs_ref_path = get_test_data_path(__name__, "usd/mesh.usda")
 

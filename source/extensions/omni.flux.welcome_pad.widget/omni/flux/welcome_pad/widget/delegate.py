@@ -22,7 +22,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.label import create_label_with_font
 from omni.flux.utils.widget.resources import get_image
 
-from .model import HEADER_DICT  # noqa PLE0402
+from .model import HEADER_DICT
 
 
 class Delegate(ui.AbstractItemDelegate):

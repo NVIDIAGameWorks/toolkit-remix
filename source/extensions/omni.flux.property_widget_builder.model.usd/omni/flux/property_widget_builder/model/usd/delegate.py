@@ -20,7 +20,8 @@ __all__ = ("USDDelegate",)
 import abc
 import dataclasses
 import functools
-from typing import TYPE_CHECKING, Iterable, Optional
+from typing import TYPE_CHECKING
+from collections.abc import Iterable
 
 import omni.kit.undo
 import omni.ui as ui
@@ -52,9 +53,9 @@ class Row:
     selected: bool = False
 
     override_background_widgets: list[ui.Rectangle] = dataclasses.field(default_factory=list)
-    default_indicator_widget: Optional[ui.Circle] = None
-    mixed_indicator_widget: Optional[ui.Image] = None
-    more_widget: Optional[ui.HStack] = None
+    default_indicator_widget: ui.Circle | None = None
+    mixed_indicator_widget: ui.Image | None = None
+    more_widget: ui.HStack | None = None
     attribute_widgets: list[ui.Widget] = dataclasses.field(default_factory=list)
 
 

@@ -16,3 +16,5 @@
 """
 
 from .extension import FluxValidatorPluginCheckUSDExtension
+
+__all__ = ["FluxValidatorPluginCheckUSDExtension"]

@@ -16,11 +16,11 @@
 """
 
 __all__ = [
-    "ProjectWizardWindowExtension",
-    "get_instance",
     "CreateProjectWizardWindow",
     "OpenProjectWizardWindow",
+    "ProjectWizardWindowExtension",
     "WizardTypes",
+    "get_instance",
 ]
 
 from .extension import ProjectWizardWindowExtension, get_instance

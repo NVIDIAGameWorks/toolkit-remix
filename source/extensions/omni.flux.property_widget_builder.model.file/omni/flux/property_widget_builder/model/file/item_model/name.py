@@ -15,13 +15,11 @@
 * limitations under the License.
 """
 
-from typing import Optional
-
 from omni.flux.property_widget_builder.widget import ItemValueModel as _ItemValueModel
 
 
 class FileAttributeNameModel(_ItemValueModel):
-    def __init__(self, path: str, attribute: str, display_attr_name: Optional[str] = None):
+    def __init__(self, path: str, attribute: str, display_attr_name: str | None = None):
         """
         Value model of the name of an attribute of a file
 

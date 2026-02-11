@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .setup_ui import ContentLibraryWidget  # noqa F401
+from .setup_ui import ContentLibraryWidget
+
+__all__ = ["ContentLibraryWidget"]

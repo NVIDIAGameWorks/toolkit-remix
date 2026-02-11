@@ -15,7 +15,9 @@
 * limitations under the License.
 """
 
-from typing import Callable, Dict, List, Optional, Union
+from __future__ import annotations
+
+from collections.abc import Callable
 
 import omni.kit
 import omni.ui as ui
@@ -39,11 +41,11 @@ class PropertyWidget:
     def __init__(
         self,
         context_name: str,
-        lookup_table: Dict[str, Dict[str, str]] = None,
-        specific_attributes: List[str] = None,
+        lookup_table: dict[str, dict[str, str]] = None,
+        specific_attributes: list[str] = None,
         field_builders: list[_FieldBuilder] | None = None,
-        optional_attributes: list[tuple[Callable[[Usd.Prim], bool], Dict[str, any]]] = None,
-        tree_column_widths: List[ui.Length] = None,
+        optional_attributes: list[tuple[Callable[[Usd.Prim], bool], dict[str, any]]] = None,
+        tree_column_widths: list[ui.Length] = None,
         columns_resizable: bool = False,
         right_aligned_labels: bool = True,
     ):
@@ -131,13 +133,13 @@ class PropertyWidget:
                 columns_resizable=self._columns_resizable,
             )
 
-    def set_lookup_table(self, lookup_table: Dict[str, Dict[str, str]]):
+    def set_lookup_table(self, lookup_table: dict[str, dict[str, str]]):
         self._lookup_table = lookup_table
 
-    def set_specific_attributes(self, specific_attributes: List[str]):
+    def set_specific_attributes(self, specific_attributes: list[str]):
         self._specific_attributes = specific_attributes
 
-    def refresh(self, paths: Optional[List[Union[str, "Sdf.Path"]]] = None):
+    def refresh(self, paths: list[str | Sdf.Path] | None = None):
         """
         Refresh the panel with the given prim paths
 
@@ -150,8 +152,8 @@ class PropertyWidget:
         if not self._root_frame or not self._root_frame.visible:
             return
 
-        if self.__usd_listener_instance and self._property_model:  # noqa PLE0203
-            self.__usd_listener_instance.remove_model(self._property_model)  # noqa PLE0203
+        if self.__usd_listener_instance and self._property_model:
+            self.__usd_listener_instance.remove_model(self._property_model)
 
         stage = self._context.get_stage()
         items: list[_USDAttributeItem | _VirtualUSDAttributeItem | _ItemGroup] = []

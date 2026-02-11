@@ -17,3 +17,5 @@
 
 from .e2e.test_remove_override_commands import TestRemoveOverrideCommands
 from .unit.test_custom_commands import TestCustomCommands
+
+__all__ = ["TestCustomCommands", "TestRemoveOverrideCommands"]

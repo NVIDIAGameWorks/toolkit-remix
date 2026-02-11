@@ -50,12 +50,12 @@ class StandaloneWindow:
         imported = False
         while i < timeout:
             try:
-                import omni.kit.ui  # noqa PLC0415, PLW0621
+                import omni.kit.ui  # noqa: PLC0415
 
                 imported = True
                 break
             except ImportError:
-                await omni.kit.app.get_app().next_update_async()  # noqa PLE0601
+                await omni.kit.app.get_app().next_update_async()
                 i += 1
         if not imported:
             carb.log_error("Can't import omni.kit.ui to hide menus")

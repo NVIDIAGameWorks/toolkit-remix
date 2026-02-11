@@ -16,7 +16,7 @@
 """
 
 import abc
-from typing import Any, ClassVar, Optional, Type, Union
+from typing import Any, ClassVar
 
 from fast_version import VersionedAPIRouter
 from fastapi import Depends, Path, Query
@@ -75,7 +75,7 @@ class ServiceBase(PluginBase, abc.ABC):
         return self._router
 
     @staticmethod
-    def inject_hidden_fields(base_model: Type[BaseServiceModel], **kwargs) -> Type[BaseServiceModel]:
+    def inject_hidden_fields(base_model: type[BaseServiceModel], **kwargs) -> type[BaseServiceModel]:
         """
         Inject hidden fields (non-visible in OpenAPI) in the given model
 
@@ -95,7 +95,7 @@ class ServiceBase(PluginBase, abc.ABC):
 
     @staticmethod
     def validate_path_param(
-        base_model: Type[BaseServiceModel], description: Optional[str] = None, validate_list: bool = False, **kwargs
+        base_model: type[BaseServiceModel], description: str | None = None, validate_list: bool = False, **kwargs
     ):
         """
         Get a path parameter validation dependency that will check the validity of a value using a Pydantic model.
@@ -113,7 +113,7 @@ class ServiceBase(PluginBase, abc.ABC):
         # Use the first field name for validation.
         field_name = next(iter(base_model.model_fields))
 
-        async def dependency(value: str = Path(..., alias=field_name, description=description)):  # noqa B008
+        async def dependency(value: str = Path(..., alias=field_name, description=description)):
             try:
                 # If the input is a list, split it using a "," separator
                 if validate_list:
@@ -142,7 +142,7 @@ class ServiceBase(PluginBase, abc.ABC):
         return Query(default_value, description=description)
 
     @staticmethod
-    def raise_error(status_code: int, details: Union[Exception, str]):
+    def raise_error(status_code: int, details: Exception | str):
         """
         Raise an HTTP error with given status code and detail message or based on an exception
 

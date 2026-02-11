@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["FeatureFlagsWindow"]
+__all__ = ["FeatureFlagsWindow", "FluxFeatureFlagsWindowExtension", "get_instance"]
 
 from .extension import FluxFeatureFlagsWindowExtension, get_instance
 from .window import FeatureFlagsWindow

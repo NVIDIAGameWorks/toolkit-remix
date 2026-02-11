@@ -16,18 +16,18 @@
 """
 
 __all__ = [
-    "PropertyWidget",
-    "clipboard",
     "Delegate",
     "FieldBuilder",
     "FieldBuilderList",
-    "ItemModelBase",
-    "ItemModel",
-    "ItemValueModel",
-    "Serializable",
     "Item",
     "ItemGroup",
+    "ItemModel",
+    "ItemModelBase",
+    "ItemValueModel",
     "Model",
+    "PropertyWidget",
+    "Serializable",
+    "clipboard",
 ]
 
 from .property_widget_builder import PropertyWidget

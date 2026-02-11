@@ -15,4 +15,4 @@
 * limitations under the License.
 """
 
-from .e2e.test_widget import *  # noqa: F401, F403
+from .e2e.test_widget import *

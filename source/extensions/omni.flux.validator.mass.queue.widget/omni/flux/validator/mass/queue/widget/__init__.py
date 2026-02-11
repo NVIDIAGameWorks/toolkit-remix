@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["MassQueueTreeWidget", "Item", "Model", "Actions"]
+__all__ = ["Actions", "Item", "MassQueueTreeWidget", "Model"]
 
-from .setup_ui import MassQueueTreeWidget  # noqa F401
+from .setup_ui import MassQueueTreeWidget
 from .tree.model import Actions, Item, Model

@@ -1,0 +1,531 @@
+# .pylintrc - Pylint configuration
+# Aligned with .ruff.toml where possible
+#
+# NOTE: Many checks are intentionally disabled because they are already covered
+# by ruff linter and/or ruff formatter. This avoids duplicate warnings and keeps
+# the feedback focused. See comments in [MESSAGES CONTROL] section for details.
+#
+# Since pylint is not enforced in CI, this file is only used for local linting.
+
+[MAIN]
+# Minimum Python version to use for version dependent checks.
+# Keep in sync with [project].requires-python in pyproject.toml
+py-version=3.10
+
+# Use multiple processes to speed up Pylint. 0 = auto-detect.
+jobs=0
+
+# Files or directories to be skipped. They should be base names, not paths.
+# Keep in sync with .ruff.toml exclude list
+ignore=CVS,
+    .eggs,
+    .git,
+    .teamcity,
+    .venv,
+    .vscode,
+    _build,
+    _compiler,
+    _repo,
+    _testoutput,
+    backup.teamcity,
+    portable,
+    venv
+
+# Files or directories matching the regex patterns are skipped.
+# Keep in sync with .ruff.toml exclude list (patterns that need regex)
+ignore-paths=source/extensions/example\..*,
+    source/extensions/lightspeed\.hydra\.remix/plugin/usd/usd/resources/codegenTemplates,
+    source/extensions/lightspeed\.trex\.logic\.ogn/python/nodes,
+    source/pythonapps,
+    tools
+
+# Files or directories matching the regex patterns are skipped (base names only).
+ignore-patterns=^\.#
+
+# Specify a score threshold to be exceeded before program exits with error.
+fail-under=10
+
+# Control the amount of potential inferred values when inferring a single object.
+limit-inference-results=100
+
+# Pickle collected data for later comparisons.
+persistent=true
+
+# When enabled, pylint would attempt to guess common misconfiguration and emit
+# user-friendly hints instead of false-positive error messages.
+suggestion-mode=true
+
+[FORMAT]
+# Maximum number of characters on a single line.
+# Keep in sync with .ruff.toml line-length
+max-line-length=120
+
+# Regexp for a line that is allowed to be longer than the limit.
+ignore-long-lines=^\s*(# )?<?https?://\S+>?$
+
+# Number of spaces of indent required inside a hanging or continued line.
+indent-after-paren=4
+
+# String used as indentation unit.
+indent-string='    '
+
+# Maximum number of lines in a module.
+max-module-lines=1000
+
+[MESSAGES CONTROL]
+# Only show warnings with the listed confidence levels.
+confidence=HIGH,CONTROL_FLOW,INFERENCE,INFERENCE_FAILURE,UNDEFINED
+
+# =============================================================================
+# DISABLED CHECKS
+# =============================================================================
+# Many checks below are INTENTIONALLY DISABLED because they duplicate
+# functionality already provided by ruff linter or ruff formatter.
+# This prevents duplicate warnings and keeps feedback focused.
+#
+# Format of comments: "Covered by ruff <CODE>: <rule-name>"
+# =============================================================================
+disable=
+    # -------------------------------------------------------------------------
+    # Pylint internal messages (always disable these)
+    # -------------------------------------------------------------------------
+    raw-checker-failed,
+    bad-inline-option,
+    locally-disabled,
+    file-ignored,
+    suppressed-message,
+    useless-suppression,
+    deprecated-pragma,
+    use-symbolic-message-instead,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF FORMATTER
+    # These formatting issues are automatically fixed by `ruff format`
+    # -------------------------------------------------------------------------
+    # Covered by ruff formatter: line length handling
+    line-too-long,
+    # Covered by ruff formatter: trailing whitespace removal
+    trailing-whitespace,
+    # Covered by ruff formatter: ensures final newline
+    missing-final-newline,
+    # Covered by ruff formatter: statement separation
+    multiple-statements,
+    # Covered by ruff formatter: indentation
+    bad-indentation,
+    # Covered by ruff formatter: consistent indentation
+    mixed-indentation,
+    # Covered by ruff formatter: whitespace handling
+    bad-whitespace,
+    # Covered by ruff formatter: superfluous parentheses
+    superfluous-parens,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF F (pyflakes)
+    # -------------------------------------------------------------------------
+    # Covered by ruff F401: unused imports
+    unused-import,
+    # Covered by ruff F841: unused variables
+    unused-variable,
+    # Covered by ruff F405: undefined from star imports
+    unused-wildcard-import,
+    # Covered by ruff F821: undefined names
+    undefined-variable,
+    # Covered by ruff F822: undefined __all__ entries
+    undefined-all-variable,
+    # Covered by ruff F841: pointless statements
+    pointless-statement,
+    # Covered by ruff F841: expression not assigned
+    expression-not-assigned,
+    # Covered by ruff F631: assert on tuple
+    assert-on-tuple,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF E/W (pycodestyle)
+    # -------------------------------------------------------------------------
+    # Covered by ruff E731: lambda assignment
+    unnecessary-lambda,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF N (pep8-naming)
+    # -------------------------------------------------------------------------
+    # Covered by ruff N8xx: naming conventions
+    invalid-name,
+    # Covered by ruff N805: first argument naming
+    no-self-argument,
+    # Covered by ruff N8xx: disallowed names
+    disallowed-name,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF A (flake8-builtins)
+    # -------------------------------------------------------------------------
+    # Covered by ruff A001/A002: builtin shadowing
+    redefined-builtin,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF B (flake8-bugbear)
+    # -------------------------------------------------------------------------
+    # Covered by ruff B006: mutable default argument
+    dangerous-default-value,
+    # Covered by ruff B025: duplicate except
+    duplicate-except,
+    # Covered by ruff B007: unused loop variable
+    unused-loop-variable,
+    # Covered by ruff B017: assert raises
+    assert-on-string-literal,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF BLE (flake8-blind-except)
+    # -------------------------------------------------------------------------
+    # Covered by ruff BLE001: bare except
+    bare-except,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF C4 (flake8-comprehensions)
+    # -------------------------------------------------------------------------
+    # Covered by ruff C416: unnecessary comprehension
+    unnecessary-comprehension,
+    # Covered by ruff C414: unnecessary double iteration
+    consider-using-enumerate,
+    # Covered by ruff C411: unnecessary list call
+    consider-iterating-dictionary,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF RET (flake8-return)
+    # -------------------------------------------------------------------------
+    # Covered by ruff RET501-505: return statement issues
+    inconsistent-return-statements,
+    # Covered by ruff RET501: useless return
+    useless-return,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF SIM (flake8-simplify)
+    # -------------------------------------------------------------------------
+    # Covered by ruff SIM102/103: if simplification
+    no-else-return,
+    # Covered by ruff SIM106: no else raise
+    no-else-raise,
+    # Covered by ruff SIM210: constant test
+    using-constant-test,
+    # Covered by ruff SIM108: ternary
+    simplifiable-if-statement,
+    # Covered by ruff SIM: boolean simplification
+    simplifiable-if-expression,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF G (flake8-logging-format)
+    # -------------------------------------------------------------------------
+    # Covered by ruff G001-004: logging format issues
+    logging-not-lazy,
+    # Covered by ruff G001: logging format interpolation
+    logging-format-interpolation,
+    # Covered by ruff G004: logging f-string
+    logging-fstring-interpolation,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF SLF (flake8-self)
+    # -------------------------------------------------------------------------
+    # Covered by ruff SLF001: private member access
+    protected-access,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF UP (pyupgrade)
+    # -------------------------------------------------------------------------
+    # Covered by ruff UP032: f-string
+    consider-using-f-string,
+    # Covered by ruff UP024: raise from
+    raise-missing-from,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF PL* (pylint rules in ruff)
+    # -------------------------------------------------------------------------
+    # Covered by ruff PLC0415: import outside toplevel
+    import-outside-toplevel,
+    # Covered by ruff PLR0402: consider using from import
+    consider-using-from-import,
+    # Covered by ruff PLC0413: wrong import position (also isort)
+    wrong-import-position,
+    # Covered by ruff PLR09xx: complexity checks
+    too-few-public-methods,
+    too-many-public-methods,
+    too-many-arguments,
+    too-many-positional-arguments,
+    too-many-locals,
+    too-many-statements,
+    too-many-branches,
+    too-many-return-statements,
+    too-many-instance-attributes,
+    too-many-boolean-expressions,
+    # Covered by ruff PLR2004: magic value
+    magic-value-comparison,
+    # Covered by ruff PLR6301: no self use
+    no-self-use,
+    # Covered by ruff PLW0602: global variable not assigned
+    global-variable-not-assigned,
+    # Covered by ruff PLW0603: global statement
+    global-statement,
+    # Covered by ruff PLW2901: redefined loop name
+    redefined-loop-name,
+    # Covered by ruff PLW0107: unnecessary pass
+    unnecessary-pass,
+    # Covered by ruff PLW0201: attribute defined outside init
+    attribute-defined-outside-init,
+    # Covered by ruff PLW0613/ARG: unused argument
+    unused-argument,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF D (pydocstyle) - docstring checks
+    # -------------------------------------------------------------------------
+    # Covered by ruff D100: missing module docstring
+    missing-module-docstring,
+    # Covered by ruff D101: missing class docstring
+    missing-class-docstring,
+    # Covered by ruff D103: missing function docstring
+    missing-function-docstring,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF F403/F405 - star imports
+    # -------------------------------------------------------------------------
+    # Covered by ruff F403: wildcard import
+    wildcard-import,
+
+    # -------------------------------------------------------------------------
+    # COVERED BY RUFF E0401 - import errors
+    # Note: Both tools struggle with Omniverse imports, disable in both
+    # -------------------------------------------------------------------------
+    import-error,
+
+    # -------------------------------------------------------------------------
+    # NOT COVERED BY RUFF - but intentionally disabled for this codebase
+    # -------------------------------------------------------------------------
+    # TODO/FIXME comments - too noisy, not actionable
+    fixme,
+    # False positives with Omniverse dynamic modules
+    no-name-in-module,
+    # Often intentional for subscription patterns in UI code
+    unused-private-member
+
+# Enable the message, report, category or checker with the given id(s).
+enable=c-extension-no-member
+
+[BASIC]
+# Naming style matching correct argument names.
+argument-naming-style=snake_case
+
+# Naming style matching correct attribute names.
+attr-naming-style=snake_case
+
+# Bad variable names which should always be refused.
+bad-names=foo,bar,baz,toto,tutu,tata
+
+# Naming style matching correct class attribute names.
+class-attribute-naming-style=any
+
+# Naming style matching correct class constant names.
+class-const-naming-style=UPPER_CASE
+
+# Naming style matching correct class names.
+class-naming-style=PascalCase
+
+# Naming style matching correct constant names.
+const-naming-style=UPPER_CASE
+
+# Minimum line length for functions/classes that require docstrings.
+docstring-min-length=-1
+
+# Naming style matching correct function names.
+function-naming-style=snake_case
+
+# Good variable names which should always be accepted.
+good-names=i,j,k,ex,fp,ui,Run,_
+
+# Naming style matching correct inline iteration names.
+inlinevar-naming-style=any
+
+# Naming style matching correct method names.
+method-naming-style=snake_case
+
+# Naming style matching correct module names.
+module-naming-style=snake_case
+
+# Regex for function/class names that do not require a docstring.
+no-docstring-rgx=^_
+
+# List of decorators that produce properties.
+property-classes=abc.abstractproperty
+
+# Naming style matching correct variable names.
+variable-naming-style=snake_case
+
+[CLASSES]
+# List of method names used to declare instance attributes.
+defining-attr-methods=__init__,__new__,setUp,__post_init__
+
+# Members excluded from the protected access warning.
+exclude-protected=_asdict,_fields,_replace,_source,_make
+
+# Valid names for the first argument in a class method.
+valid-classmethod-first-arg=cls
+
+# Valid names for the first argument in a metaclass class method.
+valid-metaclass-classmethod-first-arg=cls
+
+[DESIGN]
+# Maximum number of arguments for function / method.
+max-args=5
+
+# Maximum number of attributes for a class (see R0902).
+max-attributes=7
+
+# Maximum number of boolean expressions in an if statement (see R0916).
+max-bool-expr=5
+
+# Maximum number of branches for function / method body.
+max-branches=12
+
+# Maximum number of locals for function / method body.
+max-locals=15
+
+# Maximum number of parents for a class (see R0901).
+max-parents=7
+
+# Maximum number of public methods for a class (see R0904).
+max-public-methods=20
+
+# Maximum number of return / yield for function / method body.
+max-returns=6
+
+# Maximum number of statements in function / method body.
+max-statements=50
+
+# Minimum number of public methods for a class (see R0903).
+min-public-methods=2
+
+[EXCEPTIONS]
+# Exceptions that will emit a warning when caught.
+# Note: bare-except is covered by ruff BLE001
+overgeneral-exceptions=builtins.BaseException,builtins.Exception
+
+[IMPORTS]
+# Allow wildcard imports from modules that define __all__.
+allow-wildcard-with-all=true
+
+# Force import order to recognize a module as part of a third party library.
+known-third-party=enchant,carb,omni,lightspeed
+
+[LOGGING]
+# The type of string formatting that logging methods do.
+# Note: logging format checks are covered by ruff G rules
+logging-format-style=old
+
+# Logging modules to check.
+logging-modules=logging
+
+[MISCELLANEOUS]
+# List of note tags to take in consideration.
+# Note: fixme check is disabled, so this has no effect
+notes=FIXME,XXX,TODO
+
+[REFACTORING]
+# Maximum number of nested blocks for function / method body
+max-nested-blocks=5
+
+# Functions that never return.
+never-returning-functions=sys.exit,argparse.parse_error
+
+[REPORTS]
+# Python expression which should return a score less than or equal to 10.
+evaluation=max(0, 0 if fatal else 10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10))
+
+# Activate the evaluation score.
+score=true
+
+[SIMILARITIES]
+# Comments are removed from the similarity computation
+ignore-comments=true
+
+# Docstrings are removed from the similarity computation
+ignore-docstrings=true
+
+# Imports are removed from the similarity computation
+ignore-imports=true
+
+# Signatures are removed from the similarity computation
+ignore-signatures=true
+
+# Minimum lines number of a similarity.
+min-similarity-lines=4
+
+[SPELLING]
+# Limits count of emitted suggestions for spelling mistakes.
+max-spelling-suggestions=4
+
+# Words considered directives at the beginning of a comment.
+spelling-ignore-comment-directives=fmt: on,fmt: off,noqa:,noqa,nosec,isort:skip,mypy:
+
+[TYPECHECK]
+# List of decorators that produce context managers.
+contextmanager-decorators=contextlib.contextmanager
+
+# Warn about missing members when owner is inferred to be None.
+ignore-none=true
+
+# Warn about no-member when opaque object is returned.
+ignore-on-opaque-inference=true
+
+# -------------------------------------------------------------------------
+# OMNIVERSE MODULES - ignore E1101:no-member for dynamic/native modules
+# These modules have dynamic attributes that pylint cannot analyze statically.
+# Supports qualified names and Unix glob patterns.
+# -------------------------------------------------------------------------
+ignored-modules=carb,
+    carb.*,
+    omni,
+    omni.*,
+    pxr,
+    pxr.*,
+    warp,
+    warp.*
+
+# Regex pattern for members set dynamically (complements ignored-modules)
+# Use this for specific attribute patterns across all modules
+generated-members=LEVEL_.*,
+    LOG_.*,
+    FLAG_.*,
+    TYPE_.*
+
+# Message names to ignore for Mixin members.
+ignored-checks-for-mixins=no-member,not-async-context-manager,not-context-manager,attribute-defined-outside-init
+
+# Classes for which member attributes should not be checked.
+ignored-classes=optparse.Values,thread._local,_thread._local,argparse.Namespace,
+    carb.*,
+    omni.*,
+    pxr.*
+
+# Show a hint with possible names when a member name was not found.
+missing-member-hint=true
+
+# Minimum edit distance for similar match hint.
+missing-member-hint-distance=1
+
+# Number of similar names to show in hint.
+missing-member-max-choices=1
+
+# Regex pattern for classes considered mixins.
+mixin-class-rgx=.*[Mm]ixin
+
+[VARIABLES]
+# Unused global variables treated as violation.
+allow-global-unused-variables=true
+
+# Strings which identify a callback function by name.
+callbacks=cb_,_cb
+
+# Regex matching dummy variable names.
+dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_
+
+# Argument names matching this expression will be ignored.
+ignored-argument-names=_.*|^ignored_|^unused_
+
+# Modules which can have objects that redefine builtins.
+redefining-builtins-modules=six.moves,past.builtins,future.builtins,builtins,io

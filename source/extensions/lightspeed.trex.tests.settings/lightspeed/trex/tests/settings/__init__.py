@@ -16,3 +16,5 @@
 """
 
 from .extension import LightspeedTestSettingsExtension
+
+__all__ = ["LightspeedTestSettingsExtension"]

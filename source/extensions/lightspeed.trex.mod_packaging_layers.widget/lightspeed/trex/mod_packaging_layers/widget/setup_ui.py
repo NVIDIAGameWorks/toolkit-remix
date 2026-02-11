@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import List
-
 import omni.ui as ui
 import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
@@ -54,7 +52,7 @@ class ModPackagingLayersWidget:
         self.__create_ui()
 
     @property
-    def packaged_layers(self) -> List[str]:
+    def packaged_layers(self) -> list[str]:
         """
         Get the list of layers to include in the packaged mod.
         """

@@ -20,7 +20,8 @@ import uuid
 from asyncio import ensure_future
 from functools import partial
 from pathlib import Path
-from typing import Any, Awaitable, Callable
+from typing import Any
+from collections.abc import Awaitable, Callable
 
 import carb
 import omni.client
@@ -231,7 +232,7 @@ class AssetImporter(_ContextBaseUSD):
                 if schema_data.create_output_directory_if_missing:
                     try:
                         await omni.client.create_folder_async(str(output_dir))
-                    except Exception as e:  # noqa PLW0718
+                    except Exception as e:  # noqa: BLE001
                         return False, str(e)
 
                 _ = _AssetImporterModel(data=[new_schema_data])
@@ -309,7 +310,7 @@ class AssetImporter(_ContextBaseUSD):
             # we update the tmp value of the schema of this plugin. This attribute is private in purpose
             if schema_data.output_files is None:
                 schema_data.output_files = {}
-            schema_data.output_files[str(input_path)] = str(file_path)  # noqa
+            schema_data.output_files[str(input_path)] = str(file_path)
 
             _validator_factory_utils.push_output_data(schema_data, [str(file_path)])
 
@@ -396,7 +397,7 @@ class AssetImporter(_ContextBaseUSD):
                 return
             # for mass ingestion, we only has 1 file
             # we grab the tmp value of the schema of this plugin. This attribute is private in purpose
-            file_path = schema_data.output_files[str(schema_data.input_files[0])]  # noqa
+            file_path = schema_data.output_files[str(schema_data.input_files[0])]
             context = omni.usd.get_context(schema_data.computed_context)
             context.open_stage(file_path)
             callback("show_in_viewport")

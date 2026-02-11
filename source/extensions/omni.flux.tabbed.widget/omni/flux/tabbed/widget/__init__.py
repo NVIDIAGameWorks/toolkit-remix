@@ -17,5 +17,5 @@
 
 __all__ = ["Item", "SetupUI"]
 
-from .setup_ui import SetupUI  # noqa F401
+from .setup_ui import SetupUI
 from .tab_tree.model import Item

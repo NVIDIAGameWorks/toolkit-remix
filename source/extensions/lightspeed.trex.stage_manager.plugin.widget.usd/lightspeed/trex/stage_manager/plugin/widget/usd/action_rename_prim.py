@@ -20,7 +20,8 @@ from __future__ import annotations
 __all__ = ["PrimRenameNameActionWidgetPlugin"]
 
 from functools import partial
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 import omni.usd
 from lightspeed.common.constants import LSS_NICKNAME as _LSS_NICKNAME

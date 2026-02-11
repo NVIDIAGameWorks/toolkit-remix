@@ -16,3 +16,5 @@
 """
 
 from .setup_ui import ModPackagingLayersWidget
+
+__all__ = ["ModPackagingLayersWidget"]

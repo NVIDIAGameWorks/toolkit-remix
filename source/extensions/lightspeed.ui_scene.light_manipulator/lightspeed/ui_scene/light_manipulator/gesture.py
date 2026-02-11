@@ -109,7 +109,7 @@ class LightDragGesture(sc.DragGesture):
         # 1 means positive and -1 means negative. It's a list so that we can reflect list orientation
         self.flag = flag
         self.user_on_ended_fn = on_ended_fn
-        self.__disable_gestures = None  # noqa PLW0238 Unused private member - used as context manager!
+        self.__disable_gestures = None
 
     def _get_axis_attr(self, orientation: int) -> str:
         return self.orientation_attr_map[orientation]
@@ -142,9 +142,7 @@ class LightDragGesture(sc.DragGesture):
         # slider manipulator to the same SceneView.
         # In Viewport Legacy, the selection rect is not a manipulator. Thus it's
         # not disabled automatically, and we need to disable it with the following code.
-        self.__disable_gestures = disable_other_drag_gestures(  # noqa PLW0238 Unused private member
-            self._manipulator.viewport_layers
-        )
+        self.__disable_gestures = disable_other_drag_gestures(self._manipulator.viewport_layers)
 
         # initialize the self._previous_ray_point
         self._previous_ray_point = self.gesture_payload.ray_closest_point
@@ -231,7 +229,7 @@ class LightDragGesture(sc.DragGesture):
 
     def on_ended(self):
         # This re-enables the selection in the Viewport Legacy
-        self.__disable_gestures = None  # noqa PLW0238 Unused private member
+        self.__disable_gestures = None
 
         if self.is_global:
             # start group command

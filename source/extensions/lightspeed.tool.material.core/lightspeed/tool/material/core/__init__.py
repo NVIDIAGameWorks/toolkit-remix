@@ -16,3 +16,5 @@
 """
 
 from .core import ToolMaterialCore
+
+__all__ = ["ToolMaterialCore"]

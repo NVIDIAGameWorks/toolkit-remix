@@ -16,3 +16,5 @@
 """
 
 from .unit.commands import TestParticleSystemCommands
+
+__all__ = ["TestParticleSystemCommands"]

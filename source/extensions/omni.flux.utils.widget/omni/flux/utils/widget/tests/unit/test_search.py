@@ -29,13 +29,14 @@ CURRENT_PATH = get_test_data_path(__name__, "test_search_files")
 async def _wait_model_changed_async(model: SearchModel):
     """Async wait when the model is changed"""
 
-    def _on_item_changed(item: SearchItem, future: asyncio.Future):
+    def _on_item_changed(_item: SearchItem, future: asyncio.Future):
         """Callback set the future when called"""
         if not future.done():
             future.set_result(None)
 
     f = asyncio.Future()
-    sub = model.subscribe_item_changed(partial(_on_item_changed, future=f))  # noqa PLW0212
+    # _sub only needs to exist within func scope and until the future is done
+    _sub = model.subscribe_item_changed(partial(_on_item_changed, future=f))
     return await f
 
 

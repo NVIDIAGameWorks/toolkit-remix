@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .setup_ui import FooterWidget  # noqa F401
+from .setup_ui import FooterWidget
+
+__all__ = ["FooterWidget"]

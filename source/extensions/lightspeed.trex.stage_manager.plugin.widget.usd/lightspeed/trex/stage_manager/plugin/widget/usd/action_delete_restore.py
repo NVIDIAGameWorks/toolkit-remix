@@ -15,11 +15,11 @@
 * limitations under the License.
 """
 
-__all__ = ["DeleteRestoreActionWidgetPlugin", "PROTECTED_PATHS"]
+__all__ = ["PROTECTED_PATHS", "DeleteRestoreActionWidgetPlugin"]
 
 from enum import Enum, auto
 from functools import partial
-from typing import Callable
+from collections.abc import Callable
 
 import omni.kit.commands
 import omni.usd

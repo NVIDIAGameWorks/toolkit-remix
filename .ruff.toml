@@ -1,6 +1,10 @@
 # Ruff configuration - migrated from .flake8
 # https://docs.astral.sh/ruff/configuration/
 
+# Keep in sync with [project].requires-python in pyproject.toml
+# (Having a separate ruff.toml requires target-version be set here)
+target-version = "py310"
+
 line-length = 120
 
 exclude = [
@@ -51,14 +55,14 @@ select = [
     "PL",     # pylint: broad checker (errors PLE, refactor PLR, warnings PLW, conventions PLC)
     "RET",    # flake8-return: implicit returns, unnecessary return statements, consistency
     "SIM",    # flake8-simplify: if/else simplifications, context managers, boolean expressions
-    # "ARG",    # flake8-unused-arguments: unused function/method arguments # TODO: add _ prefix
+    "ARG",    # flake8-unused-arguments: unused function/method arguments (ARG002-5 ignored, *args/**kwargs ignored)
     # "PERF",   # perflint: performance anti-patterns (unnecessary list(), dict copying) # TODO: enable
     # "S",      # flake8-bandit: security issues (SQL injection, hardcoded passwords, eval) # TODO: enable
 
     # --- Modernization ---
     "FLY",    # flynt: convert .format() and % to f-strings
     "UP",     # pyupgrade: upgrade syntax for newer Python versions (f-strings, type unions)
-    # "FURB",   # refurb: modernize code patterns (pathlib, newer stdlib) # TODO: requires preview=true
+    "FURB",   # refurb: modernize code patterns (pathlib, newer stdlib)
 
     # --- Strings & Formatting ---
     "ISC",    # flake8-implicit-str-concat: implicit string concatenation detection
@@ -69,7 +73,7 @@ select = [
     # "D",      # pydocstyle: full docstring checks (presence, formatting, content) # TODO: enable
 
     # --- Type Checking ---
-    "TCH005",  # flake8-type-checking: empty type-checking block
+    "TC005",   # flake8-type-checking: empty type-checking block (was TCH005)
     # "ANN",    # flake8-annotations: missing type annotations
 
     # --- Class Design ---
@@ -83,8 +87,10 @@ select = [
     "NPY",    # NumPy-specific: NumPy deprecations and best practices
 
     # --- Ruff-Specific ---
-    # "RUF022", # __all__ is not sorted # TODO: requires preview=true
-    # "RUF100", # Unused noqa directive # TODO: enable once lint settles
+    "RUF022", # __all__ is not sorted
+    # Enable this when upgrading ruff versions to clean up:
+    # Note: added line ignores for PLC0415 (imports outside toplevel) preemptively for support of ruff 0.12.0+
+    # "RUF100", # Unused noqa directive - disabled to avoid cleaning up directives targeting newer versions of ruff
 
     # --- Version Checks ---
     # "YTT",    # flake8-2020: sys.version comparisons and checks # TODO: catch py310+ issues
@@ -106,22 +112,17 @@ ignore = [
     "ISC002",  # multi-line-implicit-str-concat - must be ignored alongside ISC001
     "E501",    # line-too-long - formatter handles this best-effort
 
-    # --- Core Python Style (PEP 8) ---
-    "E731",    # Do not assign a lambda expression, use a def
-
     # --- Imports ---
-    "F403",    # 'from module import *' used; unable to detect undefined names
-    "F405",    # Name may be undefined, or defined from star imports
-    "PLC0415", # Import outside toplevel - intentional for lazy/conditional imports
     "PLR0402", # Use 'from x import y' instead of 'import x.y as y' - 'import omni.ui as ui' is standard
 
     # --- Code Quality ---
+    "ARG002",  # Unused method argument - common in interface implementations with fixed signatures
+    "ARG003",  # Unused class method argument - common in interface implementations with fixed signatures
+    "ARG005",  # Unused lambda argument - common in UI callbacks (mouse_pressed_fn, etc.)
     "B905",    # zip() without strict= (Python 3.10+ feature, too noisy)
     "PLR09",   # Too many arguments/branches/statements/returns/etc
-    "PLR0917", # Too many positional arguments
+    "PLR0917", # Too many positional arguments (preview rule - only shows when preview enabled)
     "PLR2004", # Magic value used in comparison
-    "PLR6301", # Method could be a function (no-self-use)
-    "PLW0602", # Global variable not assigned
     "PLW0603", # Using the global statement
     "PLW2901", # Loop/with variable overwritten - common pattern in this codebase
     "RET504",  # Unnecessary variable assignment before return statement
@@ -129,24 +130,31 @@ ignore = [
     "SIM108",  # Use ternary operator - often hurts readability for complex expressions
     "SIM117",  # Multiple with statements - ignored for omni.ui patterns
 
-    # --- Documentation ---
-    "D100",    # Missing module docstring
-    "D101",    # Missing class docstring
-    "D103",    # Missing function/method docstring
-    
-    # --- TODO ---
-    "UP035",   # `typing.Dict` is deprecated, use `dict` instead
-    "UP006",   # Use `tuple` instead of `Tuple` for type annotation
-    "SIM115",  # Use a context manager for opening files
-    "PLC0206", # Extracting value from dictionary without calling `.items()`
+    # --- Modernization ---
+    "UP038",   # Use `X | Y` in isinstance - removed in ruff 0.13.0 (slower, more verbose)
+]
+
+# B008: treat these as immutable (safe to use in default args; eval once, no mutable state).
+# Ruff may resolve the call to the short name or the full module path depending on context.
+[lint.flake8-bugbear]
+extend-immutable-calls = [
+    "ServiceBase.describe_query_param",
+    "ServiceBase.validate_path_param",
+    "omni.flux.service.factory.ServiceBase.describe_query_param",
+    "omni.flux.service.factory.ServiceBase.validate_path_param",
+    "omni.flux.service.factory.services.base.ServiceBase.describe_query_param",
+    "omni.flux.service.factory.services.base.ServiceBase.validate_path_param",
 ]
 
 [lint.per-file-ignores]
-"*/__init__.py" = ["F401"]
 # __doc__ assignments are intentional module docstrings
 "*/omni.flux.material_api/*" = ["A001"]
 # Tests often need to access private members to verify internal state
-"*/tests/*" = ["SLF001"]
+"*/tests/*" = ["SLF001", "F403"]
+
+[lint.flake8-unused-arguments]
+# Ignore *args and **kwargs - these are intentionally unused in many interfaces
+ignore-variadic-names = true
 
 [lint.pydocstyle]
 convention = "google"

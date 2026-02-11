@@ -24,7 +24,7 @@ import omni.usd
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 # Required to register commands
-from omni.kit.core.collection import commands as _usd_commands  # noqa F401
+from omni.kit.core.collection import commands as _usd_commands  # noqa: F401
 from pxr import Sdf, Usd
 
 

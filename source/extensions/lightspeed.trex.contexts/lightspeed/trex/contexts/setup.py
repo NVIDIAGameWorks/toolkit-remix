@@ -16,7 +16,6 @@
 """
 
 from enum import Enum
-from typing import List
 
 import omni.usd
 from lightspeed.common import constants as _constants
@@ -63,7 +62,7 @@ class _Setup:
             self._current_context = usd_context_name
         return usd_context
 
-    def get_usd_contexts(self) -> List[omni.usd.UsdContext]:
+    def get_usd_contexts(self) -> list[omni.usd.UsdContext]:
         return self._usd_contexts
 
     def get_usd_context(
@@ -76,7 +75,7 @@ class _Setup:
             usd_context = self.create_usd_context(usd_context_name)
         if usd_context and self._current_context is None:
             self._current_context = usd_context_name
-        return usd_context  # noqa R504
+        return usd_context
 
     def get_current_context(self) -> Contexts:
         """Get the current context for the remix app"""

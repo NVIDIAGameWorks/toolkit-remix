@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Any, Tuple
+from typing import Any
 
 import omni.ui as ui
 import omni.usd
@@ -35,7 +35,7 @@ class Nothing(_SelectorUSDBase):
     @omni.usd.handle_exception
     async def _select(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to select the data
 

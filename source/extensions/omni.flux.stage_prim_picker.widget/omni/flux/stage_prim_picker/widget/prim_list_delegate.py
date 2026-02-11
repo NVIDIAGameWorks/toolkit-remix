@@ -17,7 +17,7 @@
 
 __all__ = ("PrimListDelegate",)
 
-from typing import Callable
+from collections.abc import Callable
 
 import omni.ui as ui
 

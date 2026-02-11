@@ -17,7 +17,8 @@
 
 import abc
 import copy
-from typing import Any, Callable, List, Optional
+from typing import Any
+from collections.abc import Callable
 
 import carb
 import omni.client
@@ -54,7 +55,7 @@ def _safe_deepcopy(value):
         # Try to create a copy using the type constructor.
         try:
             return type(value)(value)
-        except Exception:  # noqa
+        except Exception:  # noqa: BLE001
             # If all else fails, return the original value.
             # Caller should be aware this may not be a true copy.
             return value
@@ -70,7 +71,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
     def __init__(
         self,
         context_name: str,
-        attribute_paths: List[Sdf.Path],
+        attribute_paths: list[Sdf.Path],
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
     ):
@@ -372,7 +373,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
     def __init__(
         self,
         context_name: str,
-        attribute_paths: List[Sdf.Path],
+        attribute_paths: list[Sdf.Path],
         channel_index: int,
         default_value: Any = None,
         read_only: bool = False,
@@ -475,7 +476,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         super().end_edit()
 
     # TODO: Remove usages after dealing with Asset path type. Most cases would be better served with get_value().
-    def get_attributes_raw_value(self, element_current_idx) -> Optional[Any]:
+    def get_attributes_raw_value(self, element_current_idx) -> Any | None:
         prim = self._stage.GetPrimAtPath(self._attribute_paths[element_current_idx].GetPrimPath())
         if prim.IsValid():
             attr = prim.GetAttribute(self._attribute_paths[element_current_idx].name)
@@ -494,7 +495,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
 
     def _set_attribute_value(self, attr, new_value):
         attribute_path = str(attr.GetPath())
-        if self._value_type_name == Sdf.ValueTypeNames.Asset:  # noqa SIM102
+        if self._value_type_name == Sdf.ValueTypeNames.Asset:
             if isinstance(new_value, str):
                 # Force textures to always use forward slashes, and check that the path is valid
                 new_value = new_value.strip()
@@ -595,7 +596,7 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
             return self._default_value  # not set yet...
         return super().get_value()
 
-    def get_attributes_raw_value(self, element_current_idx: int) -> Optional[Any]:
+    def get_attributes_raw_value(self, element_current_idx: int) -> Any | None:
         attr = self._attributes[element_current_idx]
         if isinstance(attr, Usd.Attribute) and attr.IsValid() and not attr.IsHidden():
             raw_value = attr.Get()

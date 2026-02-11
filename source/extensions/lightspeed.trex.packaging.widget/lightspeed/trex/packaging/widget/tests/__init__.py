@@ -16,3 +16,5 @@
 """
 
 from .unit.test_subscription_lifecycle import TestPackagingPaneSubscriptionLifecycle
+
+__all__ = ["TestPackagingPaneSubscriptionLifecycle"]

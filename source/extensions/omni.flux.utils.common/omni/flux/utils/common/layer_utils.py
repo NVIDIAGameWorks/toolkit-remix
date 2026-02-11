@@ -28,7 +28,7 @@ from pxr import Sdf
 
 # For CLIs, we don't want to import UI dependencies so this extension will not be available
 try:
-    import omni.kit.window.file  # noqa PLW0621
+    import omni.kit.window.file
 
     _omni_kit_window_file_present = True
 except ModuleNotFoundError:

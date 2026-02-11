@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["RemixLogicPrimsFilterPlugin", "FilterTypes"]
+__all__ = ["FilterTypes", "RemixLogicPrimsFilterPlugin"]
 
 from enum import Enum
 

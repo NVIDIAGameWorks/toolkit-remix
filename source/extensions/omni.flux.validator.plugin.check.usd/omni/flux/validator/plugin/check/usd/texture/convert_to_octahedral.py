@@ -39,7 +39,7 @@ from omni.flux.validator.factory import utils as _validator_factory_utils
 from pxr import Sdf
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
+from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
 
 # This should match the `normalmap_encoding` in AperturePBR_normal.mdl
@@ -55,7 +55,7 @@ def _generate_out_path(in_path_str: str, suffix: str, replace_suffix: str):
     if in_stem.endswith(suffix):
         return in_path
     if in_stem.endswith(replace_suffix):
-        return in_path.with_name(in_stem[0 : -len(replace_suffix)] + suffix + in_path.suffix)  # noqa E203
+        return in_path.with_name(in_stem[0 : -len(replace_suffix)] + suffix + in_path.suffix)
 
     return in_path.with_name(in_stem + suffix + in_path.suffix)
 
@@ -129,7 +129,7 @@ class ConvertToOctahedral(_CheckBaseUSD):
         stage_url = context.get_stage_url()
         message = f"Stage: {stage_url}\nCheck:\n"
         all_pass = True
-        for prim in selector_plugin_data:  # noqa
+        for prim in selector_plugin_data:
             for attr_name, settings in schema_data.conversion_args.items():
                 attr = prim.GetAttribute(attr_name)
                 if not attr or not attr.HasValue():
@@ -192,7 +192,7 @@ class ConvertToOctahedral(_CheckBaseUSD):
         all_pass = True
         # collate all the files to generate
         files_needed = {}
-        for prim in selector_plugin_data:  # noqa
+        for prim in selector_plugin_data:
             for attr_name, settings in schema_data.conversion_args.items():
                 attr = prim.GetAttribute(attr_name)
                 if not attr or not attr.HasValue():
@@ -306,7 +306,7 @@ class ConvertToOctahedral(_CheckBaseUSD):
 
                     message += f"- PASS: created octahedral map {future.out_path}\n"
                     self.on_progress(progress, f"Compressed to {future.out_path}", True)
-                except Exception:  # noqa
+                except Exception:  # noqa: BLE001
                     carb.log_error(
                         f"Exception when creating octahedral map at {future.out_path}.\n" + traceback.format_exc()
                     )

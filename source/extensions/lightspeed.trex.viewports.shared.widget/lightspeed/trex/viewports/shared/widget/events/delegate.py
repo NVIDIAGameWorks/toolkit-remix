@@ -77,7 +77,7 @@ class ViewportEventDelegate:
 
     def adjust_flight_speed(self, x: float, y: float):
         try:
-            import omni.appwindow
+            import omni.appwindow  # noqa: PLC0415
 
             iinput = carb.input.acquire_input_interface()
             app_window = omni.appwindow.get_default_app_window()
@@ -103,7 +103,7 @@ class ViewportEventDelegate:
                 mouse, carb.input.MouseInput.MIDDLE_BUTTON
             )
 
-        except Exception:  # noqa PLW0718
+        except Exception:  # noqa: BLE001
             carb.log_error(f"Traceback:\n{traceback.format_exc()}")
 
         return False
@@ -117,7 +117,7 @@ class ViewportEventDelegate:
             return
         # If a key is down, ignore the wheel-event (i.e. don't zoom on paint b+scroll event)
         if self.__key_down:
-            import omni.appwindow
+            import omni.appwindow  # noqa: PLC0415
 
             app_window = omni.appwindow.get_default_app_window()
             key_input = carb.input.acquire_input_interface()
@@ -129,10 +129,10 @@ class ViewportEventDelegate:
             self.__key_down = set()
 
         try:
-            from omni.kit.manipulator.camera.viewport_camera_manipulator import _zoom_operation
+            from omni.kit.manipulator.camera.viewport_camera_manipulator import _zoom_operation  # noqa: PLC0415
 
             _zoom_operation(x, y, self.viewport_api)
-        except Exception:  # noqa PLW0718
+        except Exception:  # noqa: BLE001
             carb.log_error(f"Traceback:\n{traceback.format_exc()}")
 
     def key_pressed(self, key_index: int, modifiers: int, is_down: bool):
@@ -149,7 +149,7 @@ class ViewportEventDelegate:
 
     def mouse_moved(self, x: float, y: float, modifiers: int, is_pressed: bool, *args):
         if self.__dd_handler:
-            self.__dd_handler._perform_query(self.__scene_view, (x, y))  # noqa PLW0212
+            self.__dd_handler._perform_query(self.__scene_view, (x, y))  # noqa: SLF001
 
     def drop_accept(self, url: str):
         return False

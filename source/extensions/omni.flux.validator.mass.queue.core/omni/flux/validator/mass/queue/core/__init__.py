@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["get_mass_validation_queue_instance", "ValidatorMassQueueCoreExtension", "ValidatorMassQueueCore"]
+__all__ = ["ValidatorMassQueueCore", "ValidatorMassQueueCoreExtension", "get_mass_validation_queue_instance"]
 
 from .core import ValidatorMassQueueCore
 from .extension import ValidatorMassQueueCoreExtension, get_mass_validation_queue_instance

@@ -23,3 +23,14 @@ from .unit.file_import_list.test_file_import_list_items import TestFileImportLis
 from .unit.file_import_list.test_file_import_list_model import TestFileImportListModel
 from .unit.texture_import_list.test_texture_import_list_items import TestTextureImportListItems
 from .unit.texture_import_list.test_texture_import_list_model import TestTextureImportListModel
+
+__all__ = [
+    "TestFileImportListItems",
+    "TestFileImportListModel",
+    "TestFileImportListWidget",
+    "TestIngestionCheckerE2E",
+    "TestIngestionCheckerUnit",
+    "TestTextureImportListItems",
+    "TestTextureImportListModel",
+    "TestTextureImportListWidget",
+]

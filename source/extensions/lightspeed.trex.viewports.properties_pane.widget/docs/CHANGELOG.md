@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.3]
+### Changed
+- Modernize python style and enable more ruff checks
+
 ## [1.1.2]
 ### Changed
 - Updated dependency references for renamed camera and render widgets

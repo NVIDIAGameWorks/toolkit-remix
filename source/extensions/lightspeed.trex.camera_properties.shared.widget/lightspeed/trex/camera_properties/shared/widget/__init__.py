@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .setup_ui import SetupUI  # noqa F401
+from .setup_ui import SetupUI
+
+__all__ = ["SetupUI"]

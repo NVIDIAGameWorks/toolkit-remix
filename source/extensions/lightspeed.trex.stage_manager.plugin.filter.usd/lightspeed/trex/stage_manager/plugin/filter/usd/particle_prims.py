@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from lightspeed.common.constants import PARTICLE_SCHEMA_NAME as _PARTICLE_SCHEMA_NAME
@@ -29,5 +31,5 @@ class ParticleSystemsFilterPlugin(_ToggleableUSDFilterPlugin):
     display_name: str = Field(default="Particle Systems", exclude=True)
     tooltip: str = Field(default="Filter out particle systems", exclude=True)
 
-    def _filter_predicate(self, prim: "Usd.Prim") -> bool:
+    def _filter_predicate(self, prim: Usd.Prim) -> bool:
         return prim.HasAPI(_PARTICLE_SCHEMA_NAME)

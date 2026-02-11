@@ -39,7 +39,7 @@ class TestListener(omni.kit.test.AsyncTestCase):
         mock_models = {Mock(), Mock(), Mock(), Mock()}
 
         listener = get_usd_listener_instance()
-        listener._models = mock_models  # noqa PLW0212
+        listener._models = mock_models
 
         # Act
         listener.refresh_all()
@@ -72,7 +72,7 @@ class TestListener(omni.kit.test.AsyncTestCase):
         existing_mock.stage = existing_stage
 
         listener = get_usd_listener_instance()
-        listener._models = {existing_mock}  # noqa PLW0212
+        listener._models = {existing_mock}
 
         # Act
         with patch.object(USDListener, "_enable_listener") as enable_listener_mock:
@@ -83,8 +83,8 @@ class TestListener(omni.kit.test.AsyncTestCase):
         if not use_existing_stage:
             self.assertEqual(call(new_stage), enable_listener_mock.call_args)
 
-        self.assertEqual(2, len(listener._models))  # noqa PLW0212
-        self.assertSetEqual({existing_mock, new_mock}, listener._models)  # noqa PLW0212
+        self.assertEqual(2, len(listener._models))
+        self.assertSetEqual({existing_mock, new_mock}, listener._models)
 
     async def __run_test_remove_model(self, used_stage: bool):
         # Arrange
@@ -98,7 +98,7 @@ class TestListener(omni.kit.test.AsyncTestCase):
         existing_mock.stage = existing_stage
 
         listener = get_usd_listener_instance()
-        listener._models = {existing_mock, to_remove_mock}  # noqa PLW0212
+        listener._models = {existing_mock, to_remove_mock}
 
         # Act
         with patch.object(USDListener, "_disable_listener") as disable_listener_mock:
@@ -109,5 +109,5 @@ class TestListener(omni.kit.test.AsyncTestCase):
         if not used_stage:
             self.assertEqual(call(to_remove_stage), disable_listener_mock.call_args)
 
-        self.assertEqual(1, len(listener._models))  # noqa PLW0212
-        self.assertSetEqual({existing_mock}, listener._models)  # noqa PLW0212
+        self.assertEqual(1, len(listener._models))
+        self.assertSetEqual({existing_mock}, listener._models)

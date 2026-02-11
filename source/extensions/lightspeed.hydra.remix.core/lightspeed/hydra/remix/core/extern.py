@@ -21,7 +21,7 @@ import asyncio
 import ctypes
 import time
 from enum import Enum
-from typing import Callable
+from collections.abc import Callable
 
 import carb
 import omni.kit.app
@@ -354,8 +354,6 @@ def remix_extern_destroy():
 
 def safe_remix_extern() -> RemixExtern:
     """Function to call if a RemixExtern is required. If not loaded yet, it will block until loaded."""
-    global _instance  # noqa PLW0602 - required to get updated value after load
-
     if not _instance:
         load_remix_extern()
     assert _instance, "load_remix_extern() should have set _instance"
@@ -403,7 +401,7 @@ class RemixRequestQueryType(Enum):
 def viewport_api_request_query_hdremix(
     pixel: carb.Uint2,
     callback: Callable[[str, carb.Double3 | None, carb.Uint2], None] = None,
-    query_name: str = "",
+    _query_name: str = "",
     request_query_type=RemixRequestQueryType.PATH_AND_WORLDPOS,
 ):
     if request_query_type == RemixRequestQueryType.ONLY_WORLDPOS:

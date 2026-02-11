@@ -18,7 +18,7 @@
 import abc
 import asyncio
 from functools import partial
-from typing import Callable, List
+from collections.abc import Callable
 
 import omni.ui as ui
 import omni.usd
@@ -390,7 +390,7 @@ class LayerDelegate(_TreeDelegateBase):
         else:
             self.__do_refresh_gradient_color(item, model)
 
-    def on_item_selected(self, primary_items: List[ItemBase], all_items: List[ItemBase], model: LayerModel) -> None:
+    def on_item_selected(self, primary_items: list[ItemBase], all_items: list[ItemBase], model: LayerModel) -> None:
         """
         Callback for when the tree widget selection changed.
 

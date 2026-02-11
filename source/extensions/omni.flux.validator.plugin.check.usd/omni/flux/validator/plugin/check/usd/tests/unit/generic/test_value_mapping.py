@@ -108,7 +108,7 @@ class TestValueMappingUnit(omni.kit.test.AsyncTestCase):
 
         with patch.object(ValueMapping, "on_progress") as progress_mock:
             # Act
-            success, message, data = await emissive_intensity._check(Mock(), Mock(), [])  # noqa PLW0212
+            success, message, data = await emissive_intensity._check(Mock(), Mock(), [])
 
         # Assert
         self.assertTrue(success)
@@ -134,7 +134,7 @@ class TestValueMappingUnit(omni.kit.test.AsyncTestCase):
 
         with patch.object(ValueMapping, "on_progress") as progress_mock:
             # Act
-            success, message, data = await material_shader._fix(Mock(), Mock(), [])  # noqa PLW0212
+            success, message, data = await material_shader._fix(Mock(), Mock(), [])
 
         # Assert
         self.assertTrue(success)
@@ -178,15 +178,13 @@ class TestValueMappingUnit(omni.kit.test.AsyncTestCase):
 
             shader = UsdShade.Shader.Get(stage, shader_prim.GetPath())
             intensity_input = shader.CreateInput("emissive_intensity", Sdf.ValueTypeNames.Float)
-            intensity_input.Set(10 if match_predicate else 0)  # noqa PLW0212
+            intensity_input.Set(10 if match_predicate else 0)
         else:
             shader_prim = stage.DefinePrim(shader_path, "Xform")
 
         with patch.object(ValueMapping, "on_progress") as progress_mock:
             # Act
-            success, message, data = await emissive_intensity._check(  # noqa PLW0212
-                schema_data_mock, "", [shader_prim]
-            )
+            success, message, data = await emissive_intensity._check(schema_data_mock, "", [shader_prim])
 
         # Assert
         if not has_mappable_attr:
@@ -236,7 +234,7 @@ class TestValueMappingUnit(omni.kit.test.AsyncTestCase):
 
             shader = UsdShade.Shader.Get(stage, shader_prim.GetPath())
             intensity_input = shader.CreateInput("emissive_intensity", Sdf.ValueTypeNames.Float)
-            intensity_input.Set(10 if match_predicate else 0)  # noqa PLW0212
+            intensity_input.Set(10 if match_predicate else 0)
         else:
             shader_prim = stage.DefinePrim(shader_path, "Xform")
 
@@ -245,7 +243,7 @@ class TestValueMappingUnit(omni.kit.test.AsyncTestCase):
             patch.object(omni.kit.commands, "execute") as execute_mock,
         ):
             # Act
-            success, message, data = await emissive_intensity._fix(schema_data_mock, "", [shader_prim])  # noqa PLW0212
+            success, message, data = await emissive_intensity._fix(schema_data_mock, "", [shader_prim])
 
         # Assert
         if not has_mappable_attr:

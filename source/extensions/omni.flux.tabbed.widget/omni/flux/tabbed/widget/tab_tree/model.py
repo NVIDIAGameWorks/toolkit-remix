@@ -15,7 +15,8 @@
 * limitations under the License.
 """
 
-from typing import Any, Callable, List, Optional
+from typing import Any
+from collections.abc import Callable
 
 import omni.ui as ui
 from omni.flux.utils.common import Event as _Event
@@ -76,7 +77,7 @@ class Model(ui.AbstractItemModel):
 
     def __init__(self):
         super().__init__()
-        self.__items: List[Item] = []
+        self.__items: list[Item] = []
         self.__sub_mouse_pressed = {}
         self.__sub_mouse_pressed_fn = []
 
@@ -86,7 +87,7 @@ class Model(ui.AbstractItemModel):
         for function in self.__sub_mouse_pressed_fn:
             function(item)
 
-    def add(self, datas: List[str]):
+    def add(self, datas: list[str]):
         """Set the items to show"""
         for data in datas:
             item = Item(data)
@@ -94,7 +95,7 @@ class Model(ui.AbstractItemModel):
             self.__sub_mouse_pressed[id(item)] = item.subscribe_mouse_released(self._on_item_mouse_released)
         self._item_changed(None)
 
-    def remove(self, datas: List[str]):
+    def remove(self, datas: list[str]):
         """Set the items to show"""
         to_removes = []
         for data in datas:
@@ -112,7 +113,7 @@ class Model(ui.AbstractItemModel):
         for item in self.__items:
             self.__sub_mouse_pressed[id(item)] = item.subscribe_mouse_released(self._on_item_mouse_released)
 
-    def get_item_children(self, item: Optional[Item]):
+    def get_item_children(self, item: Item | None):
         """Returns all the children when the widget asks it."""
         if item is None:
             return self.__items

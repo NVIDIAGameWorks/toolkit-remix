@@ -24,6 +24,6 @@ class TestPipArchive(omni.kit.test.AsyncTestCase):
         # Take one of packages from deps/pip.toml,
         # it should be prebundled and available without need for going into online index
         omni.kit.pipapi.install("numpy", version="1.19.0", use_online_index=False)
-        import numpy  # noqa
+        import numpy as np  # noqa: PLC0415
 
-        self.assertIsNotNone(numpy)
+        self.assertIsNotNone(np)

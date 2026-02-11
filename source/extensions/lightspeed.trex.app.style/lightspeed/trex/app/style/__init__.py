@@ -15,4 +15,18 @@
 * limitations under the License.
 """
 
-from .trex_style import *  # noqa F401
+from .trex_style import (
+    DEFAULT_FIELD_EDITABLE_STYLE,
+    DEFAULT_FIELD_READ_ONLY_STYLE,
+    override_dialog_get_style,
+    style,
+    update_viewport_menu_style,
+)
+
+__all__ = [
+    "DEFAULT_FIELD_EDITABLE_STYLE",
+    "DEFAULT_FIELD_READ_ONLY_STYLE",
+    "override_dialog_get_style",
+    "style",
+    "update_viewport_menu_style",
+]

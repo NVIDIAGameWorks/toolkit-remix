@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .setup_widget import NavigatorWidget  # noqa F401
+from .setup_widget import NavigatorWidget
+
+__all__ = ["NavigatorWidget"]

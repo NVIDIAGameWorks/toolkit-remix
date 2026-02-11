@@ -15,11 +15,14 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import omni.kit.commands
 import omni.kit.test
 import omni.kit.undo
 import omni.usd
 from lightspeed.common.constants import PARTICLE_CPP_SCHEMA_NAME, PARTICLE_SCHEMA_NAME
+
 from pxr import Sdf, Usd, UsdGeom
 
 
@@ -34,14 +37,14 @@ class TestParticleSystemCommands(omni.kit.test.AsyncTestCase):
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
 
-    async def __create_test_prim(self, prim_type="Mesh") -> "Usd.Prim":
+    async def __create_test_prim(self, prim_type="Mesh") -> Usd.Prim:
         """Helper method to create a test prim."""
         test_path = omni.usd.get_stage_next_free_path(self.stage, "/World/TestPrim", False)
         if prim_type == "Mesh":
             return UsdGeom.Mesh.Define(self.stage, test_path).GetPrim()
         return self.stage.DefinePrim(test_path, prim_type)
 
-    async def __create_test_attributes(self, prim: "Usd.Prim") -> dict:
+    async def __create_test_attributes(self, prim: Usd.Prim) -> dict:
         """Helper method to create test particle system attributes."""
         test_attrs = {}
 

@@ -19,3 +19,5 @@ from .e2e.test_window import TestEditCustomTagsWindow
 
 # No need to test the model since the E2E tests cover it
 from .unit.test_selection_tree_items import TestTagsEditItem, TestTagsSelectionItem
+
+__all__ = ["TestEditCustomTagsWindow", "TestTagsEditItem", "TestTagsSelectionItem"]

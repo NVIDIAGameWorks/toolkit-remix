@@ -28,7 +28,7 @@ class TestOmniPBRToAperturePBRConverterBuilderUnit(omni.kit.test.AsyncTestCase):
         converter_builder = OmniPBRToAperturePBRConverterBuilder()
 
         # Act
-        val = converter_builder._convert_normal_encoding(False, Mock())  # noqa PLW0212
+        val = converter_builder._convert_normal_encoding(False, Mock())
 
         # Assert
         self.assertEqual(1, val)  # TANGENT_SPACE_OGL = 2
@@ -38,7 +38,7 @@ class TestOmniPBRToAperturePBRConverterBuilderUnit(omni.kit.test.AsyncTestCase):
         converter_builder = OmniPBRToAperturePBRConverterBuilder()
 
         # Act
-        val = converter_builder._convert_normal_encoding(True, Mock())  # noqa PLW0212
+        val = converter_builder._convert_normal_encoding(True, Mock())
 
         # Assert
         self.assertEqual(2, val)  # TANGENT_SPACE_DX = 2
@@ -48,9 +48,7 @@ class TestOmniPBRToAperturePBRConverterBuilderUnit(omni.kit.test.AsyncTestCase):
         converter_builder = OmniPBRToAperturePBRConverterBuilder()
 
         # Act
-        converted_type, converted_val = converter_builder._convert_normal_encoding_alt(  # noqa PLW0212
-            Mock(), False, Mock()
-        )  # noqa PLW0212
+        converted_type, converted_val = converter_builder._convert_normal_encoding_alt(Mock(), False, Mock())
 
         # Assert
         self.assertEqual(Sdf.ValueTypeNames.Int, converted_type)
@@ -61,9 +59,7 @@ class TestOmniPBRToAperturePBRConverterBuilderUnit(omni.kit.test.AsyncTestCase):
         converter_builder = OmniPBRToAperturePBRConverterBuilder()
 
         # Act
-        converted_type, converted_val = converter_builder._convert_normal_encoding_alt(  # noqa PLW0212
-            Mock(), True, Mock()
-        )  # noqa PLW0212
+        converted_type, converted_val = converter_builder._convert_normal_encoding_alt(Mock(), True, Mock())
 
         # Assert
         self.assertEqual(Sdf.ValueTypeNames.Int, converted_type)

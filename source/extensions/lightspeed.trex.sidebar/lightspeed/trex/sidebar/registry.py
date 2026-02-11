@@ -17,7 +17,7 @@
 
 import asyncio
 from enum import Enum
-from typing import Callable
+from collections.abc import Callable
 
 import omni.kit.app
 from omni.flux.utils.common import Event as _Event
@@ -27,10 +27,10 @@ __all__ = [
     "Groups",
     "ItemDescriptor",
     "SidebarSubscription",
-    "register_items",
-    "unregister_items",
     "get_items",
+    "register_items",
     "subscribe_items_change",
+    "unregister_items",
 ]
 
 
@@ -108,7 +108,7 @@ class Registry:
         cls.refresh_deferred()
 
     @classmethod
-    def get_items(cls, group: str | None = None) -> dict[str : list[ItemDescriptor]]:  # noqa E203
+    def get_items(cls, group: str | None = None) -> dict[str : list[ItemDescriptor]]:
         if group is None:
             return {grp: items.copy() for grp, items in cls.__ITEMS.items()}
 
@@ -141,7 +141,7 @@ def unregister_items(items_descriptors: list[ItemDescriptor]):
     return Registry.unregister_items(items_descriptors)
 
 
-def get_items(group: str | None = None) -> dict[str : list[ItemDescriptor]]:  # noqa E203
+def get_items(group: str | None = None) -> dict[str : list[ItemDescriptor]]:
     return Registry.get_items(group)
 
 

@@ -1,4 +1,3 @@
-# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -310,20 +309,20 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
     async def test_cancel_should_set_cancel_token(self):
         # Arrange
         packaging_core = PackagingCore()
-        packaging_core._cancel_token = False  # noqa PLW0212
+        packaging_core._cancel_token = False
 
         # Act
         packaging_core.cancel()
 
         # Assert
-        self.assertTrue(packaging_core._cancel_token)  # noqa PLW0212
+        self.assertTrue(packaging_core._cancel_token)
 
     async def test_current_count_should_return_current_count(self):
         # Arrange
         expected_val = 12345
 
         packaging_core = PackagingCore()
-        packaging_core._current_count = expected_val  # noqa PLW0212
+        packaging_core._current_count = expected_val
 
         # Act
         val = packaging_core.current_count
@@ -336,15 +335,15 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
     ):
         # Arrange
         packaging_core = PackagingCore()
-        packaging_core._current_count = 0  # noqa PLW0212
-        packaging_core._total_count = 1  # noqa PLW0212
+        packaging_core._current_count = 0
+        packaging_core._total_count = 1
 
         with patch.object(PackagingCore, "_packaging_progress") as progress_mock:
             # Act
             packaging_core.current_count = 12345
 
         # Assert
-        self.assertEqual(1, packaging_core._current_count)  # noqa PLW0212
+        self.assertEqual(1, packaging_core._current_count)
 
         self.assertEqual(1, progress_mock.call_count)
         self.assertEqual(call(), progress_mock.call_args)
@@ -354,7 +353,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         expected_val = 12345
 
         packaging_core = PackagingCore()
-        packaging_core._total_count = expected_val  # noqa PLW0212
+        packaging_core._total_count = expected_val
 
         # Act
         val = packaging_core.total_count
@@ -367,15 +366,15 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         expected_val = 12345
 
         packaging_core = PackagingCore()
-        packaging_core._current_count = 1  # noqa PLW0212
-        packaging_core._total_count = 0  # noqa PLW0212
+        packaging_core._current_count = 1
+        packaging_core._total_count = 0
 
         with patch.object(PackagingCore, "_packaging_progress") as progress_mock:
             # Act
             packaging_core.total_count = expected_val
 
         # Assert
-        self.assertEqual(expected_val, packaging_core._total_count)  # noqa PLW0212
+        self.assertEqual(expected_val, packaging_core._total_count)
 
         self.assertEqual(1, progress_mock.call_count)
         self.assertEqual(call(), progress_mock.call_args)
@@ -385,7 +384,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         expected_val = "Doing something"
 
         packaging_core = PackagingCore()
-        packaging_core._status = expected_val  # noqa PLW0212
+        packaging_core._status = expected_val
 
         # Act
         val = packaging_core.status
@@ -402,12 +401,12 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
     async def test_filter_sublayers_cancel_token_was_set_should_quick_return(self):
         # Arrange
         packaging_core = PackagingCore()
-        packaging_core._cancel_token = True  # noqa PLW0212
+        packaging_core._cancel_token = True
 
         selected_layer_mock = Mock()
 
         # Act
-        await packaging_core._filter_sublayers(Mock(), Mock(), Mock(), [selected_layer_mock])  # noqa PLW0212
+        await packaging_core._filter_sublayers(Mock(), Mock(), Mock(), [selected_layer_mock])
 
         # Assert
         self.assertEqual(0, selected_layer_mock.identifier.call_count)
@@ -506,9 +505,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             find_open_mock.side_effect = [layer_1_mock, layer_3_mock, layer_4_mock, layer_2_mock]
 
             # Act
-            await packaging_core._filter_sublayers(  # noqa PLW0212
-                context_name_mock, None, layer_0_mock, selected_layer_paths_mocks
-            )
+            await packaging_core._filter_sublayers(context_name_mock, None, layer_0_mock, selected_layer_paths_mocks)
 
         # Assert
         self.assertEqual(2, get_position_mock.call_count)
@@ -580,7 +577,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
     async def test_update_layer_metadata_cancel_token_set_should_quick_return(self):
         # Arrange
         packaging_core = PackagingCore()
-        packaging_core._cancel_token = True  # noqa PLW0212
+        packaging_core._cancel_token = True
 
         model = Mock()
         layer = Mock()
@@ -588,7 +585,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
 
         with patch.object(Sdf.Layer, "OpenAsAnonymous") as open_anonymous_mock:
             # Act
-            packaging_core._update_layer_metadata(model, layer, dependencies, True)  # noqa PLW0212
+            packaging_core._update_layer_metadata(model, layer, dependencies, True)
 
         # Assert
         self.assertEqual(0, open_anonymous_mock.call_count)
@@ -604,8 +601,8 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         expected_1 = path_1
 
         # Act
-        val_0 = packaging_core._redirect_to_existing_project(Mock(), path_0)  # noqa PLW0212
-        val_1 = packaging_core._redirect_to_existing_project(Mock(), path_1)  # noqa PLW0212
+        val_0 = packaging_core._redirect_to_existing_project(Mock(), path_0)
+        val_1 = packaging_core._redirect_to_existing_project(Mock(), path_1)
 
         # Assert
         self.assertEqual(expected_0, val_0)
@@ -645,7 +642,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         input_val = "../../../../test/path"
 
         # Act
-        val = packaging_core._simplify_relative_path(input_val)  # noqa PLW0212
+        val = packaging_core._simplify_relative_path(input_val)
 
         # Assert
         self.assertEqual(input_val, val)
@@ -664,9 +661,9 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         output_val_2 = "./single_dir"
 
         # Act
-        val_0 = packaging_core._simplify_relative_path(input_val_0)  # noqa PLW0212
-        val_1 = packaging_core._simplify_relative_path(input_val_1)  # noqa PLW0212
-        val_2 = packaging_core._simplify_relative_path(input_val_2)  # noqa PLW0212
+        val_0 = packaging_core._simplify_relative_path(input_val_0)
+        val_1 = packaging_core._simplify_relative_path(input_val_1)
+        val_2 = packaging_core._simplify_relative_path(input_val_2)
 
         # Assert
         self.assertEqual(output_val_0, val_0)
@@ -679,7 +676,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         input_val = "C:/test/path"
 
         # Act
-        val = packaging_core._simplify_relative_path(input_val)  # noqa PLW0212
+        val = packaging_core._simplify_relative_path(input_val)
 
         # Assert
         self.assertEqual(input_val, val)
@@ -690,17 +687,17 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         status = "Status Test"
         total_count = 12345
 
-        packaging_core._status = "Before"  # noqa PLW0212
-        packaging_core._current_count = 999  # noqa PLW0212
-        packaging_core._total_count = 999  # noqa PLW0212
+        packaging_core._status = "Before"
+        packaging_core._current_count = 999
+        packaging_core._total_count = 999
 
         # Act
-        packaging_core._packaging_new_stage(status, total_count)  # noqa PLW0212
+        packaging_core._packaging_new_stage(status, total_count)
 
         # Assert
-        self.assertEqual(status, packaging_core._status)  # noqa PLW0212
-        self.assertEqual(total_count, packaging_core._total_count)  # noqa PLW0212
-        self.assertEqual(0, packaging_core._current_count)  # noqa PLW0212
+        self.assertEqual(status, packaging_core._status)
+        self.assertEqual(total_count, packaging_core._total_count)
+        self.assertEqual(0, packaging_core._current_count)
 
     async def __run_initialize_usd(self, existing_context: bool):
         # Arrange
@@ -726,7 +723,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             create_mock.return_value = create_context_mock
 
             # Act
-            val = await packaging_core._initialize_usd_stage(context_name, root_mod_layer_path_mock)  # noqa PLW0212
+            val = await packaging_core._initialize_usd_stage(context_name, root_mod_layer_path_mock)
 
         # Assert
         self.assertEqual(stage_mock if existing_context else create_context_stage_mock, val)
@@ -756,7 +753,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
     async def __run_redirect_inside_package_directory(self, is_absolute: bool, is_outside: bool):
         # Arrange
         packaging_core = PackagingCore()
-        packaging_core._collected_dependencies = {}  # noqa PLW0212
+        packaging_core._collected_dependencies = {}
 
         dependency_path_mock = Mock()
         layer_path_mock = "S:/projects/Project/mod.usda"
@@ -770,7 +767,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         layer_mock.identifier = layer_path_mock
 
         # Act
-        val = packaging_core._redirect_inside_package_directory(  # noqa PLW0212
+        val = packaging_core._redirect_inside_package_directory(
             dependency_path_mock, "S:/output_directory", layer_mock, relative_path
         )
 
@@ -784,14 +781,14 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(expected_val, val)
         self.assertDictEqual(
             {dependency_path_mock: OmniUrl(expected_val).path},
-            packaging_core._collected_dependencies,  # noqa PLW0212
+            packaging_core._collected_dependencies,
         )
 
     async def __run_modify_asset_paths(self, dependency_exists: bool, dependency_update: bool, is_absolute: bool):
         # Arrange
         packaging_core = PackagingCore()
-        packaging_core._current_count = 0  # noqa PLW0212
-        packaging_core._total_count = 9999  # noqa PLW0212
+        packaging_core._current_count = 0
+        packaging_core._total_count = 9999
 
         layer_mock = Mock()
         layer_mock.identifier = "C:/Test/layer.usda"
@@ -803,7 +800,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             exists_mock.return_value = dependency_exists
 
             # Act
-            val = packaging_core._modify_asset_paths(  # noqa PLW0212
+            val = packaging_core._modify_asset_paths(
                 layer_mock,
                 {absolute_path if dependency_update else "C:/absolute_path": lambda *_: modified_path},
                 relative_path,
@@ -816,7 +813,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         # Arrange
         packaging_core = PackagingCore()
         if should_cancel:
-            packaging_core._cancel_token = True  # noqa PLW0212
+            packaging_core._cancel_token = True
 
         root_layer_path_mock = Mock()
         root_layer_mock = Mock()
@@ -839,7 +836,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             compute_dependencies_mock.return_value = layer_mocks, asset_mocks, []
 
             # Act
-            mod_dependencies, redirected_dependencies = packaging_core._get_redirected_dependencies(  # noqa PLW0212
+            mod_dependencies, redirected_dependencies = packaging_core._get_redirected_dependencies(
                 root_layer_mock, external_mod_paths
             )
 
@@ -850,7 +847,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
     async def __run_collect(self, should_cancel: bool, has_unresolved_assets: bool):
         packaging_core = PackagingCore()
         if should_cancel:
-            packaging_core._cancel_token = True  # noqa PLW0212
+            packaging_core._cancel_token = True
 
         layer_0_path_mock = "C:/projects/Project/mod.usda"
         layer_1_path_mock = "C:/projects/Project/sublayer.usda"
@@ -904,7 +901,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             compute_dependencies_mock.return_value = (layers_mock, assets_mock, unresolved_mock)
             get_shaders_mock.return_value = [OmniUrl(asset_2_mock)]
 
-            modify_assets_mock.side_effect = lambda *_: packaging_core._collected_dependencies.update(  # noqa PLW0212
+            modify_assets_mock.side_effect = lambda *_: packaging_core._collected_dependencies.update(
                 {
                     asset_0_mock: asset_0_output_mock,
                 }
@@ -952,7 +949,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                 copy_mock.return_value = none_future
 
             # Act
-            errors, unresolved_assets = await packaging_core._collect(  # noqa PLW0212
+            errors, unresolved_assets = await packaging_core._collect(
                 stage_mock,
                 root_layer_mock,
                 existing_temps_mock,
@@ -1031,7 +1028,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             open_anonymous_mock.return_value = dependency_layer_mock
 
             # Act
-            errors = packaging_core._update_layer_metadata(  # noqa PLW0212
+            errors = packaging_core._update_layer_metadata(
                 model_mock, layer_mock, dependencies_mock, update_dependencies
             )
 

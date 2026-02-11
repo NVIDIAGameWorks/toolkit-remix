@@ -15,9 +15,9 @@
 * limitations under the License.
 """
 
-import asyncio
-from typing import Dict, List, Optional, Union
+from __future__ import annotations
 
+import asyncio
 import carb
 import omni.kit
 import omni.ui as ui
@@ -53,19 +53,19 @@ class ParticleSystemPropertyWidget:
     def __init__(
         self,
         context_name: str,
-        tree_column_widths: Optional[List[ui.Length]] = None,
+        tree_column_widths: list[ui.Length] | None = None,
         columns_resizable: bool = False,
         right_aligned_labels: bool = True,
-        lookup_table: Optional[Dict[str, Dict[str, str]]] = None,
+        lookup_table: dict[str, dict[str, str]] | None = None,
         field_builders: list[_FieldBuilder] | None = None,
     ):
         """
         Args:
             context_name (str): USD context name
-            tree_column_widths (Optional[List[ui.Length]]): Column widths for the tree
+            tree_column_widths (list[ui.Length] | None): Column widths for the tree
             columns_resizable (bool): Whether columns are resizable
             right_aligned_labels (bool): Whether labels are right aligned
-            lookup_table (Optional[Dict[str, Dict[str, str]]]): Table for custom display names and groups
+            lookup_table (dict[str, dict[str, str]] | None): Table for custom display names and groups
             field_builders (List[_FieldBuilder]): Custom field builders for specific attribute types
         """
 
@@ -177,8 +177,8 @@ class ParticleSystemPropertyWidget:
 
     def refresh(
         self,
-        paths: Optional[List[Union[str, "Sdf.Path"]]] = None,
-        valid_target_paths: Optional[List[Union[str, "Sdf.Path"]]] = None,
+        paths: list[str | Sdf.Path] | None = None,
+        valid_target_paths: list[str | Sdf.Path] | None = None,
     ):
         """
         Refresh the panel with the given prim paths
@@ -193,8 +193,8 @@ class ParticleSystemPropertyWidget:
     @omni.usd.handle_exception
     async def _deferred_refresh(
         self,
-        paths: Optional[List[Union[str, "Sdf.Path"]]] = None,
-        valid_target_paths: Optional[List[Union[str, "Sdf.Path"]]] = None,
+        paths: list[str | Sdf.Path] | None = None,
+        valid_target_paths: list[str | Sdf.Path] | None = None,
     ):
         """
         Deferred refresh to handle USD updates properly
@@ -210,8 +210,8 @@ class ParticleSystemPropertyWidget:
         # Wait 1 frame to make sure the USD is up-to-date
         await omni.kit.app.get_app().next_update_async()
 
-        if self.__usd_listener_instance and self._property_model:  # noqa PLE0203
-            self.__usd_listener_instance.remove_model(self._property_model)  # noqa PLE0203
+        if self.__usd_listener_instance and self._property_model:
+            self.__usd_listener_instance.remove_model(self._property_model)
 
         schema_layer, schema_prim = _get_schema_prim(PARTICLE_SCHEMA_NAME)
         if not schema_layer or not schema_prim:
@@ -223,7 +223,7 @@ class ParticleSystemPropertyWidget:
         items = []
         valid_paths = []
 
-        if stage is not None:  # noqa PLR1702
+        if stage is not None:
             prims = [
                 prototype_prim
                 for path in self._paths
@@ -392,7 +392,7 @@ class ParticleSystemPropertyWidget:
 
     def _get_base_name(self, attr_name_: str) -> str:
         if attr_name_.startswith(PARTICLE_PRIMVAR_PREFIX):
-            return attr_name_[len(PARTICLE_PRIMVAR_PREFIX) :]  # noqa format/lint incompatible
+            return attr_name_[len(PARTICLE_PRIMVAR_PREFIX) :]
         return attr_name_
 
     # Dynamically find min/max pairs by analyzing attribute names

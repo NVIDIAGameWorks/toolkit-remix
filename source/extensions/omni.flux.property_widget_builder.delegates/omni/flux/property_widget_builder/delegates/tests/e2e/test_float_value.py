@@ -18,7 +18,7 @@
 __all__ = ("TestColorField",)
 
 import uuid
-from typing import Iterable
+from collections.abc import Iterable
 
 import omni.kit.test
 import omni.kit.ui_test

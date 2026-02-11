@@ -20,7 +20,7 @@ __all__ = ["StageManagerUtils"]
 import asyncio
 import concurrent
 from collections import Counter
-from typing import Callable, Iterable
+from collections.abc import Callable, Iterable
 
 import omni.usd
 

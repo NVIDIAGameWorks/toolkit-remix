@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["get_app_version", "get_app_distribution"]
+__all__ = ["get_app_distribution", "get_app_version"]
 
 from pathlib import Path
 

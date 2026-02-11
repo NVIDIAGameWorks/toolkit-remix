@@ -40,14 +40,14 @@ class SetupUI:
         if self.__settings.get(_HIDE_MENU):
             # Editor Menu API must be used when the app is ready.
             startup_event_stream = omni.kit.app.get_app().get_startup_event_stream()
-            self.__sub_app_ready = startup_event_stream.create_subscription_to_pop_by_type(  # noqa PLW0238
+            self.__sub_app_ready = startup_event_stream.create_subscription_to_pop_by_type(
                 omni.kit.app.EVENT_APP_READY,
                 self._hide_menu,
                 name="Hide Menubar - App Ready",
             )
 
     def _hide_menu(self, *args):
-        self.__sub_app_ready = None  # noqa PLW0238
+        self.__sub_app_ready = None
 
         async def deferred_hide_menu():
             await omni.kit.app.get_app().next_update_async()

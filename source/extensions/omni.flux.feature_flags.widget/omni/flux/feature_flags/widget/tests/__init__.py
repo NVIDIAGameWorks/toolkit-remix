@@ -17,3 +17,5 @@
 
 from .unit.test_tree_item import TestFeatureFlagItem
 from .unit.test_tree_model import TestFeatureFlagModel
+
+__all__ = ["TestFeatureFlagItem", "TestFeatureFlagModel"]

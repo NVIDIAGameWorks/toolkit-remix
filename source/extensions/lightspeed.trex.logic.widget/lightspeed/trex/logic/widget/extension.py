@@ -77,10 +77,10 @@ def _patched_model_name_setter(self, value, item):
             return
         new_path = old_path.GetParentPath().AppendChild(new_name)
         if old_path != new_path:
-            import omni.kit.commands as kit_commands  # noqa: PLW0621
+            import omni.kit.commands as kit_commands  # noqa: PLC0415
 
             kit_commands.execute("MovePrim", path_from=old_path, path_to=new_path)
-            self._item_changed(None)  # noqa: SLF001, PLW0212
+            self._item_changed(None)
         return
 
     # Fall back to original setter for all other cases
@@ -254,18 +254,18 @@ class RemixLogicGraphExtension(omni.ext.IExt):
         inst = _extension_instance
 
         async def import_prims():
-            if not inst._workspace.get_window():  # noqa: SLF001, PLW0212
+            if not inst._workspace.get_window():  # noqa: SLF001
                 inst.show_window(True)
             else:
-                inst._workspace.get_window().focus()  # noqa: SLF001, PLW0212
+                inst._workspace.get_window().focus()  # noqa: SLF001
             if prim_list:
-                inst._workspace.get_window()._import_prims(None, prim_list)  # noqa: SLF001, PLW0212
+                inst._workspace.get_window()._import_prims(None, prim_list)  # noqa: SLF001
 
         asyncio.ensure_future(import_prims())
 
     def _on_extensions_changed(self, loaded: bool, ext_id: str):
         if loaded:
-            from omni.kit.window.quicksearch import QuickSearchRegistry
+            from omni.kit.window.quicksearch import QuickSearchRegistry  # noqa: PLC0415
 
             style = {
                 "Graph.Node.Category": {"background_color": 0xFFADFB47},
@@ -314,7 +314,7 @@ class RemixLogicGraphExtension(omni.ext.IExt):
                     duration=5,
                 )
 
-        catalog = self._workspace.get_window().get_graph_widget()._catalog_model  # noqa: SLF001, PLW0212
+        catalog = self._workspace.get_window().get_graph_widget()._catalog_model  # noqa: SLF001
         node_type = prim_spec.properties["node:type"].default
         if catalog.allow_node_type(node_type):
             return True
@@ -331,7 +331,7 @@ class RemixLogicGraphExtension(omni.ext.IExt):
             windowing = _get_windowing()
             app_window = omni.appwindow.get_default_app_window()
             self._quicksearch_pos = windowing.get_cursor_position(app_window.get_window())
-            OmniGraphNodeQuickSearchModel._node_created = False  # noqa: SLF001, PLW0212
+            OmniGraphNodeQuickSearchModel._node_created = False  # noqa: SLF001
             return True
         self._quicksearch_pos = (None, None)
         return False
@@ -342,7 +342,7 @@ class RemixLogicGraphExtension(omni.ext.IExt):
             return
 
         inst = _extension_instance
-        if not inst._workspace.get_window():  # noqa: SLF001, PLW0212
+        if not inst._workspace.get_window():  # noqa: SLF001
             return
 
         class CustomEvent:
@@ -351,7 +351,7 @@ class RemixLogicGraphExtension(omni.ext.IExt):
                 self.x = None if is_drop else inst._quicksearch_pos[0]  # noqa: SLF001
                 self.y = None if is_drop else inst._quicksearch_pos[1]  # noqa: SLF001
 
-        graph_widget = inst._workspace.get_window().get_graph_widget()  # noqa: SLF001, PLW0212
+        graph_widget = inst._workspace.get_window().get_graph_widget()  # noqa: SLF001
         if graph_widget:
             graph_widget.on_drop(CustomEvent(mime_data))
 

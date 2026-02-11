@@ -15,12 +15,12 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import functools
 import os
 import re
 import typing
-from typing import List, Union
-
 import carb
 import omni.client
 import omni.kit.app
@@ -300,15 +300,13 @@ class SetupUI:
 
     def refresh(
         self,
-        items: List[
-            Union[
-                "_ItemAsset",
-                "_ItemReferenceFile",
-                "_ItemAddNewReferenceFileMesh",
-                "_ItemInstancesGroup",
-                "_ItemInstance",
-                "_ItemPrim",
-            ]
+        items: list[
+            _ItemAsset
+            | _ItemReferenceFile
+            | _ItemAddNewReferenceFileMesh
+            | _ItemInstancesGroup
+            | _ItemInstance
+            | _ItemPrim,
         ],
     ):
         found = False
@@ -583,7 +581,7 @@ class SetupUI:
     def _on_mesh_ref_field_changed(self, _model):
         self._do_mesh_ref_field_changed()
 
-    def set_ref_mesh_field(self, path, change_prim_field=True, layer: "Sdf.Layer" = None):
+    def set_ref_mesh_field(self, path, change_prim_field=True, layer: Sdf.Layer | None = None):
         self.__will_change_prim_field = change_prim_field
         if self._only_read_mesh_ref:
             value = path
@@ -602,7 +600,7 @@ class SetupUI:
             self.__set_ref_mesh_prim_field()
             self._ignore_mesh_ref_field_changed = False
 
-    def __prompt_user_to_copy_usd_asset(self, path: str, layer: "Sdf.Layer"):
+    def __prompt_user_to_copy_usd_asset(self, path: str, layer: Sdf.Layer):
         self.__ignore_ingest_check = True
 
         # Prompt the user copy the asset or cancel

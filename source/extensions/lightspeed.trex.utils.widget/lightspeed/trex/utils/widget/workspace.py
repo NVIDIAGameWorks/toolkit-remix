@@ -86,7 +86,7 @@ class WorkspaceWindowBase(abc.ABC):
         # Whether to show the tab bars in the window.
         self._show_dock_tab_bars = show_dock_tab_bars
 
-        self.__sub_app_ready = None  # noqa PLW0238
+        self.__sub_app_ready = None
 
     @property
     @abc.abstractmethod
@@ -141,10 +141,10 @@ class WorkspaceWindowBase(abc.ABC):
             # Editor Menu API must be used when the app is ready.
             def add_window_menu_item(*args):
                 self.update_menu_item(False)
-                self.__sub_app_ready = None  # noqa PLW0238
+                self.__sub_app_ready = None
 
             startup_event_stream = omni.kit.app.get_app().get_startup_event_stream()
-            self.__sub_app_ready = startup_event_stream.create_subscription_to_pop_by_type(  # noqa PLW0238
+            self.__sub_app_ready = startup_event_stream.create_subscription_to_pop_by_type(
                 omni.kit.app.EVENT_APP_READY, add_window_menu_item, name="Window Menu Item - App Ready"
             )
 

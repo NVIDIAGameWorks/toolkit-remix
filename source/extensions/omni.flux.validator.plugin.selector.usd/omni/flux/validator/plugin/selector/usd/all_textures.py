@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Any, List, Tuple
+from typing import Any
 
 import omni.ui as ui
 import omni.usd
@@ -28,7 +28,7 @@ from .base.base_selector import SelectorUSDBase as _SelectorUSDBase
 
 class AllTextures(_SelectorUSDBase):
     class Data(_SelectorUSDBase.Data):
-        filtered_input_names: List[str] | None = None
+        filtered_input_names: list[str] | None = None
 
     name = "AllTextures"
     tooltip = "This plugin will select all textures in the stage"
@@ -37,7 +37,7 @@ class AllTextures(_SelectorUSDBase):
     @omni.usd.handle_exception
     async def _select(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to select the data
 

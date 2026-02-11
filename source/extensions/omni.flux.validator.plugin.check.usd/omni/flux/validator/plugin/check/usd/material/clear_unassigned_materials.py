@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Any, Tuple
+from typing import Any
 
 import omni.kit.app
 import omni.kit.material.library
@@ -24,7 +24,7 @@ from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.usd.commands import prim_can_be_removed_without_destruction as _prim_can_be_removed_without_destruction
 from pxr import UsdShade
 
-from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
+from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
 
 class ClearUnassignedMaterial(_CheckBaseUSD):
@@ -70,7 +70,7 @@ class ClearUnassignedMaterial(_CheckBaseUSD):
     @usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check the data
 
@@ -106,7 +106,7 @@ class ClearUnassignedMaterial(_CheckBaseUSD):
     @usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to fix the data
 

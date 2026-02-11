@@ -57,25 +57,25 @@ class TextureReplacementsService(ServiceBase):
             response_model=TexturesResponseModel,
         )
         async def get_textures(
-            prim_hashes: set[str] | None = ServiceBase.describe_query_param(  # noqa B008
+            prim_hashes: set[str] | None = ServiceBase.describe_query_param(
                 None, "Filter textures to keep textures from specific material hashes"
             ),
-            texture_types: set[TextureTypeNames] | None = ServiceBase.describe_query_param(  # noqa B008
+            texture_types: set[TextureTypeNames] | None = ServiceBase.describe_query_param(
                 None, "The types of textures to look for"
             ),
-            selection: bool = ServiceBase.describe_query_param(  # noqa B008
+            selection: bool = ServiceBase.describe_query_param(
                 False, "Select all prims (False) or the stage selection (True)"
             ),
-            filter_session_prims: bool = ServiceBase.describe_query_param(  # noqa B008
+            filter_session_prims: bool = ServiceBase.describe_query_param(
                 False, "Filter out prims that exist on the session layer or not"
             ),
-            layer_identifier: str | None = ServiceBase.describe_query_param(  # noqa B008
+            layer_identifier: str | None = ServiceBase.describe_query_param(
                 None,
                 "Look for textures that exist or not on a given layer. "
                 "Use the `exists` query parameter to set whether existing or non-existing textures should be "
                 "returned.",
             ),
-            exists: bool = ServiceBase.describe_query_param(  # noqa B008
+            exists: bool = ServiceBase.describe_query_param(
                 True,
                 "Filter an texture if it exists or not on a given layer. Use in conjunction with `layer_identifier` "
                 "to filter on a given layer, otherwise this parameter will be ignored.",
@@ -122,7 +122,7 @@ class TextureReplacementsService(ServiceBase):
             response_model=PrimPathsResponseModel,
         )
         async def get_texture_material(
-            texture_prim_path: str = ServiceBase.validate_path_param(  # noqa B008
+            texture_prim_path: str = ServiceBase.validate_path_param(
                 TextureMaterialPathParamModel,
                 description="The prim path of a given texture",
                 context_name=context_name,
@@ -140,12 +140,12 @@ class TextureReplacementsService(ServiceBase):
             response_model=PrimPathsResponseModel,
         )
         async def get_texture_material_inputs(
-            texture_prim_path: str = ServiceBase.validate_path_param(  # noqa B008
+            texture_prim_path: str = ServiceBase.validate_path_param(
                 TextureMaterialPathParamModel,
                 description="The prim path of a given texture",
                 context_name=context_name,
             ),
-            texture_type: TextureTypeNames | str = ServiceBase.describe_query_param(  # noqa B008
+            texture_type: TextureTypeNames | str = ServiceBase.describe_query_param(
                 None, "Get the expected input for a given texture type or based on an ingested texture's file name."
             ),
         ) -> PrimPathsResponseModel:

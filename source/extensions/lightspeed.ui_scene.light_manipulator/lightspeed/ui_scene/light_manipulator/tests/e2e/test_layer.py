@@ -46,10 +46,10 @@ class TestLightLayer(OmniUiTest):
 
         # simulate a hierarchy change
         class MockEvent:
-            type = omni.usd.StageEventType.HIERARCHY_CHANGED.value  # noqa builtin
+            type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
 
         # trigger change
-        layer._on_stage_event(MockEvent())  # noqa PSW0212 protected member
+        layer._on_stage_event(MockEvent())
 
         # make sure a manipulator object was created for each light in the stage
         self.assertEqual(len(layer.manipulators), len(lights))

@@ -15,7 +15,10 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING, Any, Callable, List, Tuple
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 import omni.ui as ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -31,12 +34,12 @@ if TYPE_CHECKING:
 class Tree(ui.Widget):
     def __init__(
         self,
-        model: "_Model",
-        delegate: "_Delegate",
+        model: _Model,
+        delegate: _Delegate,
         horizontal: bool = True,
         root_frame_name: str = None,
-        selection_changed_fn: Callable[[List["_Item"]], Any] = None,
-        size_tab_label: Tuple[ui.Length, ui.Length] = None,
+        selection_changed_fn: Callable[[list[_Item]], Any] = None,
+        size_tab_label: tuple[ui.Length, ui.Length] = None,
     ):
         super().__init__()
 
@@ -64,7 +67,7 @@ class Tree(ui.Widget):
         self._sub_item_changed = self._model.subscribe_item_changed_fn(self._on_item_changed)
         self._sub_item_mouse_released = self._model.subscribe_item_mouse_released(self._on_item_released)
 
-    def set_toggled_value(self, items: List["_Item"], value: bool):
+    def set_toggled_value(self, items: list[_Item], value: bool):
         """
         Set the gradient visible (toggle on/off)
 
@@ -79,12 +82,12 @@ class Tree(ui.Widget):
         return self._selection
 
     @selection.setter
-    def selection(self, value: List["_Item"]):
+    def selection(self, value: list[_Item]):
         self._selection = value
         for item in value:
             self._delegate.on_item_mouse_released(item)
 
-    def _on_item_released(self, item: "_Item"):
+    def _on_item_released(self, item: _Item):
         for _item in self._model.get_item_children(None):
             _item.selected = _item == item
         self._selection = [item]

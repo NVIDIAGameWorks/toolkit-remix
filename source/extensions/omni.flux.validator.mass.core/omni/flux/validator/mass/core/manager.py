@@ -16,7 +16,8 @@
 """
 
 import asyncio
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
+from collections.abc import Callable
 
 import carb.settings
 import omni.kit.app
@@ -34,7 +35,7 @@ SCHEMA_PATH_SETTING = "/exts/omni.flux.validator.mass.widget/schemas"  # list of
 
 
 class ManagerMassCore:
-    def __init__(self, schema_paths: List[str] = None, schema_dicts: List[dict] = None, standalone: bool = False):
+    def __init__(self, schema_paths: list[str] = None, schema_dicts: list[dict] = None, standalone: bool = False):
         """
         Validation mass manager that will execute the validation.
 
@@ -65,10 +66,10 @@ class ManagerMassCore:
         self.__on_core_added = _Event()
         self.__on_run_finished = _Event()
 
-    def _on_run_finished(self, validation_core, i_progress, size_progress, result, message: Optional[str] = None):
+    def _on_run_finished(self, validation_core, i_progress, size_progress, result, message: str | None = None):
         self.__on_run_finished(validation_core, i_progress, size_progress, result, message=message)
 
-    def subscribe_run_finished(self, callback: Callable[[_ManagerCore, int, int, bool, Optional[str]], Any]):
+    def subscribe_run_finished(self, callback: Callable[[_ManagerCore, int, int, bool, str | None], Any]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
@@ -88,7 +89,7 @@ class ManagerMassCore:
         """Return the model that contain all the added validation schema"""
         return self.__schema_model
 
-    def add_schemas(self, schemas: List[Dict[Any, Any]]):
+    def add_schemas(self, schemas: list[dict[Any, Any]]):
         """
         Add schema as an item to run
 
@@ -101,10 +102,10 @@ class ManagerMassCore:
     async def create_tasks_with_exception(
         self,
         executor: Executors,
-        data: List[Dict[Any, Any]],
+        data: list[dict[Any, Any]],
         print_result: bool = False,
         silent: bool = False,
-    ) -> List[Tuple[_ManagerCore, asyncio.Future]]:
+    ) -> list[tuple[_ManagerCore, asyncio.Future]]:
         """
         Run the validation using the current schema
 
@@ -119,14 +120,14 @@ class ManagerMassCore:
     async def create_tasks(
         self,
         executor: Executors,
-        data: List[Dict[Any, Any]],
-        custom_executors: Tuple[CurrentProcessExecutor, ExternalProcessExecutor] = None,
+        data: list[dict[Any, Any]],
+        custom_executors: tuple[CurrentProcessExecutor, ExternalProcessExecutor] = None,
         print_result: bool = False,
         silent: bool = False,
-        timeout: Optional[int] = None,
-        standalone: Optional[bool] = False,
+        timeout: int | None = None,
+        standalone: bool | None = False,
         queue_id: str | None = None,
-    ) -> List[Tuple[_ManagerCore, asyncio.Future]]:
+    ) -> list[tuple[_ManagerCore, asyncio.Future]]:
         """
         Run the validation using the current schema
 

@@ -16,3 +16,5 @@
 """
 
 from .search import SearchExtension
+
+__all__ = ["SearchExtension"]

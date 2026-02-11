@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import List, Optional
-
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 from omni.kit.manipulator.prim.core.prim_transform_manipulator import (
@@ -37,7 +35,7 @@ class PrimTransformManipulator(_PrimTransformManipulator):
             self._core = None
         super().destroy()
 
-    def on_selection_changed(self, stage: Usd.Stage, selection: Optional[List[Sdf.Path]], *args, **kwargs) -> bool:
+    def on_selection_changed(self, stage: Usd.Stage, selection: list[Sdf.Path] | None, *args, **kwargs) -> bool:
         """
         Be default when the user click, it can't move anything. It will need to click on the reference on the
         selection panel to enable the manipulator

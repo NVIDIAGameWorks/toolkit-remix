@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .setup_ui import HeaderWidget  # noqa F401
+from .setup_ui import HeaderWidget
+
+__all__ = ["HeaderWidget"]

@@ -16,7 +16,7 @@
 """
 
 import functools
-from typing import Callable
+from collections.abc import Callable
 
 import omni.ui as ui
 import omni.usd
@@ -49,7 +49,7 @@ class RemixCategoriesDialog:
     _BACKGROUND_WIDTH = 356
 
     def __init__(
-        self, context_name: str = None, refresh_func: Callable[["Usd.Prim"], None] = None, paths: list[str] = None
+        self, context_name: str = None, refresh_func: Callable[[Usd.Prim], None] = None, paths: list[str] = None
     ):
         self._expanded_items = {}
         self._context = omni.usd.get_context(context_name)

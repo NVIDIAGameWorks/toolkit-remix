@@ -16,11 +16,11 @@
 """
 
 __all__ = (
-    "DefaultField",
     "CreatorField",
+    "DefaultField",
 )
 
-from typing import Callable, Type
+from collections.abc import Callable
 
 import omni.ui as ui
 
@@ -33,12 +33,12 @@ class DefaultField(AbstractField):
     """
 
     def __init__(
-        self, widget_type: Type[ui.Widget], style_name: str = "PropertiesWidgetField", identifier: None | str = None
+        self, widget_type: type[ui.Widget], style_name: str = "PropertiesWidgetField", identifier: None | str = None
     ):
         super().__init__(style_name=style_name, identifier=identifier)
         self.widget_type = widget_type
 
-    def build_ui(self, item) -> list[ui.Widget]:  # noqa PLW0221
+    def build_ui(self, item) -> list[ui.Widget]:
         widgets = []
         with ui.HStack(height=ui.Pixel(24)):
             for i in range(item.element_count):
@@ -73,7 +73,7 @@ class CreatorField(AbstractField):
         self._text = text
         self._clicked_callback = clicked_callback
 
-    def build_ui(self, item) -> list[ui.Widget]:  # noqa PLW0221
+    def build_ui(self, item) -> list[ui.Widget]:
         with ui.HStack(height=ui.Pixel(24)):
             ui.Spacer(width=ui.Pixel(8))
             with ui.VStack():

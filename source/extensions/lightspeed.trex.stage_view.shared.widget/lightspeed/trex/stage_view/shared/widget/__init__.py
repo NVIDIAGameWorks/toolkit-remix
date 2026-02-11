@@ -17,4 +17,4 @@
 
 __all__ = ["SetupUI"]
 
-from .setup_ui import SetupUI  # noqa F401
+from .setup_ui import SetupUI

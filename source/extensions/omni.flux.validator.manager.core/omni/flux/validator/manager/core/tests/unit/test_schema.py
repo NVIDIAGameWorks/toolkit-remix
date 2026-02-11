@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from omni.flux.validator.manager.core import ValidationSchema as _ValidationSchema
 from omni.kit.test import AsyncTestCase
 from pydantic import ValidationError

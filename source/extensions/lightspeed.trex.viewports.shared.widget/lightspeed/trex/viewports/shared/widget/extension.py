@@ -15,8 +15,10 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import contextlib
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING
 
 import carb
 import omni.ext
@@ -45,20 +47,20 @@ from .tools.teleport import teleporter_factory as _teleporter_factory
 from .workspace import MainViewportWindow as _MainViewportWindow
 
 if TYPE_CHECKING:
-    from omni.kit.widget.viewport.api import ViewportAPI
+    from omni.kit.widget.viewport.api import ViewportAPI as _ViewportAPI
 
 _VIEWPORT_MANAGER_INSTANCE: dict[str, _ViewportSetupUI] = {}
 
 
-def get_instances() -> Optional[Dict[str, _ViewportSetupUI]]:
+def get_instances() -> dict[str, _ViewportSetupUI] | None:
     return _VIEWPORT_MANAGER_INSTANCE
 
 
-def get_instance(context_name: str) -> Optional[_ViewportSetupUI]:
+def get_instance(context_name: str) -> _ViewportSetupUI | None:
     return _VIEWPORT_MANAGER_INSTANCE.get(context_name)
 
 
-def get_active_viewport() -> Optional[_ViewportSetupUI]:
+def get_active_viewport() -> _ViewportSetupUI | None:
     for viewport in _VIEWPORT_MANAGER_INSTANCE.values():
         if viewport.is_active():
             return viewport
@@ -71,7 +73,7 @@ def create_instance(context_name: str) -> _ViewportSetupUI:
     return viewport
 
 
-def get_viewport_api(context_name: str) -> Optional["ViewportAPI"]:
+def get_viewport_api(context_name: str) -> _ViewportAPI | None:
     viewport = get_instance(context_name)
     if not viewport:
         return None
@@ -85,7 +87,7 @@ class TrexViewportSharedExtension(omni.ext.IExt):
         super().__init__()
         self.__registered = None
         self.__teleport_button_group = None
-        self.__frame_hotkey_sub = None  # noqa: PLW0238
+        self.__frame_hotkey_sub = None
 
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.trex.viewports.shared.widget] Startup")
@@ -151,7 +153,7 @@ class TrexViewportSharedExtension(omni.ext.IExt):
                 active_viewport.frame_viewport_selection()
 
         hotkey_manager = _get_global_hotkey_manager()
-        self.__frame_hotkey_sub = hotkey_manager.subscribe_hotkey_event(  # noqa: PLW0238
+        self.__frame_hotkey_sub = hotkey_manager.subscribe_hotkey_event(
             _TrexHotkeyEvent.F,
             frame_active_viewport,
         )
@@ -162,6 +164,6 @@ class TrexViewportSharedExtension(omni.ext.IExt):
             self.__unregister_scenes(self.__registered)
         self.__remove_tools()
         self.__registered = None
-        self.__frame_hotkey_sub = None  # noqa: PLW0238
+        self.__frame_hotkey_sub = None
         self._workspace_window.cleanup()
         omni.ui.Workspace.set_show_window_fn(self._workspace_window.title, lambda *_: None)

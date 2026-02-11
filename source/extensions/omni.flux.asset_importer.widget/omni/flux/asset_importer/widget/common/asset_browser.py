@@ -16,7 +16,8 @@
 """
 
 import asyncio
-from typing import Any, Callable, List, Union
+from typing import Any
+from collections.abc import Callable
 
 import carb.events
 import omni.appwindow
@@ -54,7 +55,7 @@ class AssetBrowserModel(_AssetBrowserModel):
 class AssetBrowserWindow:
     _SIZE_PERCENT_WINDOW = 0.86
 
-    def __init__(self, add_callback_fn: Callable[[List[Union[str, _OmniUrl]]], Any]):
+    def __init__(self, add_callback_fn: Callable[[list[str | _OmniUrl]], Any]):
         self.__window = None
         self.__browser_model = None
         self.__delegate = None
@@ -63,7 +64,7 @@ class AssetBrowserWindow:
         self.__add_callback_fn = add_callback_fn
 
         appwindow_stream = omni.appwindow.get_default_app_window().get_window_resize_event_stream()
-        self.__subcription_app_window_size_changed = appwindow_stream.create_subscription_to_pop(  # noqa
+        self.__subcription_app_window_size_changed = appwindow_stream.create_subscription_to_pop(
             self._on_app_window_size_changed, name="On app window resized", order=0
         )
 
@@ -120,7 +121,7 @@ class AssetBrowserWindow:
         self.__window.visible = visible
 
     def destroy(self):
-        self.__subcription_app_window_size_changed = None  # noqa
+        self.__subcription_app_window_size_changed = None
         self.__browser_model = None
         self.__close_on_add_checkbox = None
         self.__delegate = None

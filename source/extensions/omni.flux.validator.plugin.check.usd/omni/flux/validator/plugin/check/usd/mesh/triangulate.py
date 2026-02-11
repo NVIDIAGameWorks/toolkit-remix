@@ -15,13 +15,13 @@
 * limitations under the License.
 """
 
-from typing import Any, Tuple
+from typing import Any
 
 import omni.ui as ui
 import omni.usd
 from pxr import Sdf, Usd, UsdGeom
 
-from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
+from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
 
 class Triangulate(_CheckBaseUSD):
@@ -36,7 +36,7 @@ class Triangulate(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check if the input prims are triangulated meshes
 
@@ -71,7 +71,7 @@ class Triangulate(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to triangulate the mesh prims (including geom subsets)
 

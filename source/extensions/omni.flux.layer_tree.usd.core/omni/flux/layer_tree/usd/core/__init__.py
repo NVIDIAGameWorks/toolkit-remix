@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .layer_tree_core import *
+from .layer_tree_core import LayerCustomData
+
+__all__ = ["LayerCustomData"]

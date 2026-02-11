@@ -1,6 +1,6 @@
 __all__ = ("TestPropertyWidget",)
 
-from typing import Iterable
+from collections.abc import Iterable
 
 import carb.input
 import omni.kit.clipboard
@@ -13,7 +13,7 @@ from ...ui_components import AsyncTestPropertyWidget, TestItem
 
 
 class TestPropertyWidget(omni.kit.test.AsyncTestCase):
-    def assert_items_equal(self, a: Iterable[Item], b: Iterable[Item]):  # noqa N806
+    def assert_items_equal(self, a: Iterable[Item], b: Iterable[Item]):
         # custom sort key to just use the item id
         self.assertListEqual(sorted(a, key=id), sorted(b, key=id))
 

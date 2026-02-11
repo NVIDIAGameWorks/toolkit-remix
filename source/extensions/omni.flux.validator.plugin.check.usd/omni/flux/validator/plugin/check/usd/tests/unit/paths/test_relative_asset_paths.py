@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import omni.usd
@@ -64,8 +66,8 @@ class TestRelativeAssetPaths(AsyncTestCase):
             nonlocal sub_fix_count
             sub_fix_count += 1
 
-        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)  # noqa
+        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)
+        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)
 
         # Act
         await core.deferred_run()
@@ -117,8 +119,8 @@ class TestRelativeAssetPaths(AsyncTestCase):
             self.assertNotIn("FAIL", _message)
             self.assertIn("PASS: /Cube/OmniPBR/Shader", _message)
 
-        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)  # noqa
+        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)
+        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)
 
         usd_context = omni.usd.get_context()
         stage = usd_context.get_stage()
@@ -182,8 +184,8 @@ class TestRelativeAssetPaths(AsyncTestCase):
             self.assertNotIn("FAIL", _message)
             self.assertIn("PASS: /Xform/mesh/OmniPBR/Shader", _message)
 
-        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)  # noqa
+        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)
+        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)
 
         usd_context = omni.usd.get_context()
         stage = usd_context.get_stage()

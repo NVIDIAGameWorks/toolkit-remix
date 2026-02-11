@@ -1,4 +1,3 @@
-# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -16,11 +15,14 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 __all__ = ["PackagingErrorDelegate"]
 
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS, USD_EXTENSIONS
 from lightspeed.trex.utils.widget import TrexMessageDialog
@@ -135,7 +137,7 @@ class PackagingErrorDelegate(ui.AbstractItemDelegate):
 
         return "An action must be selected to fix the unresolved asset."
 
-    def _get_prim_path_display_name(self, path: "Sdf.Path") -> str:
+    def _get_prim_path_display_name(self, path: Sdf.Path) -> str:
         """
         Args:
             path: The prim path.

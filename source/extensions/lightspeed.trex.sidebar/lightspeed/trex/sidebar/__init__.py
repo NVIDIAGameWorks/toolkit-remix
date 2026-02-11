@@ -16,5 +16,25 @@
 """
 
 from .extension import TrexSideBarWindowExtension
-from .registry import *
-from .setup_ui import SetupUI  # noqa F401
+from .registry import (
+    Groups,
+    ItemDescriptor,
+    SidebarSubscription,
+    get_items,
+    register_items,
+    subscribe_items_change,
+    unregister_items,
+)
+from .setup_ui import SetupUI
+
+__all__ = [
+    "Groups",
+    "ItemDescriptor",
+    "SetupUI",
+    "SidebarSubscription",
+    "TrexSideBarWindowExtension",
+    "get_items",
+    "register_items",
+    "subscribe_items_change",
+    "unregister_items",
+]

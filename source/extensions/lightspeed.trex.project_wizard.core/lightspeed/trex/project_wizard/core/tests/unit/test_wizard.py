@@ -20,7 +20,6 @@ import stat
 import sys
 import tempfile
 from pathlib import Path
-from typing import List, Optional
 from unittest.mock import Mock, call
 
 import omni.usd
@@ -28,13 +27,13 @@ from lightspeed.common import constants
 from lightspeed.layer_manager.core import LayerType
 from lightspeed.trex.project_wizard.core import ProjectWizardCore
 
-from .mocks import ProjectWizardSchemaMock, WizardMockContext  # noqa PLE0402
+from .mocks import ProjectWizardSchemaMock, WizardMockContext
 
 
 class TestWizard(omni.kit.test.AsyncTestCase):
     # Before running each test
     async def setUp(self):
-        self.__temp_dir = tempfile.TemporaryDirectory()  # noqa PLR1732
+        self.__temp_dir = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
 
         self.base_dir = Path(self.__temp_dir.name)
         self.core = ProjectWizardCore()
@@ -203,7 +202,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
         with WizardMockContext() as mock:
             # Act
-            await self.core._setup_usd_stage()  # noqa PLW0212
+            await self.core._setup_usd_stage()
 
         # Assert
         self.assertEqual(2, mock.get_context_mock.call_count)
@@ -242,9 +241,9 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             mock.path_exists_mock.side_effect = [True, False, True, False]
 
             # Act
-            value = await self.core._create_symlinks(  # noqa PLW0212
+            value = await self.core._create_symlinks(
                 schema, project_file.parent, deps_dir, remix_dir, False, create_junction=True
-            )  # noqa PLW0212
+            )
 
         # Assert
         self.assertEqual(4, mock.path_exists_mock.call_count)
@@ -272,9 +271,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         context_mock.get_stage.return_value = context_stage_mock
 
         # Act
-        stage = await self.core._create_project_layer(  # noqa PLW0212
-            project_file, core_mock, context_mock, stage_mock, False
-        )
+        stage = await self.core._create_project_layer(project_file, core_mock, context_mock, stage_mock, False)
 
         # Assert
         self.assertEqual(1, create_sublayer_mock.call_count)
@@ -300,7 +297,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             insert_sublayer_mock = mock.replacement_core_mock.import_replacement_layer
 
             # Act
-            value = await self.core._setup_existing_mod_project(  # noqa PLW0212
+            value = await self.core._setup_existing_mod_project(
                 mock.replacement_core_mock, mod_file, project_dir, False
             )
 
@@ -337,9 +334,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             create_sublayer_mock = mock.replacement_core_mock.import_replacement_layer
 
             # Act
-            value = await self.core._setup_new_mod_project(  # noqa PLW0212
-                mock.replacement_core_mock, project_dir, False
-            )
+            value = await self.core._setup_new_mod_project(mock.replacement_core_mock, project_dir, False)
 
         # Assert
         self.assertEqual(1, create_sublayer_mock.call_count)
@@ -381,7 +376,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             insert_mock = mock.replacement_core_mock.import_replacement_layer
 
             # Act
-            await self.core._insert_existing_mods(  # noqa PLW0212
+            await self.core._insert_existing_mods(
                 mock.replacement_core_mock, existing_mods, mod_file, project_mods_dir, False
             )
 
@@ -419,9 +414,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             insert_mock = mock.capture_core_mock.import_capture_layer
 
             # Act
-            await self.core._insert_capture_layer(  # noqa PLW0212
-                mock.capture_core_mock, project_capture_dir, capture_file, False
-            )
+            await self.core._insert_capture_layer(mock.capture_core_mock, project_capture_dir, capture_file, False)
 
         # Assert
         self.assertEqual(1, insert_mock.call_count)
@@ -433,7 +426,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
         with WizardMockContext() as mock:
             # Act
-            await self.core._save_authoring_layer(self.base_dir, None, False)  # noqa PLW0212
+            await self.core._save_authoring_layer(self.base_dir, None, False)
 
         # Assert
         self.assertEqual(0, mock.save_custom_data_mock.call_count)
@@ -444,7 +437,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
         with WizardMockContext() as mock:
             # Act
-            await self.core._save_authoring_layer(self.base_dir, stage_mock, False)  # noqa PLW0212
+            await self.core._save_authoring_layer(self.base_dir, stage_mock, False)
 
         # Assert
         self.assertEqual(1, mock.save_custom_data_mock.call_count)
@@ -457,7 +450,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             save_mock = mock.layer_manager_mock.save_layer
 
             # Act
-            await self.core._save_project_layer(mock.layer_manager_mock, False)  # noqa PLW0212
+            await self.core._save_project_layer(mock.layer_manager_mock, False)
 
         # Assert
         self.assertEqual(1, save_mock.call_count)
@@ -622,9 +615,9 @@ class TestWizard(omni.kit.test.AsyncTestCase):
                 mock.path_exists_mock.side_effect = [True, False, True, False]
 
             # Act
-            value = await self.core._create_symlinks(  # noqa PLW0212
+            value = await self.core._create_symlinks(
                 schema, project_file.parent, deps_dir, remix_dir, False, create_junction=True
-            )  # noqa PLW0212
+            )
 
         # Assert
         self.assertEqual(4, mock.path_exists_mock.call_count)
@@ -647,7 +640,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual({"shell": True}, kwargs)
 
     async def __run_test_insert_existing_mods_should_quick_return(
-        self, existing_mods: Optional[List[Path]], project_layer: Optional[Mock]
+        self, existing_mods: list[Path] | None, project_layer: Mock | None
     ):
         # Arrange
 
@@ -655,7 +648,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             insert_mock = mock.replacement_core_mock.import_replacement_layer
 
             # Act
-            await self.core._insert_existing_mods(  # noqa PLW0212
+            await self.core._insert_existing_mods(
                 mock.replacement_core_mock, existing_mods, self.base_dir, self.base_dir, project_layer
             )
 

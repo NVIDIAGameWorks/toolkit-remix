@@ -16,3 +16,5 @@
 """
 
 from .extension import EventCopyRefToPrimExtension
+
+__all__ = ["EventCopyRefToPrimExtension"]

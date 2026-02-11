@@ -16,3 +16,5 @@
 """
 
 from .core import RecentProjectsCore
+
+__all__ = ["RecentProjectsCore"]

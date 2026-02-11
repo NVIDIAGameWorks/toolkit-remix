@@ -1,4 +1,3 @@
-# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -555,7 +554,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test what items are selected. First prim + instance + instance group should be selected
         all_items = tree_view.widget.model.get_all_items()
-        primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection  # noqa PLW0212
+        primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection
         self.assertEqual(primary_and_secondary_selection, [all_items[2], all_items[6], all_items[5]])
 
         await item_add_buttons[0].click()
@@ -583,7 +582,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()
-        primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection  # noqa PLW0212
+        primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection
 
         self.assertEqual(primary_and_secondary_selection, [all_items[4], all_items[11], all_items[10]])
         current_selection = usd_context.get_selection().get_selected_prim_paths()
@@ -606,7 +605,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         all_items = tree_view.widget.model.get_all_items()
-        primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection  # noqa PLW0212
+        primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection
 
         self.assertEqual(primary_and_secondary_selection, [all_items[2], all_items[6], all_items[5]])
         current_selection = usd_context.get_selection().get_selected_prim_paths()
@@ -636,7 +635,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()
-        primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection  # noqa PLW0212
+        primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection
 
         self.assertEqual(primary_and_secondary_selection, [all_items[4], all_items[11], all_items[10]])
         current_selection = usd_context.get_selection().get_selected_prim_paths()
@@ -1861,7 +1860,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # save the original primary selection
-        original_selection = _wid._tree_view.selection  # noqa: SLF001
+        original_selection = _wid._tree_view.selection
 
         # grab the instance meshes
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
@@ -1876,7 +1875,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # ensure all three instances and the group are selected and the original prim is still selected
         self.assertEqual(len(_wid.get_instance_selection(include_instance_group=True)), 4)
-        self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: SLF001
+        self.assertListEqual(original_selection, _wid._tree_view.selection)
 
         # click the last instance mesh and shift click the second
         await item_instances[2].click()
@@ -1887,7 +1886,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # ensure all three instances are selected and the original prim is still selected
         self.assertEqual(len(_wid.get_instance_selection()), 2)
-        self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: SLF001
+        self.assertListEqual(original_selection, _wid._tree_view.selection)
 
         await self.__destroy(_window, _wid)
 
@@ -1902,7 +1901,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # save the original primary selection
-        original_selection = _wid._tree_view.selection  # noqa: SLF001
+        original_selection = _wid._tree_view.selection
 
         # grab the instance meshes
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
@@ -1917,7 +1916,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # ensure all three instances are selected and the original prim is still selected
         self.assertEqual(len(_wid.get_instance_selection()), 2)
-        self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: SLF001
+        self.assertListEqual(original_selection, _wid._tree_view.selection)
 
         # click the last instance mesh and ctrl click the second and first
         await item_instances[2].click()
@@ -1930,7 +1929,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # ensure all three instances and the group are selected and the original prim is still selected
         self.assertEqual(len(_wid.get_instance_selection(include_instance_group=True)), 4)
-        self.assertListEqual(original_selection, _wid._tree_view.selection)  # noqa: SLF001
+        self.assertListEqual(original_selection, _wid._tree_view.selection)
 
         await self.__destroy(_window, _wid)
 

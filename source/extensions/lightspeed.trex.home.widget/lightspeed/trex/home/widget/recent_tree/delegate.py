@@ -18,7 +18,8 @@
 __all__ = ["RecentProjectDelegate"]
 
 from functools import partial
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 import omni.kit.clipboard
 from omni import ui

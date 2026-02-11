@@ -36,9 +36,9 @@ class TestCaptureWidgetSubscriptionLifecycle(AsyncTestCase):
         await omni.kit.app.get_app().next_update_async()
 
         # Widget subscribes to model events in __init__
-        self.assertIsNotNone(widget._sub_model_changed)  # noqa: SLF001
-        self.assertIsNotNone(widget._sub_stage_event)  # noqa: SLF001
-        self.assertIsNotNone(widget._sub_layer_event)  # noqa: SLF001
+        self.assertIsNotNone(widget._sub_model_changed)
+        self.assertIsNotNone(widget._sub_stage_event)
+        self.assertIsNotNone(widget._sub_layer_event)
 
         window.destroy()
 
@@ -50,15 +50,15 @@ class TestCaptureWidgetSubscriptionLifecycle(AsyncTestCase):
         await omni.kit.app.get_app().next_update_async()
 
         # Model listeners should be disabled initially
-        self.assertIsNone(widget._capture_tree_model._stage_event_sub)  # noqa: SLF001
-        self.assertIsNone(widget._capture_tree_model._layer_event_sub)  # noqa: SLF001
+        self.assertIsNone(widget._capture_tree_model._stage_event_sub)
+        self.assertIsNone(widget._capture_tree_model._layer_event_sub)
 
         # Call show(True) to enable model listeners
         widget.show(True)
         await omni.kit.app.get_app().next_update_async()
 
-        self.assertIsNotNone(widget._capture_tree_model._stage_event_sub)  # noqa: SLF001
-        self.assertIsNotNone(widget._capture_tree_model._layer_event_sub)  # noqa: SLF001
+        self.assertIsNotNone(widget._capture_tree_model._stage_event_sub)
+        self.assertIsNotNone(widget._capture_tree_model._layer_event_sub)
 
         window.destroy()
 
@@ -72,14 +72,14 @@ class TestCaptureWidgetSubscriptionLifecycle(AsyncTestCase):
         # First show to enable
         widget.show(True)
         await omni.kit.app.get_app().next_update_async()
-        self.assertIsNotNone(widget._capture_tree_model._stage_event_sub)  # noqa: SLF001
+        self.assertIsNotNone(widget._capture_tree_model._stage_event_sub)
 
         # Then hide to disable
         widget.show(False)
         await omni.kit.app.get_app().next_update_async()
 
-        self.assertIsNone(widget._capture_tree_model._stage_event_sub)  # noqa: SLF001
-        self.assertIsNone(widget._capture_tree_model._layer_event_sub)  # noqa: SLF001
+        self.assertIsNone(widget._capture_tree_model._stage_event_sub)
+        self.assertIsNone(widget._capture_tree_model._layer_event_sub)
 
         window.destroy()
 
@@ -93,16 +93,16 @@ class TestCaptureWidgetSubscriptionLifecycle(AsyncTestCase):
         # Toggle on
         widget.show(True)
         await omni.kit.app.get_app().next_update_async()
-        self.assertIsNotNone(widget._capture_tree_model._stage_event_sub)  # noqa: SLF001
+        self.assertIsNotNone(widget._capture_tree_model._stage_event_sub)
 
         # Toggle off
         widget.show(False)
         await omni.kit.app.get_app().next_update_async()
-        self.assertIsNone(widget._capture_tree_model._stage_event_sub)  # noqa: SLF001
+        self.assertIsNone(widget._capture_tree_model._stage_event_sub)
 
         # Toggle on again
         widget.show(True)
         await omni.kit.app.get_app().next_update_async()
-        self.assertIsNotNone(widget._capture_tree_model._stage_event_sub)  # noqa: SLF001
+        self.assertIsNotNone(widget._capture_tree_model._stage_event_sub)
 
         window.destroy()

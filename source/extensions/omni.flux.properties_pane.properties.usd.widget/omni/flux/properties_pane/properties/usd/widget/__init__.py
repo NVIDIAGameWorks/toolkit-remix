@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .setup_ui import PropertyWidget  # noqa F401
+from .setup_ui import PropertyWidget
+
+__all__ = ["PropertyWidget"]

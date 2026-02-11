@@ -15,10 +15,10 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import abc
 import typing
-from typing import List, Union
-
 import omni.usd
 from omni.flux.property_widget_builder.widget import Model as _Model
 from omni.flux.utils.common import Event as _Event
@@ -85,11 +85,11 @@ class USDModel(_Model):
         return self._context.get_stage()
 
     @property
-    def prim_paths(self) -> List[Sdf.Path]:
+    def prim_paths(self) -> list[Sdf.Path]:
         """The current used attribute paths"""
         return self._prim_paths
 
-    def set_prim_paths(self, value: List[Sdf.Path]):
+    def set_prim_paths(self, value: list[Sdf.Path]):
         """The current used attribute paths"""
         self._prim_paths = value
 
@@ -97,7 +97,7 @@ class USDModel(_Model):
     def default_attrs(self):
         return super().default_attrs
 
-    def set_items(self, items: List[Union["_ItemGroup", _USDAttributeItem]]):
+    def set_items(self, items: list[_ItemGroup | _USDAttributeItem]):
         """
         Set the items to show
 
