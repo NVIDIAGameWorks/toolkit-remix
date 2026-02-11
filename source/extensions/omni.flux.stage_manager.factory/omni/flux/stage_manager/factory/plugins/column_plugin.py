@@ -73,9 +73,7 @@ class StageManagerColumnPlugin(_StageManagerUIPluginBase, abc.ABC):
             )
 
     @abc.abstractmethod
-    def build_ui(  # noqa PLW0221
-        self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool
-    ):
+    def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
         """
         Build the UI for the given column. This function will be used within a delegate and should therefore only build
         the UI for a single element.

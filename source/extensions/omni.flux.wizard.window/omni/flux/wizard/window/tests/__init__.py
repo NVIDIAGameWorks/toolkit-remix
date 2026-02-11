@@ -16,3 +16,5 @@
 """
 
 from .e2e.test_window import TestWizardWindow
+
+__all__ = ["TestWizardWindow"]

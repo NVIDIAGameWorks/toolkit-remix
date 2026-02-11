@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .extension import *  # noqa F401
+from .extension import LightspeedContextsExtension, get_instance
+
+__all__ = ["LightspeedContextsExtension", "get_instance"]

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1]
+### Changed
+- Modernize python style and enable more ruff checks
+
 ## [1.2.0]
 ### Changed
 - Improved hover and selection styling to use TreeView's built-in styles for full-row highlighting

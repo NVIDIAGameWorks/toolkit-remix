@@ -16,7 +16,8 @@
 """
 
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 from pydantic_core import core_schema
 

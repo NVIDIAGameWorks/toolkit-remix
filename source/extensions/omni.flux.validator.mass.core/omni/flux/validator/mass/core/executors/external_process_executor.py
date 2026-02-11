@@ -15,13 +15,15 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import subprocess
 import sys
 import tempfile
 import traceback
 from concurrent.futures import ThreadPoolExecutor as _ThreadPoolExecutor
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import carb
 import carb.settings
@@ -86,11 +88,11 @@ class ExternalProcessExecutor(_BaseExecutor):
 
     def _worker(
         self,
-        core: "_ManagerCore",
+        core: _ManagerCore,
         print_result: bool = False,
         silent: bool = False,
-        timeout: Optional[int] = None,
-        standalone: Optional[bool] = False,
+        timeout: int | None = None,
+        standalone: bool | None = False,
         queue_id: str | None = None,
     ):
         exe_ext = carb.tokens.get_tokens_interface().resolve("${exe_ext}")
@@ -111,7 +113,7 @@ class ExternalProcessExecutor(_BaseExecutor):
 
         with tempfile.NamedTemporaryFile("w", delete=False, suffix=".json") as tmp_file:
             jsonfile = tmp_file.name
-        try:  # noqa PLR1702
+        try:
             # for standalone, we don't need to send a request to a micro service
             core.model.send_request = not standalone
             _path_utils.write_file(
@@ -164,7 +166,7 @@ class ExternalProcessExecutor(_BaseExecutor):
 
             try:
                 prev_stdout = None
-                p = subprocess.run(  # noqa PLW1510
+                p = subprocess.run(  # noqa: PLW1510
                     " ".join(cmd),
                     shell=True,
                     capture_output=True,
@@ -182,7 +184,7 @@ class ExternalProcessExecutor(_BaseExecutor):
                 if p.stderr:
                     message = ""
                     for line in p.stderr.split("\n"):
-                        message += f"{line}\n"  # noqa PLR1713
+                        message += f"{line}\n"
                 result = p.returncode == 0
                 if not silent:
                     # Use print to print the stderr if the result is good (carb.log_info doesn't show in the
@@ -195,7 +197,7 @@ class ExternalProcessExecutor(_BaseExecutor):
                 result = False
                 message = f"Time out expired ({timeout}sc)"
                 carb.log_error(message)
-        except Exception:  # noqa PLW0718
+        except Exception:  # noqa: BLE001
             result = False
             message = str(traceback.format_exc())
             carb.log_error(message)
@@ -206,11 +208,11 @@ class ExternalProcessExecutor(_BaseExecutor):
 
     def submit(
         self,
-        core: "_ManagerCore",
+        core: _ManagerCore,
         print_result: bool = False,
         silent: bool = False,
-        timeout: Optional[int] = None,
-        standalone: Optional[bool] = False,
+        timeout: int | None = None,
+        standalone: bool | None = False,
         queue_id: str | None = None,
     ):
         return self._EXECUTOR.submit(

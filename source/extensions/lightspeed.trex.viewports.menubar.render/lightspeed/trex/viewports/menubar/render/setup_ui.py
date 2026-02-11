@@ -51,7 +51,7 @@ class SetupUI:
         return _EventSubscription(self.__on_render_menu_option_clicked, function)
 
     def __create_ui(self):
-        self.__extension = _get_menubar_extension()  # noqa PLW0101
+        self.__extension = _get_menubar_extension()
         self.__extension.register_menu_item_type(
             functools.partial(_lss_single_render_menu_item, lss_option_clicked=self._render_menu_option_clicked)
         )

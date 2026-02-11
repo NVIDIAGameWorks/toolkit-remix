@@ -15,8 +15,10 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import carb
 import carb.input
@@ -124,7 +126,7 @@ class SetupUI(_WorkspaceWidget):
         return viewport_name
 
     @property
-    def viewport_api(self) -> "ViewportAPI":
+    def viewport_api(self) -> ViewportAPI:
         return self._viewport_layers.viewport_api
 
     @property
@@ -226,7 +228,7 @@ class SetupUI(_WorkspaceWidget):
             # the viewport in order to make sure we always show the current stage.
             self.set_active(True)
 
-    def frame_viewport_selection(self, selection: List[str] = None):
+    def frame_viewport_selection(self, selection: list[str] = None):
         if selection is None:
             # frame the current selection:
             _frame_viewport_selection(viewport_api=self._viewport_layers.viewport_api)
@@ -247,7 +249,7 @@ class SetupUI(_WorkspaceWidget):
 
     def _on_menubar_camera_extension_enabled_event(self):
         # create LSS camera menu. Dynamic to be able to toggle the extension
-        from lightspeed.trex.viewports.menubar.camera import get_instance as _get_instance
+        from lightspeed.trex.viewports.menubar.camera import get_instance as _get_instance  # noqa: PLC0415
 
         self._camera_menu = _get_instance()
         self._sub_camera_menu_option_clicked = self._camera_menu.subscribe_camera_menu_option_clicked(
@@ -260,7 +262,7 @@ class SetupUI(_WorkspaceWidget):
 
     def _on_menubar_render_extension_enabled_event(self):
         # create LSS render menu. Dynamic to be able to toggle the extension
-        from lightspeed.trex.viewports.menubar.render import get_instance as _get_instance
+        from lightspeed.trex.viewports.menubar.render import get_instance as _get_instance  # noqa: PLC0415
 
         self._render_menu = _get_instance()
         self._sub_render_menu_option_clicked = self._render_menu.subscribe_render_menu_option_clicked(
@@ -309,8 +311,8 @@ class SetupUI(_WorkspaceWidget):
         ):
             self._root_frame.width = ui.Pixel(self._last_root_frame_width_value)
         elif (
-            self._last_property_panel_frame_width_value is not None  # noqa PLE0203
-            and self._property_panel_frame.computed_width == self._last_property_panel_frame_width_value  # noqa PLE0203
+            self._last_property_panel_frame_width_value is not None
+            and self._property_panel_frame.computed_width == self._last_property_panel_frame_width_value
         ):
             self._splitter_property_viewport.offset_x = ui.Pixel(self._viewport_frame.computed_width)
         self._last_property_panel_frame_width_value = self._property_panel_frame.computed_width

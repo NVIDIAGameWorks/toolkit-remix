@@ -15,7 +15,8 @@
 * limitations under the License.
 """
 
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 import omni.kit.commands
 import omni.kit.undo

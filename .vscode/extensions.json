@@ -10,6 +10,7 @@
 		"psioniq.psi-header",
 		"redhat.vscode-yaml",
 		"streetsidesoftware.code-spell-checker",
-		"tamasfe.even-better-toml"
+		"tamasfe.even-better-toml",
+		"ms-python.pylint"
 	],
 }

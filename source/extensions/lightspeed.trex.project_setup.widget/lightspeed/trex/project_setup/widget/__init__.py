@@ -16,4 +16,6 @@
 """
 
 from .extension import TrexProjectSetupWindowExtension
-from .setup_ui import ProjectSetupPane  # noqa F401
+from .setup_ui import ProjectSetupPane
+
+__all__ = ["ProjectSetupPane", "TrexProjectSetupWindowExtension"]

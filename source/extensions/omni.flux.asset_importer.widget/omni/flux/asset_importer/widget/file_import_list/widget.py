@@ -18,7 +18,8 @@
 import asyncio
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, List
+from typing import Any
+from collections.abc import Callable
 
 import carb
 import carb.events
@@ -53,8 +54,8 @@ class FileImportListWidget:
         delegate: FileImportListDelegate = None,
         allow_empty_input_files_list: bool = False,
         enable_drop: bool = False,
-        drop_filter_fn: Callable[[List[str]], List[str]] = None,
-        drop_callback: Callable[[List[str]], Any] = None,
+        drop_filter_fn: Callable[[list[str]], list[str]] = None,
+        drop_callback: Callable[[list[str]], Any] = None,
     ):
         """
         General file lister
@@ -182,7 +183,7 @@ class FileImportListWidget:
     def __on_file_changed(self, *_):
         self._file_tree_view.dirty_widgets()
 
-    def __on_selection_changed(self, selection: List[FileImportItem]):
+    def __on_selection_changed(self, selection: list[FileImportItem]):
         if self._allow_empty_input_files_list:
             return
         will_have_items_left = len(selection) < len(self._model.get_item_children(None))

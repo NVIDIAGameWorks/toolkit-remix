@@ -16,7 +16,6 @@
 """
 
 import types
-from typing import List
 
 import omni.kit.undo
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
@@ -26,11 +25,11 @@ from omni.kit.manipulator.prim.core.model import PrimTransformModel as _PrimTran
 def on_ended_transform(self):
     """Ends the transform operation."""
     with omni.kit.undo.group():
-        for tag, data in self._transform_data_map.items():  # noqa PLW0212
+        for tag, data in self._transform_data_map.items():
             self.get_data_accessor(tag).on_ended_transform(
                 (
-                    self._model.get_path_redirect()  # noqa PLW0212
-                    if self._model.get_usd_context_name() == _TrexContexts.STAGE_CRAFT.value  # noqa PLW0212
+                    self._model.get_path_redirect()
+                    if self._model.get_usd_context_name() == _TrexContexts.STAGE_CRAFT.value
                     else data.paths
                 ),
                 [],
@@ -46,11 +45,11 @@ def on_ended_transform(self):
 
 
 def do_transform_selected_prims(self):
-    for tag, data in self._transform_data_map.items():  # noqa PLW0212
+    for tag, data in self._transform_data_map.items():
         self.get_data_accessor(tag).do_transform_selected_prims(
             (
-                self._model.get_path_redirect()  # noqa PLW0212
-                if self._model.get_usd_context_name() == _TrexContexts.STAGE_CRAFT.value  # noqa PLW0212
+                self._model.get_path_redirect()
+                if self._model.get_usd_context_name() == _TrexContexts.STAGE_CRAFT.value
                 else data.paths
             ),
             [],
@@ -63,16 +62,16 @@ def do_transform_selected_prims(self):
 
 def do_transform_all_selected_prims_to_manipulator_pivot(
     self,
-    paths: List,
-    new_translations: List[float],
-    new_rotation_eulers: List[float],
-    new_rotation_orders: List[int],
-    new_scales: List[float],
+    paths: list,
+    new_translations: list[float],
+    new_rotation_eulers: list[float],
+    new_rotation_orders: list[int],
+    new_scales: list[float],
 ):
     self.do_transform_all_selected_prims_to_manipulator_pivot_original(
         (
-            self._model.get_path_redirect()  # noqa PLW0212
-            if self._model.get_usd_context_name() == _TrexContexts.STAGE_CRAFT.value  # noqa PLW0212
+            self._model.get_path_redirect()
+            if self._model.get_usd_context_name() == _TrexContexts.STAGE_CRAFT.value
             else paths
         ),
         new_translations,
@@ -101,7 +100,7 @@ class PrimTransformModel(_PrimTransformModel):
             do_transform_all_selected_prims_to_manipulator_pivot, self._data_accessor_selector
         )
 
-    def set_path_redirect(self, paths: List[str]):
+    def set_path_redirect(self, paths: list[str]):
         self.__redirect_paths = paths
 
     def get_path_redirect(self):

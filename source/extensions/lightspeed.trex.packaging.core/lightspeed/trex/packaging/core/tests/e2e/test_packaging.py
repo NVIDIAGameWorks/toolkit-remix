@@ -58,8 +58,8 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
         progress_mock.side_effect = lambda *args: print(f"Progress: {args}")
         completed_mock.side_effect = lambda *args: print(f"Completed: {args}")
 
-        _progress_sub = packaging_core.subscribe_packaging_progress(progress_mock)  # noqa F841
-        _completed_sub = packaging_core.subscribe_packaging_completed(completed_mock)  # noqa F841
+        _progress_sub = packaging_core.subscribe_packaging_progress(progress_mock)
+        _completed_sub = packaging_core.subscribe_packaging_completed(completed_mock)
 
         # TEST LOGGING
         mdl_search_paths = carb.tokens.get_tokens_interface().resolve(

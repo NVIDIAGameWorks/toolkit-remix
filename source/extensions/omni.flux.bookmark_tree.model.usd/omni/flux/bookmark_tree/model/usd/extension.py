@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import Optional
-
 import carb
 import omni.ext
 
@@ -25,7 +23,7 @@ from .listener import USDListener as _USDListener
 _USD_LISTENER_INSTANCE = None
 
 
-def get_usd_listener_instance() -> Optional[_USDListener]:
+def get_usd_listener_instance() -> _USDListener | None:
     return _USD_LISTENER_INSTANCE
 
 

@@ -16,3 +16,5 @@
 """
 
 from .e2e.test_info import TestInfo
+
+__all__ = ["TestInfo"]

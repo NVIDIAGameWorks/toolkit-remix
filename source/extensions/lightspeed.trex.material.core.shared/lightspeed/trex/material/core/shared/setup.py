@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import typing
 
 import omni.usd
@@ -32,14 +34,14 @@ class Setup:
             setattr(self, attr, value)
         self._context = omni.usd.get_context(context_name)
 
-    def get_material_layer_stack(self, path: "Sdf.Path"):
+    def get_material_layer_stack(self, path: Sdf.Path):
         stage = self._context.get_stage()
         prim = stage.GetPrimAtPath(path)
         stacks = prim.GetPrimStack()
         return [stack.layer for stack in stacks]
 
-    def get_materials_from_prim(self, prim, from_reference_layer_path: str = None):  # noqa PLR1710
-        def traverse_instanced_children(_prim):  # noqa R503
+    def get_materials_from_prim(self, prim, from_reference_layer_path: str = None):
+        def traverse_instanced_children(_prim):
             for child in _prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate):
                 if from_reference_layer_path is not None:
                     stacks = child.GetPrimStack()

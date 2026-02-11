@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["TestAlternatingRowWidget", "TestAlternatingRowModel"]
+__all__ = ["TestAlternatingRowModel", "TestAlternatingRowWidget"]
 
 import omni.kit.app
 import omni.usd

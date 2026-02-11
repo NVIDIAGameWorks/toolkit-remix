@@ -16,7 +16,6 @@
 """
 
 from pathlib import Path
-from typing import List
 
 import omni.usd
 from omni.flux.selection_history_tree.widget import SelectionHistoryModel as _SelectionHistoryModel
@@ -47,10 +46,10 @@ class UsdSelectionHistoryModel(_SelectionHistoryModel):
     def stage(self):
         return self._stage
 
-    def _block_list_selection(func):  # noqa N805
-        def do(self, *args, **kwargs):  # noqa PLC0103
-            self.__block_list_selection = True  # noqa PLW0212
-            func(self, *args, **kwargs)  # noqa PLE1102
+    def _block_list_selection(func):  # noqa: N805
+        def do(self, *args, **kwargs):
+            self.__block_list_selection = True
+            func(self, *args, **kwargs)
 
         return do
 
@@ -72,12 +71,12 @@ class UsdSelectionHistoryModel(_SelectionHistoryModel):
             self._stage_event = None
 
     @_block_list_selection
-    def _set_active_items(self, items: List[_SelectionHistoryItem]):
+    def _set_active_items(self, items: list[_SelectionHistoryItem]):
         self._usd_context.get_selection().set_selected_prim_paths(
             [str(item.data.GetPath()) for item in items if item.is_valid()], True
         )
 
-    def _get_active_items(self) -> List[str]:
+    def _get_active_items(self) -> list[str]:
         return list(set(self._usd_context.get_selection().get_selected_prim_paths()))
 
     def _on_stage_event(self, event):

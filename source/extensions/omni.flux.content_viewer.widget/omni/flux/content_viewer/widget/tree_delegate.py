@@ -18,7 +18,7 @@
 import omni.ui as ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
-from .tree_model import HEADER_DICT  # noqa PLE0402
+from .tree_model import HEADER_DICT
 
 
 class Delegate(ui.AbstractItemDelegate):
@@ -115,13 +115,13 @@ class Delegate(ui.AbstractItemDelegate):
         updated_style["font_size"] = updated_style["font_size"] * (grid_size / 100)
         return updated_style
 
-    def _on_item_mouse_pressed(self, x, y, b, m, item):  # noqa PLC0103
+    def _on_item_mouse_pressed(self, x, y, b, m, item):
         item.on_mouse_clicked(x, y, b, m)
 
-    def _on_item_mouse_released(self, x, y, b, m, item):  # noqa PLC0103
+    def _on_item_mouse_released(self, x, y, b, m, item):
         item.on_mouse_released(x, y, b, m)
 
-    def _on_item_mouse_moved(self, x, y, b, m, item):  # noqa PLC0103
+    def _on_item_mouse_moved(self, x, y, b, m, item):
         item.on_mouse_moved(x, y, b, m)
 
     def build_header(self, column_id):

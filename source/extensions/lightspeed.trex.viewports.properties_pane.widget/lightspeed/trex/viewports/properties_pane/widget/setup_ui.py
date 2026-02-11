@@ -40,8 +40,8 @@ class SetupUI:
         self._all_frames = {}
         self.__create_ui()
 
-    def get_frame(self, component_type_value: EnumItems):  # noqa PLR1710
-        for component_type, frame in self._all_frames.items():  # noqa: R503
+    def get_frame(self, component_type_value: EnumItems):
+        for component_type, frame in self._all_frames.items():
             if component_type == component_type_value:
                 return frame
         return None

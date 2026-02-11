@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["DefaultAssetDirectory", "AssetType"]
+__all__ = ["AssetType", "DefaultAssetDirectory"]
 
 from enum import Enum
 

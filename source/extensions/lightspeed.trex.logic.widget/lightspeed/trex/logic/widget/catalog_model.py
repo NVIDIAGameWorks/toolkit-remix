@@ -92,6 +92,6 @@ class OmniGraphNodeQuickSearchModel(ComponentNodeTypeCatalogModel):
         # at the same time as the corresponding code in omni.graph.window.core.
         if not __class__._node_created:  # noqa: SLF001
             __class__._node_created = True  # noqa: SLF001
-            from .extension import RemixLogicGraphExtension
+            from .extension import RemixLogicGraphExtension  # noqa: PLC0415
 
             RemixLogicGraphExtension.add_node(data, False)

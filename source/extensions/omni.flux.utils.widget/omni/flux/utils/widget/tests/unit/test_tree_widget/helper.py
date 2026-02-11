@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["MockTreeItem", "MockTreeModel", "MockTreeDelegate", "MockTreeWidget"]
+__all__ = ["MockTreeDelegate", "MockTreeItem", "MockTreeModel", "MockTreeWidget"]
 
 from omni import ui
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase, TreeItemBase, TreeModelBase, TreeWidget

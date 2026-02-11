@@ -19,7 +19,6 @@ import contextlib
 import pathlib
 import re
 from types import NoneType
-from typing import Union
 from unittest.mock import Mock, call, patch
 
 import omni.usd
@@ -313,7 +312,7 @@ class TestLayerManagerCore(AsyncTestCase):
         layer_types.append("none")
 
         # Test Matrix to test all argument combinations
-        for should_raise in [True, False]:  # noqa PLR1702
+        for should_raise in [True, False]:
             for create_or_insert in [True, False]:
                 for replace_existing in [True, False]:
                     for transfer_root_content in [True, False]:
@@ -778,7 +777,7 @@ class TestLayerManagerCore(AsyncTestCase):
         transfer_root_content: bool,
         set_edit_target: bool,
         set_parent: bool,
-        layer_type: Union[str, LayerType],
+        layer_type: str | LayerType,
     ):
         async with open_test_project("usd/full_project/full_project.usda", __name__) as project_url:
             # Arrange

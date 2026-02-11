@@ -34,7 +34,7 @@ class SetupUI(_WorkspaceWidget):
         """Nvidia StageCraft Components Pane"""
         super().__init__()
         self.__window_frame = window_frame
-        self.__sub_sidebar_items_changed = subscribe_items_change(self._create_ui)  # noqa PLW0238
+        self.__sub_sidebar_items_changed = subscribe_items_change(self._create_ui)
         self._create_ui()
 
     def _create_ui(self):
@@ -59,7 +59,7 @@ class SetupUI(_WorkspaceWidget):
         widgets = _get_sidebar_items()
         layout_widgets = widgets.get(_Groups.LAYOUTS)
         ungrouped_widgets = widgets.get(_Groups.UNGROUPED)
-        custom_group_widgets = {
+        custom_group_widgets: dict[str, list[_ItemDescriptor]] = {
             group: items for group, items in widgets.items() if group not in [_Groups.LAYOUTS, _Groups.UNGROUPED]
         }
 
@@ -67,8 +67,8 @@ class SetupUI(_WorkspaceWidget):
             self.__build_widget_group(_Groups.LAYOUTS, layout_widgets)
 
         if custom_group_widgets:
-            for group in custom_group_widgets:
-                self.__build_widget_group(group, custom_group_widgets[group])
+            for group, group_widgets in custom_group_widgets.items():
+                self.__build_widget_group(group, group_widgets)
 
         if ungrouped_widgets:
             self.__build_widget_group("", widgets[_Groups.UNGROUPED])
@@ -105,5 +105,5 @@ class SetupUI(_WorkspaceWidget):
 
     def destroy(self):
         """Clean up resources."""
-        self.__sub_sidebar_items_changed = None  # noqa: PLW0238
+        self.__sub_sidebar_items_changed = None
         self.__window_frame = None

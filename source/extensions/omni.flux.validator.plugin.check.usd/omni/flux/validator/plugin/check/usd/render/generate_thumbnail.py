@@ -19,7 +19,7 @@ import asyncio
 import ctypes
 import functools
 import io
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import carb.settings
 import carb.tokens
@@ -33,7 +33,7 @@ from omni.kit.viewport.utility import capture_viewport_to_buffer, frame_viewport
 from PIL import Image
 from pxr import Gf, Kind, Sdf, Tf, Usd, UsdGeom, UsdLux
 
-from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
+from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
 RENDERER_RESOLUTION_WIDTH = "/app/renderer/resolution/width"
 RENDERER_RESOLUTION_HEIGHT = "/app/renderer/resolution/height"
@@ -49,11 +49,11 @@ POST_BACKGROUND_ZERO_OUTPUT_APLHA_COMPISITED = "/rtx/post/backgroundZeroAlpha/ou
 class GenerateThumbnail(_CheckBaseUSD):
     class Data(_CheckBaseUSD.Data):
         light_rig_path: str = "${omni.flux.validator.plugin.check.usd}/data/rigs/default_light_template.usda"
-        light_rotation: Optional[Tuple[float, float, float]] = None
-        thumbnail_size: Tuple[int, int] = (256, 256)
+        light_rotation: tuple[float, float, float] | None = None
+        thumbnail_size: tuple[int, int] = (256, 256)
         render_mode: str = "RayTracing"
-        light_intensity_multipler: Optional[int] = 1
-        viewport_api: Optional[str] = None  # TODO: define a function to run like "my_module.get_viewport_api"
+        light_intensity_multipler: int | None = 1
+        viewport_api: str | None = None  # TODO: define a function to run like "my_module.get_viewport_api"
 
     name = "GenerateThumbnail"
     tooltip = "This plugin will generate the thumbnail"
@@ -127,7 +127,7 @@ class GenerateThumbnail(_CheckBaseUSD):
             ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.POINTER(ctypes.c_byte * buffer_size)
             ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object, ctypes.c_char_p]
             content = ctypes.pythonapi.PyCapsule_GetPointer(buffer, None)
-        except Exception as e:  # noqa PLW0718
+        except Exception as e:  # noqa: BLE001
             carb.log_error(f"[Thumbnail] Failed to get capture buffer: {e}")
             return
 
@@ -141,7 +141,7 @@ class GenerateThumbnail(_CheckBaseUSD):
         else:
             carb.log_info(f"[Thumbnail] Exported to {output_url}")
 
-    def _generate_thumbnail_data(self, schema_data: Data, raw_data, size: Tuple[int, int]) -> bytes:
+    def _generate_thumbnail_data(self, schema_data: Data, raw_data, size: tuple[int, int]) -> bytes:
         """
         Generate desired thumbnail data from raw data
         """
@@ -163,7 +163,7 @@ class GenerateThumbnail(_CheckBaseUSD):
                 bottom = height - top
             im = im.crop((left, top, right, bottom))
 
-        im.thumbnail((schema_data.thumbnail_size[0], schema_data.thumbnail_size[1]), Image.LANCZOS)  # noqa
+        im.thumbnail((schema_data.thumbnail_size[0], schema_data.thumbnail_size[1]), Image.LANCZOS)
 
         # Save to buffer
         buffer = io.BytesIO()
@@ -183,7 +183,7 @@ class GenerateThumbnail(_CheckBaseUSD):
             / f"{_OmniUrl(stage_url).name}.png"
         )
 
-    def __get_camera_translate_from_stage(self, stage) -> Optional[Tuple[float, float, float]]:
+    def __get_camera_translate_from_stage(self, stage) -> tuple[float, float, float] | None:
         camera_path = "/OmniverseKit_Persp"
         camera_prim = stage.GetPrimAtPath(camera_path)
         if not camera_prim.IsValid():
@@ -241,8 +241,8 @@ class GenerateThumbnail(_CheckBaseUSD):
                         attr = prim.GetAttribute(name)
                         if attr:
                             attr.Set(value)
-                    except Exception:  # noqa PLW0718
-                        import traceback
+                    except Exception:  # noqa: BLE001
+                        import traceback  # noqa: PLC0415
 
                         carb.log_error(traceback.format_exc())
 
@@ -285,7 +285,7 @@ class GenerateThumbnail(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check the data
 
@@ -320,7 +320,7 @@ class GenerateThumbnail(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to fix the data
 

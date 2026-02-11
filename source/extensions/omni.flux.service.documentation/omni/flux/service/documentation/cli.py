@@ -81,7 +81,7 @@ async def run(output: str):
 
         app = main_service.get_app()
         with open(output, "w", encoding="utf-8") as fd:
-            print(html_template % json.dumps(app.openapi()), file=fd)  # noqa S001
+            print(html_template % json.dumps(app.openapi()), file=fd)
 
         exit_code = 0
     finally:

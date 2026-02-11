@@ -15,7 +15,8 @@
 * limitations under the License.
 """
 
-from typing import Any, Awaitable, Callable, Tuple
+from typing import Any
+from collections.abc import Awaitable, Callable
 
 import omni.client
 import omni.ui as ui
@@ -36,7 +37,7 @@ class CurrentStage(_ContextBaseUSD):
     data_type = Data
 
     @omni.usd.handle_exception
-    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to execute the data.
 
@@ -56,7 +57,7 @@ class CurrentStage(_ContextBaseUSD):
         schema_data: Data,
         run_callback: Callable[[_SetupDataTypeVar], Awaitable[None]],
         parent_context: _SetupDataTypeVar,
-    ) -> Tuple[bool, str, _SetupDataTypeVar]:
+    ) -> tuple[bool, str, _SetupDataTypeVar]:
         """
         Function that will be executed to set the data. Here we will open the file path and give the stage
 
@@ -78,7 +79,7 @@ class CurrentStage(_ContextBaseUSD):
             result_data,
         )
 
-    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to after the check of the data. For example, save the input USD stage
 

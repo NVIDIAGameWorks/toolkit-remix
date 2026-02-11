@@ -16,3 +16,5 @@
 """
 
 from .e2e.test_schema_discovery import TestSchemaDiscovery
+
+__all__ = ["TestSchemaDiscovery"]

@@ -16,3 +16,5 @@
 """
 
 from .unit.test_conversion import TestOctahedralConverter
+
+__all__ = ["TestOctahedralConverter"]

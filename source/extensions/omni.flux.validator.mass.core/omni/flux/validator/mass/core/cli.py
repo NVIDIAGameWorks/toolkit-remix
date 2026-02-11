@@ -20,7 +20,6 @@ import asyncio
 import os
 import pathlib
 import traceback
-from typing import List, Optional
 
 import carb
 import omni.client
@@ -74,15 +73,15 @@ def main():
 
 
 async def run(
-    json_paths: List[str],
+    json_paths: list[str],
     executor: int,
     print_result: bool,
     silent: bool,
-    timeout: Optional[int] = None,
+    timeout: int | None = None,
 ):
     exit_code = 0
 
-    def _on_run_finished(validation_core, i_progress, size_progress, _result, message: Optional[str] = None):
+    def _on_run_finished(validation_core, i_progress, size_progress, _result, message: str | None = None):
         print(f"Progress {i_progress + 1}/{size_progress}")
         if not _result:
             nonlocal exit_code

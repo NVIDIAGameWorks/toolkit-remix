@@ -17,7 +17,6 @@
 
 import asyncio
 import typing
-from typing import Dict, List
 
 import omni.client
 import omni.usd
@@ -34,8 +33,8 @@ class FileListener:
         self._default_attr = {"_listeners": None, "_models": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
-        self._models: List[_FileModel] = []
-        self._listeners: Dict[Usd.Stage, Tf.Listener] = {}
+        self._models: list[_FileModel] = []
+        self._listeners: dict[Usd.Stage, Tf.Listener] = {}
 
     @omni.usd.handle_exception
     async def __async_listener(self, path: str):

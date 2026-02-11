@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import List, Optional
-
 import omni.ui as ui
 
 from .delegate import Delegate as _DelegateMetadata
@@ -24,7 +22,7 @@ from .model import Model as _ModelMetadata
 
 
 class ContentLibraryPropertyWidget:
-    def __init__(self, model: Optional[_ModelMetadata] = None, delegate: Optional[_DelegateMetadata] = None):
+    def __init__(self, model: _ModelMetadata | None = None, delegate: _DelegateMetadata | None = None):
         """
         Tree property
 
@@ -40,7 +38,7 @@ class ContentLibraryPropertyWidget:
         """Return the current model"""
         return self._model
 
-    def create_ui(self, column_widths: List[ui.Length] = None):
+    def create_ui(self, column_widths: list[ui.Length] = None):
         """
         Create the UI
 

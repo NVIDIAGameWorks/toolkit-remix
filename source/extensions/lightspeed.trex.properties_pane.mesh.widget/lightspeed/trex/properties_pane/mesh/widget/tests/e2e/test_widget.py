@@ -1,4 +1,3 @@
-# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -285,7 +284,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # scroll up
         await ui_test.human_delay(human_delay_speed=10)
-        _selection_wid._tree_scroll_frame.scroll_y = 0  # noqa PLW0212
+        _selection_wid._tree_scroll_frame.scroll_y = 0
 
         await ui_test.human_delay(human_delay_speed=3)
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
@@ -386,7 +385,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         # This doesn't work! Because there is a combobox stacked over the input field, on the CI, it will click on
         # the arrow of the combobox and input nothing!
-        # dir_path_field = ui_test.find(f"{window_name}//Frame/**/StringField[*].identifier=='filepicker_directory_path'")  # noqa
+        # dir_path_field = ui_test.find(f"{window_name}//Frame/**/StringField[*].identifier=='filepicker_directory_path'")
         # await dir_path_field.input(asset_path, end_key=KeyboardInput.ENTER)
 
         # work around

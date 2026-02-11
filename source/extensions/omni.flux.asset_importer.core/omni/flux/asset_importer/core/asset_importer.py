@@ -15,11 +15,14 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 import weakref
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Union
+from typing import Any
+from collections.abc import Callable
 
 import carb
 import carb.tokens
@@ -53,8 +56,8 @@ def _get_converter_context():
 
 class AssetItemImporterModelBase(BaseModel):
     input_path: str = Field()
-    output_path: Optional[Union[str, Path]] = Field(default=None)
-    output_usd_extension: Optional[_UsdExtensions] = Field(default=None)
+    output_path: str | Path | None = Field(default=None)
+    output_usd_extension: _UsdExtensions | None = Field(default=None)
 
     @field_validator("input_path", mode="before")
     @classmethod
@@ -85,7 +88,7 @@ AssetItemImporterModel = create_model(
 
 
 class AssetImporterModel(BaseModel):
-    data: List[AssetItemImporterModel]
+    data: list[AssetItemImporterModel]
 
     @field_validator("data", mode="before")
     @classmethod
@@ -104,7 +107,7 @@ class ImporterCore:
         self.__on_batch_finished = _Event()
         self.__on_batch_progress = _Event()
 
-    def import_batch(self, batch_config: Union[str, Path, dict], default_output_folder: Union[str, Path] = None):
+    def import_batch(self, batch_config: str | Path | dict, default_output_folder: str | Path = None):
         """
         Function to convert batches of mesh files to usd.
 
@@ -131,16 +134,14 @@ class ImporterCore:
         return asyncio.ensure_future(self.import_batch_async(batch_config, default_output_folder))
 
     @omni.usd.handle_exception
-    async def import_batch_async(
-        self, batch_config: Union[str, Path, dict], default_output_folder: Union[str, Path] = None
-    ):
+    async def import_batch_async(self, batch_config: str | Path | dict, default_output_folder: str | Path = None):
         """
         As import_batch, but async.
         """
         return await self.import_batch_async_with_error(batch_config, default_output_folder)
 
     async def import_batch_async_with_error(
-        self, batch_config: Union[str, Path, dict], default_output_folder: Union[str, Path] = None
+        self, batch_config: str | Path | dict, default_output_folder: str | Path = None
     ):
         """
         As import_batch, but async without error handling.  This is meant for testing.
@@ -241,10 +242,10 @@ class ImporterCore:
 
             def progress_callback(step, total):
                 if total != 0:
-                    self._on_batch_progress(progress + to_add * step / total)  # noqa B023
+                    self._on_batch_progress(progress + to_add * step / total)  # noqa: B023
 
             def on_finish():
-                collector_weakref().destroy()  # noqa
+                collector_weakref().destroy()  # noqa: B023
 
             await collection.collect(progress_callback, on_finish)
 

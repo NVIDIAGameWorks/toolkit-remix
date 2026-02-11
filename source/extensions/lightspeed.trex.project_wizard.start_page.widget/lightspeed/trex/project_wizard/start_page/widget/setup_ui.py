@@ -16,7 +16,7 @@
 """
 
 from functools import partial
-from typing import Callable
+from collections.abc import Callable
 
 from lightspeed.trex.project_wizard.existing_mods_page.widget import ExistingModsPage as _ExistingModsPage
 from lightspeed.trex.project_wizard.setup_page.widget import SetupPage as _SetupPage

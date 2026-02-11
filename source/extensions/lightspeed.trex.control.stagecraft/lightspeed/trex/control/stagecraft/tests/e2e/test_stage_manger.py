@@ -43,7 +43,7 @@ class TestPages(Enum):
 class TestStageManagerPropertiesInteraction(AsyncTestCase):
     async def setUp(self):
         # get a test usd path in a temporary dir to make sure anything saved is cleaned up
-        self._temp_dir = tempfile.TemporaryDirectory()  # noqa PLR1732
+        self._temp_dir = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
         self._temp_path = (Path(self._temp_dir.name) / "test.usda").as_posix()
 
         # open something so that context can be set as dirty

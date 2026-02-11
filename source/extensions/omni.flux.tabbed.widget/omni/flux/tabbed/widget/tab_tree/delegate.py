@@ -15,7 +15,9 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING, List
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import omni.ui as ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -25,7 +27,7 @@ from omni.flux.utils.widget.label import create_label_with_font as _create_label
 from omni.flux.utils.widget.resources import get_fonts as _get_fonts
 from omni.flux.utils.widget.text_to_image import Rotation as _Rotation
 
-from .model import HEADER_DICT  # noqa PLE0402
+from .model import HEADER_DICT
 
 if TYPE_CHECKING:
     from .model import Item as _Item
@@ -75,7 +77,7 @@ class Delegate(ui.AbstractItemDelegate):
         """Create a branch widget that opens or closes subtree"""
         pass
 
-    def build_widget(self, model, item: "_Item", column_id, level, expanded):
+    def build_widget(self, model, item: _Item, column_id, level, expanded):
         """Create a widget per item"""
         if item is None:
             return
@@ -117,12 +119,12 @@ class Delegate(ui.AbstractItemDelegate):
                             ui.Spacer(width=ui.Pixel(8))
                         ui.Spacer(height=ui.Pixel(8))
 
-    def _on_item_mouse_released(self, button, item: "_Item"):
+    def _on_item_mouse_released(self, button, item: _Item):
         if button != 0:
             return
         self.on_item_mouse_released(item)
 
-    def on_item_mouse_released(self, item: "_Item"):
+    def on_item_mouse_released(self, item: _Item):
         for id_item, rectangle in self._background_rectangles.items():
             rectangle.visible = id_item == id(item)
         item.on_mouse_released()
@@ -132,7 +134,7 @@ class Delegate(ui.AbstractItemDelegate):
             )
         self._previous_selection = item
 
-    def set_toggled_value(self, items: List["_Item"], value: bool):
+    def set_toggled_value(self, items: list[_Item], value: bool):
         """
         Set the gradient visible (toggle on/off)
 

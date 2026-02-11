@@ -15,8 +15,11 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
-from typing import TYPE_CHECKING, Awaitable, Callable, List, Optional, Union
+from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable
 
 import omni.kit.usd.layers as _layers
 from omni import ui, usd
@@ -34,11 +37,11 @@ class USDPropertyWidget(_PropertyWidget):
     def __init__(
         self,
         context_name: str = "",
-        model: Optional["_Model"] = None,
-        delegate: Optional["_Delegate"] = None,
-        tree_column_widths: List[ui.Length] = None,
+        model: _Model | None = None,
+        delegate: _Delegate | None = None,
+        tree_column_widths: list[ui.Length] = None,
         columns_resizable: bool = False,
-        refresh_callback: Optional[Union[Callable[[], None], Callable[[], Awaitable[None]]]] = None,
+        refresh_callback: Callable[[], None] | Callable[[], Awaitable[None]] | None = None,
     ):
         """
         Args:

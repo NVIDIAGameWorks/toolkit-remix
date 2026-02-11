@@ -18,7 +18,6 @@
 import re
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional
 
 import omni.client
 from lightspeed.common import constants as _constants
@@ -47,10 +46,10 @@ class ProjectWizardKeys(Enum):
 class ProjectWizardSchema(BaseModel):
     existing_project: bool
     project_file: Path
-    remix_directory: Optional[Path] = None
-    existing_mods: Optional[List[Path]] = None
-    mod_file: Optional[Path] = None
-    capture_file: Optional[Path] = None
+    remix_directory: Path | None = None
+    existing_mods: list[Path] | None = None
+    mod_file: Path | None = None
+    capture_file: Path | None = None
 
     @field_validator(ProjectWizardKeys.PROJECT_FILE.value, mode="before")
     @classmethod
@@ -136,7 +135,7 @@ class ProjectWizardSchema(BaseModel):
                     )
             _, entry = omni.client.stat(str(v))
             # Make sure the project is not read-only
-            if not (entry.flags & omni.client.ItemFlags.WRITEABLE_FILE):  # noqa PLC0325
+            if not (entry.flags & omni.client.ItemFlags.WRITEABLE_FILE):
                 raise ValueError(f"The path '{str(v)}' is not a writable file")
             # Make sure the project is not a replacement file
             if _ReplacementCore.is_mod_file(str(v)):

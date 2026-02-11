@@ -16,3 +16,5 @@
 """
 
 from .test_base import TestEventOnShutdownBase
+
+__all__ = ["TestEventOnShutdownBase"]

@@ -28,7 +28,7 @@ class TestGeneratePBRMaterial(omni.kit.test.AsyncTestCase):
         generate_pbr = GeneratePBRMaterial()
 
         # Act
-        success, message, data = await generate_pbr._check(Mock(), Mock(), [])  # noqa PLW0212
+        success, message, data = await generate_pbr._check(Mock(), Mock(), [])
 
         # Assert
         self.assertTrue(success)

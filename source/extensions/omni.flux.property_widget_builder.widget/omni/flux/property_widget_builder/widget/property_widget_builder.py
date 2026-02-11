@@ -18,7 +18,6 @@
 __all__ = ("PropertyWidget",)
 
 import asyncio
-from typing import List, Optional
 
 from omni import kit, ui, usd
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -33,9 +32,9 @@ class PropertyWidget:
 
     def __init__(
         self,
-        model: Optional[Model] = None,
-        delegate: Optional[Delegate] = None,
-        tree_column_widths: List[ui.Length] = None,
+        model: Model | None = None,
+        delegate: Delegate | None = None,
+        tree_column_widths: list[ui.Length] = None,
         columns_resizable: bool = False,
     ):
         """

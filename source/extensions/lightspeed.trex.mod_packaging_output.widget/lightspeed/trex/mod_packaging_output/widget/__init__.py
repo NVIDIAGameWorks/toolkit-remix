@@ -16,3 +16,5 @@
 """
 
 from .setup_ui import ModPackagingOutputWidget
+
+__all__ = ["ModPackagingOutputWidget"]

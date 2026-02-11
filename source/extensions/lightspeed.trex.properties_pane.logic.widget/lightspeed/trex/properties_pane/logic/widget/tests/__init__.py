@@ -15,5 +15,7 @@
 * limitations under the License.
 """
 
-from .e2e.test_prim_picker_ui import TestLogicWidgetUIComplete  # noqa: F401
-from .unit.test_prim_picker_integration import TestLogicWidgetIntegration  # noqa: F401
+from .e2e.test_prim_picker_ui import TestLogicWidgetUIComplete
+from .unit.test_prim_picker_integration import TestLogicWidgetIntegration
+
+__all__ = ["TestLogicWidgetIntegration", "TestLogicWidgetUIComplete"]

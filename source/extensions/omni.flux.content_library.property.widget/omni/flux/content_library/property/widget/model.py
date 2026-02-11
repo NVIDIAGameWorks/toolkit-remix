@@ -16,7 +16,7 @@
 """
 
 import abc
-from typing import Any, List
+from typing import Any
 
 import omni.ui as ui
 
@@ -54,13 +54,13 @@ class Model(ui.AbstractItemModel):
         self.__items = []
 
     @abc.abstractmethod
-    def _set_items_from_data(self, items: List[Any]) -> List[Item]:
+    def _set_items_from_data(self, items: list[Any]) -> list[Item]:
         """Function to implement for customization"""
         if not items:
             return []
         return [Item("Error", "Code not implemented")]
 
-    def set_items_from_data(self, items: List[Any]):
+    def set_items_from_data(self, items: list[Any]):
         """
         Set items
 

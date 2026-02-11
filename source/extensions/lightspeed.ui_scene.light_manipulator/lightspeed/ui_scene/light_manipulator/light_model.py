@@ -19,10 +19,10 @@ from __future__ import annotations
 
 __all__ = [
     "AbstractLightModel",
-    "RectLightModel",
+    "CylinderLightModel",
     "DiskLightModel",
     "DistantLightModel",
-    "CylinderLightModel",
+    "RectLightModel",
     "UsdLuxLight",
 ]
 
@@ -96,7 +96,7 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
     A model that tracks the attributes of the selected light.
     """
 
-    light_class: type[UsdLuxLight] = None  # noqa PLE0602 - linter doesn't understand new type alias
+    light_class: type[UsdLuxLight] = None
     linked_axes = [0, 0, 0]
 
     def __init__(self, prim: Usd.Prim, usd_context_name: str = "", viewport_layer: LightManipulatorLayer = None):
@@ -152,7 +152,7 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
     def get_item(self, identifier: str) -> sc.AbstractManipulatorItem | None:
         return getattr(self, identifier, None)
 
-    def _get_as_floats(self, item: LightModelItem) -> list[float] | None:  # noqa PLE0602 - linter doesn't understand new type alias
+    def _get_as_floats(self, item: LightModelItem) -> list[float] | None:
         return None
 
     def get_as_floats(self, item: LightModelItem) -> list[float]:
@@ -368,7 +368,7 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
 
         prim = stage.GetPrimAtPath(light_prim_path)
         if prim and prim.IsA(self.light_class):
-            self._light = self.light_class(prim)  # noqa PLE1102 (not-callable)... but UsdLux class is callable.
+            self._light = self.light_class(prim)
 
         if not self._light:
             return self._invalidate_object()
@@ -388,7 +388,7 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
             return MatrixItem.identity.copy()
 
         # Compute matrix from world-transform in USD
-        world_xform = self.light_class(self._xform_prim).ComputeLocalToWorldTransform(time)  # noqa PLE1102
+        world_xform = self.light_class(self._xform_prim).ComputeLocalToWorldTransform(time)
         # lights of a certain type have a behavior where the shape of the light will be preserved even if the
         # parent scale would morph it by only respecting the largest of the contradictory scale dimensions...
         # So we account for that here to keep our representation in line with the light geometry.

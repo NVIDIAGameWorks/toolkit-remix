@@ -16,3 +16,5 @@
 """
 
 from .unit.test_graph_editor_window import TestOgWindowComponentUI
+
+__all__ = ["TestOgWindowComponentUI"]

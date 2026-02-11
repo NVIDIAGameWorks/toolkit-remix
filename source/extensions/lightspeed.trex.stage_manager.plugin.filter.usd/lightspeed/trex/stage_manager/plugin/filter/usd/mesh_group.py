@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from lightspeed.common.constants import ROOTNODE_MESHES as _ROOTNODE_MESHES
@@ -35,5 +37,5 @@ class MeshGroupFilterPlugin(_ToggleableUSDFilterPlugin):
     display_name: str = Field(default="Mesh Group", exclude=True)
     tooltip: str = Field(default="Filter out mesh group", exclude=True)
 
-    def _filter_predicate(self, prim: "Usd.Prim") -> bool:
+    def _filter_predicate(self, prim: Usd.Prim) -> bool:
         return str(prim.GetPath()).startswith(_ROOTNODE_MESHES)

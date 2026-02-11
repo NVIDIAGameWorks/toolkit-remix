@@ -17,3 +17,5 @@
 
 from .e2e.test_action_delete_restore import TestDeleteRestoreActionWidgetPlugin
 from .e2e.test_widget import TestStageManagerPluginWidget
+
+__all__ = ["TestDeleteRestoreActionWidgetPlugin", "TestStageManagerPluginWidget"]

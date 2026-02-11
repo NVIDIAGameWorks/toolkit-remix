@@ -73,7 +73,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         ):
             omni_usd_mockup.return_value = usd_context_mock
             # Act
-            success, message, data = await material_shader._check(Mock(), Mock(), [])  # noqa PLW0212
+            success, message, data = await material_shader._check(Mock(), Mock(), [])
 
         # Assert
         self.assertTrue(success)
@@ -104,7 +104,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         ):
             omni_usd_mockup.return_value = usd_context_mock
             # Act
-            success, message, data = await material_shader._check(schema_data_mock, Mock(), [])  # noqa PLW0212
+            success, message, data = await material_shader._check(schema_data_mock, Mock(), [])
 
         # Assert
         self.assertFalse(success)
@@ -135,7 +135,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         ):
             omni_usd_mockup.return_value = usd_context_mock
             # Act
-            success, message, data = await material_shader._check(schema_data_mock, Mock(), [])  # noqa PLW0212
+            success, message, data = await material_shader._check(schema_data_mock, Mock(), [])
 
         # Assert
         self.assertTrue(success)
@@ -169,7 +169,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         ):
             omni_usd_mockup.return_value = usd_context_mock
             # Act
-            success, message, data = await material_shader._fix(schema_data_mock, Mock(), [])  # noqa PLW0212
+            success, message, data = await material_shader._fix(schema_data_mock, Mock(), [])
 
         # Assert
         self.assertTrue(success)
@@ -180,7 +180,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         self.assertEqual(call(0, "Start", True), progress_mock.call_args)
 
         self.assertEqual(1, set_metadata_mock.call_count)
-        self.assertEqual(call(ApplyUnitScale._METADATA_KEY, scale_target), set_metadata_mock.call_args)  # noqa PLW0212
+        self.assertEqual(call(ApplyUnitScale._METADATA_KEY, scale_target), set_metadata_mock.call_args)
 
     async def test_fix_not_an_xform_prim_should_skip(self):
         # Arrange
@@ -213,9 +213,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         ):
             omni_usd_mockup.return_value = usd_context_mock
             # Act
-            success, message, data = await material_shader._fix(  # noqa PLW0212
-                schema_data_mock, Mock(), selector_plugin_data_mock
-            )
+            success, message, data = await material_shader._fix(schema_data_mock, Mock(), selector_plugin_data_mock)
 
         # Assert
         expected_progress_message = f"SKIPPED: {xform_prim_path_mock} is not an XForm prim"
@@ -229,7 +227,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         self.assertEqual(call(1, expected_progress_message, True), progress_mock.call_args_list[1])
 
         self.assertEqual(1, set_metadata_mock.call_count)
-        self.assertEqual(call(ApplyUnitScale._METADATA_KEY, scale_target), set_metadata_mock.call_args)  # noqa PLW0212
+        self.assertEqual(call(ApplyUnitScale._METADATA_KEY, scale_target), set_metadata_mock.call_args)
 
     async def test_fix_should_set_transform_value_and_metadata(self):
         # Arrange
@@ -275,9 +273,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
             xformable_mock.return_value = xform_mock
 
             # Act
-            success, message, data = await material_shader._fix(  # noqa PLW0212
-                schema_data_mock, Mock(), selector_plugin_data_mock
-            )
+            success, message, data = await material_shader._fix(schema_data_mock, Mock(), selector_plugin_data_mock)
 
         # Assert
         expected_progress_message = f"FIXED: {xform_prim_path_mock}"
@@ -293,7 +289,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         self.assertEqual(1, set_metadata_mock.call_count)
         self.assertEqual(
             call(ApplyUnitScale._METADATA_KEY, 1 / scale_target),
-            set_metadata_mock.call_args,  # noqa PLW0212
+            set_metadata_mock.call_args,
         )
 
         self.assertEqual(1, xformable_mock.call_count)
@@ -316,7 +312,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         apply_unit_scale = ApplyUnitScale()
 
         # Act
-        apply_unit_scale._on_unit_scale_field_edit_end(schema_data_mock, model_mock)  # noqa PLW0212
+        apply_unit_scale._on_unit_scale_field_edit_end(schema_data_mock, model_mock)
 
         # Assert
         self.assertEqual(1, set_value_mock.call_count)
@@ -335,7 +331,7 @@ class TestApplyUnitScale(omni.kit.test.AsyncTestCase):
         apply_unit_scale = ApplyUnitScale()
 
         # Act
-        apply_unit_scale._on_unit_scale_field_edit_end(schema_data_mock, model_mock)  # noqa PLW0212
+        apply_unit_scale._on_unit_scale_field_edit_end(schema_data_mock, model_mock)
 
         # Assert
         self.assertEqual(scale_target_mock, schema_data_mock.scale_target)

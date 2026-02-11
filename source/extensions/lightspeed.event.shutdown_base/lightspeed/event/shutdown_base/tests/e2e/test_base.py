@@ -27,7 +27,7 @@ EVENT_NAME = "Shutdown Test"
 
 
 class MockEvent:
-    type = omni.kit.app.POST_QUIT_EVENT_TYPE  # noqa A003 shadowing builtin name
+    type = omni.kit.app.POST_QUIT_EVENT_TYPE
 
 
 class MockInterrupter(_InterrupterBase):
@@ -67,8 +67,8 @@ class TestEventOnShutdownBase(AsyncTestCase):
         self.shutdown_event = None
 
     async def test_has_interrupters(self):
-        self.assertTrue(len(self.shutdown_event._interrupters) > 0)  # noqa PLW0212 protected-access
-        self.assertIsInstance(self.shutdown_event._interrupters[0], MockInterrupter)  # noqa PLW0212 protected-access
+        self.assertTrue(len(self.shutdown_event._interrupters) > 0)
+        self.assertIsInstance(self.shutdown_event._interrupters[0], MockInterrupter)
 
     async def test_event_registered(self):
         # Ensure it is registered
@@ -82,7 +82,7 @@ class TestEventOnShutdownBase(AsyncTestCase):
         interrupter = event.interrupter
         interrupter.interruptable = False
         with patch.object(interrupter, "interrupt_shutdown") as mock_interrupt_shutdown:
-            event._EventOnShutdownBase__on_shutdown_event(MockEvent)  # noqa PLW0212 protected-access
+            event._EventOnShutdownBase__on_shutdown_event(MockEvent)
             mock_interrupt_shutdown.assert_not_called()
 
     async def test_interrupter_on(self):

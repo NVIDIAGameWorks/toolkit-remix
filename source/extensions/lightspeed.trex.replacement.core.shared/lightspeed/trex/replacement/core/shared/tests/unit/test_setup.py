@@ -391,7 +391,7 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         # import it
         core = _ReplacementCore("")
 
-        with patch.object(core._layer_manager, "get_layer") as mock_get_layer, patch("carb.log_error"):  # NOQA
+        with patch.object(core._layer_manager, "get_layer") as mock_get_layer, patch("carb.log_error"):
             mock_get_layer.return_value = False
             core.import_replacement_layer(stage_replacement_01.GetRootLayer().realPath)
         self.assertNotEqual(

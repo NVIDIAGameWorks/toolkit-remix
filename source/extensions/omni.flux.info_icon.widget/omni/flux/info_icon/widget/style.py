@@ -16,10 +16,9 @@
 """
 
 import pathlib
-from typing import Optional
 
 
-def _get_icons(name: str) -> Optional[str]:
+def _get_icons(name: str) -> str | None:
     """
     Get icon from the extension
 

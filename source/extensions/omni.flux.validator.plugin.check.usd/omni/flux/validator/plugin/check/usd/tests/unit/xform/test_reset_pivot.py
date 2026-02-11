@@ -16,7 +16,6 @@
 """
 
 from contextlib import nullcontext
-from typing import Tuple
 from unittest.mock import Mock, call, patch
 
 import omni.kit.commands
@@ -51,7 +50,7 @@ class TestResetPivot(omni.kit.test.AsyncTestCase):
 
         with patch.object(ResetPivot, "on_progress") as progress_mock:
             # Act
-            success, message, data = await reset_pivot._check(  # noqa PLW0212
+            success, message, data = await reset_pivot._check(
                 schema_data_mock, context_plugin_data_mock, selector_plugin_data_mock
             )
 
@@ -84,7 +83,7 @@ class TestResetPivot(omni.kit.test.AsyncTestCase):
 
         with patch.object(ResetPivot, "on_progress") as progress_mock:
             # Act
-            success, message, data = await reset_pivot._check(  # noqa PLW0212
+            success, message, data = await reset_pivot._check(
                 schema_data_mock, context_plugin_data_mock, selector_plugin_data_mock
             )
 
@@ -119,7 +118,7 @@ class TestResetPivot(omni.kit.test.AsyncTestCase):
 
         with patch.object(ResetPivot, "on_progress") as progress_mock:
             # Act
-            success, message, data = await reset_pivot._check(  # noqa PLW0212
+            success, message, data = await reset_pivot._check(
                 schema_data_mock, context_plugin_data_mock, selector_plugin_data_mock
             )
 
@@ -152,7 +151,7 @@ class TestResetPivot(omni.kit.test.AsyncTestCase):
             patch.object(omni.kit.commands, "execute") as execute_mock,
         ):
             # Act
-            success, message, data = await reset_pivot._fix(  # noqa PLW0212
+            success, message, data = await reset_pivot._fix(
                 schema_data_mock, context_plugin_data_mock, selector_plugin_data_mock
             )
 
@@ -191,7 +190,7 @@ class TestResetPivot(omni.kit.test.AsyncTestCase):
             patch.object(omni.kit.commands, "execute") as execute_mock,
         ):
             # Act
-            success, message, data = await reset_pivot._fix(  # noqa PLW0212
+            success, message, data = await reset_pivot._fix(
                 schema_data_mock, context_plugin_data_mock, selector_plugin_data_mock
             )
 
@@ -232,7 +231,7 @@ class TestResetPivot(omni.kit.test.AsyncTestCase):
             patch.object(omni.kit.commands, "execute") as execute_mock,
         ):
             # Act
-            success, message, data = await reset_pivot._fix(  # noqa PLW0212
+            success, message, data = await reset_pivot._fix(
                 schema_data_mock, context_plugin_data_mock, selector_plugin_data_mock
             )
 
@@ -251,7 +250,7 @@ class TestResetPivot(omni.kit.test.AsyncTestCase):
         self.assertEqual(
             call(
                 "ChangePropertyCommand",
-                prop_path=f"{prim_path_mock}.{ResetPivot._ATTRIBUTE_NAME}",  # noqa PLW0212
+                prop_path=f"{prim_path_mock}.{ResetPivot._ATTRIBUTE_NAME}",
                 value=target_value,
                 prev=None,
                 type_to_create_if_not_exist=Sdf.ValueTypeNames.Vector3d,
@@ -260,7 +259,7 @@ class TestResetPivot(omni.kit.test.AsyncTestCase):
             execute_mock.call_args,
         )
 
-    async def __run_test_data_translate_format_valid_(self, is_valid: bool, value: Tuple):
+    async def __run_test_data_translate_format_valid_(self, is_valid: bool, value: tuple):
         # Arrange
         pass
 

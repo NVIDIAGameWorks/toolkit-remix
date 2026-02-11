@@ -36,8 +36,8 @@ class TestPackagingPaneSubscriptionLifecycle(AsyncTestCase):
         await omni.kit.app.get_app().next_update_async()
 
         # Subscriptions should be None initially (created in show(True))
-        self.assertIsNone(widget._packaging_progress_sub)  # noqa: SLF001
-        self.assertIsNone(widget._packaging_completed_sub)  # noqa: SLF001
+        self.assertIsNone(widget._packaging_progress_sub)
+        self.assertIsNone(widget._packaging_completed_sub)
 
         widget.destroy()
         window.destroy()

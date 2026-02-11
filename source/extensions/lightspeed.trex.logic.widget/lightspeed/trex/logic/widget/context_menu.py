@@ -23,10 +23,11 @@ context menu items all derive from this single definition.
 
 from __future__ import annotations
 
-__all__ = ["MENU_GROUP", "MENU_ENTRIES", "MenuEntry", "show_context_menu", "register_context_menu"]
+__all__ = ["MENU_ENTRIES", "MENU_GROUP", "MenuEntry", "register_context_menu", "show_context_menu"]
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 import carb.input
 import omni.graph.core as og
@@ -155,7 +156,7 @@ def _is_single_backdrop(widget: RemixLogicGraphWidget) -> bool:
     return p and hasattr(p, "IsValid") and p.IsValid() and p.GetTypeName() == "Backdrop"
 
 
-def _can_paste(widget: RemixLogicGraphWidget) -> bool:
+def _can_paste(_widget: RemixLogicGraphWidget) -> bool:
     """True if the paste action is available in the action registry."""
     return omni.kit.actions.core.get_action_registry().get_action("omni.kit.stage.copypaste", "stage_paste") is not None
 
@@ -227,7 +228,7 @@ def _on_frame(widget: RemixLogicGraphWidget):
         view.focus_on_nodes(items)
 
 
-def _on_copy(widget: RemixLogicGraphWidget):
+def _on_copy(_widget: RemixLogicGraphWidget):
     if action := omni.kit.actions.core.get_action_registry().get_action("omni.kit.stage.copypaste", "stage_copy"):
         action.execute()
 
@@ -497,13 +498,13 @@ _menu_delegate: _HotkeyMenuDelegate | None = None
 
 
 def _get_menu_delegate() -> _HotkeyMenuDelegate:
-    global _menu_delegate  # noqa: PLW0603
+    global _menu_delegate
     if _menu_delegate is None:
         _menu_delegate = _HotkeyMenuDelegate()
     return _menu_delegate
 
 
-def show_context_menu(widget: RemixLogicGraphWidget, context_item: Any, pos: tuple[float, float] | None = None):
+def show_context_menu(widget: RemixLogicGraphWidget, _context_item: Any, _pos: tuple[float, float] | None = None):
     """
     Display the context menu at the current cursor position.
 

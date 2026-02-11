@@ -26,7 +26,7 @@ def main():
     Example:
 
         cli.bat -o "{kit}\..\..\..\docs\flux\latest\service-documentation.html" -e omni.flux.service.factory
-    """  # noqa
+    """
 
     parser = argparse.ArgumentParser(
         description="Run the service documentation generation in command line.",

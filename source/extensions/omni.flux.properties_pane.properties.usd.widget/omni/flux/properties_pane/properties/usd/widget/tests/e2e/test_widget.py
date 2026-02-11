@@ -1,4 +1,3 @@
-# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -70,7 +69,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
 
         # find the translate field UI
         property_branches = ui_test.find_all(
-            f"{_window.title}//Frame/**/FloatField[*].identifier=='/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"  # noqa
+            f"{_window.title}//Frame/**/FloatField[*].identifier=='/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"
         )
         self.assertEqual(len(property_branches), 3)
 
@@ -96,7 +95,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         await omni.kit.ui_test.wait_n_updates(15)
 
         double_sided_widget = ui_test.find(
-            f"{_window.title}//Frame/**/CheckBox[*].identifier=='/Xform/Cube.doubleSided,/Xform/Cube2.doubleSided'"  # noqa
+            f"{_window.title}//Frame/**/CheckBox[*].identifier=='/Xform/Cube.doubleSided,/Xform/Cube2.doubleSided'"
         )
         # one cube is double sided and the other is not, so this should be mixed
         self.assertEqual(double_sided_widget.widget.model.is_mixed, True)
@@ -136,7 +135,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         property_branches = ui_test.find_all(
             f"{_window.title}//Frame/**/FloatField[*].identifier=='/Xform/Cube.xformOp:translate,"
             f"/Xform/Cube2.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube2.xformOp:translate,"
-            f"/Xform/Cube.xformOp:translate,/Xform/Cube2.xformOp:translate'"  # noqa
+            f"/Xform/Cube.xformOp:translate,/Xform/Cube2.xformOp:translate'"
         )
         self.assertEqual(len(property_branches), 3)
         translate_x_widget = property_branches[0]

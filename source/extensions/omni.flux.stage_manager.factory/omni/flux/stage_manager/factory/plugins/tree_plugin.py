@@ -26,7 +26,8 @@ __all__ = [
 
 import abc
 import asyncio
-from typing import TYPE_CHECKING, Any, Callable, Iterable
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable, Iterable
 
 import omni.kit.app
 import omni.kit.context_menu
@@ -200,7 +201,7 @@ class StageManagerTreeItem(_TreeItemBase):
         """
         The icon style name associated with the item. Can be used by the widgets
         """
-        return None  # noqa R501
+        return None
 
     @property
     def can_have_children(self) -> bool:

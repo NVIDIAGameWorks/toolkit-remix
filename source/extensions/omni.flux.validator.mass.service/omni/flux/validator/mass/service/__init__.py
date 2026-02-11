@@ -16,3 +16,5 @@
 """
 
 from .extension import MassValidatorServiceExtension
+
+__all__ = ["MassValidatorServiceExtension"]

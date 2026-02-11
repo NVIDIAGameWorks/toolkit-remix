@@ -18,7 +18,8 @@
 import abc
 import asyncio
 import typing
-from typing import Any, Callable, Dict, Optional, Type
+from typing import Any
+from collections.abc import Callable
 
 import carb.input
 import omni.ui as ui
@@ -37,8 +38,8 @@ class BaseContentItem(ui.AbstractItem):
 
     def __init__(
         self,
-        content_data: Type["BaseContentData"],
-        core: Type["ContentViewerCore"],
+        content_data: type["BaseContentData"],
+        core: type["ContentViewerCore"],
         grid_column_width: int,
         grid_row_height: int,
         grid_root_frame: ui.Widget,
@@ -97,7 +98,7 @@ class BaseContentItem(ui.AbstractItem):
             self._style["Label::ContentViewerWidgetItemListTitle:hovered"] = {"color": 0xCCFFFFFF, "font_size": 14}
 
     @property
-    def default_attr(self) -> Dict[str, Any]:
+    def default_attr(self) -> dict[str, Any]:
         """Default attribute with default values created in the class that will be destroyed during closing"""
         return {
             "_core": None,
@@ -192,7 +193,7 @@ class BaseContentItem(ui.AbstractItem):
     async def _deferred_create_ui(self):
         pass
 
-    def set_list_root_frames(self, value: Dict[str, ui.Frame]):
+    def set_list_root_frames(self, value: dict[str, ui.Frame]):
         """
         Save frames that will be resized when the scale of the list view change
 
@@ -201,11 +202,11 @@ class BaseContentItem(ui.AbstractItem):
         """
         self._list_root_frames = value
 
-    def get_list_root_frames(self) -> Dict[str, ui.Frame]:
+    def get_list_root_frames(self) -> dict[str, ui.Frame]:
         """Get the root frames that the list view use when we scale it"""
         return self._list_root_frames
 
-    def set_list_root_labels(self, value: Dict[str, ui.Label]):
+    def set_list_root_labels(self, value: dict[str, ui.Label]):
         """
         Save labels that will be resized when the scale of the list view change
 
@@ -214,20 +215,20 @@ class BaseContentItem(ui.AbstractItem):
         """
         self._list_root_labels = value
 
-    def get_list_root_labels(self) -> Dict[str, ui.Label]:
+    def get_list_root_labels(self) -> dict[str, ui.Label]:
         """Get the root labels that the list view use when we scale it"""
         return self._list_root_labels
 
     @abc.abstractmethod
-    def on_mouse_clicked(self, x, y, b, m):  # noqa PLC0103
+    def on_mouse_clicked(self, x, y, b, m):
         """Called when the item is clicked on"""
         pass
 
-    def on_mouse_released(self, x, y, b, m):  # noqa PLC0103
+    def on_mouse_released(self, x, y, b, m):
         """Called when the mouse is released"""
         pass
 
-    def on_mouse_moved(self, x, y, b, m):  # noqa PLC0103
+    def on_mouse_moved(self, x, y, b, m):
         """Called when the mouse is moved"""
         pass
 
@@ -259,8 +260,8 @@ class ContentItemAdd(BaseContentItem):
 
     def __init__(
         self,
-        content_data: Type["ContentDataAdd"],
-        core: Type["ContentViewerCore"],
+        content_data: type["ContentDataAdd"],
+        core: type["ContentViewerCore"],
         grid_column_width: int,
         grid_row_height: int,
         grid_root_frame: ui.Widget,
@@ -280,7 +281,7 @@ class ContentItemAdd(BaseContentItem):
 
         if not list_mode:
             self.__overlay_wide_rectangle = None
-            self.__overlay_highlight_rectangle = None  # noqa PLW0238
+            self.__overlay_highlight_rectangle = None
 
         super().__init__(content_data, core, grid_column_width, grid_row_height, grid_root_frame, list_mode=list_mode)
 
@@ -309,7 +310,7 @@ class ContentItemAdd(BaseContentItem):
                 mouse_moved_fn=self.on_mouse_moved,
             )
             # highlight rectangle when the mouse is over it
-            self.__overlay_highlight_rectangle = ui.Rectangle(name="ContentViewerWidgetItemOverlay")  # noqa PLW0238
+            self.__overlay_highlight_rectangle = ui.Rectangle(name="ContentViewerWidgetItemOverlay")
             with ui.VStack():
                 ui.Spacer(height=ui.Percent(4 / (self._grid_row_height / 100)))
                 with ui.HStack(height=ui.Percent(144 / (self._grid_row_height / 100))):
@@ -336,21 +337,21 @@ class ContentItemAdd(BaseContentItem):
         if not self._list_mode:
             self.__overlay_wide_rectangle.selected = value
 
-    def on_mouse_clicked(self, x, y, b, m):  # noqa PLC0103
+    def on_mouse_clicked(self, x, y, b, m):
         """Called when the item is clicked on"""
         self._core.set_item_was_clicked(True)
         self._core.set_selection(self.content_data)
 
-    def on_mouse_released(self, x, y, b, m):  # noqa PLC0103
+    def on_mouse_released(self, x, y, b, m):
         """Called when the mouse is released"""
         pass
 
-    def on_mouse_moved(self, x, y, b, m):  # noqa PLC0103
+    def on_mouse_moved(self, x, y, b, m):
         """Called when the mouse is moved"""
         pass
 
     def destroy(self):
-        self.__overlay_highlight_rectangle = None  # noqa PLW0238
+        self.__overlay_highlight_rectangle = None
         self.__overlay_wide_rectangle = None
         super().destroy()
 
@@ -378,7 +379,7 @@ class ContentItem(BaseContentItem):
 
     def __init__(
         self,
-        content_data: Type["ContentData"],
+        content_data: type["ContentData"],
         core,
         grid_column_width,
         grid_row_height,
@@ -655,7 +656,7 @@ class ContentItem(BaseContentItem):
 
     def destroy(self):
         if not self._list_mode:
-            self.__background_image = None  # noqa PLW0238
+            self.__background_image = None
             self.__checkpoint_zstack = None
             self.__checkpoint_combobox = None
             self.__overlay_wide_rectangle = None
@@ -688,7 +689,7 @@ class ContentItem(BaseContentItem):
             self.content_data.checkpoint_version = entry.relative_path[1:]
             self.__checkpoint_zstack.set_tooltip(entry.comment)
 
-    def get_current_checkpoint(self) -> Optional[omni.client.ListEntry]:
+    def get_current_checkpoint(self) -> omni.client.ListEntry | None:
         """Get the current checkpoint version"""
         if self.CAN_CHOSE_CHECKPOINT and self.content_data.is_checkpointed():
             result, entries = omni.client.list_checkpoints(self.content_data.path)
@@ -696,13 +697,13 @@ class ContentItem(BaseContentItem):
                 return entries[::-1][self.__checkpoint_combobox.model.get_item_value_model().as_int]
         return None
 
-    def _on_checkpoint_combobox_mouse_clicked(self, x, y, b, m):  # noqa PLC0103
+    def _on_checkpoint_combobox_mouse_clicked(self, x, y, b, m):
         self._core.set_block_selection(True)
 
-    def _on_checkpoint_combobox_mouse_released(self, x, y, b, m):  # noqa PLC0103
+    def _on_checkpoint_combobox_mouse_released(self, x, y, b, m):
         self._core.set_block_selection(False)
 
-    def on_mouse_clicked(self, x, y, b, m):  # noqa PLC0103
+    def on_mouse_clicked(self, x, y, b, m):
         """Called when the item is clicked on"""
         if b != 0:
             return
@@ -717,10 +718,10 @@ class ContentItem(BaseContentItem):
         else:
             self._core.set_selection(self.content_data)
 
-    def on_mouse_released(self, x, y, b, m):  # noqa PLC0103
+    def on_mouse_released(self, x, y, b, m):
         """Called when the mouse is released"""
         pass  # PLW0107
 
-    def on_mouse_moved(self, x, y, b, m):  # noqa PLC0103
+    def on_mouse_moved(self, x, y, b, m):
         """Called when the mouse is moved"""
         pass  # PLW0107

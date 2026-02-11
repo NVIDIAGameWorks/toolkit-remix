@@ -21,7 +21,8 @@ import collections
 import dataclasses
 import typing
 from functools import partial
-from typing import Any, Callable, List, Optional, Sequence, Type
+from typing import Any
+from collections.abc import Callable, Sequence
 
 import omni.kit
 import omni.kit.commands
@@ -59,7 +60,7 @@ class _BaseUSDAttributeItem(_Item):
     def __init__(
         self,
         context_name: str,
-        attribute_paths: List[Sdf.Path],
+        attribute_paths: list[Sdf.Path],
     ):
         """
         Args:
@@ -90,7 +91,7 @@ class _BaseUSDAttributeItem(_Item):
         return default_attr
 
     @property
-    def attribute_paths(self) -> List[Sdf.Path]:
+    def attribute_paths(self) -> list[Sdf.Path]:
         """
         Get the attribute/property paths this item represents.
 
@@ -109,7 +110,7 @@ class _BaseUSDAttributeItem(_Item):
         """
         return self._context_name
 
-    def set_display_attr_names(self, display_attr_names: List[str]):
+    def set_display_attr_names(self, display_attr_names: list[str]):
         """
         Set the display name of the attributes
 
@@ -124,7 +125,7 @@ class _BaseUSDAttributeItem(_Item):
                 display_attr_name = ""
             name_model.set_display_attr_name(display_attr_name)
 
-    def set_display_attr_names_tooltip(self, display_attr_names_tooltip: List[str]):
+    def set_display_attr_names_tooltip(self, display_attr_names_tooltip: list[str]):
         """
         Set the display name of the attributes
 
@@ -139,7 +140,7 @@ class _BaseUSDAttributeItem(_Item):
                 tooltip = ""
             name_model.set_display_attr_name_tooltip(tooltip)
 
-    def _get_all_attributes(self) -> List["Usd.Attribute"]:
+    def _get_all_attributes(self) -> list["Usd.Attribute"]:
         attributes = set()
         for value_model in self.value_models:
             attributes = attributes.union(value_model.attributes)
@@ -172,9 +173,9 @@ class USDAttributeItem(_BaseUSDAttributeItem):
     def __init__(
         self,
         context_name: str,
-        attribute_paths: List[Sdf.Path],
-        display_attr_names: Optional[List[str]] = None,
-        display_attr_names_tooltip: Optional[List[str]] = None,
+        attribute_paths: list[Sdf.Path],
+        display_attr_names: list[str] | None = None,
+        display_attr_names_tooltip: list[str] | None = None,
         default_value: Any = None,
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
@@ -268,9 +269,9 @@ class USDAttributeXformItem(USDAttributeItem):
     def __init__(
         self,
         context_name: str,
-        attribute_paths: List[Sdf.Path],
-        display_attr_names: Optional[List[str]] = None,
-        display_attr_names_tooltip: Optional[List[str]] = None,
+        attribute_paths: list[Sdf.Path],
+        display_attr_names: list[str] | None = None,
+        display_attr_names_tooltip: list[str] | None = None,
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
     ):
@@ -323,7 +324,7 @@ class USDAttributeXformItem(USDAttributeItem):
         )
         dialog.show()
 
-    def _get_prims(self, attributes: List["Usd.Attribute"]) -> List["Usd.Prim"]:
+    def _get_prims(self, attributes: list["Usd.Attribute"]) -> list["Usd.Prim"]:
         """
         Get the associated prim for each attribute.
         """
@@ -332,7 +333,7 @@ class USDAttributeXformItem(USDAttributeItem):
             return []
         return list({stage.GetPrimAtPath(attribute.GetPrimPath()) for attribute in attributes})
 
-    def _get_all_attributes(self) -> List["Usd.Attribute"]:
+    def _get_all_attributes(self) -> list["Usd.Attribute"]:
         """
         Xform items should return all xform attributes, not just the selected attribute.
         """
@@ -357,14 +358,14 @@ class VirtualUSDAttributeItem(USDAttributeItem):
     def __init__(
         self,
         context_name: str,
-        attribute_paths: List[Sdf.Path],
+        attribute_paths: list[Sdf.Path],
         value_type_name: Sdf.ValueTypeName,
         default_value: Any,
-        display_attr_names: Optional[List[str]] = None,
-        display_attr_names_tooltip: Optional[List[str]] = None,
+        display_attr_names: list[str] | None = None,
+        display_attr_names_tooltip: list[str] | None = None,
         read_only: bool = False,
         metadata: dict | None = None,
-        create_callback: Optional[Callable[[Any], None]] = None,
+        create_callback: Callable[[Any], None] | None = None,
     ):
         """
         Args:
@@ -439,22 +440,22 @@ class VirtualUSDAttributeItem(USDAttributeItem):
 class _BaseListModelItem(_BaseUSDAttributeItem):
     """Item of the model"""
 
-    value_model_class: Type[_UsdListModelAttrValueModel] | Type[_UsdAttributeMetadataValueModel] = (
+    value_model_class: type[_UsdListModelAttrValueModel] | type[_UsdAttributeMetadataValueModel] = (
         _UsdListModelAttrValueModel
     )
 
     def __init__(
         self,
         context_name: str,
-        attribute_paths: List[Sdf.Path],
+        attribute_paths: list[Sdf.Path],
         default_value: str,
-        options: List[str],
+        options: list[str],
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
         metadata: dict = None,
-        display_attr_names: Optional[List[str]] = None,
-        display_attr_names_tooltip: Optional[List[str]] = None,
-        metadata_key: Optional[str] = None,
+        display_attr_names: list[str] | None = None,
+        display_attr_names_tooltip: list[str] | None = None,
+        metadata_key: str | None = None,
     ):
         """
         Args:
@@ -574,7 +575,7 @@ class USDAttributeDef:
     path: Sdf.Path
     attr_type: Sdf.ValueTypeNames
     op: UsdGeom.XformOp = None
-    value: Optional[Any] = None
+    value: Any | None = None
     exists: bool = False
     documentation: str = None
     display_group: str = None
@@ -608,8 +609,8 @@ class USDAttributeItemStub(USDAttributeItem):
         self.name = name
         self._attribute_defs = attribute_defs
 
-        self._refresh_task: Optional[asyncio.Task] = None
-        self._create_task: Optional[asyncio.Task] = None
+        self._refresh_task: asyncio.Task | None = None
+        self._create_task: asyncio.Task | None = None
 
         self.__on_create_attributes_begin = _Event()
         self.__on_create_attributes_end = _Event()
@@ -783,11 +784,11 @@ class USDRelationshipItem(_BaseUSDAttributeItem):
     def __init__(
         self,
         context_name: str,
-        relationship_paths: List[Sdf.Path],
-        display_attr_names: Optional[List[str]] = None,
-        display_attr_names_tooltip: Optional[List[str]] = None,
+        relationship_paths: list[Sdf.Path],
+        display_attr_names: list[str] | None = None,
+        display_attr_names_tooltip: list[str] | None = None,
         read_only: bool = False,
-        ui_metadata: Optional[dict[str, Any]] = None,
+        ui_metadata: dict[str, Any] | None = None,
     ):
         """
         Create relationship item.
@@ -848,7 +849,7 @@ class USDRelationshipItem(_BaseUSDAttributeItem):
 
     def _init_value_models(self, context_name, relationship_paths, read_only):
         """Create relationship value model."""
-        from .item_model.relationship_value import UsdRelationshipValueModel
+        from .item_model.relationship_value import UsdRelationshipValueModel  # noqa: PLC0415
 
         self._value_models = [
             UsdRelationshipValueModel(

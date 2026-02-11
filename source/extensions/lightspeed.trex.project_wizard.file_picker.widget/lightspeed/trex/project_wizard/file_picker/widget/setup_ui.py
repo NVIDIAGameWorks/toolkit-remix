@@ -16,7 +16,7 @@
 """
 
 from pathlib import Path
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import carb
 from lightspeed.common import constants as _constants
@@ -33,9 +33,9 @@ class FilePickerWidget:
         self,
         title: str,
         select_directory: bool,
-        validate_callback: Callable[[str], Optional[str]],
-        selected_callback: Callable[[Optional[str]], None],
-        current_path: Optional[str] = None,
+        validate_callback: Callable[[str], str | None],
+        selected_callback: Callable[[str | None], None],
+        current_path: str | None = None,
         apply_button_label: str = "Select",
         placeholder_label: str = "",
     ):

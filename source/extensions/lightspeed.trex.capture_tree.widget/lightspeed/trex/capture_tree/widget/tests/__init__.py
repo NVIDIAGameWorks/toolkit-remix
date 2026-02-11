@@ -17,3 +17,5 @@
 
 from .e2e.test_widget import TestCaptureTreeWidget
 from .unit.test_subscription_lifecycle import TestCaptureWidgetSubscriptionLifecycle
+
+__all__ = ["TestCaptureTreeWidget", "TestCaptureWidgetSubscriptionLifecycle"]

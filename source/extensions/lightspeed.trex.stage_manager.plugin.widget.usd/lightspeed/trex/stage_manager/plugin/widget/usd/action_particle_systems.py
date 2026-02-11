@@ -20,7 +20,8 @@ from __future__ import annotations
 __all__ = ["ParticleSystemsActionWidgetPlugin"]
 
 from functools import partial
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 import omni.kit.commands
 from lightspeed.common.constants import PARTICLE_SCHEMA_NAME as _PARTICLE_SCHEMA_NAME

@@ -16,3 +16,5 @@
 """
 
 from .e2e import TestHotkeys, TestStageManagerPropertiesInteraction
+
+__all__ = ["TestHotkeys", "TestStageManagerPropertiesInteraction"]

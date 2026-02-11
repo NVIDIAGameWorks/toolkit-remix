@@ -15,7 +15,10 @@
 * limitations under the License.
 """
 
-from typing import Any, Callable, Dict, List, Optional
+from __future__ import annotations
+
+from typing import Any
+from collections.abc import Callable
 
 import omni.ui as ui
 import omni.usd
@@ -41,9 +44,9 @@ class Item(ui.AbstractItem):
         self.__on_mouse_released = _Event()
         self.__on_mass_cook_template = _Event()
 
-        self.__sub_mass_cook_template = None  # noqa PLW0238
+        self.__sub_mass_cook_template = None
 
-    def can_item_have_children(self, item: "Item") -> bool:
+    def can_item_have_children(self, item: Item) -> bool:
         """
         Define if the item can have children or not
 
@@ -56,10 +59,10 @@ class Item(ui.AbstractItem):
         return False
 
     @omni.usd.handle_exception
-    async def cook_template(self) -> List[Dict[Any, Any]]:
+    async def cook_template(self) -> list[dict[Any, Any]]:
         return await self.cook_template_no_exception()
 
-    async def cook_template_no_exception(self) -> List[Dict[Any, Any]]:
+    async def cook_template_no_exception(self) -> list[dict[Any, Any]]:
         """
         Cook template: meaning that from some input template(s), we can generate others templates.
         The idea of "cooking" is that a plugin can "edit" template(s) and give back edited template(s).
@@ -75,10 +78,10 @@ class Item(ui.AbstractItem):
             List of new/cooked template
         """
 
-        async def _cook_mass_template(cooked_plugins, _cooked_schemas: List[_ValidationSchema]):
+        async def _cook_mass_template(cooked_plugins, _cooked_schemas: list[_ValidationSchema]):
             result_schema = []
             if cooked_plugins[0].data.cook_mass_template:
-                self.__sub_mass_cook_template = cooked_plugins[0].instance.subscribe_mass_cook_template(  # noqa PLW0238
+                self.__sub_mass_cook_template = cooked_plugins[0].instance.subscribe_mass_cook_template(
                     self.on_mass_cook_template
                 )
                 for cooked_schema in _cooked_schemas:
@@ -109,7 +112,7 @@ class Item(ui.AbstractItem):
         final_result = await _cook_mass_template([model_clone.model.context_plugin], [model_clone.model])
 
         cooked_schemas5 = []
-        for i, schema in enumerate(final_result):  # noqa
+        for i, schema in enumerate(final_result):  # noqa: B007
             cooked_schemas = [schema]
             for i2, _cooked_check_plugin_model in enumerate(cooked_schemas[-1].check_plugins):
                 # sub context
@@ -208,7 +211,7 @@ class Item(ui.AbstractItem):
                         await check_plugin_model.instance.mass_build_ui(check_plugin_model.data)
                     ui.Spacer(height=ui.Pixel(8))
             if self._model.model.resultor_plugins:
-                for resultor_plugin in self._model.model.resultor_plugins:  # noqa
+                for resultor_plugin in self._model.model.resultor_plugins:
                     if resultor_plugin.data.expose_mass_ui:
                         was_build = True
                         ui.Line(
@@ -242,7 +245,7 @@ class Item(ui.AbstractItem):
     def on_mouse_released(self):
         self.__on_mouse_released(self)
 
-    def subscribe_mouse_released(self, function: Callable[["Item"], Any]):
+    def subscribe_mouse_released(self, function: Callable[[Item], Any]):
         """
         Subscribe to the *on_value_changed_callback* event.
 
@@ -254,7 +257,7 @@ class Item(ui.AbstractItem):
         """
         return _EventSubscription(self.__on_mouse_released, function)
 
-    def on_mass_cook_template(self, success: bool, message: Optional[str], data: Any):
+    def on_mass_cook_template(self, success: bool, message: str | None, data: Any):
         self.__on_mass_cook_template(success, message, data)
 
     def subscribe_mass_cook_template(self, callback: Callable[[Any], Any]):
@@ -282,13 +285,13 @@ class Model(ui.AbstractItemModel):
 
     def __init__(self):
         super().__init__()
-        self.__items: List[Item] = []
+        self.__items: list[Item] = []
         self.__sub_mouse_pressed = []
         self.__subs_mass_cook_template = []
 
         self.__on_mass_cook_template = _Event()
 
-    def add_schemas(self, datas: List[Dict[Any, Any]]):
+    def add_schemas(self, datas: list[dict[Any, Any]]):
         """Set the items to show"""
         for data in datas:
             item = Item(data)
@@ -296,11 +299,11 @@ class Model(ui.AbstractItemModel):
             self.__items.append(item)
         self._item_changed(None)
 
-    def subscribe_item_mouse_released(self, function: Callable[["Item"], Any]):
+    def subscribe_item_mouse_released(self, function: Callable[[Item], Any]):
         for item in self.__items:
             self.__sub_mouse_pressed.append(item.subscribe_mouse_released(function))
 
-    def on_mass_cook_template(self, success: bool, message: Optional[str], data: Any):
+    def on_mass_cook_template(self, success: bool, message: str | None, data: Any):
         self.__on_mass_cook_template(success, message, data)
 
     def subscribe_mass_cook_template(self, callback: Callable[[Any], Any]):
@@ -309,7 +312,7 @@ class Model(ui.AbstractItemModel):
         """
         return _EventSubscription(self.__on_mass_cook_template, callback)
 
-    def get_item_children(self, item: Optional[Item]):
+    def get_item_children(self, item: Item | None):
         """Returns all the children when the widget asks it."""
         if item is None:
             return self.__items

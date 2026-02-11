@@ -16,7 +16,8 @@
 """
 
 import abc
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 from omni import ui
 from omni.flux.utils.common import Event as _Event
@@ -39,9 +40,7 @@ class StageManagerWidgetPlugin(_StageManagerUIPluginBase, abc.ABC):
     _icon_size: ui.Length = PrivateAttr(default=0)
 
     @abc.abstractmethod
-    def build_ui(  # noqa PLW0221
-        self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool
-    ):
+    def build_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
         pass
 
     def build_overview_ui(self, model: "_StageManagerTreeModel"):

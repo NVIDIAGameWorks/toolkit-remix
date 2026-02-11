@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.5]
+### Changed
+- Modernize python style and enable more ruff checks
+
 ## [1.9.4]
 ### Changed
 - Updated to use `TreeItemBase.parent` setter for adding children (compatibility with omni.flux.utils.widget 1.24.0)

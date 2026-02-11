@@ -43,7 +43,7 @@ class StageManagerPluginBase(_PluginBase, BaseModel, abc.ABC):
     def __hash__(self):
         return hash(self.name)
 
-    def dict(self, *args, **kwargs):  # noqa A003
+    def dict(self, *args, **kwargs):
         # Override the dict method to include the `name` property
         data = super().dict(*args, **kwargs)
         data["name"] = self.name

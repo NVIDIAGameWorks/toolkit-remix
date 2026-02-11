@@ -37,8 +37,8 @@ class USDFloatSliderField(FloatSliderField):
         min_value = None
         max_value = None
 
-        for attribute_path in item._attribute_paths:  # noqa PLW0212
-            prim = item._stage.GetPrimAtPath(attribute_path.GetPrimPath())  # noqa PLW0212
+        for attribute_path in item._attribute_paths:  # noqa: SLF001
+            prim = item._stage.GetPrimAtPath(attribute_path.GetPrimPath())  # noqa: SLF001
             if prim.HasAttribute(attribute_path.name):
                 attr = prim.GetAttribute(attribute_path.name)
                 custom = attr.GetMetadata("customData")

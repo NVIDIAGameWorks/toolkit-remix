@@ -52,7 +52,7 @@ class AbstractField(Generic[ItemT]):
     def set_dynamic_tooltip_fn(widget: ui.Widget, item_value_model: ItemModelBase) -> None:
         """Helper method to set dynamic tooltip function on a built widget."""
 
-        def update_tooltip(hovered: bool):
+        def update_tooltip(_hovered: bool):
             tool_tip = item_value_model.get_tool_tip()
             if tool_tip is not None:
                 widget.tooltip = tool_tip

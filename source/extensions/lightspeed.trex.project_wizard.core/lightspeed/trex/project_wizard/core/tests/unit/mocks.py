@@ -19,7 +19,6 @@ import asyncio
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional
 from unittest.mock import Mock, patch
 
 import carb
@@ -33,10 +32,10 @@ class ProjectWizardSchemaMock:
         self,
         existing_project: bool,
         project_file: Path,
-        remix_directory: Optional[Path] = None,
-        existing_mods: Optional[List[Path]] = None,
-        mod_file: Optional[Path] = None,
-        capture_file: Optional[Path] = None,
+        remix_directory: Path | None = None,
+        existing_mods: list[Path] | None = None,
+        mod_file: Path | None = None,
+        capture_file: Path | None = None,
     ):
         self.existing_project = existing_project
         self.project_file = project_file

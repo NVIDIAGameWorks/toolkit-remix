@@ -15,23 +15,25 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 __all__ = [
-    "get_branch",
+    "GitError",
     "clone_repository",
-    "open_repository",
+    "get_branch",
+    "get_local_commit",
+    "get_remote_ahead_behind",
+    "get_remote_commit",
+    "has_local_changes",
+    "has_uncommitted_changes",
     "initialize_submodules",
+    "open_repository",
     "pull_repository",
     "rebase_repository",
-    "get_remote_commit",
-    "get_local_commit",
-    "has_uncommitted_changes",
-    "get_remote_ahead_behind",
-    "has_local_changes",
-    "GitError",
 ]
 
 from pathlib import Path
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import carb
 import pygit2
@@ -47,7 +49,7 @@ def clone_repository(
     depth: int | None = None,
     recurse_submodules: bool = False,
     validation_callback: Callable[[str], bool] | None = None,
-) -> Optional[pygit2.Repository]:
+) -> pygit2.Repository | None:
     """
     Clone a git repository to a local directory.
 
@@ -99,7 +101,7 @@ def clone_repository(
 
 def open_repository(
     repo_root: str | None = None, validation_callback: Callable[[str], bool] | None = None
-) -> Optional[pygit2.Repository]:
+) -> pygit2.Repository | None:
     """
     Discover and open the current git repository.
 
@@ -128,7 +130,7 @@ def open_repository(
     return repo
 
 
-def initialize_submodules(repository: Optional[pygit2.Repository]) -> bool:
+def initialize_submodules(repository: pygit2.Repository | None) -> bool:
     """
     Initialize and update all the submodules in the repository.
 
@@ -151,7 +153,7 @@ def initialize_submodules(repository: Optional[pygit2.Repository]) -> bool:
     return True
 
 
-def rebase_repository(repository: Optional[pygit2.Repository], local_oid: pygit2.Oid, remote_oid: pygit2.Oid) -> bool:
+def rebase_repository(repository: pygit2.Repository | None, local_oid: pygit2.Oid, remote_oid: pygit2.Oid) -> bool:
     """
     Rebase local commits onto a remote branch using cherry-pick operations.
 
@@ -237,7 +239,7 @@ def rebase_repository(repository: Optional[pygit2.Repository], local_oid: pygit2
         return False
 
 
-def pull_repository(repository: Optional[pygit2.Repository], force: bool = False) -> bool:
+def pull_repository(repository: pygit2.Repository | None, force: bool = False) -> bool:
     """
     Pull the latest changes from the remote repository.
 
@@ -314,7 +316,7 @@ def pull_repository(repository: Optional[pygit2.Repository], force: bool = False
     return success
 
 
-def get_branch(repository: Optional[pygit2.Repository]) -> str | None:
+def get_branch(repository: pygit2.Repository | None) -> str | None:
     """
     Get the current git branch.
 
@@ -339,7 +341,7 @@ def get_branch(repository: Optional[pygit2.Repository]) -> str | None:
     return "HEAD"
 
 
-def get_local_commit(repository: Optional[pygit2.Repository]) -> Optional[pygit2.Oid]:
+def get_local_commit(repository: pygit2.Repository | None) -> pygit2.Oid | None:
     """
     Return the local commit (HEAD) as a pygit2.Oid or None.
 
@@ -358,7 +360,7 @@ def get_local_commit(repository: Optional[pygit2.Repository]) -> Optional[pygit2
     return repository.head.target
 
 
-def get_remote_commit(repository: Optional[pygit2.Repository]) -> Optional[pygit2.Oid]:
+def get_remote_commit(repository: pygit2.Repository | None) -> pygit2.Oid | None:
     """
     Fetch and return the latest remote commit for the current branch (origin/<branch>)
     as a pygit2.Oid, or None if unavailable.
@@ -399,7 +401,7 @@ def get_remote_commit(repository: Optional[pygit2.Repository]) -> Optional[pygit
     return None
 
 
-def has_uncommitted_changes(repository: Optional[pygit2.Repository]) -> bool:
+def has_uncommitted_changes(repository: pygit2.Repository | None) -> bool:
     """
     Check if the repository has uncommitted changes (modified or staged files).
 
@@ -430,7 +432,7 @@ def has_uncommitted_changes(repository: Optional[pygit2.Repository]) -> bool:
     return False
 
 
-def get_remote_ahead_behind(repository: Optional[pygit2.Repository]) -> tuple[int, int]:
+def get_remote_ahead_behind(repository: pygit2.Repository | None) -> tuple[int, int]:
     """
     Get the number of commits the local branch is ahead and behind the remote branch.
 
@@ -461,7 +463,7 @@ def get_remote_ahead_behind(repository: Optional[pygit2.Repository]) -> tuple[in
     return repository.ahead_behind(local_oid, remote_oid)
 
 
-def has_local_changes(repository: Optional[pygit2.Repository]) -> bool:
+def has_local_changes(repository: pygit2.Repository | None) -> bool:
     """
     Check if the repository has local changes (uncommitted changes or non-pushed commits).
 
@@ -477,7 +479,7 @@ def has_local_changes(repository: Optional[pygit2.Repository]) -> bool:
     return has_uncommitted_changes(repository) or ahead > 0
 
 
-def _pop_stash(repository: Optional[pygit2.Repository], stash_oid: pygit2.Oid) -> bool:
+def _pop_stash(repository: pygit2.Repository | None, stash_oid: pygit2.Oid) -> bool:
     """
     Find a stash by its OID, apply it, and drop it.
 

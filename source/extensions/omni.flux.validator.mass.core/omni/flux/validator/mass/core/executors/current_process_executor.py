@@ -15,9 +15,11 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import functools
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import carb
 
@@ -42,17 +44,17 @@ class CurrentProcessExecutor(_BaseExecutor):
     async def _clear_sub(self, future: asyncio.Future):
         del self._sub_run_finished[future]
 
-    def _set_result(self, future: asyncio.Future, result: bool, message: Optional[str] = None):
+    def _set_result(self, future: asyncio.Future, result: bool, message: str | None = None):
         future.set_result((result, message))
         asyncio.ensure_future(self._clear_sub(future))
 
     def submit(
         self,
-        core: "_ManagerCore",
+        core: _ManagerCore,
         print_result: bool = False,
         silent: bool = False,
-        timeout: Optional[int] = None,
-        standalone: Optional[bool] = False,
+        timeout: int | None = None,
+        standalone: bool | None = False,
         queue_id: str | None = None,
     ) -> asyncio.Future:
         future = asyncio.Future()
@@ -64,7 +66,7 @@ class CurrentProcessExecutor(_BaseExecutor):
         self._sub_run_finished[future] = core.subscribe_run_finished(functools.partial(self._set_result, future))
         return future
 
-    async def _submit(self, func, future: asyncio.Future, *args, timeout: Optional[int] = None, **kwargs):
+    async def _submit(self, func, future: asyncio.Future, *args, timeout: int | None = None, **kwargs):
         try:
             if timeout is None:
                 await self._run(func, *args, **kwargs)

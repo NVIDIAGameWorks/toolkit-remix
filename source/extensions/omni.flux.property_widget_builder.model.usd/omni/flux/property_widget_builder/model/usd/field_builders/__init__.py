@@ -16,12 +16,12 @@
 """
 
 __all__ = (
-    "USDBuilderList",
     "ALL_FIELD_BUILDERS",
-    "MATERIAL_FIELD_BUILDERS",
     "DEFAULT_FIELD_BUILDERS",
     "LIGHT_FIELD_BUILDERS",
+    "MATERIAL_FIELD_BUILDERS",
     "OGN_FIELD_BUILDERS",
+    "USDBuilderList",
 )
 
 

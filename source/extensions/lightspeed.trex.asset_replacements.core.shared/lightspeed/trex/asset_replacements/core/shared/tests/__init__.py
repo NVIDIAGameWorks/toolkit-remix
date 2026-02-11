@@ -17,3 +17,5 @@
 
 from .unit.test_core import TestAssetReplacementsCore
 from .unit.test_validators import TestAssetReplacementsValidators
+
+__all__ = ["TestAssetReplacementsCore", "TestAssetReplacementsValidators"]

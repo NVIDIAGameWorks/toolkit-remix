@@ -35,7 +35,7 @@ class IManipulator:
         self.__viewport_api = viewport_api
         self.__manipulator = self._create_manipulator()
         if self.__manipulator:
-            self.__model_changed_sub = self.__manipulator.model.subscribe_item_changed_fn(self._model_changed)  # noqa
+            self.__model_changed_sub = self.__manipulator.model.subscribe_item_changed_fn(self._model_changed)
 
     @property
     def viewport_api(self):
@@ -71,7 +71,7 @@ class IManipulator:
         pass
 
     def destroy(self):
-        self.__model_changed_sub = None  # noqa
+        self.__model_changed_sub = None
         self.__manipulator = None
         self.__viewport_api = None
         if self._default_attr:

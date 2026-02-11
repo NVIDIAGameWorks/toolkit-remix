@@ -15,8 +15,10 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from functools import partial
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 import omni.kit.commands
 import omni.kit.undo
@@ -26,7 +28,7 @@ from omni.flux.utils.common.utils import get_omni_prims as _get_omni_prims
 from pxr import Sdf, UsdGeom
 from pydantic import Field, field_validator
 
-from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
+from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
 if TYPE_CHECKING:
     from pxr import Usd
@@ -42,18 +44,18 @@ class WrapRootPrims(_CheckBaseUSD):
 
     class Data(_CheckBaseUSD.Data):
         set_default_prim: bool = Field(default=True)
-        wrap_prim_name: Optional[str] = Field(default=None)
+        wrap_prim_name: str | None = Field(default=None)
 
         @field_validator("wrap_prim_name", mode="before")
         @classmethod
-        def is_not_empty(cls, v: Optional[str]) -> Optional[str]:
+        def is_not_empty(cls, v: str | None) -> str | None:
             if v and not str(v).strip():
                 raise ValueError("The value cannot be empty")
             return v
 
         @field_validator("wrap_prim_name", mode="before")
         @classmethod
-        def is_valid_prim_path(cls, v: Optional[str]) -> Optional[str]:
+        def is_valid_prim_path(cls, v: str | None) -> str | None:
             if v and not Sdf.Path.IsValidIdentifier(str(v)):
                 raise ValueError("The value is not a valid Prim name")
             return v
@@ -69,7 +71,7 @@ class WrapRootPrims(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Checks if the given stage has a default prim.
 
@@ -94,7 +96,7 @@ class WrapRootPrims(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Attempts to set a default prim.
 
@@ -192,7 +194,7 @@ class WrapRootPrims(_CheckBaseUSD):
         """
         ui.Label("None")
 
-    def __get_root_prims(self, stage: "Usd.Stage") -> List["Sdf.Path"]:
+    def __get_root_prims(self, stage: Usd.Stage) -> list[Sdf.Path]:
         root_prims = []
 
         session_layer = stage.GetSessionLayer()

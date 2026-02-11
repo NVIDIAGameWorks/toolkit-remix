@@ -21,3 +21,10 @@ from .usd_base import (
     StageManagerUSDTreeModel,
     StageManagerUSDTreePlugin,
 )
+
+__all__ = [
+    "StageManagerUSDTreeDelegate",
+    "StageManagerUSDTreeItem",
+    "StageManagerUSDTreeModel",
+    "StageManagerUSDTreePlugin",
+]

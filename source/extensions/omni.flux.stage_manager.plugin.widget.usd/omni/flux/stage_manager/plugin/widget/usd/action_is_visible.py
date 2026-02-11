@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import omni.kit.commands
@@ -29,7 +31,7 @@ if TYPE_CHECKING:
 
 
 class IsVisibleActionWidgetPlugin(_StageManagerStateWidgetPlugin):
-    def build_icon_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
+    def build_icon_ui(self, model: _StageManagerTreeModel, item: _StageManagerTreeItem, level: int, expanded: bool):
         enabled = item.data and UsdGeom.Imageable(item.data)
 
         if enabled:
@@ -57,9 +59,7 @@ class IsVisibleActionWidgetPlugin(_StageManagerStateWidgetPlugin):
             mouse_released_fn=lambda x, y, b, m: self._on_icon_clicked(b, enabled, model, item),
         )
 
-    def _on_icon_clicked(
-        self, button: int, enabled: bool, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem"
-    ):
+    def _on_icon_clicked(self, button: int, enabled: bool, model: _StageManagerTreeModel, item: _StageManagerTreeItem):
         if button != 0 or not enabled:
             return
 

@@ -15,10 +15,13 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import traceback
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 import carb
 import omni.ui as ui
@@ -65,9 +68,9 @@ def disable_viewport_notifications():
 class ValidatorMassWidget:
     def __init__(
         self,
-        schema_paths: List[str] = None,
+        schema_paths: list[str] = None,
         use_global_style: bool = False,
-        style: Dict[str, Dict[str, Any]] = None,
+        style: dict[str, dict[str, Any]] = None,
         validator_widget_root_frame: ui.Widget = None,
         width: ui.Length = None,
     ):
@@ -126,7 +129,7 @@ class ValidatorMassWidget:
         self._style = None
         self._pages = {}
         if not use_global_style:
-            from .style import style as _local_style  # or doc will not build
+            from .style import style as _local_style  # noqa: PLC0415  # or doc will not build
 
             self._style = style or _local_style
         else:
@@ -145,34 +148,34 @@ class ValidatorMassWidget:
         self.__on_schema_tab_toggled = _Event()
         self.__on_schema_selection_changed = _Event()
 
-        self._previous_selection: List[_TabbedItem] = []
+        self._previous_selection: list[_TabbedItem] = []
 
         self._create_ui()
 
-    def subscribe_mass_queue_action_pressed(self, callback: Callable[["_Item", str], Any]):
+    def subscribe_mass_queue_action_pressed(self, callback: Callable[[_Item, str], Any]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__on_mass_queue_action_pressed, callback)
 
-    def _selection_changed(self, item: "_Item"):
+    def _selection_changed(self, item: _Item):
         """Call the event object that has the list of functions"""
         self.__on_schema_selection_changed(item)
 
-    def subscribe_selection_changed(self, function: Callable[["_Item"], Any]):
+    def subscribe_selection_changed(self, function: Callable[[_Item], Any]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         Called when the selection of the tree change
         """
         return _EventSubscription(self.__on_schema_selection_changed, function)
 
-    def _tab_toggled(self, item: "_TabbedItem", visible: bool):
+    def _tab_toggled(self, item: _TabbedItem, visible: bool):
         """Call the event object that has the list of functions"""
         # fraction will let the widget to not oversize to the right
         self.__root_frame.width = ui.Fraction(1) if visible else ui.Percent(0)
         self.__on_schema_tab_toggled(item, visible)
 
-    def subscribe_tab_toggled(self, function: Callable[["_Item", bool], Any]):
+    def subscribe_tab_toggled(self, function: Callable[[_Item, bool], Any]):
         """
         Return the object that will automatically unsubscribe when destroyed.
         Called when the selection of the tree change
@@ -199,7 +202,7 @@ class ValidatorMassWidget:
         # we pre-build the ui of ZStack
         asyncio.ensure_future(self._build_mass_ui_plugin())
 
-    def force_toggle(self, item: "_Item", value: bool):
+    def force_toggle(self, item: _Item, value: bool):
         """Toggle or not a tab"""
         self._schema_tree_view.force_toggle(item, value)
 
@@ -208,10 +211,10 @@ class ValidatorMassWidget:
         """Current selected tab(s)"""
         return self._schema_tree_view.selection
 
-    def _on_schema_tab_toggled(self, item: "_TabbedItem", visible: bool):
+    def _on_schema_tab_toggled(self, item: _TabbedItem, visible: bool):
         self._tab_toggled(item, visible)
 
-    def _on_schema_selection_changed(self, _item: "_TabbedItem"):
+    def _on_schema_selection_changed(self, _item: _TabbedItem):
         for item, (page, _was_built, frame_build) in self._pages.items():
             value = (
                 item.title == self._schema_tree_view.selection[0].title if self._schema_tree_view.selection else None
@@ -277,14 +280,14 @@ class ValidatorMassWidget:
                         self.__show_invalid_dialog()
                         return
                     try:
-                        result: List[Dict[Any, Any]] = await item.cook_template_no_exception()
+                        result: list[dict[Any, Any]] = await item.cook_template_no_exception()
                     except ValidationError as e:
                         carb.log_error("Exception when async cook_template_no_exception()")
                         carb.log_error(f"{e}")
                         carb.log_error(f"{traceback.format_exc()}")
                         self.__show_invalid_dialog()
                         return
-                    result_run: List[Tuple[_ManagerCore, asyncio.Future]] = await self._core.create_tasks(
+                    result_run: list[tuple[_ManagerCore, asyncio.Future]] = await self._core.create_tasks(
                         self._executors_cb.model.get_item_value_model().get_value_as_int(),
                         result,
                         custom_executors=(self._current_process_executor, self._external_process_executor),
@@ -295,7 +298,7 @@ class ValidatorMassWidget:
                         self._mass_queue_widget.add_items([core])
                     break
 
-    def _on_mass_queue_action_pressed(self, item: "_Item", action_name: str, **kwargs):
+    def _on_mass_queue_action_pressed(self, item: _Item, action_name: str, **kwargs):
         if action_name == _MassQueueTreeActions.SHOW_VALIDATION.value:
             if self._current_validation_widget_item is not None and id(self._current_validation_widget_item) == id(
                 item
@@ -332,7 +335,7 @@ class ValidatorMassWidget:
                             ui.Spacer(height=ui.Pixel(8))
         self.__on_mass_queue_action_pressed(item, action_name, **kwargs)
 
-    def _on_mass_queue_items_changed(self, model: "_MassQueueModel", items: List["_MassQueueItem"]):
+    def _on_mass_queue_items_changed(self, model: _MassQueueModel, items: list[_MassQueueItem]):
         all_items = model.get_item_children(None)
         for item in all_items:
             if id(item) in self._sub_show_validation_widgets:

@@ -20,17 +20,13 @@ drive UI components."""
 
 __all__ = ["get_placeholder_properties_for_prim"]
 
-from typing import List, Optional
-
 import carb
 from pxr import Usd, UsdShade
 
 from .placeholder import UsdShadePropertyPlaceholder
 
 
-def get_placeholder_properties_for_prim(
-    prim: Usd.Prim, args: Optional[dict] = None
-) -> List[UsdShadePropertyPlaceholder]:
+def get_placeholder_properties_for_prim(prim: Usd.Prim, args: dict | None = None) -> list[UsdShadePropertyPlaceholder]:
     """Retrieves a list of UsdShadePropertyPlaceholder objects for a given USD prim.
 
     This function builds placeholders used for driving the UI by examining the
@@ -43,16 +39,16 @@ def get_placeholder_properties_for_prim(
         args (dict): A dictionary of arguments that are passed to the builder classes.
 
     Returns:
-        List[:obj:`UsdShadePropertyPlaceholder`]: A list of UsdShadePropertyPlaceholder objects
+        list[`UsdShadePropertyPlaceholder`]: A list of UsdShadePropertyPlaceholder objects
         that represent the properties of the given prim within the UI.
 
     Raises:
         A warning is logged if the provided prim is not of type Shader, Material, or NodeGraph.
     """
 
-    from .material_builder import MaterialPropertiesBuilder
-    from .nodegraph_builder import NodeGraphPropertiesBuilder
-    from .shader_builder import ShaderPropertiesBuilder
+    from .material_builder import MaterialPropertiesBuilder  # noqa: PLC0415
+    from .nodegraph_builder import NodeGraphPropertiesBuilder  # noqa: PLC0415
+    from .shader_builder import ShaderPropertiesBuilder  # noqa: PLC0415
 
     if args is None:
         args = {}

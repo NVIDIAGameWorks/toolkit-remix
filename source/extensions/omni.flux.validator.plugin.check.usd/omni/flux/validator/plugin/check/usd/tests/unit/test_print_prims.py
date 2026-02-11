@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import sys
 from unittest.mock import patch
@@ -66,8 +68,8 @@ class TestPrintPrims(AsyncTestCase):
             nonlocal sub_fix_count
             sub_fix_count += 1
 
-        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)  # noqa
+        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)
+        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)
 
         await core.deferred_run()
 
@@ -108,8 +110,8 @@ class TestPrintPrims(AsyncTestCase):
             self.assertTrue("Fix" in _message)
             self.assertTrue([(prim.GetPath()) for prim in _data] == ["/Xform", "/Xform/Cube", "/Xform/Cube2"])
 
-        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)  # noqa
+        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)
+        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)
 
         with patch.object(_PrintPrims, "_check") as m_mocked:
             v1 = (False, "Check", ["1", "2", "3"])

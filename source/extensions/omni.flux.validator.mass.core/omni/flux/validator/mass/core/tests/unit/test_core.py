@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import copy
 from unittest.mock import patch
 
@@ -116,7 +118,7 @@ class TestCore(AsyncTestCase):
 
         # adding schema doesn't create Manager core
         with patch.object(core, "_on_core_added") as subscribe_core_added_mock:
-            core.add_schemas([items[0]._data])  # noqa
+            core.add_schemas([items[0]._data])
             self.assertEqual(subscribe_core_added_mock.call_count, 0)
 
     async def test_schemas_added_with_setting(self):
@@ -128,7 +130,7 @@ class TestCore(AsyncTestCase):
 
         # adding schema doesn't create Manager core
         with patch.object(core, "_on_core_added") as subscribe_core_added_mock:
-            core.add_schemas([items[0]._data])  # noqa
+            core.add_schemas([items[0]._data])
             self.assertEqual(subscribe_core_added_mock.call_count, 0)
 
         carb.settings.get_settings().destroy_item(_SCHEMA_PATH_SETTING)

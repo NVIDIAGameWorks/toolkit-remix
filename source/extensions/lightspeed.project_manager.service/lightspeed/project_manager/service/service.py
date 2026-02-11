@@ -53,7 +53,7 @@ class ProjectManagerService(ServiceBase):
 
         @self.router.put(path="/{layer_id:path}", operation_id="open_project", description="Open a project.")
         async def open_project(
-            layer_id: str = ServiceBase.validate_path_param(  # noqa B008
+            layer_id: str = ServiceBase.validate_path_param(
                 OpenProjectPathParamModel, description="Project identifier for the project to open as project"
             ),
         ) -> str:
@@ -61,7 +61,7 @@ class ProjectManagerService(ServiceBase):
 
         @self.router.delete(path="/", operation_id="close_project", description="Close the currently open project.")
         async def close_project(
-            force: bool = ServiceBase.describe_query_param(  # noqa B008
+            force: bool = ServiceBase.describe_query_param(
                 False, "Whether to force close the project even if there are pending changes."
             ),
         ) -> str:

@@ -17,3 +17,5 @@
 
 from .extension import StageManagerWindowExtension
 from .stage_manager import StageManagerWidget
+
+__all__ = ["StageManagerWidget", "StageManagerWindowExtension"]

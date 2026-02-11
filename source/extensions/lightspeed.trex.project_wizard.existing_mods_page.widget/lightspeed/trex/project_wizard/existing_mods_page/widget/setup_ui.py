@@ -18,7 +18,6 @@
 from asyncio import ensure_future
 from functools import partial
 from pathlib import Path
-from typing import List, Optional
 
 from lightspeed.common import constants as _constants
 from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys
@@ -34,7 +33,7 @@ from .selection_tree.model import ModSelectionModel as _ModSelectionModel
 class ExistingModsPage(_WizardPage):
     TREE_HEIGHT = 184
 
-    def __init__(self, context_name: str = "", previous_page: Optional[_WizardPage] = None):
+    def __init__(self, context_name: str = "", previous_page: _WizardPage | None = None):
         super().__init__(previous_page=previous_page, done_text="Create", blocked=True)
 
         default_attr = self._default_attr
@@ -128,7 +127,7 @@ class ExistingModsPage(_WizardPage):
 
         return existing_mods
 
-    def __update_existing_mods_ui(self, existing_mods: List[Path]):
+    def __update_existing_mods_ui(self, existing_mods: list[Path]):
         selected_mods = self.payload.get(_ProjectWizardKeys.EXISTING_MODS.value, [])
         self._tree_model_available.refresh([p for p in existing_mods if p not in selected_mods])
 

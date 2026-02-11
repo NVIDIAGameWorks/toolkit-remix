@@ -18,7 +18,6 @@
 __all__ = ["TestDeleteRestoreActionWidgetPlugin"]
 
 from tempfile import TemporaryDirectory
-from typing import Type
 
 import omni.graph.core as og
 from lightspeed.trex.stage_manager.plugin.widget.usd.action_delete_restore import DeleteRestoreActionWidgetPlugin
@@ -62,7 +61,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
         await usd.get_context().open_stage_async(temp_project.path)
 
-    async def _setup_widget(self, widget_plugin_type: Type[DeleteRestoreActionWidgetPlugin]):
+    async def _setup_widget(self, widget_plugin_type: type[DeleteRestoreActionWidgetPlugin]):
         window = ui.Window("TestWidgetPluginsWindow", width=200, height=100)
         with window.frame:
             widget = widget_plugin_type()

@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .setup_ui import CameraPane  # noqa F401
+from .setup_ui import CameraPane
+
+__all__ = ["CameraPane"]

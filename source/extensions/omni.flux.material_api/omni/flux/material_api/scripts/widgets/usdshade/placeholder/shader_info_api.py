@@ -15,11 +15,13 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 __all__ = ["ShaderInfoAPI"]
 
 import ast
 import math
-from typing import Any, List, Optional
+from typing import Any
 
 import carb
 from omni.kit.window.preferences import PERSISTENT_SETTINGS_PREFIX
@@ -55,7 +57,7 @@ class ShaderInfoAPI:
 
     RENDER_CONTEXTS_SETTING_PATH = PERSISTENT_SETTINGS_PREFIX + "/app/hydra/material/renderContexts"
 
-    def __init__(self, prim: Usd.Prim, overlay_property_metadata: Optional[bool] = True):
+    def __init__(self, prim: Usd.Prim, overlay_property_metadata: bool | None = True):
         self._prim = prim
         self._overlay_property_metadata = overlay_property_metadata
         self._prim_path = prim.GetPath()
@@ -76,7 +78,7 @@ class ShaderInfoAPI:
         else:  # pragma: no cover
             carb.log_error(f"Expected UsdShade.Shader or UsdShade.NodeGraph prim at: '{self._prim_path}'")
 
-    def get_node_properties(self) -> List[UsdShadePropertyPlaceholder]:
+    def get_node_properties(self) -> list[UsdShadePropertyPlaceholder]:
         """
         Create and return an UsdShadePropertyPlaceholder's for this nodes node level properties.
             e.g. description
@@ -93,9 +95,7 @@ class ShaderInfoAPI:
 
         return [UsdShadePropertyPlaceholder("Description", metadata, True)]
 
-    def get_input_properties(
-        self, property_name_filter: Optional[List[str]] = None
-    ) -> List[UsdShadePropertyPlaceholder]:
+    def get_input_properties(self, property_name_filter: list[str] | None = None) -> list[UsdShadePropertyPlaceholder]:
         """
         Create and return UsdShadePropertyPlaceholder's for this nodes input properties
         """
@@ -111,9 +111,7 @@ class ShaderInfoAPI:
         input_attributes = [usdshade_input.GetAttr() for usdshade_input in self._usdshade_prim.GetInputs()]
         return self._get_placeholders_for_attrs(input_attributes)
 
-    def get_output_properties(
-        self, property_name_filter: Optional[List[str]] = None
-    ) -> List[UsdShadePropertyPlaceholder]:
+    def get_output_properties(self, property_name_filter: list[str] | None = None) -> list[UsdShadePropertyPlaceholder]:
         """
         Create and return  UsdShadePropertyPlaceholder's for this nodes output properties
         """
@@ -134,12 +132,12 @@ class ShaderInfoAPI:
         return self._get_placeholders_for_attrs(output_attributes)  # pragma: no cover
 
     def _get_material_output_properties(
-        self, property_name_filter: Optional[List[str]] = None
-    ) -> List[UsdShadePropertyPlaceholder]:
+        self, property_name_filter: list[str] | None = None
+    ) -> list[UsdShadePropertyPlaceholder]:
         """
         Special handling for UsdShade.Material prim outputs.
         """
-        import omni.UsdMdl
+        import omni.UsdMdl  # noqa: PLC0415
 
         placeholder_properties = []
 
@@ -169,7 +167,7 @@ class ShaderInfoAPI:
 
         return placeholder_properties
 
-    def _get_placeholders_for_attrs(self, attributes: List[Usd.Attribute]) -> List[UsdShadePropertyPlaceholder]:
+    def _get_placeholders_for_attrs(self, attributes: list[Usd.Attribute]) -> list[UsdShadePropertyPlaceholder]:
         placeholder_properties = []
 
         for attribute in attributes:
@@ -198,10 +196,10 @@ class ShaderInfoAPI:
 
     def _get_placeholders(
         self,
-        sdr_shader_properties: List[Sdr.ShaderProperty],
+        sdr_shader_properties: list[Sdr.ShaderProperty],
         property_name_prefix: str,
-        property_name_filter: Optional[List[str]] = None,
-    ) -> List[UsdShadePropertyPlaceholder]:
+        property_name_filter: list[str] | None = None,
+    ) -> list[UsdShadePropertyPlaceholder]:
         """
         Create and return a list of UsdShadePropertyPlaceholder's from the input list of Sdr.ShaderProperty's.
 
@@ -324,7 +322,7 @@ class ShaderInfoAPI:
             Sdr metadata will contain objects that can be evaled to Python objects, e.g.
                 hard_range -> {'max':1,'min':0}
             """
-            import omni.UsdMdl
+            import omni.UsdMdl  # noqa: PLC0415
 
             for token in omni.UsdMdl.GetAllMetadataTokens():
                 if token in metadata:
@@ -394,7 +392,7 @@ class ShaderInfoAPI:
             """
             Convert the MDL tex::gamma_mode value to a color space string.
             """
-            import omni.UsdMdl
+            import omni.UsdMdl  # noqa: PLC0415
 
             add_color_space = Sdr.PropertyMetadata.IsAssetIdentifier in metadata
 
@@ -428,7 +426,7 @@ class ShaderInfoAPI:
             # store the default value as metadata so the MetadataObjectModel is aware of what the default value is.
             metadata[Sdf.AttributeSpec.CustomDataKey][f"colorSpace_{Sdf.AttributeSpec.DefaultValueKey}"] = color_space
 
-        def set_hidden(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> None:
+        def set_hidden(_sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> None:
             metadata[Sdf.AttributeSpec.HiddenKey] = (
                 ("hidden" in metadata) or ("hidden" in metadata[Sdf.AttributeSpec.CustomDataKey])
                 # REMIX: "unused" is used to avoid spam errors in AperturePBR_Opacity.mdl so it does not necessarily
@@ -443,7 +441,7 @@ class ShaderInfoAPI:
                 metadata[Sdf.AttributeSpec.DocumentationKey] = help_text
                 del metadata[Sdr.PropertyMetadata.Help]
 
-        def set_placeholder_class(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> None:
+        def set_placeholder_class(_sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> None:
             """
             By default 'omni.kit.property.usd.UsdBase' constructs placeholder objects of type:
                 'omni.kit.property.usd.PlaceholderAttribute'.

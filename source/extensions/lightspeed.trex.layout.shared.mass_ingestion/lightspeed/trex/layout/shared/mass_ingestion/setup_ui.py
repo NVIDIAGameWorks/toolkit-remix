@@ -17,7 +17,7 @@
 
 import functools
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 import omni.ui as ui
 from lightspeed.trex.contexts import get_instance as trex_contexts_instance
@@ -44,7 +44,7 @@ class SetupUI(_WorkspaceWidget):
     _VALIDATION_TAB_NAME = "Validation"
     _STAGE_VIEW_TAB_NAME = "Stage View"
 
-    def __init__(self, schemas: List[dict[str, str]], context: TrexContexts = ""):
+    def __init__(self, schemas: list[dict[str, str]], context: TrexContexts = ""):
         super().__init__()
         self._schemas = schemas
         self._trex_context = context
@@ -161,7 +161,7 @@ class SetupUI(_WorkspaceWidget):
         self._stage_view_widget.enable_context_event(False)
         self._mass_cores_are_running[id(core)] = True
 
-    def _on_mass_cores_finished(self, core: "_ManagerCore", _finished: bool, message: Optional[str] = None):
+    def _on_mass_cores_finished(self, core: "_ManagerCore", _finished: bool, message: str | None = None):
         """Mass cores finished callback - skipped when window invisible."""
         if not self._window_visible:
             return

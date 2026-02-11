@@ -26,7 +26,7 @@ def main():
     Example:
 
         cli.bat -s my_schema1.json -s my_schema2.json -e omni.flux.validator.plugin.check.usd omni.flux.validator.plugin.context.usd_stage omni.flux.validator.plugin.selector.usd -p -x--merge-config="file.kit"
-    """  # noqa
+    """
 
     parser = argparse.ArgumentParser(
         description="Run the validation in command line.", epilog=example, formatter_class=argparse.RawTextHelpFormatter

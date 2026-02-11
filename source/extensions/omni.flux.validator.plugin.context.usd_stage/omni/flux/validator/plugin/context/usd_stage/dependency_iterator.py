@@ -16,7 +16,8 @@
 """
 
 from pathlib import Path
-from typing import Any, Awaitable, Callable, List, Optional, Tuple
+from typing import Any
+from collections.abc import Awaitable, Callable
 
 import omni.client
 import omni.kit.app
@@ -39,7 +40,7 @@ class DependencyIterator(_ContextBaseUSD):
         close_dependency_between_round: bool = True
 
         _compatible_data_flow_names = ["InOutData"]
-        data_flows: Optional[List[_InOutDataFlow]] = None  # override base argument with the good typing
+        data_flows: list[_InOutDataFlow] | None = None  # override base argument with the good typing
 
     name = "DependencyIterator"
     display_name = "Dependency Iterator"
@@ -47,7 +48,7 @@ class DependencyIterator(_ContextBaseUSD):
     data_type = Data
 
     @omni.usd.handle_exception
-    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to execute the data.
 
@@ -67,7 +68,7 @@ class DependencyIterator(_ContextBaseUSD):
         schema_data: Data,
         run_callback: Callable[[_SetupDataTypeVar], Awaitable[None]],
         parent_context: _SetupDataTypeVar,
-    ) -> Tuple[bool, str, _SetupDataTypeVar]:
+    ) -> tuple[bool, str, _SetupDataTypeVar]:
         """
         Function that will be executed to set the data. Here we will open the file path and give the stage
 
@@ -91,7 +92,7 @@ class DependencyIterator(_ContextBaseUSD):
 
         if not all_layers:
             all_layers = [layer for layer in stage.GetLayerStack() if not layer.anonymous]
-        if all_layers:  # noqa
+        if all_layers:
             size_layers = len(all_layers)
             to_add = 1 / size_layers
             for i, layer in enumerate(reversed(all_layers)):
@@ -123,7 +124,7 @@ class DependencyIterator(_ContextBaseUSD):
             stage,
         )
 
-    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to after the check of the data. For example, save the input USD stage
 

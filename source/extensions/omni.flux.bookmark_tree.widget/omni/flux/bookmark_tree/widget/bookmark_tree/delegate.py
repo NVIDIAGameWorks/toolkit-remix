@@ -16,7 +16,7 @@
 """
 
 import asyncio
-from typing import Callable, List, Optional
+from collections.abc import Callable
 
 import omni.ui as ui
 import omni.usd
@@ -64,7 +64,7 @@ class BookmarkDelegate(ui.AbstractItemDelegate):
         self.__on_delete_clicked = _Event()
 
     @property
-    def dragged_item(self) -> Optional[ItemBase]:
+    def dragged_item(self) -> ItemBase | None:
         """
         The item currently getting dragged by the user.
         """
@@ -246,7 +246,7 @@ class BookmarkDelegate(ui.AbstractItemDelegate):
             self.__do_refresh_gradient_color(item)
 
     def on_item_selected(
-        self, primary_items: List[ItemBase], secondary_items: List[ItemBase], all_items: List[ItemBase]
+        self, primary_items: list[ItemBase], secondary_items: list[ItemBase], all_items: list[ItemBase]
     ) -> None:
         """
         Callback for when the tree widget selection changed.

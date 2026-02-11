@@ -16,7 +16,8 @@
 """
 
 import abc
-from typing import Any, Callable, List, Optional, Union
+from typing import Any
+from collections.abc import Callable
 
 from omni import ui
 from omni.flux.utils.common import Event as _Event
@@ -58,7 +59,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
 
     @abc.abstractmethod
     def create_collection(
-        self, collection_name: str, parent: Optional[BookmarkCollectionItem], use_undo_group: bool = True
+        self, collection_name: str, parent: BookmarkCollectionItem | None, use_undo_group: bool = True
     ) -> str:
         """
         Create a collection. For USD this can be a *UsdCollection*, for files this can be a folder.
@@ -79,7 +80,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
 
     @abc.abstractmethod
     def delete_collection(
-        self, collection_key: str, parent: Optional[BookmarkCollectionItem], use_undo_group: bool = True
+        self, collection_key: str, parent: BookmarkCollectionItem | None, use_undo_group: bool = True
     ) -> None:
         """
         Delete an existing collection
@@ -96,7 +97,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
         self,
         collection_key: str,
         new_collection_name: str,
-        parent: Optional[BookmarkCollectionItem],
+        parent: BookmarkCollectionItem | None,
         use_undo_group: bool = True,
     ) -> None:
         """
@@ -149,7 +150,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
         pass
 
     @abc.abstractmethod
-    def get_active_items(self) -> List:
+    def get_active_items(self) -> list:
         """
         Get the currently active item. For USD this could be the selected viewport item, for files this could be the
         currently selected file/folder, etc.
@@ -160,7 +161,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
         pass
 
     @abc.abstractmethod
-    def set_active_items(self, items: List[ItemBase]) -> None:
+    def set_active_items(self, items: list[ItemBase]) -> None:
         """
         Set the currently active item. For USD this could be the selected viewport item, for files this could be the
         currently selected file/folder, etc.
@@ -172,7 +173,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
 
     # Implemented methods
 
-    def set_items(self, items: List[ItemBase], parent: Optional[ItemBase] = None) -> None:
+    def set_items(self, items: list[ItemBase], parent: ItemBase | None = None) -> None:
         """
         Set the items to be displayed in the tree widget. If the parent argument is set this will set an item's
         children.
@@ -187,7 +188,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
             parent.set_children(items)
         self._item_changed(None)
 
-    def clear_items(self, parent: Optional[ItemBase] = None) -> None:
+    def clear_items(self, parent: ItemBase | None = None) -> None:
         """
         Clear all the items to be displayed in the tree widget. If the parent argument is set this will clear an item's
         children.
@@ -202,7 +203,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
         self._item_changed(None)
 
     def append_item(
-        self, item: ItemBase, parent: Optional[ItemBase] = None, sort: bool = False, force: bool = False
+        self, item: ItemBase, parent: ItemBase | None = None, sort: bool = False, force: bool = False
     ) -> None:
         """
         Append an item to display in the tree widget. If the parent argument is set this will append an item to the
@@ -225,7 +226,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
             parent.append_child(item, sort=sort)
         self._item_changed(None)
 
-    def insert_item(self, item: ItemBase, index: int, parent: Optional[ItemBase] = None, force: bool = False) -> None:
+    def insert_item(self, item: ItemBase, index: int, parent: ItemBase | None = None, force: bool = False) -> None:
         """
         Insert an item to display in the tree widget at a given index. If the parent argument is set this will insert an
         item in the parent's children.
@@ -245,7 +246,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
             parent.insert_child(item, index)
         self._item_changed(None)
 
-    def remove_item(self, item: ItemBase, parent: Optional[ItemBase] = None) -> None:
+    def remove_item(self, item: ItemBase, parent: ItemBase | None = None) -> None:
         """
         Remove an item from the tree widget list. If the parent argument is set this will remove an item from the
         parent's children.
@@ -283,7 +284,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
                 break
         return found
 
-    def get_item_index(self, item: ItemBase, parent: Optional[ItemBase] = None) -> int:
+    def get_item_index(self, item: ItemBase, parent: ItemBase | None = None) -> int:
         """
         Get an item's index.
 
@@ -299,7 +300,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
             return self._items.index(item)
         return parent.children.index(item)
 
-    def get_items_count(self, parent: Optional[ItemBase] = None) -> int:
+    def get_items_count(self, parent: ItemBase | None = None) -> int:
         """
         Get the number of items or children.
 
@@ -311,7 +312,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
         """
         return len(self._items if parent is None else parent.children)
 
-    def get_item_children(self, parent: Optional[ItemBase] = None, recursive: bool = False) -> List[ItemBase]:
+    def get_item_children(self, parent: ItemBase | None = None, recursive: bool = False) -> list[ItemBase]:
         """
         Get the model's items or item's children.
 
@@ -337,14 +338,14 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
     def get_drag_mime_data(self, item: ItemBase) -> str:
         return str(item)
 
-    def drop_accepted(self, item_target: ItemBase, item_source: Union[str, ItemBase], drop_location: int = -1) -> bool:
+    def drop_accepted(self, item_target: ItemBase, item_source: str | ItemBase, drop_location: int = -1) -> bool:
         if str(item_source) == str(item_target):
             return False
         return (item_target is None) or (
             item_target is not None and item_target.component_type == ComponentTypes.bookmark_collection.value
         )
 
-    def drop(self, item_target: ItemBase, item_source: Union[str, ItemBase], drop_location: int = -1) -> None:
+    def drop(self, item_target: ItemBase, item_source: str | ItemBase, drop_location: int = -1) -> None:
         source = item_source
         if isinstance(item_source, str):
             source = self.find_item(item_source, lambda item, mime: self.get_drag_mime_data(item) == mime)
@@ -361,7 +362,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
 
     # Events
 
-    def _on_active_items_changed(self, items: List[str]):
+    def _on_active_items_changed(self, items: list[str]):
         """Call the event object that has the list of functions"""
         self.__on_active_items_changed(items)
 

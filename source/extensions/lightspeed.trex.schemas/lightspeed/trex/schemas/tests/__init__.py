@@ -16,3 +16,5 @@
 """
 
 from .unit.schema_loading import TestSchemaLoading
+
+__all__ = ["TestSchemaLoading"]

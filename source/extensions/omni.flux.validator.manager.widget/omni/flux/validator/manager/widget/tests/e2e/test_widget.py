@@ -1,3 +1,4 @@
+# ruff: noqa: ARG001
 """
 * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -15,9 +16,10 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import sys
-from typing import Optional
 from unittest.mock import patch
 
 import omni.ui as ui
@@ -133,7 +135,7 @@ class TestManagerWidget(AsyncTestCase):
     async def test_after_run_button(self):
         finished = False
 
-        def _on_run_finished(result, message: Optional[str] = None):
+        def _on_run_finished(result, message: str | None = None):
             nonlocal finished
             # test after the run
             self.assertEqual(run_progress.widget.model.get_value_as_float(), 1.0)
@@ -206,7 +208,7 @@ class TestManagerWidget(AsyncTestCase):
     async def test_run_pause_resume(self):
         finished = False
 
-        def _on_run_finished(result, message: Optional[str] = None):
+        def _on_run_finished(result, message: str | None = None):
             nonlocal finished
             # test after the run
             self.assertEqual(run_progress.widget.model.get_value_as_float(), 1.0)
@@ -254,7 +256,7 @@ class TestManagerWidget(AsyncTestCase):
     async def test_run_stop(self):
         finished = False
 
-        def _on_run_finished(result, message: Optional[str] = None):
+        def _on_run_finished(_result, message: str | None = None):
             nonlocal finished
             # test after the run
             finished = True
@@ -291,7 +293,7 @@ class TestManagerWidget(AsyncTestCase):
                 await ui_test.human_delay()
                 await stop_button.click()
                 await ui_test.human_delay()
-                await asyncio.gather(_core._last_run_task)  # noqa
+                await asyncio.gather(_core._last_run_task)
                 _core.set_force_ignore_exception(False)
 
         while not finished:

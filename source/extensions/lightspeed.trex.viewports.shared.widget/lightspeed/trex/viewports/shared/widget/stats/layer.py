@@ -18,7 +18,7 @@
 __all__ = ["ViewportStatsLayer"]
 
 import time
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 import carb
 from omni import ui
@@ -34,7 +34,7 @@ from .items import (
     ViewportSpeed,
     ViewportStatsGroup,
 )
-from .settings import *  # noqa
+from .settings import LOW_MEMORY_SETTING_PATH, MEMORY_CHECK_FREQUENCY
 from .utils import resolve_hud_visibility
 
 try:
@@ -51,7 +51,7 @@ class ViewportStatsLayer(_LayerItem):
 
         self.__viewport_api = desc.get("viewport_api")
         self.__frame_changed_sub = None
-        self.__disable_ui_sub: Optional[carb.SubscriptionId] = None
+        self.__disable_ui_sub: carb.SubscriptionId | None = None
         self.__setting_key, visible = resolve_hud_visibility(self.__viewport_api, None, settings)
 
         self.__last_time = time.time()

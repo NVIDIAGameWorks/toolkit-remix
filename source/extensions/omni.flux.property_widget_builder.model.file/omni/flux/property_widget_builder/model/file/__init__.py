@@ -16,6 +16,15 @@
 """
 
 from .delegate import FileDelegate
-from .extension import *
+from .extension import USDPropertyWidgetExtension, get_file_listener_instance
 from .items import CustomFileAttributeItem, FileAttributeItem
 from .model import FileModel
+
+__all__ = [
+    "CustomFileAttributeItem",
+    "FileAttributeItem",
+    "FileDelegate",
+    "FileModel",
+    "USDPropertyWidgetExtension",
+    "get_file_listener_instance",
+]

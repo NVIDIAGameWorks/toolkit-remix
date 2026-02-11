@@ -16,4 +16,6 @@
 """
 
 from .mapping import ATTR_DISPLAY_NAMES_TABLE, OPS_ATTR_NAME_TABLE, OPS_ATTR_TYPE_TABLE
-from .setup_ui import TransformPropertyWidget  # noqa F401
+from .setup_ui import TransformPropertyWidget
+
+__all__ = ["ATTR_DISPLAY_NAMES_TABLE", "OPS_ATTR_NAME_TABLE", "OPS_ATTR_TYPE_TABLE", "TransformPropertyWidget"]

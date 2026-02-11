@@ -1,4 +1,3 @@
-# noqa PLC0302
 """
 * SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
@@ -30,7 +29,7 @@ from contextlib import suppress
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
-from typing import Callable
+from collections.abc import Callable
 
 import carb
 import omni.usd
@@ -209,7 +208,7 @@ class ComfyUICore:
             loop = asyncio.get_event_loop()
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                 await loop.run_in_executor(pool, initialization_method)
-        except Exception as e:  # noqa PLW0718
+        except Exception as e:  # noqa: BLE001
             self._repo = None
             carb.log_error(e)
 
@@ -243,7 +242,7 @@ class ComfyUICore:
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                 success = await asyncio.get_event_loop().run_in_executor(pool, partial(self._cleanup, repository_path))
-        except Exception:  # noqa PLW0718
+        except Exception:  # noqa: BLE001
             success = False
 
         if not success:
@@ -412,7 +411,7 @@ class ComfyUICore:
                 )()
                 response.raise_for_status()
                 carb.log_info(f'Added "{input_path}" to the {queue_type.value} queue')
-            except Exception as e:  # noqa PLW0718
+            except Exception as e:
                 carb.log_error(f"An error occurred while adding the selection to the {queue_type.value} queue: {e}")
                 self._update_state(ComfyUIState.ERROR)
                 raise
@@ -803,7 +802,7 @@ class ComfyUICore:
             for child in path.rglob("*"):
                 with suppress(Exception):
                     child.chmod(stat.S_IWRITE)
-        except Exception as e:  # noqa PLW0718
+        except Exception as e:  # noqa: BLE001
             carb.log_error(f"Exception cleaning up repository directory: {e}")
             if attempts > 1:
                 carb.log_error(f"Trying again in {delay_s} seconds ({attempts - 1} attempts left)")
@@ -878,7 +877,7 @@ class ComfyUICore:
             run_cmd.append("--disable-auto-launch")
 
         try:
-            self._run_process = subprocess.Popen(run_cmd, cwd=self._repo.workdir)  # noqa PLR1732
+            self._run_process = subprocess.Popen(run_cmd, cwd=self._repo.workdir)
         except Exception as e:  # noqa: BLE001
             self._update_state(ComfyUIState.ERROR)
             carb.log_error(f"Failed to start ComfyUI: {e}")
@@ -1058,7 +1057,7 @@ class ComfyUICore:
         Returns:
             The subprocess.Popen object
         """
-        proc = subprocess.Popen(  # noqa PLR1732
+        proc = subprocess.Popen(
             cmd,
             cwd=cwd,
             stdout=subprocess.PIPE,

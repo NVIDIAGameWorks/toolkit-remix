@@ -15,26 +15,37 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 __all__ = [
-    "ViewportStatsGroup",
+    "ViewportDeviceStat",
     "ViewportFPS",
     "ViewportHostStat",
+    "ViewportMessage",
     "ViewportProgress",
     "ViewportResolution",
-    "ViewportDeviceStat",
     "ViewportSpeed",
-    "ViewportMessage",
+    "ViewportStatsGroup",
 ]
 
 import traceback
 import weakref
-from typing import Callable, Optional, Sequence
+from collections.abc import Callable, Sequence
 
 import carb
 import omni.ui as ui
 from omni.gpu_foundation_factory import get_memory_info
 
-from .settings import *  # noqa
+from .settings import (
+    CAM_SPEED_MESSAGE_KEY,
+    IRAY_MAX_SAMPLES,
+    MEMORY_CHECK_FREQUENCY,
+    RTX_ACCUMULATED_LIMIT,
+    RTX_ACCUMULATION_ENABLED,
+    RTX_PT_TOTAL_SPP,
+    RTX_SPP,
+    TOAST_MESSAGE_KEY,
+)
 from .utils import human_readable_size, resolve_hud_visibility
 
 try:
@@ -56,8 +67,8 @@ class ViewportStatistic:
         self.__labels = []
         self.__alignment = alignment
         self.__ui_obj = self._create_ui(alignment)
-        self.__subscription_id: Optional[carb.settings.SubscriptionId] = None
-        self.__setting_key: Optional[str] = None
+        self.__subscription_id: carb.settings.SubscriptionId | None = None
+        self.__setting_key: str | None = None
 
         if setting_key:
             settings = carb.settings.get_settings()
@@ -80,7 +91,7 @@ class ViewportStatistic:
     def _create_ui(self, alignment: ui.Alignment):
         return ui.VStack(name="Stack", height=0, style_type_name_override="ViewportStats", alignment=alignment)
 
-    def _create_label(self, text: str = "", alignment: Optional[ui.Alignment] = None):
+    def _create_label(self, text: str = "", alignment: ui.Alignment | None = None):
         if alignment is None:
             alignment = self.alignment
         return ui.Label(text, name="Label", style_type_name_override="ViewportStats", alignment=alignment)
@@ -393,9 +404,7 @@ class _HudMessageTime:
 class _HudMessageTracker:
     """Calculate alpha for _HudMessageTime acounting for possibility of reversing direction mid-fade"""
 
-    def __init__(
-        self, prev_tckr: Optional["_HudMessageTracker"] = None, message_time: Optional[_HudMessageTime] = None
-    ):
+    def __init__(self, prev_tckr: _HudMessageTracker | None = None, message_time: _HudMessageTime | None = None):
         self.time: float = 0
         if prev_tckr and message_time:
             # If previous object was fading in, keep alpha
@@ -442,7 +451,7 @@ class ViewportStatisticFading(ViewportStatistic):
             self.__message_time = None
         super().destroy()
 
-    def _skip_update(self, update_info: dict, check_empty: Optional[Callable] = None):
+    def _skip_update(self, update_info: dict, check_empty: Callable | None = None):
         # Skip updates when calld from the render-update, but return the cached alpha
         if update_info.get("external_update") is None:
             alpha = self.__alpha
@@ -488,7 +497,7 @@ class ViewportStatisticFading(ViewportStatistic):
             # Cache the updated alpha to be applied later, but kill the subscription if 0
             self.__alpha = update_info.get("alpha")
 
-        import omni.kit.app
+        import omni.kit.app  # noqa: PLC0415
 
         self.__update_sub = (
             omni.kit.app.get_app()
@@ -514,11 +523,11 @@ class ViewportSpeed(ViewportStatisticFading):
 
     def __init__(self, viewport_api, **kwargs):
         self.__carb_subs: Sequence[carb.settings.SubscriptionId] = None
-        self.__cam_speed_entry: Optional[ui.FloatField] = None
-        self.__cam_speed_model_sub: Optional[carb.Subscription] = None
+        self.__cam_speed_entry: ui.FloatField | None = None
+        self.__cam_speed_model_sub: carb.Subscription | None = None
         self.__viewport_id: str = str(viewport_api.id)
-        self.__root_frame: Optional[ui.Frame] = None
-        self.__tracker: Optional[_HudMessageTracker] = None
+        self.__root_frame: ui.Frame | None = None
+        self.__tracker: _HudMessageTracker | None = None
         self.__focused_viewport: bool = False
 
         super().__init__(
@@ -533,7 +542,7 @@ class ViewportSpeed(ViewportStatisticFading):
         if self._skip_update(update_info):
             return
 
-        def accumulate_alpha(message_time: _HudMessageTime, elapsed_time: float, alpha: float):
+        def accumulate_alpha(message_time: _HudMessageTime, elapsed_time: float, _alpha: float):
             if not self.__tracker:
                 self.__track_time()
             return self.__tracker.update(message_time, elapsed_time)
@@ -620,7 +629,7 @@ class ViewportSpeed(ViewportStatisticFading):
                         "Fast", alignment=ui.Alignment.CENTER, style_type_name_override="ViewportStats", name="Label"
                     )
 
-    def __build_root_ui(self, collapsed: Optional[bool] = None):
+    def __build_root_ui(self, collapsed: bool | None = None):
         if collapsed is None:
             collapsed = bool(carb.settings.get_settings().get(self.__COLLAPSE_CAM_SPEED))
         with self.__root_frame:
@@ -869,7 +878,7 @@ class ViewportStatsGroup:
                 stat.update(update_info)
                 any_visible = any_visible or (stat.visible and not stat.empty)
                 alpha = max(alpha, update_info["alpha"])
-            except Exception:  # noqa
+            except Exception:  # noqa: BLE001
                 carb.log_error(f"Error updating stats {stat}. Traceback:\n{traceback.format_exc()}")
 
         alpha = alpha if any_visible else 0

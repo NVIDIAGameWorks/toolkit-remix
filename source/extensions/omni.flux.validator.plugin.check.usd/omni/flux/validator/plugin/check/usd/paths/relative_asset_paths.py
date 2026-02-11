@@ -15,14 +15,14 @@
 * limitations under the License.
 """
 
-from typing import Any, Tuple
+from typing import Any
 
 import omni.ui as ui
 import omni.usd
 from omni.flux.utils.common import path_utils as _path_utils
 from pxr import Sdf
 
-from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
+from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
 
 class RelativeAssetPaths(_CheckBaseUSD):
@@ -37,7 +37,7 @@ class RelativeAssetPaths(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check if the input prims have absolute paths in their asset paths
 
@@ -70,7 +70,7 @@ class RelativeAssetPaths(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to change all asset paths to relative.
 

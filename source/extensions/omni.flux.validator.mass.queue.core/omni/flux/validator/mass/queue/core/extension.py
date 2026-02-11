@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import Optional
-
 import carb
 import omni.ext
 
@@ -25,7 +23,7 @@ from .core import ValidatorMassQueueCore as _ValidatorMassQueueCore
 _VALIDATOR_MASS_QUEUE_CORE_INSTANCE = None
 
 
-def get_mass_validation_queue_instance() -> Optional[_ValidatorMassQueueCore]:
+def get_mass_validation_queue_instance() -> _ValidatorMassQueueCore | None:
     return _VALIDATOR_MASS_QUEUE_CORE_INSTANCE
 
 

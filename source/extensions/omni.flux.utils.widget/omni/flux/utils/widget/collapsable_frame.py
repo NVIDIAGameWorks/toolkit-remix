@@ -82,10 +82,10 @@ class PropertyCollapsableFrame:
 
     def __enter__(self):
         self.__cm = self._contextmanager()
-        return self.__cm.__enter__()  # noqa PLE1101
+        return self.__cm.__enter__()
 
     def __exit__(self, exc_type, exc_value, traceback):
-        return self.__cm.__exit__(exc_type, exc_value, traceback)  # noqa PLE1101
+        return self.__cm.__exit__(exc_type, exc_value, traceback)
 
     @property
     def root(self):

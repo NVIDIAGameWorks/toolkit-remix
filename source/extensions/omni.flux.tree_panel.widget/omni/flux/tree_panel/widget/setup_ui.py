@@ -16,7 +16,6 @@
 """
 
 import asyncio
-from typing import Optional
 
 import carb
 import omni.kit.app
@@ -33,8 +32,8 @@ from .tree.model import Model
 class PanelOutlinerWidget:
     def __init__(
         self,
-        tree_model: Optional[Model] = None,
-        tree_delegate: Optional[Delegate] = None,
+        tree_model: Model | None = None,
+        tree_delegate: Delegate | None = None,
         show_menu_burger: bool = True,
         show_title: bool = True,
     ):
@@ -260,7 +259,7 @@ class PanelOutlinerWidget:
     def _is_tree_item_expanded(self, item) -> bool:
         return self._tree_view.is_expanded(item)
 
-    def _on_tree_selection_changed(self, items):  # noqa C901
+    def _on_tree_selection_changed(self, items):
         def select_parent(item, value, deferred=False):
             if deferred:
                 asyncio.ensure_future(_deferred_select_parent(item, value))

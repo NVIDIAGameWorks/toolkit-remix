@@ -16,3 +16,5 @@
 """
 
 from .usd_base import StageManagerUSDContextPlugin
+
+__all__ = ["StageManagerUSDContextPlugin"]

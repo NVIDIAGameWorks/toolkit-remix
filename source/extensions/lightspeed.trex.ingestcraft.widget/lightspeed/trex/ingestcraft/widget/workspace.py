@@ -64,7 +64,7 @@ class IngestCraftWindow(_WorkspaceWindowBase):
         self._window.dock_in(dock_space, ui.DockPosition.SAME)
 
     def __register_sidebar_items(self):
-        self.__sub_sidebar_items = sidebar.register_items(  # noqa PLW0238
+        self.__sub_sidebar_items = sidebar.register_items(
             [
                 sidebar.ItemDescriptor(
                     name="Ingestion",

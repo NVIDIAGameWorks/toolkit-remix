@@ -16,10 +16,10 @@
 """
 
 __all__ = [
+    "UsdSelectionHistoryItem",
+    "UsdSelectionHistoryModel",
     "UsdSelectionHistoryUSDWidgetExtension",
     "get_usd_listener_instance",
-    "UsdSelectionHistoryModel",
-    "UsdSelectionHistoryItem",
 ]
 
 from .extension import UsdSelectionHistoryUSDWidgetExtension, get_usd_listener_instance

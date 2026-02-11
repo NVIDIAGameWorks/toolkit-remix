@@ -17,7 +17,6 @@
 
 from asyncio import ensure_future
 from functools import partial
-from typing import List, Tuple
 
 import omni.appwindow
 import omni.kit.window.file
@@ -229,7 +228,7 @@ class PackagingPane(_WorkspaceWidget):
         if not self._layers_valid:
             self._export_button.tooltip += "The current layer selection is invalid.\n"
 
-    def _on_package_pressed(self, silent: bool = False, ignored_errors: List[Tuple[str, str, str]] = None):
+    def _on_package_pressed(self, silent: bool = False, ignored_errors: list[tuple[str, str, str]] = None):
         @omni.usd.handle_exception
         async def package(success, error):
             await omni.kit.app.get_app().next_update_async()
@@ -305,7 +304,7 @@ class PackagingPane(_WorkspaceWidget):
 
     @omni.usd.handle_exception
     async def _on_packaging_completed(
-        self, errors: List[str], failed_assets: List[Tuple[str, str, str]], was_cancelled: bool
+        self, errors: list[str], failed_assets: list[tuple[str, str, str]], was_cancelled: bool
     ):
         if self._progress_popup:
             self._progress_popup.hide()
@@ -337,7 +336,7 @@ class PackagingPane(_WorkspaceWidget):
             _TrexMessageDialog(message, title, disable_cancel_button=True)
 
     @omni.usd.handle_exception
-    async def _retry_packaging(self, ignored_errors: List[Tuple[str, str, str]]):
+    async def _retry_packaging(self, ignored_errors: list[tuple[str, str, str]]):
         # Wait 1 frame to make sure the dialogs are centered
         await omni.kit.app.get_app().next_update_async()
 

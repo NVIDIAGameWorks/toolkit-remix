@@ -18,7 +18,8 @@
 import asyncio
 import uuid
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any
+from collections.abc import Callable
 
 import carb
 import carb.tokens
@@ -31,13 +32,13 @@ from omni.kit.viewport.utility import get_active_viewport
 from pxr import UsdGeom, UsdShade
 from pydantic import Field
 
-from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
+from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
 
 class MassTexturePreview(_CheckBaseUSD):
     class Data(_CheckBaseUSD.Data):
         # tmp data
-        temp_usd: Optional[str] = Field(default=None, repr=False)
+        temp_usd: str | None = Field(default=None, repr=False)
 
     name = "MassTexturePreview"
     tooltip = "This plugin is a fake check plugin that we use to show texture preview (in viewport or not)"
@@ -47,7 +48,7 @@ class MassTexturePreview(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check if asset paths on the selected prims in the attributes listed in schema
         data's `conversion_args` are dds encoded
@@ -75,7 +76,7 @@ class MassTexturePreview(_CheckBaseUSD):
     @omni.usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to triangulate the mesh prims (including geom subsets)
 
@@ -89,7 +90,7 @@ class MassTexturePreview(_CheckBaseUSD):
         return True, "Pass", None
 
     def _mass_build_queue_action_ui(
-        self, schema_data: Data, default_actions: List[Callable[[], Any]], callback: Callable[[str], Any]
+        self, schema_data: Data, default_actions: list[Callable[[], Any]], callback: Callable[[str], Any]
     ) -> None:
         """
         Default exposed action for Mass validation. The UI will be built into the delegate of the mass queue.

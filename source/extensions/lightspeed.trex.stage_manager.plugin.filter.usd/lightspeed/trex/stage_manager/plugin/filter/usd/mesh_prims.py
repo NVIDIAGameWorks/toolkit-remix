@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from lightspeed.trex.utils.common.prim_utils import is_in_light_group as _is_in_light_group
@@ -35,7 +37,7 @@ class MeshPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
         default=True, description="Whether the filter should also include instances with the meshes or not."
     )
 
-    def _filter_predicate(self, prim: "Usd.Prim") -> bool:
+    def _filter_predicate(self, prim: Usd.Prim) -> bool:
         return _is_mesh_prototype(prim) or (
             self.include_instances and _is_instance(prim) and not _is_in_light_group(prim)
         )

@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-from typing import Tuple
-
 from omni import ui
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
@@ -51,7 +49,7 @@ class ErrorPopup:
     BUTTON_WIDTH = 64
 
     def __init__(
-        self, title, message, details: str = None, yes_no: bool = False, window_size: Tuple[int, int] = (400, 300)
+        self, title, message, details: str = None, yes_no: bool = False, window_size: tuple[int, int] = (400, 300)
     ):
         self.__default_attr = {
             "_title": None,

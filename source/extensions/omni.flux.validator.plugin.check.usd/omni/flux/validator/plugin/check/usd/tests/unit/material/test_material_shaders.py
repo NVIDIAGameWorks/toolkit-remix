@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import sys
 from collections import OrderedDict
@@ -161,7 +163,7 @@ class TestMaterialShaders(omni.kit.test.AsyncTestCase):
 
         with patch.object(MaterialShaders, "on_progress") as progress_mock:
             # Act
-            success, message, data = await material_shader._check(Mock(), Mock(), [])  # noqa PLW0212
+            success, message, data = await material_shader._check(Mock(), Mock(), [])
 
         # Assert
         self.assertTrue(success)
@@ -189,7 +191,7 @@ class TestMaterialShaders(omni.kit.test.AsyncTestCase):
 
         with patch.object(MaterialShaders, "on_progress") as progress_mock:
             # Act
-            success, message, data = await material_shader._fix(Mock(), Mock(), [])  # noqa PLW0212
+            success, message, data = await material_shader._fix(Mock(), Mock(), [])
 
         # Assert
         self.assertTrue(success)
@@ -273,13 +275,9 @@ class TestMaterialShaders(omni.kit.test.AsyncTestCase):
         material_shader = MaterialShaders()
         alternate_identifier_mock = Mock(name="alternate_identifier")
         if not is_valid_other_layer:
-            material_shader._layers_invalid_paths = {  # noqa PLW0212
-                alternate_identifier_mock: {prim_path_mock: subidenfifier_mock}
-            }
+            material_shader._layers_invalid_paths = {alternate_identifier_mock: {prim_path_mock: subidenfifier_mock}}
         else:
-            material_shader._layers_invalid_paths = {  # noqa PLW0212
-                root_identifier_mock: {prim_path_mock: subidenfifier_mock}
-            }
+            material_shader._layers_invalid_paths = {root_identifier_mock: {prim_path_mock: subidenfifier_mock}}
 
         with (
             patch.object(MaterialShaders, "on_progress") as progress_mock,
@@ -307,16 +305,14 @@ class TestMaterialShaders(omni.kit.test.AsyncTestCase):
                 get_subidentifer_mock.return_value = subidentifiers_future
 
             # Act
-            success, message, data = await material_shader._check(  # noqa PLW0212
-                schema_data_mock, Mock(), selector_plugin_data_mock
-            )
+            success, message, data = await material_shader._check(schema_data_mock, Mock(), selector_plugin_data_mock)
 
         # Assert
         expected_invalid_dict = {root_identifier_mock: {prim_path_mock: subidenfifier_mock}}
         if not is_valid_other_layer:
             expected_invalid_dict[alternate_identifier_mock] = {}
 
-        self.assertDictEqual(expected_invalid_dict, material_shader._layers_invalid_paths)  # noqa PLW0212
+        self.assertDictEqual(expected_invalid_dict, material_shader._layers_invalid_paths)
 
         expected_progress_message = f"{'OK' if is_valid and is_valid_other_layer else 'INVALID'}: {prim_path_mock}"
         expected_message = f"Check:\n- {expected_progress_message}\n"
@@ -375,7 +371,7 @@ class TestMaterialShaders(omni.kit.test.AsyncTestCase):
         invalid_subidentifier = Mock(name="invalid_subidentifier")
 
         material_shader = MaterialShaders()
-        material_shader._layers_invalid_paths = {  # noqa PLW0212
+        material_shader._layers_invalid_paths = {
             Mock() if is_valid else root_identifier_mock: {
                 selector_prim_path_mock: valid_subidentifier if is_valid_input_subid else invalid_subidentifier
             }
@@ -411,7 +407,7 @@ class TestMaterialShaders(omni.kit.test.AsyncTestCase):
                 omni_usd_get_shader.return_value = omni_usd_get_shader_future
 
             # Act
-            success, message, data = await material_shader._fix(  # noqa PLW0212
+            success, message, data = await material_shader._fix(
                 schema_data_mock, context_name_mock, selector_plugin_data_mock
             )
 
@@ -492,7 +488,7 @@ class TestMaterialShaders(omni.kit.test.AsyncTestCase):
                 shader_prim.SetSourceAssetSubIdentifier(run["source_id"], "mdl")
 
                 # Act (perform the function we want to test)
-                val = await material_shader._get_material_shader_subidentifier(mat_prim)  # noqa PLW0212
+                val = await material_shader._get_material_shader_subidentifier(mat_prim)
                 stage.Unload()
 
                 # Assert (check we get the correct value returned from function)
@@ -518,9 +514,7 @@ class TestMaterialShaders(omni.kit.test.AsyncTestCase):
                 get_subidentifier_mock.return_value = subidentifiers_future
 
             # Act
-            val = await material_shader._validate_material_shaders(  # noqa PLW0212
-                shader_subidentifiers_mock, prim_mock
-            )
+            val = await material_shader._validate_material_shaders(shader_subidentifiers_mock, prim_mock)
 
         # Assert
         self.assertEqual(is_valid, val)
@@ -555,7 +549,7 @@ class TestMaterialShaders(omni.kit.test.AsyncTestCase):
                 convert_mock.return_value = conversion_future
 
             # Act
-            success, message, _was_converted = await material_shader._convert_material(  # noqa PLW0212
+            success, message, _was_converted = await material_shader._convert_material(
                 context_name_mock, output_subidentifier, input_subidentifier, prim_mock
             )
 

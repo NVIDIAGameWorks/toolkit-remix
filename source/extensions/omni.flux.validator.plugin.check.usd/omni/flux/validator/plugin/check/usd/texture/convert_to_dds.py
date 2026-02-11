@@ -41,7 +41,7 @@ from omni.flux.validator.factory import utils as _validator_factory_utils
 from pxr import Sdf
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
+from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
 
 def _generate_out_path(in_path_str: str, suffix: str):
@@ -128,7 +128,7 @@ class ConvertToDDS(_CheckBaseUSD):
         stage_url = context.get_stage_url()
         message = f"Stage: {stage_url}\nCheck:\n"
         all_pass = True
-        for prim in selector_plugin_data:  # noqa
+        for prim in selector_plugin_data:
             for attr_name in schema_data.conversion_args:
                 texture_paths = []
                 attr = prim.GetAttribute(attr_name)
@@ -294,7 +294,7 @@ class ConvertToDDS(_CheckBaseUSD):
 
                     message += f"- PASS: created compressed texture {future.out_path}\n"
                     self.on_progress(progress, f"Compressed to {future.out_path}", True)
-                except subprocess.CalledProcessError as e:  # noqa
+                except subprocess.CalledProcessError as e:
                     carb.log_error(
                         "Exception when converting texture to dds.\n"
                         f"cmd: {e.cmd}\noutput: {e.output}\nstdout: {e.stdout}\nstderr: {e.stderr}"

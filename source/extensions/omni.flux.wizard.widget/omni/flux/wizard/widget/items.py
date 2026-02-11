@@ -15,8 +15,9 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import abc
-from typing import Dict, Optional
 
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
@@ -26,8 +27,8 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 class WizardPage:
     def __init__(
         self,
-        previous_page: Optional["WizardPage"] = None,
-        next_page: Optional["WizardPage"] = None,
+        previous_page: WizardPage | None = None,
+        next_page: WizardPage | None = None,
         next_text: str = "Next",
         previous_text: str = "Previous",
         done_text: str = "Done",
@@ -82,21 +83,21 @@ class WizardPage:
         self.__on_blocked_changed = _Event()
 
     @property
-    def previous_page(self) -> Optional["WizardPage"]:
+    def previous_page(self) -> WizardPage | None:
         """
         The page that precedes this one
         """
         return self._previous_page
 
     @property
-    def next_page(self) -> Optional["WizardPage"]:
+    def next_page(self) -> WizardPage | None:
         """
         The page that follows this one. This can be dynamically adjusted in the `create_ui` method.
         """
         return self._next_page
 
     @next_page.setter
-    def next_page(self, value: "WizardPage") -> None:
+    def next_page(self, value: WizardPage) -> None:
         """
         The page that follows this one. This can be dynamically adjusted in the `create_ui` method.
         """
@@ -148,7 +149,7 @@ class WizardPage:
         return self._hide_navigation
 
     @property
-    def payload(self) -> Dict:
+    def payload(self) -> dict:
         """
         The payload includes data from all previous pages.
         """
@@ -158,7 +159,7 @@ class WizardPage:
         return payload
 
     @payload.setter
-    def payload(self, value: Dict) -> None:
+    def payload(self, value: dict) -> None:
         """
         Non-destructively insert data in the page's payload
         """

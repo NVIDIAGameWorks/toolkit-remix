@@ -16,7 +16,7 @@
 """
 
 from functools import partial
-from typing import Callable
+from collections.abc import Callable
 
 import omni.client
 from lightspeed.common.constants import SAVE_USD_FILE_EXTENSIONS_OPTIONS

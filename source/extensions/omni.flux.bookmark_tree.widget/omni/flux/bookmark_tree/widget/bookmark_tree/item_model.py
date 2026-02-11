@@ -15,9 +15,12 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import re
 from enum import Enum
-from typing import Any, Callable, List, Optional
+from typing import Any
+from collections.abc import Callable
 
 from omni import ui
 from omni.flux.utils.common import Event as _Event
@@ -73,12 +76,12 @@ class ItemBase(ui.AbstractItem):
         self._title = value
 
     @property
-    def parent(self) -> Optional["ItemBase"]:
+    def parent(self) -> ItemBase | None:
         """The item's parent item. Not every item has a parent."""
         return self._parent
 
     @parent.setter
-    def parent(self, value: "ItemBase"):
+    def parent(self, value: ItemBase):
         self._parent = value
 
     @property
@@ -87,12 +90,12 @@ class ItemBase(ui.AbstractItem):
         return self._data
 
     @property
-    def children(self) -> List["ItemBase"]:
+    def children(self) -> list[ItemBase]:
         """The item's children"""
         return self._children
 
     @property
-    def component_type(self) -> Optional[str]:
+    def component_type(self) -> str | None:
         """
         The item's component type.
 
@@ -122,7 +125,7 @@ class ItemBase(ui.AbstractItem):
         """Should be overridden by the inheriting class."""
         pass
 
-    def set_children(self, children: List["ItemBase"], sort: bool = True) -> None:
+    def set_children(self, children: list[ItemBase], sort: bool = True) -> None:
         """
         Set an item's children and the children's parent
 
@@ -140,7 +143,7 @@ class ItemBase(ui.AbstractItem):
         """Clear all the item's children"""
         self._children.clear()
 
-    def append_child(self, child: "ItemBase", sort: bool = True) -> None:
+    def append_child(self, child: ItemBase, sort: bool = True) -> None:
         """
         Append a child to the item and set the child's parent
 
@@ -153,7 +156,7 @@ class ItemBase(ui.AbstractItem):
         if sort:
             self._children.sort(key=lambda i: (i.title, i.component_type))
 
-    def insert_child(self, child: "ItemBase", index: int) -> None:
+    def insert_child(self, child: ItemBase, index: int) -> None:
         """
         Insert a child at a given index in the item's children and set the child's parent
 
@@ -164,7 +167,7 @@ class ItemBase(ui.AbstractItem):
         child.parent = self
         self._children.insert(index, child)
 
-    def remove_child(self, child: "ItemBase") -> None:
+    def remove_child(self, child: ItemBase) -> None:
         """
         Remove a child from the item's children and reset the child's parent
 
@@ -202,7 +205,7 @@ class BookmarkCollectionItem(ItemBase):
         self,
         title: str,
         data=None,
-        children: List[ItemBase] = None,
+        children: list[ItemBase] = None,
         on_mouse_double_clicked_callback: Callable = None,
     ):
         super().__init__()

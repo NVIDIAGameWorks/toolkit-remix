@@ -16,7 +16,6 @@
 """
 
 import typing
-from typing import Dict, List
 
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from pxr import Tf, Usd
@@ -60,9 +59,9 @@ class USDListener:
         self._default_attr = {"_listeners": None, "_models": None, "_tmp_models": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
-        self._models: List[_USDModel] = []
-        self._tmp_models: List[_USDModel] = []
-        self._listeners: Dict[Usd.Stage, Tf.Listener] = {}
+        self._models: list[_USDModel] = []
+        self._tmp_models: list[_USDModel] = []
+        self._listeners: dict[Usd.Stage, Tf.Listener] = {}
 
     def tmp_enable_all_listeners(self):
         for model in self._tmp_models:

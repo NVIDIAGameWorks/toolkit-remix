@@ -17,3 +17,5 @@
 
 from .e2e.test_tree import TestTreeWidget
 from .unit.test_enable_listeners import TestCaptureTreeModelEnableListeners
+
+__all__ = ["TestCaptureTreeModelEnableListeners", "TestTreeWidget"]

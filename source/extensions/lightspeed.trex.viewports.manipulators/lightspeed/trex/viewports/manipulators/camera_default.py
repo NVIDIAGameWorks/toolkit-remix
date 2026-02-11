@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import carb
 import omni.kit.app
@@ -37,7 +37,7 @@ class CameraDefault(IManipulator):
     VP2_LOOK_DAMPENING = "/persistent/app/viewport/manipulator/camera/lookDampening"
 
     def __init__(self, viewport_api):
-        self.__setting_subs = None  # noqa PLW0238
+        self.__setting_subs = None
         super().__init__(viewport_api)
 
     def _create_manipulator(self):
@@ -48,7 +48,7 @@ class CameraDefault(IManipulator):
                 return
             set_fn(value.get("", None))
 
-        self.__setting_subs = (  # noqa PLW0238
+        self.__setting_subs = (
             omni.kit.app.SettingChangeSubscription(
                 CameraDefault.VP1_CAM_VELOCITY, lambda *args: setting_changed(*args, self.__set_flight_velocity)
             ),
@@ -124,7 +124,7 @@ class CameraDefault(IManipulator):
             self.__manipulator.model.set_floats("look_dampening", [value, value, value])
 
     def destroy(self):
-        self.__setting_subs = None  # noqa PLW0238
+        self.__setting_subs = None
         if self.__manipulator:
             self.__manipulator.destroy()
             self.__manipulator = None
@@ -142,6 +142,6 @@ class CameraDefault(IManipulator):
         return self.__manipulator
 
 
-def camera_default_factory(desc: Dict[str, Any]):
+def camera_default_factory(desc: dict[str, Any]):
     manip = CameraDefault(desc.get("viewport_api"))
     return manip

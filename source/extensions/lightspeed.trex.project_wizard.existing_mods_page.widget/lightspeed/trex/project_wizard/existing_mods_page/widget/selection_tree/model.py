@@ -16,14 +16,13 @@
 """
 
 from pathlib import Path
-from typing import List, Optional, Union
 
 from omni import ui
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
-from .items import ModSelectionItem as _Item  # noqa PLE0402
+from .items import ModSelectionItem as _Item
 
 
 class ModSelectionModel(ui.AbstractItemModel):
@@ -40,12 +39,12 @@ class ModSelectionModel(ui.AbstractItemModel):
 
         self.__on_item_dropped = _Event()
 
-    def refresh(self, paths: List[Path]) -> None:
+    def refresh(self, paths: list[Path]) -> None:
         """Refresh the model item with a given list of mod paths"""
         self._items = [_Item(p) for p in paths]
         self._item_changed(None)
 
-    def find_item(self, path: str) -> Optional[_Item]:
+    def find_item(self, path: str) -> _Item | None:
         """Find an item based on its path"""
         for item in self._items:
             if str(item) == path:
@@ -70,7 +69,7 @@ class ModSelectionModel(ui.AbstractItemModel):
         self._items.remove(item)
         self._item_changed(None)
 
-    def get_item_children(self, item: Optional[_Item]) -> List[_Item]:
+    def get_item_children(self, item: _Item | None) -> list[_Item]:
         return self._items if item is None else []
 
     def get_item_value_model_count(self, _) -> int:
@@ -79,12 +78,10 @@ class ModSelectionModel(ui.AbstractItemModel):
     def get_drag_mime_data(self, item: _Item) -> str:
         return str(item)
 
-    def drop_accepted(
-        self, _item_target: Optional[_Item], item_source: Union[str, _Item], _drop_location: int = -1
-    ) -> bool:
+    def drop_accepted(self, _item_target: _Item | None, item_source: str | _Item, _drop_location: int = -1) -> bool:
         return bool(item_source)
 
-    def drop(self, _item_target: Optional[_Item], item_source: Union[str, _Item], drop_location: int = -1) -> None:
+    def drop(self, _item_target: _Item | None, item_source: str | _Item, drop_location: int = -1) -> None:
         # If moving the item, remove the old item
         if drop_location > -1:
             self.remove_item(str(item_source))

@@ -16,12 +16,11 @@
 """
 
 import functools
-from typing import Optional
 
 import omni.ui as ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
-from .model import HEADER_DICT  # noqa PLE0402
+from .model import HEADER_DICT
 
 
 class Delegate(ui.AbstractItemDelegate):
@@ -42,10 +41,10 @@ class Delegate(ui.AbstractItemDelegate):
         self._subs_item_enabled = {}
         self._subs_branch_item_enabled = {}
 
-    def get_item_widget(self, item) -> Optional[ui.Widget]:
+    def get_item_widget(self, item) -> ui.Widget | None:
         return self._item_stack.get(id(item))
 
-    def get_icon_item_widget(self, item) -> Optional[ui.Widget]:
+    def get_icon_item_widget(self, item) -> ui.Widget | None:
         return self._icon_stack.get(id(item))
 
     def build_branch(self, model, item, column_id, level, expanded):

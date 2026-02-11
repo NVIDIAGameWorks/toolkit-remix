@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import os
 import shutil
 from pathlib import Path
@@ -31,7 +33,7 @@ from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, ope
 class TestConvertToOctahedral(AsyncTestCase):
     async def setUp(self):
         await arrange_windows()
-        self.temp_dir = TemporaryDirectory()  # noqa PLR1732
+        self.temp_dir = TemporaryDirectory()  # pylint: disable=consider-using-with
         self.temp_path = Path(self.temp_dir.name)
 
     # After running each test
@@ -78,8 +80,8 @@ class TestConvertToOctahedral(AsyncTestCase):
             nonlocal sub_fix_count
             sub_fix_count += 1
 
-        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)  # noqa
+        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)
+        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)
 
         with patch.object(OmniUrl, "delete") as delete_mock:
             # Act
@@ -114,8 +116,8 @@ class TestConvertToOctahedral(AsyncTestCase):
             nonlocal sub_fix_count
             sub_fix_count += 1
 
-        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)  # noqa
-        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)  # noqa
+        _sub_check_check = core.model.check_plugins[0].instance.subscribe_check(check_check_sub_validation)
+        _sub_check_fix = core.model.check_plugins[0].instance.subscribe_fix(check_fix_sub_validation)
 
         with patch.object(OmniUrl, "delete") as delete_mock:
             # Act

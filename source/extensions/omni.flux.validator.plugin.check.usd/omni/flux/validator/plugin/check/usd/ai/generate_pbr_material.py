@@ -101,10 +101,10 @@ class GeneratePBRMaterial(_CheckBaseUSD):
 
             # Start importing the dependencies
             global _get_factory_instance, _OversizedBehavior, _RemixClientError, _InferenceStep
-            from remix.client import get_factory_instance as _get_factory_instance
-            from remix.client.common.enums import OversizedBehavior as _OversizedBehavior
-            from remix.client.common.exceptions import RemixClientError as _RemixClientError
-            from remix.models.i2m.utils import InferenceStep as _InferenceStep
+            from remix.client import get_factory_instance as _get_factory_instance  # noqa: PLC0415
+            from remix.client.common.enums import OversizedBehavior as _OversizedBehavior  # noqa: PLC0415
+            from remix.client.common.exceptions import RemixClientError as _RemixClientError  # noqa: PLC0415
+            from remix.models.i2m.utils import InferenceStep as _InferenceStep  # noqa: PLC0415
 
             # Initialize instance variables
             self._OVERSIZE_BEHAVIOR_MAP = {
@@ -209,7 +209,7 @@ class GeneratePBRMaterial(_CheckBaseUSD):
                 else schema_data.max_inference_resolution
             )
 
-            with _get_factory_instance().get_plugin("local_I2M")(  # noqa PLE1102
+            with _get_factory_instance().get_plugin("local_I2M")(
                 schema_data.ai_model_artifact_path,
                 schema_data.config_artifact_path,
                 min_resolution=schema_data.min_inference_resolution,

@@ -16,3 +16,5 @@
 """
 
 from .extension import AssetImporterWidgetExtension
+
+__all__ = ["AssetImporterWidgetExtension"]

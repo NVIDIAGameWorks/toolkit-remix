@@ -19,11 +19,11 @@ from __future__ import annotations
 
 __all__ = [
     "AbstractLightManipulator",
+    "CylinderLightManipulator",
     "DiskLightManipulator",
     "DistantLightManipulator",
     "RectLightManipulator",
     "SphereLightManipulator",
-    "CylinderLightManipulator",
 ]
 
 import abc

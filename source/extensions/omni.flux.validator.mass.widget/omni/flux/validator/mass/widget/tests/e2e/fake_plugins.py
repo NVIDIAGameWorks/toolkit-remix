@@ -17,7 +17,8 @@
 
 from asyncio import ensure_future
 from functools import partial
-from typing import Any, Awaitable, Callable
+from typing import Any
+from collections.abc import Awaitable, Callable
 
 import omni.ui as ui
 import omni.usd

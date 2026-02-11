@@ -15,9 +15,12 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import uuid
 from pathlib import Path
-from typing import Any, Awaitable, Callable, List, Optional, Tuple
+from typing import Any
+from collections.abc import Awaitable, Callable
 
 import carb.tokens
 import omni.client
@@ -48,11 +51,11 @@ class USDDirectory(_ContextBaseUSD):
         cooked_files: list[str] | None = Field(default=None)
 
         _compatible_data_flow_names = ["InOutData"]
-        data_flows: Optional[List[_InOutDataFlow]] = Field(default=None)
+        data_flows: list[_InOutDataFlow] | None = Field(default=None)
 
         @model_validator(mode="after")
         @classmethod
-        def file_validated_fixes_set(cls, instance_model: "USDDirectory.Data") -> "USDDirectory.Data":
+        def file_validated_fixes_set(cls, instance_model: USDDirectory.Data) -> USDDirectory.Data:
             if instance_model.skip_validated_files and not instance_model.file_validated_fixes:
                 raise ValueError("When `skip_validated_files` is True, `file_validated_fixes` must be set")
             return instance_model
@@ -63,7 +66,7 @@ class USDDirectory(_ContextBaseUSD):
     data_type = Data
 
     @omni.usd.handle_exception
-    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to execute the data.
 
@@ -101,7 +104,7 @@ class USDDirectory(_ContextBaseUSD):
         schema_data: Data,
         run_callback: Callable[[_SetupDataTypeVar], Awaitable[None]],
         parent_context: _SetupDataTypeVar,
-    ) -> Tuple[bool, str, _SetupDataTypeVar]:
+    ) -> tuple[bool, str, _SetupDataTypeVar]:
         """
         Function that will be executed to set the data. Here we will open the file path and give the stage
 
@@ -118,8 +121,8 @@ class USDDirectory(_ContextBaseUSD):
             return False, f"The context {schema_data.computed_context} doesn't exist!", None
 
         usd_file_paths = (
-            schema_data.cooked_files  # noqa PLW0212
-            if schema_data.cooked_files  # noqa PLW0212
+            schema_data.cooked_files
+            if schema_data.cooked_files
             else await self.__glob_usd_files(
                 directory_path, recursive=schema_data.recursive, ignore_paths=schema_data.ignore_paths
             )
@@ -168,7 +171,7 @@ class USDDirectory(_ContextBaseUSD):
 
         return True, directory_path, usd_file_paths
 
-    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to after the check of the data. For example, save the input USD stage
 
@@ -185,7 +188,7 @@ class USDDirectory(_ContextBaseUSD):
         return True, "Exit ok"
 
     @omni.usd.handle_exception
-    async def _mass_cook_template(self, schema_data_template: Data) -> Tuple[bool, Optional[str], List[Data]]:
+    async def _mass_cook_template(self, schema_data_template: Data) -> tuple[bool, str | None, list[Data]]:
         """
         Take a template as an input and the (previous) result, and edit the result for mass processing.
         Here, for each file input, we generate a list of schema
@@ -217,7 +220,7 @@ class USDDirectory(_ContextBaseUSD):
                 continue
 
             schema = self.Data(**schema_data_template.model_dump(serialize_as_any=True))
-            schema.cooked_files = [input_file]  # noqa PLW0212
+            schema.cooked_files = [input_file]
             schema.display_name_mass_template = str(_OmniUrl(input_file).stem)
             schema.display_name_mass_template_tooltip = input_file
             schema.uuid = str(uuid.uuid4())

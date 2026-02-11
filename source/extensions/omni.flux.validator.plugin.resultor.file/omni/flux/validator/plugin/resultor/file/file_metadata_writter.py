@@ -15,8 +15,10 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import copy
-from typing import TYPE_CHECKING, Any, Tuple
+from typing import TYPE_CHECKING, Any
 
 import omni.kit.app
 import omni.ui as ui
@@ -50,7 +52,7 @@ class FileMetadataWritter(_ResultorBase):
         self.__current_validation_extensions = FileMetadataWritter.get_current_validation_extensions()
 
     @omni.usd.handle_exception
-    async def _result(self, schema_data: Data, schema: "_ValidationSchema") -> Tuple[bool, str]:
+    async def _result(self, schema_data: Data, schema: _ValidationSchema) -> tuple[bool, str]:
         """
         Function that will be called to work on the result
 

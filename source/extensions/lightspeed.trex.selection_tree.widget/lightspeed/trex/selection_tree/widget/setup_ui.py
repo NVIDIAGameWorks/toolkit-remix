@@ -15,11 +15,14 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import functools
 import re
 import typing
-from typing import Any, Callable, List, Union
+from typing import Any
+from collections.abc import Callable
 
 import carb
 import omni.kit.app
@@ -135,7 +138,7 @@ class SetupUI:
 
     def _tree_selection_changed(
         self,
-        items: List[_AnyItemType],
+        items: list[_AnyItemType],
     ):
         """Call the event object that has the list of functions"""
         if self.__on_tree_selection_changed is not None:
@@ -144,7 +147,7 @@ class SetupUI:
     def subscribe_tree_selection_changed(
         self,
         function: Callable[
-            [List[_AnyItemType]],
+            [list[_AnyItemType]],
             Any,
         ],
     ):
@@ -159,13 +162,13 @@ class SetupUI:
         """
         return _EventSubscription(self.__on_tree_model_emptied, function)
 
-    def subscribe_delete_reference(self, function: Callable[["Usd.Prim", str], None]):
+    def subscribe_delete_reference(self, function: Callable[[Usd.Prim, str], None]):
         return self._tree_delegate.subscribe_delete_reference(function)
 
-    def subscribe_frame_prim(self, function: Callable[["Usd.Prim"], None]):
+    def subscribe_frame_prim(self, function: Callable[[Usd.Prim], None]):
         return self._tree_delegate.subscribe_frame_prim(function)
 
-    def subscribe_reset_released(self, function: Callable[["Usd.Prim"], None]):
+    def subscribe_reset_released(self, function: Callable[[Usd.Prim], None]):
         return self._tree_delegate.subscribe_reset_released(function)
 
     def __create_ui(self):
@@ -440,7 +443,7 @@ class SetupUI:
                     if isinstance(item, _ItemReferenceFile):
                         ref_file_items.append(item)
             # if the size of ref is the same, we select the previous ref
-            if ref_file_items and current_ref_mesh_file:  # noqa SIM102
+            if ref_file_items and current_ref_mesh_file:  # noqa: SIM102
                 # same len ref as before, so we grab the previous selected index
                 if (
                     len(current_ref_mesh_file) == ref_file_items[0].size_ref_index
@@ -590,7 +593,7 @@ class SetupUI:
 
                     if selection_start_index > selection_end_index:
                         selection_start_index, selection_end_index = selection_end_index, selection_start_index
-                    selection = all_instance_items[selection_start_index : selection_end_index + 1]  # noqa: E203
+                    selection = all_instance_items[selection_start_index : selection_end_index + 1]
                 else:
                     # TODO: Find a way to get shift selection to work when multiple ItemMesh sections are open
                     #       - `selection` is invalid if multiple ItemMesh selections and shift is clicked
@@ -796,12 +799,12 @@ class SetupUI:
             )
 
     def __ignore_warning_ingest_asset(
-        self, add_reference_item: Union[_ItemAddNewReferenceFileMesh, _ItemReferenceFile], asset_path: str
+        self, add_reference_item: _ItemAddNewReferenceFileMesh | _ItemReferenceFile, asset_path: str
     ):
         self._add_new_ref_mesh(add_reference_item, asset_path)
 
     def _add_new_unique_ref_mesh(
-        self, add_reference_item: Union[_ItemAddNewReferenceFileMesh, _ItemReferenceFile], asset_path: str
+        self, add_reference_item: _ItemAddNewReferenceFileMesh | _ItemReferenceFile, asset_path: str
     ):
         if not self._core.was_the_asset_ingested(asset_path):
             layer = self._context.get_stage().GetEditTarget().GetLayer()
@@ -827,7 +830,7 @@ class SetupUI:
 
     def _add_new_ref_mesh(
         self,
-        add_reference_item: Union[_ItemAddNewReferenceFileMesh, _ItemReferenceFile],
+        add_reference_item: _ItemAddNewReferenceFileMesh | _ItemReferenceFile,
         asset_path: str,
     ):
         layer = self._context.get_stage().GetEditTarget().GetLayer()

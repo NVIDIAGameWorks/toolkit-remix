@@ -18,3 +18,5 @@
 from .delegate import RecentProjectDelegate
 from .items import RecentProjectItem
 from .model import RecentProjectModel
+
+__all__ = ["RecentProjectDelegate", "RecentProjectItem", "RecentProjectModel"]

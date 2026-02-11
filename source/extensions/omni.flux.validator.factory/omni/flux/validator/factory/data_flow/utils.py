@@ -15,12 +15,10 @@
 * limitations under the License.
 """
 
-from typing import List
-
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 
 
-def push_input_data(schema_data, file_paths: List[str]):
+def push_input_data(schema_data, file_paths: list[str]):
     """
     Push a list of files into the data flow input
 
@@ -39,7 +37,7 @@ def push_input_data(schema_data, file_paths: List[str]):
                 data_flow.input_data.append(str(url_in_path_str))
 
 
-def push_output_data(schema_data, file_paths: List[str]):
+def push_output_data(schema_data, file_paths: list[str]):
     """
     Push a list of files into the data flow output
 

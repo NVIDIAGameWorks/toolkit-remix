@@ -36,7 +36,7 @@ class FileFlags(AbstractField):
         text += "\nIs checkpointed" if value & omni.client.ItemFlags.IS_CHECKPOINTED else "\nIs not checkpointed"
         return text
 
-    def build_ui(self, item) -> list[ui.Widget]:  # noqa PLW0221
+    def build_ui(self, item) -> list[ui.Widget]:
         widgets = []
         with ui.HStack(height=ui.Pixel(20 * 5)):
             for i in range(item.element_count):

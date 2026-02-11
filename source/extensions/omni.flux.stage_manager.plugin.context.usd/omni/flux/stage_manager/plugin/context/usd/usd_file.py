@@ -31,7 +31,7 @@ class UsdFileContextPlugin(_CurrentStageContextPlugin):
 
     @field_validator("file_path", mode="before")
     @classmethod
-    def file_path_is_valid(cls, v):  # noqa N805
+    def file_path_is_valid(cls, v):
         resolved_url = _OmniUrl(carb.tokens.get_tokens_interface().resolve(v))
         if not resolved_url.is_file:
             raise ValueError("The file path is not a valid file")

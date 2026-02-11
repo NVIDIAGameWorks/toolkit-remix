@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["get_comfyui_instance", "ComfyUICoreExtension"]
+__all__ = ["ComfyUICoreExtension", "get_comfyui_instance"]
 
 import carb
 import omni.ext

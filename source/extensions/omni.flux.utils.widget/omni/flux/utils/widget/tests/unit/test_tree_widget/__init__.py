@@ -19,4 +19,4 @@ from .test_item import TestTreeItemBase
 from .test_model import TestTreeWidgetModel
 from .test_widget.test_tree_widget import TestTreeWidget
 
-__all__ = ["TestTreeWidgetModel", "TestTreeWidget", "TestTreeItemBase"]
+__all__ = ["TestTreeItemBase", "TestTreeWidget", "TestTreeWidgetModel"]

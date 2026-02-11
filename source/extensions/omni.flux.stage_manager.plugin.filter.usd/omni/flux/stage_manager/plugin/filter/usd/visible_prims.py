@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from omni import ui
@@ -67,7 +69,7 @@ class VisiblePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
             )
             self._visible_prims_combobox.model.add_item_changed_fn(self._on_visible_prims_type_changed)
 
-    def _on_visible_prims_type_changed(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem"):
+    def _on_visible_prims_type_changed(self, model: _StageManagerTreeModel, item: _StageManagerTreeItem):
         selected_index = model.get_item_value_model().get_value_as_int()
         self.visible_prims_type = list(self._VISIBLE_PRIMS_DISPLAY_LABELS.values())[selected_index]
         self._current_attr = list(self._VISIBLE_PRIMS_DISPLAY_LABELS.keys())[selected_index]

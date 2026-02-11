@@ -15,7 +15,8 @@
 * limitations under the License.
 """
 
-from typing import Any, Awaitable, Callable, List, Optional, Tuple
+from typing import Any
+from collections.abc import Awaitable, Callable
 
 import omni.ui as ui
 import omni.usd
@@ -28,7 +29,7 @@ from omni.flux.validator.factory import get_instance as _get_factory_instance
 
 class FakeContext(_ContextBase):
     class Data(_ContextBase.Data):
-        fake_data: Optional[str] = None
+        fake_data: str | None = None
 
     name = "FakeContext"
     display_name = "Fake Context"
@@ -36,7 +37,7 @@ class FakeContext(_ContextBase):
     data_type = Data
 
     @omni.usd.handle_exception
-    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to execute the data.
 
@@ -53,7 +54,7 @@ class FakeContext(_ContextBase):
         schema_data: Data,
         run_callback: Callable[[_SetupDataTypeVar], Awaitable[None]],
         parent_context: _SetupDataTypeVar,
-    ) -> Tuple[bool, str, _SetupDataTypeVar]:
+    ) -> tuple[bool, str, _SetupDataTypeVar]:
         """
         Function that will be executed to set the data. Here we will open the file path and give the stage
 
@@ -71,7 +72,7 @@ class FakeContext(_ContextBase):
             "Fake data",
         )
 
-    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> Tuple[bool, str]:
+    async def _on_exit(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
         Function that will be called to after the check of the data. For example, save the input USD stage
 
@@ -86,7 +87,7 @@ class FakeContext(_ContextBase):
         return True, "Exit ok"
 
     @omni.usd.handle_exception
-    async def _mass_cook_template(self, schema_data_template: Data) -> Tuple[bool, Optional[str], List[Data]]:
+    async def _mass_cook_template(self, schema_data_template: Data) -> tuple[bool, str | None, list[Data]]:
         """
         Take a template as an input and the (previous) result, and edit the result for mass processing.
         Here, for each file input, we generate a list of schema
@@ -107,7 +108,7 @@ class FakeContext(_ContextBase):
         return True, None, result
 
     def _mass_build_queue_action_ui(
-        self, schema_data: Data, default_actions: List[Callable[[], Any]], callback: Callable[[str], Any]
+        self, schema_data: Data, default_actions: list[Callable[[], Any]], callback: Callable[[str], Any]
     ) -> None:
         """
         Default exposed action for Mass validation. The UI will be built into the delegate of the mass queue.
@@ -157,7 +158,7 @@ class FakeContext(_ContextBase):
 
 class FakeSelector(_SelectorBase):
     class Data(_SelectorBase.Data):
-        fake_data: Optional[str] = None
+        fake_data: str | None = None
 
     name = "FakeSelector"
     tooltip = "Fake selector plugin"
@@ -166,7 +167,7 @@ class FakeSelector(_SelectorBase):
     @omni.usd.handle_exception
     async def _select(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to select the data
 
@@ -180,7 +181,7 @@ class FakeSelector(_SelectorBase):
         return True, "Ok", "Fake selection data"
 
     @omni.usd.handle_exception
-    async def _mass_cook_template(self, schema_data_template: Data) -> Tuple[bool, Optional[str], List[Data]]:
+    async def _mass_cook_template(self, schema_data_template: Data) -> tuple[bool, str | None, list[Data]]:
         """
         Take a template as an input and the (previous) result, and edit the result for mass processing.
         Here, for each file input, we generate a list of schema
@@ -201,7 +202,7 @@ class FakeSelector(_SelectorBase):
         return True, None, result
 
     def _mass_build_queue_action_ui(
-        self, schema_data: Data, default_actions: List[Callable[[], Any]], callback: Callable[[str], Any]
+        self, schema_data: Data, default_actions: list[Callable[[], Any]], callback: Callable[[str], Any]
     ) -> None:
         """
         Default exposed action for Mass validation. The UI will be built into the delegate of the mass queue.
@@ -251,7 +252,7 @@ class FakeSelector(_SelectorBase):
 
 class FakeCheck(_CheckBase):
     class Data(_CheckBase.Data):
-        fake_data: Optional[str] = None
+        fake_data: str | None = None
 
     name = "FakeCheck"
     tooltip = "Fake check plugin"
@@ -260,7 +261,7 @@ class FakeCheck(_CheckBase):
     @omni.usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check the data
 
@@ -276,7 +277,7 @@ class FakeCheck(_CheckBase):
     @omni.usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to fix the data
 
@@ -290,7 +291,7 @@ class FakeCheck(_CheckBase):
         return True, "Ok", "Fake check data"
 
     @omni.usd.handle_exception
-    async def _mass_cook_template(self, schema_data_template: Data) -> Tuple[bool, Optional[str], List[Data]]:
+    async def _mass_cook_template(self, schema_data_template: Data) -> tuple[bool, str | None, list[Data]]:
         """
         Take a template as an input and the (previous) result, and edit the result for mass processing.
         Here, for each file input, we generate a list of schema
@@ -311,7 +312,7 @@ class FakeCheck(_CheckBase):
         return True, None, result
 
     def _mass_build_queue_action_ui(
-        self, schema_data: Data, default_actions: List[Callable[[], Any]], callback: Callable[[str], Any]
+        self, schema_data: Data, default_actions: list[Callable[[], Any]], callback: Callable[[str], Any]
     ) -> None:
         """
         Default exposed action for Mass validation. The UI will be built into the delegate of the mass queue.

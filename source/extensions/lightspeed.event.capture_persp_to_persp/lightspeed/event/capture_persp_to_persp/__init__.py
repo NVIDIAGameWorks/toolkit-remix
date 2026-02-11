@@ -16,3 +16,5 @@
 """
 
 from .extension import EventCopyCapturePerspToPerspExtension
+
+__all__ = ["EventCopyCapturePerspToPerspExtension"]

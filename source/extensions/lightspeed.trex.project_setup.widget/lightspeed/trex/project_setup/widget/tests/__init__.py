@@ -17,3 +17,5 @@
 
 from .e2e.test_widget import TestProjectSetupWidget
 from .unit.test_subscription_lifecycle import TestProjectSetupPaneSubscriptionLifecycle
+
+__all__ = ["TestProjectSetupPaneSubscriptionLifecycle", "TestProjectSetupWidget"]

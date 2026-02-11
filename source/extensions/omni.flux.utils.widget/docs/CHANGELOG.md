@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.24.1]
+### Changed
+- Modernize python style and enable more ruff checks
+
 ## [1.24.0]
 ### Added
 - Added `expand_to_items()` async method to `ScrollingTreeWidget` for expanding parent items to reveal specified items

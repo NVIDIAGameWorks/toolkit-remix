@@ -15,13 +15,14 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import concurrent.futures
 import math
 import multiprocessing
 import re
-import typing
 from contextlib import contextmanager
-from typing import Dict, List, Optional, Type, TypeAlias, Union
+from typing import TypeAlias
 
 import carb.events
 import omni.kit.commands
@@ -33,12 +34,9 @@ from lightspeed.trex.utils.common.prim_utils import get_reference_file_paths as 
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.kit.usd.layers import LayerEventType, get_layer_event_payload, get_layers
-from pxr import Usd, UsdGeom, UsdLux, UsdShade
+from pxr import Sdf, Usd, UsdGeom, UsdLux, UsdShade
 
 from .listener import USDListener as _USDListener
-
-if typing.TYPE_CHECKING:
-    from pxr import Sdf
 
 HEADER_DICT = {0: "Path"}
 
@@ -46,7 +44,7 @@ HEADER_DICT = {0: "Path"}
 class ItemInstance(ui.AbstractItem):
     """Item of the model that represents an instance"""
 
-    def __init__(self, prim: "Usd.Prim", parent: "ItemInstancesGroup"):
+    def __init__(self, prim: Usd.Prim, parent: ItemInstancesGroup):
         super().__init__()
         self._parent = parent
         self._prim = prim
@@ -92,7 +90,7 @@ class ItemInstance(ui.AbstractItem):
 class ItemInstancesGroup(ui.AbstractItem):
     """Item of the model that groups together all instances of the same asset"""
 
-    def __init__(self, instance_prims: List["Usd.Prim"], parent: "ItemAsset"):
+    def __init__(self, instance_prims: list[Usd.Prim], parent: ItemAsset):
         super().__init__()
         self._parent = parent
         self._display = "Instance(s)"
@@ -122,7 +120,7 @@ class ItemInstancesGroup(ui.AbstractItem):
 class ItemLiveLightGroup(ui.AbstractItem):
     """Item of the model that groups together lights"""
 
-    def __init__(self, parent: "ItemAsset", context_name: str):
+    def __init__(self, parent: ItemAsset, context_name: str):
         super().__init__()
         self._parent = parent
         self._context_name = context_name
@@ -132,7 +130,7 @@ class ItemLiveLightGroup(ui.AbstractItem):
         ]
         self._value_model = ui.SimpleStringModel(self._display)
 
-    def get_live_lights(self) -> List[Usd.Prim]:
+    def get_live_lights(self) -> list[Usd.Prim]:
         """Get lights that are not from a ref"""
         core = _AssetReplacementsCore(self._context_name)
         children = core.get_children_from_prim(
@@ -167,7 +165,7 @@ class ItemLiveLightGroup(ui.AbstractItem):
 class ItemAddNewReferenceFile(ui.AbstractItem):
     """Item of the model that represents a button to add a new file reference"""
 
-    def __init__(self, prim: "Usd.Prim", parent: "ItemAsset"):
+    def __init__(self, prim: Usd.Prim, parent: ItemAsset):
         super().__init__()
         self._parent = parent
         self._prim = prim
@@ -197,7 +195,7 @@ class ItemAddNewReferenceFile(ui.AbstractItem):
 class ItemAddNewLiveLight(ui.AbstractItem):
     """Item of the model that represents a button to add a new light"""
 
-    def __init__(self, prim: "Usd.Prim", parent: "ItemAsset"):
+    def __init__(self, prim: Usd.Prim, parent: ItemAsset):
         super().__init__()
         self._parent = parent
         self._prim = prim
@@ -229,9 +227,9 @@ class ItemPrim(ui.AbstractItem):
 
     def __init__(
         self,
-        prim: "Usd.Prim",
-        reference_item: Optional["ItemReferenceFile"],
-        parent: Union["ItemPrim", "ItemReferenceFile"],
+        prim: Usd.Prim,
+        reference_item: ItemReferenceFile | None,
+        parent: ItemPrim | ItemReferenceFile,
         context_name: str,
         from_live_light_group: bool = False,
     ):
@@ -319,12 +317,12 @@ class ItemReferenceFile(ui.AbstractItem):
 
     def __init__(
         self,
-        prim: "Usd.Prim",
-        ref: "Sdf.Reference",
-        layer: "Sdf.Layer",
+        prim: Usd.Prim,
+        ref: Sdf.Reference,
+        layer: Sdf.Layer,
         ref_index: int,
         size_ref_index: int,
-        parent: "ItemAsset",
+        parent: ItemAsset,
         context_name: str,
     ):
         super().__init__()
@@ -410,7 +408,7 @@ class ItemReferenceFile(ui.AbstractItem):
 class ItemAsset(ui.AbstractItem):
     """Item of the model that represents a captured asset prototype"""
 
-    def __init__(self, prim: "Usd.Prim", instance_prims: List["Usd.Prim"], context_name: str):
+    def __init__(self, prim: Usd.Prim, instance_prims: list[Usd.Prim], context_name: str):
         super().__init__()
         # top prototype prim that references the original captured asset file
         self._prim = prim
@@ -489,16 +487,16 @@ class ItemAsset(ui.AbstractItem):
 
 
 # list of concrete item types
-AnyItemType: TypeAlias = Union[
-    ItemAsset,
-    ItemReferenceFile,
-    ItemAddNewReferenceFile,
-    ItemAddNewLiveLight,
-    ItemLiveLightGroup,
-    ItemInstancesGroup,
-    ItemInstance,
-    ItemPrim,
-]
+AnyItemType: TypeAlias = (
+    ItemAsset
+    | ItemReferenceFile
+    | ItemAddNewReferenceFile
+    | ItemAddNewLiveLight
+    | ItemLiveLightGroup
+    | ItemInstancesGroup
+    | ItemInstance
+    | ItemPrim
+)
 
 
 class ListModel(ui.AbstractItemModel):
@@ -596,7 +594,7 @@ class ListModel(ui.AbstractItemModel):
             if self._ignore_refresh:
                 self._ignore_refresh = False
 
-    def __get_prototype_from_path(self, path) -> Optional[str]:
+    def __get_prototype_from_path(self, path) -> str | None:
         if path.startswith(constants.MESH_PATH) or path.startswith(constants.LIGHT_PATH):
             return path
         prim = self.stage.GetPrimAtPath(path)
@@ -611,7 +609,7 @@ class ListModel(ui.AbstractItemModel):
         return str(children[0].path)
 
     @staticmethod
-    def __get_reference_prims(prims) -> Dict["Usd.Prim", List["Sdf.Path"]]:
+    def __get_reference_prims(prims) -> dict[Usd.Prim, list[Sdf.Path]]:
         prim_paths = {}
         regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
         for prim in prims:
@@ -655,7 +653,7 @@ class ListModel(ui.AbstractItemModel):
             return None
         return self.__get_model_from_prototype_path(str(parent.GetPath()))
 
-    def __get_instances_by_mesh(self, paths: List[str]) -> Dict["Sdf.Path", List["Usd.Prim"]]:
+    def __get_instances_by_mesh(self, paths: list[str]) -> dict[Sdf.Path, list[Usd.Prim]]:
         if not self.stage:
             return {}
 
@@ -706,7 +704,7 @@ class ListModel(ui.AbstractItemModel):
                         result[ref[0]] = [prim]
         return result
 
-    def select_prim_paths(self, paths: List[Union[str]]):
+    def select_prim_paths(self, paths: list[str]):
         current_selection = self._context.get_selection().get_selected_prim_paths()
         if sorted(paths) != sorted(current_selection):
             self._ignore_refresh = True
@@ -764,8 +762,8 @@ class ListModel(ui.AbstractItemModel):
 
     def get_item_children_type(
         self,
-        item_type: Type[AnyItemType],
-    ) -> List[AnyItemType]:
+        item_type: type[AnyItemType],
+    ) -> list[AnyItemType]:
         result = []
 
         def get_children(_items):
@@ -780,8 +778,8 @@ class ListModel(ui.AbstractItemModel):
     def get_first_item_parent_type(
         self,
         item: AnyItemType,
-        item_type: Type[AnyItemType],
-    ) -> Optional[AnyItemType]:
+        item_type: type[AnyItemType],
+    ) -> AnyItemType | None:
         def get_parent(_item):
             if isinstance(_item, item_type):
                 return _item
@@ -849,7 +847,7 @@ class ListModel(ui.AbstractItemModel):
             return item.parent
         return self.get_root_asset_item(item.parent)
 
-    def get_item_children(self, item: AnyItemType = None) -> List[AnyItemType]:
+    def get_item_children(self, item: AnyItemType = None) -> list[AnyItemType]:
         """Returns all the children when the widget asks it."""
         if item is None:
             return self.__children

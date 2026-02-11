@@ -15,11 +15,13 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import asyncio
 import re
 from collections import OrderedDict
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 import carb
 import omni.kit.app
@@ -43,7 +45,7 @@ from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from pxr import UsdShade
 from pydantic import Field, field_validator
 
-from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD  # noqa PLE0402
+from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
 if TYPE_CHECKING:
     from pxr import Usd
@@ -68,7 +70,7 @@ def disable_orphan_parameter_cleanup():
 class MaterialShaders(_CheckBaseUSD):
     class Data(_CheckBaseUSD.Data):
         # The first shader will be used by default when converting invalid materials
-        context_name: Optional[str] = Field(default=None)
+        context_name: str | None = Field(default=None)
         shader_subidentifiers: OrderedDict[str, str] = Field(...)
         ignore_not_convertable_shaders: bool = Field(default=False)
 
@@ -118,7 +120,7 @@ class MaterialShaders(_CheckBaseUSD):
     @usd.handle_exception
     async def _check(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check the data
 
@@ -187,7 +189,7 @@ class MaterialShaders(_CheckBaseUSD):
     @usd.handle_exception
     async def _fix(
         self, schema_data: Data, context_plugin_data: _SetupDataTypeVar, selector_plugin_data: Any
-    ) -> Tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to fix the data
 
@@ -290,7 +292,7 @@ class MaterialShaders(_CheckBaseUSD):
         return success, message, None
 
     @usd.handle_exception
-    async def _get_material_shader_subidentifier(self, prim: "Usd.Prim") -> Optional[str]:
+    async def _get_material_shader_subidentifier(self, prim: Usd.Prim) -> str | None:
         shader_prim = usd.get_shader_from_material(prim, get_prim=True)
         subid_list = await omni.kit.material.library.get_subidentifier_from_material(
             shader_prim, lambda x: x, use_functions=False
@@ -304,15 +306,15 @@ class MaterialShaders(_CheckBaseUSD):
         return str(subid_list[0]) if subid_list else None
 
     @usd.handle_exception
-    async def _validate_material_shaders(self, shader_subidentifiers: OrderedDict, prim: "Usd.Prim") -> bool:
+    async def _validate_material_shaders(self, shader_subidentifiers: OrderedDict, prim: Usd.Prim) -> bool:
         return await self._get_material_shader_subidentifier(prim) in [
             name for name, _ in shader_subidentifiers.items()
         ]
 
     @usd.handle_exception
     async def _convert_material(
-        self, context_name: str, output_subidentifier: str, input_subidentifier: str, prim: "Usd.Prim"
-    ) -> Tuple[bool, Optional[str], bool]:
+        self, context_name: str, output_subidentifier: str, input_subidentifier: str, prim: Usd.Prim
+    ) -> tuple[bool, str | None, bool]:
         converter = None
 
         # if there is a OmniGlass, we force the converter

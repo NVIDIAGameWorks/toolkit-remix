@@ -16,7 +16,6 @@
 """
 
 from pathlib import Path
-from typing import List, Optional, Set
 
 from omni.flux.service.shared import BaseServiceModel
 from pydantic import Field, field_validator, model_validator
@@ -34,8 +33,8 @@ class LayerModel(BaseServiceModel):
     """
 
     layer_id: Path = Field(description="The layer identifier (layer path for non-anonymous layers)")
-    layer_type: Optional[LayerType] = Field(default=None, description="The type of layer")
-    children: List["LayerModel"] = Field(default=[], description="The immediate sublayers of the layer")
+    layer_type: LayerType | None = Field(default=None, description="The type of layer")
+    children: list["LayerModel"] = Field(default=[], description="The immediate sublayers of the layer")
 
 
 # PATH PARAM MODELS
@@ -186,7 +185,7 @@ class GetLayersQueryModel(BaseServiceModel):
     Query model that modifies the behavior when getting layers.
     """
 
-    layer_types: Optional[Set[Optional[LayerType]]] = Field(default=None, description="The type of layer to get")
+    layer_types: set[LayerType | None] | None = Field(default=None, description="The type of layer to get")
     layer_count: int = Field(
         default=-1, description="The number of layers to get per `layer_type`. Use -1 to get all the layers."
     )
@@ -208,7 +207,7 @@ class LayerStackResponseModel(BaseServiceModel):
     Response model received when getting the layer stack.
     """
 
-    layers: List[LayerModel] = Field(description="The list of layers in the layer stack")
+    layers: list[LayerModel] = Field(description="The list of layers in the layer stack")
 
 
 class LayerTypeResponseModel(BaseServiceModel):
@@ -216,7 +215,7 @@ class LayerTypeResponseModel(BaseServiceModel):
     Response model received when getting the layer types.
     """
 
-    layer_types: List[str] = Field(description="The types of layers available")
+    layer_types: list[str] = Field(description="The types of layers available")
 
 
 # REQUEST MODELS
@@ -228,14 +227,14 @@ class CreateLayerRequestModel(BaseServiceModel):
     """
 
     layer_path: Path = Field(description="The path to the layer to create")
-    layer_type: Optional[LayerType] = Field(
+    layer_type: LayerType | None = Field(
         default=None, description="If used, will set custom metadata for the layer type"
     )
     set_edit_target: bool = Field(default=False, description="Whether to set the layer as the edit target")
     sublayer_position: int = Field(
         default=-1, description="The position to insert the new layer at. Use -1 to insert at the end."
     )
-    parent_layer_id: Optional[Path] = Field(
+    parent_layer_id: Path | None = Field(
         default=None,
         description=(
             "Layer identifier (layer path for non-anonymous layers) for the layer to insert the sublayer into. "
@@ -268,7 +267,7 @@ class MoveLayerRequestModel(BaseServiceModel):
     current_parent_layer_id: Path = Field(
         description="Layer identifier (layer path for non-anonymous layers) for the layer to move"
     )
-    new_parent_layer_id: Optional[Path] = Field(
+    new_parent_layer_id: Path | None = Field(
         default=None,
         description=(
             "Layer identifier (layer path for non-anonymous layers) for the new parent layer. "

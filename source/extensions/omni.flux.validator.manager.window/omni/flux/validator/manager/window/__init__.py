@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["FluxValidatorWindowExtension", "get_window_instance", "ValidatorManagerWindow"]
+__all__ = ["FluxValidatorWindowExtension", "ValidatorManagerWindow", "get_window_instance"]
 
 from .extension import FluxValidatorWindowExtension
 from .setup_ui import ValidatorManagerWindow, get_window_instance

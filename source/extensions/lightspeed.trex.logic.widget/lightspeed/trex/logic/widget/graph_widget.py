@@ -161,7 +161,7 @@ class RemixLogicGraphWidget(OmniGraphWidget):
             self._catalog_frame = ui.Frame()
             with self._catalog_frame:
                 # Skip OmniGraphWidget's on_build_catalog to avoid building the variables widget
-                super(OmniGraphWidget, self).on_build_catalog()  # noqa: PLE1003
+                super(OmniGraphWidget, self).on_build_catalog()
 
     def on_build_startup(self):
         """Overridden from base to customize startup panel UI"""
