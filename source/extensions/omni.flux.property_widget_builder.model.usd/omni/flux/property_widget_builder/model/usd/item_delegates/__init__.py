@@ -19,8 +19,9 @@ __all__ = (
     "ComboboxField",
     "FileTexturePicker",
     "USDFloatSliderField",
+    "USDIntSliderField",
 )
 
 from .combobox_delegate import ComboboxField
 from .file_texture_picker import FileTexturePicker
-from .slider import USDFloatSliderField
+from .slider import USDFloatSliderField, USDIntSliderField

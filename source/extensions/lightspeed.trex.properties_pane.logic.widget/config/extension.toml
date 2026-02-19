@@ -1,5 +1,5 @@
 [package]
-version = "1.3.4"
+version = "1.3.5"
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Remix Logic Properties Widget"
 description = "Properties panel for RemixLogic prim types"
@@ -37,3 +37,4 @@ dependencies = [
     "lightspeed.trex.tests.dependencies",
     "omni.kit.test",
 ]
+

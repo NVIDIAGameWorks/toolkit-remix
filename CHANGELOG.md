@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4418: Added a nickname attribute to the selection tree widget and the Stage Manager
 - REMIX-4795: Added a new documentation page for Remix Logic
 - REMIX-4920: Added tree item recycling to preserve expansion states across Stage Manager refreshes
+- REMIX-4854: OGN node attributes now show correct slider bounds and step in the Remix Logic properties panel (from OGN metadata and USDAttributeItem limits)
 
 ### Changed
 - REMIX-4786: Changed the "Delete/Restore" StageManager action to use layer-based logic driven by the EditTarget State

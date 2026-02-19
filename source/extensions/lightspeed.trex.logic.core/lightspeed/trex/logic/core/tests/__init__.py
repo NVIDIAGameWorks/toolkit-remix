@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from .unit.test_attributes import TestGetOgnDefaultValue
 from .unit.test_graphs import TestLogicGraphCore
 
-__all__ = ["TestLogicGraphCore"]
+__all__ = ["TestGetOgnDefaultValue", "TestLogicGraphCore"]

@@ -56,6 +56,46 @@ def _get_type_default(og_type: og.AttributeType) -> Any:
     return val_base
 
 
+def _ogn_value_to_python_type(value: str, og_type: og.AttributeType) -> Any:
+    """Convert an OGN metadata string to a USD-compatible Python type.
+
+    OGN metadata values (defaults, min/max bounds, etc.) are stored as JSON-encoded
+    strings in .ogn node definitions. This function deserializes the JSON string back
+    into a Python value, then converts it to the appropriate USD type via OmniGraph.
+
+    Args:
+        value: The raw metadata string as returned by attr.get_metadata()
+               (e.g., "0.5", "100", "[1.0, 2.0, 3.0]").
+        og_type: The resolved OmniGraph attribute type, used to select the
+                 correct USD type conversion (e.g., float -> float, vec3 -> Gf.Vec3f).
+
+    Returns:
+        The value converted to the appropriate USD-compatible Python type.
+    """
+    py_val = json.loads(value)
+    return og.python_value_as_usd(og_type, py_val)
+
+
+def ogn_read_metadata_key(attr: og.Attribute, key: str):
+    """
+    Read a single OGN metadata key from an attribute and convert to a Python type.
+
+    Args:
+        attr: The OmniGraph attribute to read metadata from.
+        key: The metadata key name (e.g. "softMin", "uiStep").
+
+    Returns:
+        The metadata value converted to a USD-compatible Python type (e.g. float, int),
+        or None if the key is not set.
+    """
+    val = attr.get_metadata(key)
+    if val is None:
+        return None
+
+    og_type = attr.get_resolved_type()
+    return _ogn_value_to_python_type(val, og_type)
+
+
 def get_ogn_default_value(attr: og.Attribute) -> Any:
     """Get an OGN attribute's default value as a USD-compatible Python type.
 
@@ -66,8 +106,7 @@ def get_ogn_default_value(attr: og.Attribute) -> Any:
 
     if default_str is not None:
         try:
-            py_val = json.loads(default_str)
-            return og.python_value_as_usd(og_type, py_val)
+            return _ogn_value_to_python_type(default_str, og_type)
         except (json.JSONDecodeError, TypeError, ValueError):
             return default_str
 

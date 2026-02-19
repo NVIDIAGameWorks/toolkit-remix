@@ -30,6 +30,7 @@ __all__ = [
     "USDBuilderList",
     "USDDelegate",
     "USDFloatSliderField",
+    "USDIntSliderField",
     "USDMetadataListItem",
     "USDModel",
     "USDPropertyWidget",
@@ -46,7 +47,7 @@ from . import utils
 from .delegate import USDDelegate
 from .extension import USDPropertyWidgetExtension, get_usd_listener_instance
 from .field_builders import USDBuilderList
-from .item_delegates import ComboboxField, FileTexturePicker, USDFloatSliderField
+from .item_delegates import ComboboxField, FileTexturePicker, USDFloatSliderField, USDIntSliderField
 from .items import (
     USDAttributeDef,
     USDAttributeItem,

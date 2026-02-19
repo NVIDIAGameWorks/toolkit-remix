@@ -1,6 +1,6 @@
 [package]
 # Semantic Versioning is used: https://semver.org/
-version = "1.1.1"
+version = "1.2.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
@@ -46,12 +46,13 @@ dependencies = [
     "lightspeed.trex.tests.dependencies",
 ]
 
-stdoutFailPatterns.exclude = [
-    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
-]
-
 [[test]]
 name = "startup"
 dependencies = [
     "lightspeed.trex.tests.dependencies",
+]
+
+# See comment on the default [[test]] block above for context.
+stdoutFailPatterns.exclude = [
+    "*[omni.graph.tools*] Exception while importing test lightspeed.trex.logic.ogn*",
 ]

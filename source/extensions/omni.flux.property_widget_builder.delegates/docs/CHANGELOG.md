@@ -2,6 +2,16 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0]
+### Added
+- Added `AbstractSliderField` base class with shared min/max/step handling, undo grouping (begin_edit/end_edit), and abstract `build_drag_widget()` for slider UI
+- Added `IntSliderField` for integer slider widgets with configurable min, max, and step (default step: 1 for range ≤100, else max(1, int(range * 0.01)))
+- Added E2E tests for AbstractSliderField, FloatSliderField, and IntSliderField
+
+### Changed
+- `FloatSliderField` now extends `AbstractSliderField`; min_value and max_value are optional (defaults 0.0 and 100.0); step is optional with computed default `(max - min) * 0.005`
+- De-duplicated slider build logic between int and float sliders via shared base class
+
 ## [1.7.2]
 ### Changed
 - Modernize python style and enable more ruff checks
