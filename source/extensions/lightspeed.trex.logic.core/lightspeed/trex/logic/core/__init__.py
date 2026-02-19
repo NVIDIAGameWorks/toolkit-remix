@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from .attributes import get_ogn_default_value
+from .attributes import get_ogn_default_value, ogn_read_metadata_key
 from .graphs import LogicGraphCore
 
-__all__ = ["LogicGraphCore", "get_ogn_default_value"]
+__all__ = ["LogicGraphCore", "get_ogn_default_value", "ogn_read_metadata_key"]

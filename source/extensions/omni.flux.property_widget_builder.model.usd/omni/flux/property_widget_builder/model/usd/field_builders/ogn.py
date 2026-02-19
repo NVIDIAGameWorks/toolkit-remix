@@ -22,7 +22,10 @@ from omni.flux.property_widget_builder.delegates.string_value.file_picker import
 from omni.flux.property_widget_builder.widget import Item
 from omni.flux.stage_prim_picker.widget import StagePrimPickerField
 
+from ..mapping import FLOAT_TYPES, INT_TYPES
+from ..item_delegates.slider import USDFloatSliderField, USDIntSliderField
 from ..items import USDAttributeItem, USDRelationshipItem
+from ..utils import get_type_name as _get_type_name
 from .base import USDBuilderList
 
 
@@ -51,12 +54,51 @@ def is_ogn_node_attr(item: Item, node_type: str, attr_name: str) -> bool:
     return node is not None and node.get_node_type().get_node_type() == node_type
 
 
+def _has_bounds(item: Item) -> bool:
+    """Check if a USDAttributeItem has min/max bounds defined in USD metadata."""
+    return isinstance(item, USDAttributeItem) and item.has_bounds_data
+
+
+def _is_bounded_float(item: Item) -> bool:
+    """Check if item is a float type with bounds defined."""
+    if not _has_bounds(item):
+        return False
+    try:
+        metadata = item.value_models[0].metadata
+    except (IndexError, AttributeError):
+        return False
+    return _get_type_name(metadata) in FLOAT_TYPES
+
+
+def _is_bounded_int(item: Item) -> bool:
+    """Check if item is an int type with bounds defined."""
+    if not _has_bounds(item):
+        return False
+    try:
+        metadata = item.value_models[0].metadata
+    except (IndexError, AttributeError):
+        return False
+    return _get_type_name(metadata) in INT_TYPES
+
+
 OGN_FIELD_BUILDERS = USDBuilderList()
 
 OGN_FIELD_BUILDERS.append_builder_by_attr_name(
     "inputs:configPath",
     FilePicker(file_extension_options=[("*.conf", "Remix Config Files")], use_relative_paths=True),
 )
+
+
+@OGN_FIELD_BUILDERS.register_build(_is_bounded_float)
+def _bounded_float_builder(item):
+    """Build a float slider for attributes with min/max bounds defined."""
+    return USDFloatSliderField().build_ui(item)
+
+
+@OGN_FIELD_BUILDERS.register_build(_is_bounded_int)
+def _bounded_int_builder(item):
+    """Build an int slider for attributes with min/max bounds defined."""
+    return USDIntSliderField().build_ui(item)
 
 
 @OGN_FIELD_BUILDERS.register_build(lambda item: isinstance(item, USDRelationshipItem))
