@@ -15,55 +15,57 @@
 * limitations under the License.
 """
 
-__all__ = ("USDFloatSliderField",)
+__all__ = ("USDFloatSliderField", "USDIntSliderField")
 
+import carb
 import omni.ui as ui
 from omni.flux.property_widget_builder.delegates.float_value.slider import FloatSliderField
+from omni.flux.property_widget_builder.delegates.int_value.slider import IntSliderField
 
-from ..items import USDAttributeItem as _USDAttributeItem
+
+def _adjust_min_max_range(widget, item):
+    """Adjust the slider's min/max from the item's bound metadata (ui_metadata or USD attribute customData)."""
+
+    bounds = item.get_min_max_bounds()
+    if not bounds:
+        return
+
+    min_value, max_value = bounds
+
+    if min_value >= max_value:
+        carb.log_warn(
+            f"Slider bounds ignored: min ({min_value}) must be less than max ({max_value}) "
+            f"for attribute(s) {item.attribute_paths}"
+        )
+        return
+
+    widget.min_value = min_value
+    widget.max_value = max_value
+
+
+def _adjust_step(widget, item):
+    """Set the widget's step from the item's step metadata (ui_metadata or USD attribute customData) if present."""
+    step_value = item.get_step_value()
+    if step_value is None:
+        return
+    widget.step = abs(step_value)
 
 
 class USDFloatSliderField(FloatSliderField):
-    """
-    A FloatSliderField that will attempt to adjust it's min/max range using USD attribute metadata.
-    """
-
-    def adjust_min_max_range(self, item: _USDAttributeItem):
-        """
-        Attempts to adjust the sliders min/max range by inspecting the USD metadata.
-        """
-        # NOTE: We want to prefer *any* metadata values over the provided defaults.
-
-        min_value = None
-        max_value = None
-
-        for attribute_path in item._attribute_paths:  # noqa: SLF001
-            prim = item._stage.GetPrimAtPath(attribute_path.GetPrimPath())  # noqa: SLF001
-            if prim.HasAttribute(attribute_path.name):
-                attr = prim.GetAttribute(attribute_path.name)
-                custom = attr.GetMetadata("customData")
-                if custom is not None:
-                    min_max_range = custom.get("range")
-                    if min_max_range is not None:
-                        meta_min_value = min_max_range.get("min")
-                        if isinstance(meta_min_value, (int, float)):
-                            if min_value is None:
-                                min_value = meta_min_value
-                            else:
-                                min_value = min(min_value, meta_min_value)
-                        meta_max_value = min_max_range.get("max")
-                        if isinstance(meta_max_value, (int, float)):
-                            if max_value is None:
-                                max_value = meta_max_value
-                            else:
-                                max_value = max(max_value, meta_max_value)
-
-        if min_value is not None:
-            self.min_value = min_value
-        if max_value is not None:
-            self.max_value = max_value
-        assert self.min_value < self.max_value, "Min value must be less than max value"
+    """Float slider that adjusts min/max and step from USD attribute ``customData`` (limits, ui:step)."""
 
     def build_ui(self, item) -> list[ui.Widget]:
-        self.adjust_min_max_range(item)
+        """Apply USD metadata bounds and step, then build the slider UI."""
+        _adjust_min_max_range(self, item)
+        _adjust_step(self, item)
+        return super().build_ui(item)
+
+
+class USDIntSliderField(IntSliderField):
+    """Int slider that adjusts min/max and step from USD attribute ``customData`` (limits, ui:step)."""
+
+    def build_ui(self, item) -> list[ui.Widget]:
+        """Apply USD metadata bounds and step, then build the slider UI."""
+        _adjust_min_max_range(self, item)
+        _adjust_step(self, item)
         return super().build_ui(item)

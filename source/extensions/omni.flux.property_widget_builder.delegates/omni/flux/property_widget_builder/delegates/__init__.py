@@ -26,6 +26,7 @@ __all__ = (
     "FileFlags",
     "FilePicker",
     "FloatSliderField",
+    "IntSliderField",
     "MultilineField",
     "NameField",
 )
@@ -33,5 +34,5 @@ __all__ = (
 from .base import AbstractField
 from .default import CreatorField, DefaultField
 from .float_value import ColorField, FloatSliderField
-from .int_value import BytesToHuman
+from .int_value import BytesToHuman, IntSliderField
 from .string_value import DefaultLabelField, FileAccess, FileFlags, FilePicker, MultilineField, NameField

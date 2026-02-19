@@ -186,7 +186,7 @@ class Model(_TreeModelBase[_TreeItemBase]):
             return []
         return _get_children(self._items)
 
-    def get_item_children(self, item: Item | None):
+    def get_item_children(self, item: Item | None) -> list[Item]:
         """Returns all the children when the widget asks it."""
         if item is None:
             return self._items
