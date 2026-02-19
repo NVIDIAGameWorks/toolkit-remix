@@ -168,7 +168,20 @@ class _BaseUSDAttributeItem(_Item):
 
 
 class USDAttributeItem(_BaseUSDAttributeItem):
-    """Item of the model"""
+    """
+    Item that represent a USD attribute on the tree
+
+    Args:
+        context_name: the context name
+        attribute_paths: the list of USD attribute(s) the item will represent
+        display_attr_names: override the name(s) of the attribute(s) to show by those one
+        display_attr_names_tooltip: tooltip to show on the attribute name
+        default_value: optional override for the default value
+        read_only: show the attribute(s) as read only
+        value_type_name: if None, the type name will be inferred
+        ui_metadata: optional dict of UI hints (e.g. hard_min, soft_min, hard_max,
+            soft_max, ui_step for OGN-style bounds; used by slider and other delegates).
+    """
 
     def __init__(
         self,
@@ -179,19 +192,8 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         default_value: Any = None,
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
+        ui_metadata: dict | None = None,
     ):
-        """
-        Item that represent a USD attribute on the tree
-
-        Args:
-            context_name: the context name
-            attribute_paths: the list of USD attribute(s) the item will represent
-            display_attr_names: override the name(s) of the attribute(s) to show by those one
-            display_attr_names_tooltip: tooltip to show on the attribute name
-            default_value: optional override for the default value
-            read_only: show the attribute(s) as read only
-            value_type_name: if None, the type name will be inferred
-        """
         super().__init__(context_name, attribute_paths)
         # take only the first attribute name because the attribute name is the same for all values
         # (even in multi selection)
@@ -213,6 +215,104 @@ class USDAttributeItem(_BaseUSDAttributeItem):
             read_only=read_only,
             value_type_name=value_type_name,
         )
+        self._ui_metadata = ui_metadata
+
+    def _get_min_max_from_ui_metadata(self) -> tuple[float | int, float | int] | None:
+        """
+        Get slider min/max bounds from ui_metadata, prioritizing hard limits over soft limits.
+
+        Hard bounds (hard_min/hard_max) are used when available; soft bounds
+        (soft_min/soft_max) serve as fallback. Min and max are resolved
+        independently. Returns None if either bound is missing.
+
+        Returns:
+            tuple[float | int, float | int] | None: (min, max) bounds or None.
+        """
+        if self._ui_metadata is None:
+            return None
+
+        min_val = self._ui_metadata.get("hard_min")
+        if min_val is None:
+            min_val = self._ui_metadata.get("soft_min")
+
+        if min_val is None:
+            return None
+
+        max_val = self._ui_metadata.get("hard_max")
+        if max_val is None:
+            max_val = self._ui_metadata.get("soft_max")
+
+        if max_val is None:
+            return None
+
+        return min_val, max_val
+
+    def _get_min_max_from_attr_metadata(self) -> tuple[float | int, float | int] | None:
+        min_value = None
+        max_value = None
+
+        for attribute_path in self._attribute_paths:  # noqa: SLF001
+            prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())  # noqa: SLF001
+            if prim.HasAttribute(attribute_path.name):
+                attr = prim.GetAttribute(attribute_path.name)
+                custom = attr.GetMetadata("customData")
+                if custom is not None:
+                    min_max_range = custom.get("range")
+                    if min_max_range is not None:
+                        meta_min_value = min_max_range.get("min")
+                        if isinstance(meta_min_value, (int, float)):
+                            if min_value is None:
+                                min_value = meta_min_value
+                            else:
+                                min_value = min(min_value, meta_min_value)
+                        meta_max_value = min_max_range.get("max")
+                        if isinstance(meta_max_value, (int, float)):
+                            if max_value is None:
+                                max_value = meta_max_value
+                            else:
+                                max_value = max(max_value, meta_max_value)
+
+        if min_value is None or max_value is None:
+            return None
+
+        return min_value, max_value
+
+    def get_min_max_bounds(self) -> tuple[float | int, float | int] | None:
+        bounds = self._get_min_max_from_ui_metadata()
+        if bounds is None:
+            bounds = self._get_min_max_from_attr_metadata()
+        if bounds is None:
+            return None
+        return bounds
+
+    def get_step_value(self) -> float | None:
+        """Get the UI step size for this attribute, if any.
+
+        Checks ``ui_metadata`` first (OGN-sourced ``ui_step`` key), then falls
+        back to the USD attribute's ``customData["ui:step"]``.
+
+        Returns:
+            The step value as a float or int, or ``None`` if no step is defined.
+        """
+        step_val = None
+        if self._ui_metadata is not None:
+            step_val = self._ui_metadata.get("ui_step")
+
+        if step_val is not None:
+            return step_val
+
+        for attribute_path in self._attribute_paths:  # noqa PLW0212
+            prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())  # noqa PLW0212
+            if prim.HasAttribute(attribute_path.name):
+                attr = prim.GetAttribute(attribute_path.name)
+                custom_meta = attr.GetMetadata("customData")
+                if custom_meta is None:
+                    continue
+
+                ui_step = custom_meta.get("ui:step")
+                if ui_step is not None and isinstance(ui_step, (int, float)):
+                    return ui_step
+        return None
 
     @property
     @abc.abstractmethod
@@ -263,6 +363,11 @@ class USDAttributeItem(_BaseUSDAttributeItem):
     def element_count(self):
         """Number of channel the attribute has (for example, float3 is 3 channels)"""
         return self._element_count
+
+    @property
+    def has_bounds_data(self) -> bool:
+        """True if this item has min/max bounds (from ui_metadata or USD attribute customData), e.g. for slider widgets."""
+        return self.get_min_max_bounds() is not None
 
 
 class USDAttributeXformItem(USDAttributeItem):

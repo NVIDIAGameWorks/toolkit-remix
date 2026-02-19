@@ -15,6 +15,6 @@
 * limitations under the License.
 """
 
-__all__ = ("TestColorField",)
+__all__ = ("TestAbstractSliderField", "TestColorField", "TestFloatSliderField", "TestIntSliderField")
 
-from .e2e import TestColorField
+from .e2e import TestAbstractSliderField, TestColorField, TestFloatSliderField, TestIntSliderField

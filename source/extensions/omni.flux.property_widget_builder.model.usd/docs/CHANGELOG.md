@@ -2,6 +2,19 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.23.0]
+### Added
+- Added `ui_metadata` dict parameter to `USDAttributeItem` for passing OGN-sourced UI hints (hard_min, soft_min, hard_max, soft_max, ui_step) to slider and other UI delegates
+- Added `has_bounds_data` property on `USDAttributeItem` to indicate when min/max bounds are available (from `ui_metadata` or USD attribute `customData`)
+- Added `get_min_max_bounds()` and `get_step_value()` public methods on `USDAttributeItem` for reading bounds and step from `ui_metadata` with fallback to USD attribute `customData`
+- Added `USDIntSliderField` item delegate for bounded integer attributes (mirrors `USDFloatSliderField`)
+- Added OGN field builders for bounded float and bounded int attributes: OGN node attributes with min/max metadata now get float or int slider widgets automatically
+- Exposed `FLOAT_TYPES` and `INT_TYPES` in `mapping` module for type checks in field builders
+
+### Changed
+- `USDFloatSliderField` and `USDIntSliderField` now delegate bounds and step resolution to `USDAttributeItem` via `get_min_max_bounds()` and `get_step_value()`, instead of reading USD `customData` directly
+- Bounds resolution checks `ui_metadata` (hard then soft) first, then falls back to USD attribute `customData.range.min/max` for backward compatibility
+
 ## [2.22.3]
 ### Changed
 - Modernize python style and enable more ruff checks

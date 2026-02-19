@@ -17,4 +17,5 @@
 
 from .setup_ui import LogicPropertyWidget
 
+
 __all__ = ["LogicPropertyWidget"]

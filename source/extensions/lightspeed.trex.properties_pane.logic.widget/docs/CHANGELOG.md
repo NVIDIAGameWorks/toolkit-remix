@@ -1,6 +1,16 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.5]
+### Added
+- OGN node attributes in the properties panel now receive soft/hard bounds and UI step from OGN metadata via `get_ogn_ui_metadata()`, so Remix node attributes display with correct slider ranges and step size
+- Added `utils.py` with `UiMetaKeys` enum and `get_ogn_ui_metadata()` (migrated from `lightspeed.trex.logic.core`)
+- Added unit tests for `get_ogn_ui_metadata()` in `tests/unit/test_utils.py`
+
+### Changed
+- Logic property widget passes OGN metadata as a `ui_metadata` dict into `USDAttributeItem` for bounded attributes
+- `get_ogn_ui_metadata` is now imported from local `utils` module instead of `lightspeed.trex.logic.core`
+
 ## [1.3.4]
 ### Changed
 - Modernize python style and enable more ruff checks

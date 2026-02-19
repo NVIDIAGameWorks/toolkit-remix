@@ -53,6 +53,19 @@ tf_tf_token = Sdf.ValueTypeNames.Token
 tf_sdf_asset_path = Sdf.ValueTypeNames.Asset
 tf_sdf_time_code = Sdf.ValueTypeNames.TimeCode
 
+# Value type names for numeric bounds checks (e.g. OGN field builders for sliders).
+FLOAT_TYPES = (
+    tf_half,
+    tf_float,
+    tf_double,
+)
+
+INT_TYPES = (
+    tf_int,
+    tf_int64,
+    tf_uint,
+    tf_uint64,
+)
 
 VecType = (
     Gf.Vec2d
