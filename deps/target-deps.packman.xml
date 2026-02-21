@@ -9,7 +9,7 @@
     <package name="remix-models-i2m-artifacts" version="1.1.0" />
   </dependency>
   <dependency name="rtx-remix-hdremix" linkPath="../_build/target-deps/hdremix">
-    <package name="rtx-remix-hdremix" version="ext-0ec7f96-main" />
+    <package name="rtx-remix-hdremix" version="ext-e60dbd2-main" />
   </dependency>
   <dependency name="rtx-remix-lookdev-lighting" linkPath="../_build/target-deps/content/rtx-remix-lookdev-lighting">
     <package name="rtx-remix-lookdev-lighting" version="2023.1.0" />
@@ -18,9 +18,9 @@
     <package name="rtx-remix-lookdev-modeling" version="2023.0.0" />
   </dependency>
   <dependency name="rtx-remix-omni_core_materials" linkPath="../_build/target-deps/omni_core_materials">
-    <package name="rtx-remix-omni_core_materials" version="ext-0ec7f96-main" />
+    <package name="rtx-remix-omni_core_materials" version="ext-e60dbd2-main" />
   </dependency>
   <dependency name="rtx-remix-remix_runtime" linkPath="../_build/${platform}/${config}/deps/remix_runtime">
-    <package name="rtx-remix-remix_runtime" version="remix-1.3.6-2" />
+    <package name="rtx-remix-remix_runtime" version="remix-1.4.0" />
   </dependency>
 </project>
