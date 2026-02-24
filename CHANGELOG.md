@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4795: Added a new documentation page for Remix Logic
 - REMIX-4920: Added tree item recycling to preserve expansion states across Stage Manager refreshes
 - REMIX-4854: OGN node attributes now show correct slider bounds and step in the Remix Logic properties panel (from OGN metadata and USDAttributeItem limits)
+- REMIX-4809: `elide_path` utility and `ElideModes` enum for truncating path strings with configurable ellipsis placement
 
 ### Changed
 - REMIX-4786: Changed the "Delete/Restore" StageManager action to use layer-based logic driven by the EditTarget State
@@ -27,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved Repoman internal dependency management with GitBlobHashCache
 - Modernized python format style for 3.10
 - Update hdremix and omni_core_materials to ext-d6ebf58-main
+- REMIX-4809: Logic graph deletion in the properties panel now shows a confirmation dialog before executing
 
 ### Fixed
 - Added a frame wait for Stage Manager refresh to ensure all items are properly populated and updated Additional Filters menu sorting
@@ -39,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4724: Fix issue with model ingestion validation via Scan Folder function
 - Fixed pre-commit hooks installation to work on systems with legacy Git hooks
 - Downgraded "repo_format" and updated "repo_lint" to publicly available versions
+- REMIX-4809: Fixed Stage Manager not refreshing when prims are deleted via the Logic Remix property panel
 
 ### Removed
 

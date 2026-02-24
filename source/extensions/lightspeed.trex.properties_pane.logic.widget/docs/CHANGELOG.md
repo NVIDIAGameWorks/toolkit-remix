@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.6]
+### Changed
+- Logic graph deletion now shows a confirmation dialog before executing
+
 ## [1.3.5]
 ### Added
 - OGN node attributes in the properties panel now receive soft/hard bounds and UI step from OGN metadata via `get_ogn_ui_metadata()`, so Remix node attributes display with correct slider ranges and step size

@@ -28,6 +28,9 @@ import omni.kit
 import omni.kit.commands
 import omni.ui as ui
 import omni.usd
+
+from lightspeed.trex.utils.widget.dialogs import confirm_delete_prims
+
 from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE, REGEX_MESH_TO_INSTANCE_SUB, GlobalEventNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.logic.core.attributes import get_ogn_default_value
@@ -693,10 +696,15 @@ class LogicPropertyWidget:
         """Delete the given logic graph."""
         if b != 0:
             return
-        omni.kit.commands.execute("DeletePrimsCommand", paths=[str(graph.GetPath())])
-        # Rebuild the UI to reflect the changes in the existing logic graphs
+        on_complete = None
         if self._dynamic_content_frame:
-            self._dynamic_content_frame.rebuild()
+            on_complete = self._dynamic_content_frame.rebuild
+
+        confirm_delete_prims(
+            [str(graph.GetPath())],
+            # Rebuild the UI to reflect the changes in the existing logic graphs
+            on_complete=on_complete,
+        )
 
     @property
     def property_model(self):
