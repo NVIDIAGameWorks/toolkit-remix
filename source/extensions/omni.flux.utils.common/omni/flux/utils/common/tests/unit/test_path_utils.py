@@ -254,6 +254,48 @@ class TestPathUtils(omni.kit.test.AsyncTestCase):
             with self.subTest(name=f"texture_to_udim_{text_in}"):
                 self.assertEqual(_path_utils.texture_to_udim(text_in), text_out)
 
+    async def test_elide_path_returns_original_when_within_limit(self):
+        path = "/World/Mesh"
+        self.assertEqual(_path_utils.elide_path(path, 40), path)
+
+    async def test_elide_path_returns_original_when_equal_to_limit(self):
+        path = "/World/Mesh"
+        self.assertEqual(_path_utils.elide_path(path, len(path)), path)
+
+    async def test_elide_path_middle_mode(self):
+        path = "/RootNode/meshes/mesh_ABC123/Logic/RemixLogicGraph"
+        result = _path_utils.elide_path(path, 30, _path_utils.ElideModes.middle)
+        self.assertEqual(len(result), 30)
+        self.assertIn("...", result)
+        self.assertTrue(result.startswith("/RootNode"))
+        self.assertTrue(result.endswith("LogicGraph"))
+
+    async def test_elide_path_start_mode(self):
+        path = "/RootNode/meshes/mesh_ABC123/Logic/RemixLogicGraph"
+        result = _path_utils.elide_path(path, 30, _path_utils.ElideModes.start)
+        self.assertEqual(len(result), 30)
+        self.assertTrue(result.startswith("..."))
+        self.assertTrue(result.endswith("RemixLogicGraph"))
+
+    async def test_elide_path_end_mode(self):
+        path = "/RootNode/meshes/mesh_ABC123/Logic/RemixLogicGraph"
+        result = _path_utils.elide_path(path, 30, _path_utils.ElideModes.end)
+        self.assertEqual(len(result), 30)
+        self.assertTrue(result.startswith("/RootNode"))
+        self.assertTrue(result.endswith("..."))
+
+    async def test_elide_path_very_small_max_length(self):
+        path = "/RootNode/meshes/mesh_ABC123"
+        self.assertEqual(_path_utils.elide_path(path, 3), "...")
+        self.assertEqual(_path_utils.elide_path(path, 2), "..")
+        self.assertEqual(_path_utils.elide_path(path, 1), ".")
+
+    async def test_elide_path_defaults_to_middle(self):
+        path = "/RootNode/meshes/mesh_ABC123/Logic/RemixLogicGraph"
+        result_default = _path_utils.elide_path(path, 30)
+        result_middle = _path_utils.elide_path(path, 30, _path_utils.ElideModes.middle)
+        self.assertEqual(result_default, result_middle)
+
     async def test_get_invalid_extensions(self):
         valid_extensions = [".dds", ".jpg", ".png"]
         for file_paths, invalid_extensions in {

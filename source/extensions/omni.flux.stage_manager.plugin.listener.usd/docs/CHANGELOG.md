@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.3]
+### Fixed
+- Fixed stage manager not refreshing when prims are deleted
+
 ## [2.3.2]
 ### Changed
 - Modernize python style and enable more ruff checks
