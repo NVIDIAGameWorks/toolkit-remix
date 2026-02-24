@@ -44,7 +44,6 @@ class StageManagerUSDNoticeListenerPlugin(_StageManagerUSDListenerPlugin[Usd.Not
 
     def _on_usd_event(self, notice: Usd.Notice.ObjectsChanged, _: Usd.Stage):
         should_refresh = False
-        stage = omni.usd.get_context(self._context_name).get_stage()
 
         # Check for nickname attribute changes
         for changed_path in notice.GetChangedInfoOnlyPaths():
@@ -61,13 +60,13 @@ class StageManagerUSDNoticeListenerPlugin(_StageManagerUSDListenerPlugin[Usd.Not
             # Original hash-based prim check
             if "." in path_str:  # skip other attributes
                 continue
-            prim = stage.GetPrimAtPath(resynced_path)
-            if not prim.IsValid():
-                continue
+
+            # NOTE: temporary fix as Shona's current MR fixes this
+            # at the time of rebase anything on this file should be thrown out
+
+            # Refresh for any resync prim path, including deleted prims
             should_refresh = True
             break
 
         if should_refresh:
             self._event_occurred(notice)
-
-        # self._event_occurred(notice)

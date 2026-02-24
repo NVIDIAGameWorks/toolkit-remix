@@ -18,8 +18,10 @@
 from __future__ import annotations
 
 __all__ = [
+    "ElideModes",
     "cleanup_file",
     "delete_metadata",
+    "elide_path",
     "get_absolute_path_from_relative",
     "get_invalid_extensions",
     "get_new_hash",
@@ -50,6 +52,7 @@ import subprocess
 from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from enum import Enum, auto
 
 import carb
 import carb.tokens
@@ -464,3 +467,51 @@ def get_invalid_extensions(
     unique_invalid_extensions = sorted([x for x in invalid_extensions if not (x in seen or seen.add(x))])
 
     return unique_invalid_extensions
+
+
+class ElideModes(Enum):
+    """Determines where the ellipsis is placed when truncating a path string."""
+
+    start = auto()
+    end = auto()
+    middle = auto()
+
+
+def elide_path(path: str, max_length: int, elide_mode: ElideModes = ElideModes.middle) -> str:
+    """
+    Truncate a path string to fit within a maximum character length, inserting an ellipsis
+    to indicate removed content. Useful for display in dialogs where ui.Label elided_text
+    is not available.
+
+    Args:
+        path: The path string to truncate
+        max_length: Maximum allowed character length for the returned string
+        elide_mode: Where to place the ellipsis -- start, end, or middle of the string
+
+    Returns:
+        The original path if it fits within max_length, otherwise a truncated version
+        with an ellipsis inserted at the specified position
+    """
+    ellipsis = "..."
+    if len(path) <= max_length:
+        return path
+
+    if max_length <= len(ellipsis):
+        return ellipsis[:max_length]
+
+    keep = max_length - len(ellipsis)
+
+    match elide_mode:
+        case ElideModes.middle:
+            left = keep // 2
+            right = keep - left
+
+            return path[:left] + ellipsis + path[-right:]
+
+        case ElideModes.start:
+            return ellipsis + path[-keep:]
+
+        case ElideModes.end:
+            return path[:keep] + ellipsis
+
+    raise ValueError(f'elide mode "{elide_mode}" is not supported')
