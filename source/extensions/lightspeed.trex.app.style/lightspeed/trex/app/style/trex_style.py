@@ -45,6 +45,7 @@ asyncio.ensure_future(__override_imgui_style())
 _BLUE_SELECTED = 0x66FFC700
 _BLUE_SEMI_SELECTED = 0x33FFC700
 _BLUE_HOVERED = 0x1AFFC700
+_BLUE_HOVERED_OPAQUE = 0xFF453F2B  # hardened _BLUE_HOVERED over _GREY_50
 _BLUE_ACTION = 0xFFFFC734
 
 _DARK_00 = 0x01000000  # 01 for alpha or it will show a default color
@@ -712,7 +713,7 @@ current_dict.update(
         },
         "ImageWithProvider::SelectionGradient_hovered": {
             "background_color": 0x00453F2B,
-            "background_gradient_color": 0xFF453F2B,  # hardened _BLUE_HOVERED over _GREY_50
+            "background_gradient_color": _BLUE_HOVERED_OPAQUE,  # hardened _BLUE_HOVERED over _GREY_50
         },
         "ImageWithProvider::SelectionGradient_selected": {
             "background_color": 0x00836C1D,
@@ -923,7 +924,7 @@ current_dict.update(
             "font_size": 14,
         },
         "PropertiesWidgetField:hovered": {
-            "background_color": _BLUE_HOVERED,
+            "background_color": _BLUE_HOVERED_OPAQUE,  # opaque so ComboBox dropdown doesn't become see-through on hover
         },
         "PropertiesWidgetFieldMixed": _DEFAULT_FIELD_MIXED_VALUE,
         "PropertiesWidgetFieldRead": _DEFAULT_FIELD_READ_VALUE,
