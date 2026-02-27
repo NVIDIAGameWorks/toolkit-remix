@@ -18,6 +18,7 @@
 __all__ = ["FeatureFlagsWindow"]
 
 import carb
+import omni.appwindow
 from omni import ui
 from omni.flux.feature_flags.widget import FeatureFlagsWidget
 from omni.flux.utils.common import reset_default_attrs
@@ -32,6 +33,7 @@ class FeatureFlagsWindow:
 
         self._window = None
         self._widget = None
+        self._app_window_size_changed_sub = None
 
         title = carb.settings.get_settings().get(self.FEATURE_FLAGS_WINDOW_TITLE) or "Feature Flags"
 
@@ -42,6 +44,7 @@ class FeatureFlagsWindow:
         default_attr = {
             "_window": None,
             "_widget": None,
+            "_app_window_size_changed_sub": None,
         }
         return default_attr
 
@@ -57,6 +60,25 @@ class FeatureFlagsWindow:
             value: True to show the window, False to hide it.
         """
         self._window.visible = value
+        if value:
+            self._center_window()
+
+    def _center_window(self):
+        """Re-center the window in the current application viewport."""
+        if not self._window:
+            return
+        app_window = omni.appwindow.get_default_app_window()
+        size = app_window.get_size()
+        dpi_scale = ui.Workspace.get_dpi_scale()
+        viewport_width = size[0] / dpi_scale
+        viewport_height = size[1] / dpi_scale
+        self._window.position_x = (viewport_width - self._window.width) / 2
+        self._window.position_y = (viewport_height - self._window.height) / 2
+
+    def _on_app_window_resized(self, _):
+        """Re-center the dialog when the main application window is resized."""
+        if self._window and self._window.visible:
+            self._center_window()
 
     def _on_visibility_changed(self, value: bool):
         """
@@ -80,6 +102,12 @@ class FeatureFlagsWindow:
 
         with self._window.frame:
             self._widget = FeatureFlagsWidget()
+
+        self._app_window_size_changed_sub = (
+            omni.appwindow.get_default_app_window()
+            .get_window_resize_event_stream()
+            .create_subscription_to_pop(self._on_app_window_resized, name="FeatureFlagsWindowAppWindowResized")
+        )
 
         return self._window
 
