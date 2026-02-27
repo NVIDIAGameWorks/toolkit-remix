@@ -22,7 +22,31 @@ from collections.abc import Callable
 import omni.kit.app
 import omni.usd
 from carb import log_warn as _log_warn
-from pxr import Sdf
+from pxr import Sdf, Usd
+
+
+def get_proto_from_prim(prim: Usd.Prim) -> Usd.Prim:
+    """Resolve a prim to its composition source (prototype) via PrimIndex.
+
+    For prims composed via references (e.g. instances referencing a prototype),
+    returns the source prim by following the first composition arc. Falls back
+    to the input prim if no composition children exist.
+
+    Args:
+        prim: The USD prim to resolve.
+
+    Returns:
+        The prototype prim if one exists, otherwise the input prim.
+    """
+    prim_index = prim.GetPrimIndex()
+    root_node = prim_index.rootNode
+    if root_node and root_node.children:
+        proto_path = root_node.children[0].path
+        stage = prim.GetStage()
+        proto_prim = stage.GetPrimAtPath(proto_path)
+        if proto_prim and proto_prim.IsValid():
+            return proto_prim
+    return prim
 
 
 def get_omni_prims() -> set[Sdf.Path]:

@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed pre-commit hooks installation to work on systems with legacy Git hooks
 - Downgraded "repo_format" and updated "repo_lint" to publicly available versions
 - REMIX-4809: Fixed Stage Manager not refreshing when prims are deleted via the Logic Remix property panel
+- Fixed nickname behavior and added NicknameField with a dot indicator
 
 ### Removed
 

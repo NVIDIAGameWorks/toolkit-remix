@@ -281,9 +281,10 @@ class ScrollingTreeWidget:
                 if ancestor in expanded:
                     continue
                 expanded.add(ancestor)
-                self._tree_widget.set_expanded(ancestor, True, False)
 
-                if not force_layout_recalculation:
+                # Only trigger layout recalculation if we're actually expanding something new
+                if not self._tree_widget.is_expanded(ancestor):
+                    self._tree_widget.set_expanded(ancestor, True, False)
                     force_layout_recalculation = True
 
         if not force_layout_recalculation:
