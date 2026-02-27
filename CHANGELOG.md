@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Created 1.4.1-0 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.4.1-0]
+
+### Added
 - Created 1.3.6-2 build
 - REMIX-4838: Added Instance Group and Mesh Group filter plugins to the Stage Manager and added headers to the Additional Filters menu
 - REMIX-4722: Added `ScrollingTreeWidget` - a reusable widget for scrollable tree views with correct item iteration order
