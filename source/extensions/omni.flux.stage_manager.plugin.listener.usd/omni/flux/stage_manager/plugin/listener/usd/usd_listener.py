@@ -43,30 +43,4 @@ class StageManagerUSDNoticeListenerPlugin(_StageManagerUSDListenerPlugin[Usd.Not
             self._usd_listener = None
 
     def _on_usd_event(self, notice: Usd.Notice.ObjectsChanged, _: Usd.Stage):
-        should_refresh = False
-
-        # Check for nickname attribute changes
-        for changed_path in notice.GetChangedInfoOnlyPaths():
-            if str(changed_path).endswith("nickname"):
-                should_refresh = True
-                break
-
-        for resynced_path in notice.GetResyncedPaths():
-            path_str = str(resynced_path)
-            # Check for nickname attribute creation
-            if path_str.endswith("nickname"):
-                should_refresh = True
-                break
-            # Original hash-based prim check
-            if "." in path_str:  # skip other attributes
-                continue
-
-            # NOTE: temporary fix as Shona's current MR fixes this
-            # at the time of rebase anything on this file should be thrown out
-
-            # Refresh for any resync prim path, including deleted prims
-            should_refresh = True
-            break
-
-        if should_refresh:
-            self._event_occurred(notice)
+        self._event_occurred(notice)

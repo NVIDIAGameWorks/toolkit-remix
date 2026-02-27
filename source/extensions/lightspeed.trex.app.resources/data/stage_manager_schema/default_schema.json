@@ -363,6 +363,18 @@
         },
         {
             "name": "AllLightsInteractionPlugin",
+            "filtering_rules": {
+                "force_refresh_rules": [
+                    {
+                        "use_name": true,
+                        "start": "remix_category:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "nickname"
+                    }
+                ]
+            },
             "filters": [
                 {
                     "name": "SearchFilterPlugin"
@@ -460,6 +472,18 @@
         {
             "name": "AllSkeletonsInteractionPlugin",
             "include_invalid_parents": false,
+            "filtering_rules": {
+                "force_refresh_rules": [
+                    {
+                        "use_name": true,
+                        "start": "remix_category:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "nickname"
+                    }
+                ]
+            },
             "filters": [
                 {
                     "name": "SearchFilterPlugin"
