@@ -23,58 +23,14 @@ from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _S
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeDelegate as _StageManagerTreeDelegate
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
-from pxr import Sdf
 from pydantic import Field, PrivateAttr
 
 
 class StageManagerUSDTreeItem(_StageManagerTreeItem):
-    NICKNAME_ATTR = "nickname"
-
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
-
-    def _load_nickname(self):
-        """Load nickname from USD prim attribute."""
-        if self.data is None or not self.data.IsValid() or not self.data.HasAttribute(self.NICKNAME_ATTR):
-            return
-        attr = self.data.GetAttribute(self.NICKNAME_ATTR)
-        if attr and attr.HasValue():
-            self._nickname = attr.Get()
-
-    @property
-    def long_display_path_name(self):
-        if self._long_display_path_name is not None:
-            return self._long_display_path_name
-
-        name_parts = []
-        item = self
-        while item:
-            name = item.display_name
-            if item.data and hasattr(item.data, "GetName"):
-                name = item.data.GetName()
-            name_parts.append(name)
-            item = item.parent
-
-        name_parts.reverse()
-        self._long_display_path_name = "/".join(name_parts)
-        return self._long_display_path_name
-
-    def _on_edit_complete(self, new_value: str):
-        """Save nickname to USD prim attribute."""
-        if new_value == self._display_name:
-            return
-
-        if not self.data or not self.data.IsValid():
-            return
-        attr = self.data.GetAttribute(self.NICKNAME_ATTR)
-        if not attr:
-            attr = self.data.CreateAttribute(self.NICKNAME_ATTR, Sdf.ValueTypeNames.String)
-
-        if attr:
-            attr.Set(new_value)
-            self._nickname = new_value if new_value != self._display_name else None
 
 
 class StageManagerUSDTreeModel(_StageManagerTreeModel):

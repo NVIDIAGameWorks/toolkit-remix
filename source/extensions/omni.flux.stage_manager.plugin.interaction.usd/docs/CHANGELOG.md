@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.14.0]
+### Added
+- Added nickname attribute changes to the interaction plugin to only refresh if there are new paths changes
+
 ## [2.13.1]
 ### Changed
 - Modernize python style and enable more ruff checks

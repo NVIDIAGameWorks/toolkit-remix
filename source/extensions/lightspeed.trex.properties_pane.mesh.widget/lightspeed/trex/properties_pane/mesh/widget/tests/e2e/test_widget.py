@@ -167,7 +167,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
 
         await item_prims[0].click()
@@ -287,7 +287,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         _selection_wid._tree_scroll_frame.scroll_y = 0
 
         await ui_test.human_delay(human_delay_speed=3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
@@ -308,7 +308,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(3)
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/instances/inst_BAC90CAA733B0859_0/mesh"], False)
         await ui_test.human_delay(3)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         await item_prims[0].click()
         await ui_test.human_delay()
 
@@ -354,7 +354,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
@@ -400,7 +400,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await select_button.click()
         await ui_test.human_delay()
         # the new asset give us 4 prims
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 5)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
@@ -422,7 +422,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
             )
             await ui_test.human_delay(human_delay_speed=3)
 
-            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
             self.assertEqual(len(item_prims), 6)
             await item_prims[0].click()
 
@@ -487,7 +487,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # Cancel import and ensure the external asset was not imported
         await cancel_external_asset_button.click()
         await ui_test.human_delay(5)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
@@ -509,7 +509,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
             )
             await ui_test.human_delay(human_delay_speed=3)
 
-            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
             self.assertEqual(len(item_prims), 6)
             await item_prims[0].click()
 
@@ -576,12 +576,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(50)
 
             # Make sure that new ref exists
-            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
             self.assertEqual(len(item_prims), 5)
 
             # Check that the reference is from a new internal copy and not the original external asset
             item_ref = item_prims[0].widget
-            self.assertEqual(item_ref.model.get_value_as_string(), "cube.usda")
+            self.assertEqual(item_ref.text, "cube.usda")
             self.assertEqual(item_ref.tooltip, "./assets/ingested/cube.usda")
 
             # Make sure the metadata matches
@@ -608,7 +608,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
             )
             await ui_test.human_delay(human_delay_speed=3)
 
-            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
             self.assertEqual(len(item_prims), 6)
             await item_prims[0].click()
 
@@ -663,7 +663,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # Cancel import and ensure the external asset was not imported
         await cancel_ingestion_button.click()
         await ui_test.human_delay(5)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
@@ -688,7 +688,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
@@ -721,7 +721,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         )
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
@@ -738,7 +738,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
@@ -773,7 +773,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         )
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 5)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
@@ -805,7 +805,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
@@ -843,7 +843,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         )
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
@@ -875,7 +875,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
@@ -913,7 +913,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         )
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 5)
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -929,7 +929,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
@@ -977,7 +977,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # Cancel import and ensure the external asset was not imported
         await cancel_external_asset_button.click()
         await ui_test.human_delay(5)
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
 
         # The text should revert back to what it was originally
@@ -997,7 +997,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
@@ -1047,12 +1047,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(50)
 
             # Make sure that new ref exists
-            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
             self.assertEqual(len(item_prims), 5)
 
             # Check that the reference is from a new internal copy and not the original external asset
             item_ref = item_prims[0].widget
-            self.assertEqual(item_ref.model.get_value_as_string(), "cube.usda")
+            self.assertEqual(item_ref.text, "cube.usda")
             self.assertEqual(item_ref.tooltip, "./assets/ingested/cube.usda")
 
             # Make sure the metadata matches
@@ -1078,7 +1078,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=3)
 
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
         await item_prims[0].click()
 
@@ -1119,7 +1119,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(original_text, mesh_ref_field.widget.model.get_value_as_string())
 
         # There should still be the same amount of prims
-        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 6)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
@@ -1265,7 +1265,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(50)
         self.assertTrue(category_button.widget.visible)
 
-        prims = ui_test.find_all(f"{_window.title}//Frame/**/StringField[*].identifier=='item_prim'")
+        prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
 
         for prim in prims:
             async with ModifierKeyDownScope(key=KeyboardInput.LEFT_SHIFT):

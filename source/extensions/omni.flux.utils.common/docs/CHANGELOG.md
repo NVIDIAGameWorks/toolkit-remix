@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.10.0]
+### Added
+- Added `get_proto_from_prim()` utility to get the prototype prim for a given prim
+
 ## [3.9.0]
 ### Added
 - Added `elide_path` utility and `ElideModes` enum for truncating path strings with configurable ellipsis placement

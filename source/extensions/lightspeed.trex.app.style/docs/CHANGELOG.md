@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [1.21.4]
+### Changed
+- Removed the asterisk icon
+
 ## [1.21.3]
 ### Fixed
 - REMIX-4810: Fixed ComboBox dropdown becoming see-through when the header item is hovered
