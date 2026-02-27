@@ -27,6 +27,7 @@ from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugi
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.common.utils import get_omni_prims as _get_omni_prims
+from omni.flux.utils.common.utils import get_proto_from_prim as _get_proto_from_prim
 from pxr import Sdf, Usd
 from pydantic import BaseModel, Field, PrivateAttr
 
@@ -224,7 +225,34 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         changed_info_only_paths = notice.GetChangedInfoOnlyPaths()
         resynced_paths = notice.GetResyncedPaths()
 
-        def should_refresh(paths: set, exclude_list: set | None = None):
+        # Check for nickname-only changes and handle with lightweight update
+        nickname_prim_paths = set()
+        for path in changed_info_only_paths:
+            if path.name == "nickname":
+                nickname_prim_paths.add(path.GetPrimPath())
+
+        # Also check resynced paths for nickname attribute creation
+        for path in resynced_paths:
+            if str(path).endswith("nickname"):
+                nickname_prim_paths.add(path.GetPrimPath())
+
+        if nickname_prim_paths:
+            # Filter out nickname changes from the paths we'll check below
+            non_nickname_info_paths = [p for p in changed_info_only_paths if p.name != "nickname"]
+            non_nickname_resync_paths = [p for p in resynced_paths if not str(p).endswith("nickname")]
+
+            # If only nicknames changed, do lightweight update and return
+            if not non_nickname_info_paths and not non_nickname_resync_paths:
+                self._update_nickname_items(nickname_prim_paths)
+                return
+
+            # Otherwise, do lightweight update for nicknames and continue with normal processing
+            self._update_nickname_items(nickname_prim_paths)
+            # Update the paths for further processing
+            changed_info_only_paths = non_nickname_info_paths
+            resynced_paths = non_nickname_resync_paths
+
+        def should_refresh(paths: list, exclude_list: set | None = None):
             for path in paths:
                 if path.IsPropertyPath():
                     # Don't refresh if the update comes from ignored properties
@@ -293,6 +321,25 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
                 if value.endswith(rule.start):
                     return True
         return False
+
+    def _update_nickname_items(self, prim_paths: set):
+        """
+        Lightweight update for items whose nicknames changed.
+        Only reloads the nickname and rebuilds the affected item widgets.
+
+        Args:
+            prim_paths: Set of Sdf.Path objects for prims whose nicknames changed
+        """
+
+        def matches_prim_path(item: _StageManagerTreeItem) -> bool:
+            if not item.data:
+                return False
+            prim = _get_proto_from_prim(item.data)
+            return prim and (prim.GetPath() in prim_paths)
+
+        # Find affected items and reload their nicknames
+        for item in self.tree.model.find_items(matches_prim_path):
+            self.tree.model.notify_item_changed(item)  # Rebuild only this widget
 
     def _expand_filtered_items(self):
         """

@@ -22,16 +22,21 @@ __all__ = ["NicknameToggleActionWidgetPlugin"]
 from functools import partial
 from typing import TYPE_CHECKING
 
+import carb.settings
 from lightspeed.common.constants import LSS_NICKNAME as _LSS_NICKNAME
 from omni import ui
 from omni.flux.stage_manager.factory.plugins import StageManagerMenuMixin as _StageManagerMenuMixin
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
+from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsItem as _VirtualGroupsItem
 from omni.flux.stage_manager.plugin.widget.usd.base import (
     StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,
 )
 from omni.flux.utils.common.menus import MenuGroup as _MenuGroup
 from omni.flux.utils.common.menus import MenuItem as _MenuItem
 from omni.flux.utils.widget.resources import get_icons as _get_icons
+from omni.flux.utils.widget.usd.prims.string_field import (
+    GLOBAL_SHOW_NICKNAMES_SETTING as _GLOBAL_SHOW_NICKNAMES_SETTING,
+)
 
 if TYPE_CHECKING:
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel
@@ -71,15 +76,26 @@ class NicknameToggleActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
         return [
             (
                 {
-                    "name": _MenuItem.TOGGLE_NICKNAME.value,
+                    "name": {
+                        _MenuItem.PRIM_NICENAME.value: [
+                            {
+                                "name": _MenuItem.TOGGLE_NICKNAME.value,
+                                "glyph": nickname_icon,
+                                "appear_after": _MenuItem.FOCUS_IN_VIEWPORT.value,
+                                "onclick_fn": cls._on_menu_toggle_nickname,
+                                "show_fn": cls._on_menu_toggle_nickname_show_fn,
+                            },
+                            {
+                                "name": _MenuItem.DYNAMIC_SPLITTER.value,
+                            },
+                        ],
+                    },
                     "glyph": nickname_icon,
                     "appear_after": _MenuItem.FOCUS_IN_VIEWPORT.value,
-                    "onclick_fn": cls._on_menu_toggle_nickname,
-                    "show_fn": cls._on_menu_toggle_nickname_show_fn,
                 },
                 _MenuGroup.SELECTED_PRIMS.value,
                 "",
-            ),
+            )
         ]
 
     @classmethod
@@ -96,16 +112,32 @@ class NicknameToggleActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
             return
 
         if item and isinstance(item, _StageManagerTreeItem):
-            item.show_nickname = not item.show_nickname
-            model.set_show_nickname_override(item)
-            model.notify_item_changed(item)
+            if item.nickname_field:
+                item.nickname_field.force_prim_name = not item.nickname_field.force_prim_name
+                # NOTE: notify_item_changed is required here because this action is triggered
+                # from a context menu callback — external to the TreeView's widget hierarchy.
+                # Unlike in-tree event handlers (e.g. double-click on a cell widget), where
+                # container.rebuild() propagates within the same rendering pass, external
+                # calls don't cause the TreeView to re-render the cell on their own.
+                model.notify_item_changed(item)
             return
-        model.toggle_nickname()
+
+        # Update the global setting - this will trigger updates via settings subscription
+        settings = carb.settings.get_settings()
+        new_value = not settings.get_as_bool(_GLOBAL_SHOW_NICKNAMES_SETTING)
+        settings.set_bool(_GLOBAL_SHOW_NICKNAMES_SETTING, new_value)
 
     @classmethod
     def _on_menu_toggle_nickname(cls, payload: dict):
         cls._toggle_nickname(payload["model"], payload["item"])
 
-    @classmethod
-    def _on_menu_toggle_nickname_show_fn(cls, payload: dict):
-        return payload["model"] is not None
+    @staticmethod
+    def _on_menu_toggle_nickname_show_fn(payload: dict):
+        if not payload["model"]:
+            return False
+
+        item = payload["item"]
+        if isinstance(item, _VirtualGroupsItem) and item.is_virtual:
+            return False
+
+        return item.is_prim_editable(item.data)

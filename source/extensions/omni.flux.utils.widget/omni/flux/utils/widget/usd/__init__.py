@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,17 +14,3 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
-
-from .trex_style import (
-    override_dialog_get_style,
-    style,
-    update_viewport_menu_style,
-)
-
-__all__ = [
-    "DEFAULT_FIELD_EDITABLE_STYLE",
-    "DEFAULT_FIELD_READ_ONLY_STYLE",
-    "override_dialog_get_style",
-    "style",
-    "update_viewport_menu_style",
-]

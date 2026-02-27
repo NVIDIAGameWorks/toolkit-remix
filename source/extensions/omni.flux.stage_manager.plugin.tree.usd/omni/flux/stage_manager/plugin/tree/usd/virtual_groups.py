@@ -17,13 +17,19 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from omni import ui
+from omni.flux.utils.widget.usd.prims.string_field import UsdPrimNameField as _UsdPrimNameField
 from pydantic import Field
 
 from .base import StageManagerUSDTreeDelegate as _StageManagerUSDTreeDelegate
 from .base import StageManagerUSDTreeItem as _StageManagerUSDTreeItem
 from .base import StageManagerUSDTreeModel as _StageManagerUSDTreeModel
 from .base import StageManagerUSDTreePlugin as _StageManagerUSDTreePlugin
+
+if TYPE_CHECKING:
+    from pxr import Usd
 
 
 class VirtualGroupsItem(_StageManagerUSDTreeItem):
@@ -73,41 +79,39 @@ class VirtualGroupsItem(_StageManagerUSDTreeItem):
     def is_virtual(self) -> bool:
         return self._is_virtual
 
+    def display_text_fn(self, prim: "Usd.Prim") -> str:
+        """Get display text for the prim. Returns display_name if virtual, otherwise prim.GetName()."""
+        if self.is_virtual:
+            return self.display_name
+        return prim.GetName()
+
     def build_widget(self):
         with ui.HStack(spacing=ui.Pixel(2), height=0):
-            if not self.children:
-                with ui.VStack(width=ui.Pixel(16)):
+            # Determine if editing should be enabled (only for leaf nodes)
+            if not self.data and self.is_virtual:
+                with ui.VStack(height=ui.Pixel(24)):
+                    ui.Spacer(height=4)
+                    ui.Label(self.display_name, width=0, tooltip=self._tooltip)
                     ui.Spacer()
-                    ui.Image(
-                        "",
-                        name="Rename" if self._nickname else "RenameOutline",
-                        width=ui.Pixel(16),
-                        height=ui.Pixel(16),
-                    )
-                    ui.Spacer()
-            if self._display_name_ancestor:
-                ui.Label(self._display_name_ancestor, name="FadedLabel", width=0)
-                ui.Label("/", name="FadedLabel", width=0)
-            field = ui.StringField(
-                read_only=True,
-                style=(
-                    self.FIELD_READ_ONLY_STYLE_NO_NICKNAME
-                    if not self._nickname
-                    else self.FIELD_READ_ONLY_STYLE_NICKNAME
-                ),
+                ui.Spacer()
+                return
+
+            self._nickname_field = _UsdPrimNameField(
+                prim=self._data,
+                display_text_fn=self.display_text_fn,
+                editable_check_fn=self.is_prim_editable,
+                field_id=self.show_nickname_key,
+                show_display_name_ancestor=bool(self._display_name_ancestor),
             )
+
             ui.Spacer()
-            if not self.children:
-                field.set_mouse_double_clicked_fn(lambda x, y, b, m: self._nickname_action(field, x, y, b, m))
-                self._setup_edit_mode(field)
-            if not self.show_nickname:
-                field.model.set_value(self._display_name)
-                self._set_label_width(int(len(self._display_name)))
-                self.tooltip = self._nickname if self._nickname else self._display_name
-            else:
-                field.model.set_value(self.display_name)
-                self._set_label_width(int(len(self.display_name)))
-                self.tooltip = self._display_name
+
+    def is_prim_editable(self, prim: "Usd.Prim") -> bool:
+        if self.is_virtual:
+            return False
+        if prim and prim.IsValid():
+            return True
+        return False
 
 
 class VirtualGroupsModel(_StageManagerUSDTreeModel):

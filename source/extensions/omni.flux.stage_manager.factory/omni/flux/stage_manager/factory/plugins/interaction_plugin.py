@@ -19,9 +19,9 @@ import abc
 import asyncio
 import os
 from asyncio import Future, Queue, ensure_future
+from collections.abc import Callable
 from functools import partial
 from typing import TYPE_CHECKING, Any
-from collections.abc import Callable
 
 import omni.appwindow
 import omni.kit.app
@@ -550,12 +550,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         # Rebuild the result UI with the update model data
         for frame in self._result_frames:
             frame.rebuild()
-
-        # Update the show nickname state of the items
-        for item in self.tree.model.iter_items_children():
-            if self.tree.model.get_show_nickname_override(item):
-                continue
-            item.show_nickname = self.tree.model.show_nickname
 
         # Hide the loading overlay
         self._show_loading_overlay(False)

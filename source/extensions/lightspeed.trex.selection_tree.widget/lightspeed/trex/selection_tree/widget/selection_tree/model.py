@@ -33,6 +33,7 @@ from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplac
 from lightspeed.trex.utils.common.prim_utils import get_reference_file_paths as _get_reference_file_paths
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
+from omni.flux.utils.widget.usd.prims.string_field import UsdPrimNameField as _UsdPrimNameField
 from omni.kit.usd.layers import LayerEventType, get_layer_event_payload, get_layers
 from pxr import Sdf, Usd, UsdGeom, UsdLux, UsdShade
 
@@ -50,14 +51,7 @@ class ItemInstance(ui.AbstractItem):
         self._prim = prim
         self._path = str(prim.GetPath())
         self._value_model = ui.SimpleStringModel(self._path)
-        if prim:
-            self._nickname = (
-                prim.GetAttribute(constants.LSS_NICKNAME).Get()
-                if prim.GetAttribute(constants.LSS_NICKNAME).IsValid()
-                else None
-            )
-        else:
-            self._nickname = None
+        self._field = None
 
     @property
     def parent(self):
@@ -76,12 +70,12 @@ class ItemInstance(ui.AbstractItem):
         return self._value_model
 
     @property
-    def nickname(self):
-        return self._nickname
+    def field(self):
+        return self._field
 
-    @nickname.setter
-    def nickname(self, value):
-        self._nickname = value
+    @field.setter
+    def field(self, value: _UsdPrimNameField):
+        self._field = value
 
     def __repr__(self):
         return f"{self.__class__.__name__}('{self.path}')"
@@ -248,14 +242,7 @@ class ItemPrim(ui.AbstractItem):
             for child in children
             if child not in scope_without
         ]
-        if self._prim:
-            self._nickname = (
-                prim.GetAttribute(constants.LSS_NICKNAME).Get()
-                if prim.GetAttribute(constants.LSS_NICKNAME).IsValid()
-                else None
-            )
-        else:
-            self._nickname = None
+        self._field = None
 
     @property
     def from_live_light_group(self):
@@ -289,12 +276,12 @@ class ItemPrim(ui.AbstractItem):
         return self._child_prim_items
 
     @property
-    def nickname(self):
-        return self._nickname
+    def field(self):
+        return self._field
 
-    @nickname.setter
-    def nickname(self, value):
-        self._nickname = value
+    @field.setter
+    def field(self, value: _UsdPrimNameField):
+        self._field = value
 
     def is_mesh(self) -> bool:
         return bool(self.prim.IsA(UsdGeom.Mesh))
@@ -344,14 +331,6 @@ class ItemReferenceFile(ui.AbstractItem):
             for child in children
             if child not in scope_without and not child.GetAttribute(constants.IS_REMIX_REF_ATTR).IsValid()
         ]
-        if prim:
-            self._nickname = (
-                prim.GetAttribute(constants.LSS_NICKNAME).Get()
-                if prim.GetAttribute(constants.LSS_NICKNAME).IsValid()
-                else None
-            )
-        else:
-            self._nickname = None
 
     @property
     def parent(self):
@@ -393,14 +372,6 @@ class ItemReferenceFile(ui.AbstractItem):
     def child_prim_items(self):
         return self._child_prim_items
 
-    @property
-    def nickname(self):
-        return self._nickname
-
-    @nickname.setter
-    def nickname(self, value):
-        self._nickname = value
-
     def __repr__(self):
         return f"{self.__class__.__name__}('{self.path}')"
 
@@ -425,14 +396,7 @@ class ItemAsset(ui.AbstractItem):
             ItemReferenceFile(_prim, ref, layer, i, total_ref, self, context_name)
             for _prim, ref, layer, i in prim_paths
         ]
-        if prim:
-            self._nickname = (
-                prim.GetAttribute(constants.LSS_NICKNAME).Get()
-                if prim.GetAttribute(constants.LSS_NICKNAME).IsValid()
-                else None
-            )
-        else:
-            self._nickname = None
+        self._field = None
 
     def is_light(self) -> bool:
         regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
@@ -475,12 +439,12 @@ class ItemAsset(ui.AbstractItem):
         return self._reference_items
 
     @property
-    def nickname(self):
-        return self._nickname
+    def field(self):
+        return self._field
 
-    @nickname.setter
-    def nickname(self, value):
-        self._nickname = value
+    @field.setter
+    def field(self, value: _UsdPrimNameField):
+        self._field = value
 
     def __repr__(self):
         return f"{self.__class__.__name__}('{self.path}')"
@@ -885,6 +849,10 @@ class ListModel(ui.AbstractItemModel):
 
     def destroy(self):
         _reset_default_attrs(self)
+
+    def notify_item_changed(self, item):
+        """Notify the TreeView that a single item needs to be redrawn."""
+        self._item_changed(item)
 
 
 class LightspeedRefreshSelectionTree(omni.kit.commands.Command):

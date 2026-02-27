@@ -19,69 +19,35 @@ from __future__ import annotations
 
 __all__ = ["PrimRenameNameActionWidgetPlugin"]
 
-from functools import partial
-from typing import TYPE_CHECKING
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import omni.usd
 from lightspeed.common.constants import LSS_NICKNAME as _LSS_NICKNAME
-from lightspeed.common.constants import ROOTNODE as _ROOTNODE
-from lightspeed.common.constants import ROOTNODE_INSTANCES as _ROOTNODE_INSTANCES
-from lightspeed.common.constants import ROOTNODE_LIGHTS as _ROOTNODE_LIGHTS
-from lightspeed.common.constants import ROOTNODE_MESHES as _ROOTNODE_MESHES
 from lightspeed.trex.asset_replacements.core.shared.setup import Setup as _AssetReplacementsCoreSetup
+from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
 from omni import ui
 from omni.flux.stage_manager.factory.plugins import StageManagerMenuMixin as _StageManagerMenuMixin
+from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsItem as _VirtualGroupsItem
 from omni.flux.stage_manager.plugin.widget.usd.base import (
     StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,
 )
 from omni.flux.utils.common.menus import MenuGroup as _MenuGroup
 from omni.flux.utils.common.menus import MenuItem as _MenuItem
 from omni.flux.utils.widget.resources import get_icons as _get_icons
-from pxr import Sdf
+from pxr import Sdf, Usd
 
 if TYPE_CHECKING:
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem, StageManagerTreeModel
-
-
-TOP_LEVEL_PRIM_PATHS = [_ROOTNODE_MESHES, _ROOTNODE_LIGHTS, _ROOTNODE_INSTANCES, _ROOTNODE]
 
 
 class PrimRenameNameActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageManagerMenuMixin):
     """Action to rename prim name"""
 
     def build_icon_ui(self, model: StageManagerTreeModel, item: StageManagerTreeItem, level: int, expanded: bool):
-        if not item.data:
-            ui.Spacer(width=self._icon_size, height=self._icon_size)
-            return
-
-        payload = {"context_name": self._context_name, "selected_paths": [item.data.GetPrimPath()]}
-        enabled = self._can_rename_prim_name(payload)
-        has_prim_nickname = self._has_prim_nickname(payload)
-
-        if enabled:
-            icon = "Subtract" if has_prim_nickname else "Add"
-            tooltip = "Remove the Prim Nickname" if has_prim_nickname else "Create a Prim Nickname"
-            callback = (
-                partial(self._build_callback, payload, self._remove_prim_nickname)
-                if has_prim_nickname
-                else partial(self._build_callback, payload, self._change_prim_nickname)
-            )
-        else:
-            icon = "AddDisabled"
-            tooltip = (
-                "Select a prim to create a nickname.\n\n"
-                "NOTE: Only prims with nicknames can be renamed. Hashes will remain the same."
-            )
-            callback = None
-
-        ui.Image(
-            "",
-            width=self._icon_size,
-            name=icon,
-            tooltip=tooltip,
-            mouse_released_fn=callback,
-        )
+        # NOTE: we build an empty widget here
+        ui.Spacer(height=0, width=0)
+        item.build_widget()
 
     def _build_callback(self, payload: dict, callback: Callable, x: int, y: int, button: int, modifiers: int):
         if button != 0 or not self._can_rename_prim_name(payload):
@@ -90,7 +56,7 @@ class PrimRenameNameActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
 
     @classmethod
     def _get_menu_items(cls):
-        particle_icon_path = _get_icons("nickname")
+        nickname_icon_path = _get_icons("nickname")
         plus_icon_path = _get_icons("add")
         minus_icon_path = _get_icons("subtract")
 
@@ -117,7 +83,7 @@ class PrimRenameNameActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
                             },
                         ],
                     },
-                    "glyph": particle_icon_path,
+                    "glyph": nickname_icon_path,
                     "appear_after": _MenuItem.ASSIGN_CATEGORY.value,
                 },
                 _MenuGroup.SELECTED_PRIMS.value,
@@ -127,8 +93,11 @@ class PrimRenameNameActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
 
     @classmethod
     def _can_rename_prim_name(cls, payload: dict):
-        path = str(payload["selected_paths"][0])
-        return path not in TOP_LEVEL_PRIM_PATHS
+        item = payload["item"]
+        if isinstance(item, _VirtualGroupsItem) and item.is_virtual:
+            return False
+
+        return item.is_prim_editable(item.data)
 
     @classmethod
     def _remove_prim_nickname(cls, payload: dict):
@@ -137,16 +106,27 @@ class PrimRenameNameActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
         stage = context.get_stage()
         if not stage:
             return
-        path = str(payload["selected_paths"][0])
-        prim = stage.GetPrimAtPath(path)
+
+        if "item" in payload and payload["item"].data:
+            path = payload["item"].data.GetPath()
+            prim = stage.GetPrimAtPath(path)
+            if prim and prim.IsValid() and _is_instance(prim) and payload.get("selected_paths"):
+                path = str(payload["selected_paths"][0])
+                prim = stage.GetPrimAtPath(path)
+        else:
+            path = str(payload["selected_paths"][0])
+            prim = stage.GetPrimAtPath(path)
         if not prim or not prim.IsValid():
             return
+
         attrs = [str(attr.GetName()) for attr in prim.GetAttributes()]
         if _LSS_NICKNAME not in attrs:
             return
-        core_setup.add_attribute(
-            [path], _LSS_NICKNAME, "", prim.GetAttribute(_LSS_NICKNAME).Get(), Sdf.ValueTypeNames.String
-        )
+        root_layer = stage.GetRootLayer()
+        with Usd.EditContext(stage, root_layer):
+            core_setup.add_attribute(
+                [path], _LSS_NICKNAME, "", prim.GetAttribute(_LSS_NICKNAME).Get(), Sdf.ValueTypeNames.String
+            )
 
     @classmethod
     def _has_prim_nickname(cls, payload: dict) -> bool:
@@ -154,17 +134,32 @@ class PrimRenameNameActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
         stage = context.get_stage()
         if not stage:
             return False
-        path = str(payload["selected_paths"][0])
+
+        if "item" in payload and payload["item"].data:
+            path = payload["item"].data.GetPath()
+        else:
+            path = str(payload["selected_paths"][0])
         prim = stage.GetPrimAtPath(path)
+
         if not prim or not prim.IsValid():
             return False
         attrs = [str(attr.GetName()) for attr in prim.GetAttributes()]
-        return _LSS_NICKNAME in attrs
+        if _LSS_NICKNAME in attrs:
+            return bool(prim.GetAttribute(_LSS_NICKNAME).Get())
+        return False
 
     @classmethod
     def _change_prim_nickname(cls, payload: dict):
         if "item" not in payload or "model" not in payload:
             return
         item = payload["item"]
-        item.pending_edit = True
+        if not item.nickname_field:
+            return
+        item.nickname_field.enter_edit_mode()
+
+        # NOTE: notify_item_changed is required here because this action is triggered
+        # from a context menu callback — external to the TreeView's widget hierarchy.
+        # Unlike in-tree event handlers (e.g. double-click on a cell widget), where
+        # container.rebuild() propagates within the same rendering pass, external
+        # calls don't cause the TreeView to re-render the cell on their own.
         payload["model"].notify_item_changed(item)

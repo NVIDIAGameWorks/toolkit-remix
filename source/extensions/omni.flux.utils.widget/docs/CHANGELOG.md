@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.25.0]
+### Added
+- Added NicknameField to handle nickname attribute changes
+
 ## [1.24.1]
 ### Changed
 - Modernize python style and enable more ruff checks

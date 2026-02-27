@@ -204,18 +204,6 @@ def override_dialog_get_style(style_value):
     return style_value
 
 
-DEFAULT_FIELD_READ_ONLY_STYLE = {
-    "background_color": 0x00000000,
-    "border_width": 0,
-    "border_color": 0x00000000,
-}
-
-DEFAULT_FIELD_EDITABLE_STYLE = {
-    "background_color": _GREY_50,
-    "border_width": 1,
-    "border_color": _BLUE_SELECTED,
-}
-
 try:
     message_dialog_style = message_dialog.get_style()
     message_dialog.get_style = lambda: override_dialog_get_style(message_dialog_style)
@@ -390,8 +378,6 @@ current_dict.update(
         "Image::Add": {"image_url": _get_icons("add"), "color": _WHITE_60},
         "Image::Add:hovered": {"image_url": _get_icons("add"), "color": _WHITE_100},
         "Image::ArrowsLeftRight": {"image_url": _get_icons("arrows-left-right"), "color": _WHITE_80},
-        "Image::Asterisk": {"image_url": _get_icons("asterisk"), "color": _WHITE_60},
-        "Image::AsteriskBlue": {"image_url": _get_icons("asterisk"), "color": _BLUE_SELECTED},
         "Image::Eye": {"image_url": _get_icons("eye"), "color": _WHITE_60},
         "Image::Eye:hovered": {"image_url": _get_icons("eye"), "color": _WHITE_100},
         "Image::EyeDisabled": {"image_url": _get_icons("eye"), "color": _WHITE_30},

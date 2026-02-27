@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.4]
+### Changed
+- Updated interactions to refresh on nickname change
+
 ## [1.27.3]
 ### Added
 - Added nickname attribute to refresh rules for the Stage Manager
