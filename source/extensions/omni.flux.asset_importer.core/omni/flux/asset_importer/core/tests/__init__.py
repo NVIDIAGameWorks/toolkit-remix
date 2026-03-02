@@ -16,6 +16,7 @@
 """
 
 from .unit.test_asset_importer import TestAssetImporter
+from .unit.test_scan_folder import TestScannerCore
 from .unit.test_utils import TestAssetUtils
 
-__all__ = ["TestAssetImporter", "TestAssetUtils"]
+__all__ = ["TestAssetImporter", "TestAssetUtils", "TestScannerCore"]
