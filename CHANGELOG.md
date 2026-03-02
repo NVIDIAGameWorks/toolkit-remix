@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4809: Logic graph deletion in the properties panel now shows a confirmation dialog before executing
 
 ### Fixed
+- REMIX-4347: Fixed Scan Folder for Ingestion showing invalid file types (e.g. .mdl) alongside valid formats
 - REMIX-4810: Fixed ComboBox dropdown becoming see-through when the header item is hovered
 - Added a frame wait for Stage Manager refresh to ensure all items are properly populated and updated Additional Filters menu sorting
 - Fixed MeshPrimsFilterPlugin to exclude lights in the filter
