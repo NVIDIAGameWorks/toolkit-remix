@@ -38,6 +38,8 @@ _scanner_dialog = None
 
 
 class ScannerCore:
+    _VALID_EXTENSIONS = frozenset(_SUPPORTED_ASSET_EXTENSIONS) | frozenset(_SUPPORTED_TEXTURE_EXTENSIONS)
+
     def __init__(self, callbacks: dict[str, list[Callable]]):
         self._callbacks = callbacks
 
@@ -51,6 +53,20 @@ class ScannerCore:
     def do(self, action_type: str, paths: list):
         for callback in self._callbacks[action_type]:
             callback(paths)
+
+    def get_valid_files(self, folder: Path, search_term: str) -> list[Path]:
+        """Return files in *folder* whose extension is a supported ingest type and whose name matches *search_term*."""
+        search_exp = re.compile(search_term, re.IGNORECASE)
+        found = []
+        for file in folder.iterdir():
+            if not file.is_file():
+                continue
+            if file.suffix not in self._VALID_EXTENSIONS:
+                continue
+            if not search_exp.search(str(file.name)):
+                continue
+            found.append(file)
+        return found
 
 
 class ScanFolderWidget:
@@ -85,22 +101,9 @@ class ScanFolderWidget:
         if not input_folder or input_folder == ".":
             carb.log_warn("Input directory is either invalid or does not exist. Unable to scan directory.")
             return
-        input_folder = Path(input_folder)
 
         search_term = self._search_term_field.model.get_value_as_string()
-        search_exp = re.compile(search_term, re.IGNORECASE)
-
-        found = []
-        for file in input_folder.iterdir():
-            if not file.is_file():
-                continue
-            if file.suffix == ".meta":
-                continue
-            match = search_exp.search(str(file.name))
-            if not match:
-                continue
-
-            found.append(file)
+        found = self._core.get_valid_files(Path(input_folder), search_term)
 
         self.refresh_ui()
         for found_file in found:
