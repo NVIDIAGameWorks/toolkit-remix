@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.6]
+### Fixed
+- REMIX-4347: Fixed scan folder showing invalid file types (e.g. .mdl) alongside valid ingest formats
+
 ## [2.0.5]
 ### Changed
 - Modernize python style and enable more ruff checks

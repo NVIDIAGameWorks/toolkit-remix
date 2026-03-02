@@ -22,6 +22,52 @@ context of extensions, different types of tests are used to verify their functio
 - **Example**: If you have a utility function that performs some calculations, a unit test would validate that the
   function returns the correct output for various input scenarios.
 
+#### Subtests (`self.subTest`)
+
+Use `self.subTest` when a single logical behaviour needs to be verified across multiple inputs or edge cases. Each
+subtest must exercise **one code path in isolation** — give it its own Arrange, Act, and Assert — while the full set
+of subtests together covers all relevant paths and edge cases.
+
+Structure the test as a **single loop** that contains all three steps. Do not split them across multiple loops:
+
+```python
+def test_filter_should_include_only_valid_extensions(self):
+    core = MyCore()
+
+    # Each tuple is one code path: (input, expected_outcome)
+    cases = [
+        ("texture.png", ".png", True),   # valid texture extension
+        ("mesh.fbx",    ".fbx", True),   # valid asset extension
+        ("readme.txt",  ".txt", False),  # unsupported extension
+    ]
+
+    for name, suffix, should_include in cases:
+        with self.subTest(file=name):
+            # Arrange
+            mock_file = MagicMock()
+            mock_file.suffix = suffix
+            mock_file.name = name
+            mock_folder = MagicMock()
+            mock_folder.iterdir.return_value = iter([mock_file])
+
+            # Act
+            result = core.get_valid_files(mock_folder, "")
+
+            # Assert
+            if should_include:
+                self.assertEqual(len(result), 1)
+            else:
+                self.assertEqual(len(result), 0)
+```
+
+Key rules:
+- The `with self.subTest(...)` block is the outermost wrapper inside the loop.
+- Arrange, Act, and Assert all live **inside** the `subTest` block.
+- Never build a shared result before the loop and then assert inside it — that turns
+  one Act into an all-or-nothing call that hides which specific case failed.
+- The `subTest` label (e.g. `file=name`) must be descriptive enough to identify the
+  failing case immediately from the test report.
+
 ### End-to-End (E2E) Tests (Integration Tests)
 
 - **Purpose**: E2E tests, as the name suggests, simulate a complete end-to-end scenario by testing the entire system
