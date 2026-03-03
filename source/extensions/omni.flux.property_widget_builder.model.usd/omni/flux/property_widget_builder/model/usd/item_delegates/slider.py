@@ -30,7 +30,13 @@ def _adjust_min_max_range(widget, item):
     if not bounds:
         return
 
-    min_value, max_value = bounds
+    min_value, max_value, hard_min_value, hard_max_value = bounds
+
+    if min_value is None or max_value is None:
+        raise ValueError(
+            f"Slider requires both min and max bounds, got min={min_value}, max={max_value} "
+            f"for attribute(s) {item.attribute_paths}"
+        )
 
     if min_value >= max_value:
         carb.log_warn(
@@ -41,6 +47,8 @@ def _adjust_min_max_range(widget, item):
 
     widget.min_value = min_value
     widget.max_value = max_value
+    widget.hard_min_value = hard_min_value
+    widget.hard_max_value = hard_max_value
 
 
 def _adjust_step(widget, item):

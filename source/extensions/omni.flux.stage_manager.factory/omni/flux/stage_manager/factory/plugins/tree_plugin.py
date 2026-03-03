@@ -197,7 +197,7 @@ class StageManagerTreeItem(_TreeItemBase):
                 show_display_name_ancestor=bool(self._display_name_ancestor),
             )
 
-    def is_prim_editable(self, prim: "Usd.Prim") -> bool:
+    def is_prim_editable(self, prim: Usd.Prim) -> bool:
         """
         Determine if the prim is editable.
         """
