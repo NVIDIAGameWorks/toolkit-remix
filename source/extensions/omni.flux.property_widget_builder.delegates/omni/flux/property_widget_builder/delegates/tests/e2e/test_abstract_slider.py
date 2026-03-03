@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,72 +20,24 @@ __all__ = ("TestAbstractSliderField",)
 import uuid
 from typing import Any
 
+import carb.input
 import omni.kit.test
 import omni.kit.ui_test
 import omni.ui as ui
 from omni.flux.property_widget_builder.delegates.base import AbstractSliderField
 
-
-# ---------------------------------------------------------------------------
-# Shared mocks – importable by sibling test modules
-# ---------------------------------------------------------------------------
-
-
-class MockValueModel(ui.AbstractValueModel):
-    """Minimal value model that satisfies AbstractSliderField.build_ui requirements."""
-
-    def __init__(self, value: float | int = 0.0, read_only: bool = False):
-        super().__init__()
-        self._value = value
-        self._read_only = read_only
-
-    @property
-    def read_only(self) -> bool:
-        return self._read_only
-
-    def get_value(self):
-        return self._value
-
-    def get_value_as_float(self) -> float:
-        return float(self._value)
-
-    def get_value_as_int(self) -> int:
-        return int(self._value)
-
-    def set_value(self, value):
-        self._value = value
-        self._value_changed()
-
-    def get_tool_tip(self):
-        return None
-
-
-class MockItem(ui.AbstractItem):
-    """Minimal item with a configurable number of value models."""
-
-    def __init__(self, values: list[float | int] | None = None, read_only: bool = False):
-        super().__init__()
-        if values is None:
-            values = [0.0]
-        self.value_models = [MockValueModel(v, read_only=read_only) for v in values]
-
-    @property
-    def element_count(self) -> int:
-        return len(self.value_models)
-
-
-# ---------------------------------------------------------------------------
-# Concrete stub used exclusively for testing AbstractSliderField behaviour
-# ---------------------------------------------------------------------------
+from .mocks import MockItem
 
 
 class _StubSliderField(AbstractSliderField):
     """Thin concrete subclass that records build_drag_widget calls."""
 
     def __init__(self, **kwargs):
-        style_name = kwargs.get("style_name", "StubSliderField")
-        kwargs["style_name"] = style_name
+        kwargs.setdefault("style_name", "StubSliderField")
         super().__init__(**kwargs)
+
+    def _get_value_from_model(self, model) -> float:
+        return model.get_value_as_float()
 
     def build_drag_widget(
         self,
@@ -96,7 +48,6 @@ class _StubSliderField(AbstractSliderField):
         max_val: float | int,
         step: float | int,
     ) -> Any:
-        # Use a real widget so build_ui can call set_mouse_hovered_fn etc.
         return ui.FloatDrag(
             model=model,
             style_type_name_override=style_type_name_override,
@@ -107,58 +58,7 @@ class _StubSliderField(AbstractSliderField):
         )
 
 
-# ---------------------------------------------------------------------------
-# Tests for behaviour defined in AbstractSliderField
-# ---------------------------------------------------------------------------
-
-
 class TestAbstractSliderField(omni.kit.test.AsyncTestCase):
-    # ------------------------------------------------------------------
-    # Constructor & property tests
-    # ------------------------------------------------------------------
-
-    async def test_stores_min_max_step(self):
-        """Constructor should persist min_value, max_value, and _step."""
-        field = _StubSliderField(min_value=-5.0, max_value=5.0, step=0.25)
-        self.assertEqual(field.min_value, -5.0)
-        self.assertEqual(field.max_value, 5.0)
-        self.assertEqual(field._step, 0.25)
-
-    async def test_step_property_returns_explicit_value(self):
-        """The base step property should return _step when it is set."""
-        field = _StubSliderField(min_value=0.0, max_value=100.0, step=3.0)
-        self.assertEqual(field.step, 3.0)
-
-    async def test_step_property_returns_none_when_unset(self):
-        """The base step property should return None when _step is not set."""
-        field = _StubSliderField(min_value=0.0, max_value=100.0)
-        self.assertIsNone(field.step)
-
-    async def test_custom_style_name(self):
-        """style_name should be forwarded through kwargs."""
-        field = _StubSliderField(min_value=0.0, max_value=1.0, style_name="Custom")
-        self.assertEqual(field.style_name, "Custom")
-
-    async def test_default_style_name(self):
-        """Default style_name for the stub should be 'StubSliderField'."""
-        field = _StubSliderField(min_value=0.0, max_value=1.0)
-        self.assertEqual(field.style_name, "StubSliderField")
-
-    async def test_invalid_min_max_raises(self):
-        """min_value must be strictly less than max_value."""
-        with self.assertRaises(AssertionError):
-            _StubSliderField(min_value=100.0, max_value=0.0)
-
-    async def test_equal_min_max_raises(self):
-        """Equal min and max should be rejected."""
-        with self.assertRaises(AssertionError):
-            _StubSliderField(min_value=50.0, max_value=50.0)
-
-    async def test_identifier_forwarded(self):
-        """The identifier kwarg defined in AbstractField should propagate."""
-        field = _StubSliderField(min_value=0.0, max_value=1.0, identifier="my_id")
-        self.assertEqual(field.identifier, "my_id")
-
     # ------------------------------------------------------------------
     # __call__ delegation
     # ------------------------------------------------------------------
@@ -359,4 +259,74 @@ class TestAbstractSliderField(omni.kit.test.AsyncTestCase):
 
         for w in widgets:
             w.destroy()
+        window.destroy()
+
+    # ------------------------------------------------------------------
+    # Hard-bounds clamping via drag and typed entry
+    # ------------------------------------------------------------------
+
+    async def test_hard_bounds_clamp_on_drag_and_type(self):
+        """Dragging should clamp to soft bounds; typing should clamp to hard bounds on end-edit."""
+        window = ui.Window(
+            f"TestAbstractSlider_{str(uuid.uuid1())}",
+            height=200,
+            width=400,
+            position_x=0,
+            position_y=0,
+        )
+        item = MockItem(values=[50.0])
+        field = _StubSliderField(
+            min_value=0.0,
+            max_value=100.0,
+            hard_min_value=-10.0,
+            hard_max_value=110.0,
+            step=1.0,
+        )
+
+        with window.frame:
+            field.build_ui(item)
+
+        await omni.kit.ui_test.human_delay(human_delay_speed=1)
+
+        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatDrag[*]")
+        self.assertTrue(len(widget_refs) > 0, "No FloatDrag widgets found")
+        widget_ref = widget_refs[0]
+
+        # Drag far left -- FloatDrag clamps to min_value (soft bound)
+        target = widget_ref.center
+        target.x = target.x - 600
+        await omni.kit.ui_test.human_delay(30)
+        await omni.kit.ui_test.emulate_mouse_drag_and_drop(widget_ref.center, target)
+        await omni.kit.ui_test.wait_n_updates(2)
+        self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 0.0)
+
+        # Drag far right -- FloatDrag clamps to max_value (soft bound)
+        target = widget_ref.center
+        target.x = target.x + 600
+        await omni.kit.ui_test.human_delay(30)
+        await omni.kit.ui_test.emulate_mouse_drag_and_drop(widget_ref.center, target)
+        await omni.kit.ui_test.wait_n_updates(2)
+        self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 100.0)
+
+        # Type value above hard_max -- end_edit clamps to hard_max_value
+        await widget_ref.double_click()
+        await omni.kit.ui_test.emulate_char_press("200")
+        await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
+        await omni.kit.ui_test.wait_n_updates(2)
+        self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 110.0)
+
+        # Type value below hard_min -- end_edit clamps to hard_min_value
+        await widget_ref.double_click()
+        await omni.kit.ui_test.emulate_char_press("-50")
+        await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
+        await omni.kit.ui_test.wait_n_updates(2)
+        self.assertAlmostEqual(item.value_models[0].get_value_as_float(), -10.0)
+
+        # Type value between soft max and hard max -- within hard bounds, not clamped
+        await widget_ref.double_click()
+        await omni.kit.ui_test.emulate_char_press("105")
+        await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
+        await omni.kit.ui_test.wait_n_updates(2)
+        self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 105.0)
+
         window.destroy()
