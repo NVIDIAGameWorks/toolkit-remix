@@ -15,9 +15,20 @@
 * limitations under the License.
 """
 
-__all__ = ("TestAbstractSliderField", "TestColorField", "TestFloatSliderField", "TestIntSliderField")
+__all__ = (
+    "TestAbstractSliderField",
+    "TestAbstractValueField",
+    "TestColorField",
+    "TestFloatField",
+    "TestFloatSliderField",
+    "TestIntField",
+    "TestIntSliderField",
+)
 
 from .test_abstract_slider import TestAbstractSliderField
+from .test_abstract_value_field import TestAbstractValueField
+from .test_float_field import TestFloatField
 from .test_float_slider import TestFloatSliderField
 from .test_float_value import TestColorField
+from .test_int_field import TestIntField
 from .test_int_slider import TestIntSliderField

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.9.3]
+### Changed
+- Removed unnecessary string-quoted type annotation
+
 ## [4.9.2]
 ### Changed
 - Using a shared string field for the nickname in the Stage Manager

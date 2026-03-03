@@ -79,7 +79,7 @@ class VirtualGroupsItem(_StageManagerUSDTreeItem):
     def is_virtual(self) -> bool:
         return self._is_virtual
 
-    def display_text_fn(self, prim: "Usd.Prim") -> str:
+    def display_text_fn(self, prim: Usd.Prim) -> str:
         """Get display text for the prim. Returns display_name if virtual, otherwise prim.GetName()."""
         if self.is_virtual:
             return self.display_name
@@ -106,7 +106,7 @@ class VirtualGroupsItem(_StageManagerUSDTreeItem):
 
             ui.Spacer()
 
-    def is_prim_editable(self, prim: "Usd.Prim") -> bool:
+    def is_prim_editable(self, prim: Usd.Prim) -> bool:
         if self.is_virtual:
             return False
         if prim and prim.IsValid():
