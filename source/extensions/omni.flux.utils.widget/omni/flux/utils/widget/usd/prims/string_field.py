@@ -26,7 +26,7 @@ from omni.flux.utils.common.utils import get_proto_from_prim
 from omni.flux.utils.widget.resources import get_fonts
 from pxr import Sdf, Usd
 
-__all__ = ["UsdPrimNameField", "GLOBAL_SHOW_NICKNAMES_SETTING"]
+__all__ = ["GLOBAL_SHOW_NICKNAMES_SETTING", "UsdPrimNameField"]
 
 
 FIELD_READ_ONLY_STYLE_NO_NICKNAME = {

@@ -15,32 +15,32 @@
 * limitations under the License.
 """
 
-__all__ = ("TestIntSliderField",)
+__all__ = ("TestFloatField",)
 
 import uuid
 
 import omni.kit.test
 import omni.kit.ui_test
 import omni.ui as ui
-from omni.flux.property_widget_builder.delegates.int_value.slider import IntSliderField
+from omni.flux.property_widget_builder.delegates.float_value.field import FloatField
 
 from .mocks import MockItem
 
 
-class TestIntSliderField(omni.kit.test.AsyncTestCase):
-    """E2E tests for IntSliderField widget rendering."""
+class TestFloatField(omni.kit.test.AsyncTestCase):
+    """E2E tests for FloatField widget rendering."""
 
-    async def test_build_drag_widget_creates_int_drag(self):
-        """build_ui should produce ui.IntDrag widgets."""
+    async def test_build_ui_creates_float_field_widget(self):
+        """build_ui should produce ui.FloatField widgets."""
         window = ui.Window(
-            f"TestIntSlider_{str(uuid.uuid1())}",
+            f"TestFloatField_{str(uuid.uuid1())}",
             height=200,
             width=400,
             position_x=0,
             position_y=0,
         )
-        item = MockItem(values=[25])
-        field = IntSliderField(min_value=0, max_value=100)
+        item = MockItem(values=[25.0])
+        field = FloatField()
 
         with window.frame:
             widgets = field.build_ui(item)
@@ -48,7 +48,7 @@ class TestIntSliderField(omni.kit.test.AsyncTestCase):
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
         self.assertEqual(len(widgets), 1)
-        self.assertIsInstance(widgets[0], ui.IntDrag)
+        self.assertIsInstance(widgets[0], ui.FloatField)
 
         for w in widgets:
             w.destroy()

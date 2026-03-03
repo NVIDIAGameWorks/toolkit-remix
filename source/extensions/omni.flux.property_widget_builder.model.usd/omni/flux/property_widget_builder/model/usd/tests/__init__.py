@@ -18,5 +18,11 @@
 from .unit.test_relationship_item import TestUSDRelationshipItem
 from .unit.test_relationship_utils import TestRelationshipUtils
 from .unit.test_relationship_value_model import TestUsdRelationshipValueModel
+from .unit.test_usd_attribute_item_bounds import TestUSDAttributeItemBounds
 
-__all__ = ["TestRelationshipUtils", "TestUSDRelationshipItem", "TestUsdRelationshipValueModel"]
+__all__ = [
+    "TestRelationshipUtils",
+    "TestUSDAttributeItemBounds",
+    "TestUSDRelationshipItem",
+    "TestUsdRelationshipValueModel",
+]

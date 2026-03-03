@@ -17,8 +17,10 @@
 
 __all__ = (
     "ColorField",
+    "FloatField",
     "FloatSliderField",
 )
 
 from .color import ColorField
+from .field import FloatField
 from .slider import FloatSliderField

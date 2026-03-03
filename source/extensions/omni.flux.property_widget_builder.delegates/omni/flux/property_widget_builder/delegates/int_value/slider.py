@@ -27,18 +27,37 @@ from ..base import AbstractSliderField
 class IntSliderField(AbstractSliderField):
     """A slider delegate for integer values with configurable min, max, and step."""
 
-    def __init__(self, min_value: int = 0, max_value: int = 100, step: int | None = None, **kwargs):
+    def __init__(
+        self,
+        min_value: int = 0,
+        max_value: int = 100,
+        hard_min_value: int | None = None,
+        hard_max_value: int | None = None,
+        step: int | None = None,
+        **kwargs,
+    ):
         """Initialize the int slider.
 
         Args:
             min_value: Minimum value of the slider. Defaults to 0.
             max_value: Maximum value of the slider. Defaults to 100.
+            hard_min_value: Hard minimum bound for clamping. Both hard_min_value and
+                hard_max_value must be provided for clamping to take effect.
+            hard_max_value: Hard maximum bound for clamping. Both hard_min_value and
+                hard_max_value must be provided for clamping to take effect.
             step: Optional step size; if None, step is 1 for range ≤100 else max(1, int(range * 0.01)).
             **kwargs: Passed to AbstractSliderField (e.g. style_name, default "IntSliderField").
         """
         style_name = kwargs.get("style_name", "IntSliderField")
         kwargs["style_name"] = style_name
-        super().__init__(min_value=min_value, max_value=max_value, step=step, **kwargs)
+        super().__init__(
+            min_value=min_value,
+            max_value=max_value,
+            hard_min_value=hard_min_value,
+            hard_max_value=hard_max_value,
+            step=step,
+            **kwargs,
+        )
 
     @property
     def step(self) -> int:
@@ -54,6 +73,9 @@ class IntSliderField(AbstractSliderField):
     @step.setter
     def step(self, value: int) -> None:
         self._step = value
+
+    def _get_value_from_model(self, model) -> int | float:
+        return model.get_value_as_int()
 
     def build_drag_widget(
         self,

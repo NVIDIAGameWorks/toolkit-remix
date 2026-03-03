@@ -26,18 +26,37 @@ from ..base import AbstractSliderField
 class FloatSliderField(AbstractSliderField):
     """A float slider field delegate for building float-based slider widgets."""
 
-    def __init__(self, min_value: float = 0.0, max_value: float = 100.0, step: float | None = None, **kwargs):
+    def __init__(
+        self,
+        min_value: float = 0.0,
+        max_value: float = 100.0,
+        hard_min_value: float | None = None,
+        hard_max_value: float | None = None,
+        step: float | None = None,
+        **kwargs,
+    ):
         """Initialize the float slider.
 
         Args:
             min_value: Minimum value of the slider. Defaults to 0.0.
             max_value: Maximum value of the slider. Defaults to 100.0.
+            hard_min_value: Hard minimum bound for clamping. Both hard_min_value and
+                hard_max_value must be provided for clamping to take effect.
+            hard_max_value: Hard maximum bound for clamping. Both hard_min_value and
+                hard_max_value must be provided for clamping to take effect.
             step: Optional step size; if None, step is computed as (max_value - min_value) * 0.005.
             **kwargs: Passed to AbstractSliderField (e.g. style_name, default "FloatSliderField").
         """
         style_name = kwargs.get("style_name", "FloatSliderField")
         kwargs["style_name"] = style_name
-        super().__init__(min_value=min_value, max_value=max_value, step=step, **kwargs)
+        super().__init__(
+            min_value=min_value,
+            max_value=max_value,
+            hard_min_value=hard_min_value,
+            hard_max_value=hard_max_value,
+            step=step,
+            **kwargs,
+        )
 
     @property
     def step(self) -> float:
@@ -49,6 +68,9 @@ class FloatSliderField(AbstractSliderField):
     @step.setter
     def step(self, value: float) -> None:
         self._step = value
+
+    def _get_value_from_model(self, model) -> int | float:
+        return model.get_value_as_float()
 
     def build_drag_widget(
         self,

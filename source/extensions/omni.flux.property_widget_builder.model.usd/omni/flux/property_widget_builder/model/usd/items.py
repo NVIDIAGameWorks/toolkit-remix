@@ -167,6 +167,9 @@ class _BaseUSDAttributeItem(_Item):
         return _EventSubscription(self.__on_override_removed, function)
 
 
+_RealNumber: typing.TypeAlias = float | int
+
+
 class USDAttributeItem(_BaseUSDAttributeItem):
     """
     Item that represent a USD attribute on the tree
@@ -217,37 +220,58 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         )
         self._ui_metadata = ui_metadata
 
-    def _get_min_max_from_ui_metadata(self) -> tuple[float | int, float | int] | None:
+    def _get_min_max_from_ui_metadata(
+        self,
+    ) -> tuple[_RealNumber | None, _RealNumber | None, _RealNumber | None, _RealNumber | None] | None:
         """
-        Get slider min/max bounds from ui_metadata, prioritizing hard limits over soft limits.
+        Get min/max bounds from ui_metadata.
 
-        Hard bounds (hard_min/hard_max) are used when available; soft bounds
-        (soft_min/soft_max) serve as fallback. Min and max are resolved
-        independently. Returns None if either bound is missing.
+        Soft bounds (soft_min/soft_max) are used as the primary min/max
+        values; hard bounds serve as fallback when soft bounds are absent,
+        and are also returned separately for clamping. Min and max are
+        resolved independently. Returns ``None`` only when no bound keys
+        exist at all; otherwise either value in the tuple may be ``None``.
 
         Returns:
-            tuple[float | int, float | int] | None: (min, max) bounds or None.
+            ``(min, max, hard_min, hard_max)`` where min/max may be ``None``, or
+            ``None`` if no bounds metadata is present.
         """
         if self._ui_metadata is None:
             return None
 
-        min_val = self._ui_metadata.get("hard_min")
-        if min_val is None:
-            min_val = self._ui_metadata.get("soft_min")
+        min_val = self._ui_metadata.get("soft_min")
+        max_val = self._ui_metadata.get("soft_max")
+
+        hard_min_val = self._ui_metadata.get("hard_min")
+        hard_max_val = self._ui_metadata.get("hard_max")
 
         if min_val is None:
-            return None
-
-        max_val = self._ui_metadata.get("hard_max")
-        if max_val is None:
-            max_val = self._ui_metadata.get("soft_max")
+            min_val = hard_min_val
 
         if max_val is None:
+            max_val = hard_max_val
+
+        if min_val is None and max_val is None:
             return None
 
-        return min_val, max_val
+        return min_val, max_val, hard_min_val, hard_max_val
 
-    def _get_min_max_from_attr_metadata(self) -> tuple[float | int, float | int] | None:
+    def _get_min_max_from_attr_metadata(
+        self,
+    ) -> tuple[_RealNumber | None, _RealNumber | None, None, None] | None:
+        """
+        Get min/max bounds from USD attribute ``customData.range``.
+
+        Iterates over all attribute paths and resolves min/max from each
+        attribute's ``customData["range"]["min"]`` / ``["max"]``.  When
+        multiple attributes provide a value, the widest range wins (smallest
+        min, largest max).  Hard bounds are always ``None`` since USD
+        customData does not distinguish soft vs hard limits.
+
+        Returns:
+            ``(min, max, None, None)`` where either value may be ``None``,
+            or ``None`` if no range metadata is present on any attribute.
+        """
         min_value = None
         max_value = None
 
@@ -272,12 +296,26 @@ class USDAttributeItem(_BaseUSDAttributeItem):
                             else:
                                 max_value = max(max_value, meta_max_value)
 
-        if min_value is None or max_value is None:
+        if min_value is None and max_value is None:
             return None
 
-        return min_value, max_value
+        return min_value, max_value, None, None
 
-    def get_min_max_bounds(self) -> tuple[float | int, float | int] | None:
+    def get_min_max_bounds(
+        self,
+    ) -> tuple[_RealNumber | None, _RealNumber | None, _RealNumber | None, _RealNumber | None] | None:
+        """
+        Get bounds metadata from UI metadata or USD attribute ``customData.range``.
+
+        Checks UI metadata first, then falls back to USD ``customData.range``.
+        Partial bounds are allowed, so any tuple element may be ``None``.
+
+        Returns:
+            ``(min_value, max_value, hard_min_value, hard_max_value)`` when
+            bounds metadata exists, or ``None`` when no bounds metadata is
+            present. Callers that require both min and max (for example,
+            slider widgets) must validate that both are non-None.
+        """
         bounds = self._get_min_max_from_ui_metadata()
         if bounds is None:
             bounds = self._get_min_max_from_attr_metadata()
@@ -285,7 +323,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
             return None
         return bounds
 
-    def get_step_value(self) -> float | None:
+    def get_step_value(self) -> _RealNumber | None:
         """Get the UI step size for this attribute, if any.
 
         Checks ``ui_metadata`` first (OGN-sourced ``ui_step`` key), then falls
@@ -366,7 +404,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
 
     @property
     def has_bounds_data(self) -> bool:
-        """True if this item has min/max bounds (from ui_metadata or USD attribute customData), e.g. for slider widgets."""
+        """True if any bounds metadata is present (from ui_metadata or USD attribute customData). May be partial."""
         return self.get_min_max_bounds() is not None
 
 
