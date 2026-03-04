@@ -1128,6 +1128,179 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await self.__destroy(_window, _wid)
 
+    async def test_light_group_stays_expanded_after_light_deletion(self):
+        """Deleting one light must keep the Stage light(s) group expanded (children still visible)."""
+        _window, _wid = await self.__setup_widget()
+        usd_context = omni.usd.get_context()
+
+        # Select the mesh so the tree is populated
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # Add two lights so the Stage light(s) group appears in the tree.
+        # Each light addition auto-expands the group (the new light is selected and the
+        # group is its ancestor), recording the group key in _pre_rebuild_expanded_paths.
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        self.assertEqual(len(item_add_buttons), 2)
+
+        window_name = "Light creator"
+
+        await item_add_buttons[1].click()
+        self.assertLess(0, len(ui_test.find_all(f"{window_name}//Frame/**/*")))
+        light_disk_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDisk'")
+        self.assertIsNotNone(light_disk_button)
+        await light_disk_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        await item_add_buttons[1].click()
+        light_distant_button = ui_test.find(f"{window_name}//Frame/**/Button[*].name=='LightDistant'")
+        self.assertIsNotNone(light_distant_button)
+        await light_distant_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # Both lights should be visible.  The Stage light(s) group is auto-expanded
+        # because the newly-selected light is a descendant of it.
+        light_group_labels = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
+        group_texts = [lbl.widget.text for lbl in light_group_labels]
+        self.assertIn("Stage light(s)", group_texts, "No 'Stage light(s)' group found after adding lights")
+
+        item_prims_before = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertGreaterEqual(len(item_prims_before), 2, "Expected at least 2 prims visible with lights present")
+
+        # Delete the first light prim (trash_buttons[0] is the geometry ref's delete button;
+        # lights start at index 1).  _on_delete_prim sets _is_internal_rebuild=True so
+        # _pre_rebuild_expanded_paths is preserved, keeping the Stage light(s) group expanded.
+        trash_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+        self.assertGreaterEqual(len(trash_buttons), 2, "Expected at least 2 TrashCan buttons (ref + light)")
+        await trash_buttons[1].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # The Stage light(s) group must still be expanded — the surviving light must be visible
+        item_prims_after = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertGreater(len(item_prims_after), 0, "Light prims should still be visible under the expanded group")
+
+        await self.__destroy(_window, _wid)
+
+    async def test_xform_expansion_preserved_after_reference_deletion(self):
+        """Deleting a reference must not collapse prim nodes under surviving reference files.
+
+        When two mesh assets are selected, both reference files are auto-expanded by
+        __deferred_expand (they are selection ancestors).  These expansions are written to
+        _pre_rebuild_expanded_paths.  Deleting the first asset's reference triggers a
+        rebuild with _is_internal_rebuild=True, which preserves _pre_rebuild_expanded_paths
+        so the second asset's reference file stays expanded and its sub-prim stays visible.
+        """
+        _window, _wid = await self.__setup_widget()
+        usd_context = omni.usd.get_context()
+
+        # Select two meshes so both reference files are auto-expanded as selection ancestors
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh", "/RootNode/meshes/mesh_CED45075A077A49A/mesh"], False
+        )
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # Both ref files are expanded: at least 4 prims visible (2 ref files + 2 sub-prims)
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertGreaterEqual(len(item_prims), 4, "Expected at least 4 prims with two assets selected")
+
+        # Delete the first asset's reference to trigger a deletion-driven model rebuild.
+        # _on_delete_reference sets _is_internal_rebuild=True so _pre_rebuild_expanded_paths
+        # is preserved, keeping the second asset's reference file expanded.
+        trash_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+        self.assertGreaterEqual(len(trash_buttons), 2, "Expected at least 2 TrashCan buttons")
+        await trash_buttons[0].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # The second asset's reference file must still be expanded — its sub-prim visible
+        item_prims_after = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertGreaterEqual(
+            len(item_prims_after), 2, "Surviving reference file must remain expanded after deletion"
+        )
+
+        await self.__destroy(_window, _wid)
+
+    async def test_ancestor_expansion_recorded_in_pre_rebuild_paths(self):
+        """__deferred_expand must record ancestor-path expansions in _pre_rebuild_expanded_paths.
+
+        When set_expanded expands an item because it is an ancestor of the current
+        selection, it must add that item's key to _pre_rebuild_expanded_paths.  Without
+        this, a subsequent rebuild triggered by a deletion that clears the selection
+        (the deleted prim was the selected one) has no way to restore the expansion:
+        the ancestor path fails because nothing is selected, and _pre_rebuild_expanded_paths
+        is empty because no caret was ever clicked.
+
+        This test verifies the fix at the lowest level: after a selection-driven
+        rebuild, _pre_rebuild_expanded_paths must be non-empty even though the user
+        never clicked a caret icon.
+        """
+        _window, _wid = await self.__setup_widget()
+        usd_context = omni.usd.get_context()
+
+        # No selection yet — set must be empty.
+        self.assertEqual(len(_wid._pre_rebuild_expanded_paths), 0)
+
+        # Selecting a mesh prim causes __deferred_expand to expand its reference file
+        # as an ancestor.  The fix records this in _pre_rebuild_expanded_paths so that
+        # a later rebuild with an empty or unrelated selection can still restore it.
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=3)
+
+        self.assertGreater(
+            len(_wid._pre_rebuild_expanded_paths),
+            0,
+            "_pre_rebuild_expanded_paths must be populated by ancestor-path expansions, "
+            "not only by explicit user caret clicks",
+        )
+
+        await self.__destroy(_window, _wid)
+
+    async def test_caret_expansion_preserved_after_deletion(self):
+        """Expanding a group via the caret icon must survive a model rebuild.
+
+        The selection-ancestor path in __deferred_expand would re-expand nodes that are
+        ancestors of the current selection even without _pre_rebuild_expanded_paths.  This
+        test covers the distinct case where the expanded node (instances group) is NOT an
+        ancestor of any selected prim, so only the _on_expand_clicked →
+        _pre_rebuild_expanded_paths → __deferred_expand path can restore it.
+        """
+        _window, _wid = await self.__setup_widget()
+        usd_context = omni.usd.get_context()
+
+        # Select two prims so the full tree (including instances groups) is visible
+        usd_context.get_selection().set_selected_prim_paths(
+            ["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh", "/RootNode/meshes/mesh_CED45075A077A49A/mesh"], False
+        )
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # With two assets, there are 6 expand carets; index 2 is the instances group of the
+        # first asset.  Instances are NOT ancestors of the selected prims, so only the
+        # _pre_rebuild_expanded_paths mechanism can keep this group expanded after a rebuild.
+        expand_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='Expand'")
+        self.assertGreaterEqual(len(expand_buttons), 3, "Expected at least 3 expand carets with two assets selected")
+        await expand_buttons[2].click()
+        await ui_test.human_delay(human_delay_speed=2)
+
+        item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
+        self.assertGreater(
+            len(item_instances), 0, "Expected instance items to be visible after expanding the instances group"
+        )
+
+        # Delete a reference to trigger a model rebuild
+        trash_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+        self.assertGreater(len(trash_buttons), 0, "Expected at least one TrashCan button to be present")
+        await trash_buttons[0].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # The instances group must still be expanded — only _pre_rebuild_expanded_paths can
+        # restore a caret-driven expansion that is not tied to the current selection
+        item_instances_after = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
+        self.assertGreater(
+            len(item_instances_after), 0, "Instances expanded via caret must remain visible after model rebuild"
+        )
+
+        await self.__destroy(_window, _wid)
+
     async def test_append_no_metadata_ref_ignore_ingest(self):
         await self.__ingest_wrong_asset_ignore_ingestion(
             _get_test_data("usd/project_example/ingested_assets/output/no_metadata/cube.usda")
