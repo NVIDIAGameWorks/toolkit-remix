@@ -167,7 +167,10 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         task_cancelled = (
             self._tree_selection_task is None or self._tree_selection_task.cancelled() or not self._is_active
         )
-        if task_cancelled or matching_items is None:
+        # NOTE: `not matching_items` covers both None and empty list; the original
+        # `is None` check let empty lists through, which set the tree selection
+        # to [] after a prim was deleted and its items were no longer on stage.
+        if task_cancelled or not matching_items:
             return
 
         # Lock to prevent _on_selection_changed from setting _ignore_selection_update

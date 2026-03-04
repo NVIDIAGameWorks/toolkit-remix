@@ -98,6 +98,24 @@ class ScrollingTreeWidget:
         self._validate_action_selection = validate_action_selection
         self._expansion_caching = expansion_caching
 
+        if self._expansion_caching:
+            # NOTE: Disable the C++ TreeView's built-in expand-on-branch-click so that
+            # ALL expansion is routed through our set_expanded() override, which keeps
+            # _item_expansion_states in sync. Without this, the C++ side handles branch
+            # clicks internally — it toggles is_expanded() and rebuilds the branch widget,
+            # destroying the delegate's mouse_released_fn callback before it fires. That
+            # makes the delegate subscription unreliable and leaves the cache stale.
+            #
+            # With expand_on_branch_click=False the C++ does nothing on click, the old
+            # ui.Frame survives, the delegate callback fires reliably, and the lambda
+            # subscription (below) calls set_expanded() to perform the expansion and
+            # update the cache in one place.
+            #
+            # CAVEAT: This may also suppress keyboard arrow-key expansion if the C++
+            # TreeView uses the same flag for both. If keyboard expand/collapse stops
+            # working, a separate handler for key events would be needed.
+            self._extra_tree_view_args.setdefault("expand_on_branch_click", False)
+
         self._selection_update_task: Future | None = None
         self._deferred_refresh_task: Future | None = None
 
@@ -108,7 +126,9 @@ class ScrollingTreeWidget:
         # NOTE: Auto-subscribe to model changes to keep alternating rows in sync
         self._item_expanded_sub = None
         if self._expansion_caching:
-            self._item_expanded_sub = self._delegate.subscribe_item_expanded(self._on_item_expanded)
+            self._item_expanded_sub = self._delegate.subscribe_item_expanded(
+                lambda item, expanded: self.set_expanded(item, expanded, False)
+            )
 
         self._item_changed_sub = self._model.subscribe_item_changed_fn(self._on_model_item_changed)
 
@@ -221,10 +241,6 @@ class ScrollingTreeWidget:
             self._update_content_size_task.cancel()
         self._update_content_size_task = ensure_future(self._update_content_size_deferred())
 
-    def _on_item_expanded(self, item: TreeItemBase, expanded: bool):
-        key = hash(item)
-        self._item_expansion_states[key] = expanded
-
     def iter_visible_items(self, recursive=True) -> Iterable[TreeItemBase]:
         """
         Iterate through all currently visible (expanded) items in the tree.
@@ -284,7 +300,7 @@ class ScrollingTreeWidget:
 
                 # Only trigger layout recalculation if we're actually expanding something new
                 if not self._tree_widget.is_expanded(ancestor):
-                    self._tree_widget.set_expanded(ancestor, True, False)
+                    self.set_expanded(ancestor, True, False)
                     force_layout_recalculation = True
 
         if not force_layout_recalculation:
@@ -411,7 +427,7 @@ class ScrollingTreeWidget:
         """
         return self._tree_widget.dirty_widgets(*args, **kwargs)
 
-    def set_expanded(self, *args, **kwargs):
+    def set_expanded(self, item, expanded, recursive):
         """
         Set the expansion state of an item.
 
@@ -420,7 +436,16 @@ class ScrollingTreeWidget:
             expanded: True to expand, False to collapse
             recursive: If True, also applies to all children
         """
-        return self._tree_widget.set_expanded(*args, **kwargs)
+        self._tree_widget.set_expanded(item, expanded, recursive)
+        if self._expansion_caching:
+            items = [item]
+            if recursive:
+                items.extend(self._model.iter_items_children([item]))
+            for i in items:
+                if expanded:
+                    self._item_expansion_states[hash(i)] = True
+                else:
+                    self._item_expansion_states.pop(hash(i), None)
 
     def is_expanded(self, *args, **kwargs):
         """
