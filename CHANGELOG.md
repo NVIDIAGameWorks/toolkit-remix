@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Downgraded "repo_format" and updated "repo_lint" to publicly available versions
 - REMIX-4809: Fixed Stage Manager not refreshing when prims are deleted via the Logic Remix property panel
 - Fixed nickname behavior and added NicknameField with a dot indicator
+- REMIX-5030: Fixed selection being cleared after creating a new light, and stage manager expansion states being lost on refresh
 
 ### Removed
 
