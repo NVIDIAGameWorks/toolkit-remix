@@ -84,11 +84,15 @@ class SetupUI:
             "_previous_tree_selection": None,
             "_instance_selection": None,
             "_previous_instance_selection": None,
+            "_pre_rebuild_expanded_paths": None,
+            "_user_expanded_paths": None,
+            "_is_internal_rebuild": None,
             "_current_tree_pressed_input": None,
             "_sub_tree_delegate_delete_ref": None,
             "_sub_tree_delegate_duplicate_ref": None,
             "_sub_tree_delegate_reset_ref": None,
             "_sub_tree_delegate_delete_prim": None,
+            "_sub_tree_delegate_item_expanded": None,
             "_light_creator_window": None,
             "_light_creator_widget": None,
             "_fake_frame_for_scroll": None,
@@ -109,6 +113,9 @@ class SetupUI:
         self._previous_tree_selection: list[_AnyItemType] = []
         self._instance_selection: list[_ItemInstance | _ItemInstancesGroup] = []
         self._previous_instance_selection: list[_ItemInstance | _ItemInstancesGroup] = []
+        self._pre_rebuild_expanded_paths: set[str] = set()
+        self._user_expanded_paths: set[str] = set()
+        self._is_internal_rebuild: bool = False
 
         self._current_tree_pressed_input = None
 
@@ -119,6 +126,7 @@ class SetupUI:
             self._on_duplicate_reference
         )
         self._sub_tree_delegate_duplicate_prim = self._tree_delegate.subscribe_duplicate_prim(self._on_duplicate_prim)
+        self._sub_tree_delegate_item_expanded = self._tree_delegate.subscribe_item_expanded(self._on_item_expanded)
 
         self.__on_tree_model_emptied = _Event()
         self.__create_ui()
@@ -246,6 +254,17 @@ class SetupUI:
     def refresh(self):
         self._tree_model.refresh()
 
+    def _on_item_expanded(self, item: _AnyItemType, expanded: bool):
+        key = self._tree_delegate.get_item_expansion_key(item)
+        if key is None:
+            return
+        if expanded:
+            self._pre_rebuild_expanded_paths.add(key)
+            self._user_expanded_paths.add(key)
+        else:
+            self._pre_rebuild_expanded_paths.discard(key)
+            self._user_expanded_paths.discard(key)
+
     def _on_duplicate_reference(self, item: _ItemReferenceFile):
         abs_path = omni.client.normalize_url(item.layer.ComputeAbsolutePath(item.path))
         self._add_new_ref_mesh(item, abs_path)
@@ -294,6 +313,7 @@ class SetupUI:
                     [item_prim.path for item_prim in item_prims], instance_paths
                 )
 
+        self._is_internal_rebuild = True
         with omni.kit.undo.group(), self._tree_model.refresh_only_at_the_end():
             self._core.delete_prim([item.path])
 
@@ -304,6 +324,14 @@ class SetupUI:
                 if not prim.IsValid():
                     continue
                 to_select.append(path_str)
+
+            # If nothing valid was found to select (e.g. light prims have no instances),
+            # fall back to the root asset so the model stays populated and
+            # _pre_rebuild_expanded_paths is not wiped by the pruning step in __deferred_expand.
+            if not to_select:
+                root_asset = self._tree_model.get_root_asset_item(item)
+                if root_asset:
+                    to_select = [root_asset.path]
 
             if self._core.get_selected_prim_paths() == to_select:
                 # we force the refresh of the tree
@@ -370,6 +398,7 @@ class SetupUI:
         # filter out any invalid prim path
         to_select = [prim_path for prim_path in to_select if stage.GetPrimAtPath(prim_path).IsValid()]
 
+        self._is_internal_rebuild = True
         with omni.kit.undo.group(), self._tree_model.refresh_only_at_the_end():
             self._core.select_prim_paths(to_select, current_selection=current_selection)
             self._core.remove_reference(stage, item.prim.GetPath(), item.ref, item.layer)
@@ -897,11 +926,27 @@ class SetupUI:
                 carb.log_info("No reference set")
 
     @omni.usd.handle_exception
-    async def __deferred_expand(self, selection: list[_AnyItemType]):
+    async def __deferred_expand(self, selection: list[_AnyItemType]) -> list[_AnyItemType]:
+        """Expand tree items that should be visible after a model rebuild.
+
+        Expands ``_ItemAsset`` nodes unconditionally, all ancestors of the current
+        selection, and any items whose stable path key is present in
+        ``_pre_rebuild_expanded_paths``.
+
+        Returns the ordered list of items that are visible after expansion.
+        """
         if self._tree_view is None:
             return []
         if self._tree_model is None:
             return []
+
+        # On a regular selection-driven rebuild, reset the persistence set to only
+        # what the user explicitly expanded via the caret icon.  Deletion-driven
+        # rebuilds (flag set by _on_delete_prim / _on_delete_reference) must keep
+        # the existing set so that expansion state survives deletions.
+        if not self._is_internal_rebuild:
+            self._pre_rebuild_expanded_paths = set(self._user_expanded_paths)
+        self._is_internal_rebuild = False
 
         def get_items_to_expand(items):
             for sel in items:
@@ -914,17 +959,43 @@ class SetupUI:
 
         def set_expanded(items):
             for item_ in items:
-                # _ItemAsset is always expanded
-                if item_ not in items_to_expand and not isinstance(item_, _ItemAsset):
+                # _ItemAsset is always expanded; selection ancestors are always expanded;
+                # items whose key is already in _pre_rebuild_expanded_paths are restored.
+                item_key = self._tree_delegate.get_item_expansion_key(item_)
+                should_expand = (
+                    isinstance(item_, _ItemAsset)
+                    or item_ in items_to_expand
+                    or (item_key is not None and item_key in self._pre_rebuild_expanded_paths)
+                )
+                if not should_expand:
                     continue
                 self._tree_view.set_expanded(item_, True, False)
                 all_visible_items.add(item_)
+                # Record every expansion so it survives future rebuilds even when the
+                # selection changes (e.g. when a selected prim is deleted and the
+                # ancestor path can no longer restore this item).
+                # _ItemAsset is always-expand and needs no explicit tracking.
+                if item_key is not None:
+                    self._pre_rebuild_expanded_paths.add(item_key)
                 children = self._tree_model.get_item_children(item_)
                 all_visible_items.update(children)
                 set_expanded(children)
 
         await omni.kit.app.get_app().next_update_async()  # for tests...
         set_expanded(self._tree_model.get_item_children(None))
+
+        # Prune stale keys so _pre_rebuild_expanded_paths doesn't grow unboundedly across
+        # expand-then-delete cycles. After the expansion pass the model reflects what actually
+        # exists, so we can safely discard any key that no longer maps to a live item.
+        # Guard: skip pruning when the model is transiently empty (e.g. mid-delete before the
+        # stage selection settles). An empty model would intersect everything away and permanently
+        # destroy all recorded expansion state.
+        all_model_items = self._tree_model.get_all_items()
+        if all_model_items:
+            existing_keys = {self._tree_delegate.get_item_expansion_key(item) for item in all_model_items}
+            valid_keys = {k for k in existing_keys if k is not None}
+            self._pre_rebuild_expanded_paths &= valid_keys
+            self._user_expanded_paths &= valid_keys
 
         result = [item for item in self._tree_model.get_all_items() if item in all_visible_items]
         return result

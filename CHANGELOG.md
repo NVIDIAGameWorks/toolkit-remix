@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - REMIX-4347: Fixed Scan Folder for Ingestion showing invalid file types (e.g. .mdl) alongside valid formats
+- REMIX-3187, REMIX-2383: Fixed selection tree expanded items (lights group, xform nodes) collapsing after a prim or reference deletion
 - REMIX-4810: Fixed ComboBox dropdown becoming see-through when the header item is hovered
 - Added a frame wait for Stage Manager refresh to ensure all items are properly populated and updated Additional Filters menu sorting
 - Fixed MeshPrimsFilterPlugin to exclude lights in the filter
