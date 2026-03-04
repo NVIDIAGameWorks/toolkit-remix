@@ -658,3 +658,59 @@ class TestScrollingTreeWidget(AsyncTestCase):
         # Cleanup
         del widget
         window.destroy()
+
+    async def test_set_expanded_updates_cache_when_caching_enabled(self):
+        """Test that set_expanded automatically updates the expansion cache when expansion_caching is True."""
+        model, delegate, items = self._create_test_tree()
+        root1 = items[0]
+        root2 = items[1]
+        child1_1 = root1.children[0]
+
+        await arrange_windows(topleft_window="Stage")
+        window = ui.Window("TestSetExpandedUpdatesCache", height=400, width=400)
+
+        with window.frame:
+            widget = ScrollingTreeWidget(model, delegate, expansion_caching=True)
+
+        await ui_test.human_delay()
+
+        widget.set_expanded(root1, True, False)
+        widget.set_expanded(child1_1, True, False)
+        await ui_test.human_delay()
+
+        cache = widget._item_expansion_states  # pylint: disable=protected-access
+        self.assertIn(hash(root1), cache)
+        self.assertIn(hash(child1_1), cache)
+        self.assertNotIn(hash(root2), cache)
+
+        # Collapsing should remove from cache
+        widget.set_expanded(root1, False, False)
+        self.assertNotIn(hash(root1), cache)
+        self.assertIn(hash(child1_1), cache)
+
+        # Cleanup
+        del widget
+        window.destroy()
+
+    async def test_set_expanded_does_not_update_cache_when_caching_disabled(self):
+        """Test that set_expanded does NOT populate the cache when expansion_caching is False."""
+        model, delegate, items = self._create_test_tree()
+        root1 = items[0]
+
+        await arrange_windows(topleft_window="Stage")
+        window = ui.Window("TestSetExpandedNoCaching", height=400, width=400)
+
+        with window.frame:
+            widget = ScrollingTreeWidget(model, delegate, expansion_caching=False)
+
+        await ui_test.human_delay()
+
+        widget.set_expanded(root1, True, False)
+        await ui_test.human_delay()
+
+        cache = widget._item_expansion_states  # pylint: disable=protected-access
+        self.assertEqual(len(cache), 0)
+
+        # Cleanup
+        del widget
+        window.destroy()
