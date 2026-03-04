@@ -147,6 +147,7 @@ class Delegate(ui.AbstractItemDelegate):
         self.__on_duplicate_reference = _Event()
         self.__on_duplicate_prim = _Event()
         self.__on_frame_prim = _Event()
+        self.__on_item_expanded = _Event()
 
         self._asset_core = _AssetReplacementsCoreSetup(omni.usd.get_context().get_name())
 
@@ -202,6 +203,12 @@ class Delegate(ui.AbstractItemDelegate):
         """
         return _EventSubscription(self.__on_frame_prim, function)
 
+    def subscribe_item_expanded(self, function: Callable[[_AnyItemType, bool], None]):
+        """
+        Return the object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_item_expanded, function)
+
     def reset(self):
         self._primary_selection = []
         self._secondary_selection = []
@@ -215,6 +222,33 @@ class Delegate(ui.AbstractItemDelegate):
         self._tree_model = None
 
         self._context_menu = None
+
+    @staticmethod
+    def get_item_expansion_key(item: _AnyItemType) -> str | None:
+        """Return a stable, rebuild-safe key for tracking this item's expansion state.
+
+        The key format varies by item type:
+
+        - ``_ItemAsset``: the USD prim path of the asset (e.g. ``/RootNode/meshes/mesh_ABC/mesh``).
+        - ``_ItemReferenceFile``: the relative asset file path stored on the item
+          (e.g. ``./assets/model.fbx``). Note this is a file path, not a USD prim path.
+        - ``_ItemPrim``: the USD prim path of the prim (e.g. ``/RootNode/meshes/mesh_ABC/mesh``).
+        - ``_ItemLiveLightGroup``: a synthetic sentinel of the form
+          ``<parent_prim_path>/__live_lights__``.
+        - ``_ItemInstancesGroup``: a synthetic sentinel of the form
+          ``<parent_prim_path>/__instances__``.
+
+        These key spaces are heterogeneous; keys from different item types must not be
+        compared against each other. Returns ``None`` for item types that are not
+        expandable or do not need expansion tracking.
+        """
+        if isinstance(item, (_ItemAsset, _ItemReferenceFile, _ItemPrim)):
+            return item.path
+        if isinstance(item, _ItemLiveLightGroup):
+            return f"{item.parent.path}/__live_lights__"
+        if isinstance(item, _ItemInstancesGroup):
+            return f"{item.parent.path}/__instances__"
+        return None
 
     def get_path_scroll_frames(self):
         return self._path_scroll_frames
@@ -234,6 +268,11 @@ class Delegate(ui.AbstractItemDelegate):
             return f"Prim: {item.path}"
         return f"{item.__class__.__name__}: "
 
+    def _on_expand_clicked(self, button, item, expanded):
+        if button != 0:
+            return
+        self.__on_item_expanded(item, expanded)
+
     def build_branch(self, model, item, column_id, level, expanded):
         """Create a branch widget that opens or closes subtree"""
         if column_id == 0:
@@ -251,9 +290,12 @@ class Delegate(ui.AbstractItemDelegate):
                     with ui.HStack(width=16 * (level + 2), height=self.DEFAULT_IMAGE_ICON_SIZE):
                         ui.Spacer(width=ui.Pixel(16 * (level + 1)))
                         if model.can_item_have_children(item):
-                            # Draw the +/- icon
+                            # Draw the +/- icon; fire the expansion event only on click, not on render
                             style_type_name_override = "TreeView.Item.Minus" if expanded else "TreeView.Item.Plus"
-                            with ui.VStack(width=ui.Pixel(16)):
+                            with ui.VStack(
+                                width=ui.Pixel(16),
+                                mouse_pressed_fn=lambda x, y, b, m: self._on_expand_clicked(b, item, not expanded),
+                            ):
                                 ui.Spacer(width=0)
                                 ui.Image(
                                     "",
