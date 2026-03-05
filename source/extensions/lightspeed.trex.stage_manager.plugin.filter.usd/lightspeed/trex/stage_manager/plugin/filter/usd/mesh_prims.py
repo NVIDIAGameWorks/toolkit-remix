@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 
 class MeshPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
-    display_name: str = Field(default="Geometry Prims", exclude=True)
+    display_name: str = Field(default="Mesh Prims", exclude=True)
     tooltip: str = Field(default="Filter out mesh prims", exclude=True)
 
     include_instances: bool = Field(

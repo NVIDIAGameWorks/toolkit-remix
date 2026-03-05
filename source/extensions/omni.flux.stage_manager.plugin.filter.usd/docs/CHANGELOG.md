@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.0]
+### Added
+- Added `GeometryPrimsFilterPlugin`
+- Updated `AdditionalFilterPlugin` to use enum for filter categories
+- Include nickname in the search filter
+
 ## [2.6.4]
 ### Changed
 - Modernize python style and enable more ruff checks
