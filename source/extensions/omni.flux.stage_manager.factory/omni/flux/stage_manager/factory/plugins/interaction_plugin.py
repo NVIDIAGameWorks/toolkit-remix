@@ -505,6 +505,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             )
             # Some models might need to filter children items so pass the filter functions down
             self.tree.model.add_user_filter_predicates([filter_plugin.filter_predicate])
+            self.tree.model.add_user_filter_plugins([filter_plugin])
 
         # Remove duplicate additional filters
         existing_filter_names = {
@@ -523,6 +524,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 additional_filter_plugin.subscribe_filter_items_changed(self._refresh_tree_model)
             )
             self.tree.model.add_user_filter_predicates([additional_filter_plugin.filter_predicate])
+            self.tree.model.add_user_filter_plugins([additional_filter_plugin])
 
     def _setup_columns(self):
         """

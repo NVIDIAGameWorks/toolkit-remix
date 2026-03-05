@@ -25,9 +25,45 @@ from collections.abc import Callable, Iterable
 import omni.usd
 
 from .items import StageManagerItem
+from .plugins.filter_plugin import FilterCategory as _FilterCategory
+from .plugins.filter_plugin import StageManagerFilterPlugin as _StageManagerFilterPlugin
+
+
+def _filter_result_closed(
+    universe: set[StageManagerItem],
+    predicate: Callable[[StageManagerItem], bool],
+    ancestor_universe: set[StageManagerItem] | None = None,
+) -> set[StageManagerItem]:
+    """
+    Return the set of items that would be returned by filter_items with a single predicate
+    (items passing the predicate plus all their ancestors that are in ancestor_universe).
+    When narrowing (e.g. sequential AND), pass the same set for universe and ancestor_universe
+    so ruled-out items are not added back.
+    """
+    if ancestor_universe is None:
+        ancestor_universe = universe
+    pass_set = {item for item in universe if predicate(item)}
+    result = set(pass_set)
+    for item in pass_set:
+        current = item.parent
+        while current is not None:
+            if current in ancestor_universe:
+                result.add(current)
+            current = current.parent
+    return result
 
 
 class StageManagerUtils:
+    @classmethod
+    def _get_depth(cls, item: StageManagerItem) -> int:
+        """Count how many ancestors an item has."""
+        depth = 0
+        current = item
+        while current.parent is not None:
+            depth += 1
+            current = current.parent
+        return depth
+
     @classmethod
     def get_unique_names(cls, items: Iterable[StageManagerItem]) -> dict[StageManagerItem, tuple[str, str | None]]:
         """
@@ -55,6 +91,49 @@ class StageManagerUtils:
             else:
                 result[item] = (default_names[item], item.data.GetPath().GetParentPath().name)
         return result
+
+    @classmethod
+    def filter_items_by_category(
+        cls, items: Iterable[StageManagerItem], filter_plugins: Iterable[_StageManagerFilterPlugin]
+    ) -> list[StageManagerItem]:
+        """
+        Filter items by category. Each filter's result matches what filter_items would
+        return for that predicate alone (passing items plus ancestors); results are
+        then combined by category: OR within PRIMS/GROUP, AND within OTHER, AND between categories.
+        AND filters are applied sequentially so predicates run only on the current
+        candidate set, reducing work when items have already been ruled out.
+        """
+        filters_by_category = {category: [] for category in _FilterCategory}
+        items_set = set(items)
+        for filter_obj in filter_plugins:
+            filters_by_category[filter_obj.filter_category].append(filter_obj)
+
+        candidates = items_set
+        is_or_categories = (_FilterCategory.PRIMS, _FilterCategory.GROUP)
+
+        for category in _FilterCategory:
+            category_filters = filters_by_category.get(category, [])
+            if not category_filters:
+                continue
+
+            is_or_filter = category in is_or_categories
+
+            if is_or_filter:
+                closed_sets = [
+                    _filter_result_closed(candidates, f.filter_predicate)
+                    for f in category_filters
+                    if getattr(f, "filter_active", True)
+                ]
+                if closed_sets:
+                    candidates = set().union(*closed_sets)
+            else:
+                for f in category_filters:
+                    candidates = _filter_result_closed(candidates, f.filter_predicate)
+                    if not candidates:
+                        break
+
+        result_list = sorted(candidates, key=cls._get_depth)
+        return result_list
 
     @classmethod
     @omni.usd.handle_exception

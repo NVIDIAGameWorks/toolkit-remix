@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,21 +15,20 @@
 * limitations under the License.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
-from lightspeed.common.constants import PARTICLE_SCHEMA_NAME as _PARTICLE_SCHEMA_NAME
-from omni.flux.stage_manager.plugin.filter.usd.base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
+from pxr import UsdGeom
 from pydantic import Field
+
+from .base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
 
 if TYPE_CHECKING:
     from pxr import Usd
 
 
-class ParticleSystemsFilterPlugin(_ToggleableUSDFilterPlugin):
-    display_name: str = Field(default="Particle System Prims", exclude=True)
-    tooltip: str = Field(default="Filter out particle systems", exclude=True)
+class GeometryPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
+    display_name: str = Field(default="Geometry Prims", exclude=True)
+    tooltip: str = Field(default="Filter out geometry prims", exclude=True)
 
-    def _filter_predicate(self, prim: Usd.Prim) -> bool:
-        return prim.HasAPI(_PARTICLE_SCHEMA_NAME)
+    def _filter_predicate(self, prim: "Usd.Prim") -> bool:
+        return prim.IsA(UsdGeom.Mesh)
