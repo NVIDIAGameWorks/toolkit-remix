@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from lightspeed.common.constants import ROOTNODE_INSTANCES as _ROOTNODE_INSTANCES
+from omni.flux.stage_manager.factory.plugins.filter_plugin import FilterCategory as _FilterCategory
 from omni.flux.stage_manager.plugin.filter.usd.base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
 from pydantic import Field
 
@@ -36,6 +37,7 @@ class InstanceGroupFilterPlugin(_ToggleableUSDFilterPlugin):
 
     display_name: str = Field(default="Instance Group", exclude=True)
     tooltip: str = Field(default="Filter out instance group", exclude=True)
+    filter_category: _FilterCategory = Field(default=_FilterCategory.GROUP, exclude=True)
 
     def _filter_predicate(self, prim: Usd.Prim) -> bool:
         return str(prim.GetPath()).startswith(_ROOTNODE_INSTANCES)

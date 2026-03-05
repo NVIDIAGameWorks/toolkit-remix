@@ -17,6 +17,7 @@
 
 import abc
 from collections.abc import Callable
+from enum import Enum
 
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
@@ -26,12 +27,19 @@ from ..items import StageManagerItem as _StageManagerItem
 from .base import StageManagerUIPluginBase as _StageManagerUIPluginBase
 
 
+class FilterCategory(Enum):
+    OTHER = "Other"
+    PRIMS = "Prims"
+    GROUP = "Group"
+
+
 class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
     """
     A plugin that allows filtering a list of items based on parameters controlled within the plugin
     """
 
     display: bool = Field(default=True, description="Whether the filter plugin should be displayed in the UI")
+    filter_category: FilterCategory = Field(default=FilterCategory.OTHER)
 
     _on_filter_items_changed: _Event = PrivateAttr(default=_Event())
 

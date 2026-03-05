@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.10.0]
+### Added
+- Added `filter_items_by_category` method to layer filter predicates
+
 ## [4.9.3]
 ### Changed
 - Removed unnecessary string-quoted type annotation
