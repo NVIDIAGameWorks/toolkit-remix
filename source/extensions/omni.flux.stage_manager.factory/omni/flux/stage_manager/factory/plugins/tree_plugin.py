@@ -44,6 +44,7 @@ from pydantic import Field
 
 from ..utils import StageManagerUtils as _StageManagerUtils
 from .base import StageManagerPluginBase as _StageManagerPluginBase
+from .filter_plugin import StageManagerFilterPlugin as _StageManagerFilterPlugin
 
 if TYPE_CHECKING:
     from pxr import Usd
@@ -230,6 +231,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
 
         self._context_items: list[_StageManagerItem] = []
         self._user_filter_predicates: list[Callable[[_StageManagerItem], bool]] = []
+        self._user_filter_plugins: list[_StageManagerFilterPlugin] = []
         self._context_predicates: list[Callable[[_StageManagerItem], bool]] = []
         self._column_count = 0
         self._max_workers = None
@@ -271,11 +273,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
             name="Refresh Stage Manager",
             custom_sampling_context={"sample_rate_override": 0.25},
         ) as transaction:
-            filtered_items = await _StageManagerUtils.filter_items(
-                self._context_items,
-                self._user_filter_predicates,
-                max_workers=self._max_workers,
-            )
+            filtered_items = _StageManagerUtils.filter_items_by_category(self._context_items, self._user_filter_plugins)
 
             transaction.set_data("input_items_count", len(self._context_items))
             transaction.set_data("output_items_count", len(filtered_items))
@@ -388,6 +386,18 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         Clear the filter predicates to apply to the items during filtering
         """
         self._user_filter_predicates.clear()
+
+    def add_user_filter_plugins(self, value: list[_StageManagerFilterPlugin]):
+        """
+        Extend the filter plugins to apply to the items during filtering
+        """
+        self._user_filter_plugins.extend(value)
+
+    def clear_user_filter_plugins(self):
+        """
+        Clear the filter plugins to apply to the items during filtering
+        """
+        self._user_filter_plugins.clear()
 
     def add_context_predicates(self, value: list[Callable[[_StageManagerItem], bool]]):
         """

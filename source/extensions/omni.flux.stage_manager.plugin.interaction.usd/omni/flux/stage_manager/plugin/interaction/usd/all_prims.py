@@ -34,6 +34,7 @@ class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     compatible_filters: list[str] = Field(
         default=[
             "AdditionalFilterPlugin",
+            "GeometryPrimsFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "IsCaptureFilterPlugin",
             "VisiblePrimsFilterPlugin",
@@ -42,7 +43,6 @@ class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "InstanceGroupFilterPlugin",
             "LightPrimsFilterPlugin",
             "MaterialPrimsFilterPlugin",
-            "MeshPrimsFilterPlugin",
             "MeshGroupFilterPlugin",
             "OmniPrimsFilterPlugin",
             "ParticleSystemsFilterPlugin",

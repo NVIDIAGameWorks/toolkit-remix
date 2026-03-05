@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.15.0]
+### Added
+- Added `GeometryPrimsFilterPlugin` to the interactions plugins
+
 ## [2.14.1]
 ### Fixed
 - Fixed selection being cleared after creating a new light

@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modernized python format style for 3.10
 - Update hdremix and omni_core_materials to ext-d6ebf58-main
 - REMIX-4809: Logic graph deletion in the properties panel now shows a confirmation dialog before executing
+- REMIX-4904: Updated filter predicates to be layered and added a type enum for filter categories
 
 ### Fixed
 - REMIX-4347: Fixed Scan Folder for Ingestion showing invalid file types (e.g. .mdl) alongside valid formats
