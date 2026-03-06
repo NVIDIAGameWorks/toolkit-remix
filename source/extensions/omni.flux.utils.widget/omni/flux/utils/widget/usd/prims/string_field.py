@@ -313,11 +313,7 @@ class UsdPrimNameField:
         if new_value == self.original_display_name:
             return False
 
-        # Check prim validity
-        if not self._prim.IsValid():
-            return False
-
-        return True
+        return self._prim.IsValid()
 
     def save_nickname(self, new_value: str) -> bool:
         """

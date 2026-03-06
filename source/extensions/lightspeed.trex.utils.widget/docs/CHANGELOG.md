@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.1]
+### Changed
+- Applied new lint rules
+
 ## [1.7.0]
 ### Added
 - Added `confirm_delete_prims` confirmation dialog for prim deletion with undo support

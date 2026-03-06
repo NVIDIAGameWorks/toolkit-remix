@@ -48,7 +48,7 @@ from omni.kit.widget.toolbar.widget_group import WidgetGroup
 from pxr import Gf, Sdf, Usd, UsdGeom
 
 if TYPE_CHECKING:
-    from omni.kit.widget.viewport.api import ViewportAPI  # noqa: PLC0415
+    from omni.kit.widget.viewport.api import ViewportAPI
 
 
 # distance to teleport in front of camera if no objects are hit
@@ -233,12 +233,11 @@ class PointMousePicker:
     def _convert_screen_coords_to_ndc_coords(self, mouse_coords: tuple[float, float]):
         frame = self._viewport_frame
         # converts the screen mouse coordinates to NDC coordinates within the frame
-        mouse_ndc = (
+        return (
             # coord - frame position x / width
             (-1.0 + 2.0 * ((mouse_coords[0] - frame.screen_position_x) / frame.computed_width)),
             (1 - 2.0 * ((mouse_coords[1] - frame.screen_position_y) / frame.computed_height)),
         )
-        return mouse_ndc
 
     def _point_picked_fn(self, prim_path: str, position: Sequence[float], pixels: Sequence[int]) -> None:
         self._user_point_picked_callback_fn(prim_path, position, pixels)
@@ -408,5 +407,4 @@ class Teleporter:
 
 
 def teleporter_factory(desc: dict[str, Any]):
-    teleporter = Teleporter(desc.get("viewport_api"))
-    return teleporter
+    return Teleporter(desc.get("viewport_api"))

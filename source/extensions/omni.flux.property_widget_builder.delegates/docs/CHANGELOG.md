@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.1]
+### Changed
+- Applied new lint rules
+
 ## [1.9.0]
 ### Added
 - REMIX-5012: `FloatField` and `IntField` delegates with optional min/max clamping for partially-bounded attributes

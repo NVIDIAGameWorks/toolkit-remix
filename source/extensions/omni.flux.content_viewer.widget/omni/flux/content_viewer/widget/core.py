@@ -61,9 +61,7 @@ class ContentData(BaseContentData):
 
     def is_checkpointed(self) -> bool:
         result, entry = omni.client.stat(self.original_path)
-        if result == omni.client.Result.OK and entry.flags & omni.client.ItemFlags.IS_CHECKPOINTED:
-            return True
-        return False
+        return bool(result == omni.client.Result.OK and entry.flags & omni.client.ItemFlags.IS_CHECKPOINTED)
 
     def __hash__(self):
         return hash((self.title, self.path))

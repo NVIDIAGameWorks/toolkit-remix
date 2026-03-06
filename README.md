@@ -15,53 +15,23 @@ tweak lighting configurations, and leverage Generative AI for texture remasterin
 operation, this toolkit empowers creators to craft visually captivating game scenes, eliminating the need for extensive
 technical know-how.
 
-## Pre-Requirements
+## Quick Start
 
-- [Git](https://www.git-scm.com/)
-
-## Build Instructions
-
-1. Clone this repository
-2. Execute the build script:
-   ```
-   .\build.bat -r
-   ```
-
-### Additional notes
-
-- Utilize the `repo.bat` file to execute additional commands. Run the following command to view available tools:
-  ```
-  .\repo.bat -h
-  ```
-
-## Getting Started
-
-1. To launch the end-user version of the toolkit, execute the following file:
-   ```
-   .\_build\windows-x86_64\release\lightspeed.app.trex.bat
-   ```
-2. For the developer version of the toolkit with extra features conducive to development, launch:
-   ```
-   .\_build\windows-x86_64\release\lightspeed.app.trex_dev.bat
-   ```
-3. For launching specific sub-applications (e.g., Modding, Ingestion), directly run the corresponding files:
-   ```
-   _build\windows-x86_64\release\lightspeed.app.trex.ingestcraft.bat
-   ```
+See the [Developer Documentation](./docs_dev/README.md) for prerequisites, build instructions, and all available launch options.
 
 ## Contributing
 
-Before contributing to the RTX Remix project, please review the [contributor documentation](./docs_dev/CONTRIBUTING.md).
+See the [Developer Documentation](./docs_dev/README.md) for the full setup guide, coding standards, and review checklist.
+
+External contributors: fork this repository, create a development branch, and submit a Pull Request. An automated bot will prompt you to sign the [Contributor License Agreement](https://github.com/NVIDIAGameWorks/toolkit-remix/blob/main/.github/workflows/cla/NVIDIA_CLA_v1.0.1.md) via your PR's comment page.
 
 For further queries, feel free to [create a GitHub issue](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new/choose)
 or join the RTX Remix Showcase Discord server via [this link](https://discord.gg/c7J6gUhXMk), where fellow modders can assist you.
 
 ## Additional Documentation
 
-- [RTX Remix Documentation](https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/)
-- [RTX Remix Toolkit Documentation](https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/docs/toolkitinterface/remix-toolkitinterface-launchscreen.html)
-- [RTX Remix Toolkit API](https://docs.omniverse.nvidia.com/kit/docs/rtx_remix/latest/docs/contributing/api.html)
-
+See [Learning Resources](./docs_dev/getting-started/learning-resources.md) for Kit SDK, USD, and RTX Remix documentation links.
 
 ## Security
+
 - [Security](./SECURITY.md)

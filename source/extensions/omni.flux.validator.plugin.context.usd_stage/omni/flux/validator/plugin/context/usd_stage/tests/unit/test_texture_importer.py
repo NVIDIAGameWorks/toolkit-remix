@@ -400,7 +400,7 @@ class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(
-            3 if texture_type in [TextureTypes.NORMAL_OGL, TextureTypes.NORMAL_DX, TextureTypes.NORMAL_OTH] else 2,
+            3 if texture_type in {TextureTypes.NORMAL_OGL, TextureTypes.NORMAL_DX, TextureTypes.NORMAL_OTH} else 2,
             command_mock.call_count,
         )
         self.assertEqual(

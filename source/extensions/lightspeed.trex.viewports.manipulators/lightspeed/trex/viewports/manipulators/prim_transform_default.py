@@ -54,5 +54,4 @@ class PrimTransformDefault(IManipulator):
 
 
 def prim_transform_default_factory(desc: dict[str, Any]):
-    manip = PrimTransformDefault(desc.get("viewport_api"))
-    return manip
+    return PrimTransformDefault(desc.get("viewport_api"))

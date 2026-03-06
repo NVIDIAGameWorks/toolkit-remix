@@ -330,7 +330,7 @@ class BookmarkTreeWidget:
 
     def _on_delete_pressed(self, key, _, pressed):
         # Delete or Numpad Delete keys
-        if key not in [int(carb.input.KeyboardInput.DEL), int(carb.input.KeyboardInput.NUMPAD_DEL)] or pressed:
+        if key not in {int(carb.input.KeyboardInput.DEL), int(carb.input.KeyboardInput.NUMPAD_DEL)} or pressed:
             return
         # If currently editing a temporary item, delete should only edit the string field
         if self._is_editing:

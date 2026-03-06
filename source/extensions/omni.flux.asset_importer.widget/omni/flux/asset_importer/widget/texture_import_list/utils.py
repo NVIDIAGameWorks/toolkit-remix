@@ -87,7 +87,7 @@ async def create_prims_and_link_assets(
             # For OmniPBR this is done by setting `flip_tangent_v` where a value of True means DirectX and False OpenGL
             # Note: we only set this property for DX/OGL normals, not for OTH as the presence of this property is what
             # triggers OTH conversion.
-            if imported_type in [_TextureTypes.NORMAL_OGL, _TextureTypes.NORMAL_DX, _TextureTypes.NORMAL_OTH]:
+            if imported_type in {_TextureTypes.NORMAL_OGL, _TextureTypes.NORMAL_DX, _TextureTypes.NORMAL_OTH}:
                 encoding = -1
                 match imported_type:
                     case _TextureTypes.NORMAL_OTH:

@@ -110,22 +110,22 @@ class LayerManagerCore:
             layers_dict = {}
             for layer_type in query.layer_types:
                 layers_dict[layer_type] = self.get_layers(layer_type, max_results=query.layer_count)
-            layer_models = []
-            for layer_type, layers in layers_dict.items():
-                for layer in layers:
-                    layer_models.append(LayerModel(layer_id=layer.identifier, layer_type=layer_type, children=[]))
+            layer_models = [
+                LayerModel(layer_id=layer.identifier, layer_type=layer_type, children=[])
+                for layer_type, layers in layers_dict.items()
+                for layer in layers
+            ]
             return LayerStackResponseModel(layers=layer_models)
 
         def get_layer_info(layer: Sdf.Layer) -> LayerModel | None:
             if not layer:
                 return None
             layer_type = layer.customLayerData.get(LayerTypeKeys.layer_type.value)
-            children = []
-            for sublayer_path in layer.subLayerPaths:
-                sublayer = Sdf.Layer.FindOrOpenRelativeToLayer(layer, sublayer_path)
-                if not sublayer:
-                    continue
-                children.append(get_layer_info(sublayer))
+            children = [
+                get_layer_info(sublayer)
+                for sublayer_path in layer.subLayerPaths
+                if (sublayer := Sdf.Layer.FindOrOpenRelativeToLayer(layer, sublayer_path))
+            ]
             return LayerModel(layer_id=layer.identifier, layer_type=layer_type, children=children)
 
         return LayerStackResponseModel(layers=[get_layer_info(self.__context.get_stage().GetRootLayer())])
@@ -839,7 +839,7 @@ class LayerManagerCore:
                 carb.log_error("Can't find the capture layer in the current stage")
             return None, None
         capture_folder = Path(layer.realPath)
-        if capture_folder.parent.name not in [CAPTURE_FOLDER, REMIX_CAPTURE_FOLDER]:
+        if capture_folder.parent.name not in {CAPTURE_FOLDER, REMIX_CAPTURE_FOLDER}:
             if show_error:
                 carb.log_error(
                     f'Can\'t find the "{CAPTURE_FOLDER}" or "{REMIX_CAPTURE_FOLDER}" folder from the capture layer'
@@ -924,7 +924,7 @@ class LayerManagerCore:
         await context.new_stage_async()
         await omni.kit.app.get_app_interface().next_update_async()
         stage = context.get_stage()
-        while (context.get_stage_state() in [omni.usd.StageState.OPENING, omni.usd.StageState.CLOSING]) or not stage:
+        while (context.get_stage_state() in {omni.usd.StageState.OPENING, omni.usd.StageState.CLOSING}) or not stage:
             await asyncio.sleep(0.1)
         # set some metadata
         root_layer = stage.GetRootLayer()

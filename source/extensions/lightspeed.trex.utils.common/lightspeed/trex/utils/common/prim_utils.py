@@ -173,9 +173,7 @@ def filter_prims_paths(
                 is_valid = not bool(layer.GetPrimAtPath(prim.GetPath())) and (layer != introducing_layer)
         return is_valid
 
-    filtered_paths = [str(prim.GetPath()) for prim in prims if layer_predicate(prim) and predicate(prim)]
-
-    return filtered_paths
+    return [str(prim.GetPath()) for prim in prims if layer_predicate(prim) and predicate(prim)]
 
 
 def includes_hash(prim: Usd.Prim, prim_hashes: set[str]) -> bool:

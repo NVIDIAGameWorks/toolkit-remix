@@ -36,11 +36,29 @@ class FluxValidatorPluginSelectorUSDExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
         carb.log_info("[omni.flux.validator.plugin.selector.usd] Startup")
         _get_factory_instance().register_plugins(
-            [_AllLights, _AllPrims, _AllMeshes, _AllMaterials, _AllShaders, _AllTextures, _Nothing, _RootPrims]
+            [
+                _AllLights,
+                _AllPrims,
+                _AllMeshes,
+                _AllMaterials,
+                _AllShaders,
+                _AllTextures,
+                _Nothing,
+                _RootPrims,
+            ]
         )
 
     def on_shutdown(self):
         carb.log_info("[omni.flux.validator.plugin.selector.usd] Shutdown")
         _get_factory_instance().unregister_plugins(
-            [_AllLights, _AllPrims, _AllMeshes, _AllMaterials, _AllShaders, _AllTextures, _Nothing, _RootPrims]
+            [
+                _AllLights,
+                _AllPrims,
+                _AllMeshes,
+                _AllMaterials,
+                _AllShaders,
+                _AllTextures,
+                _Nothing,
+                _RootPrims,
+            ]
         )

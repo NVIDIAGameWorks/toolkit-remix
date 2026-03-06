@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.26.1]
+### Changed
+- Applied new lint rules
+
 ## [1.26.0]
 ### Fixed
 - Fixed stage manager expansion states being lost when lights are created or deleted

@@ -88,7 +88,7 @@ class Delegate(ui.AbstractItemDelegate):
                         if not grid_size:
                             grid_size = 100
                         updated_style = self._style["Label::ContentViewerWidgetItemListTitle"].copy()
-                        updated_style["font_size"] = updated_style["font_size"] * (grid_size / 100)
+                        updated_style["font_size"] *= grid_size / 100
 
                         label = ui.Label(
                             item.content_data.title,
@@ -112,7 +112,7 @@ class Delegate(ui.AbstractItemDelegate):
         if not grid_size:
             grid_size = 100
         updated_style = self._style["Label::ContentViewerWidgetItemListTitle"].copy()
-        updated_style["font_size"] = updated_style["font_size"] * (grid_size / 100)
+        updated_style["font_size"] *= grid_size / 100
         return updated_style
 
     def _on_item_mouse_pressed(self, x, y, b, m, item):

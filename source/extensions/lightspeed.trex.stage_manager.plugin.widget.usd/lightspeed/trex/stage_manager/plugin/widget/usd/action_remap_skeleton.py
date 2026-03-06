@@ -104,12 +104,14 @@ class RemapSkeletonActionWidgetPlugin(StageManagerStateWidgetPlugin):
             return None
         stage = item.skel_root.GetStage()
         skel_root, bound_prim = AssetReplacementsCore.get_corresponding_prototype_prims(
-            [item.skel_root, item.bound_prim]
+            [
+                item.skel_root,
+                item.bound_prim,
+            ]
         )
-        skel_replacement = self._skel_replacement_cache.add_skel_replacement(
+        return self._skel_replacement_cache.add_skel_replacement(
             stage.GetPrimAtPath(skel_root), stage.GetPrimAtPath(bound_prim)
         )
-        return skel_replacement
 
     def _show_remapping_window(self, item: SkeletonBoundMeshItem, x, y, button, modifier):
         if button != 0:

@@ -95,9 +95,7 @@ class ProjectWizardSchema(BaseModel):
             return False
         # Make sure the project is also symlinked in the 'rtx-remix/mods/' directory
         mod_symlink = deps_symlink / _constants.REMIX_MODS_FOLDER / project_path.parent.name
-        if not _get_path_or_symlink(mod_symlink):
-            return False
-        return True
+        return bool(_get_path_or_symlink(mod_symlink))
 
     @classmethod
     def is_project_file_valid(cls, v, values: dict):

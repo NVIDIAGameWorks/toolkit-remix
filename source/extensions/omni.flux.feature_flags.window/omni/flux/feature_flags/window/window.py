@@ -39,11 +39,10 @@ class FeatureFlagsWindow:
 
     @property
     def default_attr(self) -> dict[str, None]:
-        default_attr = {
+        return {
             "_window": None,
             "_widget": None,
         }
-        return default_attr
 
     @property
     def window(self) -> ui.Window | None:

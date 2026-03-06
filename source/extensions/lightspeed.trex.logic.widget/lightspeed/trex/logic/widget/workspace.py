@@ -88,10 +88,10 @@ class RemixLogicGraphWorkspaceWindow(_WorkspaceWindowBase):
         )
 
     def __on_stage_event(self, event):
-        if event.type in [
+        if event.type in {
             int(omni.usd.StageEventType.OPENED),
             int(omni.usd.StageEventType.CLOSING),
-        ]:
+        }:
             asyncio.ensure_future(self.__update_button_state_deferred())
 
     async def __update_button_state_deferred(self):

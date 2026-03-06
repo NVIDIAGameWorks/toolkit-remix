@@ -68,5 +68,4 @@ class UsdListModelAttrMetadataValueModel(_UsdListModelBaseValueModel):
             )
 
     def _get_attribute_value(self, attr) -> str:
-        value = self.metadata.get(self._metadata_key, self._default_value)
-        return value
+        return self.metadata.get(self._metadata_key, self._default_value)

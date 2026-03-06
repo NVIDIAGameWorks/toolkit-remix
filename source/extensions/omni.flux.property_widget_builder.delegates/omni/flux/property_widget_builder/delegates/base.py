@@ -167,7 +167,7 @@ class AbstractSliderField(AbstractField):
         """
         raise NotImplementedError
 
-    def build_ui(self, item, **kwargs) -> list[ui.Widget]:  # noqa PLW0221
+    def build_ui(self, item, **kwargs) -> list[ui.Widget]:  # PLW0221
         """Build slider widgets for each element of the item, with undo grouping and tooltips."""
         self._subs.clear()
         widgets = []
@@ -254,7 +254,7 @@ class AbstractValueField(AbstractField):
         self._clamp(model)
         omni.kit.undo.end_group()
 
-    def build_ui(self, item, **kwargs) -> list[ui.Widget]:  # noqa PLW0221
+    def build_ui(self, item, **kwargs) -> list[ui.Widget]:
         self._subs.clear()
         widgets = []
         with ui.HStack(height=ui.Pixel(_PRIMARY_FRAME_HEIGHT)):

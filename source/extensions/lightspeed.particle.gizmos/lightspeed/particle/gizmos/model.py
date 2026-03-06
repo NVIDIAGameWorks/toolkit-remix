@@ -223,7 +223,7 @@ class ParticleGizmoModel(sc.AbstractManipulatorModel):
             if UsdGeom.Xformable.IsTransformationAffectedByAttrNamed(p.name):
                 changed_items.update([self.transform, self.gizmo_transform])
 
-            if p.name in (UsdGeom.Tokens.visibility, PARTICLE_HIDE_EMITTER_ATTR):
+            if p.name in {UsdGeom.Tokens.visibility, PARTICLE_HIDE_EMITTER_ATTR}:
                 changed_items.add(self.visible)
 
         for item in changed_items:

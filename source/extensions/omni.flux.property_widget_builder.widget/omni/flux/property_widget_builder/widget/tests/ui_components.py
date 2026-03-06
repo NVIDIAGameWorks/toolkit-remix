@@ -23,6 +23,7 @@ __all__ = (
 )
 
 import asyncio
+import contextlib
 import uuid
 from typing import Any, TypeVar
 from collections.abc import Iterable
@@ -46,18 +47,21 @@ class MockClipboard:
 
     def __init__(self):
         self._data = None
-        self._ctx = [
+        self._patches = [
             mock.patch("omni.kit.clipboard.copy", autospec=True, side_effect=self.copy),
             mock.patch("omni.kit.clipboard.paste", autospec=True, side_effect=self.paste),
         ]
+        self._exit_stack = None
 
     def start(self):
-        for ctx in self._ctx:
-            ctx.__enter__()
+        self._exit_stack = contextlib.ExitStack()
+        for patch in self._patches:
+            self._exit_stack.enter_context(patch)
 
     def stop(self):
-        for ctx in reversed(self._ctx):
-            ctx.__exit__(None, None, None)
+        if self._exit_stack:
+            self._exit_stack.close()
+            self._exit_stack = None
 
     def __enter__(self):
         self.start()

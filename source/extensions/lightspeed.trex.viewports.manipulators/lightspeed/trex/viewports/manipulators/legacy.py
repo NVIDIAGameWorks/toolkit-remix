@@ -168,15 +168,12 @@ class LegacyAudioScene(IManipulator):
 
 
 def grid_default_factory(desc: dict[str, Any]):
-    manip = LegacyGridScene(desc.get("viewport_api"))
-    return manip
+    return LegacyGridScene(desc.get("viewport_api"))
 
 
 def light_factory(desc: dict[str, Any]):
-    manip = LegacyLightScene(desc.get("viewport_api"))
-    return manip
+    return LegacyLightScene(desc.get("viewport_api"))
 
 
 def audio_factory(desc: dict[str, Any]):
-    manip = LegacyAudioScene(desc.get("viewport_api"))
-    return manip
+    return LegacyAudioScene(desc.get("viewport_api"))

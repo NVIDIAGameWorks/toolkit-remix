@@ -1,0 +1,8 @@
+---
+description: Docstring requirements and code comment standards
+alwaysApply: false
+globs:
+  - "*.py"
+---
+
+@.agents/rules/code-comments.md

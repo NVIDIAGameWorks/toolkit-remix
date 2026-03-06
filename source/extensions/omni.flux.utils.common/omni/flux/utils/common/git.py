@@ -190,11 +190,9 @@ def rebase_repository(repository: pygit2.Repository | None, local_oid: pygit2.Oi
             return False
 
         # 2. Collect all local commits that need to be rebased
-        commits_to_rebase = []
         walker = repository.walk(local_oid)
         walker.hide(merge_base_oid)
-        for commit in walker:
-            commits_to_rebase.append(commit)
+        commits_to_rebase = list(walker)
         commits_to_rebase.reverse()  # Apply oldest commits first
 
         # 3. Reset to remote branch
@@ -426,10 +424,7 @@ def has_uncommitted_changes(repository: pygit2.Repository | None) -> bool:
     # Check for unstaged changes (working directory vs index)
     # diff() with no arguments compares working directory to index
     unstaged_diff = repository.diff()
-    if len(unstaged_diff) > 0:
-        return True
-
-    return False
+    return len(unstaged_diff) > 0
 
 
 def get_remote_ahead_behind(repository: pygit2.Repository | None) -> tuple[int, int]:
@@ -554,6 +549,6 @@ def _validate_output_directory(repository_url: str, output_directory: str) -> st
     # If the output directory doesn't end with the repository name, add it
     output_path = Path(output_directory)
     if output_path.parts[-1] != repository_name:
-        output_path = output_path / repository_name
+        output_path /= repository_name
 
     return str(output_path)

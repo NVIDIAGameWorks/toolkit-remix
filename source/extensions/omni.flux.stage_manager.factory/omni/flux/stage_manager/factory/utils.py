@@ -132,8 +132,7 @@ class StageManagerUtils:
                     if not candidates:
                         break
 
-        result_list = sorted(candidates, key=cls._get_depth)
-        return result_list
+        return sorted(candidates, key=cls._get_depth)
 
     @classmethod
     @omni.usd.handle_exception

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.10.5]
+### Changed
+- Applied new lint rules
+
 ## [2.10.4]
 ### Changed
 - Added return type annotation `-> list[Item]` to `Model.get_item_children()` for clearer typing

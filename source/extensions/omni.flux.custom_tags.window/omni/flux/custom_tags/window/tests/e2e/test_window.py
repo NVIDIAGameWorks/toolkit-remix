@@ -66,9 +66,7 @@ class TestEditCustomTagsWindow(AsyncTestCase):
             for prim in prims:
                 self.stage.DefinePrim(prim, "Xform")
 
-            collections = []
-            for tag in tags:
-                collections.append(Usd.CollectionAPI.Apply(base_prim, tag))
+            collections = [Usd.CollectionAPI.Apply(base_prim, tag) for tag in tags]
 
             includes_rel = collections[1].CreateIncludesRel()
             includes_rel.AddTarget(prims[0])

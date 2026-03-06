@@ -77,7 +77,7 @@ class WizardStartPage(_WizardPage):
         # Update Icon Colors
         style_name, _ = self._options[option]
         if value:
-            style_name = style_name + "Hovered"
+            style_name += "Hovered"
         self._option_icons[option].name = style_name
 
         # Update Button Text Color

@@ -77,18 +77,18 @@ class SwitchToReplacementCore(_ILSSEvent):
         if _should_disable_switch():
             return
         payload = get_layer_event_payload(event)
-        if payload.event_type in [
+        if payload.event_type in {
             LayerEventType.EDIT_MODE_CHANGED,
             LayerEventType.EDIT_TARGET_CHANGED,
             LayerEventType.LOCK_STATE_CHANGED,
             LayerEventType.MUTENESS_SCOPE_CHANGED,
             LayerEventType.MUTENESS_STATE_CHANGED,
             LayerEventType.SUBLAYERS_CHANGED,
-        ]:
+        }:
             self.__check_current_edit_layer()
 
     def __on_stage_event(self, event):
-        if event.type in [int(omni.usd.StageEventType.SAVING), int(omni.usd.StageEventType.OPENED)]:
+        if event.type in {int(omni.usd.StageEventType.SAVING), int(omni.usd.StageEventType.OPENED)}:
             self.__check_current_edit_layer()
 
     def __show_message(self, message):

@@ -16,6 +16,7 @@
 """
 
 import asyncio
+import dataclasses
 import subprocess
 import sys
 from pathlib import Path
@@ -27,22 +28,14 @@ from lightspeed.trex.project_wizard.core import ProjectWizardCore
 from omni.kit.usd.layers import LayerUtils
 
 
+@dataclasses.dataclass
 class ProjectWizardSchemaMock:
-    def __init__(
-        self,
-        existing_project: bool,
-        project_file: Path,
-        remix_directory: Path | None = None,
-        existing_mods: list[Path] | None = None,
-        mod_file: Path | None = None,
-        capture_file: Path | None = None,
-    ):
-        self.existing_project = existing_project
-        self.project_file = project_file
-        self.remix_directory = remix_directory
-        self.existing_mods = existing_mods
-        self.mod_file = mod_file
-        self.capture_file = capture_file
+    existing_project: bool
+    project_file: Path
+    remix_directory: Path | None = None
+    existing_mods: list[Path] | None = None
+    mod_file: Path | None = None
+    capture_file: Path | None = None
 
 
 class WizardMockContext:

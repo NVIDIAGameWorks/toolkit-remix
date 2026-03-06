@@ -99,7 +99,6 @@ async def deferred_destroy_tasks(tasks: list[asyncio.Task]):
                 await omni.kit.app.get_app().next_update_async()
                 if not task:
                     break
-        task = None
 
 
 def reset_default_attrs(obj):
