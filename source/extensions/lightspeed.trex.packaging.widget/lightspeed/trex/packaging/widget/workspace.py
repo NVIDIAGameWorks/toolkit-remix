@@ -82,10 +82,10 @@ class PackagingWindow(_WorkspaceWindowBase):
         load_layout(_get_quicklayout_config(_LayoutFiles.PACKAGING))
 
     def __on_stage_event(self, event):
-        if event.type in [
+        if event.type in {
             int(omni.usd.StageEventType.OPENED),
             int(omni.usd.StageEventType.CLOSING),
-        ]:
+        }:
             asyncio.ensure_future(self.__update_packaging_button_state_deferred())
 
     async def __update_packaging_button_state_deferred(self):

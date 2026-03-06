@@ -59,7 +59,7 @@ class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
         self.search_term = model.get_value_as_string()
         self._filter_items_changed()
 
-    def build_ui(self):  # noqa PLW0221
+    def build_ui(self):
         with ui.HStack(height=ui.Pixel(24)):
             ui.Label("Search:", width=ui.Pixel(56))
             search_field = ui.StringField(

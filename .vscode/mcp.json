@@ -1,0 +1,16 @@
+{
+    "servers": {
+        "omni-ui-mcp": {
+            "type": "http",
+            "url": "http://omni-ui-mcp.nvidia.com/mcp"
+        },
+        "usd-code-mcp": {
+            "type": "http",
+            "url": "http://usd-code-mcp.nvidia.com/mcp"
+        },
+        "kit-dev-mcp": {
+            "type": "http",
+            "url": "http://kit-dev-mcp.nvidia.com/mcp"
+        }
+    }
+}

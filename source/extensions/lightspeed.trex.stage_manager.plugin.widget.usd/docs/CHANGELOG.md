@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.4]
+### Changed
+- Applied new lint rules
+
 ## [2.6.3]
 ### Added
 - Updated the nickname toggle action to be global and have a dynamic splitter

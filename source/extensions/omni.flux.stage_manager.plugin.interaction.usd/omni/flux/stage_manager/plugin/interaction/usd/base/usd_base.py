@@ -203,7 +203,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         Args:
             event_type: The `LayerEventType` object containing the layer event type.
         """
-        if event_type in [_layers.LayerEventType.MUTENESS_STATE_CHANGED, _layers.LayerEventType.SUBLAYERS_CHANGED]:
+        if event_type in {_layers.LayerEventType.MUTENESS_STATE_CHANGED, _layers.LayerEventType.SUBLAYERS_CHANGED}:
             self._queue_update()
 
     def _on_stage_event_occurred(self, event_type: omni.usd.StageEventType):
@@ -357,7 +357,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             for field_name, field_info in filter_obj.model_fields.items():
                 # Skip standard or excluded fields
                 if (
-                    field_name in ["display_name", "tooltip", "enabled"]
+                    field_name in {"display_name", "tooltip", "enabled"}
                     or field_name.startswith("_")
                     or field_info.exclude is True
                 ):

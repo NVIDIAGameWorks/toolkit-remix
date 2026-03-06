@@ -241,9 +241,7 @@ def hash_match_metadata(file_path: str, key: str = "src_hash") -> bool | None:
     if src_hash is None:
         return False
     old_src_hash = read_metadata(file_path, key)
-    if old_src_hash is None or src_hash != old_src_hash:
-        return False
-    return True
+    return not (old_src_hash is None or src_hash != old_src_hash)
 
 
 def hash_file(file_path: str, block_size: int = 8192) -> str | None:
@@ -375,9 +373,7 @@ def is_udim_texture(file_path: _OmniUrl | Path | str) -> bool:
 
     """
     file_url = _OmniUrl(file_path)
-    if re.match(_REGEX_MATCH_UDIM, str(file_url)):
-        return True
-    return False
+    return bool(re.match(_REGEX_MATCH_UDIM, str(file_url)))
 
 
 def get_udim_sequence(file_path: _OmniUrl | Path | str) -> list[str]:
@@ -396,15 +392,14 @@ def get_udim_sequence(file_path: _OmniUrl | Path | str) -> list[str]:
         match0 = _REGEX_UDIM_GROUP_UV_TILE.match(str(file_url))
         if match0 is None:
             raise AssertionError(f"Failed to match {str(file_url)}")
-        for file in _OmniUrl(file_url.parent_url).iterdir():
-            match1 = _REGEX_UDIM_GROUP_NUMBERS.match(str(file))
-            if (
-                match1
-                and match0.group(1) == match1.group(1)
-                and match0.group(3) == match1.group(3)
-                and int(match1.group(2)) >= 1001
-            ):
-                result.append(str(file))
+        result = [
+            str(file)
+            for file in _OmniUrl(file_url.parent_url).iterdir()
+            if (match1 := _REGEX_UDIM_GROUP_NUMBERS.match(str(file)))
+            and match0.group(1) == match1.group(1)
+            and match0.group(3) == match1.group(3)
+            and int(match1.group(2)) >= 1001
+        ]
     return result
 
 
@@ -452,21 +447,21 @@ def get_invalid_extensions(
 
     # Find invalid extensions
     if case_sensitive:
-        for file_path in file_paths:
-            if _OmniUrl(file_path).suffix not in valid_extensions:
-                invalid_extensions.append(_OmniUrl(file_path).suffix)
+        invalid_extensions = [
+            _OmniUrl(file_path).suffix for file_path in file_paths if _OmniUrl(file_path).suffix not in valid_extensions
+        ]
     else:
         lowercase_valid_extensions = [extension.lower() for extension in valid_extensions]
-        for file_path in file_paths:
-            if _OmniUrl(file_path).suffix.lower() not in lowercase_valid_extensions:
-                # Make output invalid extensions lowercase to indicate that it is case-insensitive
-                invalid_extensions.append(_OmniUrl(file_path).suffix.lower())
+        # Make output invalid extensions lowercase to indicate that it is case-insensitive
+        invalid_extensions = [
+            _OmniUrl(file_path).suffix.lower()
+            for file_path in file_paths
+            if _OmniUrl(file_path).suffix.lower() not in lowercase_valid_extensions
+        ]
 
     # Make sure there are no duplicate elements and the list is ordered
     seen = set()
-    unique_invalid_extensions = sorted([x for x in invalid_extensions if not (x in seen or seen.add(x))])
-
-    return unique_invalid_extensions
+    return sorted([x for x in invalid_extensions if not (x in seen or seen.add(x))])
 
 
 class ElideModes(Enum):

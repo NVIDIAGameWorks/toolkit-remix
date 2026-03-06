@@ -56,9 +56,9 @@ def set_ui_delegate(ui_delegate_setup):
             scene_view = delegate.scene_view
             viewport_api = delegate.viewport_api
             if scene_view and viewport_api:
-                delegate = ui_delegate_setup(scene_view, viewport_api)
-                if delegate:
-                    new_delegate_list.append(delegate)
+                new_delegate = ui_delegate_setup(scene_view, viewport_api)
+                if new_delegate:
+                    new_delegate_list.append(new_delegate)
 
     # Destroy all of the old event delegates
     for delegate in _ui_delegate_list:

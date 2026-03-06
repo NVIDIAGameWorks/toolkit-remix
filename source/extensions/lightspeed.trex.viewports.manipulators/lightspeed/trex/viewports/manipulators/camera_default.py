@@ -143,5 +143,4 @@ class CameraDefault(IManipulator):
 
 
 def camera_default_factory(desc: dict[str, Any]):
-    manip = CameraDefault(desc.get("viewport_api"))
-    return manip
+    return CameraDefault(desc.get("viewport_api"))

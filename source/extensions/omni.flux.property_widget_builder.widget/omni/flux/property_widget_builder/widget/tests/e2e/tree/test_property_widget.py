@@ -117,7 +117,7 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
 
             # Test min value - click and drag left
             drag_vector = widget_ref.center
-            drag_vector.x = drag_vector.x - 400
+            drag_vector.x -= 400
             await omni.kit.ui_test.human_delay(30)
             await omni.kit.ui_test.emulate_mouse_drag_and_drop(widget_ref.center, drag_vector)
             await omni.kit.ui_test.wait_n_updates(2)
@@ -125,7 +125,7 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
 
             # Test max value - click and drag right
             drag_vector = widget_ref.center
-            drag_vector.x = drag_vector.x + 400
+            drag_vector.x += 400
             await omni.kit.ui_test.human_delay(30)
             await omni.kit.ui_test.emulate_mouse_drag_and_drop(widget_ref.center, drag_vector)
             await omni.kit.ui_test.wait_n_updates(2)

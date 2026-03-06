@@ -144,7 +144,7 @@ def create_label_with_font(
     if deferred:
         images_provider = ui.ByteImageProvider()
         image = ui.ImageWithProvider(images_provider, name=style_name)
-        image.set_computed_content_size_changed_fn(lambda: (images_provider))
+        image.set_computed_content_size_changed_fn(lambda: images_provider)
         if tooltip:
             image.set_tooltip(tooltip)
         task_object = asyncio.ensure_future(
@@ -186,7 +186,7 @@ def create_label_with_font(
         height=size[1] if custom_image_height is None else custom_image_height,
         name=style_name,
     )
-    image.set_computed_content_size_changed_fn(lambda: (images_provider))
+    image.set_computed_content_size_changed_fn(lambda: images_provider)
     if tooltip:
         image.set_tooltip(tooltip)
     images_provider.set_bytes_data(pixels, [width_image, height_image])

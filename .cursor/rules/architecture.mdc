@@ -1,0 +1,6 @@
+---
+description: Extension design, USD contexts, lifecycle, events — core architectural patterns
+alwaysApply: true
+---
+
+@.agents/context/architecture.md

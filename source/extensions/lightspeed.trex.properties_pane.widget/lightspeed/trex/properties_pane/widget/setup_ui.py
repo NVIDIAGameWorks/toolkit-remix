@@ -523,12 +523,12 @@ class AssetReplacementsPane(_WorkspaceWidget):
         # Check if the layer type is a reserved layer type
         layer_manager = _LayerManagerCore(self._context_name)
         layer_type = layer_manager.get_custom_data_layer_type(sublayer)
-        if layer_type in [
+        if layer_type in {
             _LayerType.replacement.value,
             _LayerType.capture.value,
             _LayerType.capture_baker.value,
             _LayerType.workfile.value,
-        ]:
+        }:
             self._layer_validation_error_msg = (
                 f"Layer {path.name}'s layer type ({layer_type}) is reserved by Remix, and cannot be loaded."
             )

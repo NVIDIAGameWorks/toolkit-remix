@@ -16,10 +16,10 @@
 """
 import subprocess
 from pathlib import Path
-from omni.repo.kit_tools.bump import bump_extension, get_all_extensions
 
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
+from omni.repo.kit_tools.bump import bump_extension, get_all_extensions
 
 
 def get_changed_files(source_hash: str, original_hash: str) -> list[tuple[str, str]]:
@@ -126,8 +126,8 @@ def setup_repo_tool(parser, _):
         # Get list of all changed files
         # Find all the .py files under 'source/extensions`
         # For each:
-            # Find the base path of the extension: 'source/extensions/([^/]+)/.*'
-            # Verify that there is also change to `config/extension.toml' and 'docs/CHANGELOG.md'
+        # Find the base path of the extension: 'source/extensions/([^/]+)/.*'
+        # Verify that there is also change to `config/extension.toml' and 'docs/CHANGELOG.md'
         changed_files = get_changed_files(source_hash, original_hash)
         prefix_path = Path(extension_path_prefix)
         changed_extensions = set(find_changed_extensions(changed_files, prefix_path))

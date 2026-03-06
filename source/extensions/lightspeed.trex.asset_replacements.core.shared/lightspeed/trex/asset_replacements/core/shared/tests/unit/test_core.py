@@ -51,7 +51,10 @@ class TestAssetReplacementsCore(AsyncTestCase):
         )
         self.assertEqual(
             core.filter_transformable_prims(
-                [Sdf.Path("/RootNode"), Sdf.Path("/RootNode/lights/light_9907D0B07D040077")]
+                [
+                    Sdf.Path("/RootNode"),
+                    Sdf.Path("/RootNode/lights/light_9907D0B07D040077"),
+                ]
             ),
             ["/RootNode/lights/light_9907D0B07D040077"],
         )
@@ -85,8 +88,7 @@ class TestAssetReplacementsCore(AsyncTestCase):
             core.filter_transformable_prims(
                 [
                     Sdf.Path(
-                        "/RootNode/instances/inst_BAC90CAA733B0859_0/"
-                        "ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
+                        "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
                     )
                 ]
             ),
@@ -97,8 +99,7 @@ class TestAssetReplacementsCore(AsyncTestCase):
                 [
                     Sdf.Path("/RootNode/instances/inst_BAC90CAA733B0859_0"),
                     Sdf.Path(
-                        "/RootNode/instances/inst_BAC90CAA733B0859_0/"
-                        "ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
+                        "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
                     ),
                 ]
             ),

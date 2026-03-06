@@ -114,8 +114,7 @@ class WorkspaceWindowBase(abc.ABC):
         Overridable method to create a ui.Window or ui.ToolBar instance.
         Default implementation configures a window with the title, flags, and padding.
         """
-        window = ui.Window(self.title, visible=False, flags=self.flags)
-        return window
+        return ui.Window(self.title, visible=False, flags=self.flags)
 
     def create_window(self, width: int | None = None, height: int | None = None):
         """Creates the ui.Window instance and sets up the "Window" menu item."""

@@ -270,7 +270,7 @@ class SetupUI:
         items = self._material_properties_widget.property_model.get_all_items()
         for item in items:
             for value_model in item.value_models:
-                if usd_properties_utils.get_type_name(value_model.metadata) in [Sdf.ValueTypeNames.Asset]:
+                if usd_properties_utils.get_type_name(value_model.metadata) in {Sdf.ValueTypeNames.Asset}:
                     value_model.set_callback_pre_set_value(self.__check_asset_was_ingested_and_in_proj_dir)
 
     def _texture_assignment(
@@ -307,7 +307,7 @@ class SetupUI:
                 if name not in texture_dict:
                     texture_dict[name] = str(path)
 
-        for _, value in texture_dict.items():
+        for value in texture_dict.values():
             selected_paths.remove(Path(value))
 
         texture_types = _determine_ideal_types([str(path) for path in selected_paths])
@@ -586,18 +586,17 @@ class SetupUI:
             self._unfiltered_selected_prims.append(item)
 
             # If instance prim, get and use the correlating mesh prim
-            if _is_instance(item):
-                item = self.get_mesh_from_instance(item)
+            resolved_item = self.get_mesh_from_instance(item) if _is_instance(item) else item
 
-            if not item:
+            if not resolved_item:
                 continue
 
             # If not a mat prim and has reference, refresh widget to clear
-            if not _is_material_prototype(item) and _get_reference_file_paths(item)[1]:
+            if not _is_material_prototype(resolved_item) and _get_reference_file_paths(resolved_item)[1]:
                 self.refresh([])
 
             # Add the item; Should be mat or mesh prim
-            filtered_items.append(item)
+            filtered_items.append(resolved_item)
 
         if not filtered_items:
             hide_properties()

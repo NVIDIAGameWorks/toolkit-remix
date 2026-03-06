@@ -31,7 +31,7 @@ def get_particle_lookup_table() -> dict:
     """
     # We create a dummy stage just to instantiate a prim with the particle system schema and fetch the info.
     _temp_stage, attributes = get_particle_system_attributes()
-    table = {
+    return {
         attr.GetName(): {
             "name": attr.GetDisplayName(),
             "tooltip": attr.GetDocumentation(),
@@ -39,4 +39,3 @@ def get_particle_lookup_table() -> dict:
         }
         for attr in attributes
     }
-    return table

@@ -339,7 +339,7 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
                 # Act
                 with patch.object(omni.usd, "get_context") as get_context_mock, patch.object(Sdf, "_TestTakeOwnership"):
                     get_context_mock.return_value = context_mock
-                    success, message = await asset_importer._on_exit(schema_data, None)
+                    _success, _message = await asset_importer._on_exit(schema_data, None)
 
                     # Assert
                     self.assertEqual(close_stage_mock.called, close_stage_on_exit)

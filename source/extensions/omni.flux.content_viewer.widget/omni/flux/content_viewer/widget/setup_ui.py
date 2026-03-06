@@ -319,9 +319,7 @@ class ContentViewerWidget:
         Returns:
             If the item should be shown or not
         """
-        if text is not None and text.lower() not in data.title.lower():
-            return False
-        return True
+        return not (text is not None and text.lower() not in data.title.lower())
 
     def _on_scroll_frame_mouse_clicked(self):
         """Called when we click in the UI but not on a content"""

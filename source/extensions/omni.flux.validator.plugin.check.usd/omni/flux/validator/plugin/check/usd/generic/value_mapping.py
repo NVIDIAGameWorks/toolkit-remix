@@ -58,7 +58,7 @@ class ValueMapping(_CheckBaseUSD):
         @field_validator("attributes", mode="after")
         @classmethod
         def not_empty_attribute_name(cls, v: dict[str, list[AttributeMapping]]) -> dict[str, list[AttributeMapping]]:
-            for attr_name, _ in v.items():
+            for attr_name in v:
                 if not attr_name or not attr_name.strip():
                     raise ValueError("Attribute name cannot be empty")
             return v
@@ -66,7 +66,7 @@ class ValueMapping(_CheckBaseUSD):
         @field_validator("attributes", mode="after")
         @classmethod
         def input_output_same_type(cls, v: dict[str, list[AttributeMapping]]) -> dict[str, list[AttributeMapping]]:
-            for _, attr_mappings in v.items():
+            for attr_mappings in v.values():
                 for index, mapping in enumerate(attr_mappings):
                     if not mapping.mapping_fn and type(mapping.input_value) != type(mapping.output_value):  # noqa: E721
                         raise ValueError(f"Input and Output value types do not match for mapping -> {index}")
@@ -77,7 +77,7 @@ class ValueMapping(_CheckBaseUSD):
         def iterable_input_output_same_length(
             cls, v: dict[str, list[AttributeMapping]]
         ) -> dict[str, list[AttributeMapping]]:
-            for _, attr_mappings in v.items():
+            for attr_mappings in v.values():
                 for index, mapping in enumerate(attr_mappings):
                     if mapping.mapping_fn:
                         continue
@@ -96,7 +96,7 @@ class ValueMapping(_CheckBaseUSD):
         @field_validator("attributes", mode="after")
         @classmethod
         def valid_inputs(cls, v: dict[str, list[AttributeMapping]]) -> dict[str, list[AttributeMapping]]:
-            for _, attr_mappings in v.items():
+            for attr_mappings in v.values():
                 for index, mapping in enumerate(attr_mappings):
                     if mapping.mapping_fn:
                         continue

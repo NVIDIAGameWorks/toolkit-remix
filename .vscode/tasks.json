@@ -25,7 +25,9 @@
             "windows": {
                 "command": "${workspaceRoot}${/}lint_code.bat"
             },
-            "args": ["all"],
+            "args": [
+                "all"
+            ],
             "group": "none",
             "presentation": {
                 "reveal": "always",
@@ -111,8 +113,9 @@
             "type": "shell",
             "command": "${workspaceRoot}${/}_build${/}windows-x86_64${/}release${/}lightspeed.app.trex.bat",
             "args": [
-                "--enable", "omni.kit.debug.vscode",
-                "--/app/extensions/fsWatcherEnabled=0",
+                "--enable",
+                "omni.kit.debug.vscode",
+                "--/app/extensions/fsWatcherEnabled=0"
             ],
             "group": "none",
             "presentation": {
@@ -126,8 +129,9 @@
             "type": "shell",
             "command": "${workspaceRoot}${/}_build${/}windows-x86_64${/}release${/}lightspeed.app.trex_dev.bat",
             "args": [
-                "--enable", "omni.kit.debug.vscode",
-                "--/app/extensions/fsWatcherEnabled=0",
+                "--enable",
+                "omni.kit.debug.vscode",
+                "--/app/extensions/fsWatcherEnabled=0"
             ],
             "group": "none",
             "presentation": {

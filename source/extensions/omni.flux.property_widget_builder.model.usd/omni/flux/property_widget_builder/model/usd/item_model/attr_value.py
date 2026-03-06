@@ -311,17 +311,13 @@ class UsdAttributeBase(_Serializable, abc.ABC):
     def _skip_set_value(self, value):
         if self.read_only:
             return True
-        if (
+        return bool(
             value is None
             or value == "."
-            or (
-                isinstance(value, str)
-                and value.strip() == ""
-                and self._value_type_name not in [Sdf.ValueTypeNames.String, Sdf.ValueTypeNames.Asset]
-            )
-        ):
-            return True
-        return False
+            or isinstance(value, str)
+            and value.strip() == ""
+            and self._value_type_name not in {Sdf.ValueTypeNames.String, Sdf.ValueTypeNames.Asset}
+        )
 
     def _set_value(self, value):
         """Override of ui.AbstractValueModel._set_value()"""

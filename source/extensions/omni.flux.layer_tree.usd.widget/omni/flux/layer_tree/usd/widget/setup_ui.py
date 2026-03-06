@@ -313,7 +313,7 @@ class LayerTreeWidget:
 
     def _on_delete_pressed(self, key, _, pressed):
         # Delete or Numpad Delete keys
-        if key not in [int(carb.input.KeyboardInput.DEL), int(carb.input.KeyboardInput.NUMPAD_DEL)] or pressed:
+        if key not in {int(carb.input.KeyboardInput.DEL), int(carb.input.KeyboardInput.NUMPAD_DEL)} or pressed:
             return
 
         self._delete_layers()

@@ -22,6 +22,8 @@ import omni.graph.core as og
 import omni.graph.core.tests as ogts
 import omni.usd
 
+import lightspeed.trex.logic.ogn.ogn.CounterDatabase as _CounterDatabaseMod
+import lightspeed.trex.logic.ogn.ogn.SmoothDatabase as _SmoothDatabaseMod
 from lightspeed.trex.logic.ogn._impl.type_resolution import standard_initialize
 
 
@@ -33,9 +35,6 @@ def _ensure_node_types_registered():
     sidestep this by loading USDA templates. For programmatic node creation via
     og.Controller.edit(), the types must be explicitly registered.
     """
-    import lightspeed.trex.logic.ogn.ogn.CounterDatabase as _CounterDatabaseMod
-    import lightspeed.trex.logic.ogn.ogn.SmoothDatabase as _SmoothDatabaseMod
-
     nodes_dir = os.path.join(os.path.dirname(_CounterDatabaseMod.__file__), "nodes")
 
     for db_cls, module_name in [

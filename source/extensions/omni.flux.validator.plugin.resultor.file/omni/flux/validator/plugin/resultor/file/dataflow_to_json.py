@@ -60,8 +60,7 @@ class DataflowToJson(_ResultorBase):
         for data_flow in self._get_schema_data_flows(schema_data, schema):
             if not isinstance(data_flow, _InOutDataFlow):
                 continue
-            for output_path in data_flow.output_data or []:
-                output_paths.append(output_path)
+            output_paths.extend(data_flow.output_data or [])
 
         # Make sure the parent directory exists
         Path(json_path).parent.mkdir(parents=True, exist_ok=True)

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.5]
+### Changed
+- Applied new lint rules
+
 ## [1.3.4]
 ### Changed
 - Modernize python style and enable more ruff checks

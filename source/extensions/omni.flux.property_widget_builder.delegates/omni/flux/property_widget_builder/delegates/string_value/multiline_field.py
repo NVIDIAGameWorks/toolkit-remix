@@ -37,7 +37,7 @@ class MultilineField(AbstractField):
                     # string field is bigger than 16px
                     style_override = self.style_name
                     if item.value_models[i].read_only:
-                        style_override = style_override + "Read"
+                        style_override += "Read"
                     widget = ui.StringField(
                         model=item.value_models[i],
                         multiline=True,

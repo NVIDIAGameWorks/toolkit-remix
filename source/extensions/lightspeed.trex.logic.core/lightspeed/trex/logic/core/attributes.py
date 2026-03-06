@@ -26,10 +26,10 @@ def _get_type_default(og_type: og.AttributeType) -> Any:
     """Get the default value for an OGN type when no explicit default is defined."""
     # Arrays default to empty list (except string/path which are uchar[])
     if og_type.array_depth > 0:
-        if og_type.base_type == og.BaseDataType.UCHAR and og_type.role in (
+        if og_type.base_type == og.BaseDataType.UCHAR and og_type.role in {
             og.AttributeRole.TEXT,
             og.AttributeRole.PATH,
-        ):
+        }:
             return ""
         return []
 
@@ -43,11 +43,11 @@ def _get_type_default(og_type: og.AttributeType) -> Any:
 
     # Vectors/matrices: expand base value
     if og_type.tuple_count > 1:
-        if og_type.role in (
+        if og_type.role in {
             og.AttributeRole.FRAME,
             og.AttributeRole.MATRIX,
             og.AttributeRole.TRANSFORM,
-        ):
+        }:
             # Identity matrix
             dim = 2 if og_type.tuple_count == 4 else 3 if og_type.tuple_count == 9 else 4
             return [[1 if i == j else 0 for j in range(dim)] for i in range(dim)]

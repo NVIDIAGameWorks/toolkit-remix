@@ -537,11 +537,11 @@ class ListModel(ui.AbstractItemModel):
 
     def _on_layer_event(self, event: carb.events.IEvent):
         temp = get_layer_event_payload(event)
-        if temp.event_type in [
+        if temp.event_type in {
             LayerEventType.SUBLAYERS_CHANGED,
             LayerEventType.MUTENESS_STATE_CHANGED,
             LayerEventType.MUTENESS_SCOPE_CHANGED,
-        ]:
+        }:
             self.refresh()
             if self._ignore_refresh:
                 self._ignore_refresh = False

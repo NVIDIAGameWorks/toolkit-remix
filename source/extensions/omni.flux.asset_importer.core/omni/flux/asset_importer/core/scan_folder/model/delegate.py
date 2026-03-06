@@ -66,8 +66,7 @@ class Delegate(_TreeDelegateBase):
         change_value = item.value
 
         if not self._clicked_checkbox_item.selected:
-            for child in model.get_item_children(None):
-                values.append(child.value)
+            values = [child.value for child in model.get_item_children(None)]
         else:
             for child in model.get_item_children(None):
                 if not child.selected:

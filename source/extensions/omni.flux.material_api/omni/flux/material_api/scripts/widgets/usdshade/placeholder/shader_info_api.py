@@ -533,7 +533,5 @@ class ShaderInfoAPI:
         """Internal helper for _escape_metadata to parse list structures"""
         stripped_str = list_str[1:-1].strip()
 
-        results = []
-        for item in stripped_str.split(","):
-            results.append(self._escape_metadata(item))
+        results = [self._escape_metadata(item) for item in stripped_str.split(",")]
         return "[" + ",".join(results) + "]"

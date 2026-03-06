@@ -117,7 +117,7 @@ class ContentLibraryWidget:
 
         self.__create_ui()
 
-        for _menu_title, content_viewer_cores_list in self._content_viewer_cores.items():
+        for content_viewer_cores_list in self._content_viewer_cores.values():
             if not content_viewer_cores_list:
                 continue
             for content_viewer_core in content_viewer_cores_list:
@@ -138,7 +138,7 @@ class ContentLibraryWidget:
     def _load(self):
         """Call the event object that has the list of functions"""
         result = []
-        for _menu_title, content_viewer_cores in self._content_viewer_cores.items():
+        for content_viewer_cores in self._content_viewer_cores.values():
             if not content_viewer_cores:
                 continue
             for content_viewer_core in content_viewer_cores:

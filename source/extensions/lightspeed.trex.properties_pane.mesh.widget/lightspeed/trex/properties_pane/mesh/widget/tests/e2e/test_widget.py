@@ -1203,7 +1203,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         )
         attrs = prim.GetAttributes()
         test_attr = [
-            attr for attr in attrs if attr.GetName() in ("remix_category:world_ui", "remix_category:decal_Static")
+            attr for attr in attrs if attr.GetName() in {"remix_category:world_ui", "remix_category:decal_Static"}
         ]
 
         self.assertEqual(len(test_attr), 2)

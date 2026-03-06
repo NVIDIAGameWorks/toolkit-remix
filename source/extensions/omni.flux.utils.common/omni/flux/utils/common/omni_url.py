@@ -111,9 +111,7 @@ class OmniUrl:
         res, self._list_entry = omni.client.stat(self._url)
         if res != omni.client.Result.OK:
             return False
-        if self._list_entry:
-            return True
-        return False
+        return bool(self._list_entry)
 
     @property
     def path(self) -> str:

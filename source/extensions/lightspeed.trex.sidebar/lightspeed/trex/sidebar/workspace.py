@@ -45,10 +45,9 @@ class SideBarWindow(_WorkspaceWindowBase):
 
     def _create_window(self) -> ui.ToolBar:
         """Create a ToolBar instead of Window for fixed-size behavior"""
-        toolbar = ui.ToolBar(
+        return ui.ToolBar(
             self.title, visible=False, flags=self.flags, axis=ui.ToolBarAxis.Y, padding_x=0, padding_y=0, noTabBar=True
         )
-        return toolbar
 
     def _create_window_ui(self):
         return _SideBarSetupUI(self._window.frame)
