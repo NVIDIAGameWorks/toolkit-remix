@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,3 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
-
-from .e2e.test_graph import TestRemixLogicGraph
-
-__all__ = ["TestRemixLogicGraph"]
-
-scan_for_test_modules = True
-"""The presence of this object causes the test runner to automatically scan the directory for unit test cases"""
