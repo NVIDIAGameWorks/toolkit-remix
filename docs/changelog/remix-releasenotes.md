@@ -149,9 +149,6 @@ If you plan to create new conf files for Remix Logic, please follow the steps ou
   * After migration, you should be able to add or remove textures as normal
   * NOTE: textures added in dxvk.conf, the hardcoded config.cpp, or in Logic .conf files won't be removable in the UI for 1.3. You'll need to edit the files by hand.
 
-* Graph Editor Node Validation
-    * After deleting a node in graph editor, some node port inputs do not get correctly validated. Restarting the Remix App will restore correct validation.
-
 * Graph Editor Connection Validation
     * After deleting a connection between nodes in the graph editor, some connections will incorrectly display as connected. Re-opening the graph will update the visual connection.
 

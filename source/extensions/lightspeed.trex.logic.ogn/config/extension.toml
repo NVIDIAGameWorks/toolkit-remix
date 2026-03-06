@@ -1,7 +1,7 @@
 # Main extension description values
 [package]
 # The current extension version number - uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
-version = "1.0.2"
+version = "1.0.3"
 # The title of the extension that will appear in the extension window
 title = "Remix OmniGraph Python Nodes"
 # Longer description of the extension
@@ -48,5 +48,4 @@ pages = [
 # Having special test-only dependencies lets you avoid introducing a dependency on the test environment when only
 # using the functionality.
 [[test]]
-dependencies = [
-]
+dependencies = ["omni.usd",]
