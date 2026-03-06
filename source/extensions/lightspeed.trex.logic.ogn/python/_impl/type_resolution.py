@@ -52,7 +52,6 @@ TOKEN_CATEGORY_KEY = "tokenCategory"
 # Caches and tracking
 _flexible_attrs_cache: dict[str, tuple[list[str], list[str]]] = {}
 _most_recent_connection: dict[int, str] = {}
-_callback_registered: set[int] = set()
 
 
 # =============================================================================
@@ -231,27 +230,26 @@ def _propagate_token_category(inputs: dict, outputs: dict) -> None:
 
 
 def _setup_node_callbacks(node) -> None:
-    """Set up connection callbacks for a node (token validation + connection tracking)."""
-    node_handle = node.get_handle()
-    if node_handle in _callback_registered:
-        return
+    """Set up connection callbacks for a node (token validation + connection tracking).
 
-    # Get flexible input names for connection tracking
+    Always (re-)registers the callback. This is safe because register_on_connected_callback
+    replaces any previous callback. Re-registering is necessary because OmniGraph may reuse
+    node handles after deletion.
+    """
+    node_handle = node.get_handle()
+
     input_attr_names, _ = _get_flexible_attributes(node)
     input_attr_names_set = set(input_attr_names)
 
     def on_connected(from_attr, to_attr):
         try:
-            # Track most recent connection for flexible inputs (for conflict resolution)
             to_name = to_attr.get_name()
             full_name = f"inputs:{to_name}" if not to_name.startswith("inputs:") else to_name
             if full_name in input_attr_names_set or to_name in input_attr_names_set:
                 _most_recent_connection[node_handle] = full_name
 
-            # Get existing node token category for consistency check
             existing_category = _get_node_token_category(node)
 
-            # Check token compatibility (including node-wide category consistency)
             is_compatible = _is_token_compatible(to_attr, from_attr, existing_category)
             if not is_compatible and to_attr.is_connected(from_attr):
                 _log_token_rejection(from_attr, to_attr, existing_category)
@@ -261,7 +259,6 @@ def _setup_node_callbacks(node) -> None:
 
     try:
         node.register_on_connected_callback(on_connected)
-        _callback_registered.add(node_handle)
     except (AttributeError, TypeError) as e:
         carb.log_error(f"Failed to register on_connected callback: {e}")
 

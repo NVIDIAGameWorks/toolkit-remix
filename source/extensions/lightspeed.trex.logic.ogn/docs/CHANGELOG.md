@@ -6,6 +6,10 @@ This document records all notable changes to the **lightspeed.trex.logic.ogn** e
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.0.3]
+### Fixed
+- Fix node connection validation breaking after deleting a node
+
 ## [1.0.2]
 ### Changed
 - Modernize python style and enable more ruff checks
