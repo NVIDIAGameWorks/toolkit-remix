@@ -1,0 +1,8 @@
+---
+description: Test coverage requirements and test-first planning
+alwaysApply: false
+globs:
+  - "*.py"
+---
+
+@.agents/rules/testing.md

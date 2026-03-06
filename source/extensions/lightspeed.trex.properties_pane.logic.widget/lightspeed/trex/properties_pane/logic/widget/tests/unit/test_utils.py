@@ -49,7 +49,7 @@ def _make_attr(og_type=None, metadata=None):
     attr.get_resolved_type.return_value = resolved
     attr.get_type_name.return_value = resolved
     metadata = metadata or {}
-    attr.get_metadata.side_effect = lambda key: metadata.get(key)
+    attr.get_metadata.side_effect = metadata.get
     return attr
 
 

@@ -125,9 +125,9 @@ class Item(ui.AbstractItem):
                 for i3, _cooked_select_plugins_model in enumerate(
                     cooked_schemas2[0].check_plugins[i2].selector_plugins
                 ):
-                    cooked_select_plugins_models = []
-                    for cooked_schema2 in cooked_schemas2:
-                        cooked_select_plugins_models.append(cooked_schema2.check_plugins[i2].selector_plugins[i3])
+                    cooked_select_plugins_models = [
+                        cooked_schema2.check_plugins[i2].selector_plugins[i3] for cooked_schema2 in cooked_schemas2
+                    ]
                     cooked_schemas2 = await _cook_mass_template(cooked_select_plugins_models, cooked_schemas2)
 
                 # check
@@ -142,19 +142,20 @@ class Item(ui.AbstractItem):
                     for i4, _cooked_resultor_plugins_model in enumerate(
                         cooked_schemas4[0].check_plugins[i2].resultor_plugins
                     ):
-                        cooked_resultor_plugins_models = []
-                        for cooked_schema4 in cooked_schemas4:
-                            cooked_resultor_plugins_models.append(cooked_schema4.check_plugins[i2].resultor_plugins[i4])
+                        cooked_resultor_plugins_models = [
+                            cooked_schema4.check_plugins[i2].resultor_plugins[i4] for cooked_schema4 in cooked_schemas4
+                        ]
                         cooked_schemas4 = await _cook_mass_template(cooked_resultor_plugins_models, cooked_schemas4)
 
                 cooked_schemas = list(cooked_schemas4)
 
             # resultor
             if cooked_schemas[-1].resultor_plugins:
-                cooked_resultor_plugins = []
-                for i4, _cooked_resultor_plugin in enumerate(cooked_schemas[-1].resultor_plugins):
-                    for cooked_schema in cooked_schemas:
-                        cooked_resultor_plugins.append(cooked_schema.resultor_plugins[i4])
+                cooked_resultor_plugins = [
+                    cooked_schema.resultor_plugins[i4]
+                    for i4, _cooked_resultor_plugin in enumerate(cooked_schemas[-1].resultor_plugins)
+                    for cooked_schema in cooked_schemas
+                ]
                 cooked_schemas5 = await _cook_mass_template(cooked_resultor_plugins, cooked_schemas5)
             cooked_schemas5.extend(cooked_schemas)
 

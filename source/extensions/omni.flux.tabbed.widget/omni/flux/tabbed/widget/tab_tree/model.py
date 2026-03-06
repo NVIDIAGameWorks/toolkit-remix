@@ -97,11 +97,7 @@ class Model(ui.AbstractItemModel):
 
     def remove(self, datas: list[str]):
         """Set the items to show"""
-        to_removes = []
-        for data in datas:
-            for _data in self.__items:
-                if data == _data.title:
-                    to_removes.append(_data)
+        to_removes = [_data for data in datas for _data in self.__items if data == _data.title]
         for to_remove in to_removes:
             self.__items.remove(to_remove)
             if id(to_remove) in self.__sub_mouse_pressed:

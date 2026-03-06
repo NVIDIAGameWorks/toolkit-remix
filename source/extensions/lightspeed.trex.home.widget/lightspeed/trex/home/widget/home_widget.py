@@ -443,7 +443,7 @@ class HomePageWidget(_WorkspaceWidget):
     @omni.usd.handle_exception
     async def _refresh_recent_items_deferred(self):
         items = []
-        for path, _ in self._recent_saved_file.get_recent_file_data().items():
+        for path in self._recent_saved_file.get_recent_file_data():
             title = os.path.basename(path)
             details = {"Path": path}
             details.update(self._recent_saved_file.get_path_detail(path))

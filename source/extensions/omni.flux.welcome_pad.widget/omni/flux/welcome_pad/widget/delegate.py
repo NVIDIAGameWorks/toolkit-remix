@@ -188,6 +188,6 @@ class Delegate(ui.AbstractItemDelegate):
 
     def destroy(self):
         if self._frames is not None:
-            for _, frame in self._frames.items():
+            for frame in self._frames.values():
                 frame.clear()
         _reset_default_attrs(self)

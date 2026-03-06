@@ -109,9 +109,7 @@ class VirtualGroupsItem(_StageManagerUSDTreeItem):
     def is_prim_editable(self, prim: Usd.Prim) -> bool:
         if self.is_virtual:
             return False
-        if prim and prim.IsValid():
-            return True
-        return False
+        return bool(prim and prim.IsValid())
 
 
 class VirtualGroupsModel(_StageManagerUSDTreeModel):

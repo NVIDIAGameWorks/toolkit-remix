@@ -74,9 +74,9 @@ class TestModPackagingLayersWidget(omni.kit.test.AsyncTestCase):
         for i in range(number_of_layers):
             # The project & dependency should be disabled.
             # All other layers should be enabled because they're part of the main mod
-            self.assertEqual(i not in (0, number_of_layers - 1), select_layer_checkboxes[i].widget.enabled)
+            self.assertEqual(i not in {0, number_of_layers - 1}, select_layer_checkboxes[i].widget.enabled)
             # All main mod layers should be selected by default
-            self.assertEqual(i not in (0, number_of_layers - 1), select_layer_checkboxes[i].model.get_value_as_bool())
+            self.assertEqual(i not in {0, number_of_layers - 1}, select_layer_checkboxes[i].model.get_value_as_bool())
 
         # Deselect the root main mod
         await select_layer_checkboxes[1].click()
@@ -96,7 +96,7 @@ class TestModPackagingLayersWidget(omni.kit.test.AsyncTestCase):
 
         for i in range(number_of_layers):
             # Only the sublayer & sublayer child should be selected
-            self.assertEqual(i in [2, 3], select_layer_checkboxes[i].model.get_value_as_bool())
+            self.assertEqual(i in {2, 3}, select_layer_checkboxes[i].model.get_value_as_bool())
 
         # Should be invalid since nothing is selected
         self.assertEqual(6, layers_validity_changed_mock.call_count)

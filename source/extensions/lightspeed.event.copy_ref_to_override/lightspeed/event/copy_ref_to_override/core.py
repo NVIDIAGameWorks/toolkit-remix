@@ -158,12 +158,12 @@ class CopyRefToPrimCore(_ILSSEvent):
                 continue
             # if there is a layer type value, it means that this is not a layer created by the user but by the tool
             layer_type = self._layer_manager.get_custom_data_layer_type(sublayer)
-            if layer_type in [
+            if layer_type in {
                 _LayerType.replacement.value,
                 _LayerType.capture.value,
                 _LayerType.capture_baker.value,
                 _LayerType.workfile.value,
-            ]:
+            }:
                 continue
             layers.append(sublayer)
             layers.extend(self.__get_all_replacement_layers(sublayer))
@@ -228,7 +228,7 @@ class CopyRefToPrimCore(_ILSSEvent):
         ):
             value = False
             # we copy all children of the root node and the camera
-            if str(src_path) in [_constants.ROOTNODE, _constants.ROOTNODE_CAMERA]:
+            if str(src_path) in {_constants.ROOTNODE, _constants.ROOTNODE_CAMERA}:
                 value = True
             # if this is a material, we copy everything from it
             if regex_to_update.match(str(src_path)):

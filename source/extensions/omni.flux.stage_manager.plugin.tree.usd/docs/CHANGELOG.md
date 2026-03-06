@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.2]
+### Changed
+- Applied new lint rules
+
 ## [2.6.1]
 ### Changed
 - Removed unnecessary string-quoted type annotations

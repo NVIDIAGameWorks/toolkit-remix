@@ -103,6 +103,6 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
         Args:
             event_type: The stage event type
         """
-        if event_type in [omni.usd.StageEventType.OPENED, omni.usd.StageEventType.CLOSED]:
+        if event_type in {omni.usd.StageEventType.OPENED, omni.usd.StageEventType.CLOSED}:
             # Make sure to update the cached stage
             self.update_stage()

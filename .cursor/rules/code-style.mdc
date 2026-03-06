@@ -1,0 +1,8 @@
+---
+description: Python code style — formatting, imports, naming conventions
+alwaysApply: false
+globs:
+  - "*.py"
+---
+
+@.agents/rules/code-style.md

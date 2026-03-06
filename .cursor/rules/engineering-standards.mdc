@@ -1,0 +1,8 @@
+---
+description: Engineering standards — fix root causes, no workarounds, anti-pattern awareness
+alwaysApply: false
+globs:
+  - "*.py"
+---
+
+@.agents/rules/engineering-standards.md

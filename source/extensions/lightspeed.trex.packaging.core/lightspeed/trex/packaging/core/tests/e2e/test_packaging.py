@@ -66,12 +66,13 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
             carb.settings.get_settings().get("/renderer/mdl/searchPaths/templates")
         )
         print("MDL Search Paths:\n -", "\n - ".join(mdl_search_paths.split(";")))
-        mdl_files = []
-        for mdl_path in mdl_search_paths.split(";"):
-            for root, _, files in walk(mdl_path):
-                for file in files:
-                    if file.lower().endswith(".mdl"):
-                        mdl_files.append(str(Path(root) / file))
+        mdl_files = [
+            str(Path(root) / file)
+            for mdl_path in mdl_search_paths.split(";")
+            for root, _, files in walk(mdl_path)
+            for file in files
+            if file.lower().endswith(".mdl")
+        ]
         print("MDL Files:\n -", "\n - ".join(mdl_files))
         print("Resolved MDL Files:\n -", "\n - ".join([str(Path(f).resolve()) for f in mdl_files]))
         # END TEST LOGGING

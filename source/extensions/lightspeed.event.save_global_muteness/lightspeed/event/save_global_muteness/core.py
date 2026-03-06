@@ -63,7 +63,7 @@ class EventLayersSaveCustomDataCore(_ILSSEvent):
         self._subscription_stage = None
 
     def __on_load_event(self, event):
-        if event.type in [int(omni.usd.StageEventType.OPENED)]:
+        if event.type in {int(omni.usd.StageEventType.OPENED)}:
             layers = _layers.get_layers()
             layers_state = layers.get_layers_state()
             # by default, we want to save the muteness into the stage

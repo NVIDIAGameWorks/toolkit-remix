@@ -529,7 +529,7 @@ def remove_properties_and_connections(prim: Usd.Prim) -> tuple[bool, list, dict]
             property_paths_removed = [property_info["path"] for property_info in properties_removed]
             connections_removed = remove_connections(prim, property_paths_removed, placeholders)
 
-            for usdshade_port, _value in connections_removed.items():
+            for usdshade_port in connections_removed:
                 omni.kit.commands.execute("UsdShadeDisconnectCommand", target=usdshade_port)
 
             for property_path in property_paths_removed:

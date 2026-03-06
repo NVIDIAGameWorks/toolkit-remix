@@ -112,5 +112,4 @@ class SelectionDefault(IManipulator):
 
 
 def selection_default_factory(desc: dict[str, Any]):
-    manip = SelectionDefault(desc.get("viewport_api"))
-    return manip
+    return SelectionDefault(desc.get("viewport_api"))

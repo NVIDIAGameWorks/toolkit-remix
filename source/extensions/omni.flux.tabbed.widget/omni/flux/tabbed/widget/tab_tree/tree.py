@@ -110,7 +110,7 @@ class Tree(ui.Widget):
                 stack = ui.VStack()
             with stack:
                 for item in self._model.get_item_children(None):
-                    for column, _title in _HEADER_DICT.items():
+                    for column in _HEADER_DICT:
                         frame = ui.Frame()
                         if self._size_tab_label:
                             frame.height = self._size_tab_label[1]

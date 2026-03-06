@@ -33,4 +33,4 @@ class SkeletonPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
     tooltip: str = Field(default="Filter out skeleton prims", exclude=True)
 
     def _filter_predicate(self, prim: Usd.Prim) -> bool:
-        return prim.HasAPI(UsdSkel.BindingAPI) or prim.GetTypeName() in ("Skeleton", "SkelRoot")
+        return prim.HasAPI(UsdSkel.BindingAPI) or prim.GetTypeName() in {"Skeleton", "SkelRoot"}

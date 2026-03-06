@@ -50,7 +50,7 @@ class _TestFilterPlugin(StageManagerFilterPlugin):
         self.filter_category = category
         self._filter_active = active
 
-    def filter_predicate(self, item):  # noqa F401
+    def filter_predicate(self, item):
         return self._predicate(item)
 
     @property
@@ -64,7 +64,7 @@ class _TestFilterPlugin(StageManagerFilterPlugin):
 class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
     async def test_filter_result_closed_matches_single_predicate_filter_items(self):
         # Arrange: root -> a -> b -> c, predicate keeps only "b"
-        def predicate(item):  # noqa F401
+        def predicate(item):
             return item.identifier == "b"
 
         items = _make_tree([("r", None), ("a", 0), ("b", 1), ("c", 2)])
@@ -83,7 +83,7 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
 
     async def test_filter_result_closed_multiple_leaves_includes_shared_ancestors(self):
         # Arrange: root -> a, b; predicate keeps a and b
-        def predicate(item):  # noqa F401
+        def predicate(item):
             return item.identifier in ("a", "b")
 
         items = _make_tree([("root", None), ("a", 0), ("b", 0)])
@@ -99,7 +99,7 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
 
     async def test_filter_result_closed_with_ancestor_universe_does_not_add_outside(self):
         # Arrange
-        def predicate(item):  # noqa F401
+        def predicate(item):
             return item.identifier == "b"
 
         items = _make_tree([("r", None), ("a", 0), ("b", 1)])
@@ -113,7 +113,7 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
 
     async def test_filter_items_by_category_single_plugin_matches_single_predicate_set(self):
         # Arrange: root -> a -> b -> c, one plugin keeps "b"
-        def predicate(item):  # noqa F401
+        def predicate(item):
             return item.identifier == "b"
 
         items = _make_tree([("r", None), ("a", 0), ("b", 1), ("c", 2)])
@@ -128,7 +128,7 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
 
     async def test_filter_items_by_category_single_plugin_result_sorted_by_depth(self):
         # Arrange: predicate keeps "a" and "c"
-        def predicate(item):  # noqa F401
+        def predicate(item):
             return item.identifier in ("a", "c")
 
         items = _make_tree([("r", None), ("a", 0), ("b", 1), ("c", 2)])
@@ -144,7 +144,7 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
 
     async def test_filter_items_by_category_single_prim_filter_same_semantics_as_other(self):
         # Arrange
-        def predicate(item):  # noqa F401
+        def predicate(item):
             return item.identifier == "x"
 
         items = _make_tree([("r", None), ("x", 0), ("y", 0)])
@@ -174,7 +174,7 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
 
     async def test_filter_items_by_category_same_input_yields_same_ordered_result(self):
         # Arrange
-        def predicate(item):  # noqa F401
+        def predicate(item):
             return item.identifier != "b"
 
         items = _make_tree([("r", None), ("a", 0), ("b", 1)])

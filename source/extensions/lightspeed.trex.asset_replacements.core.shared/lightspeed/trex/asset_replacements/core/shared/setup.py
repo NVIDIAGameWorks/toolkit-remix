@@ -259,7 +259,7 @@ class Setup:
         if directory == DefaultAssetDirectory.INGESTED:
             if not query or not query.asset_type or query.asset_type == AssetType.ANY:
                 # Return models and textures
-                file_paths = [f for f in all_files if _OmniUrl(f).suffix.lower() in [".dds", *constants.USD_EXTENSIONS]]
+                file_paths = [f for f in all_files if _OmniUrl(f).suffix.lower() in {".dds", *constants.USD_EXTENSIONS}]
             elif query.asset_type == AssetType.MODELS:
                 # Return only USD files
                 file_paths = [f for f in all_files if _OmniUrl(f).suffix.lower() in constants.USD_EXTENSIONS]

@@ -1,5 +1,5 @@
 [package]
-version = "0.2.2"
+version = "0.2.3"
 authors = ["ptrottier@nvidia.com"]
 keywords = ["kit", "flux", "window", "popup", "dialog"]
 title = "Omni Flux Dialogs"

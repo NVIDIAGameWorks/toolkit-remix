@@ -353,7 +353,7 @@ class BookmarkDelegate(ui.AbstractItemDelegate):
             return
         self._dragged_item = (
             item
-            if item.component_type in [ComponentTypes.bookmark_collection.value, ComponentTypes.bookmark_item.value]
+            if item.component_type in {ComponentTypes.bookmark_collection.value, ComponentTypes.bookmark_item.value}
             else None
         )
 

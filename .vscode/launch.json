@@ -20,7 +20,7 @@
             ],
             "justMyCode": true,
             "subProcess": true,
-            "runtimeArgs" : [
+            "runtimeArgs": [
                 "--preserve-symlinks",
                 "--preserve-symlinks-main"
             ]

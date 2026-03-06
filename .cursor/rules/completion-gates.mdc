@@ -1,0 +1,6 @@
+---
+description: Pre-completion verification gates — tests, format, lint, version bump, docs
+alwaysApply: true
+---
+
+@.agents/rules/completion-gates.md

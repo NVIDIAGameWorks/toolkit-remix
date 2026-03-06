@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.24.1]
+### Changed
+- Applied new lint rules
+
 ## [2.24.0]
 ### Added
 - REMIX-5012: USD float/int field delegates for attributes with partial bounds (only min or only max)

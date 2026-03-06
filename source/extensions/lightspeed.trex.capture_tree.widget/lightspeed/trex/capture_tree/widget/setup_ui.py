@@ -468,9 +468,11 @@ class CaptureWidget(WorkspaceWidget):
         if not found_current_layer:
             self.__unselect_capture_items()
 
-        items = []
-        for attr in [attr for attr in dir(omni.client.ListEntry) if not attr.startswith("_")]:
-            items.append(_FileAttributeItem(capture_path, attr, display_attr_name=attr.replace("_", " ").capitalize()))
+        items = [
+            _FileAttributeItem(capture_path, attr, display_attr_name=attr.replace("_", " ").capitalize())
+            for attr in dir(omni.client.ListEntry)
+            if not attr.startswith("_")
+        ]
 
         self._capture_details_model = _FileModel(capture_path)
         self._capture_details_model.set_items(items)

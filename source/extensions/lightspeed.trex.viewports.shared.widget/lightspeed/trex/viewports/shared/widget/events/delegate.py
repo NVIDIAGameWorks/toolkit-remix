@@ -89,9 +89,9 @@ class ViewportEventDelegate:
                 scaler = settings.get("/persistent/app/viewport/camVelocityScalerMultAmount") or 1.1
                 scaler = 1.0 + (max(scaler, 1.0 + 1e-8) - 1.0) * abs(y)
                 if y < 0:
-                    value = value / scaler
+                    value /= scaler
                 elif y > 0:
-                    value = value * scaler
+                    value *= scaler
                 if math.isfinite(value) and (value > 1e-8):
                     value = _limit_camera_velocity(value, settings, "scroll")
                     settings.set("/persistent/app/viewport/camMoveVelocity", value)

@@ -949,7 +949,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                 copy_mock.return_value = none_future
 
             # Act
-            errors, unresolved_assets = await packaging_core._collect(
+            _errors, unresolved_assets = await packaging_core._collect(
                 stage_mock,
                 root_layer_mock,
                 existing_temps_mock,

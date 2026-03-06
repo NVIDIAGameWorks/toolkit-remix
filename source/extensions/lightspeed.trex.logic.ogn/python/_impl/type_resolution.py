@@ -90,7 +90,7 @@ def _is_flexible_attribute(attr) -> bool:
     """Check if an attribute is a flexible type (ANY or UNION)."""
     try:
         extended_type = attr.get_extended_type()
-        return extended_type in (og.ExtendedAttributeType.UNION, og.ExtendedAttributeType.ANY)
+        return extended_type in {og.ExtendedAttributeType.UNION, og.ExtendedAttributeType.ANY}
     except (AttributeError, TypeError):
         return False
 
@@ -314,7 +314,7 @@ def _get_valid_types(attr_name: str, known_types: dict[str, og.Type], valid_comb
     for combo in valid_combinations:
         if attr_name not in combo:
             continue
-        if all(known_type in (UNKNOWN, combo.get(name, UNKNOWN)) for name, known_type in known_types.items()):
+        if all(known_type in {UNKNOWN, combo.get(name, UNKNOWN)} for name, known_type in known_types.items()):
             valid_types.add(combo[attr_name])
     return valid_types
 

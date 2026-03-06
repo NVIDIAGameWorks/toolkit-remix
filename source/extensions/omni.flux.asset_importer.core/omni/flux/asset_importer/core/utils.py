@@ -160,11 +160,11 @@ def determine_ideal_types(paths: list[str], pref_normal_conv: _TextureTypes = No
             # (Example: T_Metal_Normal_OTH.png -> [T_Metal_, T_Metal_Normal_] will end up with value: OTH)
             if texture_type:
                 # Special check for normals, which can be in one of three encodings
-                if pref_normal_conv is not None and texture_type in [
+                if pref_normal_conv is not None and texture_type in {
                     _TextureTypes.NORMAL_OGL,
                     _TextureTypes.NORMAL_DX,
                     _TextureTypes.NORMAL_OTH,
-                ]:
+                }:
                     texture_types[path] = pref_normal_conv
                 else:
                     texture_types[path] = texture_type

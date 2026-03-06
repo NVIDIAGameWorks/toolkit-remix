@@ -18,8 +18,9 @@ import difflib
 import re
 import subprocess
 import sys
-import toml
 from pathlib import Path
+
+import toml
 
 
 def get_changed_files(source_hash: str, original_hash: str) -> list[tuple[str, str]]:
@@ -298,9 +299,9 @@ def setup_repo_tool(parser, _):
         # Get list of all changed files
         # Find all the .py files under 'source/extensions`
         # For each:
-            # Find the base path of the extension: 'source/extensions/([^/]+)/.*'
-            # Verify that there is also change to `config/extension.toml' and 'docs/CHANGELOG.md'
-            # Analyze the extension.toml file to ensure that the version line has been incremented
+        # Find the base path of the extension: 'source/extensions/([^/]+)/.*'
+        # Verify that there is also change to `config/extension.toml' and 'docs/CHANGELOG.md'
+        # Analyze the extension.toml file to ensure that the version line has been incremented
         changed_files = get_changed_files(source_hash, original_hash)
         prefix_path = Path(extension_path_prefix)
         changed_extensions = find_changed_extensions(changed_files, prefix_path)

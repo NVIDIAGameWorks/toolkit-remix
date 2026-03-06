@@ -61,12 +61,9 @@ def is_asset_ingested(asset_path: str | Path, ignore_invalid_paths: bool = True)
     if is_mesh_from_capture(path) or is_texture_from_capture(path):
         return True
 
-    if not bool(
+    return bool(
         path_utils.hash_match_metadata(path, key=BASE_HASH_KEY) and path_utils.read_metadata(path, VALIDATION_PASSED)
-    ):
-        return False
-
-    return True
+    )
 
 
 def is_layer_from_capture(layer_path: str) -> bool:

@@ -658,7 +658,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
 
         children = []
         for item in items:
-            children = children + self.get_item_children(item, True)
+            children += self.get_item_children(item, True)
         return items + children
 
     def get_item_value_model_count(self, item: ItemBase) -> int:
@@ -684,11 +684,9 @@ class LayerModel(_TreeModelBase[ItemBase]):
             return False
         if item_target.data["exclude_add_child"]:
             return False
-        if item_target.data["layer"].identifier in [
+        return item_target.data["layer"].identifier not in [
             c.data["layer"].identifier for c in self.get_item_children(item_source, True)
-        ]:
-            return False
-        return True
+        ]
 
     def drop(self, item_target: ItemBase, item_source: str | ItemBase, drop_location: int = -1) -> None:
         source = item_source
@@ -858,22 +856,22 @@ class LayerModel(_TreeModelBase[ItemBase]):
 
     def __on_layer_events(self, event):
         payload = _layers.get_layer_event_payload(event)
-        if payload.event_type not in [
+        if payload.event_type not in {
             _layers.LayerEventType.DIRTY_STATE_CHANGED,
             _layers.LayerEventType.LOCK_STATE_CHANGED,
             _layers.LayerEventType.MUTENESS_STATE_CHANGED,
             _layers.LayerEventType.SUBLAYERS_CHANGED,
             _layers.LayerEventType.EDIT_TARGET_CHANGED,
-        ]:
+        }:
             return
         self.refresh()
 
     def __on_stage_events(self, event):
-        if usd.StageEventType(event.type) not in [
+        if usd.StageEventType(event.type) not in {
             usd.StageEventType.OPENED,
             usd.StageEventType.OPEN_FAILED,
             usd.StageEventType.CLOSED,
-        ]:
+        }:
             return
         self._context = usd.get_context(self._context_name)
         self.stage = self._context.get_stage()

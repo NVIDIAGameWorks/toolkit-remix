@@ -273,7 +273,7 @@ class Setup:
         load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
 
     def _on_stage_event(self, event):
-        if event.type in [int(omni.usd.StageEventType.OPENED), int(omni.usd.StageEventType.CLOSING)]:
+        if event.type in {int(omni.usd.StageEventType.OPENED), int(omni.usd.StageEventType.CLOSING)}:
             asyncio.ensure_future(self._update_modding_button_state_deferred())
 
     async def _update_modding_button_state_deferred(self):
