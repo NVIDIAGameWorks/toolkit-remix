@@ -48,7 +48,7 @@ class Setup:
         if not path or not path.strip():
             carb.log_error(f"'{path}' is not valid")
             return False
-        if path.rpartition(".")[-1] not in ["usd", "usda", "usdc"]:
+        if path.rpartition(".")[-1] not in {"usd", "usda", "usdc"}:
             carb.log_error(f"The path '{path}' is not a USD path")
             return False
         if existing_file:
@@ -138,9 +138,7 @@ class Setup:
             return False
         if not layer:
             return False
-        if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == LayerType.replacement.value:
-            return True
-        return False
+        return layer.customLayerData.get(LayerTypeKeys.layer_type.value) == LayerType.replacement.value
 
     def get_existing_mod_file(self, dirname: str | Path) -> str | None:
         """

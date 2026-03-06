@@ -14,8 +14,9 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
-import omni.kit.app
 import sys
+
+import omni.kit.app
 
 
 def get_last_published_extension_version(ext_names):

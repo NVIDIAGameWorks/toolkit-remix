@@ -59,7 +59,7 @@ class RemoveParticleSystemCommand(omni.kit.commands.Command):
     def do(self):
         if self.had_api:
             self.target_prim.RemoveAPI(PARTICLE_SCHEMA_NAME)
-        for ps_attrib_name, _ps_attrib_type in self.ps_attrib.items():
+        for ps_attrib_name in self.ps_attrib:
             if self.target_prim.HasAttribute(ps_attrib_name):
                 attr = self.target_prim.GetAttribute(ps_attrib_name)
                 self.prev_attr_values[ps_attrib_name] = attr.Get()

@@ -61,9 +61,10 @@ class TestSelectionHistoryModel(omni.kit.test.AsyncTestCase):
     async def test_insert_item_max_list(self):
         model = _SelectionHistoryModel()
 
-        items = []
-        for i in range(model.MAX_LIST_LENGTH + 10):
-            items.append(_SelectionHistoryItem(f"Item{i}", data=f"Data{i}", tooltip=f"Tooltip{i}"))
+        items = [
+            _SelectionHistoryItem(f"Item{i}", data=f"Data{i}", tooltip=f"Tooltip{i}")
+            for i in range(model.MAX_LIST_LENGTH + 10)
+        ]
         model.insert_items(items)
 
         self.assertEqual(len(model.get_item_children(None)), model.MAX_LIST_LENGTH)

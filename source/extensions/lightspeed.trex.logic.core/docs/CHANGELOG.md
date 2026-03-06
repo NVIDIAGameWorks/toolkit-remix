@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1]
+### Changed
+- Applied new lint rules
+
 ## [1.2.0]
 ### Added
 - Added `ogn_read_metadata_key()` public utility for reading and converting a single OGN metadata key to a USD-compatible Python type

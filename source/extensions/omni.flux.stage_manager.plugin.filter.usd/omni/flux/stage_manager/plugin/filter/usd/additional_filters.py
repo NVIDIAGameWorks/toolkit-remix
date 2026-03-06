@@ -123,7 +123,7 @@ class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
 
     def on_reset_all(self):
         """Reset all filter items to their default values."""
-        for _, category_items in self.items.items():
+        for category_items in self.items.values():
             for item in category_items:
                 filter_obj = item.filter_obj
 
@@ -132,12 +132,12 @@ class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
                     filter_obj.filter_active = False
                     item.filter_active = False
 
-                for field_name, field_info in filter_obj.model_fields.items():
-                    if field_name in ["display_name", "tooltip", "enabled", "filter_active"]:
-                        continue
-                    # Skip private or excluded fields
-                    if field_name.startswith("_") or field_info.exclude:
-                        continue
+            for field_name, field_info in filter_obj.model_fields.items():
+                if field_name in {"display_name", "tooltip", "enabled", "filter_active"}:
+                    continue
+                # Skip private or excluded fields
+                if field_name.startswith("_") or field_info.exclude:
+                    continue
 
                     default_value = field_info.default
                     # Handle default_factory if present
@@ -191,7 +191,7 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
         """
         is_modified = False
         for field_name, field_info in filter_obj.model_fields.items():
-            if field_name in ["display_name", "tooltip", "enabled"]:
+            if field_name in {"display_name", "tooltip", "enabled"}:
                 continue
             # Skip private or excluded fields
             if field_name.startswith("_") or field_info.exclude:

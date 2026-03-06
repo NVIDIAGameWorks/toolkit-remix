@@ -233,15 +233,15 @@ class ComfyUIWidget(WorkspaceWidget):
         locate_button_enabled = self._core.state == ComfyUIState.NOT_FOUND
         uninstall_button_enabled = self._core.state == ComfyUIState.READY
         update_button_enabled = self._core.state == ComfyUIState.READY and bool(self._core.update_available)
-        refresh_button_enabled = self._core.state in [
+        refresh_button_enabled = self._core.state in {
             ComfyUIState.NOT_FOUND,
             ComfyUIState.FOUND,
             ComfyUIState.READY,
             ComfyUIState.ERROR,
-        ]
+        }
         start_button_enabled = self._core.state == ComfyUIState.READY
-        stop_button_enabled = self._core.state in [ComfyUIState.STARTING, ComfyUIState.RUNNING]
-        restart_button_enabled = self._core.state in [ComfyUIState.STARTING, ComfyUIState.RUNNING]
+        stop_button_enabled = self._core.state in {ComfyUIState.STARTING, ComfyUIState.RUNNING}
+        restart_button_enabled = self._core.state in {ComfyUIState.STARTING, ComfyUIState.RUNNING}
         open_ui_button_enabled = self._core.state == ComfyUIState.RUNNING
 
         # Update the visibility and tooltips for all the buttons

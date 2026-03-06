@@ -1,0 +1,90 @@
+{
+    "permissions": {
+        "ask": [
+            "Bash(rm -rf *)",
+            "Bash(git reset --hard*)",
+            "Bash(git clean -f*)",
+            "Bash(git checkout .)",
+            "Bash(git push*--force*)",
+            "Bash(git push*-f*)",
+            "Bash(git branch -D*)",
+            "Bash(*curl*|*sh*)",
+            "Bash(*wget*|*sh*)"
+        ]
+    },
+    "hooks": {
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "type": "prompt",
+                        "prompt": "Before finishing, you MUST go through every completion gate in `.agents/rules/completion-gates.md` and verify each one that applies. Use the platform-appropriate script variants (.bat on Windows cmd, .sh on Unix/bash). If any gate fails, fix the issue and re-run until clean. Do not complete until all applicable gates pass."
+                    }
+                ]
+            }
+        ],
+        "PreToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "prompt",
+                        "prompt": "If this is a git command, verify the intent matches the action and the arguments are correct before proceeding."
+                    }
+                ]
+            }
+        ],
+        "SessionStart": [
+            {
+                "matcher": "startup",
+                "hooks": [
+                    {
+                        "type": "prompt",
+                        "prompt": "Check if any learnings in auto-memory should be saved to docs_dev/ files. Compare MEMORY.md against docs_dev/ and offer to update if anything is out of sync."
+                    }
+                ]
+            }
+        ],
+        "SubagentStop": [
+            {
+                "matcher": "unit-test-writer",
+                "hooks": [
+                    {
+                        "type": "prompt",
+                        "prompt": "Run the tests you wrote using the test bat with -f to filter to your new tests. Fix any failures before finishing."
+                    }
+                ]
+            },
+            {
+                "matcher": "e2e-test-writer",
+                "hooks": [
+                    {
+                        "type": "prompt",
+                        "prompt": "Run the tests you wrote using the test bat with -f to filter to your new tests. Fix any failures before finishing."
+                    }
+                ]
+            },
+            {
+                "matcher": "reviewer",
+                "hooks": [
+                    {
+                        "type": "prompt",
+                        "prompt": "Before finishing your review, run the format script (with `--check`) and the lint script (with `all` argument) using the platform-appropriate variant (.bat on Windows cmd, .sh on Unix/bash). Report any format or lint errors found as part of your review findings."
+                    }
+                ]
+            }
+        ]
+    },
+    "env": {
+        "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "80"
+    },
+    "statusLine": {
+        "type": "command",
+        "command": "bash .claude/hooks/statusline.sh"
+    },
+    "enableAllProjectMcpServers": true,
+    "enabledPlugins": {
+        "superpowers@claude-plugins-official": true
+    },
+    "outputStyle": "Explanatory"
+}

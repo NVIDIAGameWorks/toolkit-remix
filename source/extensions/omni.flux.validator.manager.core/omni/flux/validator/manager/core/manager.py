@@ -843,7 +843,10 @@ class ManagerCore:
 
             check_plugin_model.enabled = all([any(found_selfs), check_plugin_original_model.enabled])
             check_plugin_model.context_plugin.enabled = all(
-                [any(found_selfs), check_plugin_original_model.context_plugin.enabled]
+                [
+                    any(found_selfs),
+                    check_plugin_original_model.context_plugin.enabled,
+                ]
             )
             for select_plugin_model, select_plugin_original_model in zip(
                 check_plugin_model.selector_plugins, check_plugin_original_model.selector_plugins
@@ -859,7 +862,10 @@ class ManagerCore:
                 self.__model.resultor_plugins, self.__model_original.resultor_plugins
             ):
                 resultor_plugin.enabled = all(
-                    [resultor_plugin.instance in instance_plugins, resultor_original_plugin.enabled]
+                    [
+                        resultor_plugin.instance in instance_plugins,
+                        resultor_original_plugin.enabled,
+                    ]
                 )
 
     def __set_mode_base_self_to_end(self, instance_plugins: list[_BaseInstancePlugin] | None = None):

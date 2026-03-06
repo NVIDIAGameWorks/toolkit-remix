@@ -226,7 +226,7 @@ class ViewportLayers:
     def destroy(self):
         self.__timeline_sub = None
         RegisterViewportLayer.remove_notifier(self.__viewport_layer_event)
-        for _factory, instance in self.__viewport_layers.items():
+        for instance in self.__viewport_layers.values():
             instance.destroy()
         self.__viewport_layers = {}
         if self.__zstack:

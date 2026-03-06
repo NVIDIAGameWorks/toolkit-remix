@@ -53,7 +53,10 @@ class CoreService:
             if not main.get_app().openapi_tags:
                 main.get_app().openapi_tags = []
             main.get_app().openapi_tags.append(
-                {"name": service.get(self.TITLE), "description": service.get(self.DESCRIPTION)}
+                {
+                    "name": service.get(self.TITLE),
+                    "description": service.get(self.DESCRIPTION),
+                }
             )
 
         # Initialize FastAPI endpoint versioning

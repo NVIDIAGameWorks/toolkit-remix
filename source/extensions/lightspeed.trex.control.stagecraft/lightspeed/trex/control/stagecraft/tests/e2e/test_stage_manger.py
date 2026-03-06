@@ -77,7 +77,7 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
 
         with patch.object(_AssetReplacementsPane, "refresh") as mock:
             drag_vector = widget_ref.center
-            drag_vector.x = drag_vector.x - 400
+            drag_vector.x -= 400
             await omni.kit.ui_test.human_delay(30)
             await omni.kit.ui_test.emulate_mouse_drag_and_drop(widget_ref.center, drag_vector)
             await omni.kit.ui_test.wait_n_updates(2)

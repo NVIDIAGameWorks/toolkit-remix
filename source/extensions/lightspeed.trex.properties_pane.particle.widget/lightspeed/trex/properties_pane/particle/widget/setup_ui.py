@@ -311,14 +311,14 @@ class ParticleSystemPropertyWidget:
                 attr_item.parent = group_items[group_name]
 
             # Add groups to items in the specified order
-            for group_name in PARTICLE_ATTR_GROUP_ORDER:
-                if group_name in group_items:
-                    items.append(group_items[group_name])
+            items.extend(
+                group_items[group_name] for group_name in PARTICLE_ATTR_GROUP_ORDER if group_name in group_items
+            )
 
             # Add any remaining groups not in the predefined order (for future extensibility)
-            for group_name, group in group_items.items():
-                if group_name not in PARTICLE_ATTR_GROUP_ORDER:
-                    items.append(group)
+            items.extend(
+                group for group_name, group in group_items.items() if group_name not in PARTICLE_ATTR_GROUP_ORDER
+            )
 
         self._property_model.set_prim_paths(valid_paths)
         self._property_model.set_items(items)

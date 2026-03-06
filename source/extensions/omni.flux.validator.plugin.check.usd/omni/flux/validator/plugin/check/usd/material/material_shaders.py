@@ -85,7 +85,7 @@ class MaterialShaders(_CheckBaseUSD):
         @classmethod
         def valid_subidentifier(cls, v: OrderedDict[str, str]) -> OrderedDict[str, str]:
             library_subidentifiers = [u.stem for u in _MaterialConverterUtils.get_material_library_shader_urls()]
-            for key, _ in v.items():
+            for key in v:
                 if key not in library_subidentifiers:
                     raise ValueError(
                         f"The subidentifier ({key}) does not exist in the material library. If using non-default"
@@ -98,7 +98,7 @@ class MaterialShaders(_CheckBaseUSD):
         @field_validator("shader_subidentifiers", mode="before")
         @classmethod
         def supported_shader_output(cls, v: OrderedDict[str, str]) -> OrderedDict[str, str]:
-            for key, _ in v.items():
+            for key in v:
                 if key not in [s.value for s in _SupportedShaderOutputs]:
                     raise ValueError(
                         f"The shader ({key}) is not currently a supported output shader. "

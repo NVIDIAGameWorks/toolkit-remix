@@ -275,8 +275,8 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         min_value = None
         max_value = None
 
-        for attribute_path in self._attribute_paths:  # noqa: SLF001
-            prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())  # noqa: SLF001
+        for attribute_path in self._attribute_paths:
+            prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
             if prim.HasAttribute(attribute_path.name):
                 attr = prim.GetAttribute(attribute_path.name)
                 custom = attr.GetMetadata("customData")
@@ -339,8 +339,8 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         if step_val is not None:
             return step_val
 
-        for attribute_path in self._attribute_paths:  # noqa PLW0212
-            prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())  # noqa PLW0212
+        for attribute_path in self._attribute_paths:  # PLW0212
+            prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())  # PLW0212
             if prim.HasAttribute(attribute_path.name):
                 attr = prim.GetAttribute(attribute_path.name)
                 custom_meta = attr.GetMetadata("customData")

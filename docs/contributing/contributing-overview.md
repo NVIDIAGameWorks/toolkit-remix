@@ -26,11 +26,10 @@ Each of these submodules includes a `README.md` file that provides instructions 
 project. These README files are essential starting points for developers looking to contribute code.
 
 Furthermore, the Toolkit repository contains
-comprehensive [developer documentation](https://github.com/NVIDIAGameWorks/toolkit-remix/tree/main/docs_dev), which
-includes a dedicated
-[contribution guide](https://github.com/NVIDIAGameWorks/toolkit-remix/blob/main/docs_dev/CONTRIBUTING.md). This
-guide offers detailed information on coding standards, workflow processes, and other best practices to ensure
-contributions are integrated smoothly.
+comprehensive [developer documentation](../../docs_dev/index.md) covering
+the tech stack, build and test setup, coding standards, and implementation patterns. Start with the
+Quick Start section in the [Developer Documentation](../../docs_dev/index.md) and the
+[Review Checklist](../../docs_dev/getting-started/review-checklist.md) before submitting a PR.
 
 ## Contributing to Mod Projects
 

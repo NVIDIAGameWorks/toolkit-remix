@@ -230,10 +230,7 @@ class TelemetryCore:
             event["extra"]["filename"] = filter_func(event["extra"]["filename"])
 
         if event.get("extra", {}).get("sys.argv", []):
-            new_argv = []
-            for arg in event["extra"]["sys.argv"]:
-                new_argv.append(filter_func(arg))
-            event["extra"]["sys.argv"] = new_argv
+            event["extra"]["sys.argv"] = [filter_func(arg) for arg in event["extra"]["sys.argv"]]
 
         if event.get("breadcrumbs", {}).get("values", []):
             for value in event["breadcrumbs"]["values"]:
@@ -274,23 +271,25 @@ class TelemetryCore:
         """If there's a path on the string we get rid of everything up to the root path."""
         all_lines = []
         for line in input_str.split("\n"):
-            line = line.replace("\\", "/")
-            if line.startswith("--"):
-                words_in_line = line.split("=")
+            normalized_line = line.replace("\\", "/")
+            if normalized_line.startswith("--"):
+                words_in_line = normalized_line.split("=")
             else:
-                words_in_line = line.split(" ")
+                words_in_line = normalized_line.split(" ")
             new_line = []
             for word in words_in_line:
                 if not word.startswith("--") and word.count("/") > 1:
                     if app_root_path and app_root_path in word:
                         # split on the root path, and only save everything after that.
-                        word = word.split(app_root_path)[-1]
+                        filtered_word = word.split(app_root_path)[-1]
                     else:
                         last_idx = word.rfind("/")
-                        word = word[last_idx:]
-                new_line.append(word)
+                        filtered_word = word[last_idx:]
+                else:
+                    filtered_word = word
+                new_line.append(filtered_word)
 
-            if line.startswith("--"):
+            if normalized_line.startswith("--"):
                 all_lines.append("=".join(new_line))
             else:
                 all_lines.append(" ".join(new_line))

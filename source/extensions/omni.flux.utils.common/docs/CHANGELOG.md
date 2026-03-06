@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.10.1]
+### Changed
+- Applied new lint rules
+
 ## [3.10.0]
 ### Added
 - Added `get_proto_from_prim()` utility to get the prototype prim for a given prim

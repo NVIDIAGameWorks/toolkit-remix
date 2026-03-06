@@ -28,6 +28,6 @@ async def is_path_readable(path: str):
         path: the path to check
     """
     _, entry = await omni.client.stat_async(path)
-    if (entry.flags & omni.client.ItemFlags.READABLE_FILE) or (entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN):
-        return True
-    return False
+    return bool(
+        entry.flags & omni.client.ItemFlags.READABLE_FILE or entry.flags & omni.client.ItemFlags.CAN_HAVE_CHILDREN
+    )

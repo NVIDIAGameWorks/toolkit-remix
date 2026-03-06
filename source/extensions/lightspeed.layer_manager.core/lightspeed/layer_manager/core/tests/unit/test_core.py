@@ -819,9 +819,9 @@ class TestLayerManagerCore(AsyncTestCase):
                 create_will_fail = False
                 if replace_existing:
                     if set_parent:
-                        create_will_fail = layer_type in [LayerType.workfile, LayerType.replacement]
+                        create_will_fail = layer_type in {LayerType.workfile, LayerType.replacement}
                     else:
-                        create_will_fail = layer_type in [LayerType.workfile]
+                        create_will_fail = layer_type in {LayerType.workfile}
 
                 layer_type_in_stack_mock.return_value = create_will_fail
 

@@ -1,9 +1,30 @@
-"""Script to list changed extensions that need changelog updates"""
+"""
+* SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-License-Identifier: Apache-2.0
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* https://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+
+Script to list changed extensions that need changelog updates
+"""
+
+import argparse
 import os
 import re
 import subprocess
 import sys
 from pathlib import Path
+
+IS_WINDOWS = sys.platform == "win32"
 
 
 def ensure_project_root():
@@ -21,10 +42,12 @@ def ensure_project_root():
     raise RuntimeError("Could not find project root (no .git directory found)")
 
 
-def get_git_shas():
+def get_git_shas(base_branch):
     """Get the top commit and merge base commit SHAs"""
+    if base_branch.startswith("-"):
+        raise ValueError(f"Invalid branch name: {base_branch}")
     top_commit = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
-    merge_base = subprocess.check_output(["git", "merge-base", "origin/main", "HEAD"]).decode("utf-8").strip()
+    merge_base = subprocess.check_output(["git", "merge-base", f"origin/{base_branch}", "HEAD"]).decode("utf-8").strip()
     return top_commit, merge_base
 
 
@@ -130,22 +153,25 @@ def get_extensions_with_uncommitted_changes():
 
 
 def get_extensions_needing_changelog(top_commit, merge_base):
-    """Run repo.bat check_changelog once and parse output for failing extensions"""
+    """Run repo check_changelog once and parse output for failing extensions"""
+    repo_cmd = "repo.bat" if IS_WINDOWS else "repo.sh"
     try:
         result = subprocess.run(
-            ["repo.bat", "check_changelog", "-s", top_commit, "-t", merge_base],
+            [repo_cmd, "check_changelog", "-s", top_commit, "-t", merge_base],
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=60,
+            shell=IS_WINDOWS,
         )
 
         # Parse output for lines like "Version has not been incremented for source/extensions/<ext-name>"
         pattern = r"Version has not been incremented for source/extensions/([^\s]+)"
         failed_exts = re.findall(pattern, result.stdout + result.stderr)
 
-        # Also check for other error patterns like "Extension: source\extensions\<ext-name>. There was..."
+        # Also check for other error patterns like "Extension: source/extensions/<ext-name>. There was..."
         # Use [\w.]+ to capture extension names with dots like "lightspeed.common"
-        changelog_pattern = r"Extension: source\\extensions\\([\w.]+)\."
+        # Match both forward and back slashes for cross-platform compatibility
+        changelog_pattern = r"Extension: source[/\\]extensions[/\\]([\w.]+)\."
         changelog_errors = re.findall(changelog_pattern, result.stdout + result.stderr)
 
         # Combine and deduplicate
@@ -154,18 +180,26 @@ def get_extensions_needing_changelog(top_commit, merge_base):
         return sorted(all_failed)
 
     except subprocess.TimeoutExpired:
-        print("Error: Timeout running repo.bat check_changelog", file=sys.stderr)
+        print("Error: Timeout running repo check_changelog", file=sys.stderr)
         return []
     except Exception as e:
-        print(f"Error: Failed to run repo.bat check_changelog: {e}", file=sys.stderr)
+        print(f"Error: Failed to run repo check_changelog: {e}", file=sys.stderr)
         return []
 
 
 def main():
+    parser = argparse.ArgumentParser(description="List changed extensions that need changelog updates")
+    parser.add_argument(
+        "--base",
+        default="main",
+        help="Base branch to compare against (default: main)",
+    )
+    args = parser.parse_args()
+
     # Ensure we're running from project root for git commands to work
     ensure_project_root()
 
-    top_commit, merge_base = get_git_shas()
+    top_commit, merge_base = get_git_shas(args.base)
 
     # Get the true total of changed extensions from git diff, categorized
     added_exts, modified_exts, deleted_exts, _ = get_all_changed_extensions(merge_base)
@@ -183,8 +217,10 @@ def main():
     # Print summary
     total = len(all_changed_exts)
 
-    print(f"{total} total extensions changed ({len(added_exts)} new, {len(modified_exts)} modified, {len(deleted_exts)} deleted)")
-    print(f"{len(exts_needing_changelog)} need version bumps, {len(exts_with_uncommitted)} in progress, {len(exts_remaining)} remaining:")
+    print(
+        f"{total} total extensions changed ({len(added_exts)} new, {len(modified_exts)} modified, {len(deleted_exts)} deleted)")
+    print(
+        f"{len(exts_needing_changelog)} need version bumps, {len(exts_with_uncommitted)} in progress, {len(exts_remaining)} remaining:")
     print()
 
     for ext in exts_remaining:

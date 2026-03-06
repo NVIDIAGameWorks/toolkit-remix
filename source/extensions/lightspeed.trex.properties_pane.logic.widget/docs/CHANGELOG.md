@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.7]
+### Changed
+- Applied new lint rules
+
 ## [1.3.6]
 ### Changed
 - Logic graph deletion now shows a confirmation dialog before executing

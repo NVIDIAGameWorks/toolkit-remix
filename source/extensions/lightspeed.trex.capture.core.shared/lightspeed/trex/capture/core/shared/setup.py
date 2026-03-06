@@ -71,7 +71,7 @@ class Setup:
             if error_callback is not None:
                 error_callback(error_title, f"{path} is not a directory")
             return False
-        if str(Path(path).stem) not in [constants.CAPTURE_FOLDER, constants.REMIX_CAPTURE_FOLDER]:
+        if str(Path(path).stem) not in {constants.CAPTURE_FOLDER, constants.REMIX_CAPTURE_FOLDER}:
             if error_callback is not None:
                 error_callback(error_title, f"{path} is not a 'capture' folder")
             return False
@@ -90,8 +90,8 @@ class Setup:
         # first we convert the bmp to png without alpha
         png_file = default_icon.replace("_icon.bmp", "_icon.png")
         with Image.open(default_icon) as im1:
-            im1 = im1.convert("RGB")
-            im1.save(png_file)
+            converted = im1.convert("RGB")
+            converted.save(png_file)
         return str(png_file)
 
     @omni.usd.handle_exception
@@ -101,7 +101,7 @@ class Setup:
         callback(result)
 
     def __on_load_event(self, event):
-        if event.type in [int(omni.usd.StageEventType.OPENED)]:
+        if event.type in {int(omni.usd.StageEventType.OPENED)}:
             capture_layer = self._layer_manager.get_layer(LayerType.capture)
             if not capture_layer:
                 return
@@ -145,9 +145,7 @@ class Setup:
     def is_layer_a_capture_file(layer: Sdf.Layer) -> bool:
         if not layer:
             return False
-        if layer.customLayerData.get(LayerTypeKeys.layer_type.value) == LayerType.capture.value:
-            return True
-        return False
+        return layer.customLayerData.get(LayerTypeKeys.layer_type.value) == LayerType.capture.value
 
     def get_game_name(self, path: str) -> str:
         return self._layer_manager.get_game_name_from_path(path)
@@ -157,7 +155,7 @@ class Setup:
             carb.log_error("Please set the current directory")
             return False
         stem = Path(self.__directory).name
-        if stem not in [constants.CAPTURE_FOLDER, constants.REMIX_CAPTURE_FOLDER]:
+        if stem not in {constants.CAPTURE_FOLDER, constants.REMIX_CAPTURE_FOLDER}:
             carb.log_error(f"{self.__directory} is not a capture directory")
             return False
         return True

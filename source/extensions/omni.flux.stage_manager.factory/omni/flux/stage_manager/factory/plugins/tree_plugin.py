@@ -205,10 +205,7 @@ class StageManagerTreeItem(_TreeItemBase):
         if not prim or not prim.IsValid():
             return False
 
-        if not self.parent or not self.parent.parent:
-            return False
-
-        return True
+        return bool(self.parent and self.parent.parent)
 
     def __eq__(self, other):
         if isinstance(other, StageManagerTreeItem):
@@ -340,11 +337,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         Returns:
             List of items matching the predicate
         """
-        results = []
-        for item in self.iter_items_children():
-            if predicate(item):
-                results.append(item)
-        return results
+        return [item for item in self.iter_items_children() if predicate(item)]
 
     @usd.handle_exception
     async def find_items_async(

@@ -60,7 +60,7 @@ class SetupUI(_WorkspaceWidget):
         layout_widgets = widgets.get(_Groups.LAYOUTS)
         ungrouped_widgets = widgets.get(_Groups.UNGROUPED)
         custom_group_widgets: dict[str, list[_ItemDescriptor]] = {
-            group: items for group, items in widgets.items() if group not in [_Groups.LAYOUTS, _Groups.UNGROUPED]
+            group: items for group, items in widgets.items() if group not in {_Groups.LAYOUTS, _Groups.UNGROUPED}
         }
 
         if layout_widgets:

@@ -52,12 +52,12 @@ class OgRemixLogicTestCatalogModel(ComponentNodeTypeCatalogModel):
         # a new category or node type is added (the number of node types
         # in each category is displayed on the catalog widget).
         # So we restrict the allowed node types to a static set.
-        return node_type_name in (
+        return node_type_name in {
             "omni.graph.nodes.Add",  # Math
             "omni.graph.nodes.ConstantFloat",  # Constants
             "omni.graph.nodes.ConstantInt",  # Constants
             "omni.graph.tutorials.SimpleData",
-        )  # Tutorials
+        }  # Tutorials
 
 
 class OgRemixLogicTestGraphWidget(RemixLogicGraphWidget):
@@ -233,7 +233,10 @@ class TestOgWindowComponentUI(OmniUiTest):
         graph_window._import_prims(None, [controller.prim(graph.get_path_to_graph())])
         await self.__wait_for_window_to_draw()
         graph_window._main_widget.model.create_subgraph_compound(
-            [controller.prim(f"{self.TEST_GRAPH_PATH}/add"), controller.prim(f"{self.TEST_GRAPH_PATH}/simple")]
+            [
+                controller.prim(f"{self.TEST_GRAPH_PATH}/add"),
+                controller.prim(f"{self.TEST_GRAPH_PATH}/simple"),
+            ]
         )
         await self.__wait_for_window_to_draw()
 

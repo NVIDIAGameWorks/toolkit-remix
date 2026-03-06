@@ -252,7 +252,7 @@ class UsdBookmarkCollectionModel(BookmarkCollectionModel):
 
         This will only select bookmark item elements in the viewport (no collections)
         """
-        bookmark_items = set(filter(lambda i: (i.component_type == ComponentTypes.bookmark_item.value), items))
+        bookmark_items = set(filter(lambda i: i.component_type == ComponentTypes.bookmark_item.value, items))
         self._context.get_selection().set_selected_prim_paths([i.data for i in bookmark_items], True)
 
     def get_bookmarks_base_path(self):
@@ -272,8 +272,9 @@ class UsdBookmarkCollectionModel(BookmarkCollectionModel):
         if self.stage is not None:
             prim = self.stage.GetPrimAtPath(self.get_bookmarks_base_path())
             if prim.IsValid():
-                for collection in Usd.CollectionAPI.GetAllCollections(prim):
-                    items.append(self.__build_collection_item(collection))
+                items = [
+                    self.__build_collection_item(collection) for collection in Usd.CollectionAPI.GetAllCollections(prim)
+                ]
                 items = self.__remove_children_from_root(items)
                 items.sort(key=lambda i: i.title)
         # always add the "create" button at the end
@@ -300,21 +301,18 @@ class UsdBookmarkCollectionModel(BookmarkCollectionModel):
         )
 
     def __remove_children_from_root(self, items: list[BookmarkCollectionItem]) -> list[BookmarkCollectionItem]:
-        filtered_items = []
-        for item in items:
-            child = self.__find_usd_item(item.data)
-            if child is None:
-                filtered_items.append(item)
-        return filtered_items
+        return [item for item in items if self.__find_usd_item(item.data) is None]
 
     def __find_usd_item(self, path: str, parent: Usd.CollectionAPI = None, find_root_items: bool = False) -> str:
         found = None
         collection = []
         prim = self.stage.GetPrimAtPath(self.get_bookmarks_base_path())
         if parent is not None:
-            for target in parent.GetIncludesRel().GetTargets():
-                if Usd.CollectionAPI.IsCollectionAPIPath(target):
-                    collection.append(Usd.CollectionAPI.GetCollection(self.stage, target))
+            collection = [
+                Usd.CollectionAPI.GetCollection(self.stage, target)
+                for target in parent.GetIncludesRel().GetTargets()
+                if Usd.CollectionAPI.IsCollectionAPIPath(target)
+            ]
         else:
             collection = Usd.CollectionAPI.GetAllCollections(prim)
         for item in collection:

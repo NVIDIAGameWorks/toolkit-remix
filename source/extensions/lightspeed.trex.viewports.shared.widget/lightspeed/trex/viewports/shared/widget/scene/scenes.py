@@ -206,15 +206,12 @@ class CameraAxisLayer:
 
 
 def grid_default_factory(desc: dict[str, Any]):
-    manip = SimpleGrid(desc.get("viewport_api"))
-    return manip
+    return SimpleGrid(desc.get("viewport_api"))
 
 
 def origin_default_factory(desc: dict[str, Any]):
-    manip = SimpleOrigin(desc.get("viewport_api"))
-    return manip
+    return SimpleOrigin(desc.get("viewport_api"))
 
 
 def camera_axis_default_factory(desc: dict[str, Any]):
-    manip = CameraAxisLayer(desc.get("viewport_api"))
-    return manip
+    return CameraAxisLayer(desc.get("viewport_api"))

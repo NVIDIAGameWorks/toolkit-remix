@@ -149,7 +149,7 @@ class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
 
         # update the widget value, but do not trigger a set_value
         self.__block_set_value = True
-        if index not in (-1, self._current_index.as_int):
+        if index not in {-1, self._current_index.as_int}:
             self._current_index.set_value(index)
         else:
             # Trigger value changed callbacks for underlying widget when the value does not

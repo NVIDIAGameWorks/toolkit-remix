@@ -56,8 +56,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
     async def _copy_from_example_project(self, source: str, target: str):
         example_dir = _get_test_data("usd/project_example")
         shutil.copyfile(f"{example_dir}/{source}", f"{self.temp_dir.name}/{target}")
-        project_file = Path(self.temp_dir.name) / target
-        return project_file
+        return Path(self.temp_dir.name) / target
 
     async def test_keys_have_expected_values(self):
         # This test only serves to make sure we preserve compatibility with existing schemas.

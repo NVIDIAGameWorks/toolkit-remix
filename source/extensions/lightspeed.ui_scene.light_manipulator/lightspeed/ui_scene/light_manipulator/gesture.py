@@ -181,8 +181,8 @@ class LightDragGesture(sc.DragGesture):
                 update_intensity(value)
             else:
                 item = self.model.get_item(self._get_axis_attr(axis))
-                value = max(value, DIMENSION_MIN)
-                self.model.set_float_multiple(self._get_axis_attr(axis), item, value)
+                clamped_value = max(value, DIMENSION_MIN)
+                self.model.set_float_multiple(self._get_axis_attr(axis), item, clamped_value)
 
         if self.is_global:
             # need to update the intensity in a different way

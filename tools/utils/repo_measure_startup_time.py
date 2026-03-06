@@ -14,7 +14,6 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
-import email
 import os
 import statistics
 import subprocess
@@ -22,7 +21,6 @@ import sys
 import time
 
 import requests
-
 
 CRASH_RETURN_CODE = -1
 TIMEOUT_RETURN_CODE = -2
@@ -117,7 +115,7 @@ def setup_repo_tool(parser, _):
         too_slow = (average_time > time_limit) or (num_timeouts > number / 4)
         results = f"""
       Average time: {average_time}
-           Longest: {round(max(good_timings) ,2)}
+           Longest: {round(max(good_timings), 2)}
           Shortest: {round(min(good_timings), 2)}
     Number of runs: {number}
 Number of timeouts: {num_timeouts}

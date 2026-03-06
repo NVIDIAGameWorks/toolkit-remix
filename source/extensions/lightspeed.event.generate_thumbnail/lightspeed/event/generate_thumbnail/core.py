@@ -127,11 +127,11 @@ class EventGenerateThumbnailCore(_ILSSEvent):
                 top = (height - width) / 2
                 bottom = height - top
 
-            im = im.crop((left, top, right, bottom))
-            im.thumbnail(resolution, Image.LANCZOS)
+            cropped = im.crop((left, top, right, bottom))
+            cropped.thumbnail(resolution, Image.LANCZOS)
 
             thumbnail_bytes = io.BytesIO()
-            im.save(thumbnail_bytes, format="PNG")
+            cropped.save(thumbnail_bytes, format="PNG")
 
         result = omni.client.write_file(output_path, thumbnail_bytes.getvalue())
         if result != omni.client.Result.OK:

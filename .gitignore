@@ -21,6 +21,9 @@ Makefile
 # pip cache
 .cache
 
+# ruff cache
+.ruff_cache/
+
 # packman package files
 *@*.7z
 *@*.zip
@@ -80,6 +83,13 @@ CON
 deps/**/user.toml
 deps/kit-sdk.packman.xml.user*
 
+# Ignore local agent config
+*.local.md
+*.local.json
+
+# NICC CLI version tracking (per-user, not committed)
+.nicc_resource_versions.json
+
 # allow anything in data, docs/images, ext data (under Git LFS management)
 !data/**
 !docs/images/**
@@ -100,8 +110,7 @@ output.txt
 # PACKAGE-LICENSES/
 PACKAGE-DEPS.yaml
 
-# JetBrains configs
-.idea/
+
 
 # kit logs
 source/logs/
@@ -120,12 +129,11 @@ PIC-V.log
 rtx-remix/logs/
 nrc_session_log.txt
 
-# Ignore internal repo tools
+# Ignore internal repo files (downloaded from private repo by repoman.py)
 /deps/repo-deps-internal.packman.xml
 /.git-blob-hash-cache.json
-
-# Ignore internal settings
 repo_internal.toml
+docs_dev/internal/
 
 # Ignore generated documentation
 docs/toolkitinterface/remix-toolkitinterface-restapi-docs.html

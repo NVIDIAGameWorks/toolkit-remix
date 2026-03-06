@@ -75,7 +75,7 @@ class EventLayersCleanupCore(_ILSSEvent):
         self._layer_event_sub = None
 
     def __on_stage_event(self, event):
-        if event.type in [int(omni.usd.StageEventType.OPENED)]:
+        if event.type in {int(omni.usd.StageEventType.OPENED)}:
             self.__cleanup_layers()
 
     def __on_layer_event(self, event):
