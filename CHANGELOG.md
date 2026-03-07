@@ -58,6 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed nickname behavior and added NicknameField with a dot indicator
 - REMIX-5030: Fixed selection being cleared after creating a new light, and stage manager expansion states being lost on refresh
 - REMIX-4903: Fixed node connection validation breaking after deleting a node in the Logic Graph Editor
+- REMIX-5078: Fixed Stage Manager delete button failing on prims defined in replacement sublayers (ancestral prims)
+- REMIX-5078: Fixed Stage Manager delete and restore buttons not working when an instanced prim is selected
+- REMIX-5078: Fixed Stage Manager crash from accessing expired prims after delete or restore operations
 
 ### Removed
 
