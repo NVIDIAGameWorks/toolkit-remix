@@ -104,6 +104,36 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         widget = None
         window.destroy()
 
+    async def test_restore_disabled_for_protected_path(self):
+        """Verify that protected paths (e.g. /RootNode/meshes) always get RESTOREDISABLED
+        and render a disabled restore icon."""
+        test_prim = Sdf.Path("/RootNode/meshes")
+
+        prim = self.stage.GetPrimAtPath(test_prim)
+        self.assertTrue(prim.IsValid())
+
+        window, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
+
+        self.assertEqual(
+            widget._get_prim_action_type(prim),
+            widget.ActionType.RESTOREDISABLED,
+        )
+
+        item = StageManagerTreeItem(display_name=prim.GetName(), tooltip="foobar", data=prim)
+
+        with window.frame:
+            widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
+
+        id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._restore_identifier}'")
+
+        self.assertIsNotNone(id_check)
+        self.assertFalse(id_check.widget.enabled)
+        self.assertEqual(id_check.widget.name, "Restore")
+        self.assertEqual(id_check.widget.tooltip, "The Prim may not be restored")
+
+        widget = None
+        window.destroy()
+
     async def test_restore_widget_action(self):
         test_prim = Sdf.Path("/RootNode/meshes/mesh_BAC90CAA733B0859")
         prim = self.stage.GetPrimAtPath(test_prim)
@@ -153,6 +183,181 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self.assertEqual(id_check.widget.name, "TrashCan")
         self.assertTrue(id_check.widget.enabled)
         self.assertEqual(id_check.widget.tooltip, "Delete Prim")
+
+        widget = None
+        window.destroy()
+
+    async def test_delete_via_instance_path(self):
+        """Verify that selecting an instance path correctly resolves to the prototype
+        and deletes the prototype prim via _delete_prim_cb."""
+        mesh_path = Sdf.Path("/RootNode/meshes/mesh_CED45075A077A49A")
+        graph_path = mesh_path.AppendChild("RemixLogicGraph")
+        instance_graph_path = "/RootNode/instances/inst_CED45075A077A49A_0/RemixLogicGraph"
+
+        success = await self._create_graph_at_prim(graph_path)
+        self.assertTrue(success)
+
+        proto_prim = self.stage.GetPrimAtPath(graph_path)
+        self.assertTrue(proto_prim.IsValid())
+        instance_prim = self.stage.GetPrimAtPath(instance_graph_path)
+        self.assertTrue(instance_prim.IsValid())
+
+        window, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
+
+        self.assertEqual(
+            widget._get_prim_action_type(instance_prim),
+            widget.ActionType.DELETE,
+        )
+
+        usd.get_context().get_selection().set_selected_prim_paths([instance_graph_path], False)
+        widget._delete_prim_cb()
+
+        proto_prim = self.stage.GetPrimAtPath(graph_path)
+        self.assertFalse(proto_prim.IsValid())
+        instance_prim = self.stage.GetPrimAtPath(instance_graph_path)
+        self.assertFalse(instance_prim.IsValid())
+
+        widget = None
+        window.destroy()
+
+    async def test_restore_disabled_for_composition_only_prim(self):
+        """Verify that non-capture prims with no spec in the edit target or any
+        replacement layer (composition-only) are classified as RESTOREDISABLED."""
+        stage = self.stage
+
+        composition_layer = Sdf.Layer.CreateAnonymous()
+        stage.GetRootLayer().subLayerPaths.append(composition_layer.identifier)
+
+        test_prim_path = "/RootNode/meshes/test_composition_only_prim"
+        prim_spec = Sdf.CreatePrimInLayer(composition_layer, test_prim_path)
+        prim_spec.specifier = Sdf.SpecifierDef
+        prim_spec.typeName = "Xform"
+
+        prim = stage.GetPrimAtPath(test_prim_path)
+        self.assertTrue(prim.IsValid())
+
+        edit_target_layer = stage.GetEditTarget().GetLayer()
+        self.assertIsNone(edit_target_layer.GetPrimAtPath(test_prim_path))
+
+        window, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
+
+        self.assertEqual(
+            widget._get_prim_action_type(prim),
+            widget.ActionType.RESTOREDISABLED,
+        )
+
+        item = StageManagerTreeItem(display_name=prim.GetName(), tooltip="foobar", data=prim)
+
+        with window.frame:
+            widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
+
+        id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._restore_identifier}'")
+
+        self.assertIsNotNone(id_check)
+        self.assertFalse(id_check.widget.enabled)
+        self.assertEqual(id_check.widget.name, "Restore")
+        self.assertEqual(id_check.widget.tooltip, "The Prim may not be restored")
+
+        widget = None
+        window.destroy()
+
+    async def test_delete_prim_in_both_local_and_ancestral(self):
+        """Verify that a prim with specs in both the edit target (local) and a
+        replacement sublayer (ancestral) is fully deleted from both layers when
+        _delete_prim_cb is invoked."""
+        stage = self.stage
+
+        replacement_layer = None
+        for layer_path in stage.GetRootLayer().subLayerPaths:
+            layer = Sdf.Layer.FindRelativeToLayer(stage.GetRootLayer(), layer_path)
+            if layer and layer.customLayerData.get("lightspeed_layer_type") == "replacement":
+                replacement_layer = layer
+                break
+        self.assertIsNotNone(replacement_layer)
+
+        sublayer = Sdf.Layer.CreateAnonymous()
+        replacement_layer.subLayerPaths.append(sublayer.identifier)
+
+        test_prim_path = "/RootNode/meshes/test_both_local_and_ancestral"
+        ancestral_spec = Sdf.CreatePrimInLayer(sublayer, test_prim_path)
+        ancestral_spec.specifier = Sdf.SpecifierDef
+        ancestral_spec.typeName = "Xform"
+
+        edit_target_layer = stage.GetEditTarget().GetLayer()
+        local_spec = Sdf.CreatePrimInLayer(edit_target_layer, test_prim_path)
+        local_spec.specifier = Sdf.SpecifierOver
+
+        prim = stage.GetPrimAtPath(test_prim_path)
+        self.assertTrue(prim.IsValid())
+
+        window, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
+
+        self.assertEqual(
+            widget._get_prim_action_type(prim),
+            widget.ActionType.DELETE,
+        )
+
+        # Verify the prim satisfies both classification conditions in _delete_prim_cb,
+        # meaning it will end up in both local_paths and ancestral_paths.
+        rep_layers = widget._layer_manager.get_replacement_layers()
+        self.assertIsNotNone(edit_target_layer.GetPrimAtPath(test_prim_path))
+        self.assertTrue(any(layer.GetPrimAtPath(test_prim_path) for layer in rep_layers))
+
+        usd.get_context().get_selection().set_selected_prim_paths([test_prim_path], False)
+        widget._delete_prim_cb()
+
+        self.assertIsNone(edit_target_layer.GetPrimAtPath(test_prim_path))
+        self.assertIsNone(sublayer.GetPrimAtPath(test_prim_path))
+
+        prim = stage.GetPrimAtPath(test_prim_path)
+        self.assertFalse(prim.IsValid())
+
+        widget = None
+        window.destroy()
+
+    async def test_delete_ancestral_prim(self):
+        """Verify that prims with no spec in the edit target (ancestral) are deleted
+        from the replacement sublayer where they are actually defined via the full
+        _delete_prim_cb routing path."""
+        stage = self.stage
+
+        replacement_layer = None
+        for layer_path in stage.GetRootLayer().subLayerPaths:
+            layer = Sdf.Layer.FindRelativeToLayer(stage.GetRootLayer(), layer_path)
+            if layer and layer.customLayerData.get("lightspeed_layer_type") == "replacement":
+                replacement_layer = layer
+                break
+        self.assertIsNotNone(replacement_layer)
+
+        sublayer = Sdf.Layer.CreateAnonymous()
+        replacement_layer.subLayerPaths.append(sublayer.identifier)
+
+        test_prim_path = "/RootNode/meshes/test_ancestral_prim"
+        prim_spec = Sdf.CreatePrimInLayer(sublayer, test_prim_path)
+        prim_spec.specifier = Sdf.SpecifierDef
+        prim_spec.typeName = "Xform"
+
+        prim = stage.GetPrimAtPath(test_prim_path)
+        self.assertTrue(prim.IsValid())
+
+        edit_target_layer = stage.GetEditTarget().GetLayer()
+        self.assertIsNone(edit_target_layer.GetPrimAtPath(test_prim_path))
+        self.assertIsNotNone(sublayer.GetPrimAtPath(test_prim_path))
+
+        window, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
+
+        self.assertEqual(
+            widget._get_prim_action_type(prim),
+            widget.ActionType.DELETE,
+        )
+
+        usd.get_context().get_selection().set_selected_prim_paths([test_prim_path], False)
+        widget._delete_prim_cb()
+
+        self.assertIsNone(sublayer.GetPrimAtPath(test_prim_path))
+
+        prim = stage.GetPrimAtPath(test_prim_path)
+        self.assertFalse(prim.IsValid())
 
         widget = None
         window.destroy()

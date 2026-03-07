@@ -38,6 +38,8 @@ class PrimGroupsItem(_StageManagerUSDTreeItem):
     def icon(self):
         if not self.available_icons:
             raise AttributeError("No icons available. Please check the default_schema.json file.")
+        if not self.data or not self.data.IsValid():
+            return "Xform"
         type_name = self.data.GetTypeName()
         if type_name:
             return self.available_icons.get(type_name, "Xform")

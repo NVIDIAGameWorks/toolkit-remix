@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.3]
+### Fixed
+- REMIX-5078: Fixed crash when resolving prim icon type on expired prims after delete or restore
+
 ## [2.6.2]
 ### Changed
 - Applied new lint rules

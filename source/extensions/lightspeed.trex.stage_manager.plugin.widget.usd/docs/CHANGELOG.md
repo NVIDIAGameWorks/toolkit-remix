@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.5]
+### Fixed
+- Fixed delete failing on ancestral prims that are defined in replacement sublayers
+- Fixed delete and restore not working on instanced prims by resolving to the prototype
+- Fixed composition-only prims incorrectly showing an active delete icon instead of a disabled restore icon
+- Fixed Stage Manager crash from expired prim access after delete or restore operations
+
 ## [2.6.4]
 ### Changed
 - Applied new lint rules

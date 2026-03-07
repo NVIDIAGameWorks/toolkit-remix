@@ -190,6 +190,8 @@ class StageManagerTreeItem(_TreeItemBase):
 
     def build_widget(self):
         """Build the UsdPrimNameField widget for this item."""
+        if not self._data or not self._data.IsValid():
+            return
         with ui.HStack(spacing=0, height=0):
             self._nickname_field = _UsdPrimNameField(
                 prim=self._data,
