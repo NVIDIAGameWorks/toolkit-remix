@@ -21,7 +21,9 @@ from enum import Enum, auto
 from functools import partial
 from collections.abc import Callable
 
+import carb
 import omni.kit.commands
+import omni.kit.undo
 import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore
 from lightspeed.layer_manager.core.data_models import LayerType
@@ -62,14 +64,18 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         """
         Determines the action type for a prim based on USD layer analysis.
 
+        Preconditions (evaluated before layer analysis):
+        - Protected paths in PROTECTED_PATHS immediately return RESTOREDISABLED.
+        - Instance prims are resolved to their prototype; all subsequent
+          layer analysis is performed against the prototype prim.
+
         Logic:
-        - If prim is NOT from capture reference: returns DELETE
+        - If prim is NOT from capture reference:
+          - If prim has a spec in the edit target or any replacement layer: returns DELETE
+          - If prim has no deletable spec (composition-only): returns RESTOREDISABLED
         - If prim IS from capture reference:
           - If prim has opinions in replacement layers: returns RESTORE
           - If prim has NO opinions in replacement layers: returns RESTOREDISABLED
-
-        This ensures prims from capture can only be restored if they have been
-        modified (have opinions) in replacement layers, otherwise restoration is disabled.
         """
         # NOTE: we never want to restore this (too much responsibility)
 
@@ -78,19 +84,25 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         proto = prim_utils.get_prototype(prim)
         if proto:
             prim = proto
-        stack = prim.GetPrimStack()
 
-        # NOTE: all objects that are not defined in the capture layer are deletable
+        rep_layers = self._layer_manager.get_replacement_layers()
+
         if not self._core.prim_is_from_a_capture_reference(prim):
-            return self.ActionType.DELETE
+            edit_target_layer = omni.usd.get_context(self._context_name).get_stage().GetEditTarget().GetLayer()
+            if edit_target_layer.GetPrimAtPath(prim.GetPath()):
+                return self.ActionType.DELETE
+
+            if any(layer.GetPrimAtPath(prim.GetPath()) for layer in rep_layers):
+                return self.ActionType.DELETE
+
+            return self.ActionType.RESTOREDISABLED
 
         # NOTE: if asset originates in the capture file we will only restore it
-        rep_sub_layers = self._layer_manager.get_replacement_layers()
-
+        stack = prim.GetPrimStack()
         for ref in stack:
             ltype = self._layer_manager.get_custom_data_layer_type(ref.layer)
 
-            if (ltype and ltype != LayerType.replacement.value) or ref.layer not in rep_sub_layers:
+            if (ltype and ltype != LayerType.replacement.value) or ref.layer not in rep_layers:
                 continue
             return self.ActionType.RESTORE
 
@@ -103,7 +115,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         level: int,
         expanded: bool,
     ) -> None:
-        if not item.data:
+        if not item.data or not item.data.IsValid():
             ui.Spacer(width=self._icon_size, height=self._icon_size)
             return
 
@@ -160,19 +172,71 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         sel_paths = context.get_selection().get_selected_prim_paths()
         stage = context.get_stage()
 
-        return [
-            str(prim.GetPath())
-            for path in sel_paths
-            if (prim := stage.GetPrimAtPath(path))
-            and prim.IsValid()
-            and self._get_prim_action_type(prim) == action_type
-        ]
+        seen: set[str] = set()
+        result: list[str] = []
+        for path in sel_paths:
+            prim = stage.GetPrimAtPath(path)
+            if not prim or not prim.IsValid():
+                continue
+            if self._get_prim_action_type(prim) != action_type:
+                continue
+            # Resolve instance paths to their prototype so layer operations
+            # target the prim that actually owns the spec.
+            proto = prim_utils.get_prototype(prim)
+            effective_path = str(proto.GetPath()) if proto else path
+            if effective_path not in seen:
+                seen.add(effective_path)
+                result.append(effective_path)
+        return result
+
+    def _delete_ancestral_prims(self, paths: list[str], rep_layers: set[Sdf.Layer]) -> None:
+        """
+        Delete prims that are ancestral in the current edit target by finding and removing
+        their specs from the replacement layer(s) where they are actually defined.
+        """
+        for layer in rep_layers:
+            for path in paths:
+                if layer.GetPrimAtPath(path):
+                    success, _ = omni.kit.commands.execute(
+                        "RemovePrimSpecCommand",
+                        layer_identifier=layer.identifier,
+                        prim_spec_path=path,
+                        usd_context=self._context_name,
+                    )
+                    if not success:
+                        carb.log_error(f"Failed to remove prim spec '{path}' from layer '{layer.identifier}'")
 
     def _delete_prim_cb(self) -> None:
         sel = self._get_selected_by_action(self.ActionType.DELETE)
         if not sel:
             return
-        omni.kit.commands.execute("DeletePrimsCommand", paths=sel)
+
+        context = omni.usd.get_context(self._context_name)
+        edit_target_layer = context.get_stage().GetEditTarget().GetLayer()
+
+        local_paths = []
+        ancestral_paths = []
+        rep_layers = self._layer_manager.get_replacement_layers()
+
+        # NOTE: These two checks are intentionally independent (not elif).
+        # A prim can have a local spec in the edit target AND an ancestral
+        # spec in one or more replacement layers simultaneously. Both must
+        # be removed for a complete delete. This is safe because
+        # DeletePrimsCommand only removes the spec from the edit target
+        # layer, while _delete_ancestral_prims removes specs from the
+        # replacement layers via RemovePrimSpecCommand — they operate on
+        # different layers and do not conflict.
+        for path in sel:
+            if edit_target_layer.GetPrimAtPath(path):
+                local_paths.append(path)
+            if any(layer.GetPrimAtPath(path) for layer in rep_layers):
+                ancestral_paths.append(path)
+
+        with omni.kit.undo.group():
+            if local_paths:
+                omni.kit.commands.execute("DeletePrimsCommand", paths=local_paths)
+            if ancestral_paths:
+                self._delete_ancestral_prims(ancestral_paths, rep_layers)
 
     def _restore_prim_cb(self) -> None:
         sel_paths = self._get_selected_by_action(self.ActionType.RESTORE)

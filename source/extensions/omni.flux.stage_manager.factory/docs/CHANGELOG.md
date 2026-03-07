@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.10.2]
+### Fixed
+- REMIX-5078: Fixed crash when building tree item widgets with expired prims after delete or restore
+
 ## [4.10.1]
 ### Changed
 - Applied new lint rules
