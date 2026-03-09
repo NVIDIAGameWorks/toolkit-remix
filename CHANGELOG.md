@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5078: Fixed Stage Manager delete button failing on prims defined in replacement sublayers (ancestral prims)
 - REMIX-5078: Fixed Stage Manager delete and restore buttons not working when an instanced prim is selected
 - REMIX-5078: Fixed Stage Manager crash from accessing expired prims after delete or restore operations
+- REMIX-4938: Fixed Stage Manager filter tooltips not being displayed
 
 ### Removed
 

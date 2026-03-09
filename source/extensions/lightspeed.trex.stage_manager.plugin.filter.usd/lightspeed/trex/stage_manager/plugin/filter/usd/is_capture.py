@@ -65,7 +65,7 @@ class IsCaptureFilterPlugin(_StageManagerUSDFilterPlugin):
         return False
 
     def build_ui(self):
-        with ui.HStack(spacing=ui.Pixel(8)):
+        with ui.HStack(spacing=ui.Pixel(8), tooltip=self.tooltip):
             ui.Spacer(width=0)
             ui.Label(self.display_name, width=ui.Pixel(self._LABEL_WIDTH), alignment=ui.Alignment.RIGHT)
             self._ref_type_combobox = ui.ComboBox(
