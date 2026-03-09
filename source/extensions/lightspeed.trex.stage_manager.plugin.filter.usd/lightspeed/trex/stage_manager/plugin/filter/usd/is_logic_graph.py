@@ -52,7 +52,7 @@ class RemixLogicPrimsFilterPlugin(StageManagerUSDFilterPlugin):
 
     def build_ui(self) -> None:
         filter_labels = [each.value for each in FilterTypes]
-        with ui.HStack(spacing=ui.Pixel(8)):
+        with ui.HStack(spacing=ui.Pixel(8), tooltip=self.tooltip):
             ui.Spacer(width=0)
             ui.Label(
                 self.display_name,

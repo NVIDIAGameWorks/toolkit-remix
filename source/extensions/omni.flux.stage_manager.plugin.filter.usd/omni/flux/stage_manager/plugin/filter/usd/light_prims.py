@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 class LightPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
     display_name: str = Field(default="Light Prims", exclude=True)
-    tooltip: str = Field(default="Filter out light prims", exclude=True)
+    tooltip: str = Field(default="Filter for light prims", exclude=True)
 
     def _filter_predicate(self, prim: "Usd.Prim") -> bool:
         return prim.HasAPI(UsdLux.LightAPI) if hasattr(UsdLux, "LightAPI") else prim.IsA(UsdLux.Light)

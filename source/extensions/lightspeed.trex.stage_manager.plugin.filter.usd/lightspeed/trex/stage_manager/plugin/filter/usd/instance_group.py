@@ -36,7 +36,7 @@ class InstanceGroupFilterPlugin(_ToggleableUSDFilterPlugin):
     """
 
     display_name: str = Field(default="Instance Group", exclude=True)
-    tooltip: str = Field(default="Filter out instance group", exclude=True)
+    tooltip: str = Field(default="Filter for instance group", exclude=True)
     filter_category: _FilterCategory = Field(default=_FilterCategory.GROUP, exclude=True)
 
     def _filter_predicate(self, prim: Usd.Prim) -> bool:

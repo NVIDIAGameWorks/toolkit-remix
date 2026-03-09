@@ -55,7 +55,7 @@ class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
 
     def build_ui(self):
         # Single HStack to match combo box filter row height (no VStack/Spacers)
-        with ui.HStack(height=0, spacing=ui.Pixel(8)):
+        with ui.HStack(height=0, spacing=ui.Pixel(8), tooltip=self.tooltip):
             ui.Spacer(width=0)
             ui.Label(self.display_name, width=ui.Pixel(self._LABEL_WIDTH), alignment=ui.Alignment.RIGHT_CENTER)
             ui.Spacer(width=0)
