@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 class GeometryPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
     display_name: str = Field(default="Geometry Prims", exclude=True)
-    tooltip: str = Field(default="Filter out geometry prims", exclude=True)
+    tooltip: str = Field(default="Filter for geometry prims", exclude=True)
 
     def _filter_predicate(self, prim: "Usd.Prim") -> bool:
         return prim.IsA(UsdGeom.Mesh)

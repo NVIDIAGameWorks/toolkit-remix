@@ -23,7 +23,7 @@ from .base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
 
 class MaterialPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
     display_name: str = Field(default="Material Prims", exclude=True)
-    tooltip: str = Field(default="Filter out material prims", exclude=True)
+    tooltip: str = Field(default="Filter for material prims", exclude=True)
 
     include_meshes: bool = Field(
         True, description="Whether the filter should also include child meshes with the materials or not."
