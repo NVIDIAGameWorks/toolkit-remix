@@ -47,7 +47,7 @@ class IsCategoryFilterPlugin(_StageManagerUSDFilterPlugin):
         return any(attr.GetName() == self._current_attr and attr.Get() for attr in item.data.GetAttributes())
 
     def build_ui(self):
-        with ui.HStack(spacing=ui.Pixel(8)):
+        with ui.HStack(spacing=ui.Pixel(8), tooltip=self.tooltip):
             ui.Spacer(width=0)
             ui.Label(self.display_name, width=ui.Pixel(self._LABEL_WIDTH), alignment=ui.Alignment.RIGHT)
             self._cat_type_combobox = ui.ComboBox(

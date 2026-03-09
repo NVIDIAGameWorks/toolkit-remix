@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 class MeshPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
     display_name: str = Field(default="Mesh Prims", exclude=True)
-    tooltip: str = Field(default="Filter out mesh prims", exclude=True)
+    tooltip: str = Field(default="Filter for mesh prims", exclude=True)
 
     include_instances: bool = Field(
         default=True, description="Whether the filter should also include instances with the meshes or not."
