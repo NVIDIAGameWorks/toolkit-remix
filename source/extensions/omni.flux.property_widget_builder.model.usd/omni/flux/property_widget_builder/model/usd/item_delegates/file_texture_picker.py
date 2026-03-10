@@ -32,6 +32,8 @@ import omni.ui as ui
 import omni.usd
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.property_widget_builder.delegates.string_value.file_picker import FilePicker as _FilePicker
+from omni.kit.widget.prompt import PromptButtonInfo as _PromptButtonInfo
+from omni.kit.widget.prompt import PromptManager as _PromptManager
 from omni.flux.property_widget_builder.model.file import CustomFileAttributeItem as _CustomFileAttributeItem
 from omni.flux.property_widget_builder.model.file import FileAttributeItem as _FileAttributeItem
 from omni.flux.property_widget_builder.model.file import FileDelegate as _FileDelegate
@@ -356,6 +358,19 @@ class FileTexturePicker(_FilePicker):
         else:
             path = omni.client.normalize_url(path).replace("\\", "/")
         return fallback, path
+
+    def _validate_selection(self, dirname: str, filename: str) -> bool:
+        return not filename or Path(filename).suffix.lower() in _SUPPORTED_TEXTURE_EXTENSIONS
+
+    def _on_validation_failed(self, dirname: str, filename: str):
+        supported = ", ".join(_SUPPORTED_TEXTURE_EXTENSIONS)
+        _PromptManager.post_simple_prompt(
+            "Invalid Texture File",
+            f"The selected file has an unsupported extension.\n\nSupported texture formats: {supported}",
+            ok_button_info=_PromptButtonInfo("OK"),
+            modal=True,
+            no_title_bar=False,
+        )
 
     def __is_field_path_valid(
         self, path, widget: ui.AbstractField, value_model: "_UsdAttributeValueModel", element_current_idx: int

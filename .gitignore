@@ -159,3 +159,6 @@ conf.py
 
 # Ignore Pyright directories config
 pyrightconfig.json
+
+# Ignore local AI planning docs (not for version control)
+docs/plans/
