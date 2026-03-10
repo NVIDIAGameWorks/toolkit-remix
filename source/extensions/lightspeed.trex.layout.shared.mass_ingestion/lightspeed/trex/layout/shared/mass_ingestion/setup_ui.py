@@ -68,6 +68,8 @@ class SetupUI(_WorkspaceWidget):
         super().show(visible)
         if self._mass_ingest_widget:
             self._mass_ingest_widget.show(visible)
+            if visible:
+                self._mass_ingest_widget.sync_visible_for_selection()
 
     def destroy(self):
         """Clean up all resources."""
