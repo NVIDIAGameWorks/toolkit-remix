@@ -175,6 +175,18 @@ class AssetImporter(_ContextBaseUSD):
 
         self._extensions = [_UsdExtensions.USD, _UsdExtensions.USDA, _UsdExtensions.USDC]
 
+    @property
+    def visible(self) -> bool:
+        """Whether the file list widget is visible (e.g. only the active tab's list accepts drops in mass UI)."""
+        if self._file_list_field is not None:
+            return self._file_list_field.visible
+        return False
+
+    @visible.setter
+    def visible(self, value: bool) -> None:
+        if self._file_list_field is not None:
+            self._file_list_field.visible = value
+
     @omni.usd.handle_exception
     async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
@@ -493,6 +505,7 @@ class AssetImporter(_ContextBaseUSD):
                     drop_filter_fn=__filter_drop,
                     allow_empty_input_files_list=schema_data.allow_empty_input_files_list,
                 )
+                self._file_list_field.visible = True
                 _InfoIconWidget(
                     "The list of files to import as USD files.\n\n"
                     "NOTE: There must be at least 1 file in the list for it to be valid."

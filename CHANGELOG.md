@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5078: Fixed Stage Manager crash from accessing expired prims after delete or restore operations
 - REMIX-4938: Fixed Stage Manager filter tooltips not being displayed
 - REMIX-3411: Fixed texture file picker accepting unsupported file extensions; invalid selections now show a prompt listing valid texture formats
+- REMIX-5095: Fixed mass-ingestion (e.g. IngestCraft) so drag-and-drop adds files only to the visible tab (Model(s) or Material(s)), not to both lists.
 
 ### Removed
 

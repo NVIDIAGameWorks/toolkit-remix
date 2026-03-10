@@ -215,17 +215,32 @@ class ValidatorMassWidget:
         self._tab_toggled(item, visible)
 
     def _on_schema_selection_changed(self, _item: _TabbedItem):
-        for item, (page, _was_built, frame_build) in self._pages.items():
+        for item, (page, _was_built, _frame_build) in self._pages.items():
             value = (
                 item.title == self._schema_tree_view.selection[0].title if self._schema_tree_view.selection else None
             )
             page.visible = value
-            frame_build.enabled = value
             if value:
                 with self._mass_queue_frame[item]:
                     self._create_work_ui()
 
         self._selection_changed(self._schema_tree_view.selection[0])
+
+        self._update_visible_for_selection()
+
+    def _update_visible_for_selection(self):
+        """Set list widget visibility so only the selected tab's list accepts drops."""
+        selected_title = self._schema_tree_view.selection[0].title if self._schema_tree_view.selection else None
+        for item in self._pages:
+            instance = item.model.model.context_plugin.instance
+            # In production only AssetImporter and TextureImporter are top-level; both have visible.
+            # Test plugins (e.g. FakeContext) used as top-level context do not, so guard with hasattr.
+            if hasattr(instance, "visible"):
+                instance.visible = item.title == selected_title
+
+    def sync_visible_for_selection(self):
+        """Update list widget visibility to match current selection (e.g. after layout show)."""
+        self._update_visible_for_selection()
 
     @omni.usd.handle_exception
     async def _build_mass_ui_plugin(self):
@@ -261,6 +276,8 @@ class ValidatorMassWidget:
         if items and self._mass_queue_widget is None:
             with self._mass_queue_frame[items[0]]:
                 self._create_work_ui()
+
+        self._update_visible_for_selection()
 
     def add_and_run_all(self):
         """Add and run the Mass Validation"""
@@ -491,6 +508,7 @@ class ValidatorMassWidget:
             self._previous_selection = self._schema_tree_view.selection
         if not value:
             self._schema_tree_view.selection = []
+            self._update_visible_for_selection()
         elif value and not self._schema_tree_view.selection:
             self._schema_tree_view.selection.extend(self._previous_selection)
         if self._schema_tree_view.selection and self._schema_tree_view.selection[0]:

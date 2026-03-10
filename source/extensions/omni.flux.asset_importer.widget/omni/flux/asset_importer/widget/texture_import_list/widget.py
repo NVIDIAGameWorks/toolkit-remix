@@ -106,9 +106,15 @@ class TextureImportListWidget:
         _setup_scanner_dialog(callback={"texture_import": [self._model.add_items]})
 
     def _on_drag_drop_external(self, event: carb.events.IEvent):
+        if self.__root_frame is None or not self.__root_frame.visible:
+            return
+
         async def do_drag_drop():
             if not self._allow_drop:
                 # In validation failure dialog; don't allow more drops.
+                return
+            if self.__root_frame is None or not self.__root_frame.visible:
+                # Switched tabs before the async ran; don't add to this list.
                 return
 
             paths = event.payload.get("paths", ())
@@ -131,9 +137,19 @@ class TextureImportListWidget:
                 self.__drop_callback(paths)
             self._model.add_items(paths)
 
-        if not self.__root_frame.enabled:
-            return
         asyncio.ensure_future(do_drag_drop())
+
+    @property
+    def visible(self) -> bool:
+        """Whether the root frame is visible (e.g. only the active tab's list should accept drops)."""
+        if self.__root_frame is not None:
+            return self.__root_frame.visible
+        return False
+
+    @visible.setter
+    def visible(self, value: bool) -> None:
+        if self.__root_frame is not None:
+            self.__root_frame.visible = value
 
     @property
     def model(self) -> TextureImportListModel:
