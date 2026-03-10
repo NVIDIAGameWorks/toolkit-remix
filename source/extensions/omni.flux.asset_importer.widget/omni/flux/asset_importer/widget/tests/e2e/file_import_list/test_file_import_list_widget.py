@@ -33,6 +33,10 @@ from omni.flux.utils.common.omni_url import OmniUrl
 from omni.kit import ui_test
 from omni.kit.test_suite.helpers import arrange_windows
 
+from omni.flux.asset_importer.widget.tests.e2e.common.scan_dialog_helpers import (
+    ensure_scan_dialog_input_folder,
+)
+
 
 class DropEvent:
     payload = {}
@@ -191,7 +195,11 @@ class TestFileImportListWidget(omni.kit.test.AsyncTestCase):
 
         # A new file path should be added
         self.assertEqual(len(urls) + 1, len(file_items))
-        self.assertEqual(new_item.resolve().as_posix(), Path(file_items[-1].widget.text).as_posix())
+        # Normalize paths so short (8.3) and long forms compare equal on Windows
+        self.assertEqual(
+            new_item.resolve().as_posix(),
+            Path(file_items[-1].widget.text).resolve().as_posix(),
+        )
 
     async def test_remove_should_validate_selection_and_remove_items_if_valid(self):
         # Setup the test
@@ -293,8 +301,10 @@ class TestFileImportListWidget(omni.kit.test.AsyncTestCase):
         await choose_file_button.click()
         await ui_test.human_delay(10)
 
-        input_folder_text = input_folder_field.model.get_value_as_string().lower()
-        self.assertEqual(str(base_path).replace("\\", "/").lower(), input_folder_text[:-1])
+        ensure_scan_dialog_input_folder(input_folder_field, base_path)
+
+        input_folder_text = input_folder_field.model.get_value_as_string().lower().replace("\\", "/").rstrip("/")
+        self.assertEqual(str(base_path).replace("\\", "/").lower(), input_folder_text)
 
         search_field.model.set_value("0")
         await scan_button.click()
@@ -338,6 +348,10 @@ class TestFileImportListWidget(omni.kit.test.AsyncTestCase):
             "Select Directory to Scan//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
         )
         choose_file_button = ui_test.find("Select Directory to Scan//Frame/**/Button[*].text=='Select'")
+        input_folder_field = ui_test.find(
+            f"{scan_dialog_title}//Frame/**/StringField[*].identifier=='input_folder_field'"
+        )
+        self.assertIsNotNone(input_folder_field, "Scan dialog input folder field not found")
         base_path = Path(self.temp_dir.name)
         asset_file = base_path / "0.usda"
         asset_file.touch()
@@ -349,6 +363,8 @@ class TestFileImportListWidget(omni.kit.test.AsyncTestCase):
         await choose_file_button.click()
         await ui_test.human_delay(10)
 
+        ensure_scan_dialog_input_folder(input_folder_field, base_path)
+
         await scan_button.click()
         await ui_test.human_delay(10)
 
@@ -356,6 +372,8 @@ class TestFileImportListWidget(omni.kit.test.AsyncTestCase):
         asset_checkbox = ui_test.find(f"{scan_dialog_title}//Frame/**/CheckBox[*].name=='{asset_name}'")
         asset_name2 = asset_file2.name
         asset_checkbox2 = ui_test.find(f"{scan_dialog_title}//Frame/**/CheckBox[*].name=='{asset_name2}'")
+        self.assertIsNotNone(asset_checkbox, f"CheckBox for '{asset_name}' not found after scan")
+        self.assertIsNotNone(asset_checkbox2, f"CheckBox for '{asset_name2}' not found after scan")
 
         # Shift selecting both items
         await ui_test.emulate_mouse_move_and_click(
