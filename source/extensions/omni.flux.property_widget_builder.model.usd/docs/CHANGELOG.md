@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.25.0]
+### Fixed
+- REMIX-3411: Fixed `FileTexturePicker` accepting files with unsupported extensions; unsupported selections now show a prompt dialog listing valid texture formats
+
 ## [2.24.1]
 ### Changed
 - Applied new lint rules

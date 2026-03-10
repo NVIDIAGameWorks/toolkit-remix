@@ -15,12 +15,14 @@
 * limitations under the License.
 """
 
+from .test_file_texture_picker import TestFileTexturePicker
 from .test_relationship_item import TestUSDRelationshipItem
 from .test_relationship_utils import TestRelationshipUtils
 from .test_relationship_value_model import TestUsdRelationshipValueModel
 from .test_usd_attribute_item_bounds import TestUSDAttributeItemBounds
 
 __all__ = [
+    "TestFileTexturePicker",
     "TestRelationshipUtils",
     "TestUSDAttributeItemBounds",
     "TestUSDRelationshipItem",

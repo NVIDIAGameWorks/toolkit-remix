@@ -135,6 +135,14 @@ class FilePicker(AbstractField):
             path = None
         return fallback, path
 
+    def _validate_selection(self, dirname: str, filename: str) -> bool:
+        """Override to validate the selected file before the picker closes. Returns True to accept."""
+        return True
+
+    def _on_validation_failed(self, dirname: str, filename: str):
+        """Override to handle a failed validation (e.g. show a prompt)."""
+        pass
+
     def _on_open_file_pressed(
         self, widget: ui.AbstractField, value_model: "ItemModelBase", element_current_idx: int, x, y, button, modifier
     ):
@@ -152,6 +160,8 @@ class FilePicker(AbstractField):
             current_file=navigate_to,
             fallback=fallback,
             file_extension_options=self._file_extension_options,
+            validate_selection=self._validate_selection,
+            validation_failed_callback=self._on_validation_failed,
         )
 
     def _set_field(self, widget: ui.AbstractField, value_model: "ItemModelBase", element_current_idx: int, path: str):
