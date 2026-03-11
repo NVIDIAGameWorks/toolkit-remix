@@ -46,6 +46,15 @@ def _matches_any_glob(path: str, patterns: list[str]) -> bool:
     return any(fnmatch.fnmatch(path, p) for p in patterns)
 
 
+def _is_platform_independent(file_path: str) -> bool:
+    """Check if a packman manifest can be pulled without a platform argument."""
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            return "${platform}" not in f.read()
+    except OSError:
+        return False
+
+
 def _remove_file_safe(path: str) -> None:
     """Remove a file if it exists. Silently ignores errors (locked, missing, permissions)."""
     with contextlib.suppress(OSError):
@@ -206,11 +215,14 @@ def _sync_internal_repo(is_ci: bool) -> list[str]:
     Returns a list of local paths to packman manifests that need pulling.
     """
     if not _is_host_reachable(GITLAB_HOST):
-        # Offline fallback: collect previously downloaded packman manifests
+        # Offline fallback: pull platform-independent manifests only.
+        # Platform-specific files (containing ${platform}) are handled later
+        # by the build system with proper platform resolution.
         manifests = []
         for pattern in PACKMAN_GLOBS:
             for match in glob.glob(os.path.join(REPO_ROOT, pattern)):
-                manifests.append(match)
+                if _is_platform_independent(match):
+                    manifests.append(match)
         return manifests
 
     # List all files in the private repo
@@ -235,11 +247,13 @@ def _sync_internal_repo(is_ci: bool) -> list[str]:
         if files_to_sync:
             cache.prune(files_to_sync)
 
-    # Collect packman manifests for dependency resolution
+    # Collect packman manifests for dependency resolution (skip platform-specific files)
     return [
         _to_local_path(fp)
         for fp, _ in files_to_sync
-        if _matches_any_glob(fp, PACKMAN_GLOBS) and os.path.exists(_to_local_path(fp))
+        if _matches_any_glob(fp, PACKMAN_GLOBS)
+        and os.path.exists(_to_local_path(fp))
+        and _is_platform_independent(_to_local_path(fp))
     ]
 
 
