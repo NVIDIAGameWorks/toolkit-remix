@@ -89,3 +89,6 @@ On-demand rules and all commands are exposed as Cursor skills (`.cursor/skills/*
   `.vscode/mcp.json` (Copilot), and `.windsurf/mcp.json`.
 - **Permissions and trust boundaries** (what an agent may do autonomously vs. must ask about) belong in the
   agent-specific entry point, not in `.agents/`. Claude Code permissions live in `.claude/settings.json`.
+- **Development plans and specs** must be saved to `docs/plans/` (already gitignored). Never save them to
+  `docs/superpowers/` or any other location. If you use an alternative directory, add it to `.gitignore` before
+  saving any files there — failing to do so will break the docs build (Sphinx treats unlinked files as errors).
