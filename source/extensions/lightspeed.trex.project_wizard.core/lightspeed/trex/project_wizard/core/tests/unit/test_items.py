@@ -27,8 +27,6 @@ import omni.client
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.capture.core.shared import Setup as CaptureCore
-from lightspeed.trex.contexts import get_instance as _get_contexts_instance
-from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 from lightspeed.trex.project_wizard.core import ProjectWizardKeys, ProjectWizardSchema
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCore
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
@@ -795,14 +793,42 @@ class TestItems(omni.kit.test.AsyncTestCase):
             )
 
             with self.assertRaises(ValueError) as cm:
-                context = _get_contexts_instance()
-                context.set_current_context(_TrexContexts.STAGE_CRAFT)
                 ProjectWizardSchema.is_project_file_valid(
                     project_file, {ProjectWizardKeys.EXISTING_PROJECT.value: True}
                 )
 
         # Assert
         self.assertEqual(
-            "Unable to load layer as project file. Invalid layer type. Needs to be of type workfile.",
+            "'My Project.usda' is not a valid Remix project file. "
+            "Please select a file that was originally created as a Remix project.",
+            str(cm.exception),
+        )
+
+    async def test_schema_is_project_file_valid_non_workfile_no_context_throws(self):
+        # Arrange — replacements.usda has lightspeed_layer_type = "replacement", not "workfile"
+        project_file = await self._copy_from_example_project("replacements.usda", "My Project.usda")
+
+        # Act — deliberately do NOT set any context (reproduces the bug scenario)
+        with (
+            patch.object(omni.client, "stat") as stat_mock,
+            patch.object(ReplacementCore, "is_mod_file") as mod_file_mock,
+            patch.object(CaptureCore, "is_capture_file") as capture_file_mock,
+        ):
+            stat_mock.return_value = (
+                omni.client.Result.OK,
+                MockListEntry(str(project_file), flags=omni.client.ItemFlags.WRITEABLE_FILE),
+            )
+            mod_file_mock.return_value = False
+            capture_file_mock.return_value = False
+
+            with self.assertRaises(ValueError) as cm:
+                ProjectWizardSchema.is_project_file_valid(
+                    project_file, {ProjectWizardKeys.EXISTING_PROJECT.value: True}
+                )
+
+        # Assert
+        self.assertEqual(
+            "'My Project.usda' is not a valid Remix project file. "
+            "Please select a file that was originally created as a Remix project.",
             str(cm.exception),
         )
