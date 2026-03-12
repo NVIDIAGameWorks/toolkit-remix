@@ -66,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5095: Fixed mass-ingestion (e.g. IngestCraft) so drag-and-drop adds files only to the visible tab (Model(s) or Material(s)), not to both lists.
 - Fixed offline build fallback in repoman incorrectly pulling local platform-specific packman manifests, breaking builds outside VPN
 - REMIX-4992: Fixed non-project USDA files being accepted as valid project files when opened outside of a STAGE_CRAFT context
+- REMIX-4188: Fixed inconsistent error when trying to ingest a texture
 
 ### Removed
 
