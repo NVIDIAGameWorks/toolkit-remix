@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.6]
+### Fixed
+- Fixed non-project USDA files being accepted as valid project files when opened outside of a STAGE_CRAFT context (REMIX-4922)
+
 ## [2.0.5]
 ### Changed
 - Applied new lint rules
