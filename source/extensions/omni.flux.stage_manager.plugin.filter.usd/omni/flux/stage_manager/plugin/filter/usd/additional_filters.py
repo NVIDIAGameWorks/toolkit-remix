@@ -110,6 +110,7 @@ class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
     def __init__(self, filters: list[_StageManagerUSDFilterPlugin], on_filter_changed_fn=None):
         super().__init__()
         self.filters = filters
+        self._on_filter_changed_fn = on_filter_changed_fn
         self.items = {category: [] for category in _FilterCategory}
         for result in filters:
             filter_obj, value = result[0], result[1]
@@ -127,17 +128,18 @@ class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
             for item in category_items:
                 filter_obj = item.filter_obj
 
-                # Reset all field values
+                # Reset toggle state
                 if isinstance(filter_obj, _ToggleableUSDFilterPlugin):
                     filter_obj.filter_active = False
                     item.filter_active = False
 
-            for field_name, field_info in filter_obj.model_fields.items():
-                if field_name in {"display_name", "tooltip", "enabled", "filter_active"}:
-                    continue
-                # Skip private or excluded fields
-                if field_name.startswith("_") or field_info.exclude:
-                    continue
+                # Reset all field values and rebuild this item's UI
+                for field_name, field_info in filter_obj.model_fields.items():
+                    if field_name in {"display_name", "tooltip", "enabled", "filter_active"}:
+                        continue
+                    # Skip private or excluded fields
+                    if field_name.startswith("_") or field_info.exclude:
+                        continue
 
                     default_value = field_info.default
                     # Handle default_factory if present
@@ -146,9 +148,12 @@ class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
 
                     setattr(filter_obj, field_name, default_value)
 
-                # Rebuild UI with reset values
+                # Rebuild item UI with reset values and refresh filter
                 item.build_item()
                 filter_obj.refresh_filter_items()
+
+        if self._on_filter_changed_fn:
+            self._on_filter_changed_fn()
 
 
 class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
