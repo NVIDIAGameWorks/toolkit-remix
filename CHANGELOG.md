@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4904: Updated filter predicates to be layered and added a type enum for filter categories
 - REMIX-5009: Improved AI Agents Setup for various tasks & Reworked Dev Docs
 - REMIX-5009: Improve Linter Setup to be More Aggressive
+- REMIX-1088: All numeric property fields now use drag-to-scrub widgets (FloatDrag/IntDrag) including transforms and camera speed
 
 ### Fixed
 - REMIX-4347: Fixed Scan Folder for Ingestion showing invalid file types (e.g. .mdl) alongside valid formats

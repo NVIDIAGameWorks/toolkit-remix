@@ -69,7 +69,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
 
         # find the translate field UI
         property_branches = ui_test.find_all(
-            f"{_window.title}//Frame/**/FloatField[*].identifier=='/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"
+            f"{_window.title}//Frame/**/FloatDrag[*].identifier=='/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"
         )
         self.assertEqual(len(property_branches), 3)
 
@@ -133,7 +133,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
 
         # find the translate field UI
         property_branches = ui_test.find_all(
-            f"{_window.title}//Frame/**/FloatField[*].identifier=='/Xform/Cube.xformOp:translate,"
+            f"{_window.title}//Frame/**/FloatDrag[*].identifier=='/Xform/Cube.xformOp:translate,"
             f"/Xform/Cube2.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube2.xformOp:translate,"
             f"/Xform/Cube.xformOp:translate,/Xform/Cube2.xformOp:translate'"
         )

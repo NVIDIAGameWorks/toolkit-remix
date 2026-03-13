@@ -32,7 +32,7 @@ class _StubValueField(AbstractValueField):
     """Thin concrete subclass for testing AbstractValueField."""
 
     def __init__(self, **kwargs):
-        kwargs.setdefault("widget_type", ui.FloatField)
+        kwargs.setdefault("widget_type", ui.FloatDrag)
         kwargs.setdefault("style_name", "StubValueField")
         super().__init__(**kwargs)
 
@@ -160,8 +160,8 @@ class TestAbstractValueField(omni.kit.test.AsyncTestCase):
 
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
-        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatField[*]")
-        self.assertTrue(len(widget_refs) > 0, "No FloatField widgets found")
+        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatDrag[*]")
+        self.assertTrue(len(widget_refs) > 0, "No FloatDrag widgets found")
         widget_ref = widget_refs[0]
 
         await widget_ref.double_click()
@@ -189,8 +189,8 @@ class TestAbstractValueField(omni.kit.test.AsyncTestCase):
 
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
-        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatField[*]")
-        self.assertTrue(len(widget_refs) > 0, "No FloatField widgets found")
+        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatDrag[*]")
+        self.assertTrue(len(widget_refs) > 0, "No FloatDrag widgets found")
         widget_ref = widget_refs[0]
 
         await widget_ref.double_click()
@@ -218,8 +218,8 @@ class TestAbstractValueField(omni.kit.test.AsyncTestCase):
 
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
-        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatField[*]")
-        self.assertTrue(len(widget_refs) > 0, "No FloatField widgets found")
+        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatDrag[*]")
+        self.assertTrue(len(widget_refs) > 0, "No FloatDrag widgets found")
         widget_ref = widget_refs[0]
 
         await widget_ref.double_click()
@@ -247,8 +247,8 @@ class TestAbstractValueField(omni.kit.test.AsyncTestCase):
 
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
-        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatField[*]")
-        self.assertTrue(len(widget_refs) > 0, "No FloatField widgets found")
+        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatDrag[*]")
+        self.assertTrue(len(widget_refs) > 0, "No FloatDrag widgets found")
         widget_ref = widget_refs[0]
 
         # Type below min -- should clamp
@@ -284,8 +284,8 @@ class TestAbstractValueField(omni.kit.test.AsyncTestCase):
 
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
-        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatField[*]")
-        self.assertTrue(len(widget_refs) > 0, "No FloatField widgets found")
+        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatDrag[*]")
+        self.assertTrue(len(widget_refs) > 0, "No FloatDrag widgets found")
         widget_ref = widget_refs[0]
 
         # Type above max -- should clamp

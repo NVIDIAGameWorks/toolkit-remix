@@ -31,7 +31,7 @@ class TestFloatField(omni.kit.test.AsyncTestCase):
     """E2E tests for FloatField widget rendering."""
 
     async def test_build_ui_creates_float_field_widget(self):
-        """build_ui should produce ui.FloatField widgets."""
+        """build_ui should produce ui.FloatDrag widgets."""
         window = ui.Window(
             f"TestFloatField_{str(uuid.uuid1())}",
             height=200,
@@ -48,7 +48,7 @@ class TestFloatField(omni.kit.test.AsyncTestCase):
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
         self.assertEqual(len(widgets), 1)
-        self.assertIsInstance(widgets[0], ui.FloatField)
+        self.assertIsInstance(widgets[0], ui.FloatDrag)
 
         for w in widgets:
             w.destroy()
