@@ -215,7 +215,7 @@ class AbstractValueField(AbstractField):
 
     def __init__(
         self,
-        widget_type: type[ui.Widget],
+        widget_type: type[ui.FloatDrag] | type[ui.IntDrag],
         clamp_min: int | float | None = None,
         clamp_max: int | float | None = None,
         **kwargs,

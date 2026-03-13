@@ -32,7 +32,7 @@ class FloatField(AbstractValueField):
         **kwargs,
     ):
         kwargs.setdefault("style_name", "PropertiesWidgetField")
-        super().__init__(widget_type=ui.FloatField, clamp_min=clamp_min, clamp_max=clamp_max, **kwargs)
+        super().__init__(widget_type=ui.FloatDrag, clamp_min=clamp_min, clamp_max=clamp_max, **kwargs)
 
     def _get_value_from_model(self, model) -> float:
         return model.get_value_as_float()

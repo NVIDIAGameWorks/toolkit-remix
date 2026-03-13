@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.11.0]
+### Changed
+- REMIX-1088: `FloatField` and `IntField` delegates now use `ui.FloatDrag` / `ui.IntDrag` widgets, enabling drag-to-scrub on all unbounded numeric fields
+
 ## [1.10.0]
 ### Added
 - REMIX-3411: Added `_validate_selection` and `_on_validation_failed` overridable hook methods to `FilePicker` for subclass-driven file selection validation

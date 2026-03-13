@@ -522,7 +522,7 @@ class ViewportSpeed(ViewportStatisticFading):
 
     def __init__(self, viewport_api, **kwargs):
         self.__carb_subs: Sequence[carb.settings.SubscriptionId] = None
-        self.__cam_speed_entry: ui.FloatField | None = None
+        self.__cam_speed_entry: ui.FloatDrag | None = None
         self.__cam_speed_model_sub: carb.Subscription | None = None
         self.__viewport_id: str = str(viewport_api.id)
         self.__root_frame: ui.Frame | None = None
@@ -641,8 +641,12 @@ class ViewportSpeed(ViewportStatisticFading):
                         clicked_fn=self.__toggle_cam_speed_info,
                     )
                     ui.Label("Camera Speed:", style_type_name_override="ViewportStats", name="Label")
-                    self.__cam_speed_entry = ui.FloatField(
-                        style_type_name_override="ViewportStats", name="FloatField", width=55
+                    self.__cam_speed_entry = ui.FloatDrag(
+                        style_type_name_override="ViewportStats",
+                        name="FloatField",
+                        width=55,
+                        step=0.1,
+                        min=0.0,
                     )
                     ui.Spacer()
 

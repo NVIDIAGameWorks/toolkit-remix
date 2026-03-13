@@ -31,7 +31,7 @@ class TestIntField(omni.kit.test.AsyncTestCase):
     """E2E tests for IntField widget rendering."""
 
     async def test_build_ui_creates_int_field_widget(self):
-        """build_ui should produce ui.IntField widgets."""
+        """build_ui should produce ui.IntDrag widgets."""
         window = ui.Window(
             f"TestIntField_{str(uuid.uuid1())}",
             height=200,
@@ -48,7 +48,7 @@ class TestIntField(omni.kit.test.AsyncTestCase):
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
         self.assertEqual(len(widgets), 1)
-        self.assertIsInstance(widgets[0], ui.IntField)
+        self.assertIsInstance(widgets[0], ui.IntDrag)
 
         for w in widgets:
             w.destroy()
