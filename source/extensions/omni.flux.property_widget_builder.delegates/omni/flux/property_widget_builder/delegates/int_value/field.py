@@ -32,7 +32,7 @@ class IntField(AbstractValueField):
         **kwargs,
     ):
         kwargs.setdefault("style_name", "PropertiesWidgetField")
-        super().__init__(widget_type=ui.IntField, clamp_min=clamp_min, clamp_max=clamp_max, **kwargs)
+        super().__init__(widget_type=ui.IntDrag, clamp_min=clamp_min, clamp_max=clamp_max, **kwargs)
 
     def _get_value_from_model(self, model) -> int:
         return model.get_value_as_int()
