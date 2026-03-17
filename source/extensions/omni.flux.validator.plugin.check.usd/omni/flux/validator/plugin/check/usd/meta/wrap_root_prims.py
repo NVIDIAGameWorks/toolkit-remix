@@ -24,7 +24,7 @@ import omni.kit.commands
 import omni.kit.undo
 import omni.ui as ui
 import omni.usd
-from omni.flux.utils.common.utils import get_omni_prims as _get_omni_prims
+from omni.flux.utils.common.prims import get_omni_prims as _get_omni_prims
 from pxr import Sdf, UsdGeom
 from pydantic import Field, field_validator
 

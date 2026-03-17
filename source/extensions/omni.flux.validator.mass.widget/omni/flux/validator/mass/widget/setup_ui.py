@@ -31,6 +31,7 @@ from omni.flux.tabbed.widget import SetupUI as _TabbedFrame
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.common.os_drop_router import WidgetDropRouter as _WidgetDropRouter
 from omni.flux.validator.mass.core import Executors as _MassExecutors
 from omni.flux.validator.mass.core import ManagerMassCore as _ManagerMassCore
 from omni.flux.validator.mass.core.executors import CurrentProcessExecutor as _CurrentProcessExecutor
@@ -65,6 +66,40 @@ def disable_viewport_notifications():
         carb.settings.get_settings().set(_SETTINGS_DISABLE_NOTIFICATIONS, False)
 
 
+class TabPage(ui.Frame):
+    """
+    Drop-aware tab content frame. Owns its frame, implements the drop router contract,
+    and fires a drop event when a drop is routed here. Subscribers (e.g. file list plugin)
+    subscribe via subscribe_drop(callback) to handle drops. Always registers with the
+    router; unregisters on destroy.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._on_drop_event = _Event()
+        self._drop_subscription: _EventSubscription | None = None
+        _WidgetDropRouter.register_widget(self)
+
+    def drop_handler(self, event: Any) -> None:
+        if self._on_drop_event is not None:
+            self._on_drop_event(event)
+
+    def subscribe_drop(self, callback: Callable[[Any], None]) -> _EventSubscription:
+        """Subscribe to drop events on this tab page. Returns an EventSubscription that unsubscribes when discarded."""
+        return _EventSubscription(self._on_drop_event, callback)
+
+    def set_plugin_drop_handler(self, callback: Callable[[Any], None]) -> None:
+        """Subscribe a single plugin drop handler (e.g. instance.handle_drop). Replaces any previous subscription."""
+        self._drop_subscription = None
+        self._drop_subscription = _EventSubscription(self._on_drop_event, callback)
+
+    def destroy(self) -> None:
+        _WidgetDropRouter.unregister_widget(self)
+        self._drop_subscription = None
+        self._on_drop_event = None
+        super().destroy()
+
+
 class ValidatorMassWidget:
     def __init__(
         self,
@@ -77,7 +112,6 @@ class ValidatorMassWidget:
         """
         Create a mass validator widget
 
-        Args:
         Args:
             schema_paths: list of json file to use as schema
             use_global_style: use the global style or the local one
@@ -226,31 +260,34 @@ class ValidatorMassWidget:
 
         self._selection_changed(self._schema_tree_view.selection[0])
 
-        self._update_visible_for_selection()
-
-    def _update_visible_for_selection(self):
-        """Set list widget visibility so only the selected tab's list accepts drops."""
-        selected_title = self._schema_tree_view.selection[0].title if self._schema_tree_view.selection else None
-        for item in self._pages:
-            instance = item.model.model.context_plugin.instance
-            # In production only AssetImporter and TextureImporter are top-level; both have visible.
-            # Test plugins (e.g. FakeContext) used as top-level context do not, so guard with hasattr.
-            if hasattr(instance, "visible"):
-                instance.visible = item.title == selected_title
-
-    def sync_visible_for_selection(self):
-        """Update list widget visibility to match current selection (e.g. after layout show)."""
-        self._update_visible_for_selection()
+    @staticmethod
+    def _get_context_plugin_instance(item: _Item) -> Any:
+        """Return the context plugin instance for a schema item, or None if not available."""
+        try:
+            return item.model.model.context_plugin.instance
+        except AttributeError:
+            return None
 
     @omni.usd.handle_exception
     async def _build_mass_ui_plugin(self):
-        # build the UI of the context plugin
+        for frame, _was_built, _frame_build in (self._pages or {}).values():
+            frame.destroy()
         self._pages = {}
         self._mass_queue_frame = {}
         items = self._core.schema_model.get_item_children(None)
         for i, item in enumerate(items):
+            instance = self._get_context_plugin_instance(item)
+
             with self._schema_tree_view.get_frame(item.title):
-                frame = ui.Frame(visible=i == 0)
+                frame = TabPage(visible=(i == 0))
+                # handle_drop is an optional capability — not every ContextBase
+                # subclass supports drops (e.g. test fakes, headless plugins).
+                # The omni.flux.validator.mass.widget e2e tests use a FakeContext
+                # that doesn't implement handle_drop, so accessing it directly
+                # would raise AttributeError and break _build_mass_ui_plugin.
+                if instance is not None and hasattr(instance, "handle_drop"):
+                    frame.set_plugin_drop_handler(instance.handle_drop)
+
                 with frame:
                     with ui.VStack():
                         ui.Spacer(height=ui.Pixel(16))
@@ -276,8 +313,6 @@ class ValidatorMassWidget:
         if items and self._mass_queue_widget is None:
             with self._mass_queue_frame[items[0]]:
                 self._create_work_ui()
-
-        self._update_visible_for_selection()
 
     def add_and_run_all(self):
         """Add and run the Mass Validation"""
@@ -508,13 +543,15 @@ class ValidatorMassWidget:
             self._previous_selection = self._schema_tree_view.selection
         if not value:
             self._schema_tree_view.selection = []
-            self._update_visible_for_selection()
         elif value and not self._schema_tree_view.selection:
             self._schema_tree_view.selection.extend(self._previous_selection)
         if self._schema_tree_view.selection and self._schema_tree_view.selection[0]:
             self._on_schema_selection_changed(self._schema_tree_view.selection[0].title)
 
     def destroy(self):
+        for frame, _was_built, _frame_build in (self._pages or {}).values():
+            frame.destroy()
+        self._pages = {}
         self.__root_frame.clear()
         self.__root_frame = None
         _reset_default_attrs(self)

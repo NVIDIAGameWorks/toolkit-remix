@@ -3,6 +3,10 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [4.2.7]
+### Changed
+- Updated internal import paths for prim utilities
+
 ## [4.2.6]
 ### Changed
 - Added a delay to ensure the shader is fully composed
