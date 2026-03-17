@@ -140,6 +140,35 @@ args = [
 For the full extension directory layout (including tests),
 see [Extension Guide — Directory Layout](../architecture/extension-guide.md#directory-layout).
 
+**One test file per source file.** Each source module should have a corresponding test file with the same name
+prefixed by `test_`:
+
+```text
+my_ext/
+├── api.py          → tests/unit/test_api.py
+├── models.py       → tests/unit/test_models.py
+├── resolvers.py    → tests/unit/test_resolvers.py
+└── widget.py       → tests/e2e/test_widget.py
+```
+
+Files that are pure re-exports, type stubs, or trivial glue (`__init__.py`, `extension.py` with no logic) can
+be skipped. When in doubt, write the test file — an empty test class is cheaper than a gap in coverage.
+
+When a source file defines multiple classes (e.g., `models.py` with `Workflow`, `WorkflowInput`, `Preset`),
+create **one test class per source class** in the same test file:
+
+```python
+# test_models.py
+class TestWorkflow(omni.kit.test.AsyncTestCase):
+    ...
+
+class TestWorkflowInput(omni.kit.test.AsyncTestCase):
+    ...
+
+class TestPreset(omni.kit.test.AsyncTestCase):
+    ...
+```
+
 After writing tests, update `extension.toml` to declare them and specify any required arguments.
 
 ### Test Export
