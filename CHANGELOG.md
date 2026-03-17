@@ -70,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4992: Fixed non-project USDA files being accepted as valid project files when opened outside of a STAGE_CRAFT context
 - REMIX-4188: Fixed inconsistent error when trying to ingest a texture
 - REMIX-5113: Fixed Stage Manager filter reset functionality not resetting the filter category
+- REMIX-5112: Fixed OS drag-and-drop not working on Ingest Craft tabs by adding centralized drop routing to the active tab
 
 ### Removed
 

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.4]
+### Changed
+- Tab page visibility is now the single source of truth for drop routing; removed redundant list widget visibility sync
+
 ## [1.4.3]
 ### Fixed
 - Visibility sync for Model(s) / Material(s) tabs so drag-and-drop goes to the correct list in mass-ingestion.

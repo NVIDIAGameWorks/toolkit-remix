@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0]
+### Added
+- Drop-aware `TabPage` frame so OS file drops are routed to the correct tab in Ingest Craft
+
 ## [2.1.5]
 ### Fixed
 - Dropped files in mass-ingestion now go only to the active tab's list; switching tabs or layouts no longer updates the wrong list.

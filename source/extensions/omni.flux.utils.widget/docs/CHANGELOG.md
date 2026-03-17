@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.26.2]
+### Changed
+- Updated internal import paths for prim utilities
+
 ## [1.26.1]
 ### Changed
 - Applied new lint rules
