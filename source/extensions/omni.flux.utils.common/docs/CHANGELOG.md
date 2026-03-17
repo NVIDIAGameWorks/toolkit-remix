@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.11.0]
+### Added
+- Centralized OS drag-and-drop router (`WidgetDropRouter`) with `get_mouse_position` and `is_point_inside_widget` hit-testing utilities
+
 ## [3.10.1]
 ### Changed
 - Applied new lint rules
