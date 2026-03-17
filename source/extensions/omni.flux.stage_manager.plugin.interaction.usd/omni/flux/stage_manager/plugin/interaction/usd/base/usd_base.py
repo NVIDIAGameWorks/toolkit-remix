@@ -26,8 +26,8 @@ from omni.flux.stage_manager.factory import StageManagerTreeItem as _StageManage
 from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugin as _StageManagerInteractionPlugin
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
-from omni.flux.utils.common.utils import get_omni_prims as _get_omni_prims
-from omni.flux.utils.common.utils import get_proto_from_prim as _get_proto_from_prim
+from omni.flux.utils.common.prims import get_omni_prims as _get_omni_prims
+from omni.flux.utils.common.prims import get_proto_from_prim as _get_proto_from_prim
 from pxr import Sdf, Usd
 from pydantic import BaseModel, Field, PrivateAttr
 

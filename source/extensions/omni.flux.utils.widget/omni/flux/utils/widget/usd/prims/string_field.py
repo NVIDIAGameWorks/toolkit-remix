@@ -22,7 +22,7 @@ from typing import Any
 
 import carb.settings
 import omni.ui as ui
-from omni.flux.utils.common.utils import get_proto_from_prim
+from omni.flux.utils.common.prims import get_proto_from_prim
 from omni.flux.utils.widget.resources import get_fonts
 from pxr import Sdf, Usd
 

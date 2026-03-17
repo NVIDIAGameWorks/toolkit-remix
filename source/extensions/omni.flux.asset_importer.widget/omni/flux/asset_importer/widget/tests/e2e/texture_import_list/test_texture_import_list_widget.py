@@ -496,7 +496,7 @@ class TestTextureImportListWidget(omni.kit.test.AsyncTestCase):
         self.assertEqual(len(file_items), 0)
 
         # Simulate dropping files on the widget
-        widget._on_drag_drop_external(event)
+        widget.on_drag_drop_external(event)
         await ui_test.human_delay(70)
 
         file_items = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")
@@ -528,7 +528,7 @@ class TestTextureImportListWidget(omni.kit.test.AsyncTestCase):
 
         # Simulate dropping files on the widget The failed drop will raise an error dialog that we don't need here.
         with patch("omni.flux.asset_importer.widget.texture_import_list.widget._texture_validation_failed_callback"):
-            widget._on_drag_drop_external(event)
+            widget.on_drag_drop_external(event)
             await ui_test.human_delay()
 
         file_items = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")
@@ -559,7 +559,7 @@ class TestTextureImportListWidget(omni.kit.test.AsyncTestCase):
 
         # Simulate dropping files on the widget The failed drop will raise an error dialog that we don't need here.
         with patch("omni.flux.asset_importer.widget.texture_import_list.widget._texture_validation_failed_callback"):
-            widget._on_drag_drop_external(event)
+            widget.on_drag_drop_external(event)
             await ui_test.human_delay()
 
         file_items = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")

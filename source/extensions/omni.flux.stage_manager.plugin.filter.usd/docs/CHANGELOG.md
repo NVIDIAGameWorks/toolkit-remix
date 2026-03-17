@@ -2,6 +2,10 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [2.7.4]
+### Changed
+- Updated internal import paths for prim utilities
+
 ## [2.7.3]
 ### Fixed
 - Fixed Stage Manager filter reset functionality not resetting the filter category
