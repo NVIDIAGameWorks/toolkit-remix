@@ -30,7 +30,7 @@ in-progress reasoning.
 
 **Practical workflow:**
 
-- Watch for context usage indicators (Claude Code's status bar, Cursor's token counter, etc.)
+- Watch for context usage indicators (Cursor's token counter, etc.)
 - At roughly 50% usage, look for a natural pause point and compact
 - If you're mid-task with no good break point, it's fine to continue — the auto-compact safety net will catch you
 - After compacting, briefly re-state any critical context the agent should keep in mind
@@ -120,22 +120,6 @@ Destructive operations require explicit user approval (configured in `.claude/se
 - Piped `curl`/`wget` to shell
 
 Everything else (file reads, edits, builds, tests) runs without prompting.
-
-#### Status Line
-
-A custom status bar (`.claude/hooks/statusline.sh`) shows model name, session cost, context usage, git branch, and
-compaction hints:
-
-```text
-Opus 4.6 | $0.42 | ██████░░░░ 58% | Consider `/compact` | ⎇ dev/ptrottier/resolver-system
-```
-
-The progress bar changes color based on context usage:
-
-- **Green** (0–49%): plenty of room
-- **Yellow** (50–79%): status line shows "Consider `/compact`"
-- **Red** (`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`+): status line shows "Run `/compact` now" — auto-compact triggers at this
-  threshold (default 80%, configurable via the env var in `.claude/settings.json`)
 
 ---
 
