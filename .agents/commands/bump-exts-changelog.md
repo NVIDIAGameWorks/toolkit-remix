@@ -40,8 +40,9 @@ This info should be used to:
 
 1. Bump the version string using semver in the `config/extension.toml` file to be the next available version,
    inferring from the diff if it is a major, minor or patch bump.
-2. Write very concise, one-liner changelog entries at the **end** of the appropriate Added, Changed, Fixed, or Removed
-   section in `<ext-name>/docs/CHANGELOG.md`, following the writing style of previous entries.
+2. Write very concise, one-liner changelog entries as the **last item** of the appropriate Added, Changed, Fixed, or
+   Removed section in `<ext-name>/docs/CHANGELOG.md`. Never insert at the top — always append after the last existing
+   entry. Follow the writing style of previous entries.
 3. Ensure there is an empty line below the added section (there should always be an empty line between version
    sections).
 
@@ -52,7 +53,7 @@ Go back to Step 2 for the next extension pending bumps until all are done.
 ## Step 4
 
 Update the main project `./CHANGELOG.md` file with a concise one-line summary of all the changes made in this branch.
-Place it at the END of the `[Unreleased]` section under the appropriate heading (it should be the last item in the
-Added, Changed, Fixed, or Removed section of the Unreleased section).
+Append it as the **last item** of the appropriate heading (Added, Changed, Fixed, or Removed) under `## [Unreleased]`.
+Never insert at the top of a section — always append after the last existing entry.
 If `<ticket>` is set, prefix the line with it: `<ticket>: <one-liner summary>`. Otherwise write the summary without a
 prefix.

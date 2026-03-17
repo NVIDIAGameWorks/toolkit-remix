@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4854: OGN node attributes now show correct slider bounds and step in the Remix Logic properties panel (from OGN metadata and USDAttributeItem limits)
 - REMIX-4809: `elide_path` utility and `ElideModes` enum for truncating path strings with configurable ellipsis placement
 - REMIX-5012: Added hard-bound clamping on slider delegates and new FloatField/IntField delegates with one-sided clamp support for partially-bounded OGN attributes
+- Added Claude Code agent hooks (completion gates, memory promotion) and updated rules, commands, and dev docs
 
 ### Changed
 

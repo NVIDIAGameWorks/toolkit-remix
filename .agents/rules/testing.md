@@ -19,9 +19,12 @@ naming, and anti-patterns.
 4. **E2E tests** (`tests/e2e/`): real Kit instance, real data, full user-visible workflows. Drive actions through UI
    widget identifiers, verify results through UI state — not by calling internal methods directly.
 
-5. **Every `tests/__init__.py`** must export its test classes — an empty `__init__.py` means the runner finds nothing.
+5. **One test file per source file** — `api.py` → `test_api.py`, `models.py` → `test_models.py`. Skip trivial
+   re-export files. When in doubt, write the test file.
 
-6. **NEVER skip tests.** Do not add `@unittest.skip` unless the user explicitly authorizes it. A failing test must be
+6. **Every `tests/__init__.py`** must export its test classes — an empty `__init__.py` means the runner finds nothing.
+
+7. **NEVER skip tests.** Do not add `@unittest.skip` unless the user explicitly authorizes it. A failing test must be
    fixed, not skipped. If a test cannot be fixed, ask the user before skipping.
 
 Full guidance: `docs_dev/code-quality/testing.md`
