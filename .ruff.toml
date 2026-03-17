@@ -146,6 +146,9 @@ extend-immutable-calls = [
 "*/omni.flux.material_api/*" = ["A001"]
 # Tests often need to access private members to verify internal state
 "*/tests/*" = ["SLF001", "F403"]
+# Test __init__.py files re-export test classes for Kit test runner discovery
+"*/tests/**/__init__.py" = ["F401"]
+"*/tests/__init__.py" = ["F401"]
 
 [lint.flake8-unused-arguments]
 # Ignore *args and **kwargs - these are intentionally unused in many interfaces

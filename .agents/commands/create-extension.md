@@ -67,10 +67,24 @@ Use the pattern from `docs_dev/architecture/extension-guide.md` → `docs/index.
 Use the export pattern from `docs_dev/architecture/extension-guide.md` → `tests/__init__.py` Export Pattern. Leave
 `unit/__init__.py` and `e2e/__init__.py` as empty files.
 
-### Step 10 — Remind the User
+### Step 10 — Build & Verify
+
+**This step is mandatory — do not skip it.**
+
+Run the build to ensure the new extension is available to the rest of the codebase:
+
+```bash
+.\build.bat
+```
+
+If the build fails, fix the issue before proceeding. Common problems:
+- Missing `premake5.lua` or wrong namespace root
+- Typo in `[[python.module]]` name in `extension.toml`
+- Missing `__init__.py` in a package directory
+
+### Step 11 — Remind the User
 
 - Replace the placeholder dependency in `config/extension.toml` with actual imports. Add `"omni.flux.pip_archive" = {}`
   for any third-party pip packages.
 - New extensions load via dependencies in other extensions — only add to a `.kit` app file if this is a standalone
   top-level UI entry point.
-- Run `.\build.bat` to verify the extension builds and links correctly.

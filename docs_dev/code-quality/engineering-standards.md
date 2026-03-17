@@ -26,6 +26,25 @@ Never do these:
 | Add a feature flag or code path bypass to avoid fixing broken behavior        | You now maintain two code paths; the broken one never gets fixed          |
 | Leave dead code, legacy fallbacks, or half-completed migrations               | Future readers can't tell what's intentional; creates confusion and drift |
 | Write 200+ line functions                                                     | No single function should need that much explanation — split it           |
+| Cram many unrelated classes into one file                                     | Split into focused submodules — large files are hard to navigate and review |
+
+---
+
+## Module Organization
+
+Split modules when they stop being easily readable. Signs a module needs splitting:
+
+- Multiple unrelated classes are defined in the same file (e.g., model + delegate + widget)
+- A single widget or class definition has grown large enough that navigating it is painful
+- Scrolling through the file to find what you need takes significant effort
+
+Split along **responsibility boundaries**, not arbitrary line counts:
+
+- A `ui.py` with model, delegate, and widget → `model.py`, `delegate.py`, `widget.py`
+- A `core.py` with executor, scheduler, and helpers → split by role
+
+The `__init__.py` re-exports the public API so consumers don't need to know about the internal split.
+Function/method length is enforced by ruff — this rule is about module-level organization.
 
 ---
 
