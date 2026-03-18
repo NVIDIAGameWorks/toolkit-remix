@@ -185,6 +185,8 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         return omni.usd.get_context(self._context_name).get_selection().get_selected_prim_paths()
 
     def _on_selection_changed(self, items: list[_StageManagerTreeItem]):
+        super()._on_selection_changed(items)  # updates model.selection before USD sync
+
         if self._selection_update_lock or not self.synchronize_selection:
             return
 

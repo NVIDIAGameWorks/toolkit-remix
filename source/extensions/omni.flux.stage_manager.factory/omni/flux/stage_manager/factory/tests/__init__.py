@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from .unit.test_tree_model_selection import TestStageManagerTreeModelSelection
 from .unit.test_utils_filter_items_by_category import TestStageManagerUtils
 
-__all__ = ["TestStageManagerUtils"]
+__all__ = ["TestStageManagerTreeModelSelection", "TestStageManagerUtils"]

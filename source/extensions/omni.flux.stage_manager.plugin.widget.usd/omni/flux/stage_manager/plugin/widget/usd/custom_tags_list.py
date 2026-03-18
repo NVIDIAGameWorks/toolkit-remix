@@ -18,7 +18,7 @@
 from functools import partial
 from typing import TYPE_CHECKING
 
-from omni import ui, usd
+from omni import ui
 from omni.flux.custom_tags.core import CustomTagsCore
 from omni.flux.custom_tags.window import EditCustomTagsWindow
 from pydantic import Field, PrivateAttr
@@ -82,7 +82,6 @@ class CustomTagsWidgetPlugin(_StageManagerUSDWidgetPlugin):
             self._scrolling_frame = ui.ScrollingFrame(
                 horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
                 vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                mouse_pressed_fn=lambda x, y, b, m: self._item_clicked(b, True, model, item),
                 mouse_double_clicked_fn=partial(self._open_edit_window, model, item),
             )
             with self._scrolling_frame:
@@ -160,7 +159,7 @@ class CustomTagsWidgetPlugin(_StageManagerUSDWidgetPlugin):
         self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", x: int, y: int, b: int, m: int
     ):
         """
-        Open the Edit Tags window using the currently selected items
+        Open the Edit Tags window for the resolved action paths (see ``_get_action_paths``)
 
         Args:
              model: The tree model
@@ -173,9 +172,4 @@ class CustomTagsWidgetPlugin(_StageManagerUSDWidgetPlugin):
         if b != 0:
             return
 
-        self._item_clicked(b, True, model, item)
-
-        context = usd.get_context(self._context_name)
-        selected_paths = context.get_selection().get_selected_prim_paths()
-
-        self._edit_window = EditCustomTagsWindow(selected_paths, context_name=self._context_name)
+        self._edit_window = EditCustomTagsWindow(self._get_action_paths(model, item), context_name=self._context_name)
