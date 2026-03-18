@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.15.3]
+### Changed
+- REMIX-4575: `_on_selection_changed` now updates the tree model selection before synchronizing to the USD selection
+
 ## [2.15.2]
 ### Changed
 - Updated internal import paths for prim utilities

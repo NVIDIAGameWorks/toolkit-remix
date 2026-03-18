@@ -565,7 +565,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         Args:
             items: The list of items selected in the tree.
         """
-        pass
+        self.tree.model.set_selection(items)
 
     def _validate_data_type(self):
         """
