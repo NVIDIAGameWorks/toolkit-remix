@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.11.0]
+### Added
+- REMIX-4575: Added `selection` property and `set_selection` method to `StageManagerTreeModel` to store live tree selection state in the model
+
 ## [4.10.2]
 ### Fixed
 - REMIX-5078: Fixed crash when building tree item widgets with expired prims after delete or restore

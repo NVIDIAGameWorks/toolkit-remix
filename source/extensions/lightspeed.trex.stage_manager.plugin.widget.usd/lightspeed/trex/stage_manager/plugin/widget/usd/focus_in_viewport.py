@@ -64,11 +64,7 @@ class FocusInViewportActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
         if button != 0 or not enabled:
             return
 
-        # TODO StageManager: We change the selection after the selection.
-        #  Ideally we don't change the selection after the action is performed to keep multi-selections.
-
-        self._item_clicked(button, True, model, item)
-        self._on_frame_on_the_viewport({"context_name": self._context_name})
+        _get_active_viewport().frame_viewport_selection(self._get_action_paths(model, item))
 
     @classmethod
     def _get_menu_items(cls):
@@ -100,7 +96,6 @@ class FocusInViewportActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
         if not context:
             carb.log_error(f"Context not found: {payload.get('context_name', '')}")
             return
-
         _get_active_viewport().frame_viewport_selection(context.get_selection().get_selected_prim_paths())
 
     @classmethod

@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +14,3 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
-
-from .e2e.test_action_delete_restore import TestDeleteRestoreActionWidgetPlugin
-from .e2e.test_widget import TestStageManagerPluginWidget
-from .unit.test_focus_in_viewport import TestFocusInViewportActionWidgetPlugin
-
-__all__ = [
-    "TestDeleteRestoreActionWidgetPlugin",
-    "TestFocusInViewportActionWidgetPlugin",
-    "TestStageManagerPluginWidget",
-]
