@@ -72,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4188: Fixed inconsistent error when trying to ingest a texture
 - REMIX-5113: Fixed Stage Manager filter reset functionality not resetting the filter category
 - REMIX-5112: Fixed OS drag-and-drop not working on Ingest Craft tabs by adding centralized drop routing to the active tab
+- REMIX-4575: Fixed Stage Manager losing multiselection after clicking an action icon (visibility, focus-in-viewport, custom tags) — action now applies to the union of selected items and the clicked item without modifying the USD selection
 
 ### Removed
 

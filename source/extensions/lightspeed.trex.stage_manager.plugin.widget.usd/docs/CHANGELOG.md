@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.6]
+### Fixed
+- Fixed `focus_in_viewport` action widget losing multiselection by removing the `_item_clicked` call and injecting pre-computed union paths into the viewport framing payload
+
 ## [2.6.5]
 ### Fixed
 - Fixed delete failing on ancestral prims that are defined in replacement sublayers

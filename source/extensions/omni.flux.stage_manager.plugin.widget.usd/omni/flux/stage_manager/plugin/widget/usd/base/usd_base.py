@@ -16,9 +16,14 @@
 """
 
 import abc
+from typing import TYPE_CHECKING
 
 from omni.flux.stage_manager.factory.plugins import StageManagerWidgetPlugin as _StageManagerWidgetPlugin
 from pydantic import PrivateAttr
+
+if TYPE_CHECKING:
+    from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
+    from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 
 
 class StageManagerUSDWidgetPlugin(_StageManagerWidgetPlugin, abc.ABC):
@@ -27,3 +32,23 @@ class StageManagerUSDWidgetPlugin(_StageManagerWidgetPlugin, abc.ABC):
     def set_context_name(self, name: str):
         """Set usd context to initialize plugin before items are rebuilt."""
         self._context_name = name
+
+    def _get_action_paths(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem") -> list[str]:
+        """
+        Resolve which prim paths an action widget should operate on.
+
+        - If the clicked item is already in the current tree selection, the action applies to
+          all selected prims (preserving multi-selection).
+        - If the clicked item is *not* in the selection, the action applies to that item alone
+          (same behaviour as the original single-item case, without mutating the selection).
+        - If ``item.data`` is ``None``, falls back to the current selection.
+
+        Selection state is read from ``model.selection`` — no USD API is queried.
+        """
+        current = [str(i.data.GetPath()) for i in model.selection if i.data]
+        if item.data:
+            item_path = str(item.data.GetPath())
+            if item_path in current:
+                return current
+            return [item_path]
+        return current

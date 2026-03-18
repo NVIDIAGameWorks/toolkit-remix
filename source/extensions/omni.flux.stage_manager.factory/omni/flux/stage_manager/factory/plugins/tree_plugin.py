@@ -234,6 +234,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         self._context_predicates: list[Callable[[_StageManagerItem], bool]] = []
         self._column_count = 0
         self._max_workers = None
+        self._selection: list[StageManagerTreeItem] = []
 
     @property
     @abc.abstractmethod
@@ -247,6 +248,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
                 "_context_predicates": None,
                 "_column_count": None,
                 "_max_workers": None,
+                "_selection": None,
             }
         )
         return default_attr
@@ -257,6 +259,22 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         Get a dictionary of item hashes and items
         """
         return {hash(item): item for item in self.iter_items_children()}
+
+    @property
+    def selection(self) -> list[StageManagerTreeItem]:
+        """The tree items currently selected in the UI."""
+        return list(self._selection)
+
+    def set_selection(self, items: Iterable[StageManagerTreeItem]):
+        """
+        Store the currently selected tree items.
+
+        A copy of ``items`` is stored; mutating the original list after calling
+        this method has no effect on the stored selection.
+
+        Called by the interaction plugin whenever the tree selection changes.
+        """
+        self._selection = list(items)
 
     @usd.handle_exception
     async def get_context_items(self) -> list[_StageManagerItem]:
@@ -316,6 +334,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         for item in filtered_items:
             item.tree_item = None
 
+        self.set_selection([])
         self._items = self._build_items(filtered_items)
 
         self._item_changed(None)
