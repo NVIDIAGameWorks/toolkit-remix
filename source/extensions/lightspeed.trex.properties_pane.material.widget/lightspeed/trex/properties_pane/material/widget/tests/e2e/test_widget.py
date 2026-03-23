@@ -725,6 +725,34 @@ class TestMaterialPropertyWidget(AsyncTestCase):
         finally:
             await self.__destroy(_window, _material_property_wid)
 
+    async def test_drop_texture_with_all_invalid_extensions_does_not_crash(self):
+        # Arrange
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
+        _material_property_wid.set_external_drag_and_drop(window_name=_window.title)
+
+        try:
+            usd_context = omni.usd.get_context()
+            usd_context.get_selection().set_selected_prim_paths(
+                ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False
+            )
+            await ui_test.human_delay(human_delay_speed=10)
+
+            context_inst = _trex_contexts_instance()
+            context_inst.set_current_context(_Contexts.STAGE_CRAFT)
+
+            # Act: drop a file whose extension is not in _SUPPORTED_TEXTURE_EXTENSIONS
+            # — all payloads are filtered out, leaving dropped_paths empty.
+            invalid_path = str(Path(tempfile.mkdtemp()) / "not_a_texture.txt")
+            omni.appwindow.get_default_app_window().get_window_drop_event_stream().push(0, 0, {"paths": [invalid_path]})
+            await ui_test.human_delay(20)
+
+            # Assert: the drop was silently ignored — no texture assignment dialog opened
+            action_button = ui_test.find_all("Texture Assignment//Frame/**/Button[*].identifier=='AssignButton'")
+            self.assertEqual(len(action_button), 0)
+
+        finally:
+            await self.__destroy(_window, _material_property_wid)
+
     async def test_texture_set_assignment(self):
         # setup
         _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
