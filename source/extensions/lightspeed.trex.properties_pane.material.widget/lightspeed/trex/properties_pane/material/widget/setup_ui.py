@@ -258,6 +258,9 @@ class SetupUI:
             if not basename:
                 basename = path.name
 
+        if not dropped_paths:
+            return
+
         other_dds_paths = dropped_paths[0].parent.glob("*.[dD][dD][sS]")
         dropped_paths.extend(other_dds_paths)
         self._texture_assignment(dropped_paths, items, allow_dialog_skip=False, basename=basename)
