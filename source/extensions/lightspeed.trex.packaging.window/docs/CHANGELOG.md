@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.4]
+### Fixed
+- Pass the packaging error row's target layer into texture replace/remove so edits apply on the correct sublayer.
+
 ## [1.1.3]
 ### Changed
 - Modernize python style and enable more ruff checks
