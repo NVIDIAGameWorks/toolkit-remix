@@ -78,3 +78,73 @@ class TestTextureReplacementsCore(AsyncTestCase):
                 input_names = sorted([shader_input.split(".")[-1] for shader_input in shader_inputs])
                 self.assertTrue(shader_inputs)
                 self.assertEqual(input_names, expected_attributes)
+
+    async def test_replace_textures_remove_passes_target_layer_to_commands(self):
+        core = TextureReplacementsCore(self.context.get_name())
+        stage = self.context.get_stage()
+        target_layer = stage.GetRootLayer()
+        texture_path = "/RootNode/Looks/mat_BC868CE5A075ABB1/Shader.inputs:diffuse_texture"
+
+        diffuse_input = Mock()
+        diffuse_input.GetName.return_value = "inputs:diffuse_texture"
+        diffuse_input.GetTypeName.return_value = "Asset"
+
+        shader_info_instance = Mock()
+        shader_info_instance.get_input_properties.return_value = [diffuse_input]
+
+        with (
+            patch("lightspeed.trex.texture_replacements.core.shared.setup.commands.execute") as execute_mock,
+            patch(
+                "lightspeed.trex.texture_replacements.core.shared.setup._ShaderInfoAPI",
+                return_value=shader_info_instance,
+            ),
+            patch(
+                "lightspeed.trex.texture_replacements.core.shared.data_models.validators.ShaderInfoAPI",
+                return_value=shader_info_instance,
+            ),
+        ):
+            core.replace_textures([(texture_path, None)], force=True, use_undo_group=False, target_layer=target_layer)
+
+        remove_calls = [c for c in execute_mock.call_args_list if c[0] and c[0][0] == "RemoveProperty"]
+        self.assertTrue(remove_calls)
+
+        override_calls = [c for c in execute_mock.call_args_list if c[0] and c[0][0] == "RemoveOverride"]
+        for override_call in override_calls:
+            self.assertEqual(target_layer, override_call[1]["layer"])
+
+    async def test_replace_textures_change_property_passes_target_layer_to_command(self):
+        core = TextureReplacementsCore(self.context.get_name())
+        stage = self.context.get_stage()
+        target_layer = stage.GetRootLayer()
+        texture_path = "/RootNode/Looks/mat_BC868CE5A075ABB1/Shader.inputs:diffuse_texture"
+        new_texture = get_test_data("usd/project_example/sources/textures/ingested/16px_Diffuse.dds")
+
+        diffuse_input = Mock()
+        diffuse_input.GetName.return_value = "inputs:diffuse_texture"
+        diffuse_input.GetTypeName.return_value = "Asset"
+
+        shader_info_instance = Mock()
+        shader_info_instance.get_input_properties.return_value = [diffuse_input]
+
+        with (
+            patch("lightspeed.trex.texture_replacements.core.shared.setup.commands.execute") as execute_mock,
+            patch(
+                "lightspeed.trex.texture_replacements.core.shared.setup._ShaderInfoAPI",
+                return_value=shader_info_instance,
+            ),
+            patch(
+                "lightspeed.trex.texture_replacements.core.shared.data_models.validators.ShaderInfoAPI",
+                return_value=shader_info_instance,
+            ),
+        ):
+            core.replace_textures(
+                [(texture_path, new_texture)],
+                force=True,
+                use_undo_group=False,
+                target_layer=target_layer,
+            )
+
+        change_calls = [c for c in execute_mock.call_args_list if c[0] and c[0][0] == "ChangeProperty"]
+        self.assertTrue(change_calls)
+        for change_call in change_calls:
+            self.assertEqual(target_layer, change_call[1]["target_layer"])

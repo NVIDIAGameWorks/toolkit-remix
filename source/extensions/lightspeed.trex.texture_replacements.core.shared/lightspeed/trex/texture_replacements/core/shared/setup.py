@@ -21,6 +21,7 @@ from contextlib import nullcontext
 from pathlib import Path
 
 import omni.usd
+from lightspeed.common import constants
 from lightspeed.trex.utils.common.asset_utils import TEXTURE_TYPE_INPUT_MAP as _TEXTURE_TYPE_INPUT_MAP
 from lightspeed.trex.utils.common.asset_utils import get_ingested_texture_type as _get_ingested_texture_type
 from lightspeed.trex.utils.common.asset_utils import get_texture_type_input_name as _get_texture_type_input_name
@@ -177,7 +178,11 @@ class TextureReplacementsCore:
         return textures
 
     def replace_textures(
-        self, textures: list[tuple[str, str | Path | None]], force: bool = False, use_undo_group: bool = True
+        self,
+        textures: list[tuple[str, str | Path | None]],
+        force: bool = False,
+        use_undo_group: bool = True,
+        target_layer: Sdf.Layer | None = None,
     ):
         """
         Replace a list of textures
@@ -187,20 +192,28 @@ class TextureReplacementsCore:
                       a shader input and the asset path should be the absolute path to the texture asset
             force: Whether to force replace the texture or validate it was ingested correctly
             use_undo_group: Whether to use an undo group for the texture replacements
+            target_layer: Layer to author edits on; defaults to the stage's current edit target layer
         """
         with undo.group() if use_undo_group else nullcontext():
             for texture_attr_path, texture_asset_path in textures:
+                if texture_asset_path is None:
+                    removal = True
+                else:
+                    removal = False
                 try:
                     TextureReplacementsValidators.is_valid_texture_prim(
                         (texture_attr_path, texture_asset_path), self._context_name
                     )
                     TextureReplacementsValidators.is_valid_texture_asset((texture_attr_path, texture_asset_path), force)
                 except ValueError:
-                    continue
+                    if not removal:
+                        continue
 
                 attr_type = None
                 attr_path = Sdf.Path(texture_attr_path)
-                prim = self._context.get_stage().GetPrimAtPath(attr_path.GetPrimPath())
+                stage = self._context.get_stage()
+                edit_layer = target_layer or stage.GetEditTarget().GetLayer()
+                prim = stage.GetPrimAtPath(attr_path.GetPrimPath())
                 for input_property in _ShaderInfoAPI(prim).get_input_properties():
                     if attr_path.name == input_property.GetName():
                         attr_type = Sdf.ValueTypeNames.Find(input_property.GetTypeName())
@@ -211,21 +224,33 @@ class TextureReplacementsCore:
                         "ChangeProperty",
                         prop_path=texture_attr_path,
                         value=Sdf.AssetPath(
-                            omni.usd.make_path_relative_to_current_edit_target(
-                                str(texture_asset_path), stage=self._context.get_stage()
-                            )
+                            omni.usd.make_path_relative_to_current_edit_target(str(texture_asset_path), stage=stage)
                         ),
                         prev=None,
                         type_to_create_if_not_exist=attr_type,
                         usd_context_name=self._context_name,
-                        target_layer=self._context.get_stage().GetEditTarget().GetLayer(),
+                        target_layer=edit_layer,
                     )
                 else:
+                    parent_prims = []
+                    parent = prim
+                    while parent.IsValid() and str(parent.GetPath()) != constants.ROOTNODE:
+                        parent_prims.append(parent)
+                        parent = parent.GetParent()
+
                     commands.execute(
                         "RemoveProperty",
                         prop_path=texture_attr_path,
                         usd_context_name=self._context_name,
                     )
+                    for parent_prim in parent_prims:
+                        commands.execute(
+                            "RemoveOverride",
+                            prim_path=parent_prim.GetPath(),
+                            layer=edit_layer,
+                            context_name=self._context_name,
+                            check_up_to_prim=constants.ROOTNODE,
+                        )
 
     def get_texture_material(self, texture_prim_path: str) -> str | None:
         """
