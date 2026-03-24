@@ -141,7 +141,9 @@ class PackagingErrorModel(ui.AbstractItemModel):
                             )
                         else:
                             self._texture_core.replace_textures(
-                                [(str(item.prim_path), item.fixed_asset_path)], use_undo_group=False
+                                [(str(item.prim_path), item.fixed_asset_path)],
+                                use_undo_group=False,
+                                target_layer=target_layer,
                             )
                     elif is_reference:
                         self._asset_core.remove_reference(
@@ -152,7 +154,10 @@ class PackagingErrorModel(ui.AbstractItemModel):
                         )
                     else:
                         self._texture_core.replace_textures(
-                            [(str(item.prim_path), None)], force=True, use_undo_group=False
+                            [(str(item.prim_path), None)],
+                            force=True,
+                            use_undo_group=False,
+                            target_layer=target_layer,
                         )
 
         self.__on_action_changed()
