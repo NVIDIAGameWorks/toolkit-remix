@@ -75,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4575: Fixed Stage Manager losing multiselection after clicking an action icon (visibility, focus-in-viewport, custom tags) — action now applies to the union of selected items and the clicked item without modifying the USD selection
 - REMIX-4478: Fixed IndexError when dragging files with unsupported extensions onto the Material Properties panel
 - REMIX-5047: Fix for packaging for missing textures in weaker sublayers masked by stronger layer
+- REMIX-4424: Fixed AttributeError in REST API asset replacement validators when no stage is loaded
 
 ### Removed
 

@@ -39,7 +39,10 @@ class AssetReplacementsValidators:
         except Exception as e:
             raise ValueError(f"The string is not a valid prim path: {prim_path}") from e
 
-        if not omni.usd.get_context(context_name).get_stage().GetPrimAtPath(path):
+        stage = omni.usd.get_context(context_name).get_stage()
+        if stage is None:
+            raise ValueError("No stage is currently loaded")
+        if not stage.GetPrimAtPath(path):
             raise ValueError(f"The prim path does not exist in the current stage: {prim_path}")
 
         return prim_path
@@ -53,7 +56,10 @@ class AssetReplacementsValidators:
 
     @classmethod
     def is_valid_material(cls, prim_path: str, context_name: str):
-        prim = omni.usd.get_context(context_name).get_stage().GetPrimAtPath(prim_path)
+        stage = omni.usd.get_context(context_name).get_stage()
+        if stage is None:
+            raise ValueError("No stage is currently loaded")
+        prim = stage.GetPrimAtPath(prim_path)
         if not prim:
             raise ValueError(f"The prim path does not exist in the current stage: {prim_path}")
 
@@ -64,7 +70,10 @@ class AssetReplacementsValidators:
 
     @classmethod
     def has_at_least_one_ref(cls, prim_path: str, context_name: str):
-        prim = omni.usd.get_context(context_name).get_stage().GetPrimAtPath(prim_path)
+        stage = omni.usd.get_context(context_name).get_stage()
+        if stage is None:
+            raise ValueError("No stage is currently loaded")
+        prim = stage.GetPrimAtPath(prim_path)
 
         if not prim:
             raise ValueError(f"The prim path does not exist in the current stage: {prim_path}")
@@ -78,7 +87,10 @@ class AssetReplacementsValidators:
 
     @classmethod
     def ref_exists_in_prim(cls, asset_path: Path, layer_id: Path, prim_path: str, context_name: str):
-        prim = omni.usd.get_context(context_name).get_stage().GetPrimAtPath(prim_path)
+        stage = omni.usd.get_context(context_name).get_stage()
+        if stage is None:
+            raise ValueError("No stage is currently loaded")
+        prim = stage.GetPrimAtPath(prim_path)
 
         if not prim:
             raise ValueError(f"The prim path does not exist in the current stage: {prim_path}")
@@ -119,6 +131,8 @@ class AssetReplacementsValidators:
             raise ValueError(f"The layer does not exist: {layer_id}")
 
         stage = omni.usd.get_context(context_name).get_stage()
+        if stage is None:
+            raise ValueError("No stage is currently loaded")
         project_layer_ids = [
             _layer.identifier for _layer in stage.GetLayerStack(includeSessionLayers=False)
         ] + stage.GetMutedLayers()
@@ -134,6 +148,8 @@ class AssetReplacementsValidators:
         cls, prim_path: str, context_name: str
     ) -> tuple[Usd.Prim, list[tuple[Sdf.Reference, Sdf.Layer]]]:
         stage = omni.usd.get_context(context_name).get_stage()
+        if stage is None:
+            raise ValueError("No stage is currently loaded")
         prim = stage.GetPrimAtPath(str(prim_path))
         if not prim:
             # Invalid prim path
