@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.7]
+### Fixed
+- Fixed AttributeError in validators when called with no stage loaded
+
 ## [3.1.6]
 ### Changed
 - Applied new lint rules
