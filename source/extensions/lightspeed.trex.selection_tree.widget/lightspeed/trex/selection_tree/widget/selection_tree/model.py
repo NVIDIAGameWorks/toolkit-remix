@@ -565,8 +565,12 @@ class ListModel(ui.AbstractItemModel):
         if not prim.IsValid():
             return None
 
-        # Try regex-based instance-to-prototype substitution first (most reliable for
-        # standard RTX Remix path structures)
+        root_node = prim.GetPrimIndex().rootNode
+        if root_node and root_node.children:
+            return str(root_node.children[0].path)
+
+        # Fallback to regex-based instance-to-prototype substitution for USD structures
+        # where PrimIndex composition arc resolution fails (e.g., certain Composer exports)
         prototype_path = constants.COMPILED_REGEX_INSTANCE_TO_MESH_SUB.sub(
             rf"{constants.MESH_PATH}\2", str(prim.GetPath())
         )
@@ -574,14 +578,7 @@ class ListModel(ui.AbstractItemModel):
         if prototype_prim.IsValid():
             return prototype_path
 
-        # Fallback to PrimIndex composition arc resolution
-        root_node = prim.GetPrimIndex().rootNode
-        if not root_node:
-            return None
-        children = root_node.children
-        if not children:
-            return None
-        return str(children[0].path)
+        return None
 
     @staticmethod
     def __get_reference_prims(prims) -> dict[Usd.Prim, list[Sdf.Path]]:
