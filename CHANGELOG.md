@@ -84,6 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4478: Fixed IndexError when dragging files with unsupported extensions onto the Material Properties panel
 - REMIX-5047: Fix for packaging for missing textures in weaker sublayers masked by stronger layer
 - REMIX-4424: Fixed AttributeError in REST API asset replacement validators when no stage is loaded
+- Fixed selection panel showing no hierarchy or properties for certain imported USD assets by adding regex-based prototype resolution fallback
 
 ### Removed
 
