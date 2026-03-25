@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.26.1]
+### Changed
+- Renamed override context menu labels from "Delete" to "Revert" for clearer user intent
+
 ## [2.26.0]
 ### Changed
 - REMIX-1088: Default float and int field builders now use `ui.FloatDrag` / `ui.IntDrag`, enabling drag-to-scrub on all numeric property fields including transforms

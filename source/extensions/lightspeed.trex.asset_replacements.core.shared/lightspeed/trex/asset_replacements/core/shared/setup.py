@@ -494,6 +494,36 @@ class Setup:
                 return
             self.select_prim_paths([str(children[0].GetPath())])
 
+    def remove_prim_reference_overrides(self, prim_path: Sdf.Path | str) -> None:
+        """Remove only reference arc overrides from replacement layers for the given prim.
+
+        Unlike ``remove_prim_overrides`` which removes the entire prim spec,
+        this method preserves attribute opinions, relationships, and metadata
+        while clearing reference list edits.
+        """
+        replacement_layer = self._layer_manager.get_layer(_LayerType.replacement)
+        if not replacement_layer:
+            return
+
+        material_prims = _ToolMaterialCore.get_materials_from_prim_paths([prim_path], self._context_name) or []
+        material_prim_paths = [m.GetPath() for m in material_prims]
+        prim_spec_paths = [prim_path, *material_prim_paths]
+
+        with omni.kit.undo.group():
+            stack = [replacement_layer]
+            while stack:
+                layer = stack.pop()
+                for prim_spec_path in prim_spec_paths:
+                    omni.kit.commands.execute(
+                        "ClearReferenceListEditsCommand",
+                        layer_identifier=layer.identifier,
+                        prim_spec_path=str(prim_spec_path),
+                    )
+                for sublayer_path in layer.subLayerPaths:
+                    sublayer = Sdf.Layer.FindOrOpen(layer.ComputeAbsolutePath(sublayer_path))
+                    if sublayer:
+                        stack.append(sublayer)
+
     def get_selected_prim_paths(self) -> list[str]:
         return self._context.get_selection().get_selected_prim_paths()
 
@@ -826,6 +856,14 @@ class Setup:
             reference=ref,
             to_set=[],
         )
+
+        # When masking a reference from another layer (e.g. capture), the
+        # override alone is sufficient.  Child cleanup must be skipped because
+        # the children belong to the introducing layer, and running
+        # delete_prim → RemoveOverride on the parent would remove the
+        # reference override we just wrote.
+        if intro_layer and intro_layer != edit_target_layer:
+            return
 
         # we should never delete /mesh_* or /light_* or /inst_*
         regex_mesh_inst_light = re.compile(constants.REGEX_MESH_INST_LIGHT_PATH)
