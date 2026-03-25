@@ -476,7 +476,7 @@ class Delegate(ui.AbstractItemDelegate):
                                             "",
                                             height=ui.Pixel(16),
                                             name="Restore",
-                                            tooltip="Restore the original asset",
+                                            tooltip="Revert all modifications",
                                             mouse_released_fn=lambda x, y, b, m: self._on_reset_mouse_released(b, item),
                                             identifier="restore",
                                         )

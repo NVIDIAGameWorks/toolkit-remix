@@ -72,6 +72,35 @@ def __register():
 __register()
 
 
+class ClearReferenceListEditsCommand(omni.kit.commands.Command):
+    """Clear all reference list edits from a prim spec in a specific layer."""
+
+    def __init__(self, layer_identifier: str, prim_spec_path: str):
+        self._layer_identifier = layer_identifier
+        self._prim_spec_path = prim_spec_path
+        self._old_ref_list_op: Sdf.ReferenceListOp | None = None
+
+    def do(self):
+        layer = Sdf.Layer.Find(self._layer_identifier)
+        if not layer:
+            return
+        prim_spec = layer.GetPrimAtPath(self._prim_spec_path)
+        if not prim_spec or not prim_spec.hasReferences:
+            return
+        self._old_ref_list_op = prim_spec.GetInfo(Sdf.PrimSpec.ReferencesKey)
+        prim_spec.referenceList.ClearEdits()
+
+    def undo(self):
+        if self._old_ref_list_op is None:
+            return
+        layer = Sdf.Layer.Find(self._layer_identifier)
+        if not layer:
+            return
+        prim_spec = layer.GetPrimAtPath(self._prim_spec_path)
+        if prim_spec:
+            prim_spec.SetInfo(Sdf.PrimSpec.ReferencesKey, self._old_ref_list_op)
+
+
 class SetPrimTypeName(omni.kit.commands.Command):
     """
     Set the type of a prim
