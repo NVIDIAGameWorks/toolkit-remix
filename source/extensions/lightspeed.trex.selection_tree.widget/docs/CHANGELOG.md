@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.6]
+### Changed
+- Renamed restore tooltip from "Restore the original asset" to "Revert all modifications"
+
 ## [1.9.5]
 ### Changed
 - Applied new lint rules
