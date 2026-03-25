@@ -564,6 +564,17 @@ class ListModel(ui.AbstractItemModel):
         prim = self.stage.GetPrimAtPath(path)
         if not prim.IsValid():
             return None
+
+        # Try regex-based instance-to-prototype substitution first (most reliable for
+        # standard RTX Remix path structures)
+        prototype_path = constants.COMPILED_REGEX_INSTANCE_TO_MESH_SUB.sub(
+            rf"{constants.MESH_PATH}\2", str(prim.GetPath())
+        )
+        prototype_prim = self.stage.GetPrimAtPath(prototype_path)
+        if prototype_prim.IsValid():
+            return prototype_path
+
+        # Fallback to PrimIndex composition arc resolution
         root_node = prim.GetPrimIndex().rootNode
         if not root_node:
             return None
