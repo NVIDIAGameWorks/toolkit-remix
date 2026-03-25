@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.0]
+### Added
+- Added `DELETECAPTURE` action type for deleting capture-originating meshes and lights by removing their capture reference arc
+- Added a context menu on the Restore action icon with selective restore options: restore original asset or restore only the captured asset reference
+
 ## [2.6.6]
 ### Fixed
 - Fixed `focus_in_viewport` action widget losing multiselection by removing the `_item_clicked` call and injecting pre-computed union paths into the viewport framing payload

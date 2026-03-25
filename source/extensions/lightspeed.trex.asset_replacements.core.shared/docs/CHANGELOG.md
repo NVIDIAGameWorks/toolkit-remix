@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.0]
+### Added
+- Added `remove_prim_reference_overrides` method for selectively removing only reference arc overrides while preserving attribute opinions
+
+### Fixed
+- Fixed `remove_reference` skipping child cleanup for cross-layer references to prevent double-press delete behavior
+
 ## [3.1.7]
 ### Fixed
 - Fixed AttributeError in validators when called with no stage loaded

@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4809: `elide_path` utility and `ElideModes` enum for truncating path strings with configurable ellipsis placement
 - REMIX-5012: Added hard-bound clamping on slider delegates and new FloatField/IntField delegates with one-sided clamp support for partially-bounded OGN attributes
 - Added Claude Code agent hooks (completion gates, memory promotion) and updated rules, commands, and dev docs
+- REMIX-3540: Added Stage Manager support for deleting capture-originating prims and selective restore options (restore original asset vs. restore captured reference only)
 
 ### Changed
 
@@ -41,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5009: Improved AI Agents Setup for various tasks & Reworked Dev Docs
 - REMIX-5009: Improve Linter Setup to be More Aggressive
 - REMIX-1088: All numeric property fields now use drag-to-scrub widgets (FloatDrag/IntDrag) including transforms and camera speed
+- REMIX-3540: Renamed override context menu labels from "Delete" to "Revert" for clearer user intent
 
 ### Fixed
 - REMIX-4347: Fixed Scan Folder for Ingestion showing invalid file types (e.g. .mdl) alongside valid formats

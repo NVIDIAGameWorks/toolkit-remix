@@ -20,6 +20,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
 
 import omni.kit.commands
+import omni.kit.undo
 import omni.usd
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.asset_replacements.core.shared import usd_copier as _usd_copier
@@ -215,6 +216,182 @@ class TestAssetReplacementsCore(AsyncTestCase):
             mock_copy_non_usd_asset.assert_called_once_with(
                 context=self.context, prim_path=test_prim_path, callback_func=test_callback_func
             )
+
+    def _find_replacement_layer(self):
+        stage = self.context.get_stage()
+        for layer_path in stage.GetRootLayer().subLayerPaths:
+            layer = Sdf.Layer.FindRelativeToLayer(stage.GetRootLayer(), layer_path)
+            if layer and layer.customLayerData.get("lightspeed_layer_type") == "replacement":
+                return layer
+        return None
+
+    async def test_remove_prim_reference_overrides_clears_references(self):
+        """Reference list edits on a replacement-layer prim spec are cleared."""
+        # Arrange
+        core = _AssetReplacementsCore("")
+        replacement_layer = self._find_replacement_layer()
+        test_path = "/RootNode/meshes/test_ref_clear"
+        prim_spec = Sdf.CreatePrimInLayer(replacement_layer, test_path)
+        prim_spec.specifier = Sdf.SpecifierOver
+        prim_spec.referenceList.Append(Sdf.Reference("./some_asset.usd"))
+
+        # Act
+        core.remove_prim_reference_overrides(test_path)
+
+        # Assert
+        prim_spec = replacement_layer.GetPrimAtPath(test_path)
+        self.assertIsNotNone(prim_spec)
+        self.assertFalse(prim_spec.hasReferences)
+
+    async def test_remove_prim_reference_overrides_preserves_attributes(self):
+        """Attribute opinions survive when reference overrides are removed."""
+        # Arrange
+        core = _AssetReplacementsCore("")
+        replacement_layer = self._find_replacement_layer()
+        test_path = "/RootNode/meshes/test_ref_preserve_attrs"
+        prim_spec = Sdf.CreatePrimInLayer(replacement_layer, test_path)
+        prim_spec.specifier = Sdf.SpecifierOver
+        prim_spec.referenceList.Append(Sdf.Reference("./some_asset.usd"))
+        attr_spec = Sdf.AttributeSpec(prim_spec, "testAttr", Sdf.ValueTypeNames.Float)
+        attr_spec.default = 42.0
+
+        # Act
+        core.remove_prim_reference_overrides(test_path)
+
+        # Assert
+        prim_spec = replacement_layer.GetPrimAtPath(test_path)
+        self.assertFalse(prim_spec.hasReferences)
+        self.assertIsNotNone(prim_spec.properties.get("testAttr"))
+        self.assertEqual(prim_spec.properties.get("testAttr").default, 42.0)
+
+    async def test_remove_prim_reference_overrides_recurses_sublayers(self):
+        """Reference overrides in sublayers of the replacement layer are also cleared."""
+        # Arrange
+        core = _AssetReplacementsCore("")
+        replacement_layer = self._find_replacement_layer()
+        sublayer = Sdf.Layer.CreateAnonymous()
+        replacement_layer.subLayerPaths.append(sublayer.identifier)
+        test_path = "/RootNode/meshes/test_ref_sublayer"
+        prim_spec = Sdf.CreatePrimInLayer(sublayer, test_path)
+        prim_spec.specifier = Sdf.SpecifierOver
+        prim_spec.referenceList.Append(Sdf.Reference("./deep_asset.usd"))
+
+        # Act
+        core.remove_prim_reference_overrides(test_path)
+
+        # Assert
+        prim_spec = sublayer.GetPrimAtPath(test_path)
+        self.assertIsNotNone(prim_spec)
+        self.assertFalse(prim_spec.hasReferences)
+
+    async def test_remove_prim_reference_overrides_skips_prim_without_references(self):
+        """Calling on a prim spec with no references does not crash or alter the spec."""
+        # Arrange
+        core = _AssetReplacementsCore("")
+        replacement_layer = self._find_replacement_layer()
+        test_path = "/RootNode/meshes/test_ref_noop"
+        prim_spec = Sdf.CreatePrimInLayer(replacement_layer, test_path)
+        prim_spec.specifier = Sdf.SpecifierOver
+        attr_spec = Sdf.AttributeSpec(prim_spec, "keepMe", Sdf.ValueTypeNames.Bool)
+        attr_spec.default = True
+
+        # Act
+        core.remove_prim_reference_overrides(test_path)
+
+        # Assert
+        prim_spec = replacement_layer.GetPrimAtPath(test_path)
+        self.assertIsNotNone(prim_spec)
+        self.assertFalse(prim_spec.hasReferences)
+        self.assertEqual(prim_spec.properties.get("keepMe").default, True)
+
+    async def test_remove_prim_reference_overrides_accepts_sdf_path(self):
+        """The method accepts Sdf.Path in addition to str."""
+        # Arrange
+        core = _AssetReplacementsCore("")
+        replacement_layer = self._find_replacement_layer()
+        test_path = Sdf.Path("/RootNode/meshes/test_ref_sdf_path")
+        prim_spec = Sdf.CreatePrimInLayer(replacement_layer, test_path)
+        prim_spec.specifier = Sdf.SpecifierOver
+        prim_spec.referenceList.Append(Sdf.Reference("./asset.usd"))
+
+        # Act
+        core.remove_prim_reference_overrides(test_path)
+
+        # Assert
+        prim_spec = replacement_layer.GetPrimAtPath(test_path)
+        self.assertFalse(prim_spec.hasReferences)
+
+    async def test_clear_reference_list_edits_command_clears_references(self):
+        """ClearReferenceListEditsCommand removes reference list edits from the target prim spec."""
+        # Arrange
+        replacement_layer = self._find_replacement_layer()
+        test_path = "/RootNode/meshes/test_cmd_clear"
+        prim_spec = Sdf.CreatePrimInLayer(replacement_layer, test_path)
+        prim_spec.specifier = Sdf.SpecifierOver
+        prim_spec.referenceList.Append(Sdf.Reference("./some_asset.usd"))
+
+        # Act
+        omni.kit.commands.execute(
+            "ClearReferenceListEditsCommand",
+            layer_identifier=replacement_layer.identifier,
+            prim_spec_path=test_path,
+        )
+
+        # Assert
+        prim_spec = replacement_layer.GetPrimAtPath(test_path)
+        self.assertIsNotNone(prim_spec)
+        self.assertFalse(prim_spec.hasReferences)
+
+    async def test_clear_reference_list_edits_command_undo_restores_references(self):
+        """Undoing ClearReferenceListEditsCommand restores the original reference list."""
+        # Arrange
+        replacement_layer = self._find_replacement_layer()
+        test_path = "/RootNode/meshes/test_cmd_undo"
+        prim_spec = Sdf.CreatePrimInLayer(replacement_layer, test_path)
+        prim_spec.specifier = Sdf.SpecifierOver
+        prim_spec.referenceList.Append(Sdf.Reference("./some_asset.usd"))
+        omni.kit.commands.execute(
+            "ClearReferenceListEditsCommand",
+            layer_identifier=replacement_layer.identifier,
+            prim_spec_path=test_path,
+        )
+
+        # Act
+        omni.kit.undo.undo()
+
+        # Assert
+        prim_spec = replacement_layer.GetPrimAtPath(test_path)
+        self.assertIsNotNone(prim_spec)
+        self.assertTrue(prim_spec.hasReferences)
+        self.assertEqual(len(prim_spec.referenceList.appendedItems), 1)
+        self.assertEqual(prim_spec.referenceList.appendedItems[0].assetPath, "./some_asset.usd")
+
+    async def test_remove_reference_skips_child_cleanup_for_cross_layer_refs(self):
+        """remove_reference skips child cleanup when intro_layer differs from edit target."""
+        # Arrange
+        core = _AssetReplacementsCore("")
+        stage = self.context.get_stage()
+        edit_target_layer = stage.GetEditTarget().GetLayer()
+        external_layer = Sdf.Layer.CreateAnonymous()
+        stage.GetRootLayer().subLayerPaths.append(external_layer.identifier)
+
+        test_path = "/RootNode/meshes/test_cross_layer_ref"
+        prim_spec = Sdf.CreatePrimInLayer(external_layer, test_path)
+        prim_spec.specifier = Sdf.SpecifierDef
+        prim_spec.typeName = "Xform"
+        ref = Sdf.Reference("./some_asset.usd")
+        prim_spec.referenceList.Append(ref)
+
+        child_path = test_path + "/child_prim"
+        child_spec = Sdf.CreatePrimInLayer(edit_target_layer, child_path)
+        child_spec.specifier = Sdf.SpecifierOver
+
+        # Act
+        core.remove_reference(stage, test_path, ref, external_layer)
+
+        # Assert
+        self.assertIsNotNone(edit_target_layer.GetPrimAtPath(test_path))
+        self.assertIsNotNone(edit_target_layer.GetPrimAtPath(child_path))
 
     async def test_is_valid_usd_file_throws(self):
         # Arrange
